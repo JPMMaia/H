@@ -1,0 +1,23 @@
+{
+    "name": "h",
+    "version-string": "0.1.0",
+    "dependencies": [
+        "catch2",
+        "nlohmann-json",
+        {
+            "name": "llvm",
+            "features": [
+                "disable-abi-breaking-checks",
+                "disable-assertions",
+                "disable-clang-static-analyzer",
+                "enable-bindings",
+                "enable-terminfo",
+                "enable-threads",
+                "enable-zlib",
+                "enable-eh",
+                "target-x86"
+            ],
+            "default-features": false
+        }
+    ]
+}
