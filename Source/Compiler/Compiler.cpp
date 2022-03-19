@@ -232,6 +232,24 @@ namespace h::compiler
         return builder.CreateCall(llvm_function, llvm_arguments, call_name);
     }
 
+    template <typename T>
+    void check_if_type_and_constant_agree(
+        Type const& type,
+        std::uint32_t number_of_bits
+    )
+    {
+        if (!std::holds_alternative<T>(type.data))
+        {
+            throw std::runtime_error{ "expression.type and expression.data type are not the same." };
+        }
+
+        T const& actual_type = std::get<T>(type.data);
+        if (actual_type.precision != number_of_bits)
+        {
+            throw std::runtime_error{ "type.precision != constant number of bits." };
+        }
+    }
+
     llvm::Value* create_value(
         Constant_expression const& expression,
         llvm::LLVMContext& context
@@ -242,24 +260,32 @@ namespace h::compiler
         if (std::holds_alternative<Integer_constant>(expression.data))
         {
             Integer_constant const& integer_constant = std::get<Integer_constant>(expression.data);
+            check_if_type_and_constant_agree<Integer_type>(expression.type, integer_constant.number_of_bits);
+
             llvm::APInt const value{ integer_constant.number_of_bits, integer_constant.value, integer_constant.is_signed };
             return llvm::ConstantInt::get(llvm_type, value);
         }
         else if (std::holds_alternative<Half_constant>(expression.data))
         {
             Half_constant const& half_constant = std::get<Half_constant>(expression.data);
+            check_if_type_and_constant_agree<Float_type>(expression.type, 16);
+
             llvm::APFloat const value{ half_constant.value };
             return llvm::ConstantFP::get(llvm_type, value);
         }
         else if (std::holds_alternative<Float_constant>(expression.data))
         {
             Float_constant const& float_constant = std::get<Float_constant>(expression.data);
+            check_if_type_and_constant_agree<Float_type>(expression.type, 32);
+
             llvm::APFloat const value{ float_constant.value };
             return llvm::ConstantFP::get(llvm_type, value);
         }
         else if (std::holds_alternative<Double_constant>(expression.data))
         {
             Double_constant const& double_constant = std::get<Double_constant>(expression.data);
+            check_if_type_and_constant_agree<Float_type>(expression.type, 64);
+
             llvm::APFloat const value{ double_constant.value };
             return llvm::ConstantFP::get(llvm_type, value);
         }
