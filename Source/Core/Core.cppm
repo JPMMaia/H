@@ -40,7 +40,7 @@ namespace h
         };
 
         Type type;
-        std::size_t index;
+        std::uint64_t id;
     };
 
     export struct Binary_expression
@@ -121,6 +121,7 @@ namespace h
 
     export struct Statement
     {
+        std::uint64_t id;
         std::pmr::string name;
         std::pmr::vector<Expression> expressions;
     };
@@ -141,6 +142,7 @@ namespace h
     {
         Function_type type;
         std::pmr::string name;
+        std::pmr::vector<std::uint64_t> argument_ids;
         std::pmr::vector<std::pmr::string> argument_names;
         Linkage linkage;
         std::pmr::vector<Statement> statements;

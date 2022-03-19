@@ -43,8 +43,8 @@ int main()
             {
                 .data = Binary_expression
                 {
-                    .left_hand_side = {.type = Variable_expression::Type::Function_argument, .index = 0 },
-                    .right_hand_side = {.type = Variable_expression::Type::Function_argument, .index = 1 },
+                    .left_hand_side = {.type = Variable_expression::Type::Function_argument, .id = 0 },
+                    .right_hand_side = {.type = Variable_expression::Type::Function_argument, .id = 1 },
                     .operation = Binary_expression::Operation::Add,
                 }
             },
@@ -52,7 +52,7 @@ int main()
             {
                 .data = Return_expression
                 {
-                    .variable = {.type = Variable_expression::Type::Temporary, .index = 0 },
+                    .variable = {.type = Variable_expression::Type::Temporary, .id = 0 },
                 }
             },
         }
@@ -75,6 +75,13 @@ int main()
                     .precision = 64
                 }
             }
+        }
+    };
+
+    std::pmr::vector<std::uint64_t> const argument_ids
+    {
+        {
+            0, 1
         }
     };
 
@@ -101,12 +108,14 @@ int main()
     {
         .type = function_type,
         .name = "add",
+        .argument_ids = argument_ids,
         .argument_names = argument_names,
         .linkage = Linkage::External,
         .statements =
         {
             Statement
             {
+                .id = 0,
                 .name = "sum",
                 .expressions = expressions
             }
@@ -114,7 +123,7 @@ int main()
     };
 
     llvm::LLVMContext llvm_context;
-    llvm::Module llvm_module{ "Module3", llvm_context };
+    llvm::Module llvm_module{ "Module", llvm_context };
 
     llvm::Function& llvm_function = compiler::create_function(llvm_context, llvm_module, function, {}, {});
 

@@ -145,6 +145,8 @@ namespace h::compiler
 
     llvm::Value* create_value(
         Variable_expression const& expression,
+        std::unordered_map<std::uint64_t, std::size_t> const& function_argument_id_to_index,
+        std::unordered_map<std::uint64_t, std::size_t> const& local_variable_id_to_index,
         std::span<llvm::Value* const> const function_arguments,
         std::span<llvm::Value* const> const local_variables,
         std::span<llvm::Value* const> const temporaries
@@ -153,11 +155,20 @@ namespace h::compiler
         switch (expression.type)
         {
         case Variable_expression::Type::Function_argument:
-            return function_arguments[expression.index];
+        {
+            std::size_t const index = function_argument_id_to_index.at(expression.id);
+            return function_arguments[index];
+        }
         case Variable_expression::Type::Local_variable:
-            return local_variables[expression.index];
+        {
+            std::size_t const index = local_variable_id_to_index.at(expression.id);
+            return local_variables[index];
+        }
         case Variable_expression::Type::Temporary:
-            return temporaries[expression.index];
+        {
+            std::size_t const index = expression.id;
+            return temporaries[index];
+        }
         default:
             throw std::runtime_error{ "Not implemented." };
         }
@@ -166,13 +177,30 @@ namespace h::compiler
     llvm::Value* create_value(
         Binary_expression const& expression,
         llvm::IRBuilder<>& builder,
+        std::unordered_map<std::uint64_t, std::size_t> const& function_argument_id_to_index,
+        std::unordered_map<std::uint64_t, std::size_t> const& local_variable_id_to_index,
         std::span<llvm::Value* const> const function_arguments,
         std::span<llvm::Value* const> const local_variables,
         std::span<llvm::Value* const> const temporaries
     )
     {
-        llvm::Value* const left_hand_side_value = create_value(expression.left_hand_side, function_arguments, local_variables, temporaries);
-        llvm::Value* const right_hand_side_value = create_value(expression.right_hand_side, function_arguments, local_variables, temporaries);
+        llvm::Value* const left_hand_side_value = create_value(
+            expression.left_hand_side,
+            function_argument_id_to_index,
+            local_variable_id_to_index,
+            function_arguments,
+            local_variables,
+            temporaries
+        );
+
+        llvm::Value* const right_hand_side_value = create_value(
+            expression.right_hand_side,
+            function_argument_id_to_index,
+            local_variable_id_to_index,
+            function_arguments,
+            local_variables,
+            temporaries
+        );
 
         if (left_hand_side_value->getType() != right_hand_side_value->getType())
         {
@@ -200,6 +228,8 @@ namespace h::compiler
         Call_expression const& expression,
         llvm::Module& module,
         llvm::IRBuilder<>& builder,
+        std::unordered_map<std::uint64_t, std::size_t> const& function_argument_id_to_index,
+        std::unordered_map<std::uint64_t, std::size_t> const& local_variable_id_to_index,
         std::span<llvm::Value* const> const function_arguments,
         std::span<llvm::Value* const> const local_variables,
         std::span<llvm::Value* const> const temporaries,
@@ -222,7 +252,14 @@ namespace h::compiler
 
         for (unsigned i = 0; i < expression.arguments.size(); ++i)
         {
-            llvm::Value* const value = create_value(expression.arguments[i], function_arguments, local_variables, temporaries);
+            llvm::Value* const value = create_value(
+                expression.arguments[i],
+                function_argument_id_to_index,
+                local_variable_id_to_index,
+                function_arguments,
+                local_variables,
+                temporaries
+            );
 
             llvm_arguments[i] = value;
         }
@@ -298,12 +335,22 @@ namespace h::compiler
     llvm::Value* create_value(
         Return_expression const& expression,
         llvm::IRBuilder<>& builder,
+        std::unordered_map<std::uint64_t, std::size_t> const& function_argument_id_to_index,
+        std::unordered_map<std::uint64_t, std::size_t> const& local_variable_id_to_index,
         std::span<llvm::Value* const> const function_arguments,
         std::span<llvm::Value* const> const local_variables,
         std::span<llvm::Value* const> const temporaries
     )
     {
-        llvm::Value* const value = create_value(expression.variable, function_arguments, local_variables, temporaries);
+        llvm::Value* const value = create_value(
+            expression.variable,
+            function_argument_id_to_index,
+            local_variable_id_to_index,
+            function_arguments,
+            local_variables,
+            temporaries
+        );
+
         return builder.CreateRet(value);
     }
 
@@ -312,6 +359,8 @@ namespace h::compiler
         llvm::LLVMContext& context,
         llvm::Module& module,
         llvm::IRBuilder<>& builder,
+        std::unordered_map<std::uint64_t, std::size_t> const& function_argument_id_to_index,
+        std::unordered_map<std::uint64_t, std::size_t> const& local_variable_id_to_index,
         std::span<llvm::Value* const> const function_arguments,
         std::span<llvm::Value* const> const local_variables,
         std::span<llvm::Value* const> const temporaries,
@@ -326,11 +375,11 @@ namespace h::compiler
 
             if constexpr (std::is_same_v<Expression_type, Binary_expression>)
             {
-                output = create_value(data, builder, function_arguments, local_variables, temporaries);
+                output = create_value(data, builder, function_argument_id_to_index, local_variable_id_to_index, function_arguments, local_variables, temporaries);
             }
             else if constexpr (std::is_same_v<Expression_type, Call_expression>)
             {
-                output = create_value(data, module, builder, function_arguments, local_variables, temporaries, temporaries_allocator);
+                output = create_value(data, module, builder, function_argument_id_to_index, local_variable_id_to_index, function_arguments, local_variables, temporaries, temporaries_allocator);
             }
             else if constexpr (std::is_same_v<Expression_type, Constant_expression>)
             {
@@ -338,11 +387,11 @@ namespace h::compiler
             }
             else if constexpr (std::is_same_v<Expression_type, Return_expression>)
             {
-                output = create_value(data, builder, function_arguments, local_variables, temporaries);
+                output = create_value(data, builder, function_argument_id_to_index, local_variable_id_to_index, function_arguments, local_variables, temporaries);
             }
             else if constexpr (std::is_same_v<Expression_type, Variable_expression>)
             {
-                output = create_value(data, function_arguments, local_variables, temporaries);
+                output = create_value(data, function_argument_id_to_index, local_variable_id_to_index, function_arguments, local_variables, temporaries);
             }
             else
             {
@@ -353,6 +402,40 @@ namespace h::compiler
         std::visit(forward_call, expression.data);
 
         return output;
+    }
+
+    std::unordered_map<std::uint64_t, std::size_t> create_function_argument_id_to_index_map(
+        std::span<std::uint64_t const> const argument_ids
+    )
+    {
+        std::unordered_map<std::uint64_t, std::size_t> map;
+        map.reserve(argument_ids.size());
+
+        for (std::size_t index = 0; index < argument_ids.size(); ++index)
+        {
+            std::uint64_t const& id = argument_ids[index];
+
+            map[id] = index;
+        }
+
+        return map;
+    }
+
+    std::unordered_map<std::uint64_t, std::size_t> create_local_variable_id_to_index_map(
+        std::span<Statement const> const statements
+    )
+    {
+        std::unordered_map<std::uint64_t, std::size_t> map;
+        map.reserve(statements.size());
+
+        for (std::size_t index = 0; index < statements.size(); ++index)
+        {
+            Statement const& statement = statements[index];
+
+            map[statement.id] = index;
+        }
+
+        return map;
     }
 
     llvm::Function& create_function(
@@ -369,6 +452,12 @@ namespace h::compiler
         llvm::BasicBlock* const block = llvm::BasicBlock::Create(llvm_context, "entry", llvm_function);
 
         llvm::IRBuilder<> llvm_builder{ block };
+
+        std::unordered_map<std::uint64_t, std::size_t> const function_argument_id_to_index =
+            create_function_argument_id_to_index_map(function.argument_ids);
+
+        std::unordered_map<std::uint64_t, std::size_t> const local_variable_id_to_index =
+            create_local_variable_id_to_index_map(function.statements);
 
         {
             std::pmr::vector<llvm::Value*> function_arguments{ temporaries_allocator };
@@ -394,6 +483,8 @@ namespace h::compiler
                         llvm_context,
                         llvm_module,
                         llvm_builder,
+                        function_argument_id_to_index,
+                        local_variable_id_to_index,
                         function_arguments,
                         local_variables,
                         temporaries,
