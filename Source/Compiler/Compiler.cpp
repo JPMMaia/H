@@ -1,16 +1,25 @@
 module;
 
+#include <llvm/IR/IRBuilder.h>
+#include "llvm/IR/LegacyPassManager.h"
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
-#include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/PassManager.h>
 #include <llvm/IR/Verifier.h>
+#include <llvm/Passes/PassBuilder.h>
+#include <llvm/Support/FileSystem.h>
+#include <llvm/Support/Host.h>
+#include <llvm/Support/TargetRegistry.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/raw_ostream.h>
+#include <llvm/Target/TargetMachine.h>
+#include <llvm/Target/TargetOptions.h>
 
 #include <format>
 #include <iostream>
 #include <memory_resource>
 #include <span>
+#include <string_view>
 #include <variant>
 #include <vector>
 
@@ -501,5 +510,67 @@ namespace h::compiler
         llvm::verifyFunction(*llvm_function);
 
         return *llvm_function;
+    }
+
+    void generate_code(
+        std::string_view const output_filename,
+        llvm::Module& llvm_module
+    )
+    {
+        // Initialize the target registry etc.
+        llvm::InitializeAllTargetInfos();
+        llvm::InitializeAllTargets();
+        llvm::InitializeAllTargetMCs();
+        llvm::InitializeAllAsmParsers();
+        llvm::InitializeAllAsmPrinters();
+
+        std::string const target_triple = llvm::sys::getDefaultTargetTriple();
+
+        llvm::Target const& target = [&]() -> llvm::Target const&
+        {
+            std::string error;
+            llvm::Target const* target = llvm::TargetRegistry::lookupTarget(target_triple, error);
+
+            // Print an error and exit if we couldn't find the requested target.
+            // This generally occurs if we've forgotten to initialise the
+            // TargetRegistry or we have a bogus target triple.
+            if (!target)
+            {
+                llvm::errs() << error;
+                throw std::runtime_error{ error };
+            }
+
+            return *target;
+        }();
+
+        char const* const cpu = "generic";
+        char const* const features = "";
+        llvm::TargetOptions const target_options;
+        llvm::Optional<llvm::Reloc::Model> const code_model;
+        llvm::TargetMachine* target_machine = target.createTargetMachine(target_triple, cpu, features, target_options, code_model);
+
+        llvm_module.setTargetTriple(target_triple);
+        llvm_module.setDataLayout(target_machine->createDataLayout());
+
+        {
+            llvm::legacy::PassManager pass_manager;
+
+            std::error_code error_code;
+            llvm::raw_fd_ostream output_stream(output_filename, error_code, llvm::sys::fs::OF_None);
+
+            if (error_code)
+            {
+                llvm::errs() << "Could not open file: " << error_code.message();
+                throw std::runtime_error{ error_code.message() };
+            }
+
+            if (target_machine->addPassesToEmitFile(pass_manager, output_stream, nullptr, llvm::CGFT_ObjectFile))
+            {
+                llvm::errs() << "target_machine can't emit a file of this type";
+                throw std::runtime_error{ error_code.message() };
+            }
+
+            pass_manager.run(llvm_module);
+        }
     }
 }
