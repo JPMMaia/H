@@ -295,7 +295,7 @@ namespace h
         return
         {
             .id = json.at("id").get<std::uint64_t>(),
-            .name = to_string(allocator)(json.at("name")),
+            .name = to_string(allocator)(json.at("statement_name")),
             .expressions = to_vector(bind_allocator(to_expression, allocator), allocator)(json.at("expressions")),
         };
     }
@@ -328,7 +328,7 @@ namespace h
         return
         {
             .type = to_function_type(json.at("type"), allocator),
-            .name = to_string(allocator)(json.at("name")),
+            .name = to_string(allocator)(json.at("function_name")),
             .argument_ids = to_vector(to<std::uint64_t>(), allocator)(json.at("argument_ids")),
             .argument_names = to_vector(to_string(allocator), allocator)(json.at("argument_names")),
             .linkage = json.at("linkage").get<Linkage>(),
