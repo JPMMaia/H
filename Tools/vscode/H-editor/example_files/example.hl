@@ -1,0 +1,69 @@
+{
+	"functions": [
+		{
+			"function_name": "foo",
+			"type": {
+				"return_type": {
+					"type": "float_type",
+					"data": {
+						"precision": 64
+					}
+				},
+				"parameter_types": [
+					{
+						"type": "float_type",
+						"data": {
+							"precision": 64
+						}
+					},
+					{
+						"type": "float_type",
+						"data": {
+							"precision": 64
+						}
+					}
+				]
+			},
+			"argument_ids": [
+				0,
+				1
+			],
+			"argument_names": [
+				"bar_0",
+				"bar_1"
+			],
+			"linkage": "external",
+			"statements": [
+				{
+					"id": 0,
+					"statement_name": "var_0",
+					"expressions": [
+						{
+							"type": "binary_expression",
+							"data": {
+								"left_hand_side": {
+									"type": "function_argument",
+									"id": 0
+								},
+								"right_hand_side": {
+									"type": "function_argument",
+									"id": 1
+								},
+								"operation": "add"
+							}
+						},
+						{
+							"type": "return_expression",
+							"data": {
+								"variable": {
+									"type": "temporary",
+									"id": 0
+								}
+							}
+						}
+					]
+				}
+			]
+		}
+	]
+}
