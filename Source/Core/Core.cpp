@@ -325,12 +325,16 @@ namespace h
         return output_stream;
     }
 
-    std::ostream& operator<<(std::ostream& output_stream, Function_type const& value)
+    std::ostream& operator<<(std::ostream& output_stream, Function_declaration const& value)
     {
         output_stream << '{';
         {
+            write(output_stream, "name", value.name);
             write(output_stream, "return_type", value.return_type);
-            write(output_stream, "parameter_types", value.parameter_types, false);
+            write(output_stream, "parameter_types", value.parameter_types);
+            write(output_stream, "parameter_ids", value.parameter_ids);
+            write(output_stream, "parameter_names", value.parameter_names);
+            write(output_stream, "linkage", value.linkage, false);
         }
         output_stream << '}';
 
@@ -356,16 +360,61 @@ namespace h
         return output_stream;
     }
 
-    std::ostream& operator<<(std::ostream& output_stream, Function const& value)
+    std::ostream& operator<<(std::ostream& output_stream, Function_definition const& value)
     {
         output_stream << '{';
         {
-            write(output_stream, "type", value.type);
             write(output_stream, "name", value.name);
-            write(output_stream, "argument_ids", value.argument_ids);
-            write(output_stream, "argument_names", value.argument_names);
-            write(output_stream, "linkage", value.linkage);
             write(output_stream, "statements", value.statements, false);
+        }
+        output_stream << '}';
+
+        return output_stream;
+    }
+
+    std::ostream& operator<<(std::ostream& output_stream, Language_version const& value)
+    {
+        output_stream << '{';
+        {
+            write(output_stream, "major", value.major);
+            write(output_stream, "minor", value.minor);
+            write(output_stream, "patch", value.patch, false);
+        }
+        output_stream << '}';
+
+        return output_stream;
+    }
+
+    std::ostream& operator<<(std::ostream& output_stream, Module_declarations const& value)
+    {
+        output_stream << '{';
+        {
+            write(output_stream, "function_declarations", value.function_declarations, false);
+        }
+        output_stream << '}';
+
+        return output_stream;
+    }
+
+    std::ostream& operator<<(std::ostream& output_stream, Module_definitions const& value)
+    {
+        output_stream << '{';
+        {
+            write(output_stream, "function_definitions", value.function_definitions, false);
+        }
+        output_stream << '}';
+
+        return output_stream;
+    }
+
+    std::ostream& operator<<(std::ostream& output_stream, Module const& value)
+    {
+        output_stream << '{';
+        {
+            write(output_stream, "language_version", value.language_version);
+            write(output_stream, "export_declarations", value.export_declarations);
+            write(output_stream, "internal_declarations", value.internal_declarations);
+            write(output_stream, "definitions", value.definitions, false);
         }
         output_stream << '}';
 

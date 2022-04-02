@@ -29,8 +29,42 @@ import h.core;
 
 namespace h::compiler
 {
+    template<typename T>
+    concept Has_name = requires(T a)
+    {
+        { a.name } -> std::convertible_to<std::pmr::string>;
+    };
+
+    template<Has_name Type>
+    std::pmr::unordered_map<std::pmr::string, std::size_t> create_name_to_index_map(
+        std::span<Type const> const values,
+        std::pmr::polymorphic_allocator<> const& output_allocator
+    )
+    {
+        std::pmr::unordered_map<std::pmr::string, std::size_t> map{ output_allocator };
+        map.reserve(values.size());
+
+        for (std::size_t index = 0; index < values.size(); ++index)
+        {
+            Type const& declaration = values[index];
+            map.insert(std::make_pair(declaration.name, index));
+        }
+
+        return map;
+    }
+
+    template<typename Type>
+    Type const& get_value(
+        std::pmr::string const& name,
+        std::span<Type const> const values,
+        std::pmr::unordered_map<std::pmr::string, std::size_t> const& map
+    )
+    {
+        return values[map.at(name)];
+    }
+
     llvm::Type* to_type(
-        llvm::LLVMContext& context,
+        llvm::LLVMContext& llvm_context,
         Type const& type
     )
     {
@@ -46,16 +80,16 @@ namespace h::compiler
                 {
                     switch (data.precision)
                     {
-                    case 16: return llvm::Type::getHalfTy(context);
-                    case 32: return llvm::Type::getFloatTy(context);
-                    case 64: return llvm::Type::getDoubleTy(context);
+                    case 16: return llvm::Type::getHalfTy(llvm_context);
+                    case 32: return llvm::Type::getFloatTy(llvm_context);
+                    case 64: return llvm::Type::getDoubleTy(llvm_context);
                     default:
                         throw std::runtime_error{ "Not implemented." };
                     }
                 }
                 else if constexpr (std::is_same_v<Subtype, Integer_type>)
                 {
-                    return llvm::Type::getIntNTy(context, data.precision);
+                    return llvm::Type::getIntNTy(llvm_context, data.precision);
                 }
                 else
                 {
@@ -70,7 +104,7 @@ namespace h::compiler
     }
 
     std::pmr::vector<llvm::Type*> to_types(
-        llvm::LLVMContext& context,
+        llvm::LLVMContext& llvm_context,
         std::span<Type const> const types,
         std::pmr::polymorphic_allocator<> const& output_allocator
     )
@@ -82,7 +116,7 @@ namespace h::compiler
             types.begin(),
             types.end(),
             output.begin(),
-            [&](Type const& type) -> llvm::Type* { return to_type(context, type); }
+            [&](Type const& type) -> llvm::Type* { return to_type(llvm_context, type); }
         );
 
         return output;
@@ -104,30 +138,34 @@ namespace h::compiler
     }
 
     llvm::FunctionType* to_function_type(
-        llvm::LLVMContext& context,
-        Function_type const& function_type,
+        llvm::LLVMContext& llvm_context,
+        Type const& return_type,
+        std::span<Type const> const parameter_types,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        llvm::Type* const return_type = to_type(context, function_type.return_type);
-        std::pmr::vector<llvm::Type*> const parameter_types = to_types(context, function_type.parameter_types, temporaries_allocator);
+        llvm::Type* const llvm_return_type = to_type(
+            llvm_context,
+            return_type
+        );
 
-        return llvm::FunctionType::get(return_type, parameter_types, false);
+        std::pmr::vector<llvm::Type*> const llvm_parameter_types = to_types(llvm_context, parameter_types, temporaries_allocator);
+
+        return llvm::FunctionType::get(llvm_return_type, llvm_parameter_types, false);
     }
 
-    llvm::Function* to_function(
-        llvm::Module& module,
-        llvm::FunctionType& function_type,
-        Function const& function
+    llvm::Function& to_function(
+        llvm::FunctionType& llvm_function_type,
+        Function_declaration const& function_declaration
     )
     {
-        llvm::GlobalValue::LinkageTypes const linkage = to_linkage(function.linkage);
+        llvm::GlobalValue::LinkageTypes const linkage = to_linkage(function_declaration.linkage);
 
         llvm::Function* const llvm_function = llvm::Function::Create(
-            &function_type,
+            &llvm_function_type,
             linkage,
-            function.name.c_str(),
-            module
+            function_declaration.name.c_str(),
+            nullptr
         );
 
         if (!llvm_function)
@@ -135,7 +173,7 @@ namespace h::compiler
             throw std::runtime_error{ "Could not create function." };
         }
 
-        if (llvm_function->arg_size() != function.argument_names.size())
+        if (llvm_function->arg_size() != function_declaration.parameter_names.size())
         {
             throw std::runtime_error{ "Function arguments size and provided argument names size do not match." };
         }
@@ -143,19 +181,19 @@ namespace h::compiler
         for (unsigned argument_index = 0; argument_index < llvm_function->arg_size(); ++argument_index)
         {
             llvm::Argument* const argument = llvm_function->getArg(argument_index);
-            std::pmr::string const& name = function.argument_names[argument_index];
+            std::pmr::string const& name = function_declaration.parameter_names[argument_index];
             argument->setName(name.c_str());
         }
 
         llvm_function->setCallingConv(llvm::CallingConv::C);
 
-        return llvm_function;
+        return *llvm_function;
     }
 
     llvm::Value* create_value(
         Variable_expression const& expression,
-        std::unordered_map<std::uint64_t, std::size_t> const& function_argument_id_to_index,
-        std::unordered_map<std::uint64_t, std::size_t> const& local_variable_id_to_index,
+        std::pmr::unordered_map<std::uint64_t, std::size_t> const& function_argument_id_to_index,
+        std::pmr::unordered_map<std::uint64_t, std::size_t> const& local_variable_id_to_index,
         std::span<llvm::Value* const> const function_arguments,
         std::span<llvm::Value* const> const local_variables,
         std::span<llvm::Value* const> const temporaries
@@ -185,9 +223,9 @@ namespace h::compiler
 
     llvm::Value* create_value(
         Binary_expression const& expression,
-        llvm::IRBuilder<>& builder,
-        std::unordered_map<std::uint64_t, std::size_t> const& function_argument_id_to_index,
-        std::unordered_map<std::uint64_t, std::size_t> const& local_variable_id_to_index,
+        llvm::IRBuilder<>& llvm_builder,
+        std::pmr::unordered_map<std::uint64_t, std::size_t> const& function_argument_id_to_index,
+        std::pmr::unordered_map<std::uint64_t, std::size_t> const& local_variable_id_to_index,
         std::span<llvm::Value* const> const function_arguments,
         std::span<llvm::Value* const> const local_variables,
         std::span<llvm::Value* const> const temporaries
@@ -219,15 +257,15 @@ namespace h::compiler
         switch (expression.operation)
         {
         case Binary_expression::Operation::Add:
-            return builder.CreateAdd(left_hand_side_value, right_hand_side_value, "addtmp");
+            return llvm_builder.CreateAdd(left_hand_side_value, right_hand_side_value, "addtmp");
         case Binary_expression::Operation::Subtract:
-            return builder.CreateSub(left_hand_side_value, right_hand_side_value, "subtmp");
+            return llvm_builder.CreateSub(left_hand_side_value, right_hand_side_value, "subtmp");
         case Binary_expression::Operation::Multiply:
-            return builder.CreateMul(left_hand_side_value, right_hand_side_value, "multmp");
+            return llvm_builder.CreateMul(left_hand_side_value, right_hand_side_value, "multmp");
         case Binary_expression::Operation::Signed_divide:
-            return builder.CreateSDiv(left_hand_side_value, right_hand_side_value, "sdivtmp");
+            return llvm_builder.CreateSDiv(left_hand_side_value, right_hand_side_value, "sdivtmp");
         case Binary_expression::Operation::Unsigned_divide:
-            return builder.CreateUDiv(left_hand_side_value, right_hand_side_value, "udivtmp");
+            return llvm_builder.CreateUDiv(left_hand_side_value, right_hand_side_value, "udivtmp");
         default:
             throw std::runtime_error{ "Not implemented." };
         }
@@ -235,17 +273,17 @@ namespace h::compiler
 
     llvm::Value* create_value(
         Call_expression const& expression,
-        llvm::Module& module,
-        llvm::IRBuilder<>& builder,
-        std::unordered_map<std::uint64_t, std::size_t> const& function_argument_id_to_index,
-        std::unordered_map<std::uint64_t, std::size_t> const& local_variable_id_to_index,
+        llvm::Module const& llvm_module,
+        llvm::IRBuilder<>& llvm_builder,
+        std::pmr::unordered_map<std::uint64_t, std::size_t> const& function_argument_id_to_index,
+        std::pmr::unordered_map<std::uint64_t, std::size_t> const& local_variable_id_to_index,
         std::span<llvm::Value* const> const function_arguments,
         std::span<llvm::Value* const> const local_variables,
         std::span<llvm::Value* const> const temporaries,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        llvm::Function* const llvm_function = module.getFunction(expression.function_name.c_str());
+        llvm::Function* const llvm_function = llvm_module.getFunction(expression.function_name.c_str());
         if (!llvm_function)
         {
             throw std::runtime_error{ "Unknown function referenced." };
@@ -275,7 +313,7 @@ namespace h::compiler
 
         std::string const call_name = std::format("call_{}", expression.function_name);
 
-        return builder.CreateCall(llvm_function, llvm_arguments, call_name);
+        return llvm_builder.CreateCall(llvm_function, llvm_arguments, call_name);
     }
 
     template <typename T>
@@ -298,10 +336,10 @@ namespace h::compiler
 
     llvm::Value* create_value(
         Constant_expression const& expression,
-        llvm::LLVMContext& context
+        llvm::LLVMContext& llvm_context
     )
     {
-        llvm::Type* const llvm_type = to_type(context, expression.type);
+        llvm::Type* const llvm_type = to_type(llvm_context, expression.type);
 
         if (std::holds_alternative<Integer_constant>(expression.data))
         {
@@ -343,9 +381,9 @@ namespace h::compiler
 
     llvm::Value* create_value(
         Return_expression const& expression,
-        llvm::IRBuilder<>& builder,
-        std::unordered_map<std::uint64_t, std::size_t> const& function_argument_id_to_index,
-        std::unordered_map<std::uint64_t, std::size_t> const& local_variable_id_to_index,
+        llvm::IRBuilder<>& llvm_builder,
+        std::pmr::unordered_map<std::uint64_t, std::size_t> const& function_argument_id_to_index,
+        std::pmr::unordered_map<std::uint64_t, std::size_t> const& local_variable_id_to_index,
         std::span<llvm::Value* const> const function_arguments,
         std::span<llvm::Value* const> const local_variables,
         std::span<llvm::Value* const> const temporaries
@@ -360,16 +398,16 @@ namespace h::compiler
             temporaries
         );
 
-        return builder.CreateRet(value);
+        return llvm_builder.CreateRet(value);
     }
 
     llvm::Value* create_value(
         Expression const& expression,
-        llvm::LLVMContext& context,
-        llvm::Module& module,
-        llvm::IRBuilder<>& builder,
-        std::unordered_map<std::uint64_t, std::size_t> const& function_argument_id_to_index,
-        std::unordered_map<std::uint64_t, std::size_t> const& local_variable_id_to_index,
+        llvm::LLVMContext& llvm_context,
+        llvm::Module const& llvm_module,
+        llvm::IRBuilder<>& llvm_builder,
+        std::pmr::unordered_map<std::uint64_t, std::size_t> const& function_argument_id_to_index,
+        std::pmr::unordered_map<std::uint64_t, std::size_t> const& local_variable_id_to_index,
         std::span<llvm::Value* const> const function_arguments,
         std::span<llvm::Value* const> const local_variables,
         std::span<llvm::Value* const> const temporaries,
@@ -384,19 +422,19 @@ namespace h::compiler
 
             if constexpr (std::is_same_v<Expression_type, Binary_expression>)
             {
-                output = create_value(data, builder, function_argument_id_to_index, local_variable_id_to_index, function_arguments, local_variables, temporaries);
+                output = create_value(data, llvm_builder, function_argument_id_to_index, local_variable_id_to_index, function_arguments, local_variables, temporaries);
             }
             else if constexpr (std::is_same_v<Expression_type, Call_expression>)
             {
-                output = create_value(data, module, builder, function_argument_id_to_index, local_variable_id_to_index, function_arguments, local_variables, temporaries, temporaries_allocator);
+                output = create_value(data, llvm_module, llvm_builder, function_argument_id_to_index, local_variable_id_to_index, function_arguments, local_variables, temporaries, temporaries_allocator);
             }
             else if constexpr (std::is_same_v<Expression_type, Constant_expression>)
             {
-                output = create_value(data, context);
+                output = create_value(data, llvm_context);
             }
             else if constexpr (std::is_same_v<Expression_type, Return_expression>)
             {
-                output = create_value(data, builder, function_argument_id_to_index, local_variable_id_to_index, function_arguments, local_variables, temporaries);
+                output = create_value(data, llvm_builder, function_argument_id_to_index, local_variable_id_to_index, function_arguments, local_variables, temporaries);
             }
             else if constexpr (std::is_same_v<Expression_type, Variable_expression>)
             {
@@ -413,11 +451,12 @@ namespace h::compiler
         return output;
     }
 
-    std::unordered_map<std::uint64_t, std::size_t> create_function_argument_id_to_index_map(
-        std::span<std::uint64_t const> const argument_ids
+    std::pmr::unordered_map<std::uint64_t, std::size_t> create_function_argument_id_to_index_map(
+        std::span<std::uint64_t const> const argument_ids,
+        std::pmr::polymorphic_allocator<> const& output_allocator
     )
     {
-        std::unordered_map<std::uint64_t, std::size_t> map;
+        std::pmr::unordered_map<std::uint64_t, std::size_t> map{ output_allocator };
         map.reserve(argument_ids.size());
 
         for (std::size_t index = 0; index < argument_ids.size(); ++index)
@@ -430,11 +469,12 @@ namespace h::compiler
         return map;
     }
 
-    std::unordered_map<std::uint64_t, std::size_t> create_local_variable_id_to_index_map(
-        std::span<Statement const> const statements
+    std::pmr::unordered_map<std::uint64_t, std::size_t> create_local_variable_id_to_index_map(
+        std::span<Statement const> const statements,
+        std::pmr::polymorphic_allocator<> const& output_allocator
     )
     {
-        std::unordered_map<std::uint64_t, std::size_t> map;
+        std::pmr::unordered_map<std::uint64_t, std::size_t> map{ output_allocator };
         map.reserve(statements.size());
 
         for (std::size_t index = 0; index < statements.size(); ++index)
@@ -447,40 +487,59 @@ namespace h::compiler
         return map;
     }
 
-    llvm::Function& create_function(
+    llvm::Function& create_function_declaration(
         llvm::LLVMContext& llvm_context,
-        llvm::Module& llvm_module,
-        Function const& function,
-        std::pmr::polymorphic_allocator<> const& output_allocator,
+        Function_declaration const& function_declaration,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        llvm::FunctionType* const llvm_function_type = to_function_type(llvm_context, function.type, temporaries_allocator);
-        llvm::Function* const llvm_function = to_function(llvm_module, *llvm_function_type, function);
+        llvm::FunctionType* const llvm_function_type = to_function_type(
+            llvm_context,
+            function_declaration.return_type,
+            function_declaration.parameter_types,
+            temporaries_allocator
+        );
 
-        llvm::BasicBlock* const block = llvm::BasicBlock::Create(llvm_context, "entry", llvm_function);
+        llvm::Function& llvm_function = to_function(
+            *llvm_function_type,
+            function_declaration
+        );
+
+        return llvm_function;
+    }
+
+    void create_function_definition(
+        llvm::LLVMContext& llvm_context,
+        llvm::Module const& llvm_module,
+        llvm::Function& llvm_function,
+        Function_declaration const& function_declaration,
+        Function_definition const& function_definition,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        llvm::BasicBlock* const block = llvm::BasicBlock::Create(llvm_context, "entry", &llvm_function);
 
         llvm::IRBuilder<> llvm_builder{ block };
 
-        std::unordered_map<std::uint64_t, std::size_t> const function_argument_id_to_index =
-            create_function_argument_id_to_index_map(function.argument_ids);
+        std::pmr::unordered_map<std::uint64_t, std::size_t> const function_argument_id_to_index =
+            create_function_argument_id_to_index_map(function_declaration.parameter_ids, temporaries_allocator);
 
-        std::unordered_map<std::uint64_t, std::size_t> const local_variable_id_to_index =
-            create_local_variable_id_to_index_map(function.statements);
+        std::pmr::unordered_map<std::uint64_t, std::size_t> const local_variable_id_to_index =
+            create_local_variable_id_to_index_map(function_definition.statements, temporaries_allocator);
 
         {
             std::pmr::vector<llvm::Value*> function_arguments{ temporaries_allocator };
-            function_arguments.reserve(llvm_function->arg_size());
+            function_arguments.reserve(llvm_function.arg_size());
 
-            for (auto& argument : llvm_function->args())
+            for (auto& argument : llvm_function.args())
             {
                 function_arguments.push_back(&argument);
             }
 
             std::pmr::vector<llvm::Value*> local_variables{ temporaries_allocator };
-            local_variables.reserve(function.statements.size());
+            local_variables.reserve(function_definition.statements.size());
 
-            for (Statement const& statement : function.statements)
+            for (Statement const& statement : function_definition.statements)
             {
                 std::pmr::vector<llvm::Value*> temporaries{ temporaries_allocator };
                 temporaries.reserve(statement.expressions.size());
@@ -507,9 +566,71 @@ namespace h::compiler
             }
         }
 
-        llvm::verifyFunction(*llvm_function);
+        llvm::verifyFunction(llvm_function);
+    }
 
-        return *llvm_function;
+    void add_module_export_declarations(
+        llvm::LLVMContext& llvm_context,
+        llvm::Module& llvm_module,
+        Module_declarations const& module_declarations,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        {
+            auto& llvm_function_list = llvm_module.getFunctionList();
+
+            for (Function_declaration const& declaration : module_declarations.function_declarations)
+            {
+                llvm::Function& llvm_function = create_function_declaration(
+                    llvm_context,
+                    declaration,
+                    temporaries_allocator
+                );
+
+                llvm_function_list.push_back(&llvm_function);
+            }
+        }
+    }
+
+    void add_module_definitions(
+        llvm::LLVMContext& llvm_context,
+        llvm::Module& llvm_module,
+        Module_declarations const& module_declarations,
+        Module_definitions const& module_definitions,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::unordered_map<std::pmr::string, std::size_t> const function_name_to_declaration_index_map =
+            create_name_to_index_map<Function_declaration>(
+                module_declarations.function_declarations,
+                temporaries_allocator
+                );
+
+        for (Function_definition const& definition : module_definitions.function_definitions)
+        {
+            llvm::Function* llvm_function = llvm_module.getFunction(definition.name.c_str());
+            if (!llvm_function)
+            {
+                std::string_view const function_name = definition.name;
+                std::string_view const module_name = llvm_module.getName();
+                throw std::runtime_error{ std::format("Function '{}' not found in module '{}'.", function_name, module_name) };
+            }
+
+            Function_declaration const& declaration = get_value<Function_declaration>(
+                definition.name,
+                module_declarations.function_declarations,
+                function_name_to_declaration_index_map
+                );
+
+            create_function_definition(
+                llvm_context,
+                llvm_module,
+                *llvm_function,
+                declaration,
+                definition,
+                temporaries_allocator
+            );
+        }
     }
 
     void generate_code(

@@ -171,15 +171,6 @@ namespace h
         friend std::ostream& operator<<(std::ostream& output_stream, Statement const& value);
     };
 
-    export struct Function_type
-    {
-        Type return_type;
-        std::pmr::vector<Type> parameter_types;
-        
-        friend auto operator<=>(Function_type const&, Function_type const&) = default;
-        friend std::ostream& operator<<(std::ostream& output_stream, Function_type const& value);
-    };
-
     export enum class Linkage
     {
         External,
@@ -188,16 +179,62 @@ namespace h
 
     std::ostream& operator<<(std::ostream& output_stream, Linkage value);
 
-    export struct Function
+    export struct Function_declaration
     {
-        Function_type type;
         std::pmr::string name;
-        std::pmr::vector<std::uint64_t> argument_ids;
-        std::pmr::vector<std::pmr::string> argument_names;
+        Type return_type;
+        std::pmr::vector<Type> parameter_types;
+        std::pmr::vector<std::uint64_t> parameter_ids;
+        std::pmr::vector<std::pmr::string> parameter_names;
         Linkage linkage;
+        
+        friend auto operator<=>(Function_declaration const&, Function_declaration const&) = default;
+        friend std::ostream& operator<<(std::ostream& output_stream, Function_declaration const& value);
+    };
+
+    export struct Function_definition
+    {
+        std::pmr::string name;
         std::pmr::vector<Statement> statements;
         
-        friend auto operator<=>(Function const&, Function const&) = default;
-        friend std::ostream& operator<<(std::ostream& output_stream, Function const& value);
+        friend auto operator<=>(Function_definition const&, Function_definition const&) = default;
+        friend std::ostream& operator<<(std::ostream& output_stream, Function_definition const& value);
+    };
+
+    export struct Language_version
+    {
+        std::uint32_t major;
+        std::uint32_t minor;
+        std::uint32_t patch;
+
+        friend auto operator<=>(Language_version const&, Language_version const&) = default;
+        friend std::ostream& operator<<(std::ostream& output_stream, Language_version const& value);
+    };
+
+    export struct Module_declarations
+    {
+        std::pmr::vector<Function_declaration> function_declarations;
+
+        friend auto operator<=>(Module_declarations const&, Module_declarations const&) = default;
+        friend std::ostream& operator<<(std::ostream& output_stream, Module_declarations const& value);
+    };
+
+    export struct Module_definitions
+    {
+        std::pmr::vector<Function_definition> function_definitions;
+
+        friend auto operator<=>(Module_definitions const&, Module_definitions const&) = default;
+        friend std::ostream& operator<<(std::ostream& output_stream, Module_definitions const& value);
+    };
+
+    export struct Module
+    {
+        Language_version language_version;
+        Module_declarations export_declarations;
+        Module_declarations internal_declarations;
+        Module_definitions definitions;
+
+        friend auto operator<=>(Module const&, Module const&) = default;
+        friend std::ostream& operator<<(std::ostream& output_stream, Module const& value);
     };
 }
