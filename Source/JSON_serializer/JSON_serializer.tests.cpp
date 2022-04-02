@@ -5,13 +5,69 @@
 #include <memory_resource>
 #include <string>
 
-#include <nlohmann/json.hpp>
+#include <rapidjson/reader.h>
 
 import h.core;
 import h.json_serializer;
 
 namespace h
 {
+    TEST_CASE("Read Language_version")
+    {
+        std::pmr::string const json_data = R"JSON(
+            {
+                "major": 1,
+                "minor": 2,
+                "patch": 3
+            }
+        )JSON";
+
+        Language_version const expected
+        {
+            .major = 1,
+            .minor = 2,
+            .patch = 3,
+        };
+
+        rapidjson::Reader reader;
+        rapidjson::StringStream input_stream{ json_data.c_str() };
+        std::optional<Language_version> const output = h::json::read_language_version(reader, input_stream);
+
+        REQUIRE(output.has_value());
+
+        Language_version const& actual = output.value();
+        CHECK(actual == expected);
+    }
+
+    TEST_CASE("Read Type with Integer_type")
+    {
+        std::pmr::string const json_data = R"JSON(
+            {
+                "integer_type": {
+                    "precision": 32
+                }
+            }
+        )JSON";
+
+        Type const expected
+        {
+            .data = Integer_type
+            {
+                .precision = 32
+            }
+        };
+
+        rapidjson::Reader reader;
+        rapidjson::StringStream input_stream{ json_data.c_str() };
+        std::optional<Type> const output = h::json::read_type(reader, input_stream);
+
+        REQUIRE(output.has_value());
+
+        Type const& actual = output.value();
+        CHECK(actual == expected);
+    }
+
+/*
     h::Function create_expected_function()
     {
         std::pmr::vector<Expression> expressions
@@ -179,5 +235,5 @@ namespace h
         h::Function const actual_function = h::to_function(json, {});
 
         CHECK(actual_function == expected_function);
-    }
+    }*/
 }

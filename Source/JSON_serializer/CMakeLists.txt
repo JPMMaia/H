@@ -1,11 +1,12 @@
 add_library(H_JSON_serializer)
+add_library(H::JSON_serializer ALIAS H_JSON_serializer)
 
 target_compile_features(H_JSON_serializer PUBLIC cxx_std_23)
 
 target_link_libraries(H_JSON_serializer PUBLIC H::Core)
 
-find_package(nlohmann_json REQUIRED)
-target_link_libraries(H_JSON_serializer PUBLIC nlohmann_json::nlohmann_json)
+find_package(RapidJSON CONFIG REQUIRED)
+target_link_libraries(H_JSON_serializer PRIVATE rapidjson)
 
 target_sources(H_JSON_serializer PRIVATE
     "JSON_serializer.cppm"
