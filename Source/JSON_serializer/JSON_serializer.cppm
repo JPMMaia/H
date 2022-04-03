@@ -7,6 +7,7 @@ module;
 #include <format>
 #include <iostream>
 #include <memory_resource>
+#include <span>
 #include <string>
 #include <type_traits>
 #include <variant>
@@ -20,7 +21,354 @@ import h.core;
 
 namespace h::json
 {
-    export Variable_expression::Type read_variable_expression_type(std::string_view const value)
+    template<typename Output_type, typename Value_type>
+    bool read_value(
+        Output_type& output,
+        std::string_view const key,
+        Value_type const value
+    )
+    {
+        if constexpr (std::is_arithmetic_v<Output_type> && std::is_arithmetic_v<Value_type>)
+        {
+            output = static_cast<Output_type>(value);
+            return true;
+        }
+        else if constexpr (std::is_same_v<Output_type, std::pmr::string> && std::is_same_v<Value_type, std::string_view>)
+        {
+            output = value;
+            return true;
+        }
+        else
+        {
+            std::cerr << std::format("Incompatible type found while parsing key '{}'.\n", key);
+            return false;
+        }
+    }
+
+    export template<typename Enum_type, typename Value_type>
+        bool read_enum(
+            Enum_type& output,
+            Value_type const value
+        );
+
+    export template<typename Enum_type, typename Value_type>
+        bool read_enum<Enum_type, Value_type>(
+            Enum_type& output,
+            Value_type const value
+            )
+    {
+        return false;
+    }
+
+#define BEGIN_READ_ENUM(enum_type)\
+    export template<>\
+    bool read_enum<enum_type>(enum_type& output, std::string_view const value)\
+    {
+
+#define READ_ENUM_VALUE(enum_value, enum_name)\
+        if (value == enum_name)\
+        {\
+            output = enum_value;\
+            return true;\
+        }
+
+#define END_READ_ENUM(enum_type)\
+        std::cerr << std::format("Enum '{}': value '{}' is not known.\n", "enum_type", value);\
+        return false;\
+    }
+
+    BEGIN_READ_ENUM(Variable_expression::Type);
+    READ_ENUM_VALUE(Variable_expression::Type::Function_argument, "function_argument");
+    READ_ENUM_VALUE(Variable_expression::Type::Local_variable, "local_variable");
+    READ_ENUM_VALUE(Variable_expression::Type::Temporary, "temporary");
+    END_READ_ENUM(Variable_expression::Type);
+
+    BEGIN_READ_ENUM(Binary_expression::Operation);
+    READ_ENUM_VALUE(Binary_expression::Operation::Add, "add");
+    READ_ENUM_VALUE(Binary_expression::Operation::Subtract, "subtract");
+    READ_ENUM_VALUE(Binary_expression::Operation::Multiply, "multiply");
+    READ_ENUM_VALUE(Binary_expression::Operation::Signed_divide, "signed_divide");
+    READ_ENUM_VALUE(Binary_expression::Operation::Unsigned_divide, "unsigned_divide");
+    READ_ENUM_VALUE(Binary_expression::Operation::Less_than, "less_than");
+    END_READ_ENUM(Binary_expression::Operation);
+
+    export template<typename Enum_type>
+        Enum_type read_enum(std::string_view const value)
+    {
+        Enum_type output;
+        if (!read_enum(output, value))
+            throw std::runtime_error{ "Failed to read enum!" };
+        return output;
+    }
+
+    template<typename Struct_type, typename Value_type>
+    bool read_struct(
+        Struct_type& output,
+        std::span<std::pmr::string const> const object_stack,
+        std::string_view const key,
+        Value_type const value
+    )
+    {
+        if constexpr (std::is_same_v<Struct_type, Integer_type>)
+        {
+            if (key == "precision")
+            {
+                return read_value(output.precision, key, value);
+            }
+        }
+        else if constexpr (std::is_same_v<Struct_type, Float_type>)
+        {
+            if (key == "precision")
+            {
+                return read_value(output.precision, key, value);
+            }
+        }
+        else if constexpr (std::is_same_v<Struct_type, Type>)
+        {
+            if (object_stack.size() == 1)
+            {
+                if (key == "integer_type")
+                {
+                    output.data = Integer_type{};
+                    return true;
+                }
+                else if (key == "float_type")
+                {
+                    output.data = Float_type{};
+                    return true;
+                }
+            }
+            else if (object_stack.size() >= 2)
+            {
+                std::string_view const current_object = object_stack[1];
+
+                if (current_object == "integer_type")
+                {
+                    return read_struct(std::get<Integer_type>(output.data), object_stack, key, value);
+                }
+                else if (current_object == "float_type")
+                {
+                    return read_struct(std::get<Float_type>(output.data), object_stack, key, value);
+                }
+            }
+        }
+        else if constexpr (std::is_same_v<Struct_type, Variable_expression>)
+        {
+            if (key == "type")
+            {
+                return read_enum(output.type, value);
+            }
+            else if (key == "id")
+            {
+                return read_value(output.id, key, value);
+            }
+        }
+        else if constexpr (std::is_same_v<Struct_type, Binary_expression>)
+        {
+            if (object_stack.size() == 1)
+            {
+                if (key == "operation")
+                {
+                    return read_enum(output.operation, value);
+                }
+                else if (key == "left_hand_side")
+                {
+                    return true;
+                }
+                else if (key == "right_hand_side")
+                {
+                    return true;
+                }
+            }
+            else if (object_stack.size() >= 2)
+            {
+                std::string_view const current_object = object_stack[1];
+
+                if (current_object == "left_hand_side")
+                {
+                    return read_struct(output.left_hand_side, { object_stack.begin() + 1, object_stack.end() }, key, value);
+                }
+                else if (current_object == "right_hand_side")
+                {
+                    return read_struct(output.right_hand_side, { object_stack.begin() + 1, object_stack.end() }, key, value);
+                }
+            }
+        }
+        else if constexpr (std::is_same_v<Struct_type, Call_expression>)
+        {
+            if (object_stack.size() == 1)
+            {
+                if (key == "function_name")
+                {
+                    return read_value(output.function_name, key, value);
+                }
+                else if (key == "arguments")
+                {
+                    return true;
+                }
+            }
+            else if (object_stack.size() >= 2)
+            {
+                std::string_view const current_object = object_stack[1];
+
+                if (current_object == "arguments")
+                {
+                    if (object_stack.size() == 2)
+                    {
+                        if constexpr (std::is_integral_v<Value_type>)
+                        {
+                            if (key == "length")
+                            {
+                                output.arguments.reserve(value);
+                                return true;
+                            }
+                        }
+                        else
+                        {
+                            output.arguments.emplace_back();
+                            return true;
+                        }
+                    }
+                    else if (object_stack.size() >= 3)
+                    {
+                        read_struct(output.arguments.back(), object_stack, key, value);
+                        return true;
+                    }
+                }
+            }
+        }
+        else if constexpr (std::is_same_v<Struct_type, Language_version>)
+        {
+            if (key == "major")
+            {
+                return read_value(output.major, key, value);
+            }
+            else if (key == "minor")
+            {
+                return read_value(output.minor, key, value);
+            }
+            else if (key == "patch")
+            {
+                return read_value(output.patch, key, value);
+            }
+        }
+
+        if (key == "root")
+        {
+            return true;
+        }
+        else
+        {
+            std::cerr << std::format("Error while parsing struct '{}', key '{}' with value '{}'.\n", object_stack.back(), key, value);
+            return false;
+        }
+    }
+
+    /*void example_0()
+    {
+        Integer_type output = {};
+        std::pmr::vector<std::pmr::string> object_stack;
+
+        read_struct(output, object_stack, "precision", 32);
+    }
+
+    void example_1()
+    {
+        Binary_expression output = {};
+        std::pmr::vector<std::pmr::string> object_stack;
+
+        object_stack.push_back("left_hand_side");
+        read_struct(output, object_stack, "type", Variable_expression::Type::Local_variable);
+        read_struct(output, object_stack, "id", 3);
+        object_stack.pop_back();
+
+        object_stack.push_back("right_hand_side");
+        read_struct(output, object_stack, "type", Variable_expression::Type::Local_variable);
+        read_struct(output, object_stack, "id", 1);
+        object_stack.pop_back();
+
+        read_struct(output, object_stack, "operation", Binary_expression::Operation::Add);
+    }*/
+
+    template<typename Struct_type>
+    struct Handler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Handler<Struct_type>>
+    {
+        Struct_type output = {};
+        std::pmr::string current_key = "root";
+        std::pmr::vector<std::pmr::string> object_stack;
+
+        bool StartObject()
+        {
+            bool const result = read_struct(this->output, this->object_stack, this->current_key, nullptr);
+            this->object_stack.push_back(this->current_key);
+            return result;
+        }
+
+        bool EndObject(rapidjson::SizeType const member_count)
+        {
+            this->object_stack.pop_back();
+            return true;
+        }
+
+        bool Key(char const* const name, rapidjson::SizeType const length, bool const copy)
+        {
+            this->current_key = { name, length };
+            return true;
+        }
+
+        bool Null()
+        {
+            return false;
+        }
+
+        bool Bool(bool const boolean)
+        {
+            return read_struct(this->output, this->object_stack, this->current_key, boolean);
+        }
+
+        bool Int(int const number)
+        {
+            return read_struct(this->output, this->object_stack, this->current_key, number);
+        }
+
+        bool Uint(unsigned const number)
+        {
+            return read_struct(this->output, this->object_stack, this->current_key, number);
+        }
+
+        bool Int64(std::int64_t const number)
+        {
+            return read_struct(this->output, this->object_stack, this->current_key, number);
+        }
+
+        bool Uint64(std::uint64_t const number)
+        {
+            return read_struct(this->output, this->object_stack, this->current_key, number);
+        }
+
+        bool Double(double const number)
+        {
+            return read_struct(this->output, this->object_stack, this->current_key, number);
+        }
+
+        bool String(const char* const str, rapidjson::SizeType const length, bool const copy)
+        {
+            std::string_view const string = { str, length };
+            return read_struct(this->output, this->object_stack, this->current_key, string);
+        }
+
+        bool StartArray()
+        {
+            return true;
+        }
+
+        bool EndArray(rapidjson::SizeType elementCount)
+        {
+            return true;
+        }
+    };
+
+    /*export Variable_expression::Type read_variable_expression_type(std::string_view const value)
     {
         if (value == "function_argument")
             return Variable_expression::Type::Function_argument;
@@ -594,7 +942,7 @@ namespace h::json
                 return false;
             }
         };
-    }
+    }*/
 
     export template<typename Type, typename Input_stream>
         std::optional<Type> read(
@@ -618,6 +966,6 @@ namespace h::json
             reader.IterativeParseNext<parse_flags>(input_stream, handler);
         }
 
-        return handler.value;
+        return handler.output;
     }
 }

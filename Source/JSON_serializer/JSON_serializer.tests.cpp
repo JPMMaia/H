@@ -97,9 +97,9 @@ namespace h
 
     TEST_CASE("Read Variable_expression::Type")
     {
-        CHECK(h::json::read_variable_expression_type("function_argument") == Variable_expression::Type::Function_argument);
-        CHECK(h::json::read_variable_expression_type("local_variable") == Variable_expression::Type::Local_variable);
-        CHECK(h::json::read_variable_expression_type("temporary") == Variable_expression::Type::Temporary);
+        CHECK(h::json::read_enum<Variable_expression::Type>("function_argument") == Variable_expression::Type::Function_argument);
+        CHECK(h::json::read_enum<Variable_expression::Type>("local_variable") == Variable_expression::Type::Local_variable);
+        CHECK(h::json::read_enum<Variable_expression::Type>("temporary") == Variable_expression::Type::Temporary);
     }
 
     TEST_CASE("Read Variable_expression")
@@ -130,12 +130,12 @@ namespace h
 
     TEST_CASE("Read Binary_expression::Operation")
     {
-        CHECK(h::json::read_binary_expression_operation("add") == Binary_expression::Operation::Add);
-        CHECK(h::json::read_binary_expression_operation("subtract") == Binary_expression::Operation::Subtract);
-        CHECK(h::json::read_binary_expression_operation("multiply") == Binary_expression::Operation::Multiply);
-        CHECK(h::json::read_binary_expression_operation("signed_divide") == Binary_expression::Operation::Signed_divide);
-        CHECK(h::json::read_binary_expression_operation("unsigned_divide") == Binary_expression::Operation::Unsigned_divide);
-        CHECK(h::json::read_binary_expression_operation("less_than") == Binary_expression::Operation::Less_than);
+        CHECK(h::json::read_enum<Binary_expression::Operation>("add") == Binary_expression::Operation::Add);
+        CHECK(h::json::read_enum<Binary_expression::Operation>("subtract") == Binary_expression::Operation::Subtract);
+        CHECK(h::json::read_enum<Binary_expression::Operation>("multiply") == Binary_expression::Operation::Multiply);
+        CHECK(h::json::read_enum<Binary_expression::Operation>("signed_divide") == Binary_expression::Operation::Signed_divide);
+        CHECK(h::json::read_enum<Binary_expression::Operation>("unsigned_divide") == Binary_expression::Operation::Unsigned_divide);
+        CHECK(h::json::read_enum<Binary_expression::Operation>("less_than") == Binary_expression::Operation::Less_than);
     }
 
     TEST_CASE("Read Binary_expression")
@@ -176,6 +176,57 @@ namespace h
         REQUIRE(output.has_value());
 
         Binary_expression const& actual = output.value();
+        CHECK(actual == expected);
+    }
+
+    TEST_CASE("Read Call_expression")
+    {
+        std::pmr::string const json_data = R"JSON(
+            {
+                "function_name": "foo",
+                "arguments": {
+                    "length": 2,
+                    "elements": [
+                        {
+                            "type": "local_variable",
+                            "id": 3
+                        },
+                        {
+                            "type": "temporary",
+                            "id": 1
+                        }
+                    ]
+                }
+            }
+        )JSON";
+
+        std::pmr::vector<Variable_expression> arguments
+        {
+            Variable_expression
+            {
+                .type = Variable_expression::Type::Local_variable,
+                .id = 3
+            },
+            Variable_expression
+            {
+                .type = Variable_expression::Type::Temporary,
+                .id = 1
+            }
+        };
+
+        Call_expression const expected
+        {
+            .function_name = "foo",
+            .arguments = std::move(arguments)
+        };
+
+        rapidjson::Reader reader;
+        rapidjson::StringStream input_stream{ json_data.c_str() };
+        std::optional<Call_expression> const output = h::json::read<Call_expression>(reader, input_stream);
+
+        REQUIRE(output.has_value());
+
+        Call_expression const& actual = output.value();
         CHECK(actual == expected);
     }
 
