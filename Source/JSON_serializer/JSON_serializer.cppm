@@ -2,8 +2,10 @@ module;
 
 #include <bitset>
 #include <cassert>
+#include <concepts>
 #include <cstddef>
 #include <format>
+#include <iostream>
 #include <memory_resource>
 #include <string>
 #include <type_traits>
@@ -18,6 +20,36 @@ import h.core;
 
 namespace h::json
 {
+    export Variable_expression::Type read_variable_expression_type(std::string_view const value)
+    {
+        if (value == "function_argument")
+            return Variable_expression::Type::Function_argument;
+        else if (value == "local_variable")
+            return Variable_expression::Type::Local_variable;
+        else if (value == "temporary")
+            return Variable_expression::Type::Temporary;
+        else
+            throw std::runtime_error{ std::format("Did not expect '{}' as Variable_expression::Type.\n", value) };
+    }
+
+    export Binary_expression::Operation read_binary_expression_operation(std::string_view const value)
+    {
+        if (value == "add")
+            return Binary_expression::Operation::Add;
+        if (value == "subtract")
+            return Binary_expression::Operation::Subtract;
+        if (value == "multiply")
+            return Binary_expression::Operation::Multiply;
+        if (value == "signed_divide")
+            return Binary_expression::Operation::Signed_divide;
+        if (value == "unsigned_divide")
+            return Binary_expression::Operation::Unsigned_divide;
+        if (value == "less_than")
+            return Binary_expression::Operation::Less_than;
+        else
+            throw std::runtime_error{ std::format("Did not expect '{}' as Binary_expression::Operation.\n", value) };
+    }
+
     export template<typename... State>
         constexpr std::bitset<32> new_state(State const... state)
     {
@@ -33,180 +65,166 @@ namespace h::json
             Expect_object_start = 0,
             Expect_object_end,
             Expect_key,
-            Expect_value,
-            Let_object_handler_handle
+            Expect_non_object_value,
+            Expect_object_value,
+            Finished
         };
     };
 
     namespace
     {
-        struct No_object_handler
-        {
-        };
+        template<typename Value_type>
+        struct Parser_state;
 
-        template<typename Value_type, typename Object_handler = No_object_handler>
-        struct Handler;
-
-        template<typename Object_handler>
-        bool handle_start_object(std::bitset<32>& state, Object_handler& object_handler)
-        {
-            if (state.test(State::Expect_object_start))
-            {
-                state = new_state(State::Expect_object_end, State::Expect_key);
-                return true;
-            }
-            else if (state.test(State::Let_object_handler_handle))
-            {
-                if constexpr (!std::is_same_v<Object_handler, No_object_handler>)
-                {
-                    bool result = false;
-                    auto const visit_handler = [&result](auto&& handler)
-                    {
-                        result = handler.StartObject();
-                    };
-
-                    std::visit(visit_handler, object_handler);
-
-                    return result;
-                }
-            }
-
-            return false;
-        }
-
-        template<typename Value_type, typename Object_handler>
-        bool handle_end_object(
-            rapidjson::SizeType const member_count,
-            std::bitset<32>& state,
-            Value_type& value,
-            Object_handler& object_handler
+        template<typename Value_type, typename Output_type, typename Stack_type>
+        void add_new_state_to_stack_with_variant(
+            Output_type& output,
+            Stack_type& state_stack
         )
         {
-            if (state.test(State::Expect_object_end))
+            output = Value_type{};
+
+            Parser_state<Value_type> new_parser_state
             {
-                return true;
-            }
-            else if (state.test(State::Let_object_handler_handle))
-            {
-                if constexpr (!std::is_same_v<Object_handler, No_object_handler>)
-                {
-                    bool result = false;
-                    auto const visit_handler = [&](auto&& handler)
-                    {
-                        if (handler.state == State::Expect_object_end)
-                        {
-                            result = handler.EndObject(member_count);
-                            state = new_state(State::Expect_key, State::Expect_object_end);
+                .value = &std::get<Value_type>(output),
+            };
 
-                            if constexpr (std::is_same_v<Value_type, Type>)
-                            {
-                                value.data = handler.value;
-                            }
-                            else
-                            {
-                                throw std::runtime_error{ "Non-exhaustive visitor!" };
-                            }
-                        }
-                        else
-                        {
-                            result = handler.EndObject(member_count);
-                        }
-                    };
-
-                    std::visit(visit_handler, object_handler);
-
-                    return result;
-                }
-            }
-
-            return false;
+            state_stack.push_back(std::move(new_parser_state));
         }
 
-        template<typename Value_type, typename Object_handler>
-        std::bitset<32> get_new_state(std::pmr::string const& key, Object_handler& object_handler)
+        template<typename Value_type, typename Output_type, typename Stack_type>
+        void add_new_state_to_stack(
+            Output_type& output,
+            Stack_type& state_stack
+        )
         {
-            if constexpr (std::is_same_v<Value_type, Language_version>)
+            Parser_state<Value_type> new_parser_state
             {
-                return new_state(State::Expect_value);
-            }
-            else if constexpr (std::is_same_v<Value_type, Type>)
+                .value = &output,
+            };
+
+            state_stack.push_back(std::move(new_parser_state));
+        }
+
+        template<typename Output_type>
+        bool handle_new_object_value(
+            std::string_view const key,
+            Output_type& output,
+            auto& state_stack
+        )
+        {
+            if constexpr (std::is_same_v<Output_type, Type>)
             {
                 if (key == "integer_type")
                 {
-                    object_handler = Handler<Integer_type>{};
-                    return new_state(State::Let_object_handler_handle);
+                    add_new_state_to_stack_with_variant<Integer_type>(output.data, state_stack);
+                    return true;
                 }
                 else if (key == "float_type")
                 {
-                    object_handler = Handler<Float_type>{};
-                    return new_state(State::Let_object_handler_handle);
+                    add_new_state_to_stack_with_variant<Float_type>(output.data, state_stack);
+                    return true;
                 }
             }
-
-            return new_state(State::Expect_value);
-        }
-
-        template<typename Output_type, typename Value_type, typename Object_handler, typename Visit_handler>
-        bool handle_key_value(
-            Output_type& output,
-            std::pmr::string const& key,
-            Value_type const& value,
-            std::bitset<32>& state,
-            Object_handler& object_handler,
-            Visit_handler const visit_handler
-        )
-        {
-            if (state.test(State::Expect_value))
+            else if constexpr (std::is_same_v<Output_type, Binary_expression>)
             {
-                state = new_state(State::Expect_object_end, State::Expect_key);
-
-                if constexpr (std::is_same_v<Output_type, Language_version>)
+                if (key == "left_hand_side")
                 {
-                    if constexpr (std::is_same_v<Value_type, unsigned>)
-                    {
-                        if (key == "major")
-                        {
-                            output.major = static_cast<std::uint32_t>(value);
-                            return true;
-                        }
-                        else if (key == "minor")
-                        {
-                            output.minor = static_cast<std::uint32_t>(value);
-                            return true;
-                        }
-                        else if (key == "patch")
-                        {
-                            output.patch = static_cast<std::uint32_t>(value);
-                            return true;
-                        }
-                    }
+                    add_new_state_to_stack<Variable_expression>(output.left_hand_side, state_stack);
+                    return true;
                 }
-            }
-            else
-            {
-                if constexpr (!std::is_same_v<Object_handler, No_object_handler>)
+                else if (key == "right_hand_side")
                 {
-                    assert(state.test(State::Let_object_handler_handle));
-
-                    bool result = false;
-                    auto const v = [&](auto&& handler)
-                    {
-                        result = visit_handler(handler);
-                    };
-
-                    std::visit(
-                        v,
-                        object_handler
-                    );
-
-                    return result;
+                    add_new_state_to_stack<Variable_expression>(output.right_hand_side, state_stack);
+                    return true;
                 }
             }
 
             return false;
         }
 
-        /*template<typename Value_type>
+        template<typename Value_type, typename Output_type>
+        bool parse_value(
+            std::string_view const key,
+            Value_type const value,
+            Output_type& output
+        )
+        {
+            if constexpr (std::is_same_v<Output_type, Integer_type> || std::is_same_v<Output_type, Float_type>)
+            {
+                if constexpr (std::unsigned_integral<Value_type>)
+                {
+                    if (key == "precision")
+                    {
+                        output.precision = value;
+                        return true;
+                    }
+                }
+                else
+                {
+                    std::cerr << std::format("Integer_type/Float_type .precision expects an unsigned integer.\n");
+                }
+            }
+            else if constexpr (std::is_same_v<Output_type, Variable_expression>)
+            {
+                if constexpr (std::is_same_v<Value_type, std::string_view>)
+                {
+                    if (key == "type")
+                    {
+                        output.type = read_variable_expression_type(value);
+                        return true;
+                    }
+                }
+                else if constexpr (std::unsigned_integral<Value_type>)
+                {
+                    if (key == "id")
+                    {
+                        output.id = value;
+                        return true;
+                    }
+                }
+            }
+            else if constexpr (std::is_same_v<Output_type, Binary_expression>)
+            {
+                if constexpr (std::is_same_v<Value_type, std::string_view>)
+                {
+                    if (key == "operation")
+                    {
+                        output.operation = read_binary_expression_operation(value);
+                        return true;
+                    }
+                }
+            }
+            else if constexpr (std::is_same_v<Output_type, Language_version>)
+            {
+                if constexpr (std::is_same_v<Value_type, unsigned>)
+                {
+                    if (key == "major")
+                    {
+                        output.major = value;
+                        return true;
+                    }
+                    else if (key == "minor")
+                    {
+                        output.minor = value;
+                        return true;
+                    }
+                    else if (key == "patch")
+                    {
+                        output.patch = value;
+                        return true;
+                    }
+                }
+                else
+                {
+                    std::cerr << std::format("Language_version .major/.minor/.patch expect an unsigned integer.\n");
+                }
+            }
+
+            return false;
+        }
+
+        template<typename Value_type>
         struct Parser_state : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Parser_state<Value_type>>
         {
             std::bitset<32> state = h::json::new_state(State::Expect_object_start);
@@ -215,231 +233,355 @@ namespace h::json
 
             bool StartObject()
             {
-                return handle_start_object(this->state, this);
+                if (this->state.test(State::Expect_object_start))
+                {
+                    this->state = new_state(State::Expect_object_end, State::Expect_key);
+                    return true;
+                }
+                else
+                {
+                    std::cerr << std::format("Did not expect to start a JSON object.\n");
+                    return false;
+                }
             }
 
             bool EndObject(rapidjson::SizeType const member_count)
             {
-                return handle_end_object(member_count, this->state, this->value, this->object_handler);
+                if (this->state.test(State::Expect_object_end))
+                {
+                    this->state = new_state(State::Finished);
+                    return true;
+                }
+                else
+                {
+                    std::cerr << std::format("Did not expect to end a JSON object.\n");
+                    return false;
+                }
             }
 
             bool Key(char const* const name, rapidjson::SizeType const length, bool const copy)
             {
                 if (this->state.test(State::Expect_key))
                 {
-                    current_key.assign(name, length);
-                    this->state = get_new_state<Value_type>(current_key, object_handler);
+                    this->current_key.assign(name, length);
+                    this->state = new_state(State::Expect_non_object_value, State::Expect_object_value);
                     return true;
                 }
                 else
                 {
+                    std::cerr << std::format("Did not expect a JSON key.\n");
                     return false;
                 }
             }
 
             bool Null()
             {
-                auto const visit_handler = [](auto&& handler) -> bool
-                {
-                    return handler.Null();
-                };
+                this->state = new_state(State::Expect_object_end, State::Expect_key);
 
-                return handle_key_value(this->value, this->current_key, nullptr, this->state, this->object_handler, visit_handler);
+                std::cerr << std::format("Did not expect a null value for key '{}'.\n", this->current_key);
+                return false;
             }
 
             bool Bool(bool const b)
             {
-                auto const visit_handler = [b](auto&& handler) -> bool
-                {
-                    return handler.Bool(b);
-                };
+                this->state = new_state(State::Expect_object_end, State::Expect_key);
 
-                return handle_key_value(this->value, this->current_key, b, this->state, this->object_handler, visit_handler);
+                std::cerr << std::format("Did not expect a boolean value for key '{}'.\n", this->current_key);
+                return false;
             }
 
-            bool Int(int const integer)
+            bool Int(int const number)
             {
-                auto const visit_handler = [integer](auto&& handler) -> bool
-                {
-                    return handler.Int(integer);
-                };
+                this->state = new_state(State::Expect_object_end, State::Expect_key);
 
-                return handle_key_value(this->value, this->current_key, integer, this->state, this->object_handler, visit_handler);
+                if (parse_value(this->current_key, number, *this->value))
+                {
+                    return true;
+                }
+                else
+                {
+                    std::cerr << std::format("Did not expect an int value for key '{}'.\n", this->current_key);
+                    return false;
+                }
             }
 
-            bool Uint(unsigned const integer)
+            bool Uint(unsigned const number)
             {
-                auto const visit_handler = [integer](auto&& handler) -> bool
-                {
-                    return handler.Uint(integer);
-                };
+                this->state = new_state(State::Expect_object_end, State::Expect_key);
 
-                return handle_key_value(this->value, this->current_key, integer, this->state, this->object_handler, visit_handler);
+                if (parse_value(this->current_key, number, *this->value))
+                {
+                    return true;
+                }
+                else
+                {
+                    std::cerr << std::format("Did not expect an uint for key '{}'.\n", this->current_key);
+                    return false;
+                }
             }
 
-            bool Int64(std::int64_t const integer)
+            bool Int64(std::int64_t const number)
             {
-                auto const visit_handler = [integer](auto&& handler) -> bool
-                {
-                    return handler.Int64(integer);
-                };
+                this->state = new_state(State::Expect_object_end, State::Expect_key);
 
-                return handle_key_value(this->value, this->current_key, integer, this->state, this->object_handler, visit_handler);
+                if (parse_value(this->current_key, number, *this->value))
+                {
+                    return true;
+                }
+                else
+                {
+                    std::cerr << std::format("Did not expect an int64 value for key '{}'.\n", this->current_key);
+                    return false;
+                }
             }
 
-            bool Uint64(std::uint64_t const integer)
+            bool Uint64(std::uint64_t const number)
             {
-                auto const visit_handler = [integer](auto&& handler) -> bool
-                {
-                    return handler.Uint64(integer);
-                };
+                this->state = new_state(State::Expect_object_end, State::Expect_key);
 
-                return handle_key_value(this->value, this->current_key, integer, this->state, this->object_handler, visit_handler);
+                if (parse_value(this->current_key, number, *this->value))
+                {
+                    return true;
+                }
+                else
+                {
+                    std::cerr << std::format("Did not expect an uint64 value for key '{}'.\n", this->current_key);
+                    return false;
+                }
             }
 
-            bool Double(double const d)
+            bool Double(double const number)
             {
-                auto const visit_handler = [d](auto&& handler) -> bool
-                {
-                    return handler.Double(d);
-                };
+                this->state = new_state(State::Expect_object_end, State::Expect_key);
 
-                return handle_key_value(this->value, this->current_key, d, this->state, this->object_handler, visit_handler);
+                if (parse_value(this->current_key, number, *this->value))
+                {
+                    return true;
+                }
+                else
+                {
+                    std::cerr << std::format("Did not expect a double value for key '{}'.\n", this->current_key);
+                    return false;
+                }
             }
 
             bool String(const char* const str, rapidjson::SizeType const length, bool const copy)
             {
-                auto const visit_handler = [&](auto&& handler) -> bool
-                {
-                    return handler.String(str, length, copy);
-                };
+                this->state = new_state(State::Expect_object_end, State::Expect_key);
 
                 std::string_view const string = { str, length };
-                return handle_key_value(this->value, this->current_key, string, this->state, this->object_handler, visit_handler);
+                if (parse_value(this->current_key, string, *this->value))
+                {
+                    return true;
+                }
+                else
+                {
+                    std::cerr << std::format("Did not expect a string value for key '{}'.\n", this->current_key);
+                    return false;
+                }
             }
 
             bool StartArray()
             {
+                std::cerr << std::format("Did not expect to start array for key '{}'.\n", this->current_key);
                 return false;
             }
 
             bool EndArray(rapidjson::SizeType elementCount)
             {
+                std::cerr << std::format("Did not expect to end array for key '{}'.\n", this->current_key);
                 return false;
             }
-        };*/
+        };
 
-        template<typename Value_type, typename Object_handler>
+        using Parser_state_variant = std::variant<
+            Parser_state<Integer_type>,
+            Parser_state<Float_type>,
+            Parser_state<Type>,
+            Parser_state<Variable_expression>,
+            Parser_state<Binary_expression>,
+            Parser_state<Language_version>
+        >;
+
+        template<typename Value_type>
         struct Handler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Handler<Value_type>>
         {
-            std::bitset<32> state = h::json::new_state(State::Expect_object_start);
-            std::pmr::string current_key;
             Value_type value = {};
-            Object_handler object_handler;
+            std::pmr::vector<Parser_state_variant> state_stack = { Parser_state<Value_type>{.value = &this->value } };
 
             bool StartObject()
             {
-                return handle_start_object(this->state, this->object_handler);
+                bool result = false;
+                auto const visitor = [&](auto&& underlying_state)
+                {
+                    if (underlying_state.state.test(State::Expect_object_value))
+                    {
+                        std::string_view const key = underlying_state.current_key;
+                        auto* const underlying_value = underlying_state.value;
+
+                        result = handle_new_object_value(key, *underlying_value, this->state_stack);
+
+                        auto const change_state = [](auto&& underlying_state)
+                        {
+                            underlying_state.StartObject();
+                        };
+
+                        std::visit(change_state, state_stack.back());
+                    }
+                    else
+                    {
+                        result = underlying_state.StartObject();
+                    }
+                };
+
+                std::visit(visitor, this->state_stack.back());
+
+                return result;
             }
 
             bool EndObject(rapidjson::SizeType const member_count)
             {
-                return handle_end_object(member_count, this->state, this->value, this->object_handler);
+                bool result = false;
+                auto const visitor = [&](auto&& underlying_state)
+                {
+                    result = underlying_state.EndObject(member_count);
+
+                    if (underlying_state.state.test(State::Finished))
+                    {
+                        state_stack.pop_back();
+
+                        if (!state_stack.empty())
+                        {
+                            auto const change_state = [](auto&& underlying_state)
+                            {
+                                underlying_state.state = new_state(State::Expect_object_end, State::Expect_key);
+                            };
+
+                            std::visit(change_state, state_stack.back());
+                        }
+                    }
+                };
+
+                std::visit(visitor, this->state_stack.back());
+
+                return result;
             }
 
             bool Key(char const* const name, rapidjson::SizeType const length, bool const copy)
             {
-                if (this->state.test(State::Expect_key))
+                bool result = false;
+                auto const visitor = [&](auto&& underlying_state)
                 {
-                    current_key.assign(name, length);
-                    this->state = get_new_state<Value_type>(current_key, object_handler);
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
+                    result = underlying_state.Key(name, length, copy);
+                };
+
+                std::visit(visitor, this->state_stack.back());
+
+                return result;
             }
 
             bool Null()
             {
-                auto const visit_handler = [](auto&& handler) -> bool
+                bool result = false;
+                auto const visitor = [&](auto&& underlying_state)
                 {
-                    return handler.Null();
+                    result = underlying_state.Null();
                 };
 
-                return handle_key_value(this->value, this->current_key, nullptr, this->state, this->object_handler, visit_handler);
+                std::visit(visitor, this->state_stack.back());
+
+                return result;
             }
 
             bool Bool(bool const b)
             {
-                auto const visit_handler = [b](auto&& handler) -> bool
+                bool result = false;
+                auto const visitor = [&](auto&& underlying_state)
                 {
-                    return handler.Bool(b);
+                    result = underlying_state.Bool(b);
                 };
 
-                return handle_key_value(this->value, this->current_key, b, this->state, this->object_handler, visit_handler);
+                std::visit(visitor, this->state_stack.back());
+
+                return result;
             }
 
-            bool Int(int const integer)
+            bool Int(int const number)
             {
-                auto const visit_handler = [integer](auto&& handler) -> bool
+                bool result = false;
+                auto const visitor = [&](auto&& underlying_state)
                 {
-                    return handler.Int(integer);
+                    result = underlying_state.Int(number);
                 };
 
-                return handle_key_value(this->value, this->current_key, integer, this->state, this->object_handler, visit_handler);
+                std::visit(visitor, this->state_stack.back());
+
+                return result;
             }
 
-            bool Uint(unsigned const integer)
+            bool Uint(unsigned const number)
             {
-                auto const visit_handler = [integer](auto&& handler) -> bool
+                bool result = false;
+                auto const visitor = [&](auto&& underlying_state)
                 {
-                    return handler.Uint(integer);
+                    result = underlying_state.Uint(number);
                 };
 
-                return handle_key_value(this->value, this->current_key, integer, this->state, this->object_handler, visit_handler);
+                std::visit(visitor, this->state_stack.back());
+
+                return result;
             }
 
-            bool Int64(std::int64_t const integer)
+            bool Int64(std::int64_t const number)
             {
-                auto const visit_handler = [integer](auto&& handler) -> bool
+                bool result = false;
+                auto const visitor = [&](auto&& underlying_state)
                 {
-                    return handler.Int64(integer);
+                    result = underlying_state.Int64(number);
                 };
 
-                return handle_key_value(this->value, this->current_key, integer, this->state, this->object_handler, visit_handler);
+                std::visit(visitor, this->state_stack.back());
+
+                return result;
             }
 
-            bool Uint64(std::uint64_t const integer)
+            bool Uint64(std::uint64_t const number)
             {
-                auto const visit_handler = [integer](auto&& handler) -> bool
+                bool result = false;
+                auto const visitor = [&](auto&& underlying_state)
                 {
-                    return handler.Uint64(integer);
+                    result = underlying_state.Uint64(number);
                 };
 
-                return handle_key_value(this->value, this->current_key, integer, this->state, this->object_handler, visit_handler);
+                std::visit(visitor, this->state_stack.back());
+
+                return result;
             }
 
-            bool Double(double const d)
+            bool Double(double const number)
             {
-                auto const visit_handler = [d](auto&& handler) -> bool
+                bool result = false;
+                auto const visitor = [&](auto&& underlying_state)
                 {
-                    return handler.Double(d);
+                    result = underlying_state.Double(number);
                 };
 
-                return handle_key_value(this->value, this->current_key, d, this->state, this->object_handler, visit_handler);
+                std::visit(visitor, this->state_stack.back());
+
+                return result;
             }
 
             bool String(const char* const str, rapidjson::SizeType const length, bool const copy)
             {
-                auto const visit_handler = [&](auto&& handler) -> bool
+                bool result = false;
+                auto const visitor = [&](auto&& underlying_state)
                 {
-                    return handler.String(str, length, copy);
+                    result = underlying_state.String(str, length, copy);
                 };
 
-                std::string_view const string = { str, length };
-                return handle_key_value(this->value, this->current_key, string, this->state, this->object_handler, visit_handler);
+                std::visit(visitor, this->state_stack.back());
+
+                return result;
             }
 
             bool StartArray()
@@ -452,303 +594,15 @@ namespace h::json
                 return false;
             }
         };
-
-        struct Integer_type_handler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Integer_type_handler>
-        {
-            enum State
-            {
-                Expect_start_object,
-                Expect_end_object,
-                Expect_key,
-                Expect_precision,
-            };
-            std::bitset<32> state = new_state(State::Expect_start_object);
-            Integer_type value = {};
-
-            bool StartObject()
-            {
-                if (this->state.test(State::Expect_start_object))
-                {
-                    this->state = new_state(State::Expect_end_object, State::Expect_key);
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-
-            bool EndObject(rapidjson::SizeType member_count)
-            {
-                return this->state.test(State::Expect_end_object);
-            }
-
-            bool Key(char const* const name, rapidjson::SizeType const length, bool const copy)
-            {
-                if (this->state.test(State::Expect_key))
-                {
-                    std::string_view const key = { name, length };
-
-                    if (key == "precision")
-                    {
-                        this->state = new_state(State::Expect_precision);
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-
-            bool Uint(unsigned const integer)
-            {
-                if (this->state.test(State::Expect_precision))
-                {
-                    this->value.precision = integer;
-                    this->state = new_state(State::Expect_end_object);
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-
-            bool Uint64(uint64_t const integer)
-            {
-                if (this->state.test(State::Expect_precision))
-                {
-                    this->value.precision = integer;
-                    this->state = new_state(State::Expect_end_object);
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-
-            bool Default()
-            {
-                return false;
-            }
-        };
-
-        struct Float_type_handler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Float_type_handler>
-        {
-            enum State
-            {
-                Expect_start_object,
-                Expect_end_object,
-                Expect_key,
-                Expect_precision,
-            };
-            std::bitset<32> state = new_state(State::Expect_start_object);
-            Integer_type value = {};
-
-            bool StartObject()
-            {
-                if (this->state.test(State::Expect_start_object))
-                {
-                    this->state = new_state(State::Expect_end_object, State::Expect_key);
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-
-            bool EndObject(rapidjson::SizeType member_count)
-            {
-                return this->state.test(State::Expect_end_object);
-            }
-
-            bool Key(char const* const name, rapidjson::SizeType const length, bool const copy)
-            {
-                if (this->state.test(State::Expect_key))
-                {
-                    std::string_view const key = { name, length };
-
-                    if (key == "precision")
-                    {
-                        this->state = new_state(State::Expect_precision);
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-
-            bool Double(double const d)
-            {
-                if (this->state.test(State::Expect_precision))
-                {
-                    this->value.precision = d;
-                    this->state = new_state(State::Expect_end_object);
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-
-            bool Default()
-            {
-                return false;
-            }
-        };
-
-        struct Type_handler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Type_handler>
-        {
-            enum State
-            {
-                Expect_start_object,
-                Expect_end_object,
-                Expect_key,
-                Expect_integer_type,
-                Expect_float_type
-            };
-            std::bitset<32> state = new_state(State::Expect_start_object);
-            Type value = {};
-            std::variant<Integer_type_handler, Float_type_handler> object_handler = Integer_type_handler{};
-
-            bool StartObject()
-            {
-                if (this->state.test(State::Expect_start_object))
-                {
-                    this->state = new_state(State::Expect_end_object, State::Expect_key);
-                    return true;
-                }
-                else if (this->state.test(State::Expect_integer_type))
-                {
-                    Integer_type_handler& handler = std::get<Integer_type_handler>(this->object_handler);
-                    return handler.StartObject();
-                }
-                else if (this->state.test(State::Expect_float_type))
-                {
-                    Float_type_handler& handler = std::get<Float_type_handler>(this->object_handler);
-                    return handler.StartObject();
-                }
-                else
-                {
-                    return false;
-                }
-            }
-
-            bool EndObject(rapidjson::SizeType member_count)
-            {
-                if (this->state.test(State::Expect_end_object))
-                {
-                    return true;
-                }
-                else if (this->state.test(State::Expect_integer_type))
-                {
-                    Integer_type_handler& handler = std::get<Integer_type_handler>(this->object_handler);
-                    if (handler.state == Integer_type_handler::State::Expect_end_object)
-                    {
-                        state = new_state(State::Expect_key, State::Expect_end_object);
-                        value.data = handler.value;
-                        return handler.EndObject(member_count);
-                    }
-                    else
-                    {
-                        return handler.EndObject(member_count);
-                    }
-                }
-                else if (this->state.test(State::Expect_float_type))
-                {
-                    Float_type_handler& handler = std::get<Float_type_handler>(this->object_handler);
-                    if (handler.state == Float_type_handler::State::Expect_end_object)
-                    {
-                        state = new_state(State::Expect_key, State::Expect_end_object);
-                        value.data = handler.value;
-                        return handler.EndObject(member_count);
-                    }
-                    else
-                    {
-                        return handler.EndObject(member_count);
-                    }
-                }
-                else
-                {
-                    return false;
-                }
-            }
-
-            bool Key(char const* const name, rapidjson::SizeType const length, bool const copy)
-            {
-                if (this->state.test(State::Expect_key))
-                {
-                    std::string_view const key = { name, length };
-
-                    if (key == "integer_type")
-                    {
-                        this->state = new_state(State::Expect_integer_type);
-                        this->object_handler = Integer_type_handler{};
-                        return true;
-                    }
-                    else if (key == "float_type")
-                    {
-                        this->state = new_state(State::Expect_float_type);
-                        this->object_handler = Float_type_handler{};
-                        return true;
-                    }
-                }
-                else if (this->state.test(State::Expect_integer_type))
-                {
-                    Integer_type_handler& handler = std::get<Integer_type_handler>(this->object_handler);
-                    return handler.Key(name, length, copy);
-                }
-                else if (this->state.test(State::Expect_float_type))
-                {
-                    Float_type_handler& handler = std::get<Float_type_handler>(this->object_handler);
-                    return handler.Key(name, length, copy);
-                }
-
-                return false;
-            }
-
-            bool Uint64(uint64_t const integer)
-            {
-                if (this->state.test(State::Expect_integer_type))
-                {
-                    Integer_type_handler& handler = std::get<Integer_type_handler>(this->object_handler);
-                    return handler.Uint64(integer);
-                }
-                else
-                {
-                    return false;
-                }
-            }
-
-            bool Double(uint64_t const d)
-            {
-                if (this->state.test(State::Expect_float_type))
-                {
-                    Float_type_handler& handler = std::get<Float_type_handler>(this->object_handler);
-                    return handler.Double(d);
-                }
-                else
-                {
-                    return false;
-                }
-            }
-
-            bool Default()
-            {
-                return false;
-            }
-        };
     }
 
-    /*export template<typename Input_stream>
-        std::optional<Type> read_type(
+    export template<typename Type, typename Input_stream>
+        std::optional<Type> read(
             rapidjson::Reader& reader,
             Input_stream& input_stream
         )
     {
-        Type_handler handler;
+        Handler<Type> handler;
 
         constexpr unsigned int parse_flags =
             rapidjson::kParseStopWhenDoneFlag |
@@ -765,49 +619,5 @@ namespace h::json
         }
 
         return handler.value;
-    }*/
-
-    template<typename Type, typename Handler_type, typename Input_stream>
-    std::optional<Type> read(
-        Handler_type& handler,
-        rapidjson::Reader& reader,
-        Input_stream& input_stream
-    )
-    {
-        constexpr unsigned int parse_flags =
-            rapidjson::kParseStopWhenDoneFlag |
-            rapidjson::kParseFullPrecisionFlag;
-
-        while (!reader.IterativeParseComplete())
-        {
-            if (reader.HasParseError())
-            {
-                return std::nullopt;
-            }
-
-            reader.IterativeParseNext<parse_flags>(input_stream, handler);
-        }
-
-        return handler.value;
-    }
-
-    export template<typename Input_stream>
-        std::optional<Language_version> read_language_version(
-            rapidjson::Reader& reader,
-            Input_stream& input_stream
-        )
-    {
-        Handler<Language_version> handler;
-        return read<Language_version>(handler, reader, input_stream);
-    }
-
-    export template<typename Input_stream>
-        std::optional<Type> read_type(
-            rapidjson::Reader& reader,
-            Input_stream& input_stream
-        )
-    {
-        Handler<Type, std::variant<Handler<Integer_type>, Handler<Float_type>>> handler;
-        return read<Type>(handler, reader, input_stream);
     }
 }

@@ -31,7 +31,7 @@ namespace h
 
         rapidjson::Reader reader;
         rapidjson::StringStream input_stream{ json_data.c_str() };
-        std::optional<Language_version> const output = h::json::read_language_version(reader, input_stream);
+        std::optional<Language_version> const output = h::json::read<Language_version>(reader, input_stream);
 
         REQUIRE(output.has_value());
 
@@ -59,11 +59,123 @@ namespace h
 
         rapidjson::Reader reader;
         rapidjson::StringStream input_stream{ json_data.c_str() };
-        std::optional<Type> const output = h::json::read_type(reader, input_stream);
+        std::optional<Type> const output = h::json::read<Type>(reader, input_stream);
 
         REQUIRE(output.has_value());
 
         Type const& actual = output.value();
+        CHECK(actual == expected);
+    }
+
+    TEST_CASE("Read Type with Float_type")
+    {
+        std::pmr::string const json_data = R"JSON(
+            {
+                "float_type": {
+                    "precision": 32
+                }
+            }
+        )JSON";
+
+        Type const expected
+        {
+            .data = Float_type
+            {
+                .precision = 32
+            }
+        };
+
+        rapidjson::Reader reader;
+        rapidjson::StringStream input_stream{ json_data.c_str() };
+        std::optional<Type> const output = h::json::read<Type>(reader, input_stream);
+
+        REQUIRE(output.has_value());
+
+        Type const& actual = output.value();
+        CHECK(actual == expected);
+    }
+
+    TEST_CASE("Read Variable_expression::Type")
+    {
+        CHECK(h::json::read_variable_expression_type("function_argument") == Variable_expression::Type::Function_argument);
+        CHECK(h::json::read_variable_expression_type("local_variable") == Variable_expression::Type::Local_variable);
+        CHECK(h::json::read_variable_expression_type("temporary") == Variable_expression::Type::Temporary);
+    }
+
+    TEST_CASE("Read Variable_expression")
+    {
+        std::pmr::string const json_data = R"JSON(
+            {
+                "type": "local_variable",
+                "id": 2
+            }
+            
+        )JSON";
+
+        Variable_expression const expected
+        {
+            .type = Variable_expression::Type::Local_variable,
+            .id = 2
+        };
+
+        rapidjson::Reader reader;
+        rapidjson::StringStream input_stream{ json_data.c_str() };
+        std::optional<Variable_expression> const output = h::json::read<Variable_expression>(reader, input_stream);
+
+        REQUIRE(output.has_value());
+
+        Variable_expression const& actual = output.value();
+        CHECK(actual == expected);
+    }
+
+    TEST_CASE("Read Binary_expression::Operation")
+    {
+        CHECK(h::json::read_binary_expression_operation("add") == Binary_expression::Operation::Add);
+        CHECK(h::json::read_binary_expression_operation("subtract") == Binary_expression::Operation::Subtract);
+        CHECK(h::json::read_binary_expression_operation("multiply") == Binary_expression::Operation::Multiply);
+        CHECK(h::json::read_binary_expression_operation("signed_divide") == Binary_expression::Operation::Signed_divide);
+        CHECK(h::json::read_binary_expression_operation("unsigned_divide") == Binary_expression::Operation::Unsigned_divide);
+        CHECK(h::json::read_binary_expression_operation("less_than") == Binary_expression::Operation::Less_than);
+    }
+
+    TEST_CASE("Read Binary_expression")
+    {
+        std::pmr::string const json_data = R"JSON(
+            {
+                "left_hand_side": {
+                    "type": "local_variable",
+                    "id": 3
+                },
+                "right_hand_side": {
+                    "type": "local_variable",
+                    "id": 1
+                },
+                "operation": "subtract"
+            }
+        )JSON";
+
+        Binary_expression const expected
+        {
+            .left_hand_side = Variable_expression
+            {
+                .type = Variable_expression::Type::Local_variable,
+                .id = 3
+            },
+            .right_hand_side = Variable_expression
+            {
+                .type = Variable_expression::Type::Local_variable,
+                .id = 1
+            },
+            .operation = Binary_expression::Operation::Subtract
+        };
+
+        rapidjson::Reader reader;
+        rapidjson::StringStream input_stream{ json_data.c_str() };
+        std::optional<Binary_expression> const output = h::json::read<Binary_expression>(reader, input_stream);
+
+        REQUIRE(output.has_value());
+
+        Binary_expression const& actual = output.value();
         CHECK(actual == expected);
     }
 
