@@ -95,11 +95,11 @@ namespace h
         CHECK(actual == expected);
     }
 
-    TEST_CASE("Read Variable_expression::Type")
+    TEST_CASE("Read Variable_expression_type")
     {
-        CHECK(h::json::read_enum<Variable_expression::Type>("function_argument") == Variable_expression::Type::Function_argument);
-        CHECK(h::json::read_enum<Variable_expression::Type>("local_variable") == Variable_expression::Type::Local_variable);
-        CHECK(h::json::read_enum<Variable_expression::Type>("temporary") == Variable_expression::Type::Temporary);
+        CHECK(h::json::read_enum<Variable_expression_type>("function_argument") == Variable_expression_type::Function_argument);
+        CHECK(h::json::read_enum<Variable_expression_type>("local_variable") == Variable_expression_type::Local_variable);
+        CHECK(h::json::read_enum<Variable_expression_type>("temporary") == Variable_expression_type::Temporary);
     }
 
     TEST_CASE("Read Variable_expression")
@@ -114,7 +114,7 @@ namespace h
 
         Variable_expression const expected
         {
-            .type = Variable_expression::Type::Local_variable,
+            .type = Variable_expression_type::Local_variable,
             .id = 2
         };
 
@@ -128,14 +128,14 @@ namespace h
         CHECK(actual == expected);
     }
 
-    TEST_CASE("Read Binary_expression::Operation")
+    TEST_CASE("Read Binary_operation")
     {
-        CHECK(h::json::read_enum<Binary_expression::Operation>("add") == Binary_expression::Operation::Add);
-        CHECK(h::json::read_enum<Binary_expression::Operation>("subtract") == Binary_expression::Operation::Subtract);
-        CHECK(h::json::read_enum<Binary_expression::Operation>("multiply") == Binary_expression::Operation::Multiply);
-        CHECK(h::json::read_enum<Binary_expression::Operation>("signed_divide") == Binary_expression::Operation::Signed_divide);
-        CHECK(h::json::read_enum<Binary_expression::Operation>("unsigned_divide") == Binary_expression::Operation::Unsigned_divide);
-        CHECK(h::json::read_enum<Binary_expression::Operation>("less_than") == Binary_expression::Operation::Less_than);
+        CHECK(h::json::read_enum<Binary_operation>("add") == Binary_operation::Add);
+        CHECK(h::json::read_enum<Binary_operation>("subtract") == Binary_operation::Subtract);
+        CHECK(h::json::read_enum<Binary_operation>("multiply") == Binary_operation::Multiply);
+        CHECK(h::json::read_enum<Binary_operation>("signed_divide") == Binary_operation::Signed_divide);
+        CHECK(h::json::read_enum<Binary_operation>("unsigned_divide") == Binary_operation::Unsigned_divide);
+        CHECK(h::json::read_enum<Binary_operation>("less_than") == Binary_operation::Less_than);
     }
 
     TEST_CASE("Read Binary_expression")
@@ -158,15 +158,15 @@ namespace h
         {
             .left_hand_side = Variable_expression
             {
-                .type = Variable_expression::Type::Local_variable,
+                .type = Variable_expression_type::Local_variable,
                 .id = 3
             },
             .right_hand_side = Variable_expression
             {
-                .type = Variable_expression::Type::Local_variable,
+                .type = Variable_expression_type::Local_variable,
                 .id = 1
             },
-            .operation = Binary_expression::Operation::Subtract
+            .operation = Binary_operation::Subtract
         };
 
         rapidjson::Reader reader;
@@ -185,7 +185,7 @@ namespace h
             {
                 "function_name": "foo",
                 "arguments": {
-                    "length": 2,
+                    "size": 2,
                     "elements": [
                         {
                             "type": "local_variable",
@@ -204,12 +204,12 @@ namespace h
         {
             Variable_expression
             {
-                .type = Variable_expression::Type::Local_variable,
+                .type = Variable_expression_type::Local_variable,
                 .id = 3
             },
             Variable_expression
             {
-                .type = Variable_expression::Type::Temporary,
+                .type = Variable_expression_type::Temporary,
                 .id = 1
             }
         };
@@ -230,8 +230,89 @@ namespace h
         CHECK(actual == expected);
     }
 
-/*
-    h::Function create_expected_function()
+    h::Function_declaration create_expected_function_declaration()
+    {
+        std::pmr::vector<Type> parameter_types
+        {
+            Type{.data = Integer_type{.precision = 32}},
+            Type{.data = Integer_type{.precision = 32}},
+        };
+
+        std::pmr::vector<std::uint64_t> parameter_ids
+        {
+            0, 1
+        };
+
+        std::pmr::vector<std::pmr::string> parameter_names
+        {
+            "lhs", "rhs"
+        };
+
+        return h::Function_declaration
+        {
+            .name = "Add",
+            .return_type = Type{.data = Integer_type{.precision = 32}},
+            .parameter_types = std::move(parameter_types),
+            .parameter_ids = std::move(parameter_ids),
+            .parameter_names = std::move(parameter_names),
+            .linkage = Linkage::External
+        };
+    }
+
+    TEST_CASE("Read Function_declaration")
+    {
+        std::pmr::string const json_data = R"JSON(
+            {
+                "name": "Add",
+                "return_type": {
+                    "integer_type": {
+                        "precision": 32
+                    }
+                },
+                "parameter_types": {
+                    "size": 2,
+                    "elements": [
+                        {
+                            "integer_type": {
+                                "precision": 32
+                            }
+                        },
+                        {
+                            "integer_type": {
+                                "precision": 32
+                            }
+                        }
+                    ]
+                },
+                "parameter_ids": {
+                    "size": 2,
+                    "elements": [
+                        0, 1
+                    ]
+                },
+                "parameter_names": {
+                    "size": 2,
+                    "elements": [
+                        "lhs", "rhs"
+                    ]
+                },
+                "linkage": "external"
+            }
+        )JSON";
+
+        h::Function_declaration const expected = create_expected_function_declaration();
+
+        rapidjson::Reader reader;
+        rapidjson::StringStream input_stream{ json_data.c_str() };
+        std::optional<h::Function_declaration> const output = h::json::read<h::Function_declaration>(reader, input_stream);
+
+        REQUIRE(output.has_value());
+
+        h::Function_declaration const& actual = output.value();
+        CHECK(actual == expected);
+    }
+
+    h::Function_definition create_expected_function_definition()
     {
         std::pmr::vector<Expression> expressions
         {
@@ -239,20 +320,20 @@ namespace h
                 Expression{
                     .data = Binary_expression{
                         .left_hand_side = Variable_expression{
-                            .type = Variable_expression::Type::Function_argument,
+                            .type = Variable_expression_type::Function_argument,
                             .id = 0
                         },
                         .right_hand_side = Variable_expression{
-                            .type = Variable_expression::Type::Function_argument,
+                            .type = Variable_expression_type::Function_argument,
                             .id = 1
                         },
-                        .operation = Binary_expression::Operation::Add
+                        .operation = Binary_operation::Add
                     }
                 },
                 Expression{
                     .data = Return_expression{
                         .variable = Variable_expression{
-                            .type = Variable_expression::Type::Temporary,
+                            .type = Variable_expression_type::Temporary,
                             .id = 0
                         },
                     }
@@ -271,132 +352,68 @@ namespace h
             }
         };
 
-        std::pmr::vector<Type> parameter_types
+        h::Function_definition function
         {
-            {
-                Type
-                {
-                    .data = Float_type
-                    {
-                        .precision = 64
-                    },
-                },
-                    Type
-                {
-                    .data = Float_type
-                    {
-                        .precision = 64
-                    }
-                }
-            }
-        };
-
-        std::pmr::vector<std::pmr::string> argument_names
-        {
-            "bar_0", "bar_1"
-        };
-
-        h::Function function
-        {
-            .type = Function_type
-            {
-                .return_type = Type
-                {
-                    .data = Float_type
-                    {
-                        .precision = 64
-                    }
-                },
-                .parameter_types = std::move(parameter_types)
-            },
-            .name = "foo",
-            .argument_ids = std::pmr::vector<std::uint64_t>{
-                {
-                    0, 1
-                }
-            },
-            .argument_names = std::move(argument_names),
-            .linkage = Linkage::External,
+            .name = "Foo",
             .statements = std::move(statements)
         };
 
         return function;
     }
 
-    TEST_CASE("Read json")
+    TEST_CASE("Read Function_definition")
     {
         std::pmr::string const json_data = R"JSON(
         {
-            "type": {
-                "return_type": {
-                    "type": "float_type",
-                    "data": {
-                        "precision": 64
-                    }
-                },
-                "parameter_types": [
+            "name": "Foo",
+            "statements": {
+                "size": 1,
+                "elements": [
                     {
-                        "type": "float_type",
-                        "data": {
-                            "precision": 64
-                        }
-                    },
-                    {
-                        "type": "float_type",
-                        "data": {
-                            "precision": 64
+                        "id": 0,
+                        "name": "var_0",
+                        "expressions": {
+                            "size": 2,
+                            "elements": 
+                            [
+                                {
+                                    "binary_expression": {
+                                        "left_hand_side": {
+                                            "type": "function_argument",
+                                            "id": 0
+                                        },
+                                        "right_hand_side": {
+                                            "type": "function_argument",
+                                            "id": 1
+                                        },
+                                        "operation": "add"
+                                    }
+                                },
+                                {
+                                    "return_expression": {
+                                        "variable": {
+                                            "type": "temporary",
+                                            "id": 0
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 ]
-            },
-            "name": "foo",
-            "argument_ids": [
-                0, 1
-            ],
-            "argument_names": [
-                "bar_0", "bar_1"
-            ],
-            "linkage": "external",
-            "statements": [
-                {
-                    "id": 0,
-                    "name": "var_0",
-                    "expressions": [
-                        {
-                            "type": "binary_expression",
-                            "data": {
-                                "left_hand_side": {
-                                    "type": "function_argument",
-                                    "id": 0
-                                },
-                                "right_hand_side": {
-                                    "type": "function_argument",
-                                    "id": 1
-                                },
-                                "operation": "add"
-                            }
-                        },
-                        {
-                            "type": "return_expression",
-                            "data": {
-                                "variable": {
-                                    "type": "temporary",
-                                    "id": 0
-                                }
-                            }
-                        }
-                    ]
-                }
-            ]
+            }
         }
         )JSON";
 
-        h::Function const expected_function = create_expected_function();
+        h::Function_definition const expected = create_expected_function_definition();
 
-        h::Json const json = h::Json::parse(json_data);
+        rapidjson::Reader reader;
+        rapidjson::StringStream input_stream{ json_data.c_str() };
+        std::optional<h::Function_definition> const output = h::json::read<h::Function_definition>(reader, input_stream);
 
-        h::Function const actual_function = h::to_function(json, {});
+        REQUIRE(output.has_value());
 
-        CHECK(actual_function == expected_function);
-    }*/
+        h::Function_definition const& actual = output.value();
+        CHECK(actual == expected);
+    }
 }

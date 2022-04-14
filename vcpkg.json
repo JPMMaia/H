@@ -3,7 +3,7 @@
     "version-string": "0.1.0",
     "dependencies": [
         "catch2",
-        "nlohmann-json",
+        "rapidjson",
         {
             "name": "llvm",
             "features": [
