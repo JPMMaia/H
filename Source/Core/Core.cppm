@@ -22,7 +22,7 @@ namespace h
     export struct Float_type
     {
         std::uint8_t precision = 64;
-        
+
         friend auto operator<=>(Float_type const&, Float_type const&) = default;
         friend std::ostream& operator<<(std::ostream& output_stream, Float_type value);
     };
@@ -40,41 +40,43 @@ namespace h
         friend std::ostream& operator<<(std::ostream& output_stream, Type const& value);
     };
 
+    export enum class Variable_expression_type
+    {
+        Function_argument,
+        Local_variable,
+        Temporary
+    };
+
+    std::ostream& operator<<(std::ostream& output_stream, Variable_expression_type value);
+
     export struct Variable_expression
     {
-        enum class Type
-        {
-            Function_argument,
-            Local_variable,
-            Temporary
-        };
-
-        Type type;
+        Variable_expression_type type;
         std::uint64_t id;
 
         friend auto operator<=>(Variable_expression const&, Variable_expression const&) = default;
-        friend std::ostream& operator<<(std::ostream& output_stream, Variable_expression::Type value);
         friend std::ostream& operator<<(std::ostream& output_stream, Variable_expression value);
     };
 
+    export enum class Binary_operation
+    {
+        Add,
+        Subtract,
+        Multiply,
+        Signed_divide,
+        Unsigned_divide,
+        Less_than
+    };
+
+    std::ostream& operator<<(std::ostream& output_stream, Binary_operation value);
+
     export struct Binary_expression
     {
-        enum class Operation
-        {
-            Add,
-            Subtract,
-            Multiply,
-            Signed_divide,
-            Unsigned_divide,
-            Less_than
-        };
-
         Variable_expression left_hand_side;
         Variable_expression right_hand_side;
-        Operation operation;
+        Binary_operation operation;
 
         friend auto operator<=>(Binary_expression const&, Binary_expression const&) = default;
-        friend std::ostream& operator<<(std::ostream& output_stream, Binary_expression::Operation value);
         friend std::ostream& operator<<(std::ostream& output_stream, Binary_expression const& value);
     };
 
@@ -89,7 +91,7 @@ namespace h
 
     export struct Integer_constant
     {
-        unsigned int number_of_bits;
+        std::uint32_t number_of_bits;
         bool is_signed;
         std::uint64_t value;
 
@@ -100,7 +102,7 @@ namespace h
     export struct Half_constant
     {
         float value;
-        
+
         friend auto operator<=>(Half_constant const&, Half_constant const&) = default;
         friend std::ostream& operator<<(std::ostream& output_stream, Half_constant value);
     };
@@ -108,7 +110,7 @@ namespace h
     export struct Float_constant
     {
         float value;
-        
+
         friend auto operator<=>(Float_constant const&, Float_constant const&) = default;
         friend std::ostream& operator<<(std::ostream& output_stream, Float_constant value);
     };
@@ -116,7 +118,7 @@ namespace h
     export struct Double_constant
     {
         double value;
-        
+
         friend auto operator<=>(Double_constant const&, Double_constant const&) = default;
         friend std::ostream& operator<<(std::ostream& output_stream, Double_constant value);
     };
@@ -132,7 +134,7 @@ namespace h
 
         Type type;
         Data_type data;
-        
+
         friend auto operator<=>(Constant_expression const&, Constant_expression const&) = default;
         friend std::ostream& operator<<(std::ostream& output_stream, Constant_expression const& value);
     };
@@ -140,7 +142,7 @@ namespace h
     export struct Return_expression
     {
         Variable_expression variable;
-        
+
         friend auto operator<=>(Return_expression const&, Return_expression const&) = default;
         friend std::ostream& operator<<(std::ostream& output_stream, Return_expression const& value);
     };
@@ -156,7 +158,7 @@ namespace h
         >;
 
         Data_type data;
-        
+
         friend auto operator<=>(Expression const&, Expression const&) = default;
         friend std::ostream& operator<<(std::ostream& output_stream, Expression const& value);
     };
@@ -166,7 +168,7 @@ namespace h
         std::uint64_t id;
         std::pmr::string name;
         std::pmr::vector<Expression> expressions;
-        
+
         friend auto operator<=>(Statement const&, Statement const&) = default;
         friend std::ostream& operator<<(std::ostream& output_stream, Statement const& value);
     };
@@ -187,7 +189,7 @@ namespace h
         std::pmr::vector<std::uint64_t> parameter_ids;
         std::pmr::vector<std::pmr::string> parameter_names;
         Linkage linkage;
-        
+
         friend auto operator<=>(Function_declaration const&, Function_declaration const&) = default;
         friend std::ostream& operator<<(std::ostream& output_stream, Function_declaration const& value);
     };
@@ -196,7 +198,7 @@ namespace h
     {
         std::pmr::string name;
         std::pmr::vector<Statement> statements;
-        
+
         friend auto operator<=>(Function_definition const&, Function_definition const&) = default;
         friend std::ostream& operator<<(std::ostream& output_stream, Function_definition const& value);
     };

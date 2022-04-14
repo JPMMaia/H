@@ -117,18 +117,18 @@ namespace h
         return output_stream;
     }
 
-    std::ostream& operator<<(std::ostream& output_stream, Variable_expression::Type const value)
+    std::ostream& operator<<(std::ostream& output_stream, Variable_expression_type const value)
     {
         output_stream << '"';
         switch (value)
         {
-        case Variable_expression::Type::Function_argument:
+        case Variable_expression_type::Function_argument:
             output_stream << "function_argument";
             break;
-        case Variable_expression::Type::Local_variable:
+        case Variable_expression_type::Local_variable:
             output_stream << "local_variable";
             break;
-        case Variable_expression::Type::Temporary:
+        case Variable_expression_type::Temporary:
             output_stream << "temporary";
             break;
         }
@@ -149,27 +149,27 @@ namespace h
         return output_stream;
     }
 
-    std::ostream& operator<<(std::ostream& output_stream, Binary_expression::Operation value)
+    std::ostream& operator<<(std::ostream& output_stream, Binary_operation value)
     {
         output_stream << '"';
         switch (value)
         {
-        case Binary_expression::Operation::Add:
+        case Binary_operation::Add:
             output_stream << "add";
             break;
-        case Binary_expression::Operation::Subtract:
+        case Binary_operation::Subtract:
             output_stream << "subtract";
             break;
-        case Binary_expression::Operation::Multiply:
+        case Binary_operation::Multiply:
             output_stream << "multiply";
             break;
-        case Binary_expression::Operation::Signed_divide:
+        case Binary_operation::Signed_divide:
             output_stream << "signed_divide";
             break;
-        case Binary_expression::Operation::Unsigned_divide:
+        case Binary_operation::Unsigned_divide:
             output_stream << "unsigned_divide";
             break;
-        case Binary_expression::Operation::Less_than:
+        case Binary_operation::Less_than:
             output_stream << "less_than";
             break;
         }
