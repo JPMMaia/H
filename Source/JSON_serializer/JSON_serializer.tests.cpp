@@ -1,14 +1,20 @@
-#define CATCH_CONFIG_MAIN
-#define CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS
-#include <catch2/catch.hpp>
-
 #include <memory_resource>
 #include <string>
+#include <variant>
 
 #include <rapidjson/reader.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
 
 import h.core;
 import h.json_serializer;
+import h.json_serializer.operators;
+
+using h::json::operators::operator<<;
+
+#define CATCH_CONFIG_MAIN
+//#define CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS
+#include <catch2/catch.hpp>
 
 namespace h
 {
@@ -36,6 +42,25 @@ namespace h
         REQUIRE(output.has_value());
 
         Language_version const& actual = output.value();
+        CHECK(actual == expected);
+    }
+
+    TEST_CASE("Write Language_version")
+    {
+        Language_version const input
+        {
+            .major = 1,
+            .minor = 2,
+            .patch = 3,
+        };
+
+        std::string const expected = "{\"major\":1,\"minor\":2,\"patch\":3}";
+
+        rapidjson::StringBuffer output_stream;
+        rapidjson::Writer<rapidjson::StringBuffer> writer{ output_stream };
+        h::json::write(writer, input);
+
+        std::string const actual = output_stream.GetString();
         CHECK(actual == expected);
     }
 

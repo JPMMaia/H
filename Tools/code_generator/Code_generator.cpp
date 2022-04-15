@@ -2,6 +2,7 @@ module;
 
 #include <algorithm>
 #include <cctype>
+#include <format>
 #include <istream>
 #include <optional>
 #include <span>
@@ -66,6 +67,39 @@ namespace h::tools::code_generator
         return std::pmr::string{ output_stream.str() };
     }
 
+    std::pmr::string generate_write_enum_json_code(
+        Enum enum_type
+    )
+    {
+        std::stringstream output_stream;
+
+        output_stream << "export std::string_view write_enum(" << enum_type.name << " const value)\n";
+        output_stream << "{\n";
+
+        if (!enum_type.values.empty())
+        {
+            std::string_view const value = enum_type.values[0];
+            output_stream << "    if (value == " << enum_type.name << "::" << value << ")\n";
+            output_stream << "    {\n";
+            output_stream << "        return \"" << to_lowercase(value) << "\";\n";
+            output_stream << "    }\n";
+        }
+
+        for (std::size_t index = 1; index < enum_type.values.size(); ++index)
+        {
+            std::string_view const value = enum_type.values[index];
+            output_stream << "    else if (value == " << enum_type.name << "::" << value << ")\n";
+            output_stream << "    {\n";
+            output_stream << "        return \"" << to_lowercase(value) << "\";\n";
+            output_stream << "    }\n";
+        }
+        output_stream << "    \n";
+        output_stream << "    throw std::runtime_error{\"Failed to write enum '" << enum_type.name << "'!\\n\"};\n";
+        output_stream << "}\n";
+
+        return std::pmr::string{ output_stream.str() };
+    }
+
     namespace
     {
         bool is_enum_type(
@@ -96,6 +130,69 @@ namespace h::tools::code_generator
         )
         {
             return type.name.starts_with("std::variant");
+        }
+
+        bool is_bool_type(
+            Type const& type
+        )
+        {
+            return type.name == "bool";
+        }
+
+        bool is_int_type(
+            Type const& type
+        )
+        {
+            return
+                type.name == "std::int8_t" ||
+                type.name == "std::int16_t" ||
+                type.name == "std::int32_t" ||
+                type.name == "int";
+        }
+
+        bool is_int64_type(
+            Type const& type
+        )
+        {
+            return type.name == "std::int64_t";
+        }
+
+        bool is_uint_type(
+            Type const& type
+        )
+        {
+            return
+                type.name == "std::uint8_t" ||
+                type.name == "std::uint16_t" ||
+                type.name == "std::uint32_t" ||
+                type.name == "unsigned";
+        }
+
+        bool is_uint64_type(
+            Type const& type
+        )
+        {
+            return
+                type.name == "std::uint64_t" ||
+                type.name == "std::size_t";
+        }
+
+        bool is_double_type(
+            Type const& type
+        )
+        {
+            return
+                type.name == "float" ||
+                type.name == "double";
+        }
+
+        bool is_string_type(
+            Type const& type
+        )
+        {
+            return
+                type.name == "std::string" ||
+                type.name == "std::pmr::string";
         }
 
         std::pmr::vector<std::pmr::string> get_variadic_types(
@@ -400,6 +497,126 @@ namespace h::tools::code_generator
 
     namespace
     {
+        void generate_write_value_json_code(
+            std::stringstream& output_stream,
+            Type const& type,
+            std::string_view const name
+        )
+        {
+            if (is_string_type(type))
+            {
+                output_stream << "writer.String(output." << name << ".data(), output." << name << ".size());";
+            }
+            else
+            {
+                output_stream << "writer.";
+
+                if (is_bool_type(type))
+                {
+                    output_stream << "Bool";
+                }
+                else if (is_int_type(type))
+                {
+                    output_stream << "Int";
+                }
+                else if (is_int64_type(type))
+                {
+                    output_stream << "Int64";
+                }
+                else if (is_uint_type(type))
+                {
+                    output_stream << "Uint";
+                }
+                else if (is_uint64_type(type))
+                {
+                    output_stream << "Uint64";
+                }
+                else if (is_double_type(type))
+                {
+                    output_stream << "Double";
+                }
+                else
+                {
+                    throw std::runtime_error{ std::format("Type '{}' not handled!", type.name) };
+                }
+
+                output_stream << "(output." << name << ");";
+            }
+        }
+    }
+
+    std::pmr::string generate_write_struct_json_code(
+        Struct const& struct_type,
+        std::pmr::unordered_map<std::pmr::string, Enum> const& enum_types,
+        std::pmr::unordered_map<std::pmr::string, Struct> const& struct_types
+    )
+    {
+        std::stringstream output_stream;
+
+        output_stream << "export template<typename Writer_type>\n";
+        output_stream << "void write_object(\n";
+        output_stream << "    Writer_type& writer,\n";
+        output_stream << "    " << struct_type.name << " const& output\n";
+        output_stream << ")\n";
+        output_stream << "{\n";
+        output_stream << "    writer.StartObject();\n";
+
+        for (Member const& member : struct_type.members)
+        {
+            if (is_variant_type(member.type))
+            {
+                std::pmr::vector<std::pmr::string> const type_names = get_variadic_types(
+                    member.type.name
+                );
+
+                for (std::size_t index = 0; index < type_names.size(); ++index)
+                {
+                    std::pmr::string const& type_name = type_names[index];
+
+                    output_stream << "    ";
+                    if (index != 0)
+                    {
+                        output_stream << "else ";
+                    }
+                    output_stream << "if (std::holds_alternative<" << type_name << ">(output." << member.name << "))\n";
+                    output_stream << "    {\n";
+                    output_stream << "        writer.Key(\"" << member.name << "\");\n";
+                    output_stream << "        write_object(writer, std::get<" << type_name << ">(output." << member.name << "));\n";
+                    output_stream << "    }\n";
+                }
+            }
+            else
+            {
+                output_stream << "    writer.Key(\"" << member.name << "\");\n";
+
+                if (is_struct_type(member.type, struct_types) || is_vector_type(member.type))
+                {
+                    output_stream << "    write_object(writer, output." << member.name << ");\n";
+                }
+                else if (is_enum_type(member.type, enum_types))
+                {
+                    output_stream << "    {\n";
+                    output_stream << "        std::string_view const enum_value_string = write_enum(output." << member.name << ");\n";
+                    output_stream << "        writer.String(enum_value_string.data(), enum_value_string.size());\n";
+                    output_stream << "    }\n";
+                }
+                else
+                {
+                    output_stream << "    ";
+                    generate_write_value_json_code(output_stream, member.type, member.name);
+                    output_stream << '\n';
+                }
+            }
+        }
+
+        output_stream << "    writer.EndObject();\n";
+        output_stream << "}\n";
+
+        return std::pmr::string{ output_stream.str() };
+    }
+
+    namespace
+    {
         std::optional<Enum> parse_enum(std::istream& input_stream)
         {
             std::pmr::string name;
@@ -642,6 +859,38 @@ namespace h::tools::code_generator
                 .members = std::move(members)
             };
         }
+
+        template<typename Value_type>
+        std::pmr::unordered_map<std::pmr::string, Value_type> create_name_map(
+            std::span<Value_type const> const values
+        )
+        {
+            std::pmr::unordered_map<std::pmr::string, Value_type> map;
+            map.reserve(values.size());
+
+            for (Value_type const& value : values)
+            {
+                map.insert(std::make_pair(value.name, value));
+            }
+
+            return map;
+        }
+
+        void generate_write_forward_declarations(
+            std::ostream& output_stream,
+            std::span<Struct const> const structs
+        )
+        {
+            for (Struct const struct_type : structs)
+            {
+                output_stream << "export template<typename Writer_type>\n";
+                output_stream << "void write_object(\n";
+                output_stream << "    Writer_type& writer,\n";
+                output_stream << "    " << struct_type.name << " const& input\n";
+                output_stream << ");\n";
+                output_stream << "\n";
+            }
+        }
     }
 
     File_types identify_file_types(
@@ -676,6 +925,14 @@ namespace h::tools::code_generator
             }
         }
 
+        std::pmr::unordered_map<std::pmr::string, Enum> const enum_map = create_name_map<Enum>(
+            enums
+            );
+
+        std::pmr::unordered_map<std::pmr::string, Struct> struct_map = create_name_map<Struct>(
+            structs
+            );
+
         return File_types
         {
             .enums = std::move(enums),
@@ -683,26 +940,7 @@ namespace h::tools::code_generator
         };
     }
 
-    namespace
-    {
-        template<typename Value_type>
-        std::pmr::unordered_map<std::pmr::string, Value_type> create_name_map(
-            std::span<Value_type const> const values
-        )
-        {
-            std::pmr::unordered_map<std::pmr::string, Value_type> map;
-            map.reserve(values.size());
-
-            for (Value_type const& value : values)
-            {
-                map.insert(std::make_pair(value.name, value));
-            }
-
-            return map;
-        }
-    }
-
-    void generate_json_code(
+    void generate_read_json_code(
         std::istream& input_stream,
         std::ostream& output_stream,
         std::string_view const export_module_name,
@@ -929,7 +1167,197 @@ namespace h::tools::code_generator
         for (Struct const& struct_type : file_types.structs)
         {
             output_stream << generate_read_struct_json_code(struct_type, enum_map, struct_map);
-            output_stream << "\n\n";
+            output_stream << "\n";
+        }
+
+        output_stream << "}\n";
+    }
+
+    void generate_write_json_code(
+        std::istream& input_stream,
+        std::ostream& output_stream,
+        std::string_view const export_module_name,
+        std::string_view const module_name_to_import,
+        std::string_view const namespace_name
+    )
+    {
+        File_types const file_types = identify_file_types(
+            input_stream
+        );
+
+        output_stream << "module;\n";
+        output_stream << '\n';
+        output_stream << "#include <iostream>\n";
+        output_stream << "#include <memory_resource>\n";
+        output_stream << "#include <string_view>\n";
+        output_stream << "#include <variant>\n";
+        output_stream << "#include <vector>\n";
+        output_stream << '\n';
+        output_stream << "export module " << export_module_name << ";\n";
+        output_stream << '\n';
+        output_stream << "import " << module_name_to_import << ";\n";
+        output_stream << '\n';
+        output_stream << "namespace " << namespace_name << '\n';
+        output_stream << "{\n";
+
+        for (Enum const& enum_type : file_types.enums)
+        {
+            output_stream << generate_write_enum_json_code(enum_type);
+            output_stream << "\n";
+        }
+
+        generate_write_forward_declarations(output_stream, file_types.structs);
+
+        output_stream << "    export template <typename Writer_type, typename Value_type>\n";
+        output_stream << "        void write_object(\n";
+        output_stream << "            Writer_type & writer,\n";
+        output_stream << "            std::pmr::vector<Value_type> const& values\n";
+        output_stream << "        )\n";
+        output_stream << "    {\n";
+        output_stream << "        writer.StartObject();\n";
+        output_stream << "        \n";
+        output_stream << "        writer.Key(\"size\");\n";
+        output_stream << "        writer.Uint64(values.size());\n";
+        output_stream << "        \n";
+        output_stream << "        writer.Key(\"elements\");\n";
+        output_stream << "        writer.StartArray();\n";
+        output_stream << "        for (Value_type const& value : values)\n";
+        output_stream << "        {\n";
+        output_stream << "            if constexpr (std::is_unsigned_v<Value_type> && sizeof(Value_type) <= 4)\n";
+        output_stream << "            {\n";
+        output_stream << "                writer.Uint(value);\n";
+        output_stream << "            }\n";
+        output_stream << "            else if constexpr (std::is_unsigned_v<Value_type>)\n";
+        output_stream << "            {\n";
+        output_stream << "                writer.Uint64(value);\n";
+        output_stream << "            }\n";
+        output_stream << "            else if constexpr (std::is_signed_v<Value_type> && sizeof(Value_type) <= 4)\n";
+        output_stream << "            {\n";
+        output_stream << "                writer.Int(value);\n";
+        output_stream << "            }\n";
+        output_stream << "            else if constexpr (std::is_signed_v<Value_type>)\n";
+        output_stream << "            {\n";
+        output_stream << "                writer.Int64(value);\n";
+        output_stream << "            }\n";
+        output_stream << "            else if constexpr (std::is_floating_point_v<Value_type>)\n";
+        output_stream << "            {\n";
+        output_stream << "                writer.Double(value);\n";
+        output_stream << "            }\n";
+        output_stream << "            else if constexpr (std::is_same_v<Value_type, std::string> || std::is_same_v<Value_type, std::pmr::string> || std::is_same_v<Value_type, std::string_view>)\n";
+        output_stream << "            {\n";
+        output_stream << "                writer.String(value.data(), value.size());\n";
+        output_stream << "            }\n";
+        output_stream << "            else if constexpr (std::is_enum_v<Value_type>)\n";
+        output_stream << "            {\n";
+        output_stream << "                {\n";
+        output_stream << "                    std::string_view const enum_value_string = write_enum(value);\n";
+        output_stream << "                    writer.String(enum_value_string.data(), enum_value_string.size());\n";
+        output_stream << "                }\n";
+        output_stream << "            }\n";
+        output_stream << "            else if constexpr (std::is_class_v<Value_type>)\n";
+        output_stream << "            {\n";
+        output_stream << "                write_object(writer, value);\n";
+        output_stream << "            }\n";
+        output_stream << "        }\n";
+        output_stream << "        writer.EndArray(values.size());\n";
+        output_stream << "        \n";
+        output_stream << "        writer.EndObject();\n";
+        output_stream << "    }\n";
+        output_stream << "    \n";
+
+        std::pmr::unordered_map<std::pmr::string, Enum> const enum_map = create_name_map<Enum>(
+            file_types.enums
+            );
+
+        std::pmr::unordered_map<std::pmr::string, Struct> struct_map = create_name_map<Struct>(
+            file_types.structs
+            );
+
+        for (Struct const& struct_type : file_types.structs)
+        {
+            output_stream << generate_write_struct_json_code(struct_type, enum_map, struct_map);
+            output_stream << "\n";
+        }
+
+        output_stream << "}\n";
+    }
+
+    void generate_json_operators_code(
+        std::istream& input_stream,
+        std::ostream& output_stream,
+        std::string_view const export_module_name,
+        std::string_view const namespace_name
+    )
+    {
+        File_types const file_types = identify_file_types(
+            input_stream
+        );
+
+        output_stream << "module;\n";
+        output_stream << '\n';
+        output_stream << "#include <istream>\n";
+        output_stream << "#include <optional>\n";
+        output_stream << "#include <ostream>\n";
+        output_stream << "\n";
+        output_stream << "#include <rapidjson/istreamwrapper.h>\n";
+        output_stream << "#include <rapidjson/ostreamwrapper.h>\n";
+        output_stream << "#include <rapidjson/reader.h>\n";
+        output_stream << "#include <rapidjson/writer.h>\n";
+        output_stream << '\n';
+        output_stream << "export module " << export_module_name << ";\n";
+        output_stream << '\n';
+        output_stream << "import h.core;\n";
+        output_stream << "import h.json_serializer;\n";
+        output_stream << '\n';
+        output_stream << "namespace " << namespace_name << '\n';
+        output_stream << "{\n";
+
+        for (Enum const& enum_type : file_types.enums)
+        {
+            output_stream << "    export std::istream& operator>>(std::istream& input_stream, " << enum_type.name << "& value)\n";
+            output_stream << "    {\n";
+            output_stream << "        std::pmr::string string;\n";
+            output_stream << "        input_stream >> string;\n";
+            output_stream << "        \n";
+            output_stream << "        value = h::json::read_enum<" << enum_type.name << ">(string);\n";
+            output_stream << "        \n";
+            output_stream << "        return input_stream;\n";
+            output_stream << "    }\n";
+            output_stream << "    \n";
+            output_stream << "    export std::ostream& operator<<(std::ostream& output_stream, " << enum_type.name << " const value)\n";
+            output_stream << "    {\n";
+            output_stream << "        output_stream << h::json::write_enum(value);\n";
+            output_stream << "        \n";
+            output_stream << "        return output_stream;\n";
+            output_stream << "    }\n";
+            output_stream << "    \n";
+        }
+
+        for (Struct const& struct_type : file_types.structs)
+        {
+            output_stream << "    export std::istream& operator>>(std::istream& input_stream, " << struct_type.name << "& value)\n";
+            output_stream << "    {\n";
+            output_stream << "        rapidjson::Reader reader;\n";
+            output_stream << "        rapidjson::IStreamWrapper stream_wrapper{ input_stream };\n";
+            output_stream << "        std::optional<" << struct_type.name << "> const output = h::json::read<" << struct_type.name << ">(reader, stream_wrapper);\n";
+            output_stream << "        \n";
+            output_stream << "        if (output)\n";
+            output_stream << "        {\n";
+            output_stream << "            value = std::move(*output);\n";
+            output_stream << "        }\n";
+            output_stream << "        \n";
+            output_stream << "        return input_stream;\n";
+            output_stream << "    }\n";
+            output_stream << "    \n";
+            output_stream << "    export std::ostream& operator<<(std::ostream& output_stream, " << struct_type.name << " const& value)\n";
+            output_stream << "    {\n";
+            output_stream << "        rapidjson::OStreamWrapper stream_wrapper{ output_stream };\n";
+            output_stream << "        rapidjson::Writer<rapidjson::OStreamWrapper> writer{ stream_wrapper };\n";
+            output_stream << "        h::json::write(writer, value);\n";
+            output_stream << "        \n";
+            output_stream << "        return output_stream;\n";
+            output_stream << "    }\n";
+            output_stream << "    \n";
         }
 
         output_stream << "}\n";

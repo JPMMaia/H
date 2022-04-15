@@ -10,8 +10,10 @@ target_link_libraries(H_JSON_serializer PRIVATE rapidjson)
 
 target_sources(H_JSON_serializer PRIVATE
     "JSON_serializer.cppm"
-    "Reader.cppm"
-    "Generated.cppm"
+    "Operators.cppm"
+    "Read_handler.cppm"
+    "Read_json.cppm"
+    "Write_json.cppm"
 )
 
 

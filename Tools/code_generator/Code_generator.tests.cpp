@@ -27,6 +27,22 @@ namespace h::tools::code_generator
         std::cout << code << std::endl;
     }
 
+    TEST_CASE("Print generate_write_enum_json_code")
+    {
+        Enum const operation
+        {
+            .name = "Binary_expression::Operation",
+            .values = {
+                "Add",
+                "Subtract",
+                "Multiply"
+            }
+        };
+
+        std::pmr::string const code = generate_write_enum_json_code(operation);
+        std::cout << code << std::endl;
+    }
+
     TEST_CASE("Print generate_read_struct_json_code for Variable_expression")
     {
         std::pmr::unordered_map<std::pmr::string, Enum> const enum_types

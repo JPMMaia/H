@@ -12,14 +12,14 @@ module;
 
 #include <rapidjson/reader.h>
 
-export module h.json_serializer.reader;
+export module h.json_serializer.read_handler;
 
 import h.core;
-import h.json_serializer.generated;
+import h.json_serializer.read_json;
 
 namespace h::json
 {
-    static constexpr bool g_debug = true;
+    static constexpr bool g_debug = false;
 
     export template<typename Struct_type>
         struct Handler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Handler<Struct_type>>

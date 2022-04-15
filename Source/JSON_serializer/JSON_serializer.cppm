@@ -18,8 +18,9 @@ module;
 export module h.json_serializer;
 
 import h.core;
-import h.json_serializer.generated;
-import h.json_serializer.reader;
+import h.json_serializer.read_handler;
+import h.json_serializer.read_json;
+import h.json_serializer.write_json;
 
 namespace h::json
 {
@@ -35,6 +36,12 @@ namespace h::json
 
         return enum_value;
     };
+
+    export template <typename Enum_type>
+        std::string_view write_enum(Enum_type const value)
+    {
+        return write_enum(value);
+    }
 
     export template<typename Type, typename Input_stream>
         std::optional<Type> read(
@@ -60,5 +67,14 @@ namespace h::json
         }
 
         return handler.output;
+    }
+
+    export template<typename Writer_type, typename Input_type>
+        void write(
+            Writer_type& writer,
+            Input_type const& value
+        )
+    {
+        write_object(writer, value);
     }
 }

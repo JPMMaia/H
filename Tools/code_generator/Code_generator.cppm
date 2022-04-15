@@ -28,6 +28,10 @@ namespace h::tools::code_generator
         Enum enum_type
     );
 
+    export std::pmr::string generate_write_enum_json_code(
+        Enum enum_type
+    );
+
     export struct Member
     {
         Type type;
@@ -46,6 +50,12 @@ namespace h::tools::code_generator
         std::pmr::unordered_map<std::pmr::string, Struct> const& struct_types
     );
 
+    export std::pmr::string generate_write_struct_json_code(
+        Struct const& struct_type,
+        std::pmr::unordered_map<std::pmr::string, Enum> const& enum_types,
+        std::pmr::unordered_map<std::pmr::string, Struct> const& struct_types
+    );
+
     export struct File_types
     {
         std::pmr::vector<Enum> enums;
@@ -56,11 +66,26 @@ namespace h::tools::code_generator
         std::istream& input_stream
     );
 
-    export void generate_json_code(
+    export void generate_read_json_code(
         std::istream& input_stream,
         std::ostream& output_stream,
         std::string_view const export_module_name,
         std::string_view const module_name_to_import,
+        std::string_view const namespace_name
+    );
+
+    export void generate_write_json_code(
+        std::istream& input_stream,
+        std::ostream& output_stream,
+        std::string_view const export_module_name,
+        std::string_view const module_name_to_import,
+        std::string_view const namespace_name
+    );
+
+    export void generate_json_operators_code(
+        std::istream& input_stream,
+        std::ostream& output_stream,
+        std::string_view const export_module_name,
         std::string_view const namespace_name
     );
 }

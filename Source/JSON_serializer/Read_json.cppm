@@ -5,7 +5,7 @@ module;
 #include <variant>
 #include <vector>
 
-export module h.json_serializer.generated;
+export module h.json_serializer.read_json;
 
 import h.core;
 
@@ -335,7 +335,6 @@ namespace h::json
         return false;
     }
 
-
     export template<typename Event_data>
         bool read_object(
             Float_type& output,
@@ -397,7 +396,6 @@ namespace h::json
         std::cerr << "Error while reading 'Float_type'.\n";
         return false;
     }
-
 
     export template<typename Event_data>
         bool read_object(
@@ -507,7 +505,6 @@ namespace h::json
         return false;
     }
 
-
     export template<typename Event_data>
         bool read_object(
             Variable_expression& output,
@@ -579,7 +576,6 @@ namespace h::json
         std::cerr << "Error while reading 'Variable_expression'.\n";
         return false;
     }
-
 
     export template<typename Event_data>
         bool read_object(
@@ -697,7 +693,6 @@ namespace h::json
         return false;
     }
 
-
     export template<typename Event_data>
         bool read_object(
             Call_expression& output,
@@ -787,7 +782,6 @@ namespace h::json
         return false;
     }
 
-
     export template<typename Event_data>
         bool read_object(
             Integer_constant& output,
@@ -870,7 +864,6 @@ namespace h::json
         return false;
     }
 
-
     export template<typename Event_data>
         bool read_object(
             Half_constant& output,
@@ -932,7 +925,6 @@ namespace h::json
         std::cerr << "Error while reading 'Half_constant'.\n";
         return false;
     }
-
 
     export template<typename Event_data>
         bool read_object(
@@ -996,7 +988,6 @@ namespace h::json
         return false;
     }
 
-
     export template<typename Event_data>
         bool read_object(
             Double_constant& output,
@@ -1058,7 +1049,6 @@ namespace h::json
         std::cerr << "Error while reading 'Double_constant'.\n";
         return false;
     }
-
 
     export template<typename Event_data>
         bool read_object(
@@ -1251,7 +1241,6 @@ namespace h::json
         return false;
     }
 
-
     export template<typename Event_data>
         bool read_object(
             Return_expression& output,
@@ -1330,7 +1319,6 @@ namespace h::json
         std::cerr << "Error while reading 'Return_expression'.\n";
         return false;
     }
-
 
     export template<typename Event_data>
         bool read_object(
@@ -1524,7 +1512,6 @@ namespace h::json
         return false;
     }
 
-
     export template<typename Event_data>
         bool read_object(
             Statement& output,
@@ -1623,7 +1610,6 @@ namespace h::json
         std::cerr << "Error while reading 'Statement'.\n";
         return false;
     }
-
 
     export template<typename Event_data>
         bool read_object(
@@ -1805,7 +1791,6 @@ namespace h::json
         return false;
     }
 
-
     export template<typename Event_data>
         bool read_object(
             Function_definition& output,
@@ -1895,7 +1880,6 @@ namespace h::json
         return false;
     }
 
-
     export template<typename Event_data>
         bool read_object(
             Language_version& output,
@@ -1978,7 +1962,6 @@ namespace h::json
         return false;
     }
 
-
     export template<typename Event_data>
         bool read_object(
             Module_declarations& output,
@@ -2058,7 +2041,6 @@ namespace h::json
         return false;
     }
 
-
     export template<typename Event_data>
         bool read_object(
             Module_definitions& output,
@@ -2137,7 +2119,6 @@ namespace h::json
         std::cerr << "Error while reading 'Module_definitions'.\n";
         return false;
     }
-
 
     export template<typename Event_data>
         bool read_object(
@@ -2298,4 +2279,5 @@ namespace h::json
         std::cerr << "Error while reading 'Module'.\n";
         return false;
     }
+
 }
