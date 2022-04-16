@@ -64,59 +64,60 @@ namespace h
         CHECK(actual == expected);
     }
 
-    TEST_CASE("Read Type with Integer_type")
+    TEST_CASE("Read Type_reference with Fundamental_type")
     {
         std::pmr::string const json_data = R"JSON(
             {
-                "integer_type": {
-                    "precision": 32
-                }
+                "fundamental_type": "uint32"
             }
         )JSON";
 
-        Type const expected
+        Type_reference const expected
         {
-            .data = Integer_type
-            {
-                .precision = 32
-            }
+            .data = Fundamental_type::Uint32
         };
 
         rapidjson::Reader reader;
         rapidjson::StringStream input_stream{ json_data.c_str() };
-        std::optional<Type> const output = h::json::read<Type>(reader, input_stream);
+        std::optional<Type_reference> const output = h::json::read<Type_reference>(reader, input_stream);
 
         REQUIRE(output.has_value());
 
-        Type const& actual = output.value();
+        Type_reference const& actual = output.value();
         CHECK(actual == expected);
     }
 
-    TEST_CASE("Read Type with Float_type")
+    TEST_CASE("Read Type_reference with Struct_type_reference")
     {
         std::pmr::string const json_data = R"JSON(
             {
-                "float_type": {
-                    "precision": 32
+                "struct_type_reference": {
+                    "module_reference": {
+                        "name": "module_foo"
+                    },
+                    "id": 10
                 }
             }
         )JSON";
 
-        Type const expected
+        Type_reference const expected
         {
-            .data = Float_type
+            .data = Struct_type_reference
             {
-                .precision = 32
+                .module_reference = Module_reference{
+                    .name = "module_foo"
+                },
+                .id = 10
             }
         };
 
         rapidjson::Reader reader;
         rapidjson::StringStream input_stream{ json_data.c_str() };
-        std::optional<Type> const output = h::json::read<Type>(reader, input_stream);
+        std::optional<Type_reference> const output = h::json::read<Type_reference>(reader, input_stream);
 
         REQUIRE(output.has_value());
 
-        Type const& actual = output.value();
+        Type_reference const& actual = output.value();
         CHECK(actual == expected);
     }
 
@@ -257,10 +258,10 @@ namespace h
 
     h::Function_declaration create_expected_function_declaration()
     {
-        std::pmr::vector<Type> parameter_types
+        std::pmr::vector<Type_reference> parameter_types
         {
-            Type{.data = Integer_type{.precision = 32}},
-            Type{.data = Integer_type{.precision = 32}},
+            Type_reference{.data = Fundamental_type::Int32},
+            Type_reference{.data = Fundamental_type::Int32},
         };
 
         std::pmr::vector<std::uint64_t> parameter_ids
@@ -276,7 +277,7 @@ namespace h
         return h::Function_declaration
         {
             .name = "Add",
-            .return_type = Type{.data = Integer_type{.precision = 32}},
+            .return_type = Type_reference{.data = Fundamental_type::Int32},
             .parameter_types = std::move(parameter_types),
             .parameter_ids = std::move(parameter_ids),
             .parameter_names = std::move(parameter_names),
@@ -290,22 +291,16 @@ namespace h
             {
                 "name": "Add",
                 "return_type": {
-                    "integer_type": {
-                        "precision": 32
-                    }
+                    "fundamental_type": "int32"
                 },
                 "parameter_types": {
                     "size": 2,
                     "elements": [
                         {
-                            "integer_type": {
-                                "precision": 32
-                            }
+                            "fundamental_type": "int32"
                         },
                         {
-                            "integer_type": {
-                                "precision": 32
-                            }
+                            "fundamental_type": "int32"
                         }
                     ]
                 },

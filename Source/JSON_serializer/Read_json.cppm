@@ -185,6 +185,74 @@ namespace h::json
     };
 
     export template<>
+        bool read_enum(Fundamental_type& output, std::string_view const value)
+    {
+        if (value == "byte")
+        {
+            output = Fundamental_type::Byte;
+            return true;
+        }
+        else if (value == "uint8")
+        {
+            output = Fundamental_type::Uint8;
+            return true;
+        }
+        else if (value == "uint16")
+        {
+            output = Fundamental_type::Uint16;
+            return true;
+        }
+        else if (value == "uint32")
+        {
+            output = Fundamental_type::Uint32;
+            return true;
+        }
+        else if (value == "uint64")
+        {
+            output = Fundamental_type::Uint64;
+            return true;
+        }
+        else if (value == "int8")
+        {
+            output = Fundamental_type::Int8;
+            return true;
+        }
+        else if (value == "int16")
+        {
+            output = Fundamental_type::Int16;
+            return true;
+        }
+        else if (value == "int32")
+        {
+            output = Fundamental_type::Int32;
+            return true;
+        }
+        else if (value == "int64")
+        {
+            output = Fundamental_type::Int64;
+            return true;
+        }
+        else if (value == "float16")
+        {
+            output = Fundamental_type::Float16;
+            return true;
+        }
+        else if (value == "float32")
+        {
+            output = Fundamental_type::Float32;
+            return true;
+        }
+        else if (value == "float64")
+        {
+            output = Fundamental_type::Float64;
+            return true;
+        }
+
+        std::cerr << std::format("Failed to read enum 'Fundamental_type' with value '{}'\n", value);
+        return false;
+    }
+
+    export template<>
         bool read_enum(Variable_expression_type& output, std::string_view const value)
     {
         if (value == "function_argument")
@@ -275,7 +343,7 @@ namespace h::json
 
     export template<typename Event_data>
         bool read_object(
-            Integer_type& output,
+            Module_reference& output,
             Event const event,
             Event_data const event_data,
             std::pmr::vector<int>& state_stack,
@@ -303,7 +371,7 @@ namespace h::json
             {
                 if constexpr (std::is_same_v<Event_data, std::string_view>)
                 {
-                    if (event_data == "precision")
+                    if (event_data == "name")
                     {
                         state = 3;
                         return true;
@@ -321,23 +389,23 @@ namespace h::json
         }
         case 2:
         {
-            std::cerr << "While parsing 'Integer_type' unexpected '}' found.\n";
+            std::cerr << "While parsing 'Module_reference' unexpected '}' found.\n";
             return false;
         }
         case 3:
         {
             state = 1;
-            return read_value(output.precision, "precision", event_data);
+            return read_value(output.name, "name", event_data);
         }
         }
 
-        std::cerr << "Error while reading 'Integer_type'.\n";
+        std::cerr << "Error while reading 'Module_reference'.\n";
         return false;
     }
 
     export template<typename Event_data>
         bool read_object(
-            Float_type& output,
+            Struct_type_reference& output,
             Event const event,
             Event_data const event_data,
             std::pmr::vector<int>& state_stack,
@@ -365,77 +433,13 @@ namespace h::json
             {
                 if constexpr (std::is_same_v<Event_data, std::string_view>)
                 {
-                    if (event_data == "precision")
+                    if (event_data == "module_reference")
                     {
                         state = 3;
                         return true;
                     }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Float_type' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 1;
-            return read_value(output.precision, "precision", event_data);
-        }
-        }
-
-        std::cerr << "Error while reading 'Float_type'.\n";
-        return false;
-    }
-
-    export template<typename Event_data>
-        bool read_object(
-            Type& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
-    {
-        int& state = state_stack[state_stack_position];
-
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
-            {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "float_type")
+                    else if (event_data == "id")
                     {
-                        output.data = Float_type{};
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "integer_type")
-                    {
-                        output.data = Integer_type{};
                         state = 5;
                         return true;
                     }
@@ -452,19 +456,19 @@ namespace h::json
         }
         case 2:
         {
-            std::cerr << "While parsing 'Type' unexpected '}' found.\n";
+            std::cerr << "While parsing 'Struct_type_reference' unexpected '}' found.\n";
             return false;
         }
         case 3:
         {
             state = 4;
-            return read_object(std::get<Float_type>(output.data), event, event_data, state_stack, state_stack_position + 1);
+            return read_object(output.module_reference, event, event_data, state_stack, state_stack_position + 1);
         }
         case 4:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
             {
-                if (!read_object(std::get<Float_type>(output.data), event, event_data, state_stack, state_stack_position + 1))
+                if (!read_object(output.module_reference, event, event_data, state_stack, state_stack_position + 1))
                 {
                     return false;
                 }
@@ -474,19 +478,93 @@ namespace h::json
             }
             else
             {
-                return read_object(std::get<Float_type>(output.data), event, event_data, state_stack, state_stack_position + 1);
+                return read_object(output.module_reference, event, event_data, state_stack, state_stack_position + 1);
             }
         }
         case 5:
         {
+            state = 1;
+            return read_value(output.id, "id", event_data);
+        }
+        }
+
+        std::cerr << "Error while reading 'Struct_type_reference'.\n";
+        return false;
+    }
+
+    export template<typename Event_data>
+        bool read_object(
+            Type_reference& output,
+            Event const event,
+            Event_data const event_data,
+            std::pmr::vector<int>& state_stack,
+            std::size_t const state_stack_position
+        )
+    {
+        int& state = state_stack[state_stack_position];
+
+        switch (state)
+        {
+        case 0:
+        {
+            if (event == Event::Start_object)
+            {
+                state = 1;
+                return true;
+            }
+            break;
+        }
+        case 1:
+        {
+            switch (event)
+            {
+            case Event::Key:
+            {
+                if constexpr (std::is_same_v<Event_data, std::string_view>)
+                {
+                    if (event_data == "fundamental_type")
+                    {
+                        output.data = Fundamental_type{};
+                        state = 3;
+                        return true;
+                    }
+                    else if (event_data == "struct_type_reference")
+                    {
+                        output.data = Struct_type_reference{};
+                        state = 5;
+                        return true;
+                    }
+                }
+                break;
+            }
+            case Event::End_object:
+            {
+                state = 2;
+                return true;
+            }
+            }
+            break;
+        }
+        case 2:
+        {
+            std::cerr << "While parsing 'Type_reference' unexpected '}' found.\n";
+            return false;
+        }
+        case 3:
+        {
+            state = 1;
+            return read_enum(std::get<Fundamental_type>(output.data), event_data);
+        }
+        case 5:
+        {
             state = 6;
-            return read_object(std::get<Integer_type>(output.data), event, event_data, state_stack, state_stack_position + 1);
+            return read_object(std::get<Struct_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1);
         }
         case 6:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
             {
-                if (!read_object(std::get<Integer_type>(output.data), event, event_data, state_stack, state_stack_position + 1))
+                if (!read_object(std::get<Struct_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1))
                 {
                     return false;
                 }
@@ -496,12 +574,12 @@ namespace h::json
             }
             else
             {
-                return read_object(std::get<Integer_type>(output.data), event, event_data, state_stack, state_stack_position + 1);
+                return read_object(std::get<Struct_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1);
             }
         }
         }
 
-        std::cerr << "Error while reading 'Type'.\n";
+        std::cerr << "Error while reading 'Type_reference'.\n";
         return false;
     }
 

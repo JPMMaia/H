@@ -345,16 +345,36 @@ namespace h::tools::code_generator
 
                 for (std::size_t index = 0; index < variadic_types.size(); ++index)
                 {
-                    std::string_view const type = variadic_types[index];
-                    std::pmr::string const lowercase_type = to_lowercase(type);
+                    const int current_state = (state + 2 * index);
+                    std::string_view const type_name = variadic_types[index];
+                    Type const type = { .name = std::pmr::string{type_name} };
 
-                    std::pmr::string const output_name = "std::get<" + std::pmr::string{ type } + ">(output." + member.name + ")";
+                    std::pmr::string const output_name = "std::get<" + std::pmr::string{ type_name } + ">(output." + member.name + ")";
 
-                    generate_read_object_code(
-                        output_stream,
-                        output_name,
-                        state + 2 * index
-                    );
+                    if (is_enum_type(type, enum_types))
+                    {
+                        output_stream << "case " << current_state << ":\n";
+                        output_stream << "{\n";
+                        output_stream << "    state = 1;\n";
+                        output_stream << "    return read_enum(" << output_name << ", event_data);\n";
+                        output_stream << "}\n";
+                    }
+                    else if (is_struct_type(type, struct_types))
+                    {
+                        generate_read_object_code(
+                            output_stream,
+                            output_name,
+                            current_state
+                        );
+                    }
+                    else
+                    {
+                        output_stream << "case " << current_state << ":\n";
+                        output_stream << "{\n";
+                        output_stream << "    state = 1;\n";
+                        output_stream << "    return read_value(" << output_name << ", \"" << member.name << "\", event_data);\n";
+                        output_stream << "}\n";
+                    }
                 }
 
                 return 2 * static_cast<int>(variadic_types.size());
@@ -505,7 +525,7 @@ namespace h::tools::code_generator
         {
             if (is_string_type(type))
             {
-                output_stream << "writer.String(output." << name << ".data(), output." << name << ".size());";
+                output_stream << "writer.String(" << name << ".data(), " << name << ".size());";
             }
             else
             {
@@ -540,7 +560,7 @@ namespace h::tools::code_generator
                     throw std::runtime_error{ std::format("Type '{}' not handled!", type.name) };
                 }
 
-                output_stream << "(output." << name << ");";
+                output_stream << "(" << name << ");";
             }
         }
     }
@@ -572,6 +592,7 @@ namespace h::tools::code_generator
                 for (std::size_t index = 0; index < type_names.size(); ++index)
                 {
                     std::pmr::string const& type_name = type_names[index];
+                    Type const underlying_type = { .name = type_name };
 
                     output_stream << "    ";
                     if (index != 0)
@@ -581,7 +602,28 @@ namespace h::tools::code_generator
                     output_stream << "if (std::holds_alternative<" << type_name << ">(output." << member.name << "))\n";
                     output_stream << "    {\n";
                     output_stream << "        writer.Key(\"" << member.name << "\");\n";
-                    output_stream << "        write_object(writer, std::get<" << type_name << ">(output." << member.name << "));\n";
+
+                    if (is_enum_type(underlying_type, enum_types))
+                    {
+                        output_stream << "        {\n";
+                        output_stream << "            " << type_name << " const& value = std::get<" << type_name << ">(output." << member.name << ");\n";
+                        output_stream << "            std::string_view const enum_value_string = write_enum(value);\n";
+                        output_stream << "            writer.String(enum_value_string.data(), enum_value_string.size());\n";
+                        output_stream << "        }\n";
+                    }
+                    else if (is_struct_type(underlying_type, struct_types))
+                    {
+                        output_stream << "        " << type_name << " const& value = std::get<" << type_name << ">(output." << member.name << ");\n";
+                        output_stream << "        write_object(writer, value);\n";
+                    }
+                    else
+                    {
+                        output_stream << "        " << type_name << " const& value = std::get<" << type_name << ">(output." << member.name << ");\n";
+                        output_stream << "        ";
+                        generate_write_value_json_code(output_stream, underlying_type, "value");
+                        output_stream << '\n';
+                    }
+
                     output_stream << "    }\n";
                 }
             }
@@ -603,7 +645,8 @@ namespace h::tools::code_generator
                 else
                 {
                     output_stream << "    ";
-                    generate_write_value_json_code(output_stream, member.type, member.name);
+                    std::pmr::string const name = "output." + member.name;
+                    generate_write_value_json_code(output_stream, member.type, name);
                     output_stream << '\n';
                 }
             }
