@@ -167,30 +167,6 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
-            Integer_constant const& input
-        );
-
-    export template<typename Writer_type>
-        void write_object(
-            Writer_type& writer,
-            Half_constant const& input
-        );
-
-    export template<typename Writer_type>
-        void write_object(
-            Writer_type& writer,
-            Float_constant const& input
-        );
-
-    export template<typename Writer_type>
-        void write_object(
-            Writer_type& writer,
-            Double_constant const& input
-        );
-
-    export template<typename Writer_type>
-        void write_object(
-            Writer_type& writer,
             Constant_expression const& input
         );
 
@@ -408,88 +384,17 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
-            Integer_constant const& output
-        )
-    {
-        writer.StartObject();
-        writer.Key("number_of_bits");
-        writer.Uint(output.number_of_bits);
-        writer.Key("is_signed");
-        writer.Bool(output.is_signed);
-        writer.Key("value");
-        writer.Uint64(output.value);
-        writer.EndObject();
-    }
-
-    export template<typename Writer_type>
-        void write_object(
-            Writer_type& writer,
-            Half_constant const& output
-        )
-    {
-        writer.StartObject();
-        writer.Key("value");
-        writer.Double(output.value);
-        writer.EndObject();
-    }
-
-    export template<typename Writer_type>
-        void write_object(
-            Writer_type& writer,
-            Float_constant const& output
-        )
-    {
-        writer.StartObject();
-        writer.Key("value");
-        writer.Double(output.value);
-        writer.EndObject();
-    }
-
-    export template<typename Writer_type>
-        void write_object(
-            Writer_type& writer,
-            Double_constant const& output
-        )
-    {
-        writer.StartObject();
-        writer.Key("value");
-        writer.Double(output.value);
-        writer.EndObject();
-    }
-
-    export template<typename Writer_type>
-        void write_object(
-            Writer_type& writer,
             Constant_expression const& output
         )
     {
         writer.StartObject();
         writer.Key("type");
-        write_object(writer, output.type);
-        if (std::holds_alternative<Integer_constant>(output.data))
         {
-            writer.Key("data");
-            Integer_constant const& value = std::get<Integer_constant>(output.data);
-            write_object(writer, value);
+            std::string_view const enum_value_string = write_enum(output.type);
+            writer.String(enum_value_string.data(), enum_value_string.size());
         }
-        else if (std::holds_alternative<Half_constant>(output.data))
-        {
-            writer.Key("data");
-            Half_constant const& value = std::get<Half_constant>(output.data);
-            write_object(writer, value);
-        }
-        else if (std::holds_alternative<Float_constant>(output.data))
-        {
-            writer.Key("data");
-            Float_constant const& value = std::get<Float_constant>(output.data);
-            write_object(writer, value);
-        }
-        else if (std::holds_alternative<Double_constant>(output.data))
-        {
-            writer.Key("data");
-            Double_constant const& value = std::get<Double_constant>(output.data);
-            write_object(writer, value);
-        }
+        writer.Key("data");
+        writer.String(output.data.data(), output.data.size());
         writer.EndObject();
     }
 

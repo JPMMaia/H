@@ -15,6 +15,8 @@ module;
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Target/TargetOptions.h>
 
+#include <bit>
+#include <cstdlib>
 #include <format>
 #include <iostream>
 #include <memory_resource>
@@ -65,7 +67,38 @@ namespace h::compiler
 
     llvm::Type* to_type(
         llvm::LLVMContext& llvm_context,
-        Type const& type
+        Fundamental_type const type
+    )
+    {
+        switch (type)
+        {
+        case Fundamental_type::Byte:
+        case Fundamental_type::Uint8:
+        case Fundamental_type::Int8:
+            return llvm::Type::getInt8Ty(llvm_context);
+        case Fundamental_type::Uint16:
+        case Fundamental_type::Int16:
+            return llvm::Type::getInt16Ty(llvm_context);
+        case Fundamental_type::Uint32:
+        case Fundamental_type::Int32:
+            return llvm::Type::getInt32Ty(llvm_context);
+        case Fundamental_type::Uint64:
+        case Fundamental_type::Int64:
+            return llvm::Type::getInt64Ty(llvm_context);
+        case Fundamental_type::Float16:
+            return llvm::Type::getHalfTy(llvm_context);
+        case Fundamental_type::Float32:
+            return llvm::Type::getFloatTy(llvm_context);
+        case Fundamental_type::Float64:
+            return llvm::Type::getDoubleTy(llvm_context);
+        default:
+            throw std::runtime_error{ "Not implemented." };
+        }
+    }
+
+    llvm::Type* to_type(
+        llvm::LLVMContext& llvm_context,
+        Type_reference const& type
     )
     {
         llvm::Type* llvm_type = nullptr;
@@ -76,20 +109,13 @@ namespace h::compiler
 
             llvm_type = [&]() -> llvm::Type*
             {
-                if constexpr (std::is_same_v<Subtype, Float_type>)
+                if constexpr (std::is_same_v<Subtype, Fundamental_type>)
                 {
-                    switch (data.precision)
-                    {
-                    case 16: return llvm::Type::getHalfTy(llvm_context);
-                    case 32: return llvm::Type::getFloatTy(llvm_context);
-                    case 64: return llvm::Type::getDoubleTy(llvm_context);
-                    default:
-                        throw std::runtime_error{ "Not implemented." };
-                    }
+                    return to_type(llvm_context, data);
                 }
-                else if constexpr (std::is_same_v<Subtype, Integer_type>)
+                else if constexpr (std::is_same_v<Subtype, Struct_type_reference>)
                 {
-                    return llvm::Type::getIntNTy(llvm_context, data.precision);
+                    throw std::runtime_error{ "Not implemented." };
                 }
                 else
                 {
@@ -105,18 +131,18 @@ namespace h::compiler
 
     std::pmr::vector<llvm::Type*> to_types(
         llvm::LLVMContext& llvm_context,
-        std::span<Type const> const types,
+        std::span<Type_reference const> const type_references,
         std::pmr::polymorphic_allocator<> const& output_allocator
     )
     {
         std::pmr::vector<llvm::Type*> output{ output_allocator };
-        output.resize(types.size());
+        output.resize(type_references.size());
 
         std::transform(
-            types.begin(),
-            types.end(),
+            type_references.begin(),
+            type_references.end(),
             output.begin(),
-            [&](Type const& type) -> llvm::Type* { return to_type(llvm_context, type); }
+            [&](Type_reference const& type_reference) -> llvm::Type* { return to_type(llvm_context, type_reference); }
         );
 
         return output;
@@ -139,8 +165,8 @@ namespace h::compiler
 
     llvm::FunctionType* to_function_type(
         llvm::LLVMContext& llvm_context,
-        Type const& return_type,
-        std::span<Type const> const parameter_types,
+        Type_reference const& return_type,
+        std::span<Type_reference const> const parameter_types,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
@@ -201,17 +227,17 @@ namespace h::compiler
     {
         switch (expression.type)
         {
-        case Variable_expression::Type::Function_argument:
+        case Variable_expression_type::Function_argument:
         {
             std::size_t const index = function_argument_id_to_index.at(expression.id);
             return function_arguments[index];
         }
-        case Variable_expression::Type::Local_variable:
+        case Variable_expression_type::Local_variable:
         {
             std::size_t const index = local_variable_id_to_index.at(expression.id);
             return local_variables[index];
         }
-        case Variable_expression::Type::Temporary:
+        case Variable_expression_type::Temporary:
         {
             std::size_t const index = expression.id;
             return temporaries[index];
@@ -256,15 +282,15 @@ namespace h::compiler
 
         switch (expression.operation)
         {
-        case Binary_expression::Operation::Add:
+        case Binary_operation::Add:
             return llvm_builder.CreateAdd(left_hand_side_value, right_hand_side_value, "addtmp");
-        case Binary_expression::Operation::Subtract:
+        case Binary_operation::Subtract:
             return llvm_builder.CreateSub(left_hand_side_value, right_hand_side_value, "subtmp");
-        case Binary_expression::Operation::Multiply:
+        case Binary_operation::Multiply:
             return llvm_builder.CreateMul(left_hand_side_value, right_hand_side_value, "multmp");
-        case Binary_expression::Operation::Signed_divide:
+        case Binary_operation::Signed_divide:
             return llvm_builder.CreateSDiv(left_hand_side_value, right_hand_side_value, "sdivtmp");
-        case Binary_expression::Operation::Unsigned_divide:
+        case Binary_operation::Unsigned_divide:
             return llvm_builder.CreateUDiv(left_hand_side_value, right_hand_side_value, "udivtmp");
         default:
             throw std::runtime_error{ "Not implemented." };
@@ -316,21 +342,16 @@ namespace h::compiler
         return llvm_builder.CreateCall(llvm_function, llvm_arguments, call_name);
     }
 
-    template <typename T>
     void check_if_type_and_constant_agree(
-        Type const& type,
-        std::uint32_t number_of_bits
+        Fundamental_type const& type,
+        std::uint16_t number_of_bits
     )
     {
-        if (!std::holds_alternative<T>(type.data))
-        {
-            throw std::runtime_error{ "expression.type and expression.data type are not the same." };
-        }
+        std::uint16_t const type_precision = h::get_precision(type);
 
-        T const& actual_type = std::get<T>(type.data);
-        if (actual_type.precision != number_of_bits)
+        if (type_precision != number_of_bits)
         {
-            throw std::runtime_error{ "type.precision != constant number of bits." };
+            throw std::runtime_error{ "h::get_precision(type) != constant number of bits." };
         }
     }
 
@@ -339,42 +360,55 @@ namespace h::compiler
         llvm::LLVMContext& llvm_context
     )
     {
+        check_if_type_and_constant_agree(expression.type, expression.data.size() * 8);
+
         llvm::Type* const llvm_type = to_type(llvm_context, expression.type);
 
-        if (std::holds_alternative<Integer_constant>(expression.data))
-        {
-            Integer_constant const& integer_constant = std::get<Integer_constant>(expression.data);
-            check_if_type_and_constant_agree<Integer_type>(expression.type, integer_constant.number_of_bits);
+        std::uint16_t const type_precision = h::get_precision(expression.type);
 
-            llvm::APInt const value{ integer_constant.number_of_bits, integer_constant.value, integer_constant.is_signed };
+        switch (expression.type)
+        {
+        case Fundamental_type::Byte:
+        case Fundamental_type::Uint8:
+        case Fundamental_type::Uint16:
+        case Fundamental_type::Uint32:
+        case Fundamental_type::Uint64:
+        {
+            char* end;
+            std::uint64_t const data = std::strtoull(expression.data.c_str(), &end, 10);
+
+            llvm::APInt const value{ type_precision, data, false };
             return llvm::ConstantInt::get(llvm_type, value);
         }
-        else if (std::holds_alternative<Half_constant>(expression.data))
+        case Fundamental_type::Int8:
+        case Fundamental_type::Int16:
+        case Fundamental_type::Int32:
+        case Fundamental_type::Int64:
         {
-            Half_constant const& half_constant = std::get<Half_constant>(expression.data);
-            check_if_type_and_constant_agree<Float_type>(expression.type, 16);
+            char* end;
+            std::int64_t const data = std::strtoll(expression.data.c_str(), &end, 10);
 
-            llvm::APFloat const value{ half_constant.value };
+            llvm::APInt const value{ type_precision, std::bit_cast<std::uint64_t>(data), true };
+            return llvm::ConstantInt::get(llvm_type, value);
+        }
+        case Fundamental_type::Float16:
+        case Fundamental_type::Float32:
+        {
+            char* end;
+            float const data = std::strtof(expression.data.c_str(), &end);
+
+            llvm::APFloat const value{ data };
             return llvm::ConstantFP::get(llvm_type, value);
         }
-        else if (std::holds_alternative<Float_constant>(expression.data))
+        case Fundamental_type::Float64:
         {
-            Float_constant const& float_constant = std::get<Float_constant>(expression.data);
-            check_if_type_and_constant_agree<Float_type>(expression.type, 32);
+            char* end;
+            double const data = std::strtod(expression.data.c_str(), &end);
 
-            llvm::APFloat const value{ float_constant.value };
+            llvm::APFloat const value{ data };
             return llvm::ConstantFP::get(llvm_type, value);
         }
-        else if (std::holds_alternative<Double_constant>(expression.data))
-        {
-            Double_constant const& double_constant = std::get<Double_constant>(expression.data);
-            check_if_type_and_constant_agree<Float_type>(expression.type, 64);
-
-            llvm::APFloat const value{ double_constant.value };
-            return llvm::ConstantFP::get(llvm_type, value);
-        }
-        else
-        {
+        default:
             throw std::runtime_error{ "Unknown constant type." };
         }
     }

@@ -24,7 +24,7 @@ namespace h
         Int64 = 24,
         Float16 = 31,
         Float32 = 32,
-        Float64 = 23
+        Float64 = 33
     };
 
     export std::uint16_t get_precision(Fundamental_type type);
@@ -99,47 +99,10 @@ namespace h
         friend auto operator<=>(Call_expression const&, Call_expression const&) = default;
     };
 
-    export struct Integer_constant
-    {
-        std::uint32_t number_of_bits;
-        bool is_signed;
-        std::uint64_t value;
-
-        friend auto operator<=>(Integer_constant const&, Integer_constant const&) = default;
-    };
-
-    export struct Half_constant
-    {
-        float value;
-
-        friend auto operator<=>(Half_constant const&, Half_constant const&) = default;
-    };
-
-    export struct Float_constant
-    {
-        float value;
-
-        friend auto operator<=>(Float_constant const&, Float_constant const&) = default;
-    };
-
-    export struct Double_constant
-    {
-        double value;
-
-        friend auto operator<=>(Double_constant const&, Double_constant const&) = default;
-    };
-
     export struct Constant_expression
     {
-        using Data_type = std::variant<
-            Integer_constant,
-            Half_constant,
-            Float_constant,
-            Double_constant
-        >;
-
-        Type_reference type;
-        Data_type data;
+        Fundamental_type type;
+        std::pmr::string data;
 
         friend auto operator<=>(Constant_expression const&, Constant_expression const&) = default;
     };
