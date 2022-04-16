@@ -11,30 +11,50 @@ export module h.core;
 
 namespace h
 {
-    export struct Integer_type
+    export enum class Fundamental_type
     {
-        std::uint8_t precision = 64;
-
-        friend auto operator<=>(Integer_type const&, Integer_type const&) = default;
+        Byte = 0,
+        Uint8 = 11,
+        Uint16 = 12,
+        Uint32 = 13,
+        Uint64 = 14,
+        Int8 = 21,
+        Int16 = 22,
+        Int32 = 23,
+        Int64 = 24,
+        Float16 = 31,
+        Float32 = 32,
+        Float64 = 23
     };
 
-    export struct Float_type
-    {
-        std::uint8_t precision = 64;
+    export std::uint16_t get_precision(Fundamental_type type);
 
-        friend auto operator<=>(Float_type const&, Float_type const&) = default;
+
+    export struct Module_reference
+    {
+        std::pmr::string name;
+
+        friend auto operator<=>(Module_reference const&, Module_reference const&) = default;
     };
 
-    export struct Type
+    export struct Struct_type_reference
+    {
+        Module_reference module_reference;
+        std::uint64_t id;
+
+        friend auto operator<=>(Struct_type_reference const&, Struct_type_reference const&) = default;
+    };
+
+    export struct Type_reference
     {
         using Data_type = std::variant<
-            Float_type,
-            Integer_type
+            Fundamental_type,
+            Struct_type_reference
         >;
 
         Data_type data;
 
-        friend auto operator<=>(Type const&, Type const&) = default;
+        friend auto operator<=>(Type_reference const&, Type_reference const&) = default;
     };
 
     export enum class Variable_expression_type
@@ -118,7 +138,7 @@ namespace h
             Double_constant
         >;
 
-        Type type;
+        Type_reference type;
         Data_type data;
 
         friend auto operator<=>(Constant_expression const&, Constant_expression const&) = default;
@@ -164,8 +184,8 @@ namespace h
     export struct Function_declaration
     {
         std::pmr::string name;
-        Type return_type;
-        std::pmr::vector<Type> parameter_types;
+        Type_reference return_type;
+        std::pmr::vector<Type_reference> parameter_types;
         std::pmr::vector<std::uint64_t> parameter_ids;
         std::pmr::vector<std::pmr::string> parameter_names;
         Linkage linkage;
