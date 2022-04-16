@@ -632,43 +632,55 @@ namespace h::tools::code_generator
                 return std::nullopt;
             }
 
-            std::pmr::vector<std::pmr::string> strings;
+            std::stringstream enum_content_string_stream;
 
             while (input_stream.good())
             {
                 std::pmr::string string;
                 input_stream >> string;
-                strings.push_back(string);
+                enum_content_string_stream << string;
 
-                if (strings.back() == "};")
+                if (string.back() == ';')
                 {
                     break;
                 }
             }
 
-            std::pmr::vector<std::pmr::string> values;
+            std::string const enum_content = enum_content_string_stream.str();
 
-            for (std::pmr::string& string : strings)
+            auto const open_bracket_location = std::find(enum_content.begin(), enum_content.end(), '{');
+            auto const close_bracket_location = std::find(open_bracket_location + 1, enum_content.end(), '}');
+
+            std::pmr::vector<std::pmr::string> enum_values;
+
             {
-                if ((string.front() == '{') || (string.front() == '}'))
+                auto const is_alphabetic = [](char const c) -> bool
                 {
-                    continue;
-                }
+                    return std::isalpha(c) != 0;
+                };
 
-                if (string.back() == ',')
+                auto const is_not_alphabetic_neither_digit = [](char const c) -> bool
                 {
-                    values.push_back({ string.begin(), string.end() - 1 });
-                }
-                else
+                    return (std::isalpha(c) == 0) && (std::isdigit(c) == 0) && (c != '_') && (c != '-');
+                };
+
+                auto current_location = open_bracket_location + 1;
+
+                while ((current_location != close_bracket_location) && (current_location != enum_content.end()))
                 {
-                    values.push_back(string);
+                    auto const alphabetic_location = std::find_if(current_location, enum_content.end(), is_alphabetic);
+                    auto const space_or_equal_or_comma_location = std::find_if(alphabetic_location, enum_content.end(), is_not_alphabetic_neither_digit);
+
+                    enum_values.push_back(std::pmr::string{ alphabetic_location, space_or_equal_or_comma_location });
+
+                    current_location = std::find(space_or_equal_or_comma_location, enum_content.end(), ',');
                 }
             }
 
             return Enum
             {
                 .name = std::move(name),
-                .values = std::move(values)
+                .values = std::move(enum_values)
             };
         }
 

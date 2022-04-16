@@ -169,6 +169,27 @@ namespace h::tools::code_generator
         CHECK(enum_type.values[2] == "value_2");
     }
 
+    TEST_CASE("Parse enum class with initializer")
+    {
+        std::stringstream string_stream;
+        string_stream << "enum class Foo\n";
+        string_stream << "{\n";
+        string_stream << "    value_0 = 0,\n";
+        string_stream << "    value_1 = 1,\n";
+        string_stream << "    value_2 = 2\n";
+        string_stream << "};\n";
+
+        File_types const file_types = identify_file_types(string_stream);
+        REQUIRE(file_types.enums.size() == 1);
+
+        Enum const enum_type = file_types.enums[0];
+        CHECK(enum_type.name == "Foo");
+        REQUIRE(enum_type.values.size() == 3);
+        CHECK(enum_type.values[0] == "value_0");
+        CHECK(enum_type.values[1] == "value_1");
+        CHECK(enum_type.values[2] == "value_2");
+    }
+
     TEST_CASE("Parse struct")
     {
         std::stringstream string_stream;
