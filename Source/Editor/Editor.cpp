@@ -3,9 +3,11 @@ module;
 #include <cassert>
 #include <cstdint>
 #include <memory_resource>
+#include <numeric>
 #include <ranges>
 #include <span>
 #include <string>
+#include <string_view>
 #include <variant>
 #include <vector>
 
@@ -15,6 +17,42 @@ import h.core;
 
 namespace h::editor
 {
+    Fundamental_type_name_map create_default_fundamental_type_name_map(
+        std::pmr::polymorphic_allocator<> const& output_allocator
+    )
+    {
+        Fundamental_type_name_map map = {};
+        map.set(Fundamental_type::Byte, std::pmr::string{ "Byte", output_allocator });
+        map.set(Fundamental_type::Uint8, std::pmr::string{ "Uint8", output_allocator });
+        map.set(Fundamental_type::Uint16, std::pmr::string{ "Uint16", output_allocator });
+        map.set(Fundamental_type::Uint32, std::pmr::string{ "Uint32", output_allocator });
+        map.set(Fundamental_type::Uint64, std::pmr::string{ "Uint64", output_allocator });
+        map.set(Fundamental_type::Int8, std::pmr::string{ "Int8", output_allocator });
+        map.set(Fundamental_type::Int16, std::pmr::string{ "Int16", output_allocator });
+        map.set(Fundamental_type::Int32, std::pmr::string{ "Int32", output_allocator });
+        map.set(Fundamental_type::Int64, std::pmr::string{ "Int64", output_allocator });
+        map.set(Fundamental_type::Float16, std::pmr::string{ "Float16", output_allocator });
+        map.set(Fundamental_type::Float32, std::pmr::string{ "Float32", output_allocator });
+        map.set(Fundamental_type::Float64, std::pmr::string{ "Float64", output_allocator });
+        return map;
+    }
+
+    std::string_view get_type_name(
+        Type_reference const& type_reference,
+        Fundamental_type_name_map const& map
+    )
+    {
+        if (std::holds_alternative<Fundamental_type>(type_reference.data))
+        {
+            Fundamental_type const type = std::get<Fundamental_type>(type_reference.data);
+            return map.get(type);
+        }
+        else
+        {
+            throw std::runtime_error{ "Not implemented!" };
+        }
+    }
+
     Code_format_keyword from_string(std::string_view const value)
     {
         if (value == "function_name")
@@ -198,25 +236,174 @@ namespace h::editor
         };
     }
 
+    Code_representation create_function_parameters_code(
+        Code_format_segment const& parameters_format,
+        Function_format_options const& format_options,
+        h::Function_declaration const& function_declaration,
+        Fundamental_type_name_map const& fundamental_type_name_map,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::size_t const parameter_count = function_declaration.parameter_types.size();
+
+        if (parameter_count == 0)
+        {
+            return Code_representation{};
+        }
+
+        std::pmr::vector<std::pmr::string> text{ temporaries_allocator };
+        text.reserve(parameter_count * parameters_format.types.size() * 2 - 1);
+
+        for (std::size_t parameter_index = 0; parameter_index < parameter_count; ++parameter_index)
+        {
+            std::size_t keyword_index = 0;
+            std::size_t string_index = 0;
+
+            for (std::size_t segment_type_index = 0; segment_type_index < parameters_format.types.size(); ++segment_type_index)
+            {
+                Code_format_segment::Type const segment_type = parameters_format.types[segment_type_index];
+
+                if (segment_type == Code_format_segment::Type::Keyword)
+                {
+                    Code_format_keyword const keyword = parameters_format.keywords[keyword_index];
+                    ++keyword_index;
+
+                    if (keyword == Code_format_keyword::Parameter_name)
+                    {
+                        std::string_view const function_name = function_declaration.parameter_names[parameter_index];
+                        text.push_back({ function_name.begin(), function_name.end(), output_allocator });
+                    }
+                    else if (keyword == Code_format_keyword::Parameter_type)
+                    {
+                        Type_reference const& parameter_type = function_declaration.parameter_types[parameter_index];
+                        std::string_view const name = get_type_name(parameter_type, fundamental_type_name_map);
+                        text.push_back({ name.begin(), name.end(), output_allocator });
+                    }
+                    else
+                    {
+                        throw std::runtime_error{ std::format("Could not handle code format keyword '{}'.", static_cast<int>(keyword)) };
+                    }
+                }
+                else if (segment_type == Code_format_segment::Type::String)
+                {
+                    std::string_view const string = parameters_format.strings[string_index];
+                    ++string_index;
+
+                    text.push_back({ string.begin(), string.end(), output_allocator });
+                }
+            }
+
+            if ((parameter_index + 1) != parameter_count)
+            {
+                text.push_back({ format_options.parameter_separator.begin(), format_options.parameter_separator.end(), output_allocator });
+            }
+        }
+
+        return Code_representation
+        {
+            .text = std::pmr::vector<std::pmr::string>{ text.begin(), text.end(), output_allocator }
+        };
+    }
+
     Code_representation create_function_declaration_code(
         Code_format_segment const& function_declaration_format,
         Code_format_segment const& parameters_format,
         Function_format_options const& format_options,
-        h::Function_declaration const& function_declaration
+        h::Function_declaration const& function_declaration,
+        Fundamental_type_name_map const& fundamental_type_name_map,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        return {};
+        std::pmr::vector<std::pmr::string> text{ temporaries_allocator };
+        text.reserve(function_declaration_format.types.size() + function_declaration.parameter_types.size() * parameters_format.types.size() * 2);
+
+        {
+            std::size_t keyword_index = 0;
+            std::size_t string_index = 0;
+
+            for (std::size_t segment_type_index = 0; segment_type_index < function_declaration_format.types.size(); ++segment_type_index)
+            {
+                Code_format_segment::Type const segment_type = function_declaration_format.types[segment_type_index];
+
+                if (segment_type == Code_format_segment::Type::Keyword)
+                {
+                    Code_format_keyword const keyword = function_declaration_format.keywords[keyword_index];
+                    ++keyword_index;
+
+                    if (keyword == Code_format_keyword::Function_name)
+                    {
+                        std::string_view const function_name = function_declaration.name;
+                        text.push_back({ function_name.begin(), function_name.end(), output_allocator });
+                    }
+                    else if (keyword == Code_format_keyword::Return_type)
+                    {
+                        Type_reference const& return_type = function_declaration.return_type;
+                        std::string_view const name = get_type_name(return_type, fundamental_type_name_map);
+                        text.push_back({ name.begin(), name.end(), output_allocator });
+                    }
+                    else if (keyword == Code_format_keyword::Function_parameters)
+                    {
+                        Code_representation const function_parameters_code = create_function_parameters_code(
+                            parameters_format,
+                            format_options,
+                            function_declaration,
+                            fundamental_type_name_map,
+                            temporaries_allocator,
+                            temporaries_allocator
+                        );
+
+                        text.insert(text.end(), function_parameters_code.text.begin(), function_parameters_code.text.end());
+                    }
+                    else
+                    {
+                        throw std::runtime_error{ std::format("Could not handle code format keyword '{}'.", static_cast<int>(keyword)) };
+                    }
+                }
+                else if (segment_type == Code_format_segment::Type::String)
+                {
+                    std::string_view const string = function_declaration_format.strings[string_index];
+                    ++string_index;
+
+                    text.push_back({ string.begin(), string.end(), output_allocator });
+                }
+            }
+        }
+
+        return Code_representation
+        {
+            .text = std::pmr::vector<std::pmr::string>{ text.begin(), text.end(), output_allocator }
+        };
     }
 
     std::pmr::string create_text(
-        Code_representation const& representation
+        Code_representation const& representation,
+        std::pmr::polymorphic_allocator<> const& output_allocator
     )
     {
-        return {};
+        auto const sum_sizes = [](std::size_t const lhs, std::pmr::string const& rhs) -> std::size_t
+        {
+            return lhs + rhs.size();
+        };
+
+        std::size_t const size_to_reserve = std::reduce(representation.text.begin(), representation.text.end(), std::size_t{ 0 }, sum_sizes);
+
+        std::pmr::string output{ output_allocator };
+        output.reserve(size_to_reserve);
+
+        for (std::pmr::string const& string : representation.text)
+        {
+            output.append(string);
+        }
+
+        return output;
     }
 
     std::pmr::string create_html(
-        Code_representation const& representation
+        Code_representation const& representation,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
         return {};

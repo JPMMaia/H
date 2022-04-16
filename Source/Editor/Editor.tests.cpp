@@ -36,10 +36,10 @@ namespace h::editor
 
     h::Function_declaration create_function_declaration()
     {
-        std::pmr::vector<Type> parameter_types
+        std::pmr::vector<Type_reference> parameter_types
         {
-            Type{.data = Integer_type{.precision = 32}},
-            Type{.data = Integer_type{.precision = 32}},
+            Type_reference{.data = Fundamental_type::Int32},
+            Type_reference{.data = Fundamental_type::Int32},
         };
 
         std::pmr::vector<std::uint64_t> parameter_ids
@@ -55,7 +55,7 @@ namespace h::editor
         return h::Function_declaration
         {
             .name = "add",
-            .return_type = Type{.data = Integer_type{.precision = 32}},
+            .return_type = Type_reference{.data = Fundamental_type::Int32},
             .parameter_types = std::move(parameter_types),
             .parameter_ids = std::move(parameter_ids),
             .parameter_names = std::move(parameter_names),
@@ -75,16 +75,23 @@ namespace h::editor
 
         h::Function_declaration const function_declaration = create_function_declaration();
 
+        Fundamental_type_name_map const fundamental_type_name_map = create_default_fundamental_type_name_map(
+            {}
+        );
+
         Code_representation const representation = create_function_declaration_code(
             function_declaration_format,
             parameters_format,
             format_options,
-            function_declaration
+            function_declaration,
+            fundamental_type_name_map,
+            {},
+            {}
         );
 
-        std::pmr::string const actual_text = create_text(representation);
+        std::pmr::string const actual_text = create_text(representation, {});
 
-        std::pmr::string const expected_text = "int32 add(int32 lhs, int32 rhs);";
+        std::pmr::string const expected_text = "Int32 add(Int32 lhs, Int32 rhs);";
 
         CHECK(actual_text == expected_text);
     }
@@ -101,16 +108,23 @@ namespace h::editor
 
         h::Function_declaration const function_declaration = create_function_declaration();
 
+        Fundamental_type_name_map const fundamental_type_name_map = create_default_fundamental_type_name_map(
+            {}
+        );
+
         Code_representation const representation = create_function_declaration_code(
             function_declaration_format,
             parameters_format,
             format_options,
-            function_declaration
+            function_declaration,
+            fundamental_type_name_map,
+            {},
+            {}
         );
 
-        std::pmr::string const actual_text = create_text(representation);
+        std::pmr::string const actual_text = create_text(representation, {});
 
-        std::pmr::string const expected_text = "function add(lhs: int32, rhs: int32) -> int32;";
+        std::pmr::string const expected_text = "function add(lhs: Int32, rhs: Int32) -> Int32;";
 
         CHECK(actual_text == expected_text);
     }
