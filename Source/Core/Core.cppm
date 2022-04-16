@@ -13,18 +13,18 @@ namespace h
 {
     export enum class Fundamental_type
     {
-        Byte = 0,
-        Uint8 = 11,
-        Uint16 = 12,
-        Uint32 = 13,
-        Uint64 = 14,
-        Int8 = 21,
-        Int16 = 22,
-        Int32 = 23,
-        Int64 = 24,
-        Float16 = 31,
-        Float32 = 32,
-        Float64 = 33
+        Byte,
+        Uint8,
+        Uint16,
+        Uint32,
+        Uint64,
+        Int8,
+        Int16,
+        Int32,
+        Int64,
+        Float16,
+        Float32,
+        Float64
     };
 
     export std::uint16_t get_precision(Fundamental_type type);
