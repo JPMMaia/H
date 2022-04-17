@@ -315,7 +315,7 @@ namespace h::json
         writer.StartObject();
         if (std::holds_alternative<Fundamental_type>(output.data))
         {
-            writer.Key("data");
+            writer.Key("fundamental_type");
             {
                 Fundamental_type const& value = std::get<Fundamental_type>(output.data);
                 std::string_view const enum_value_string = write_enum(value);
@@ -324,7 +324,7 @@ namespace h::json
         }
         else if (std::holds_alternative<Struct_type_reference>(output.data))
         {
-            writer.Key("data");
+            writer.Key("struct_type_reference");
             Struct_type_reference const& value = std::get<Struct_type_reference>(output.data);
             write_object(writer, value);
         }
@@ -419,31 +419,31 @@ namespace h::json
         writer.StartObject();
         if (std::holds_alternative<Binary_expression>(output.data))
         {
-            writer.Key("data");
+            writer.Key("binary_expression");
             Binary_expression const& value = std::get<Binary_expression>(output.data);
             write_object(writer, value);
         }
         else if (std::holds_alternative<Call_expression>(output.data))
         {
-            writer.Key("data");
+            writer.Key("call_expression");
             Call_expression const& value = std::get<Call_expression>(output.data);
             write_object(writer, value);
         }
         else if (std::holds_alternative<Constant_expression>(output.data))
         {
-            writer.Key("data");
+            writer.Key("constant_expression");
             Constant_expression const& value = std::get<Constant_expression>(output.data);
             write_object(writer, value);
         }
         else if (std::holds_alternative<Return_expression>(output.data))
         {
-            writer.Key("data");
+            writer.Key("return_expression");
             Return_expression const& value = std::get<Return_expression>(output.data);
             write_object(writer, value);
         }
         else if (std::holds_alternative<Variable_expression>(output.data))
         {
-            writer.Key("data");
+            writer.Key("variable_expression");
             Variable_expression const& value = std::get<Variable_expression>(output.data);
             write_object(writer, value);
         }

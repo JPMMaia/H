@@ -22,11 +22,16 @@ namespace
         return h::language_server::read<h::language_server::Request>(reader, input_stream);
     }
 
-    template <typename Answer_type>
-    void write_answer_to_stdout(Answer_type const& answer)
+    template <typename Answer_data>
+    void write_answer_to_stdout(Answer_data&& answer_data)
     {
         rapidjson::OStreamWrapper output_stream{ std::cout };
         rapidjson::Writer<rapidjson::OStreamWrapper> writer{ output_stream };
+
+        h::language_server::Answer const answer
+        {
+            .data = std::move(answer_data)
+        };
 
         h::language_server::write(writer, answer);
     }
@@ -50,12 +55,12 @@ int main()
 
                     if constexpr (std::is_same_v<T, Echo_request>)
                     {
-                        Echo_answer const answer
+                        Echo_answer answer
                         {
                             .data = request_data.data
                         };
 
-                        write_answer_to_stdout(answer);
+                        write_answer_to_stdout(std::move(answer));
                     }
                     else
                     {

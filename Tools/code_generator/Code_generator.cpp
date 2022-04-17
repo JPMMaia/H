@@ -606,7 +606,7 @@ namespace h::tools::code_generator
                     }
                     output_stream << "if (std::holds_alternative<" << type_name << ">(output." << member.name << "))\n";
                     output_stream << "    {\n";
-                    output_stream << "        writer.Key(\"" << member.name << "\");\n";
+                    output_stream << "        writer.Key(\"" << to_lowercase(type_name) << "\");\n";
 
                     if (is_enum_type(underlying_type, enum_types))
                     {

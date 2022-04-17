@@ -43,7 +43,7 @@ add_custom_command(
                 "h.core"
                 "${H_ROOT_DIR}/Source/Core/Core.cppm"
                 "${H_ROOT_DIR}/Source/JSON_serializer/Read_json.cppm"
-    DEPENDS "${H_ROOT_DIR}/Source/Core/Core.cppm"
+    DEPENDS H_Tools_Generate_JSON "${H_ROOT_DIR}/Source/Core/Core.cppm"
     VERBATIM
 )
 add_custom_target(Generate_json_serializer_read_code DEPENDS "${H_ROOT_DIR}/Source/JSON_serializer/Read_json.cppm")
@@ -59,7 +59,7 @@ add_custom_command(
                 "h.core"
                 "${H_ROOT_DIR}/Source/Core/Core.cppm"
                 "${H_ROOT_DIR}/Source/JSON_serializer/Write_json.cppm"
-    DEPENDS "${H_ROOT_DIR}/Source/Core/Core.cppm"
+    DEPENDS H_Tools_Generate_JSON "${H_ROOT_DIR}/Source/Core/Core.cppm"
     VERBATIM
 )
 add_custom_target(Generate_json_serializer_write_code DEPENDS "${H_ROOT_DIR}/Source/JSON_serializer/Write_json.cppm")
@@ -75,7 +75,7 @@ add_custom_command(
                 "h.core"
                 "${H_ROOT_DIR}/Source/Core/Core.cppm"
                 "${H_ROOT_DIR}/Source/JSON_serializer/Operators.cppm"
-    DEPENDS "${H_ROOT_DIR}/Source/Core/Core.cppm"
+    DEPENDS H_Tools_Generate_JSON "${H_ROOT_DIR}/Source/Core/Core.cppm"
     VERBATIM
 )
 add_custom_target(Generate_json_serializer_operators_code DEPENDS "${H_ROOT_DIR}/Source/JSON_serializer/Operators.cppm")

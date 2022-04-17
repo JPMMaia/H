@@ -125,7 +125,7 @@ namespace h::language_server
         writer.StartObject();
         if (std::holds_alternative<Echo_request>(output.data))
         {
-            writer.Key("data");
+            writer.Key("echo_request");
             Echo_request const& value = std::get<Echo_request>(output.data);
             write_object(writer, value);
         }
@@ -141,7 +141,7 @@ namespace h::language_server
         writer.StartObject();
         if (std::holds_alternative<Echo_answer>(output.data))
         {
-            writer.Key("data");
+            writer.Key("echo_answer");
             Echo_answer const& value = std::get<Echo_answer>(output.data);
             write_object(writer, value);
         }
