@@ -17,7 +17,7 @@ import h.language_server.read_json_request;
 
 namespace h::language_server
 {
-    static constexpr bool g_debug = false;
+    static constexpr bool g_debug = true;
 
     export template<typename Struct_type>
         struct Handler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Handler<Struct_type>>
@@ -29,7 +29,7 @@ namespace h::language_server
         {
             if constexpr (g_debug)
             {
-                std::cout << "StartObject()\n";
+                std::cerr << "StartObject()\n";
             }
 
             this->state_stack.push_back(0);
@@ -40,7 +40,7 @@ namespace h::language_server
         {
             if constexpr (g_debug)
             {
-                std::cout << std::format("EndObject({})\n", member_count);
+                std::cerr << std::format("EndObject({})\n", member_count);
             }
 
             if (!read_object(this->output, Event::End_object, No_event_data{}, this->state_stack, 0))
@@ -59,7 +59,7 @@ namespace h::language_server
 
             if constexpr (g_debug)
             {
-                std::cout << std::format("Key({})\n", key);
+                std::cerr << std::format("Key({})\n", key);
             }
 
             return read_object(this->output, Event::Key, key, this->state_stack, 0);
@@ -69,7 +69,7 @@ namespace h::language_server
         {
             if constexpr (g_debug)
             {
-                std::cout << "Null()\n";
+                std::cerr << "Null()\n";
             }
 
             return read_object(this->output, Event::Value, nullptr, this->state_stack, 0);
@@ -79,7 +79,7 @@ namespace h::language_server
         {
             if constexpr (g_debug)
             {
-                std::cout << std::format("Bool({})\n", boolean);
+                std::cerr << std::format("Bool({})\n", boolean);
             }
 
             return read_object(this->output, Event::Value, boolean, this->state_stack, 0);
@@ -89,7 +89,7 @@ namespace h::language_server
         {
             if constexpr (g_debug)
             {
-                std::cout << std::format("Int({})\n", number);
+                std::cerr << std::format("Int({})\n", number);
             }
 
             return read_object(this->output, Event::Value, number, this->state_stack, 0);
@@ -99,7 +99,7 @@ namespace h::language_server
         {
             if constexpr (g_debug)
             {
-                std::cout << std::format("Uint({})\n", number);
+                std::cerr << std::format("Uint({})\n", number);
             }
 
             return read_object(this->output, Event::Value, number, this->state_stack, 0);
@@ -109,7 +109,7 @@ namespace h::language_server
         {
             if constexpr (g_debug)
             {
-                std::cout << std::format("Int64({})\n", number);
+                std::cerr << std::format("Int64({})\n", number);
             }
 
             return read_object(this->output, Event::Value, number, this->state_stack, 0);
@@ -119,7 +119,7 @@ namespace h::language_server
         {
             if constexpr (g_debug)
             {
-                std::cout << std::format("Uint64({})\n", number);
+                std::cerr << std::format("Uint64({})\n", number);
             }
 
             return read_object(this->output, Event::Value, number, this->state_stack, 0);
@@ -129,7 +129,7 @@ namespace h::language_server
         {
             if constexpr (g_debug)
             {
-                std::cout << std::format("Double({})\n", number);
+                std::cerr << std::format("Double({})\n", number);
             }
 
             return read_object(this->output, Event::Value, number, this->state_stack, 0);
@@ -141,7 +141,7 @@ namespace h::language_server
 
             if constexpr (g_debug)
             {
-                std::cout << std::format("String({})\n", string);
+                std::cerr << std::format("String({})\n", string);
             }
 
             return read_object(this->output, Event::Value, string, this->state_stack, 0);
@@ -151,7 +151,7 @@ namespace h::language_server
         {
             if constexpr (g_debug)
             {
-                std::cout << "StartArray()\n";
+                std::cerr << "StartArray()\n";
             }
 
             return read_object(this->output, Event::Start_array, No_event_data{}, this->state_stack, 0);
@@ -161,7 +161,7 @@ namespace h::language_server
         {
             if constexpr (g_debug)
             {
-                std::cout << std::format("EndArray({})\n", element_count);
+                std::cerr << std::format("EndArray({})\n", element_count);
             }
 
             return read_object(this->output, Event::End_array, No_event_data{}, this->state_stack, 0);

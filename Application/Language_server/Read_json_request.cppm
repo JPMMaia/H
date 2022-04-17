@@ -335,6 +335,251 @@ namespace h::language_server
 
     export template<typename Event_data>
         bool read_object(
+            Create_html_template_data& output,
+            Event const event,
+            Event_data const event_data,
+            std::pmr::vector<int>& state_stack,
+            std::size_t const state_stack_position
+        )
+    {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
+        int& state = state_stack[state_stack_position];
+
+        switch (state)
+        {
+        case 0:
+        {
+            if (event == Event::Start_object)
+            {
+                state = 1;
+                return true;
+            }
+            break;
+        }
+        case 1:
+        {
+            switch (event)
+            {
+            case Event::Key:
+            {
+                if constexpr (std::is_same_v<Event_data, std::string_view>)
+                {
+                    if (event_data == "name")
+                    {
+                        state = 3;
+                        return true;
+                    }
+                    else if (event_data == "format")
+                    {
+                        state = 4;
+                        return true;
+                    }
+                }
+                break;
+            }
+            case Event::End_object:
+            {
+                state = 2;
+                return true;
+            }
+            }
+            break;
+        }
+        case 2:
+        {
+            std::cerr << "While parsing 'Create_html_template_data' unexpected '}' found.\n";
+            return false;
+        }
+        case 3:
+        {
+            state = 1;
+            return read_value(output.name, "name", event_data);
+        }
+        case 4:
+        {
+            state = 1;
+            return read_value(output.format, "format", event_data);
+        }
+        }
+
+        std::cerr << "Error while reading 'Create_html_template_data'.\n";
+        return false;
+    }
+
+    export template<typename Event_data>
+        bool read_object(
+            Create_html_templates_request& output,
+            Event const event,
+            Event_data const event_data,
+            std::pmr::vector<int>& state_stack,
+            std::size_t const state_stack_position
+        )
+    {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
+        int& state = state_stack[state_stack_position];
+
+        switch (state)
+        {
+        case 0:
+        {
+            if (event == Event::Start_object)
+            {
+                state = 1;
+                return true;
+            }
+            break;
+        }
+        case 1:
+        {
+            switch (event)
+            {
+            case Event::Key:
+            {
+                if constexpr (std::is_same_v<Event_data, std::string_view>)
+                {
+                    if (event_data == "templates_to_create")
+                    {
+                        state = 3;
+                        return true;
+                    }
+                }
+                break;
+            }
+            case Event::End_object:
+            {
+                state = 2;
+                return true;
+            }
+            }
+            break;
+        }
+        case 2:
+        {
+            std::cerr << "While parsing 'Create_html_templates_request' unexpected '}' found.\n";
+            return false;
+        }
+        case 3:
+        {
+            state = 4;
+            return read_object(output.templates_to_create, event, event_data, state_stack, state_stack_position + 1);
+        }
+        case 4:
+        {
+            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+            {
+                if (!read_object(output.templates_to_create, event, event_data, state_stack, state_stack_position + 1))
+                {
+                    return false;
+                }
+
+                state = 1;
+                return true;
+            }
+            else
+            {
+                return read_object(output.templates_to_create, event, event_data, state_stack, state_stack_position + 1);
+            }
+        }
+        }
+
+        std::cerr << "Error while reading 'Create_html_templates_request'.\n";
+        return false;
+    }
+
+    export template<typename Event_data>
+        bool read_object(
+            Create_html_templates_answer& output,
+            Event const event,
+            Event_data const event_data,
+            std::pmr::vector<int>& state_stack,
+            std::size_t const state_stack_position
+        )
+    {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
+        int& state = state_stack[state_stack_position];
+
+        switch (state)
+        {
+        case 0:
+        {
+            if (event == Event::Start_object)
+            {
+                state = 1;
+                return true;
+            }
+            break;
+        }
+        case 1:
+        {
+            switch (event)
+            {
+            case Event::Key:
+            {
+                if constexpr (std::is_same_v<Event_data, std::string_view>)
+                {
+                    if (event_data == "templates")
+                    {
+                        state = 3;
+                        return true;
+                    }
+                }
+                break;
+            }
+            case Event::End_object:
+            {
+                state = 2;
+                return true;
+            }
+            }
+            break;
+        }
+        case 2:
+        {
+            std::cerr << "While parsing 'Create_html_templates_answer' unexpected '}' found.\n";
+            return false;
+        }
+        case 3:
+        {
+            state = 4;
+            return read_object(output.templates, event, event_data, state_stack, state_stack_position + 1);
+        }
+        case 4:
+        {
+            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+            {
+                if (!read_object(output.templates, event, event_data, state_stack, state_stack_position + 1))
+                {
+                    return false;
+                }
+
+                state = 1;
+                return true;
+            }
+            else
+            {
+                return read_object(output.templates, event, event_data, state_stack, state_stack_position + 1);
+            }
+        }
+        }
+
+        std::cerr << "Error while reading 'Create_html_templates_answer'.\n";
+        return false;
+    }
+
+    export template<typename Event_data>
+        bool read_object(
             Request& output,
             Event const event,
             Event_data const event_data,
@@ -368,10 +613,21 @@ namespace h::language_server
             {
                 if constexpr (std::is_same_v<Event_data, std::string_view>)
                 {
-                    if (event_data == "echo_request")
+                    if (event_data == "id")
+                    {
+                        state = 3;
+                        return true;
+                    }
+                    else if (event_data == "create_html_templates_request")
+                    {
+                        output.data = Create_html_templates_request{};
+                        state = 4;
+                        return true;
+                    }
+                    else if (event_data == "echo_request")
                     {
                         output.data = Echo_request{};
-                        state = 3;
+                        state = 6;
                         return true;
                     }
                 }
@@ -392,10 +648,37 @@ namespace h::language_server
         }
         case 3:
         {
-            state = 4;
-            return read_object(std::get<Echo_request>(output.data), event, event_data, state_stack, state_stack_position + 1);
+            state = 1;
+            return read_value(output.id, "id", event_data);
         }
         case 4:
+        {
+            state = 5;
+            return read_object(std::get<Create_html_templates_request>(output.data), event, event_data, state_stack, state_stack_position + 1);
+        }
+        case 5:
+        {
+            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+            {
+                if (!read_object(std::get<Create_html_templates_request>(output.data), event, event_data, state_stack, state_stack_position + 1))
+                {
+                    return false;
+                }
+
+                state = 1;
+                return true;
+            }
+            else
+            {
+                return read_object(std::get<Create_html_templates_request>(output.data), event, event_data, state_stack, state_stack_position + 1);
+            }
+        }
+        case 6:
+        {
+            state = 7;
+            return read_object(std::get<Echo_request>(output.data), event, event_data, state_stack, state_stack_position + 1);
+        }
+        case 7:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
             {
@@ -453,10 +736,21 @@ namespace h::language_server
             {
                 if constexpr (std::is_same_v<Event_data, std::string_view>)
                 {
-                    if (event_data == "echo_answer")
+                    if (event_data == "id")
+                    {
+                        state = 3;
+                        return true;
+                    }
+                    else if (event_data == "create_html_templates_answer")
+                    {
+                        output.data = Create_html_templates_answer{};
+                        state = 4;
+                        return true;
+                    }
+                    else if (event_data == "echo_answer")
                     {
                         output.data = Echo_answer{};
-                        state = 3;
+                        state = 6;
                         return true;
                     }
                 }
@@ -477,10 +771,37 @@ namespace h::language_server
         }
         case 3:
         {
-            state = 4;
-            return read_object(std::get<Echo_answer>(output.data), event, event_data, state_stack, state_stack_position + 1);
+            state = 1;
+            return read_value(output.id, "id", event_data);
         }
         case 4:
+        {
+            state = 5;
+            return read_object(std::get<Create_html_templates_answer>(output.data), event, event_data, state_stack, state_stack_position + 1);
+        }
+        case 5:
+        {
+            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+            {
+                if (!read_object(std::get<Create_html_templates_answer>(output.data), event, event_data, state_stack, state_stack_position + 1))
+                {
+                    return false;
+                }
+
+                state = 1;
+                return true;
+            }
+            else
+            {
+                return read_object(std::get<Create_html_templates_answer>(output.data), event, event_data, state_stack, state_stack_position + 1);
+            }
+        }
+        case 6:
+        {
+            state = 7;
+            return read_object(std::get<Echo_answer>(output.data), event, event_data, state_stack, state_stack_position + 1);
+        }
+        case 7:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
             {

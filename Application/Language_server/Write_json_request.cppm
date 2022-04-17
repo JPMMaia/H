@@ -27,6 +27,24 @@ namespace h::language_server
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Create_html_template_data const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Create_html_templates_request const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Create_html_templates_answer const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Request const& input
         );
 
@@ -119,11 +137,57 @@ namespace h::language_server
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Create_html_template_data const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("name");
+        writer.String(output.name.data(), output.name.size());
+        writer.Key("format");
+        writer.String(output.format.data(), output.format.size());
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Create_html_templates_request const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("templates_to_create");
+        write_object(writer, output.templates_to_create);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Create_html_templates_answer const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("templates");
+        write_object(writer, output.templates);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Request const& output
         )
     {
         writer.StartObject();
-        if (std::holds_alternative<Echo_request>(output.data))
+        writer.Key("id");
+        writer.Uint64(output.id);
+        if (std::holds_alternative<Create_html_templates_request>(output.data))
+        {
+            writer.Key("create_html_templates_request");
+            Create_html_templates_request const& value = std::get<Create_html_templates_request>(output.data);
+            write_object(writer, value);
+        }
+        else if (std::holds_alternative<Echo_request>(output.data))
         {
             writer.Key("echo_request");
             Echo_request const& value = std::get<Echo_request>(output.data);
@@ -139,7 +203,15 @@ namespace h::language_server
         )
     {
         writer.StartObject();
-        if (std::holds_alternative<Echo_answer>(output.data))
+        writer.Key("id");
+        writer.Uint64(output.id);
+        if (std::holds_alternative<Create_html_templates_answer>(output.data))
+        {
+            writer.Key("create_html_templates_answer");
+            Create_html_templates_answer const& value = std::get<Create_html_templates_answer>(output.data);
+            write_object(writer, value);
+        }
+        else if (std::holds_alternative<Echo_answer>(output.data))
         {
             writer.Key("echo_answer");
             Echo_answer const& value = std::get<Echo_answer>(output.data);

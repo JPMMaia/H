@@ -1,6 +1,10 @@
 add_executable(H_Language_server)
 
-target_link_libraries(H_Language_server PRIVATE H::Core H::JSON_serializer)
+target_link_libraries(H_Language_server PRIVATE
+    H::Core
+    H::Editor
+    H::JSON_serializer
+)
 
 target_sources(H_Language_server PRIVATE
     "main.cpp"
