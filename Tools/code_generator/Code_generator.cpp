@@ -409,6 +409,11 @@ namespace h::tools::code_generator
         output_stream << "    std::size_t const state_stack_position\n";
         output_stream << ")\n";
         output_stream << "{\n";
+        output_stream << "    if (state_stack_position >= state_stack.size())\n";
+        output_stream << "    {\n";
+        output_stream << "        return false;\n";
+        output_stream << "    }\n";
+        output_stream << "    \n";
         output_stream << "    int& state = state_stack[state_stack_position];\n";
         output_stream << "\n";
         output_stream << "    switch (state)\n";
@@ -1076,8 +1081,13 @@ namespace h::tools::code_generator
         output_stream << "            std::size_t const state_stack_position\n";
         output_stream << "        )\n";
         output_stream << "    {\n";
+        output_stream << "        if (state_stack_position >= state_stack.size())\n";
+        output_stream << "        {\n";
+        output_stream << "            return false;\n";
+        output_stream << "        }\n";
+        output_stream << "        \n";
         output_stream << "        int& state = state_stack[state_stack_position];\n";
-        output_stream << "    \n";
+        output_stream << "        \n";
         output_stream << "        if (state == 0)\n";
         output_stream << "        {\n";
         output_stream << "            if (event == Event::Start_object)\n";

@@ -5,15 +5,17 @@ import h.tools.code_generator;
 
 int main(int const argc, char const* const* const argv)
 {
-    if (argc != 5)
+    if (argc != 7)
     {
         return 1;
     }
 
     std::string_view const operation = argv[1];
     std::string_view const module_name = argv[2];
-    char const* const input_filename = argv[3];
-    char const* const output_filename = argv[4];
+    std::string_view const namespace_name = argv[3];
+    std::string_view const module_name_to_import = argv[4];
+    char const* const input_filename = argv[5];
+    char const* const output_filename = argv[6];
 
     std::ifstream input_stream{ input_filename };
     std::ofstream output_stream{ output_filename };
@@ -24,8 +26,8 @@ int main(int const argc, char const* const* const argv)
             input_stream,
             output_stream,
             module_name,
-            "h.core",
-            "h::json"
+            module_name_to_import,
+            namespace_name
         );
     }
     else if (operation == "write")
@@ -34,8 +36,8 @@ int main(int const argc, char const* const* const argv)
             input_stream,
             output_stream,
             module_name,
-            "h.core",
-            "h::json"
+            module_name_to_import,
+            namespace_name
         );
     }
     else if (operation == "operators")
@@ -44,7 +46,7 @@ int main(int const argc, char const* const* const argv)
             input_stream,
             output_stream,
             module_name,
-            "h::json::operators"
+            namespace_name
         );
     }
 
