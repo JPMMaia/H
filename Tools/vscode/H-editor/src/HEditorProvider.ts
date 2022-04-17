@@ -3,6 +3,7 @@ import { getNonce } from './util';
 import { createFunctionsListHTML } from './transformer';
 import * as H from "./model";
 import * as settings from './settings';
+import { LanguageServer } from './LanguageServer';
 
 /**
  * Provider for H editors.
@@ -21,9 +22,35 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 
 	private static readonly viewType = 'heditor.textEditor';
 
+	private languageServer?: LanguageServer = undefined;
+	private registeredWebviews = new Map<number, vscode.WebviewPanel>();
+	private nextWebviewPanelID = 0;
+
 	constructor(
 		private readonly context: vscode.ExtensionContext
 	) { }
+
+	private getWebviewPanelID(registeredWebviews: Map<number, vscode.WebviewPanel>, webviewPanel: vscode.WebviewPanel): number | undefined {
+
+		for (const entry of registeredWebviews.entries()) {
+			if (entry[1] == webviewPanel) {
+				return entry[0];
+			}
+		}
+
+		return undefined;
+	}
+
+	private updateWebview(
+		webviewPanel: vscode.WebviewPanel,
+		text: string
+	): void {
+
+		webviewPanel.webview.postMessage({
+			type: 'update',
+			text: text,
+		});
+	}
 
 	/**
 	 * Called when our custom editor is opened.
@@ -35,29 +62,23 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 		webviewPanel: vscode.WebviewPanel,
 		_token: vscode.CancellationToken
 	): Promise<void> {
+
+		let webpanelID = this.getWebviewPanelID(this.registeredWebviews, webviewPanel);
+
+		if (webpanelID == undefined) {
+			webpanelID = this.nextWebviewPanelID;
+			++this.nextWebviewPanelID;
+
+			this.registeredWebviews.set(webpanelID, webviewPanel);
+		}
+
 		// Setup initial content for the webview
 		webviewPanel.webview.options = {
 			enableScripts: true,
 		};
 		webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview);
 
-		function updateWebview(editorProvider: HEditorProvider) {
 
-			const editorOptions = settings.createDefaultEditorOptions();
-
-			const documentJson = editorProvider.getDocumentAsJson(document);
-			const text = createFunctionsListHTML(
-				documentJson,
-				editorOptions.functionParameterOptions,
-				editorOptions.functionDeclarationOptions,
-				editorOptions.builtinTypeMap
-			);
-
-			webviewPanel.webview.postMessage({
-				type: 'update',
-				text: text,
-			});
-		}
 
 		// Hook up event handlers so that we can synchronize the webview with the text document.
 		//
@@ -69,7 +90,8 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 
 		const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument(e => {
 			if (e.document.uri.toString() === document.uri.toString()) {
-				updateWebview(this);
+				//updateWebview(this);
+				return;
 			}
 		});
 
@@ -83,7 +105,13 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 			return;
 		});
 
-		updateWebview(this);
+		//updateWebview(this);
+
+		if (this.languageServer == undefined) {
+			this.languageServer = new LanguageServer("C:/Users/jpmmaia/Desktop/source/H/build/Application/Language_server/Debug/H_Language_server.exe", this);
+			//languageServer.request({ "echo_request": { "data": "Hello from vscode!" } });
+		}
+		this.requestHtmlTemplates(this.languageServer, webpanelID);
 	}
 
 	/**
@@ -166,5 +194,60 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 			JSON.stringify(json, null, 2));
 
 		return vscode.workspace.applyEdit(edit);
+	}
+
+	private requestHtmlTemplates(languageServer: LanguageServer, messageID: number): void {
+
+		const createHtmlTemplatesRequest = {
+			"id": messageID,
+			"create_html_templates_request": {
+				"templates_to_create": {
+					"size": 3,
+					"elements": [
+						{
+							"name": "h_type_reference",
+							"format": "${type_name}"
+						},
+						{
+							"name": "h_function_parameter",
+							"format": "${parameter_name}: ${parameter_type}"
+						},
+						{
+							"name": "h_function_declaration",
+							"format": "function ${function_name}(${function_parameters}) -> ${return_type}"
+						}
+					]
+				}
+			}
+		};
+
+		languageServer.request(createHtmlTemplatesRequest);
+	}
+
+	private handleHtmlTemplates(registeredWebviews: Map<number, vscode.WebviewPanel>, data: any): void {
+
+		const webviewPanelID = data.id;
+		const webviewPanel = registeredWebviews.get(webviewPanelID);
+
+		if (webviewPanel != undefined) {
+			const html = data.create_html_templates_answer.templates.elements.join('');
+
+			this.updateWebview(webviewPanel, html);
+		}
+	}
+
+	public onAnswerArrived(data: any): void {
+
+		console.log(data);
+
+		if ("create_html_templates_answer" in data) {
+			this.handleHtmlTemplates(this.registeredWebviews, data);
+		}
+		if ("echo_answer" in data) {
+			console.log(data);
+		}
+		else {
+			console.log("Unhandled answer: " + data);
+		}
 	}
 }
