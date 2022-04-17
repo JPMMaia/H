@@ -67,6 +67,11 @@ namespace h::json
             std::size_t const state_stack_position
         )
     {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
         int& state = state_stack[state_stack_position];
 
         if (state == 0)
@@ -350,6 +355,11 @@ namespace h::json
             std::size_t const state_stack_position
         )
     {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
         int& state = state_stack[state_stack_position];
 
         switch (state)
@@ -412,6 +422,11 @@ namespace h::json
             std::size_t const state_stack_position
         )
     {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
         int& state = state_stack[state_stack_position];
 
         switch (state)
@@ -501,6 +516,11 @@ namespace h::json
             std::size_t const state_stack_position
         )
     {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
         int& state = state_stack[state_stack_position];
 
         switch (state)
@@ -592,6 +612,11 @@ namespace h::json
             std::size_t const state_stack_position
         )
     {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
         int& state = state_stack[state_stack_position];
 
         switch (state)
@@ -664,6 +689,11 @@ namespace h::json
             std::size_t const state_stack_position
         )
     {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
         int& state = state_stack[state_stack_position];
 
         switch (state)
@@ -780,6 +810,11 @@ namespace h::json
             std::size_t const state_stack_position
         )
     {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
         int& state = state_stack[state_stack_position];
 
         switch (state)
@@ -869,6 +904,11 @@ namespace h::json
             std::size_t const state_stack_position
         )
     {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
         int& state = state_stack[state_stack_position];
 
         switch (state)
@@ -941,6 +981,11 @@ namespace h::json
             std::size_t const state_stack_position
         )
     {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
         int& state = state_stack[state_stack_position];
 
         switch (state)
@@ -1020,6 +1065,11 @@ namespace h::json
             std::size_t const state_stack_position
         )
     {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
         int& state = state_stack[state_stack_position];
 
         switch (state)
@@ -1212,6 +1262,11 @@ namespace h::json
             std::size_t const state_stack_position
         )
     {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
         int& state = state_stack[state_stack_position];
 
         switch (state)
@@ -1311,6 +1366,11 @@ namespace h::json
             std::size_t const state_stack_position
         )
     {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
         int& state = state_stack[state_stack_position];
 
         switch (state)
@@ -1491,6 +1551,11 @@ namespace h::json
             std::size_t const state_stack_position
         )
     {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
         int& state = state_stack[state_stack_position];
 
         switch (state)
@@ -1580,6 +1645,11 @@ namespace h::json
             std::size_t const state_stack_position
         )
     {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
         int& state = state_stack[state_stack_position];
 
         switch (state)
@@ -1662,6 +1732,11 @@ namespace h::json
             std::size_t const state_stack_position
         )
     {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
         int& state = state_stack[state_stack_position];
 
         switch (state)
@@ -1741,6 +1816,11 @@ namespace h::json
             std::size_t const state_stack_position
         )
     {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
         int& state = state_stack[state_stack_position];
 
         switch (state)
@@ -1820,6 +1900,11 @@ namespace h::json
             std::size_t const state_stack_position
         )
     {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
         int& state = state_stack[state_stack_position];
 
         switch (state)
