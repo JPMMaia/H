@@ -34,6 +34,123 @@ namespace h::editor
         CHECK(format_segment.strings[2] == ");");
     }
 
+    TEST_CASE("Create type reference template")
+    {
+        Code_format_segment const format = create_code_format_segment(
+            "${type_name}",
+            {},
+            {}
+        );
+
+        HTML_template const actual = create_template(
+            "h_type_reference",
+            format,
+            {},
+            {}
+        );
+
+
+        char const* const expected =
+            "<template id=\"h_type_reference\">"
+            "<slot name=\"type_name\"></slot>"
+            "</template>";
+
+        CHECK(actual.value == expected);
+    }
+
+    TEST_CASE("Create function parameters template with style 0")
+    {
+        Code_format_segment const format = create_code_format_segment("${parameter_type} ${parameter_name}", {}, {});
+
+        HTML_template const actual = create_template(
+            "h_function_parameter",
+            format,
+            {},
+            {}
+        );
+
+        char const* const expected =
+            "<template id=\"h_function_parameter\">"
+            "<h_type_reference><span slot=\"type_name\"><slot name=\"type\"></slot></span></h_type_reference>"
+            " "
+            "<slot name=\"name\"></slot>"
+            "</template>";
+
+        CHECK(actual.value == expected);
+    }
+
+    TEST_CASE("Create function parameters template with style 1")
+    {
+        Code_format_segment const format = create_code_format_segment("${parameter_name}: ${parameter_type}", {}, {});
+
+        HTML_template const actual = create_template(
+            "h_function_parameter",
+            format,
+            {},
+            {}
+        );
+
+        char const* const expected =
+            "<template id=\"h_function_parameter\">"
+            "<slot name=\"name\"></slot>"
+            ": "
+            "<h_type_reference><span slot=\"type_name\"><slot name=\"type\"></slot></span></h_type_reference>"
+            "</template>";
+
+        CHECK(actual.value == expected);
+    }
+
+    TEST_CASE("Create function declaration template with style 0")
+    {
+        Code_format_segment const format = create_code_format_segment("${return_type} ${function_name}(${function_parameters})", {}, {});
+
+        HTML_template const actual = create_template(
+            "h_function_declaration",
+            format,
+            {},
+            {}
+        );
+
+        char const* const expected =
+            "<template id=\"h_function_declaration\">"
+            "<h_type_reference><span slot=\"type_name\"><slot name=\"return_type\"></slot></span></h_type_reference>"
+            " "
+            "<slot name=\"name\"></slot>"
+            "("
+            "<slot name=\"parameters\"></slot>"
+            ")"
+            "</template>";
+
+        CHECK(actual.value == expected);
+    }
+
+    TEST_CASE("Create function declaration template with style 1")
+    {
+        Code_format_segment const format = create_code_format_segment("function ${function_name}(${function_parameters}) -> ${return_type}", {}, {});
+
+        HTML_template const actual = create_template(
+            "h_function_declaration",
+            format,
+            {},
+            {}
+        );
+
+        char const* const expected =
+            "<template id=\"h_function_declaration\">"
+            "function"
+            " "
+            "<slot name=\"name\"></slot>"
+            "("
+            "<slot name=\"parameters\"></slot>"
+            ")"
+            " -> "
+            "<h_type_reference><span slot=\"type_name\"><slot name=\"return_type\"></slot></span></h_type_reference>"
+            "</template>";
+
+        CHECK(actual.value == expected);
+    }
+
+
     h::Function_declaration create_function_declaration()
     {
         std::pmr::vector<Type_reference> parameter_types
@@ -63,69 +180,44 @@ namespace h::editor
         };
     }
 
-    TEST_CASE("Create function declaration text code with style 0")
+    TEST_CASE("Create function declaration template instance")
     {
-        Code_format_segment const function_declaration_format = create_code_format_segment("${return_type} ${function_name}(${function_parameters});", {}, {});
-        Code_format_segment const parameters_format = create_code_format_segment("${parameter_type} ${parameter_name}", {}, {});
-
-        Function_format_options const format_options
-        {
-            .parameter_separator = ", "
-        };
-
         h::Function_declaration const function_declaration = create_function_declaration();
 
         Fundamental_type_name_map const fundamental_type_name_map = create_default_fundamental_type_name_map(
             {}
         );
 
-        Code_representation const representation = create_function_declaration_code(
-            function_declaration_format,
-            parameters_format,
-            format_options,
-            function_declaration,
-            fundamental_type_name_map,
-            {},
-            {}
-        );
-
-        std::pmr::string const actual_text = create_text(representation, {});
-
-        std::pmr::string const expected_text = "Int32 add(Int32 lhs, Int32 rhs);";
-
-        CHECK(actual_text == expected_text);
-    }
-
-    TEST_CASE("Create function declaration text code with style 1")
-    {
-        Code_format_segment const function_declaration_format = create_code_format_segment("function ${function_name}(${function_parameters}) -> ${return_type};", {}, {});
-        Code_format_segment const parameters_format = create_code_format_segment("${parameter_name}: ${parameter_type}", {}, {});
-
-        Function_format_options const format_options
+        Function_format_options const options
         {
             .parameter_separator = ", "
         };
 
-        h::Function_declaration const function_declaration = create_function_declaration();
-
-        Fundamental_type_name_map const fundamental_type_name_map = create_default_fundamental_type_name_map(
-            {}
-        );
-
-        Code_representation const representation = create_function_declaration_code(
-            function_declaration_format,
-            parameters_format,
-            format_options,
+        HTML_template_instance const actual = create_function_declaration_instance(
             function_declaration,
             fundamental_type_name_map,
+            options,
             {},
             {}
         );
 
-        std::pmr::string const actual_text = create_text(representation, {});
+        char const* const expected =
+            "<h_function_declaration>"
+            "<span slot=\"name\">add</span>"
+            "<span slot=\"return_type\">Int32</span>"
+            "<span slot=\"parameters\">"
+            "<h_function_parameter>"
+            "<span slot=\"type\">Int32</span>"
+            "<span slot=\"name\">lhs</span>"
+            "</h_function_parameter>"
+            ", "
+            "<h_function_parameter>"
+            "<span slot=\"type\">Int32</span>"
+            "<span slot=\"name\">rhs</span>"
+            "</h_function_parameter>"
+            "</span>"
+            "</h_function_declaration>";
 
-        std::pmr::string const expected_text = "function add(lhs: Int32, rhs: Int32) -> Int32;";
-
-        CHECK(actual_text == expected_text);
+        CHECK(actual.value == expected);
     }
 }

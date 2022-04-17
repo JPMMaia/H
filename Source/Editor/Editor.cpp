@@ -6,6 +6,7 @@ module;
 #include <numeric>
 #include <ranges>
 #include <span>
+#include <sstream>
 #include <string>
 #include <string_view>
 #include <variant>
@@ -74,6 +75,10 @@ namespace h::editor
         else if (value == "return_type")
         {
             return Code_format_keyword::Return_type;
+        }
+        else if (value == "type_name")
+        {
+            return Code_format_keyword::Type_name;
         }
 
         throw std::runtime_error{ std::format("Code_format_keyword value '{}' not recognized!", value) };
@@ -236,125 +241,65 @@ namespace h::editor
         };
     }
 
-    Code_representation create_function_parameters_code(
-        Code_format_segment const& parameters_format,
-        Function_format_options const& format_options,
-        h::Function_declaration const& function_declaration,
-        Fundamental_type_name_map const& fundamental_type_name_map,
-        std::pmr::polymorphic_allocator<> const& output_allocator,
-        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    using Polymorphic_stringstream = std::basic_stringstream<char, std::char_traits<char>, std::pmr::polymorphic_allocator<char>>;
+
+    std::pmr::string generate_string(
+        Polymorphic_stringstream const& stream,
+        std::pmr::polymorphic_allocator<> const& output_allocator
     )
     {
-        std::size_t const parameter_count = function_declaration.parameter_types.size();
-
-        if (parameter_count == 0)
-        {
-            return Code_representation{};
-        }
-
-        std::pmr::vector<std::pmr::string> text{ temporaries_allocator };
-        text.reserve(parameter_count * parameters_format.types.size() * 2 - 1);
-
-        for (std::size_t parameter_index = 0; parameter_index < parameter_count; ++parameter_index)
-        {
-            std::size_t keyword_index = 0;
-            std::size_t string_index = 0;
-
-            for (std::size_t segment_type_index = 0; segment_type_index < parameters_format.types.size(); ++segment_type_index)
-            {
-                Code_format_segment::Type const segment_type = parameters_format.types[segment_type_index];
-
-                if (segment_type == Code_format_segment::Type::Keyword)
-                {
-                    Code_format_keyword const keyword = parameters_format.keywords[keyword_index];
-                    ++keyword_index;
-
-                    if (keyword == Code_format_keyword::Parameter_name)
-                    {
-                        std::string_view const function_name = function_declaration.parameter_names[parameter_index];
-                        text.push_back({ function_name.begin(), function_name.end(), output_allocator });
-                    }
-                    else if (keyword == Code_format_keyword::Parameter_type)
-                    {
-                        Type_reference const& parameter_type = function_declaration.parameter_types[parameter_index];
-                        std::string_view const name = get_type_name(parameter_type, fundamental_type_name_map);
-                        text.push_back({ name.begin(), name.end(), output_allocator });
-                    }
-                    else
-                    {
-                        throw std::runtime_error{ std::format("Could not handle code format keyword '{}'.", static_cast<int>(keyword)) };
-                    }
-                }
-                else if (segment_type == Code_format_segment::Type::String)
-                {
-                    std::string_view const string = parameters_format.strings[string_index];
-                    ++string_index;
-
-                    text.push_back({ string.begin(), string.end(), output_allocator });
-                }
-            }
-
-            if ((parameter_index + 1) != parameter_count)
-            {
-                text.push_back({ format_options.parameter_separator.begin(), format_options.parameter_separator.end(), output_allocator });
-            }
-        }
-
-        return Code_representation
-        {
-            .text = std::pmr::vector<std::pmr::string>{ text.begin(), text.end(), output_allocator }
-        };
+        std::pmr::string output{ output_allocator };
+        std::pmr::string const generated = stream.str();
+        output.assign(generated.begin(), generated.end());
+        return output;
     }
 
-    Code_representation create_function_declaration_code(
-        Code_format_segment const& function_declaration_format,
-        Code_format_segment const& parameters_format,
-        Function_format_options const& format_options,
-        h::Function_declaration const& function_declaration,
-        Fundamental_type_name_map const& fundamental_type_name_map,
+    HTML_template create_template(
+        std::string_view const name,
+        Code_format_segment const& format_segment,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        std::pmr::vector<std::pmr::string> text{ temporaries_allocator };
-        text.reserve(function_declaration_format.types.size() + function_declaration.parameter_types.size() * parameters_format.types.size() * 2);
+        Polymorphic_stringstream stream{ std::ios::out, temporaries_allocator };
 
+        stream << "<template id=\"" << name << "\">";
         {
             std::size_t keyword_index = 0;
             std::size_t string_index = 0;
 
-            for (std::size_t segment_type_index = 0; segment_type_index < function_declaration_format.types.size(); ++segment_type_index)
+            for (std::size_t segment_type_index = 0; segment_type_index < format_segment.types.size(); ++segment_type_index)
             {
-                Code_format_segment::Type const segment_type = function_declaration_format.types[segment_type_index];
+                Code_format_segment::Type const segment_type = format_segment.types[segment_type_index];
 
                 if (segment_type == Code_format_segment::Type::Keyword)
                 {
-                    Code_format_keyword const keyword = function_declaration_format.keywords[keyword_index];
+                    Code_format_keyword const keyword = format_segment.keywords[keyword_index];
                     ++keyword_index;
 
                     if (keyword == Code_format_keyword::Function_name)
                     {
-                        std::string_view const function_name = function_declaration.name;
-                        text.push_back({ function_name.begin(), function_name.end(), output_allocator });
-                    }
-                    else if (keyword == Code_format_keyword::Return_type)
-                    {
-                        Type_reference const& return_type = function_declaration.return_type;
-                        std::string_view const name = get_type_name(return_type, fundamental_type_name_map);
-                        text.push_back({ name.begin(), name.end(), output_allocator });
+                        stream << "<slot name=\"name\"></slot>";
                     }
                     else if (keyword == Code_format_keyword::Function_parameters)
                     {
-                        Code_representation const function_parameters_code = create_function_parameters_code(
-                            parameters_format,
-                            format_options,
-                            function_declaration,
-                            fundamental_type_name_map,
-                            temporaries_allocator,
-                            temporaries_allocator
-                        );
-
-                        text.insert(text.end(), function_parameters_code.text.begin(), function_parameters_code.text.end());
+                        stream << "<slot name=\"parameters\"></slot>";
+                    }
+                    else if (keyword == Code_format_keyword::Parameter_name)
+                    {
+                        stream << "<slot name=\"name\"></slot>";
+                    }
+                    else if (keyword == Code_format_keyword::Parameter_type)
+                    {
+                        stream << "<h_type_reference><span slot=\"type_name\"><slot name=\"type\"></slot></span></h_type_reference>";
+                    }
+                    else if (keyword == Code_format_keyword::Return_type)
+                    {
+                        stream << "<h_type_reference><span slot=\"type_name\"><slot name=\"return_type\"></slot></span></h_type_reference>";
+                    }
+                    else if (keyword == Code_format_keyword::Type_name)
+                    {
+                        stream << "<slot name=\"type_name\"></slot>";
                     }
                     else
                     {
@@ -363,49 +308,52 @@ namespace h::editor
                 }
                 else if (segment_type == Code_format_segment::Type::String)
                 {
-                    std::string_view const string = function_declaration_format.strings[string_index];
+                    std::string_view const string = format_segment.strings[string_index];
                     ++string_index;
 
-                    text.push_back({ string.begin(), string.end(), output_allocator });
+                    stream << string;
                 }
             }
         }
+        stream << "</template>";
 
-        return Code_representation
-        {
-            .text = std::pmr::vector<std::pmr::string>{ text.begin(), text.end(), output_allocator }
-        };
+        return HTML_template{ .value = generate_string(stream, output_allocator) };
     }
 
-    std::pmr::string create_text(
-        Code_representation const& representation,
-        std::pmr::polymorphic_allocator<> const& output_allocator
-    )
-    {
-        auto const sum_sizes = [](std::size_t const lhs, std::pmr::string const& rhs) -> std::size_t
-        {
-            return lhs + rhs.size();
-        };
-
-        std::size_t const size_to_reserve = std::reduce(representation.text.begin(), representation.text.end(), std::size_t{ 0 }, sum_sizes);
-
-        std::pmr::string output{ output_allocator };
-        output.reserve(size_to_reserve);
-
-        for (std::pmr::string const& string : representation.text)
-        {
-            output.append(string);
-        }
-
-        return output;
-    }
-
-    std::pmr::string create_html(
-        Code_representation const& representation,
+    HTML_template_instance create_function_declaration_instance(
+        h::Function_declaration const& function_declaration,
+        Fundamental_type_name_map const& fundamental_type_name_map,
+        Function_format_options const& options,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        return {};
+        Polymorphic_stringstream stream{ std::ios::out, temporaries_allocator };
+
+        stream << "<h_function_declaration>";
+        {
+            stream << "<span slot=\"name\">" << function_declaration.name << "</span>";
+            stream << "<span slot=\"return_type\">" << get_type_name(function_declaration.return_type, fundamental_type_name_map) << "</span>";
+
+            stream << "<span slot=\"parameters\">";
+            for (std::size_t parameter_index = 0; parameter_index < function_declaration.parameter_types.size(); ++parameter_index)
+            {
+                stream << "<h_function_parameter>";
+                {
+                    stream << "<span slot=\"type\">" << get_type_name(function_declaration.parameter_types[parameter_index], fundamental_type_name_map) << "</span>";
+                    stream << "<span slot=\"name\">" << function_declaration.parameter_names[parameter_index] << "</span>";
+                }
+                stream << "</h_function_parameter>";
+
+                if ((parameter_index + 1) != function_declaration.parameter_types.size())
+                {
+                    stream << options.parameter_separator;
+                }
+            }
+            stream << "</span>";
+        }
+        stream << "</h_function_declaration>";
+
+        return HTML_template_instance{ .value = generate_string(stream, output_allocator) };
     }
 }

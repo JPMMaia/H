@@ -47,6 +47,7 @@ namespace h::editor
         Parameter_type,
         Parameter_name,
         Return_type,
+        Type_name
     };
 
     export  struct Code_format_segment
@@ -68,43 +69,32 @@ namespace h::editor
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
-    export struct Code_representation
+    export struct HTML_template
     {
-        std::pmr::vector<std::pmr::string> text;
+        std::pmr::string value;
     };
 
+    export struct HTML_template_instance
+    {
+        std::pmr::string value;
+    };
+
+    export HTML_template create_template(
+        std::string_view name,
+        Code_format_segment const& format_segment,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
 
     export struct Function_format_options
     {
         std::pmr::string parameter_separator;
     };
 
-    export Code_representation create_function_parameters_code(
-        Code_format_segment const& parameters_format,
-        Function_format_options const& format_options,
+    export HTML_template_instance create_function_declaration_instance(
         h::Function_declaration const& function_declaration,
         Fundamental_type_name_map const& fundamental_type_name_map,
-        std::pmr::polymorphic_allocator<> const& output_allocator,
-        std::pmr::polymorphic_allocator<> const& temporaries_allocator
-    );
-
-    export Code_representation create_function_declaration_code(
-        Code_format_segment const& function_declaration_format,
-        Code_format_segment const& parameters_format,
-        Function_format_options const& format_options,
-        h::Function_declaration const& function_declaration,
-        Fundamental_type_name_map const& fundamental_type_name_map,
-        std::pmr::polymorphic_allocator<> const& output_allocator,
-        std::pmr::polymorphic_allocator<> const& temporaries_allocator
-    );
-
-    export std::pmr::string create_text(
-        Code_representation const& representation,
-        std::pmr::polymorphic_allocator<> const& output_allocator
-    );
-
-    export std::pmr::string create_html(
-        Code_representation const& representation,
+        Function_format_options const& options,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
