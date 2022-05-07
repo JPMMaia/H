@@ -17,10 +17,17 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onCustomEditor:heditor.textEditor"
+		"onCustomEditor:heditor.textEditor",
+		"onCommand:hello-world.showHelloWorld"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
+		"commands": [
+			{
+				"command": "hello-world.showHelloWorld",
+				"title": "Hello World (Vue): Show"
+			}
+		],
 		"customEditors": [
 			{
 				"viewType": "heditor.textEditor",
@@ -34,8 +41,12 @@
 		]
 	},
 	"scripts": {
+		"install:all": "npm install && npm --prefix ./webview-ui install ./webview-ui",
+		"start:webview": "npm --prefix ./webview-ui run start",
+		"build:webview": "npm --prefix ./webview-ui run build",
 		"vscode:prepublish": "npm run compile",
 		"compile": "tsc -p ./",
+		"pretest": "npm run compile && npm run lint",
 		"lint": "eslint . --ext .ts,.tsx",
 		"watch": "tsc -w -p ./"
 	},

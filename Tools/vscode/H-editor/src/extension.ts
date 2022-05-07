@@ -1,7 +1,12 @@
-import * as vscode from 'vscode';
-import { HEditorProvider } from './HEditorProvider';
+import { commands, ExtensionContext } from "vscode";
+import { HelloWorldPanel } from "./panels/HelloWorldPanel";
 
-export function activate(context: vscode.ExtensionContext) {
-	// Register our custom editor providers
-	context.subscriptions.push(HEditorProvider.register(context));
+export function activate(context: ExtensionContext) {
+  // Create the show hello world command
+  const showHelloWorldCommand = commands.registerCommand("hello-world.showHelloWorld", () => {
+    HelloWorldPanel.render(context.extensionUri);
+  });
+
+  // Add command to the extension context
+  context.subscriptions.push(showHelloWorldCommand);
 }
