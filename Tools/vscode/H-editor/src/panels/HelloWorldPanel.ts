@@ -12,8 +12,7 @@ import { getUri } from "../utilities/getUri";
  * - Setting message listeners so data can be passed between the webview and extension
  */
 export class HelloWorldPanel {
-  public static currentPanel: HelloWorldPanel | undefined;
-  private readonly _panel: WebviewPanel;
+  public readonly panel: WebviewPanel;
   private _disposables: Disposable[] = [];
 
   /**
@@ -22,58 +21,31 @@ export class HelloWorldPanel {
    * @param panel A reference to the webview panel
    * @param extensionUri The URI of the directory containing the extension
    */
-  private constructor(panel: WebviewPanel, extensionUri: Uri) {
-    this._panel = panel;
+  public constructor(panel: WebviewPanel, extensionUri: Uri) {
+    this.panel = panel;
 
     // Set an event listener to listen for when the panel is disposed (i.e. when the user closes
     // the panel or when the panel is closed programmatically)
-    this._panel.onDidDispose(this.dispose, null, this._disposables);
+    this.panel.onDidDispose(this.dispose, null, this._disposables);
+
+    // Set webview options
+    this.panel.webview.options = {
+      enableScripts: true,
+    };
 
     // Set the HTML content for the webview panel
-    this._panel.webview.html = this._getWebviewContent(this._panel.webview, extensionUri);
+    this.panel.webview.html = this._getWebviewContent(this.panel.webview, extensionUri);
 
     // Set an event listener to listen for messages passed from the webview context
-    this._setWebviewMessageListener(this._panel.webview);
-  }
-
-  /**
-   * Renders the current webview panel if it exists otherwise a new webview panel
-   * will be created and displayed.
-   *
-   * @param extensionUri The URI of the directory containing the extension.
-   */
-  public static render(extensionUri: Uri) {
-    if (HelloWorldPanel.currentPanel) {
-      // If the webview panel already exists reveal it
-      HelloWorldPanel.currentPanel._panel.reveal(ViewColumn.One);
-    } else {
-      // If a webview panel does not already exist create and show a new one
-      const panel = window.createWebviewPanel(
-        // Panel view type
-        "showHelloWorld",
-        // Panel title
-        "Hello World",
-        // The editor column the panel should be displayed in
-        ViewColumn.One,
-        // Extra panel configurations
-        {
-          // Enable JavaScript in the webview
-          enableScripts: true,
-        }
-      );
-
-      HelloWorldPanel.currentPanel = new HelloWorldPanel(panel, extensionUri);
-    }
+    this._setWebviewMessageListener(this.panel.webview);
   }
 
   /**
    * Cleans up and disposes of webview resources when the webview panel is closed.
    */
   public dispose() {
-    HelloWorldPanel.currentPanel = undefined;
-
     // Dispose of the current webview panel
-    this._panel.dispose();
+    this.panel.dispose();
 
     // Dispose of all disposables (i.e. commands) for the current webview panel
     while (this._disposables.length) {

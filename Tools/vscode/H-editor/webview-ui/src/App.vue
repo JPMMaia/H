@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from "vue";
 import { provideVSCodeDesignSystem, vsCodeButton } from "@vscode/webview-ui-toolkit";
 import { vscode } from "./utilities/vscode";
 
@@ -27,12 +28,22 @@ function handleHowdyClick() {
     text: "Hey there partner! 🤠",
   });
 }
+
+const m_state = ref<any | null>(null);
+
+function on_message_received(event: MessageEvent): void {
+  m_state.value = JSON.stringify(event.data, null, 2);
+}
+
+window.addEventListener("message", on_message_received);
 </script>
 
 <template>
   <main>
     <h1>Hello world!</h1>
     <vscode-button @click="handleHowdyClick">Howdy!</vscode-button>
+
+    <pre>{{m_state}}</pre>
   </main>
 </template>
 
