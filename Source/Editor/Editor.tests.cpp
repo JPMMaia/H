@@ -220,4 +220,266 @@ namespace h::editor
 
         CHECK(actual.value == expected);
     }
+
+    TEST_CASE("Create constant expression template with style 0")
+    {
+        Code_format_segment const format = create_code_format_segment("${constant_type}${constant_value}", {}, {});
+
+        HTML_template const actual = create_template(
+            "h_constant_expression",
+            format,
+            {},
+            {}
+        );
+
+        char const* const expected =
+            "<template id=\"h_constant_expression\">"
+            "<h_type_reference><span slot=\"type_name\"><slot name=\"type\"></slot></span></h_type_reference>"
+            "<slot name=\"value\"></slot>"
+            "</template>";
+
+        CHECK(actual.value == expected);
+    }
+
+    TEST_CASE("Create constant expression template instance")
+    {
+        h::Constant_expression const expression =
+        {
+            .type = Fundamental_type::Float16,
+            .data = "0.5"
+        };
+
+        Fundamental_type_name_map const fundamental_type_name_map = create_default_fundamental_type_name_map(
+            {}
+        );
+
+        HTML_template_instance const actual = create_constant_expression_instance(
+            expression,
+            fundamental_type_name_map,
+            {},
+            {}
+        );
+
+        char const* const expected =
+            "<h_constant_expression>"
+            "<span slot=\"type\">Float16</span>"
+            "<span slot=\"value\">0.5</span>"
+            "</h_constant_expression>";
+
+        CHECK(actual.value == expected);
+    }
+
+    TEST_CASE("Create return expression template with style 0")
+    {
+        Code_format_segment const format = create_code_format_segment("return ${expression}", {}, {});
+
+        HTML_template const actual = create_template(
+            "h_return_expression",
+            format,
+            {},
+            {}
+        );
+
+        char const* const expected =
+            "<template id=\"h_return_expression\">"
+            "return "
+            "<h_expression><slot name=\"expression\"></slot></h_expression>"
+            "</template>";
+
+        CHECK(actual.value == expected);
+    }
+
+    TEST_CASE("Create variable expression template with style 0")
+    {
+        Code_format_segment const format = create_code_format_segment("${variable_name}", {}, {});
+
+        HTML_template const actual = create_template(
+            "h_variable_expression",
+            format,
+            {},
+            {}
+        );
+
+        char const* const expected =
+            "<template id=\"h_variable_expression\">"
+            "<slot name=\"type\"></slot>"
+            "<slot name=\"id\"></slot>"
+            "<slot name=\"temporary\"></slot>"
+            "</template>";
+
+        CHECK(actual.value == expected);
+    }
+
+    TEST_CASE("Create function argument variable expression template instance")
+    {
+        h::Variable_expression const expression
+        {
+            .type = Variable_expression_type::Function_argument,
+            .id = 1
+        };
+
+        Fundamental_type_name_map const fundamental_type_name_map = create_default_fundamental_type_name_map(
+            {}
+        );
+
+        HTML_template_instance const actual = create_variable_expression_instance(
+            expression,
+            std::nullopt,
+            fundamental_type_name_map,
+            {},
+            {}
+        );
+
+        char const* const expected =
+            "<h_variable_expression>"
+            "<span slot=\"type\">function_argument</span>"
+            "<span slot=\"id\">1</span>"
+            "</h_variable_expression>";
+
+        CHECK(actual.value == expected);
+    }
+
+    TEST_CASE("Create temporary variable expression template instance")
+    {
+        HTML_template_instance const temporary_expression
+        {
+            .value = "<temporary_expression></temporary_expression>"
+        };
+
+        h::Variable_expression const expression
+        {
+            .type = Variable_expression_type::Temporary,
+            .id = 1
+        };
+
+        Fundamental_type_name_map const fundamental_type_name_map = create_default_fundamental_type_name_map(
+            {}
+        );
+
+        HTML_template_instance const actual = create_variable_expression_instance(
+            expression,
+            temporary_expression,
+            fundamental_type_name_map,
+            {},
+            {}
+        );
+
+        char const* const expected =
+            "<h_variable_expression>"
+            "<span slot=\"type\">temporary</span>"
+            "<span slot=\"id\">1</span>"
+            "<span slot=\"temporary\">"
+            "<temporary_expression></temporary_expression>"
+            "</span>"
+            "</h_variable_expression>";
+
+        CHECK(actual.value == expected);
+    }
+
+    TEST_CASE("Create statement expression template with style 0")
+    {
+        Code_format_segment const format = create_code_format_segment("${statement};", {}, {});
+
+        HTML_template const actual = create_template(
+            "h_statement",
+            format,
+            {},
+            {}
+        );
+
+        char const* const expected =
+            "<template id=\"h_statement\">"
+            "<slot name=\"id\"></slot>"
+            "<slot name=\"name\"></slot>"
+            "<slot name=\"expression\"></slot>"
+            ";"
+            "</template>";
+
+        CHECK(actual.value == expected);
+    }
+
+    namespace
+    {
+        h::Statement create_statement()
+        {
+            std::pmr::vector<h::Expression> expressions
+            {
+                {
+                    h::Expression{
+                        .data = h::Binary_expression{
+                            .left_hand_side = h::Variable_expression{
+                                .type = h::Variable_expression_type::Function_argument,
+                                .id = 0
+                            },
+                            .right_hand_side = h::Variable_expression{
+                                .type = h::Variable_expression_type::Function_argument,
+                                .id = 1
+                            },
+                            .operation = h::Binary_operation::Add
+                        }
+                    },
+                    h::Expression{
+                        .data = h::Return_expression{
+                            .variable = h::Variable_expression{
+                                .type = h::Variable_expression_type::Temporary,
+                                .id = 0
+                            },
+                        }
+                    }
+                }
+            };
+
+            return h::Statement
+            {
+                .id = 0,
+                .name = "var_0",
+                .expressions = std::move(expressions)
+            };
+        }
+    }
+
+    TEST_CASE("Create statement template instance")
+    {
+        h::Statement const statement = create_statement();
+
+        Fundamental_type_name_map const fundamental_type_name_map = create_default_fundamental_type_name_map(
+            {}
+        );
+
+        HTML_template_instance const actual = create_statement_instance(
+            statement,
+            fundamental_type_name_map,
+            {},
+            {}
+        );
+
+        char const* const expected =
+            "<h_statement>"
+            "<span slot=\"id\">0</span>"
+            "<span slot=\"name\">var_0</span>"
+            "<span slot=\"expression\">"
+            "<h_return_expression>"
+            "<span slot=\"expression\">"
+            "<h_binary_expression>"
+            "<span slot=\"left_hand_side\">"
+            "<h_variable_expression>"
+            "<span slot=\"type\">function_argument</span>"
+            "<span slot=\"id\">0</span>"
+            "</h_variable_expression>"
+            "</span>"
+            "<span slot=\"right_hand_side\">"
+            "<h_variable_expression>"
+            "<span slot=\"type\">function_argument</span>"
+            "<span slot=\"id\">1</span>"
+            "</h_variable_expression>"
+            "</span>"
+            "<span slot=\"operation\">add</span>"
+            "</h_binary_expression>"
+            "</span>"
+            "</h_return_expression>"
+            "</span>"
+            "</h_statement>";
+
+        CHECK(actual.value == expected);
+    }
 }

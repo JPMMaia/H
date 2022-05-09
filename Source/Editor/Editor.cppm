@@ -4,6 +4,7 @@ module;
 #include <cassert>
 #include <cstdint>
 #include <memory_resource>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -42,12 +43,17 @@ namespace h::editor
 
     export enum class Code_format_keyword
     {
+        Constant_type,
+        Constant_value,
+        Expression,
         Function_name,
         Function_parameters,
         Parameter_type,
         Parameter_name,
         Return_type,
-        Type_name
+        Statement,
+        Type_name,
+        Variable_name
     };
 
     export  struct Code_format_segment
@@ -95,6 +101,28 @@ namespace h::editor
         h::Function_declaration const& function_declaration,
         Fundamental_type_name_map const& fundamental_type_name_map,
         Function_format_options const& options,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
+    export HTML_template_instance create_constant_expression_instance(
+        h::Constant_expression const& expression,
+        Fundamental_type_name_map const& fundamental_type_name_map,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
+    export HTML_template_instance create_variable_expression_instance(
+        h::Variable_expression const& expression,
+        std::optional<HTML_template_instance> const& temporary_expression,
+        Fundamental_type_name_map const& fundamental_type_name_map,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
+    export HTML_template_instance create_statement_instance(
+        h::Statement const& statement,
+        Fundamental_type_name_map const& fundamental_type_name_map,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );

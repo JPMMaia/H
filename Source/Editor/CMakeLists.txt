@@ -3,7 +3,7 @@ add_library(H::Editor ALIAS H_editor)
 
 target_compile_features(H_editor PUBLIC cxx_std_23)
 
-target_link_libraries(H_editor PUBLIC H::Core)
+target_link_libraries(H_editor PUBLIC H::Core H::JSON_serializer)
 
 target_sources(H_editor PRIVATE
    "Editor.cppm"

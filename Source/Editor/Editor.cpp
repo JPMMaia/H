@@ -4,6 +4,7 @@ module;
 #include <cstdint>
 #include <memory_resource>
 #include <numeric>
+#include <optional>
 #include <ranges>
 #include <span>
 #include <sstream>
@@ -15,6 +16,7 @@ module;
 module h.editor;
 
 import h.core;
+import h.json_serializer;
 
 namespace h::editor
 {
@@ -54,9 +56,29 @@ namespace h::editor
         }
     }
 
+    std::string_view get_type_name(
+        Fundamental_type const type_reference,
+        Fundamental_type_name_map const& map
+    )
+    {
+        return map.get(type_reference);
+    }
+
     Code_format_keyword from_string(std::string_view const value)
     {
-        if (value == "function_name")
+        if (value == "constant_type")
+        {
+            return Code_format_keyword::Constant_type;
+        }
+        else if (value == "constant_value")
+        {
+            return Code_format_keyword::Constant_value;
+        }
+        else if (value == "expression")
+        {
+            return Code_format_keyword::Expression;
+        }
+        else if (value == "function_name")
         {
             return Code_format_keyword::Function_name;
         }
@@ -76,9 +98,17 @@ namespace h::editor
         {
             return Code_format_keyword::Return_type;
         }
+        else if (value == "statement")
+        {
+            return Code_format_keyword::Statement;
+        }
         else if (value == "type_name")
         {
             return Code_format_keyword::Type_name;
+        }
+        else if (value == "variable_name")
+        {
+            return Code_format_keyword::Variable_name;
         }
 
         throw std::runtime_error{ std::format("Code_format_keyword value '{}' not recognized!", value) };
@@ -277,7 +307,19 @@ namespace h::editor
                     Code_format_keyword const keyword = format_segment.keywords[keyword_index];
                     ++keyword_index;
 
-                    if (keyword == Code_format_keyword::Function_name)
+                    if (keyword == Code_format_keyword::Constant_type)
+                    {
+                        stream << "<h_type_reference><span slot=\"type_name\"><slot name=\"type\"></slot></span></h_type_reference>";
+                    }
+                    else if (keyword == Code_format_keyword::Constant_value)
+                    {
+                        stream << "<slot name=\"value\"></slot>";
+                    }
+                    else if (keyword == Code_format_keyword::Expression)
+                    {
+                        stream << "<h_expression><slot name=\"expression\"></slot></h_expression>";
+                    }
+                    else if (keyword == Code_format_keyword::Function_name)
                     {
                         stream << "<slot name=\"name\"></slot>";
                     }
@@ -297,9 +339,21 @@ namespace h::editor
                     {
                         stream << "<h_type_reference><span slot=\"type_name\"><slot name=\"return_type\"></slot></span></h_type_reference>";
                     }
+                    else if (keyword == Code_format_keyword::Statement)
+                    {
+                        stream << "<slot name=\"id\"></slot>";
+                        stream << "<slot name=\"name\"></slot>";
+                        stream << "<slot name=\"expression\"></slot>";
+                    }
                     else if (keyword == Code_format_keyword::Type_name)
                     {
                         stream << "<slot name=\"type_name\"></slot>";
+                    }
+                    else if (keyword == Code_format_keyword::Variable_name)
+                    {
+                        stream << "<slot name=\"type\"></slot>";
+                        stream << "<slot name=\"id\"></slot>";
+                        stream << "<slot name=\"temporary\"></slot>";
                     }
                     else
                     {
@@ -353,6 +407,115 @@ namespace h::editor
             stream << "</span>";
         }
         stream << "</h_function_declaration>";
+
+        return HTML_template_instance{ .value = generate_string(stream, output_allocator) };
+    }
+
+    HTML_template_instance create_constant_expression_instance(
+        h::Constant_expression const& expression,
+        Fundamental_type_name_map const& fundamental_type_name_map,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        Polymorphic_stringstream stream{ std::ios::out, temporaries_allocator };
+
+        stream << "<h_constant_expression>";
+        {
+            stream << "<span slot=\"type\">" << get_type_name(expression.type, fundamental_type_name_map) << "</span>";
+            stream << "<span slot=\"value\">" << expression.data << "</span>";
+        }
+        stream << "</h_constant_expression>";
+
+        return HTML_template_instance{ .value = generate_string(stream, output_allocator) };
+    }
+
+    HTML_template_instance create_variable_expression_instance(
+        h::Variable_expression const& expression,
+        std::optional<HTML_template_instance> const& temporary_expression,
+        Fundamental_type_name_map const& fundamental_type_name_map,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        assert(temporary_expression.has_value() || expression.type != h::Variable_expression_type::Temporary);
+
+        Polymorphic_stringstream stream{ std::ios::out, temporaries_allocator };
+
+        stream << "<h_variable_expression>";
+        {
+            stream << "<span slot=\"type\">" << h::json::write_enum(expression.type) << "</span>";
+            stream << "<span slot=\"id\">" << expression.id << "</span>";
+
+            if (expression.type == h::Variable_expression_type::Temporary)
+            {
+                stream << "<span slot=\"temporary\">" << temporary_expression->value << "</span>";
+            }
+        }
+        stream << "</h_variable_expression>";
+
+        return HTML_template_instance{ .value = generate_string(stream, output_allocator) };
+    }
+
+    HTML_template_instance create_statement_instance(
+        h::Statement const& statement,
+        Fundamental_type_name_map const& fundamental_type_name_map,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        Polymorphic_stringstream stream{ std::ios::out, temporaries_allocator };
+
+        stream << "<h_statement>";
+        {
+            stream << "<span slot=\"id\">" << statement.id << "</span>";
+            stream << "<span slot=\"name\">" << statement.name << "</span>";
+
+            stream << "<span slot=\"expression\">";
+            {
+                std::pmr::vector<HTML_template_instance> instances{ temporaries_allocator };
+                instances.reserve(statement.expressions.size());
+
+                for (h::Expression const& expression : statement.expressions)
+                {
+                    auto const visitor = [&](auto&& expression_data)
+                    {
+                        using T = std::decay_t<decltype(expression_data)>;
+
+                        if constexpr (std::is_same_v<T, Binary_expression>)
+                        {
+
+                        }
+                        else if constexpr (std::is_same_v<T, Call_expression>)
+                        {
+
+                        }
+                        else if constexpr (std::is_same_v<T, Constant_expression>)
+                        {
+
+                        }
+                        else if constexpr (std::is_same_v<T, Return_expression>)
+                        {
+
+                        }
+                        else if constexpr (std::is_same_v<T, Variable_expression>)
+                        {
+
+                        }
+                        else
+                        {
+                            static_assert(always_false_v<T>, "non-exhaustive visitor!");
+                        }
+                    };
+
+                    std::visit(visitor, expression.data);
+                }
+
+                stream << instances.back().value;
+            }
+            stream << "</span>";
+        }
+        stream << "</h_statement>";
 
         return HTML_template_instance{ .value = generate_string(stream, output_allocator) };
     }
