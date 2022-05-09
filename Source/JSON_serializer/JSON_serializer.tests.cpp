@@ -436,4 +436,145 @@ namespace h
         h::Function_definition const& actual = output.value();
         CHECK(actual == expected);
     }
+
+    h::Module create_expected_module()
+    {
+        Language_version const language_version
+        {
+            .major = 1,
+            .minor = 2,
+            .patch = 3
+        };
+
+        Module_declarations export_declarations
+        {
+            .function_declarations = create_expected_function_declaration()
+        };
+
+        Module_definitions definitions
+        {
+            .function_definitions = create_expected_function_definition()
+        };
+
+        return h::Module
+        {
+            .language_version = language_version,
+            .export_declarations = std::move(export_declarations),
+            .internal_declarations = Module_declarations{},
+            .definitions = std::move(definitions),
+        };
+    }
+
+    TEST_CASE("Read Module")
+    {
+        std::pmr::string const json_data = R"JSON(
+        {
+            "language_version": {
+                "major": 1,
+                "minor": 2,
+                "patch": 3
+            },
+            "export_declarations": {
+                "function_declarations": {
+                    "size": 1,
+                    "elements": [
+                        {
+                            "name": "Add",
+                            "return_type": {
+                                "fundamental_type": "int32"
+                            },
+                            "parameter_types": {
+                                "size": 2,
+                                "elements": [
+                                    {
+                                        "fundamental_type": "int32"
+                                    },
+                                    {
+                                        "fundamental_type": "int32"
+                                    }
+                                ]
+                            },
+                            "parameter_ids": {
+                                "size": 2,
+                                "elements": [
+                                    0, 1
+                                ]
+                            },
+                            "parameter_names": {
+                                "size": 2,
+                                "elements": [
+                                    "lhs", "rhs"
+                                ]
+                            },
+                            "linkage": "external"
+                        }
+                    ]
+                }
+            },
+            "internal_declarations": {
+                "function_declarations": {
+                    "size": 0,
+                    "elements": []
+                }
+            },
+            "definitions": {
+                "function_definitions": {
+                    "size": 1,
+                    "elements": [
+                        {
+                            "name": "Foo",
+                            "statements": {
+                                "size": 1,
+                                "elements": [
+                                    {
+                                        "id": 0,
+                                        "name": "var_0",
+                                        "expressions": {
+                                            "size": 2,
+                                            "elements": 
+                                            [
+                                                {
+                                                    "binary_expression": {
+                                                        "left_hand_side": {
+                                                            "type": "function_argument",
+                                                            "id": 0
+                                                        },
+                                                        "right_hand_side": {
+                                                            "type": "function_argument",
+                                                            "id": 1
+                                                        },
+                                                        "operation": "add"
+                                                    }
+                                                },
+                                                {
+                                                    "return_expression": {
+                                                        "variable": {
+                                                            "type": "temporary",
+                                                            "id": 0
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+        )JSON";
+
+        h::Module const expected = create_expected_module();
+
+        rapidjson::Reader reader;
+        rapidjson::StringStream input_stream{ json_data.c_str() };
+        std::optional<h::Module> const output = h::json::read<h::Module>(reader, input_stream);
+
+        REQUIRE(output.has_value());
+
+        h::Module const& actual = output.value();
+        CHECK(actual == expected);
+    }
 }
