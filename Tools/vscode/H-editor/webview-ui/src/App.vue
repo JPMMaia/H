@@ -48,6 +48,7 @@ m_state.value = {
       "size": 1,
       "elements": [
         {
+          "id": 0,
           "name": "Add",
           "return_type": {
             "fundamental_type": "int32"
@@ -93,7 +94,7 @@ m_state.value = {
       "size": 1,
       "elements": [
         {
-          "name": "Foo",
+          "id": 0,
           "statements": {
             "size": 1,
             "elements": [
@@ -140,6 +141,10 @@ function on_message_received(event: MessageEvent): void {
 }
 
 window.addEventListener("message", on_message_received);
+
+function on_function_name_change(function_declaration: any, value: any): void {
+  function_declaration.name = value;
+}
 </script>
 
 <template>
@@ -155,15 +160,15 @@ window.addEventListener("message", on_message_received);
 
     <section>
       <h2>Public functions</h2>
-      <div v-for="function_declaration in m_state.export_declarations.function_declarations.elements" v-bind:key="function_declaration.name">
-        <Function_declaration :value="function_declaration"></Function_declaration>
+      <div v-for="function_declaration in m_state.export_declarations.function_declarations.elements" v-bind:key="function_declaration.id">
+        <Function_declaration :value="function_declaration" v-on:update:name="(new_name) => on_function_name_change(function_declaration, new_name)"></Function_declaration>
       </div>
       <p v-if="m_state.export_declarations.function_declarations.elements.length === 0">No public functions</p>
     </section>
 
     <section>
       <h2>Private functions</h2>
-      <div v-for="function_declaration in m_state.internal_declarations.function_declarations.elements" v-bind:key="function_declaration.name">
+      <div v-for="function_declaration in m_state.internal_declarations.function_declarations.elements" v-bind:key="function_declaration.id">
         <Function_declaration :value="function_declaration"></Function_declaration>
       </div>
       <p v-if="m_state.internal_declarations.function_declarations.elements.length === 0">No private functions</p>
@@ -174,6 +179,10 @@ window.addEventListener("message", on_message_received);
 </template>
 
 <style>
+* {
+  font-family: monospace;
+}
+
 main {
   display: flex;
   flex-direction: column;
