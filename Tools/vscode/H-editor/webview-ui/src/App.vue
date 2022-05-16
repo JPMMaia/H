@@ -142,8 +142,17 @@ function on_message_received(event: MessageEvent): void {
 
 window.addEventListener("message", on_message_received);
 
-function on_function_name_change(function_declaration: any, value: any): void {
-  function_declaration.name = value;
+function on_function_name_change(function_declaration: any, is_export_declaration: boolean, new_name: any): void {
+  function_declaration.name = new_name;
+
+  vscode.postMessage({
+    command: "update:function_name",
+    data: {
+      function_id: function_declaration.id,
+      is_export_declaration: is_export_declaration,
+      new_name: new_name
+    }
+  });
 }
 </script>
 
@@ -161,7 +170,7 @@ function on_function_name_change(function_declaration: any, value: any): void {
     <section>
       <h2>Public functions</h2>
       <div v-for="function_declaration in m_state.export_declarations.function_declarations.elements" v-bind:key="function_declaration.id">
-        <Function_declaration :value="function_declaration" v-on:update:name="(new_name) => on_function_name_change(function_declaration, new_name)"></Function_declaration>
+        <Function_declaration :value="function_declaration" v-on:update:name="(new_name) => on_function_name_change(function_declaration, true, new_name)"></Function_declaration>
       </div>
       <p v-if="m_state.export_declarations.function_declarations.elements.length === 0">No public functions</p>
     </section>

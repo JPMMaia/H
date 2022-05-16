@@ -10,7 +10,8 @@
 			"size": 1,
 			"elements": [
 				{
-					"name": "Add",
+					"id": 0,
+					"name": "Ad3d2",
 					"return_type": {
 						"fundamental_type": "int32"
 					},
@@ -55,7 +56,7 @@
 			"size": 1,
 			"elements": [
 				{
-					"name": "Foo",
+					"id": 0,
 					"statements": {
 						"size": 1,
 						"elements": [

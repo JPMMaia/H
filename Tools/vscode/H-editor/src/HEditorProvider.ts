@@ -4,7 +4,8 @@ import { createFunctionsListHTML } from './transformer';
 import * as H from "./model";
 import * as settings from './settings';
 import { LanguageServer } from './LanguageServer';
-import { HelloWorldPanel } from './panels/HelloWorldPanel';
+import { HEditorPanel } from './panels/HEditorPanel';
+import { HDocument } from './HDocument';
 
 /**
  * Provider for H editors.
@@ -24,7 +25,8 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 	private static readonly viewType = 'heditor.textEditor';
 
 	private languageServer?: LanguageServer = undefined;
-	private registeredWebviews = new Map<number, HelloWorldPanel>();
+	private registeredWebviews = new Map<number, HEditorPanel>();
+	private panelDocuments = new Map<number, HDocument>();
 	private nextWebviewPanelID = 0;
 
 	constructor(
@@ -32,7 +34,7 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 	) {
 	}
 
-	private getWebviewPanelID(registeredWebviews: Map<number, HelloWorldPanel>, webviewPanel: vscode.WebviewPanel): number | undefined {
+	private getWebviewPanelID(registeredWebviews: Map<number, HEditorPanel>, webviewPanel: vscode.WebviewPanel): number | undefined {
 
 		for (const entry of registeredWebviews.entries()) {
 			if (entry[1].panel === webviewPanel) {
@@ -67,17 +69,24 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 
 		let webpanelID = this.getWebviewPanelID(this.registeredWebviews, webviewPanel);
 
-		const panel = new HelloWorldPanel(
-			webviewPanel,
-			this.context.extensionUri
-		);
-
 		if (webpanelID === undefined) {
 			webpanelID = this.nextWebviewPanelID;
 			++this.nextWebviewPanelID;
 
-			this.registeredWebviews.set(webpanelID, panel);
+			const hPanel = new HEditorPanel(
+				webpanelID,
+				webviewPanel,
+				this.context.extensionUri
+			);
+
+			this.registeredWebviews.set(webpanelID, hPanel);
 		}
+
+		const hDocument = new HDocument(document);
+		this.panelDocuments.set(webpanelID, hDocument);
+
+		const hPanel = this.registeredWebviews.get(webpanelID);
+		hPanel?.addListener(hDocument);
 
 		// Hook up event handlers so that we can synchronize the webview with the text document.
 		//
@@ -99,12 +108,12 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 			changeDocumentSubscription.dispose();
 		});
 
-		{
+		/*{
 			const data = this.getDocumentAsJson(document);
 			if (data !== null) {
 				webviewPanel.webview.postMessage(data);
 			}
-		}
+		}*/
 
 		/*if (this.languageServer === undefined) {
 			this.languageServer = new LanguageServer("C:/Users/jpmmaia/Desktop/source/H/build/Application/Language_server/Debug/H_Language_server.exe", this);
@@ -173,7 +182,7 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 		languageServer.request(createHtmlTemplatesRequest);
 	}
 
-	private handleHtmlTemplates(registeredWebviews: Map<number, HelloWorldPanel>, data: any): void {
+	private handleHtmlTemplates(registeredWebviews: Map<number, HEditorPanel>, data: any): void {
 
 		const webviewPanelID = data.id;
 		const webviewPanel = registeredWebviews.get(webviewPanelID);

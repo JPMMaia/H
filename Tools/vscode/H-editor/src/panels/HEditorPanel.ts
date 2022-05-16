@@ -11,17 +11,21 @@ import { getUri } from "../utilities/getUri";
  * - Setting the HTML (and by proxy CSS/JavaScript) content of the webview panel
  * - Setting message listeners so data can be passed between the webview and extension
  */
-export class HelloWorldPanel {
+export class HEditorPanel {
+
+  public readonly id: number;
   public readonly panel: WebviewPanel;
   private _disposables: Disposable[] = [];
+  private listeners: any[] = [];
 
   /**
-   * The HelloWorldPanel class private constructor (called only from the render method).
+   * The HEditorPanel class private constructor (called only from the render method).
    *
    * @param panel A reference to the webview panel
    * @param extensionUri The URI of the directory containing the extension
    */
-  public constructor(panel: WebviewPanel, extensionUri: Uri) {
+  public constructor(id: number, panel: WebviewPanel, extensionUri: Uri) {
+    this.id = id;
     this.panel = panel;
 
     // Set an event listener to listen for when the panel is disposed (i.e. when the user closes
@@ -38,6 +42,10 @@ export class HelloWorldPanel {
 
     // Set an event listener to listen for messages passed from the webview context
     this._setWebviewMessageListener(this.panel.webview);
+  }
+
+  public addListener(listener: any): void {
+    this.listeners.push(listener);
   }
 
   /**
@@ -91,6 +99,18 @@ export class HelloWorldPanel {
     `;
   }
 
+  private onMessageReceived(message: any) {
+
+    const command = message.command;
+
+    switch (command) {
+      case "update:function_name":
+        for (const listener of this.listeners) {
+          listener.updateFunctionName(message.data.function_id, message.data.is_export_declaration, message.data.new_name);
+        }
+    }
+  }
+
   /**
    * Sets up an event listener to listen for messages passed from the webview context and
    * executes code based on the message that is recieved.
@@ -99,22 +119,14 @@ export class HelloWorldPanel {
    * @param context A reference to the extension context
    */
   private _setWebviewMessageListener(webview: Webview) {
+
     webview.onDidReceiveMessage(
       (message: any) => {
-        const command = message.command;
-        const text = message.text;
-
-        switch (command) {
-          case "hello":
-            // Code that should run in response to the hello message command
-            window.showInformationMessage(text);
-            return;
-          // Add more switch case statements here as more webview message commands
-          // are created within the webview context (i.e. inside media/main.js)
-        }
+        this.onMessageReceived(message);
       },
       undefined,
       this._disposables
     );
+
   }
 }
