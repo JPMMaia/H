@@ -1,7 +1,278 @@
-import { equal } from "assert";
+import { deepEqual, equal } from "assert";
 import 'mocha';
 
-import { fromOffsetToPosition, fromPositionToOffset, getObjectAtPosition } from './parseJSON';
+import { fromOffsetToPosition, fromPositionToOffset, getObjectAtPosition, iterateThroughJSONString, JSONParserEvent } from './parseJSON';
+
+describe("iterateThroughJSONString", () => {
+
+    it("should return openObject when encountering {", () => {
+
+        const json = '{ "foo": {"name": "bar"} }';
+
+        {
+            let state = {
+                stack: [],
+                expectKey: false
+            };
+
+            const result = iterateThroughJSONString(state, json, 0);
+            equal(result.event, JSONParserEvent.openObject);
+
+            deepEqual(state.stack, ['{']);
+            equal(state.expectKey, true);
+        }
+
+        {
+            let state = {
+                stack: ['{'],
+                expectKey: false
+            };
+
+            const result = iterateThroughJSONString(state, json, 7);
+            equal(result.event, JSONParserEvent.openObject);
+            equal(result.endIndex, 10);
+
+            deepEqual(state.stack, ['{', '{']);
+            equal(state.expectKey, true);
+        }
+    });
+
+    it("should return closeObject when encountering }", () => {
+
+        const json = '{ "foo": {"name": "bar"} }';
+
+        {
+            let state = {
+                stack: ['{', '{'],
+                expectKey: false
+            };
+
+            const result = iterateThroughJSONString(state, json, 23);
+            equal(result.event, JSONParserEvent.closeObject);
+            equal(result.endIndex, 24);
+
+            deepEqual(state.stack, ['{']);
+            equal(state.expectKey, false);
+        }
+
+        {
+            let state = {
+                stack: ['{'],
+                expectKey: false
+            };
+
+            const result = iterateThroughJSONString(state, json, 24);
+            equal(result.event, JSONParserEvent.closeObject);
+            equal(result.endIndex, 26);
+
+            deepEqual(state.stack, []);
+            equal(state.expectKey, false);
+        }
+    });
+
+    it("should return openArray when encountering [", () => {
+
+        const json = '{ "foo": [1, 2, 3] }';
+
+        {
+            let state = {
+                stack: ['{'],
+                expectKey: false
+            };
+
+            const result = iterateThroughJSONString(state, json, 7);
+            equal(result.event, JSONParserEvent.openArray);
+            equal(result.endIndex, 10);
+
+            deepEqual(state.stack, ['{', '[']);
+            equal(state.expectKey, false);
+        }
+    });
+
+    it("should return closeArray when encountering ]", () => {
+
+        const json = '{ "foo": [1, 2, 3] }';
+
+        {
+            let state = {
+                stack: ['{', '['],
+                expectKey: false
+            };
+
+            const result = iterateThroughJSONString(state, json, 17);
+            equal(result.event, JSONParserEvent.closeArray);
+            equal(result.endIndex, 18);
+
+            deepEqual(state.stack, ['{']);
+            equal(state.expectKey, false);
+        }
+    });
+
+    it("should return key event when encountering key", () => {
+
+        const json = '{ "foo": [1, 2, 3] }';
+
+        {
+            let state = {
+                stack: ['{'],
+                expectKey: true
+            };
+
+            const result = iterateThroughJSONString(state, json, 1);
+            equal(result.event, JSONParserEvent.key);
+            equal(result.value, "foo");
+            equal(result.endIndex, 7);
+
+            deepEqual(state.stack, ['{']);
+            equal(state.expectKey, false);
+        }
+    });
+
+    it("should expect key after comma (while not inside array)", () => {
+
+        const json = '{ "foo": [1, 2, 3], "hello": "beep" }';
+
+        {
+            let state = {
+                stack: ['{'],
+                expectKey: false
+            };
+
+            const result = iterateThroughJSONString(state, json, 18);
+            equal(result.event, JSONParserEvent.key);
+            equal(result.value, "hello");
+            equal(result.endIndex, 27);
+
+            deepEqual(state.stack, ['{']);
+            equal(state.expectKey, false);
+        }
+    });
+
+    it("should find number value after key", () => {
+
+        const json = '{ "foo": 13.4 }';
+
+        {
+            let state = {
+                stack: ['{'],
+                expectKey: false
+            };
+
+            const result = iterateThroughJSONString(state, json, 7);
+            equal(result.event, JSONParserEvent.number);
+            equal(result.value, 13.4);
+            equal(result.endIndex, 13);
+
+            deepEqual(state.stack, ['{']);
+            equal(state.expectKey, false);
+        }
+    });
+
+    it("should find string value after key", () => {
+
+        const json = '{ "foo": "hello" }';
+
+        {
+            let state = {
+                stack: ['{'],
+                expectKey: false
+            };
+
+            const result = iterateThroughJSONString(state, json, 7);
+            equal(result.event, JSONParserEvent.string);
+            equal(result.value, "hello");
+            equal(result.endIndex, 16);
+
+            deepEqual(state.stack, ['{']);
+            equal(state.expectKey, false);
+        }
+    });
+
+    it("should find number value inside array", () => {
+
+        const json = '{ "foo": [12.2, 24.0, 36] }';
+
+        {
+            let state = {
+                stack: ['{', '['],
+                expectKey: false
+            };
+
+            const result = iterateThroughJSONString(state, json, 10);
+            equal(result.event, JSONParserEvent.number);
+            equal(result.value, 12.2);
+            equal(result.endIndex, 14);
+
+            deepEqual(state.stack, ['{', '[']);
+            equal(state.expectKey, false);
+        }
+
+        {
+            let state = {
+                stack: ['{', '['],
+                expectKey: false
+            };
+
+            const result = iterateThroughJSONString(state, json, 14);
+            equal(result.event, JSONParserEvent.number);
+            equal(result.value, 24.0);
+            equal(result.endIndex, 20);
+
+            deepEqual(state.stack, ['{', '[']);
+            equal(state.expectKey, false);
+        }
+
+        {
+            let state = {
+                stack: ['{', '['],
+                expectKey: false
+            };
+
+            const result = iterateThroughJSONString(state, json, 20);
+            equal(result.event, JSONParserEvent.number);
+            equal(result.value, 36);
+            equal(result.endIndex, 24);
+
+            deepEqual(state.stack, ['{', '[']);
+            equal(state.expectKey, false);
+        }
+    });
+
+    it("should find string value inside array", () => {
+
+        const json = '{ "foo": ["hello", "world"] }';
+
+        {
+            let state = {
+                stack: ['{', '['],
+                expectKey: false
+            };
+
+            const result = iterateThroughJSONString(state, json, 10);
+            equal(result.event, JSONParserEvent.string);
+            equal(result.value, "hello");
+            equal(result.endIndex, 17);
+
+            deepEqual(state.stack, ['{', '[']);
+            equal(state.expectKey, false);
+        }
+
+        {
+            let state = {
+                stack: ['{', '['],
+                expectKey: false
+            };
+
+            const result = iterateThroughJSONString(state, json, 17);
+            equal(result.event, JSONParserEvent.string);
+            equal(result.value, "world");
+            equal(result.endIndex, 26);
+
+            deepEqual(state.stack, ['{', '[']);
+            equal(state.expectKey, false);
+        }
+    });
+});
 
 describe("getObjectAtPosition function", () => {
 

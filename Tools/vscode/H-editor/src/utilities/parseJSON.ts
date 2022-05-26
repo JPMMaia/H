@@ -19,7 +19,319 @@ export function getObjectAtPosition(object: any, position: any[]): any {
   return getObjectAtPosition(child, remainderKeys);
 }
 
+export enum JSONParserEvent {
+  openObject,
+  closeObject,
+  openArray,
+  closeArray,
+  key,
+  string,
+  number,
+}
+
+function toJSONParserEvent(character: string): JSONParserEvent {
+  if (character === '{') {
+    return JSONParserEvent.openObject;
+  }
+  else if (character === '}') {
+    return JSONParserEvent.closeObject;
+  }
+  else if (character === '[') {
+    return JSONParserEvent.openArray;
+  }
+  else if (character === ']') {
+    return JSONParserEvent.closeArray;
+  }
+
+  throw Error("Character not expected");
+}
+
+export interface ParserState {
+  stack: string[],
+  expectKey: boolean
+}
+
+export interface ParseJSONIterateResult {
+  event: JSONParserEvent,
+  value: any,
+  endIndex: number
+}
+
+function isNumber(character: string): boolean {
+
+  if (character.length === 0 || character === ' ') {
+    return false;
+  }
+
+  const number = Number(character);
+  return !isNaN(number);
+}
+
+function findNumber(text: string, startIndex: number): FindResult {
+  let index = startIndex;
+
+  while (index < text.length) {
+    const currentCharacter = text[index];
+
+    if (isNumber(currentCharacter)) {
+      ++index;
+    }
+    else if (currentCharacter === '.') {
+      ++index;
+    }
+    else {
+      return {
+        openIndex: startIndex,
+        closeIndex: index
+      };
+    }
+  }
+
+  throw Error("Error while parsing number!");
+}
+
+export function iterateThroughJSONString(state: ParserState, text: string, startIndex: number): ParseJSONIterateResult {
+
+  let index = startIndex;
+
+  if (state.stack.length === 0) {
+
+    while (index < text.length) {
+
+      const currentCharacter = text[index];
+
+      if (currentCharacter === '{') {
+        state.stack.push(currentCharacter);
+        state.expectKey = true;
+
+        return {
+          event: JSONParserEvent.openObject,
+          value: undefined,
+          endIndex: index + 1
+        };
+      }
+      if (currentCharacter === '[') {
+        state.stack.push(currentCharacter);
+        state.expectKey = false;
+
+        return {
+          event: JSONParserEvent.openArray,
+          value: undefined,
+          endIndex: index + 1
+        };
+      }
+
+      ++index;
+    }
+
+    throw Error("Unexpected end of string");
+  }
+
+  let beginKeyIndex = -1;
+  let beginValueIndex = -1;
+
+  while (index < text.length) {
+    const currentCharacter = text[index];
+
+    const lastSymbol = state.stack[state.stack.length - 1];
+
+    if (lastSymbol === '{') {
+
+      if (state.expectKey) {
+        if (currentCharacter === '"') {
+          state.stack.push(currentCharacter);
+          beginKeyIndex = index;
+        }
+      }
+      else {
+        if (currentCharacter === '{') {
+          state.stack.push(currentCharacter);
+          state.expectKey = true;
+          return {
+            event: JSONParserEvent.openObject,
+            value: undefined,
+            endIndex: index + 1
+          };
+        }
+        else if (currentCharacter === '[') {
+          state.stack.push(currentCharacter);
+          return {
+            event: JSONParserEvent.openArray,
+            value: undefined,
+            endIndex: index + 1
+          };
+        }
+        else if (currentCharacter === '}') {
+          state.stack.pop();
+          return {
+            event: JSONParserEvent.closeObject,
+            value: undefined,
+            endIndex: index + 1
+          };
+        }
+        else if (currentCharacter === ',') {
+          state.expectKey = true;
+        }
+        else if (currentCharacter === '"') {
+          state.stack.push(currentCharacter);
+          beginValueIndex = index;
+        }
+        else if (isNumber(currentCharacter)) {
+          const result = findNumber(text, index);
+          return {
+            event: JSONParserEvent.number,
+            value: Number(text.substring(result.openIndex, result.closeIndex)),
+            endIndex: result.closeIndex
+          };
+        }
+      }
+    }
+    else if (lastSymbol === '[') {
+      if (currentCharacter === '{') {
+        state.stack.push(currentCharacter);
+        state.expectKey = true;
+        return {
+          event: JSONParserEvent.openObject,
+          value: undefined,
+          endIndex: index + 1
+        };
+      }
+      else if (currentCharacter === '[') {
+        state.stack.push(currentCharacter);
+        state.expectKey = false;
+        return {
+          event: JSONParserEvent.openArray,
+          value: undefined,
+          endIndex: index + 1
+        };
+      }
+      else if (currentCharacter === '"') {
+        state.stack.push(currentCharacter);
+        state.expectKey = false;
+        beginValueIndex = index;
+      }
+      else if (currentCharacter === ']') {
+        state.stack.pop();
+        state.expectKey = false;
+        return {
+          event: JSONParserEvent.closeArray,
+          value: undefined,
+          endIndex: index + 1
+        };
+      }
+      else if (currentCharacter === ',') {
+        state.expectKey = false;
+      }
+      else if (isNumber(currentCharacter)) {
+        const result = findNumber(text, index);
+        return {
+          event: JSONParserEvent.number,
+          value: Number(text.substring(result.openIndex, result.closeIndex)),
+          endIndex: result.closeIndex
+        };
+      }
+    }
+    else if (lastSymbol === '"') {
+
+      const previousCharacter = text[index - 1];
+
+      if (previousCharacter !== '\\' && currentCharacter === '"') {
+
+        if (state.expectKey) {
+          state.stack.pop();
+          state.expectKey = false;
+
+          return {
+            event: JSONParserEvent.key,
+            value: text.substring(beginKeyIndex + 1, index),
+            endIndex: index + 1
+          };
+        }
+        else {
+          state.stack.pop();
+
+          return {
+            event: JSONParserEvent.string,
+            value: text.substring(beginValueIndex + 1, index),
+            endIndex: index + 1
+          };
+        }
+      }
+    }
+
+    if (state.stack.length === 0) {
+      break;
+    }
+
+    ++index;
+  }
+
+  throw Error("Error while parsing JSON");
+}
+
 export function fromPositionToOffset(text: string, position: any[]): number {
+
+  let index = 0;
+
+  let stack: string[] = [];
+
+  while (index < text.length) {
+
+    const currentCharacter = text[index];
+
+    if (currentCharacter === '{' || currentCharacter === '[') {
+      stack.push(currentCharacter);
+      ++index;
+      break;
+    }
+  }
+
+  while (index < text.length) {
+
+    const currentCharacter = text[index];
+
+    const lastSymbol = stack[stack.length - 1];
+    if (lastSymbol === '{') {
+      if (currentCharacter === '{' || currentCharacter === '[' || currentCharacter === '"') {
+        stack.push(currentCharacter);
+      }
+      else if (currentCharacter === '}') {
+        stack.pop();
+
+        if (stack.length === 0) {
+          return index + 1;
+        }
+      }
+    }
+    else if (lastSymbol === '[') {
+      if (currentCharacter === '{' || currentCharacter === '[' || currentCharacter === '"') {
+        stack.push(currentCharacter);
+      }
+      else if (currentCharacter === ']') {
+        stack.pop();
+
+        if (stack.length === 0) {
+          return index + 1;
+        }
+      }
+    }
+    else if (lastSymbol === '"') {
+      const previousCharacter = text[index - 1];
+      if (previousCharacter !== '\\' && currentCharacter === '"') {
+        stack.pop();
+
+        // Found key
+
+        if (stack.length === 0) {
+          return index + 1;
+        }
+      }
+    }
+
+    ++index;
+  }
+
+
   return 0;
 }
 
@@ -111,39 +423,6 @@ export function findKey(text: string, start_index: number): FindResult {
     openIndex: open_quote_index,
     closeIndex: close_quote_index
   };
-}
-
-export function isNumber(character: string): boolean {
-
-  if (character.length === 0 || character === ' ') {
-    return false;
-  }
-
-  const number = Number(character);
-  return !isNaN(number);
-}
-
-export function findNumber(text: string, start_index: number): FindResult {
-  let index = start_index;
-
-  while (index < text.length) {
-    const current_character = text[index];
-
-    if (!isNaN(Number(current_character))) {
-      ++index;
-    }
-    else if (current_character === '.') {
-      ++index;
-    }
-    else {
-      return {
-        openIndex: start_index,
-        closeIndex: index
-      };
-    }
-  }
-
-  throw "Error while parsing number!";
 }
 
 export function findValue(text: string, start_index: number): FindResult {
