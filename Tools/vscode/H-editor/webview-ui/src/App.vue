@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { onMounted, ref } from "vue";
 import { provideVSCodeDesignSystem, vsCodeButton } from "@vscode/webview-ui-toolkit";
 import { vscode } from "./utilities/vscode";
+import { updateState } from "../../src/utilities/updateState";
 
 import Function_declaration from "./components/Function_declaration.vue"
 import Language_version from "./components/Language_version.vue"
@@ -36,7 +37,7 @@ function handleHowdyClick() {
 
 const m_state = ref<any | null>(null);
 
-m_state.value = {
+/*m_state.value = {
   "language_version": {
     "major": 1,
     "minor": 2,
@@ -134,26 +135,71 @@ m_state.value = {
       ]
     }
   }
-};
+};*/
 
 function on_message_received(event: MessageEvent): void {
-  m_state.value = JSON.stringify(event.data, null, 2);
+
+  const message = event.data;
+
+  if (message.command === "initialize" || message.command === "update") {
+
+      const stateReference = {
+          get value() {
+            return m_state.value;
+          },
+          set value(value: any) {
+            m_state.value = value;
+          }
+      };
+
+      updateState(stateReference, message);
+  }
 }
 
 window.addEventListener("message", on_message_received);
 
-function on_function_name_change(function_declaration: any, is_export_declaration: boolean, new_name: any): void {
-  function_declaration.name = new_name;
 
+
+function on_function_name_change(index: number, function_declaration: any, is_export_declaration: boolean, new_name: any): void {
   vscode.postMessage({
     command: "update:function_name",
     data: {
+      function_index: index,
       function_id: function_declaration.id,
       is_export_declaration: is_export_declaration,
       new_name: new_name
     }
   });
 }
+
+function create_module(): void {
+
+  vscode.postMessage({
+    command: "create:module"
+  });
+
+}
+
+function delete_module(): void {
+
+  vscode.postMessage({
+    command: "delete:module"
+  });
+
+}
+
+function create_function(index: number, is_export_declaration: boolean): void {
+  vscode.postMessage({
+    command: "create:function",
+    data: {
+      function_index: index,
+      is_export_declaration: is_export_declaration
+    }
+  });
+}
+
+onMounted(() => {
+})
 </script>
 
 <template>
@@ -169,10 +215,11 @@ function on_function_name_change(function_declaration: any, is_export_declaratio
 
     <section>
       <h2>Public functions</h2>
-      <div v-for="function_declaration in m_state.export_declarations.function_declarations.elements" v-bind:key="function_declaration.id">
-        <Function_declaration :value="function_declaration" v-on:update:name="(new_name) => on_function_name_change(function_declaration, true, new_name)"></Function_declaration>
+      <div v-for="(function_declaration, index) in m_state.export_declarations.function_declarations.elements" v-bind:key="function_declaration.id">
+        <Function_declaration :value="function_declaration" v-on:update:name="(new_name) => on_function_name_change(index, function_declaration, true, new_name)"></Function_declaration>
       </div>
       <p v-if="m_state.export_declarations.function_declarations.elements.length === 0">No public functions</p>
+      <vscode-button @click="create_function(m_state.export_declarations.function_declarations.size, true)">Add function</vscode-button>
     </section>
 
     <section>
@@ -181,9 +228,20 @@ function on_function_name_change(function_declaration: any, is_export_declaratio
         <Function_declaration :value="function_declaration"></Function_declaration>
       </div>
       <p v-if="m_state.internal_declarations.function_declarations.elements.length === 0">No private functions</p>
+      <vscode-button @click="create_function(m_state.export_declarations.function_declarations.size, false)">Add function</vscode-button>
+    </section>
+
+    <section>
+      <h2>Actions</h2>
+      <vscode-button @click="delete_module">Delete module</vscode-button>
     </section>
 
     <pre>{{m_state}}</pre>
+  </main>
+  <main v-else>
+    This file is empty.
+
+    <vscode-button @click="create_module">Create module</vscode-button>
   </main>
 </template>
 

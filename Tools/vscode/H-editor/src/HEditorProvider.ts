@@ -6,6 +6,7 @@ import * as settings from './settings';
 import { LanguageServer } from './LanguageServer';
 import { HEditorPanel } from './panels/HEditorPanel';
 import { HDocument } from './HDocument';
+import { RangeEx } from './utilities/RangeEx';
 
 /**
  * Provider for H editors.
@@ -86,7 +87,11 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 		this.panelDocuments.set(webpanelID, hDocument);
 
 		const hPanel = this.registeredWebviews.get(webpanelID);
-		hPanel?.addListener(hDocument);
+		if (hPanel === undefined) {
+			throw Error("Failed to open document!");
+		}
+
+		hPanel.addListener(hDocument);
 
 		// Hook up event handlers so that we can synchronize the webview with the text document.
 		//
@@ -98,8 +103,32 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 
 		const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument(e => {
 			if (e.document.uri.toString() === document.uri.toString()) {
-				//updateWebview(this);
-				return;
+
+				for (const change of e.contentChanges) {
+
+					if (change.range instanceof RangeEx) {
+						const message = {
+							command: "update",
+							data: {
+								range: change.range,
+								text: change.text,
+								hPosition: change.range.hPosition
+							}
+						};
+
+						hDocument.updateState(message);
+						hPanel.sendMessage(message);
+					}
+					else {
+						const message = {
+							command: "initialize",
+							data: hDocument.getDocumentAsJson()
+						};
+
+						hDocument.updateState(message);
+						hPanel.sendMessage(message);
+					}
+				}
 			}
 		});
 
@@ -108,12 +137,18 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 			changeDocumentSubscription.dispose();
 		});
 
-		/*{
-			const data = this.getDocumentAsJson(document);
-			if (data !== null) {
-				webviewPanel.webview.postMessage(data);
+		{
+			const jsonData = hDocument.getDocumentAsJson();
+
+			if (jsonData !== null) {
+				const message = {
+					command: "initialize",
+					data: hDocument.getDocumentAsJson()
+				};
+
+				hPanel.sendMessage(message);
 			}
-		}*/
+		}
 
 		/*if (this.languageServer === undefined) {
 			this.languageServer = new LanguageServer("C:/Users/jpmmaia/Desktop/source/H/build/Application/Language_server/Debug/H_Language_server.exe", this);

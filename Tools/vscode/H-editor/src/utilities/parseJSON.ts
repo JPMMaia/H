@@ -1,14 +1,19 @@
-import { Uri, Webview } from "vscode";
-
-export interface FindResult {
-  openIndex: number,
-  closeIndex: number
+export interface ObjectReference {
+  get value(): any;
+  set value(value: any);
 }
 
-export function getObjectAtPosition(object: any, position: any[]): any {
+export function getObjectAtPosition(object: any, position: any[]): ObjectReference {
 
-  if (position.length === 0) {
-    return object;
+  if (position.length === 1) {
+    return {
+      get value() {
+        return object[position[0]];;
+      },
+      set value(value: any) {
+        object[position[0]] = value;
+      }
+    };
   }
 
   const firstKey = position[0];
@@ -27,23 +32,6 @@ export enum JSONParserEvent {
   key,
   string,
   number,
-}
-
-function toJSONParserEvent(character: string): JSONParserEvent {
-  if (character === '{') {
-    return JSONParserEvent.openObject;
-  }
-  else if (character === '}') {
-    return JSONParserEvent.closeObject;
-  }
-  else if (character === '[') {
-    return JSONParserEvent.openArray;
-  }
-  else if (character === ']') {
-    return JSONParserEvent.closeArray;
-  }
-
-  throw Error("Character not expected");
 }
 
 export interface ParserState {
@@ -67,6 +55,11 @@ function isNumber(character: string): boolean {
   return !isNaN(number);
 }
 
+export interface FindResult {
+  openIndex: number,
+  closeIndex: number
+}
+
 function findNumber(text: string, startIndex: number): FindResult {
   let index = startIndex;
 
@@ -88,6 +81,22 @@ function findNumber(text: string, startIndex: number): FindResult {
   }
 
   throw Error("Error while parsing number!");
+}
+
+export function findEndOfString(text: string, startIndex: number): number {
+
+  let index = startIndex;
+
+  while (index < text.length) {
+    const currentCharacter = text[index];
+    const previousCharacter = text[index - 1];
+    if (previousCharacter !== '\\' && currentCharacter === '"') {
+      return index;
+    }
+    ++index;
+  }
+
+  throw Error("Error while parsing string!");
 }
 
 export function iterateThroughJSONString(state: ParserState, text: string, startIndex: number): ParseJSONIterateResult {

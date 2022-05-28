@@ -1,7 +1,17 @@
 import { deepEqual, equal } from "assert";
 import 'mocha';
 
-import { fromOffsetToPosition, fromPositionToOffset, getObjectAtPosition, iterateThroughJSONString, JSONParserEvent } from './parseJSON';
+import { findEndOfString, fromOffsetToPosition, fromPositionToOffset, getObjectAtPosition, iterateThroughJSONString, JSONParserEvent } from './parseJSON';
+
+describe("findEndOfString function", () => {
+
+    it("should return at end of string", () => {
+        const value = '"hello world!"';
+
+        const end = findEndOfString(value, 1);
+        equal(end, 13);
+    });
+});
 
 describe("iterateThroughJSONString", () => {
 
@@ -285,13 +295,13 @@ describe("getObjectAtPosition function", () => {
         };
 
         {
-            const actualValue = getObjectAtPosition(object, ["fruit"]);
-            equal(actualValue, object.fruit);
+            const reference = getObjectAtPosition(object, ["fruit"]);
+            equal(reference.value, object.fruit);
         }
 
         {
-            const actualValue = getObjectAtPosition(object, ["fruit", "name"]);
-            equal(actualValue, object.fruit.name);
+            const reference = getObjectAtPosition(object, ["fruit", "name"]);
+            equal(reference.value, object.fruit.name);
         }
     });
 
@@ -309,23 +319,39 @@ describe("getObjectAtPosition function", () => {
         };
 
         {
-            const actualValue = getObjectAtPosition(object, ["fruits"]);
-            equal(actualValue, object.fruits);
+            const reference = getObjectAtPosition(object, ["fruits"]);
+            equal(reference.value, object.fruits);
         }
 
         {
-            const actualValue = getObjectAtPosition(object, ["fruits", 0]);
-            equal(actualValue, object.fruits[0]);
+            const reference = getObjectAtPosition(object, ["fruits", 0]);
+            equal(reference.value, object.fruits[0]);
         }
 
         {
-            const actualValue = getObjectAtPosition(object, ["fruits", 1]);
-            equal(actualValue, object.fruits[1]);
+            const reference = getObjectAtPosition(object, ["fruits", 1]);
+            equal(reference.value, object.fruits[1]);
         }
 
         {
-            const actualValue = getObjectAtPosition(object, ["fruits", 0, "name"]);
-            equal(actualValue, object.fruits[0].name);
+            const reference = getObjectAtPosition(object, ["fruits", 0, "name"]);
+            equal(reference.value, object.fruits[0].name);
+        }
+    });
+
+    it("should be possible to change value", () => {
+
+        const object = {
+            fruit: {
+                name: "orange"
+            }
+        };
+
+        {
+            const reference = getObjectAtPosition(object, ["fruit", "name"]);
+            equal(object.fruit.name, "orange");
+            reference.value = "lemon";
+            equal(object.fruit.name, "lemon");
         }
     });
 });

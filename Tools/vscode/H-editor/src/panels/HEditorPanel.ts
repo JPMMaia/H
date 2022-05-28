@@ -64,6 +64,10 @@ export class HEditorPanel {
     }
   }
 
+  public sendMessage(message: any): void {
+    this.panel.webview.postMessage(message);
+  }
+
   /**
    * Defines and returns the HTML that should be rendered within the webview panel.
    *
@@ -104,10 +108,26 @@ export class HEditorPanel {
     const command = message.command;
 
     switch (command) {
+      case "create:module":
+        for (const listener of this.listeners) {
+          listener.replaceByDefaultModule();
+        }
+        break;
+      case "delete:module":
+        for (const listener of this.listeners) {
+          listener.deleteModule();
+        }
+        break;
+      case "create:function":
+        for (const listener of this.listeners) {
+          listener.createFunction(message.data.function_index, message.data.is_export_declaration);
+        }
+        break;
       case "update:function_name":
         for (const listener of this.listeners) {
-          listener.updateFunctionName(message.data.function_id, message.data.is_export_declaration, message.data.new_name);
+          listener.updateFunctionName(message.data.function_index, message.data.function_id, message.data.is_export_declaration, message.data.new_name);
         }
+        break;
     }
   }
 
