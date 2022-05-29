@@ -1,3 +1,5 @@
+import { off } from "process";
+
 export interface ObjectReference {
   get value(): any;
   set value(value: any);
@@ -311,9 +313,11 @@ export function fromPositionToOffset(text: string, position: any[]): number {
     }
     else if (result.event === JSONParserEvent.openArray) {
       currentArrayIndices.push(0);
+      currentPosition.push(0);
     }
     else if (result.event === JSONParserEvent.closeArray) {
       currentArrayIndices.pop();
+      currentPosition.pop();
     }
     else if (result.event === JSONParserEvent.openObject) {
       if (state.stack.length > 1 && state.stack[state.stack.length - 2] === '[') {
@@ -359,6 +363,9 @@ export function fromPositionToOffset(text: string, position: any[]): number {
       if (result.event === JSONParserEvent.key) {
         offset = result.endIndex;
       }
+      else if (result.event === JSONParserEvent.openArray) {
+        offset = result.endIndex;
+      }
 
       while (offset < text.length) {
         const currentCharacter = text[offset];
@@ -369,6 +376,13 @@ export function fromPositionToOffset(text: string, position: any[]): number {
           return offset + 1;
         }
         ++offset;
+      }
+    }
+
+    if (result.event === JSONParserEvent.closeArray) {
+      const positionPlusLastElement = currentPosition.concat(-1);
+      if (areArraysEqual(positionPlusLastElement, position)) {
+        return offset;
       }
     }
 

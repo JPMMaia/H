@@ -441,6 +441,24 @@ describe("fromPositionToOffset function", () => {
             }
         }
     });
+
+    it("should return offset of last element in an array", () => {
+        {
+            const json = '[]';
+
+            const actualValue = fromPositionToOffset(json, [-1]);
+            const expectedValue = 1;
+            equal(actualValue, expectedValue);
+        }
+
+        {
+            const json = '[1,2]';
+
+            const actualValue = fromPositionToOffset(json, [-1]);
+            const expectedValue = 4;
+            equal(actualValue, expectedValue);
+        }
+    });
 });
 
 describe("fromOffsetToPosition function", () => {
