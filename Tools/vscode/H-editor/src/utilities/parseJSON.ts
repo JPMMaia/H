@@ -1,5 +1,3 @@
-import { off } from "process";
-
 export interface ObjectReference {
   get value(): any;
   set value(value: any);

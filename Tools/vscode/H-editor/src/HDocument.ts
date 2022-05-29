@@ -3,20 +3,26 @@ import { getObjectAtPosition, findEndOfString, fromPositionToOffset } from './ut
 import { RangeEx } from './utilities/RangeEx';
 import { updateState } from './utilities/updateState';
 
-function createFunction(document: vscode.TextDocument, functionIndex: number, isExportDeclaration: boolean): Thenable<boolean> {
+function createFunction(document: vscode.TextDocument, state: any, functionIndex: number, isExportDeclaration: boolean): Thenable<boolean> {
 
     const text = document.getText(undefined);
 
     const functionDeclarationKey = isExportDeclaration ? "export_declarations" : "internal_declarations";
-    const functionDeclarationPosition = [functionDeclarationKey, functionIndex, "name"];
+
+    const functionCount = getObjectAtPosition(state, [functionDeclarationKey, "size"]);
+
+    if (functionIndex >= functionCount.value) {
+        functionIndex = -1;
+    }
+
+    const functionDeclarationPosition = [functionDeclarationKey, "elements", functionIndex];
 
     const beginOffset = fromPositionToOffset(text, functionDeclarationPosition);
-    const endOffset = findEndOfString(text, beginOffset);
+    const endOffset = beginOffset;
 
-    const range = new RangeEx(
+    const range = new vscode.Range(
         document.positionAt(beginOffset),
-        document.positionAt(endOffset),
-        functionDeclarationPosition
+        document.positionAt(endOffset)
     );
 
     const edit = new vscode.WorkspaceEdit();

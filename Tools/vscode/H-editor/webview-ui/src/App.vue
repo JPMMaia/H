@@ -37,6 +37,13 @@ function handleHowdyClick() {
 
 const m_state = ref<any | null>(null);
 
+const m_selectedFrontendLanguage = ref<string | null>("JSON");
+
+const m_frontendLanguageOptions = ref([
+  { text: "JSON", value: "JSON" },
+  { text: "C", value: "C" },
+]);
+
 /*m_state.value = {
   "language_version": {
     "major": 1,
@@ -203,7 +210,22 @@ onMounted(() => {
 </script>
 
 <template>
-  <main v-if="m_state">
+
+<div>
+  
+  <nav>
+    <ul>
+      <li>
+        <select v-model="m_selectedFrontendLanguage">
+          <option v-for="option in m_frontendLanguageOptions" :value="option.value" v-bind:key="option.value">
+            {{ option.text }}
+          </option>
+        </select>
+      </li>
+    </ul>
+  </nav>
+
+  <main v-if="m_state && (m_selectedFrontendLanguage !== 'JSON')">
     <h1>Module {{ m_state.name }}</h1>
 
     <section>
@@ -235,14 +257,19 @@ onMounted(() => {
       <h2>Actions</h2>
       <vscode-button @click="delete_module">Delete module</vscode-button>
     </section>
-
+  </main>
+  
+  <main v-if="m_state && (m_selectedFrontendLanguage === 'JSON')">
     <pre>{{m_state}}</pre>
   </main>
+  
   <main v-else>
     This file is empty.
 
     <vscode-button @click="create_module">Create module</vscode-button>
   </main>
+</div>
+  
 </template>
 
 <style>
@@ -260,5 +287,13 @@ main {
 
 main > * {
   margin: 1rem 0;
+}
+
+nav > ul {
+  list-style-type: none;
+  padding: 0;
+  position: fixed;
+  top: 0px;
+  right: 10px;
 }
 </style>
