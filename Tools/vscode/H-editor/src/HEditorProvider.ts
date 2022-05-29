@@ -26,8 +26,9 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 	private static readonly viewType = 'heditor.textEditor';
 
 	private languageServer?: LanguageServer = undefined;
+	private registeredDocuments = new Map<vscode.Uri, HDocument>();
 	private registeredWebviews = new Map<number, HEditorPanel>();
-	private panelDocuments = new Map<number, HDocument>();
+	private webviewDocuments = new Map<number, HDocument>();
 	private nextWebviewPanelID = 0;
 
 	constructor(
@@ -46,17 +47,6 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 		return undefined;
 	}
 
-	private updateWebview(
-		webviewPanel: vscode.WebviewPanel,
-		text: string
-	): void {
-
-		webviewPanel.webview.postMessage({
-			type: 'update',
-			text: text,
-		});
-	}
-
 	/**
 	 * Called when our custom editor is opened.
 	 * 
@@ -68,28 +58,27 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 		_token: vscode.CancellationToken
 	): Promise<void> {
 
-		let webpanelID = this.getWebviewPanelID(this.registeredWebviews, webviewPanel);
-
-		if (webpanelID === undefined) {
-			webpanelID = this.nextWebviewPanelID;
-			++this.nextWebviewPanelID;
-
-			const hPanel = new HEditorPanel(
-				webpanelID,
-				webviewPanel,
-				this.context.extensionUri
-			);
-
-			this.registeredWebviews.set(webpanelID, hPanel);
+		if (!this.registeredDocuments.has(document.uri)) {
+			const hDocument = new HDocument(document);
+			this.registeredDocuments.set(document.uri, hDocument);
 		}
 
-		const hDocument = new HDocument(document);
-		this.panelDocuments.set(webpanelID, hDocument);
-
-		const hPanel = this.registeredWebviews.get(webpanelID);
-		if (hPanel === undefined) {
-			throw Error("Failed to open document!");
+		const hDocument = this.registeredDocuments.get(document.uri);
+		if (hDocument === undefined) {
+			throw Error("Could not retrieved registered document!");
 		}
+
+		const webpanelID = this.nextWebviewPanelID;
+		++this.nextWebviewPanelID;
+
+		const hPanel = new HEditorPanel(
+			webpanelID,
+			webviewPanel,
+			this.context.extensionUri
+		);
+
+		this.registeredWebviews.set(webpanelID, hPanel);
+		this.webviewDocuments.set(webpanelID, hDocument);
 
 		hPanel.addListener(hDocument);
 
@@ -105,29 +94,12 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 			if (e.document.uri.toString() === document.uri.toString()) {
 
 				for (const change of e.contentChanges) {
+					const message = {
+						command: "initialize",
+						data: hDocument.getDocumentAsJson()
+					};
 
-					if (change.range instanceof RangeEx) {
-						const message = {
-							command: "update",
-							data: {
-								range: change.range,
-								text: change.text,
-								hPosition: change.range.hPosition
-							}
-						};
-
-						hDocument.updateState(message);
-						hPanel.sendMessage(message);
-					}
-					else {
-						const message = {
-							command: "initialize",
-							data: hDocument.getDocumentAsJson()
-						};
-
-						hDocument.updateState(message);
-						hPanel.sendMessage(message);
-					}
+					hPanel.sendMessage(message);
 				}
 			}
 		});
@@ -135,6 +107,14 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 		// Make sure we get rid of the listener when our editor is closed.
 		webviewPanel.onDidDispose(() => {
 			changeDocumentSubscription.dispose();
+
+			this.webviewDocuments.delete(webpanelID);
+			this.registeredWebviews.delete(webpanelID);
+
+			if (document.isClosed) {
+				hDocument.dispose();
+				this.registeredDocuments.delete(document.uri);
+			}
 		});
 
 		{
@@ -155,38 +135,6 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 			//languageServer.request({ "echo_request": { "data": "Hello from vscode!" } });
 		}
 		this.requestHtmlTemplates(this.languageServer, webpanelID);*/
-	}
-
-	/**
-	 * Try to get a current document as json text.
-	 */
-	private getDocumentAsJson(document: vscode.TextDocument): any | null {
-		const text = document.getText();
-		if (text.trim().length === 0) {
-			return null;
-		}
-
-		try {
-			return JSON.parse(text);
-		} catch {
-			throw new Error('Could not get document as json. Content is not valid json');
-		}
-	}
-
-	/**
-	 * Write out the json to a given document.
-	 */
-	private updateTextDocument(document: vscode.TextDocument, json: any) {
-		const edit = new vscode.WorkspaceEdit();
-
-		// Just replace the entire document every time for this example extension.
-		// A more complete extension should compute minimal edits instead.
-		edit.replace(
-			document.uri,
-			new vscode.Range(0, 0, document.lineCount, 0),
-			JSON.stringify(json, null, 2));
-
-		return vscode.workspace.applyEdit(edit);
 	}
 
 	private requestHtmlTemplates(languageServer: LanguageServer, messageID: number): void {

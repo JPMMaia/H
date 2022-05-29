@@ -5,7 +5,7 @@ import { updateState } from './utilities/updateState';
 
 function createFunction(document: vscode.TextDocument, functionIndex: number, isExportDeclaration: boolean): Thenable<boolean> {
 
-    /*const text = document.getText(undefined);
+    const text = document.getText(undefined);
 
     const functionDeclarationKey = isExportDeclaration ? "export_declarations" : "internal_declarations";
     const functionDeclarationPosition = [functionDeclarationKey, functionIndex, "name"];
@@ -24,10 +24,10 @@ function createFunction(document: vscode.TextDocument, functionIndex: number, is
     edit.replace(
         document.uri,
         range,
-        newName
+        ""
     );
 
-    return vscode.workspace.applyEdit(edit);*/
+    return vscode.workspace.applyEdit(edit);
 }
 
 function updateFunctionName(document: vscode.TextDocument, functionIndex: number, functionId: number, isExportDeclaration: boolean, newName: string): Thenable<boolean> {
@@ -59,12 +59,31 @@ function updateFunctionName(document: vscode.TextDocument, functionIndex: number
 export class HDocument {
 
     private state: any;
+    private changeDocumentSubscription: vscode.Disposable;
 
     constructor(private document: vscode.TextDocument) {
         this.state = this.getDocumentAsJson();
+
+        this.changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument(e => {
+            if (e.document.uri.toString() === document.uri.toString()) {
+
+                for (const change of e.contentChanges) {
+                    const message = {
+                        command: "initialize",
+                        data: this.getDocumentAsJson()
+                    };
+
+                    this.updateState(message);
+                }
+            }
+        });
     }
 
-    public updateState(message: any) {
+    public dispose(): void {
+        this.changeDocumentSubscription.dispose();
+    }
+
+    public updateState(message: any): void {
 
         const self = this;
 

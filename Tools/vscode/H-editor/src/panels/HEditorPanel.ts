@@ -51,7 +51,7 @@ export class HEditorPanel {
   /**
    * Cleans up and disposes of webview resources when the webview panel is closed.
    */
-  public dispose() {
+  private dispose() {
     // Dispose of the current webview panel
     this.panel.dispose();
 
