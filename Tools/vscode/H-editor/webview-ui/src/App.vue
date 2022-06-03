@@ -4,8 +4,9 @@ import { provideVSCodeDesignSystem, vsCodeButton } from "@vscode/webview-ui-tool
 import { vscode } from "./utilities/vscode";
 import { updateState } from "../../src/utilities/updateState";
 
-import Function_declaration from "./components/Function_declaration.vue"
-import Language_version from "./components/Language_version.vue"
+import Function_declaration from "./components/Function_declaration.vue";
+import Language_version from "./components/Language_version.vue";
+import JSON_object from "./components/JSON_object.vue";
 
 import { get_type_name } from "./utilities/language"
 
@@ -260,7 +261,7 @@ onMounted(() => {
   </main>
   
   <main v-if="m_state && (m_selectedFrontendLanguage === 'JSON')">
-    <pre>{{m_state}}</pre>
+    <JSON_object :value="m_state" :indentation="0" :indentation_increment="1"></JSON_object>
   </main>
   
   <main v-else>
