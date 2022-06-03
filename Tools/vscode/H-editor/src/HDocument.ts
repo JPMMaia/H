@@ -138,7 +138,7 @@ export class HDocument {
             }
         };
 
-        const newText = JSON.stringify(defaultModule, null, 2);
+        const newText = JSON.stringify(defaultModule);
 
         const edit = new vscode.WorkspaceEdit();
 
