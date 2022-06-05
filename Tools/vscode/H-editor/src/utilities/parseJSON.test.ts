@@ -1,7 +1,7 @@
 import { deepEqual, equal } from "assert";
 import 'mocha';
 
-import { findEndOfString, fromOffsetToPosition, fromPositionToOffset, getObjectAtPosition, iterateThroughJSONString, JSONParserEvent } from './parseJSON';
+import { ArrayPosition, findEndOfString, fromOffsetToPosition, fromPositionToOffset, getObjectAtPosition, iterateThroughJSONString, JSONParserEvent } from './parseJSON';
 
 describe("findEndOfString function", () => {
 
@@ -357,21 +357,27 @@ describe("getObjectAtPosition function", () => {
 });
 
 describe("fromPositionToOffset function", () => {
+
+    const startParserState = {
+        stack: [],
+        expectKey: false
+    };
+
     it("should return offset of value in an object", () => {
 
         {
             const json = '{"fruit": {"name": "orange"}}';
 
             {
-                const actualValue = fromPositionToOffset(json, ["fruit"]);
+                const actualValue = fromPositionToOffset(startParserState, json, 0, [], ["fruit"]);
                 const expectedValue = 10;
-                equal(actualValue, expectedValue);
+                equal(actualValue.offset, expectedValue);
             }
 
             {
-                const actualValue = fromPositionToOffset(json, ["fruit", "name"]);
+                const actualValue = fromPositionToOffset(startParserState, json, 0, [], ["fruit", "name"]);
                 const expectedValue = 20;
-                equal(actualValue, expectedValue);
+                equal(actualValue.offset, expectedValue);
             }
         }
     });
@@ -381,21 +387,21 @@ describe("fromPositionToOffset function", () => {
             const json = '[ {"name":"orange"}, {"name":"pear"} ]';
 
             {
-                const actualValue = fromPositionToOffset(json, [0]);
+                const actualValue = fromPositionToOffset(startParserState, json, 0, [], [0]);
                 const expectedValue = 2;
-                equal(actualValue, expectedValue);
+                equal(actualValue.offset, expectedValue);
             }
 
             {
-                const actualValue = fromPositionToOffset(json, [1]);
+                const actualValue = fromPositionToOffset(startParserState, json, 0, [], [1]);
                 const expectedValue = 21;
-                equal(actualValue, expectedValue);
+                equal(actualValue.offset, expectedValue);
             }
 
             {
-                const actualValue = fromPositionToOffset(json, [1, "name"]);
+                const actualValue = fromPositionToOffset(startParserState, json, 0, [], [1, "name"]);
                 const expectedValue = 30;
-                equal(actualValue, expectedValue);
+                equal(actualValue.offset, expectedValue);
             }
         }
     });
@@ -405,21 +411,21 @@ describe("fromPositionToOffset function", () => {
             const json = '[ 1, 2, 3 ]';
 
             {
-                const actualValue = fromPositionToOffset(json, [0]);
+                const actualValue = fromPositionToOffset(startParserState, json, 0, [], [0]);
                 const expectedValue = 2;
-                equal(actualValue, expectedValue);
+                equal(actualValue.offset, expectedValue);
             }
 
             {
-                const actualValue = fromPositionToOffset(json, [1]);
+                const actualValue = fromPositionToOffset(startParserState, json, 0, [], [1]);
                 const expectedValue = 5;
-                equal(actualValue, expectedValue);
+                equal(actualValue.offset, expectedValue);
             }
 
             {
-                const actualValue = fromPositionToOffset(json, [2]);
+                const actualValue = fromPositionToOffset(startParserState, json, 0, [], [2]);
                 const expectedValue = 8;
-                equal(actualValue, expectedValue);
+                equal(actualValue.offset, expectedValue);
             }
         }
     });
@@ -429,15 +435,15 @@ describe("fromPositionToOffset function", () => {
             const json = '[ "hello", "world" ]';
 
             {
-                const actualValue = fromPositionToOffset(json, [0]);
+                const actualValue = fromPositionToOffset(startParserState, json, 0, [], [0]);
                 const expectedValue = 3;
-                equal(actualValue, expectedValue);
+                equal(actualValue.offset, expectedValue);
             }
 
             {
-                const actualValue = fromPositionToOffset(json, [1]);
+                const actualValue = fromPositionToOffset(startParserState, json, 0, [], [1]);
                 const expectedValue = 12;
-                equal(actualValue, expectedValue);
+                equal(actualValue.offset, expectedValue);
             }
         }
     });
@@ -446,18 +452,35 @@ describe("fromPositionToOffset function", () => {
         {
             const json = '[]';
 
-            const actualValue = fromPositionToOffset(json, [-1]);
+            const actualValue = fromPositionToOffset(startParserState, json, 0, [], [ArrayPosition.begin]);
             const expectedValue = 1;
-            equal(actualValue, expectedValue);
+            equal(actualValue.offset, expectedValue);
         }
 
         {
             const json = '[1,2]';
 
-            const actualValue = fromPositionToOffset(json, [-1]);
+            const actualValue = fromPositionToOffset(startParserState, json, 0, [], [ArrayPosition.end]);
             const expectedValue = 4;
-            equal(actualValue, expectedValue);
+            equal(actualValue.offset, expectedValue);
         }
+    });
+
+    it("should return correct offset given initial state", () => {
+
+        const json = '[ {"name":"orange"}, {"name":"pear"} ]';
+
+        {
+            const parserState = {
+                stack: ['['],
+                expectKey: false
+            };
+
+            const actualValue = fromPositionToOffset(parserState, json, 21, [1], [1, "name"]);
+            const expectedValue = 30;
+            equal(actualValue.offset, expectedValue);
+        }
+
     });
 });
 

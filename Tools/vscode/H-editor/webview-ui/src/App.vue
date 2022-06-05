@@ -45,7 +45,7 @@ const m_frontendLanguageOptions = ref([
   { text: "C", value: "C" },
 ]);
 
-/*m_state.value = {
+m_state.value = {
   "language_version": {
     "major": 1,
     "minor": 2,
@@ -143,7 +143,7 @@ const m_frontendLanguageOptions = ref([
       ]
     }
   }
-};*/
+};
 
 function on_message_received(event: MessageEvent): void {
 

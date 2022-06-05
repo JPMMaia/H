@@ -282,20 +282,30 @@ function areArraysEqual(array0: any[], array1: any[]): boolean {
   return array0.length === array1.length && array0.every((value, index) => value === array1[index]);
 }
 
-export function fromPositionToOffset(text: string, position: any[]): number {
+export enum ArrayPosition {
+  begin = "array_begin",
+  end = "array_end"
+};
+
+export interface OffsetResult {
+  offset: number;
+  newState: ParserState;
+}
+
+export function fromPositionToOffset(startState: ParserState, text: string, startIndex: number, startPosition: any[], position: any[]): OffsetResult {
+
+  let state = JSON.parse(JSON.stringify(startState));
 
   if (position.length === 0) {
-    return 0;
+    return { offset: startIndex, newState: state };
   }
 
-  let state = {
-    stack: [],
-    expectKey: false
-  };
+  let offset = startIndex;
+  let currentPosition = startPosition;
 
-  let offset = 0;
-  let currentPosition = [];
-  let currentArrayIndices: number[] = [];
+  if (!isNaN(currentPosition[currentPosition.length - 1])) {
+    currentPosition[currentPosition.length - 1] -= 1;
+  }
 
   while (offset < text.length) {
 
@@ -310,22 +320,14 @@ export function fromPositionToOffset(text: string, position: any[]): number {
       }
     }
     else if (result.event === JSONParserEvent.openArray) {
-      currentArrayIndices.push(0);
-      currentPosition.push(0);
+      currentPosition.push(-1);
     }
     else if (result.event === JSONParserEvent.closeArray) {
-      currentArrayIndices.pop();
       currentPosition.pop();
     }
     else if (result.event === JSONParserEvent.openObject) {
       if (state.stack.length > 1 && state.stack[state.stack.length - 2] === '[') {
-        if (currentPosition.length + 1 < state.stack.length) {
-          currentPosition.push(currentArrayIndices[currentArrayIndices.length - 1]);
-        }
-        else {
-          currentPosition[currentPosition.length - 1] = currentArrayIndices[currentArrayIndices.length - 1];
-        }
-        currentArrayIndices[currentArrayIndices.length - 1] += 1;
+        currentPosition[currentPosition.length - 1] += 1;
       }
     }
     else if (result.event === JSONParserEvent.closeObject) {
@@ -335,24 +337,12 @@ export function fromPositionToOffset(text: string, position: any[]): number {
     }
     else if (result.event === JSONParserEvent.number) {
       if (state.stack[state.stack.length - 1] === '[') {
-        if (currentPosition.length < state.stack.length) {
-          currentPosition.push(currentArrayIndices[currentArrayIndices.length - 1]);
-        }
-        else {
-          currentPosition[currentPosition.length - 1] = currentArrayIndices[currentArrayIndices.length - 1];
-        }
-        currentArrayIndices[currentArrayIndices.length - 1] += 1;
+        currentPosition[currentPosition.length - 1] += 1;
       }
     }
     else if (result.event === JSONParserEvent.string) {
       if (state.stack[state.stack.length - 1] === '[') {
-        if (currentPosition.length < state.stack.length) {
-          currentPosition.push(currentArrayIndices[currentArrayIndices.length - 1]);
-        }
-        else {
-          currentPosition[currentPosition.length - 1] = currentArrayIndices[currentArrayIndices.length - 1];
-        }
-        currentArrayIndices[currentArrayIndices.length - 1] += 1;
+        currentPosition[currentPosition.length - 1] += 1;
       }
     }
 
@@ -368,26 +358,33 @@ export function fromPositionToOffset(text: string, position: any[]): number {
       while (offset < text.length) {
         const currentCharacter = text[offset];
         if (currentCharacter === '{' || currentCharacter === '[' || isNumber(currentCharacter)) {
-          return offset;
+          return { offset: offset, newState: state };
         }
         else if (currentCharacter === '"') {
-          return offset + 1;
+          return { offset: offset + 1, newState: state };
         }
         ++offset;
       }
     }
 
+    if (result.event === JSONParserEvent.openArray) {
+      const positionPlusArrayBegin = currentPosition.slice(0, currentPosition.length - 1).concat(ArrayPosition.begin);
+      if (areArraysEqual(positionPlusArrayBegin, position)) {
+        return { offset: result.endIndex, newState: state };
+      }
+    }
+
     if (result.event === JSONParserEvent.closeArray) {
-      const positionPlusLastElement = currentPosition.concat(-1);
-      if (areArraysEqual(positionPlusLastElement, position)) {
-        return offset;
+      const positionPlusArrayEnd = currentPosition.slice(0, currentPosition.length - 1).concat(ArrayPosition.end);
+      if (areArraysEqual(positionPlusArrayEnd, position)) {
+        return { offset: offset, newState: state };
       }
     }
 
     offset = result.endIndex;
   }
 
-  return 0;
+  return { offset: -1, newState: state };
 }
 
 export function fromOffsetToPosition(text: string, offset: number): any[] {
