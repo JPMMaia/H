@@ -763,6 +763,8 @@ describe("updateJSONCacheAfterArrayDelete function", () => {
 
     it("should update offsets after delete position", () => {
 
+        // {"export_functions":[{"key":"value"},{"key":"value"},{"key":"value"}],"internal_functions":[{"key":"value"}]}
+
         let cache = createJSONCache();
 
         {
@@ -780,7 +782,46 @@ describe("updateJSONCacheAfterArrayDelete function", () => {
 
         {
             const state = {
-                offsetFromParent: 38,
+                offsetFromParent: 1,
+                size: 15,
+                parserState: {
+                    stack: ['{', '['],
+                    expectKey: false
+                }
+            };
+
+            addJSONCacheNode(cache, ["export_functions", 0], state);
+        }
+
+        {
+            const state = {
+                offsetFromParent: 17,
+                size: 15,
+                parserState: {
+                    stack: ['{', '['],
+                    expectKey: false
+                }
+            };
+
+            addJSONCacheNode(cache, ["export_functions", 1], state);
+        }
+
+        {
+            const state = {
+                offsetFromParent: 33,
+                size: 15,
+                parserState: {
+                    stack: ['{', '['],
+                    expectKey: false
+                }
+            };
+
+            addJSONCacheNode(cache, ["export_functions", 2], state);
+        }
+
+        {
+            const state = {
+                offsetFromParent: 91,
                 size: 2,
                 parserState: {
                     stack: ['{'],
@@ -793,7 +834,7 @@ describe("updateJSONCacheAfterArrayDelete function", () => {
 
         {
             const state = {
-                offsetFromParent: 21,
+                offsetFromParent: 1,
                 size: 15,
                 parserState: {
                     stack: ['{', '['],
@@ -801,10 +842,113 @@ describe("updateJSONCacheAfterArrayDelete function", () => {
                 }
             };
 
-            addJSONCacheNode(cache, ["export_functions", 0], state);
+            addJSONCacheNode(cache, ["internal_functions", 0], state);
         }
 
         {
+            // Delete [export_functions, 1]
+
+            const change: JSONDelete = {
+                range: {
+                    startCharacter: 37,
+                    endCharacter: 53
+                },
+            };
+
+            updateJSONCacheAfterArrayDelete(cache, change);
+            // {"export_functions":[{"key":"value"},{"key":"value"}],"internal_functions":[{"key":"value"}]}
+
+            {
+                const state = getJSONCacheState(cache, ["export_functions"]);
+                notEqual(state, undefined);
+                equal(state?.offsetFromParent, 20);
+                equal(state?.size, 33);
+            }
+
+            {
+                const state = getJSONCacheState(cache, ["export_functions", 0]);
+                notEqual(state, undefined);
+                equal(state?.offsetFromParent, 1);
+                equal(state?.size, 15);
+            }
+
+            {
+                const state = getJSONCacheState(cache, ["export_functions", 1]);
+                notEqual(state, undefined);
+                equal(state?.offsetFromParent, 17);
+                equal(state?.size, 15);
+            }
+
+            {
+                const state = getJSONCacheState(cache, ["export_functions", 2]);
+                equal(state, undefined);
+            }
+
+            {
+                const state = getJSONCacheState(cache, ["internal_functions"]);
+                notEqual(state, undefined);
+                equal(state?.offsetFromParent, 75);
+                equal(state?.size, 17);
+            }
+
+            {
+                const state = getJSONCacheState(cache, ["internal_functions", 0]);
+                notEqual(state, undefined);
+                equal(state?.offsetFromParent, 1);
+                equal(state?.size, 15);
+            }
+        }
+
+        {
+            // Delete [export_functions, 0]
+
+            const change: JSONDelete = {
+                range: {
+                    startCharacter: 21,
+                    endCharacter: 37
+                },
+            };
+
+            updateJSONCacheAfterArrayDelete(cache, change);
+            // {"export_functions":[{"key":"value"}],"internal_functions":[{"key":"value"}]}
+
+            {
+                const state = getJSONCacheState(cache, ["export_functions"]);
+                notEqual(state, undefined);
+                equal(state?.offsetFromParent, 20);
+                equal(state?.size, 17);
+            }
+
+            {
+                const state = getJSONCacheState(cache, ["export_functions", 0]);
+                notEqual(state, undefined);
+                equal(state?.offsetFromParent, 1);
+                equal(state?.size, 15);
+            }
+
+            {
+                const state = getJSONCacheState(cache, ["export_functions", 1]);
+                equal(state, undefined);
+            }
+
+            {
+                const state = getJSONCacheState(cache, ["internal_functions"]);
+                notEqual(state, undefined);
+                equal(state?.offsetFromParent, 59);
+                equal(state?.size, 17);
+            }
+
+            {
+                const state = getJSONCacheState(cache, ["internal_functions", 0]);
+                notEqual(state, undefined);
+                equal(state?.offsetFromParent, 1);
+                equal(state?.size, 15);
+            }
+        }
+
+        {
+            // Delete [export_functions, 0]
+
             const change: JSONDelete = {
                 range: {
                     startCharacter: 21,
@@ -813,22 +957,39 @@ describe("updateJSONCacheAfterArrayDelete function", () => {
             };
 
             updateJSONCacheAfterArrayDelete(cache, change);
+            // {"export_functions":[],"internal_functions":[{"key":"value"}]}
 
             {
                 const state = getJSONCacheState(cache, ["export_functions"]);
                 notEqual(state, undefined);
                 equal(state?.offsetFromParent, 20);
+                equal(state?.size, 2);
+            }
+
+            {
+                const state = getJSONCacheState(cache, ["export_functions", 0]);
+                equal(state, undefined);
             }
 
             {
                 const state = getJSONCacheState(cache, ["internal_functions"]);
                 notEqual(state, undefined);
-                equal(state?.offsetFromParent, 23);
+                equal(state?.offsetFromParent, 44);
+                equal(state?.size, 17);
+            }
+
+            {
+                const state = getJSONCacheState(cache, ["internal_functions", 0]);
+                notEqual(state, undefined);
+                equal(state?.offsetFromParent, 1);
+                equal(state?.size, 15);
             }
         }
     });
 
     it("should update array index after delete", () => {
+
+        // {"export_functions":[{"key":"value"},{"key":"value"},{"key":"value"}],"internal_functions":[{"key":"value"}]}
 
         let cache = createJSONCache();
 
@@ -847,7 +1008,7 @@ describe("updateJSONCacheAfterArrayDelete function", () => {
 
         {
             const state = {
-                offsetFromParent: 21,
+                offsetFromParent: 1,
                 size: 15,
                 parserState: {
                     stack: ['{', '['],
@@ -860,7 +1021,7 @@ describe("updateJSONCacheAfterArrayDelete function", () => {
 
         {
             const state = {
-                offsetFromParent: 36,
+                offsetFromParent: 17,
                 size: 15,
                 parserState: {
                     stack: ['{', '['],
@@ -871,24 +1032,88 @@ describe("updateJSONCacheAfterArrayDelete function", () => {
             addJSONCacheNode(cache, ["export_functions", 1], state);
         }
 
-        equal(hasJSONCacheNode(cache, ["export_functions", 0]), true);
-        equal(hasJSONCacheNode(cache, ["export_functions", 1]), true);
+        {
+            const state = {
+                offsetFromParent: 33,
+                size: 15,
+                parserState: {
+                    stack: ['{', '['],
+                    expectKey: false
+                }
+            };
+
+            addJSONCacheNode(cache, ["export_functions", 2], state);
+        }
 
         {
+            const state = {
+                offsetFromParent: 91,
+                size: 2,
+                parserState: {
+                    stack: ['{'],
+                    expectKey: false
+                }
+            };
+
+            addJSONCacheNode(cache, ["internal_functions"], state);
+        }
+
+        {
+            const state = {
+                offsetFromParent: 1,
+                size: 15,
+                parserState: {
+                    stack: ['{', '['],
+                    expectKey: false
+                }
+            };
+
+            addJSONCacheNode(cache, ["internal_functions", 0], state);
+        }
+
+        equal(hasJSONCacheNode(cache, ["export_functions", 0]), true);
+        equal(hasJSONCacheNode(cache, ["export_functions", 1]), true);
+        equal(hasJSONCacheNode(cache, ["export_functions", 2]), true);
+        equal(hasJSONCacheNode(cache, ["internal_functions", 0]), true);
+
+        {
+            // Delete [export_functions, 1]
+
             const change: JSONDelete = {
                 range: {
-                    startCharacter: 21,
-                    endCharacter: 36
+                    startCharacter: 37,
+                    endCharacter: 53
                 },
             };
 
             updateJSONCacheAfterArrayDelete(cache, change);
+            // {"export_functions":[{"key":"value"},{"key":"value"}],"internal_functions":[{"key":"value"}]}
+
+            equal(hasJSONCacheNode(cache, ["export_functions", 0]), true);
+            equal(hasJSONCacheNode(cache, ["export_functions", 1]), true);
+            equal(hasJSONCacheNode(cache, ["export_functions", 2]), false);
+        }
+
+        {
+            // Delete [export_functions, 0]
+
+            const change: JSONDelete = {
+                range: {
+                    startCharacter: 21,
+                    endCharacter: 37
+                },
+            };
+
+            updateJSONCacheAfterArrayDelete(cache, change);
+            // {"export_functions":[{"key":"value"}],"internal_functions":[{"key":"value"}]}
 
             equal(hasJSONCacheNode(cache, ["export_functions", 0]), true);
             equal(hasJSONCacheNode(cache, ["export_functions", 1]), false);
         }
 
         {
+            // Delete [export_functions, 0]
+
             const change: JSONDelete = {
                 range: {
                     startCharacter: 21,
@@ -897,6 +1122,7 @@ describe("updateJSONCacheAfterArrayDelete function", () => {
             };
 
             updateJSONCacheAfterArrayDelete(cache, change);
+            // {"export_functions":[],"internal_functions":[{"key":"value"}]}
 
             equal(hasJSONCacheNode(cache, ["export_functions", 0]), false);
         }

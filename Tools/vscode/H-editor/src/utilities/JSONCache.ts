@@ -255,6 +255,22 @@ function insertCacheNode(cache: JSONCache, position: any[], parent: CacheNode, i
     updateJSONCacheStateOffsetsAndSizes(cache, position, textSize);
 }
 
+function deleteCacheNode(cache: JSONCache, position: any[], parent: CacheNode, indexToDelete: number, textSize: number): void {
+
+    parent.children.splice(indexToDelete, 1);
+
+    for (let childNodeIndex = indexToDelete; childNodeIndex < parent.children.length; ++childNodeIndex) {
+        let childNode = parent.children[childNodeIndex];
+        if (typeof childNode.value === "number") {
+            childNode.value -= 1;
+        }
+
+        childNode.state.offsetFromParent -= textSize;
+    }
+
+    updateJSONCacheStateOffsetsAndSizes(cache, position, -textSize);
+}
+
 export function updateJSONCacheAfterArrayInsert(cache: JSONCache, edit: JSONInsert): void {
 
     let currentNode = cache.rootNode;
@@ -328,4 +344,31 @@ export function updateJSONCacheAfterArrayInsert(cache: JSONCache, edit: JSONInse
 
 export function updateJSONCacheAfterArrayDelete(cache: JSONCache, edit: JSONDelete): void {
 
+    let currentNode = cache.rootNode;
+    let currentOffset = cache.rootNode.state.offsetFromParent;
+    let currentPosition: any[] = [];
+
+    while (true) {
+
+        const nextNodeIndex = currentNode.children.findIndex(childNode => ((currentOffset + childNode.state.offsetFromParent) <= edit.range.startCharacter) && (edit.range.startCharacter < (currentOffset + childNode.state.offsetFromParent + childNode.state.size)));
+
+        if (nextNodeIndex === -1) {
+            throw Error("Could not find which element to delete!");
+        }
+
+        const nextNode = currentNode.children[nextNodeIndex];
+
+        // Delete at:
+        if ((currentOffset + nextNode.state.offsetFromParent) === edit.range.startCharacter) {
+
+            const nodeIndexToDelete = nextNodeIndex;
+
+            deleteCacheNode(cache, currentPosition, currentNode, nodeIndexToDelete, edit.range.endCharacter - edit.range.startCharacter);
+            return;
+        }
+
+        currentNode = nextNode;
+        currentOffset += currentNode.state.offsetFromParent;
+        currentPosition.push(currentNode.value);
+    }
 }
