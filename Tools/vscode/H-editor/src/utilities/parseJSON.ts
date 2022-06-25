@@ -42,6 +42,7 @@ export interface ParserState {
 export interface ParseJSONIterateResult {
   event: JSONParserEvent,
   value: any,
+  startIndex: number,
   endIndex: number
 }
 
@@ -116,6 +117,7 @@ export function iterateThroughJSONString(state: ParserState, text: string, start
         return {
           event: JSONParserEvent.openObject,
           value: undefined,
+          startIndex: index,
           endIndex: index + 1
         };
       }
@@ -126,6 +128,7 @@ export function iterateThroughJSONString(state: ParserState, text: string, start
         return {
           event: JSONParserEvent.openArray,
           value: undefined,
+          startIndex: index,
           endIndex: index + 1
         };
       }
@@ -159,6 +162,7 @@ export function iterateThroughJSONString(state: ParserState, text: string, start
           return {
             event: JSONParserEvent.openObject,
             value: undefined,
+            startIndex: index,
             endIndex: index + 1
           };
         }
@@ -167,6 +171,7 @@ export function iterateThroughJSONString(state: ParserState, text: string, start
           return {
             event: JSONParserEvent.openArray,
             value: undefined,
+            startIndex: index,
             endIndex: index + 1
           };
         }
@@ -175,6 +180,7 @@ export function iterateThroughJSONString(state: ParserState, text: string, start
           return {
             event: JSONParserEvent.closeObject,
             value: undefined,
+            startIndex: index,
             endIndex: index + 1
           };
         }
@@ -190,6 +196,7 @@ export function iterateThroughJSONString(state: ParserState, text: string, start
           return {
             event: JSONParserEvent.number,
             value: Number(text.substring(result.openIndex, result.closeIndex)),
+            startIndex: result.openIndex,
             endIndex: result.closeIndex
           };
         }
@@ -202,6 +209,7 @@ export function iterateThroughJSONString(state: ParserState, text: string, start
         return {
           event: JSONParserEvent.openObject,
           value: undefined,
+          startIndex: index,
           endIndex: index + 1
         };
       }
@@ -211,6 +219,7 @@ export function iterateThroughJSONString(state: ParserState, text: string, start
         return {
           event: JSONParserEvent.openArray,
           value: undefined,
+          startIndex: index,
           endIndex: index + 1
         };
       }
@@ -225,6 +234,7 @@ export function iterateThroughJSONString(state: ParserState, text: string, start
         return {
           event: JSONParserEvent.closeArray,
           value: undefined,
+          startIndex: index,
           endIndex: index + 1
         };
       }
@@ -236,6 +246,7 @@ export function iterateThroughJSONString(state: ParserState, text: string, start
         return {
           event: JSONParserEvent.number,
           value: Number(text.substring(result.openIndex, result.closeIndex)),
+          startIndex: result.openIndex,
           endIndex: result.closeIndex
         };
       }
@@ -253,6 +264,7 @@ export function iterateThroughJSONString(state: ParserState, text: string, start
           return {
             event: JSONParserEvent.key,
             value: text.substring(beginKeyIndex + 1, index),
+            startIndex: beginKeyIndex,
             endIndex: index + 1
           };
         }
@@ -262,6 +274,7 @@ export function iterateThroughJSONString(state: ParserState, text: string, start
           return {
             event: JSONParserEvent.string,
             value: text.substring(beginValueIndex + 1, index),
+            startIndex: beginKeyIndex,
             endIndex: index + 1
           };
         }
@@ -276,6 +289,83 @@ export function iterateThroughJSONString(state: ParserState, text: string, start
   }
 
   throw Error("Error while parsing JSON");
+}
+
+export interface ParseJSONIteratePositionResult {
+  startValueIndex: number,
+  nextStartIndex: number
+}
+
+export function iterateThroughJSONStringUsingPosition(state: ParserState, currentPosition: any[], text: string, startIndex: number): ParseJSONIteratePositionResult {
+
+  let offset = startIndex;
+
+  while (offset < text.length) {
+
+    const result = iterateThroughJSONString(state, text, offset);
+
+    if (result.event === JSONParserEvent.key) {
+      if (currentPosition.length < state.stack.length) {
+        currentPosition.push(result.value);
+      }
+      else {
+        currentPosition[currentPosition.length - 1] = result.value;
+      }
+
+      return {
+        startValueIndex: result.endIndex + 1,
+        nextStartIndex: result.endIndex
+      };
+    }
+    else if (result.event === JSONParserEvent.openArray) {
+      currentPosition.push(-1);
+    }
+    else if (result.event === JSONParserEvent.closeArray) {
+      currentPosition.pop();
+    }
+    else if (result.event === JSONParserEvent.openObject) {
+      if (state.stack.length > 1 && state.stack[state.stack.length - 2] === '[') {
+        currentPosition[currentPosition.length - 1] += 1;
+
+        return {
+          startValueIndex: result.startIndex,
+          nextStartIndex: result.endIndex
+        };
+      }
+    }
+    else if (result.event === JSONParserEvent.closeObject) {
+      if (currentPosition.length > state.stack.length) {
+        currentPosition.pop();
+      }
+    }
+    else if (result.event === JSONParserEvent.number) {
+      if (state.stack[state.stack.length - 1] === '[') {
+        currentPosition[currentPosition.length - 1] += 1;
+
+        return {
+          startValueIndex: result.startIndex,
+          nextStartIndex: result.endIndex
+        };
+      }
+    }
+    else if (result.event === JSONParserEvent.string) {
+      if (state.stack[state.stack.length - 1] === '[') {
+        currentPosition[currentPosition.length - 1] += 1;
+
+        return {
+          startValueIndex: result.startIndex,
+          nextStartIndex: result.endIndex
+        };
+      }
+    }
+
+    offset = result.endIndex;
+  }
+
+  return {
+    startValueIndex: text.length,
+    nextStartIndex: text.length
+  };
 }
 
 function areArraysEqual(array0: any[], array1: any[]): boolean {

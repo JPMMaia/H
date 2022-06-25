@@ -2,13 +2,112 @@ import { deepEqual, equal, notEqual } from "assert";
 import 'mocha';
 import { JSONDelete, JSONEdit, JSONInsert } from "./editJSON";
 
-import { createJSONCache, addJSONCacheNode, getJSONCacheState, hasJSONCacheNode, JSONCache, removeJSONCacheNode, updateJSONCacheAfterArrayDelete, updateJSONCacheAfterArrayInsert, updateJSONCacheAfterEdit } from './JSONCache';
+import { createEmptyJSONCache, createJSONCache, addJSONCacheNode, getJSONCacheState, hasJSONCacheNode, JSONCache, removeJSONCacheNode, updateJSONCacheAfterArrayDelete, updateJSONCacheAfterArrayInsert, updateJSONCacheAfterEdit } from './JSONCache';
+
+describe("createJSONCache function", () => {
+
+    it("should create cache nodes for each key to cache", () => {
+
+        const text = '{"language_version":{"major":1,"minor":2,"patch":3},"export_functions":[{"key":"value"},{"key":"value"},{"key":"value"}],"internal_functions":[{"key":"value"}]}';
+
+        const keysToCache: any[] = [
+            ["language_version"],
+            ["export_functions"],
+            ["export_functions", "all_array_elements"],
+            ["internal_functions"],
+            ["internal_functions", "all_array_elements"],
+        ];
+
+        const cache = createJSONCache(text, keysToCache);
+
+        equal(cache.rootNode.state.offsetFromParent, 0);
+        equal(cache.rootNode.state.size, 160);
+        equal(cache.rootNode.children.length, 3);
+
+        {
+            const node = cache.rootNode.children[0];
+
+            equal(node.value, "language_version");
+            equal(node.state.offsetFromParent, 20);
+            equal(node.state.size, 31);
+            equal(node.state.parserState.expectKey, false);
+            deepEqual(node.state.parserState.stack, ["{"]);
+            equal(node.children.length, 0);
+        }
+
+        {
+            const node = cache.rootNode.children[1];
+
+            equal(node.value, "export_functions");
+            equal(node.state.offsetFromParent, 71);
+            equal(node.state.size, 49);
+            equal(node.state.parserState.expectKey, false);
+            deepEqual(node.state.parserState.stack, ["{"]);
+            equal(node.children.length, 3);
+        }
+
+        {
+            const node = cache.rootNode.children[1].children[0];
+
+            equal(node.value, 0);
+            equal(node.state.offsetFromParent, 1);
+            equal(node.state.size, 15);
+            equal(node.state.parserState.expectKey, false);
+            deepEqual(node.state.parserState.stack, ["{", "["]);
+            equal(node.children.length, 0);
+        }
+
+        {
+            const node = cache.rootNode.children[1].children[1];
+
+            equal(node.value, 1);
+            equal(node.state.offsetFromParent, 17);
+            equal(node.state.size, 15);
+            equal(node.state.parserState.expectKey, false);
+            deepEqual(node.state.parserState.stack, ["{", "["]);
+            equal(node.children.length, 0);
+        }
+
+        {
+            const node = cache.rootNode.children[1].children[2];
+
+            equal(node.value, 2);
+            equal(node.state.offsetFromParent, 33);
+            equal(node.state.size, 15);
+            equal(node.state.parserState.expectKey, false);
+            deepEqual(node.state.parserState.stack, ["{", "["]);
+            equal(node.children.length, 0);
+        }
+
+        {
+            const node = cache.rootNode.children[2];
+
+            equal(node.value, "import_functions");
+            equal(node.state.offsetFromParent, 142);
+            equal(node.state.size, 17);
+            equal(node.state.parserState.expectKey, false);
+            deepEqual(node.state.parserState.stack, ["{"]);
+            equal(node.children.length, 1);
+        }
+
+        {
+            const node = cache.rootNode.children[2].children[0];
+
+            equal(node.value, 0);
+            equal(node.state.offsetFromParent, 1);
+            equal(node.state.size, 15);
+            equal(node.state.parserState.expectKey, false);
+            deepEqual(node.state.parserState.stack, ["{", "["]);
+            equal(node.children.length, 0);
+        }
+    });
+});
 
 describe("addJSONCacheNode function", () => {
 
     it("should add a cache node", () => {
 
-        let cache = createJSONCache();
+        let cache = createEmptyJSONCache();
 
         {
             const state = {
@@ -66,7 +165,7 @@ describe("addJSONCacheNode function", () => {
 
     it("should add a cache node ordered by offsetFromParent", () => {
 
-        let cache = createJSONCache();
+        let cache = createEmptyJSONCache();
 
         {
             const state = {
@@ -101,7 +200,7 @@ describe("addJSONCacheNode function", () => {
 
     it("should update array indices of siblings", () => {
 
-        let cache = createJSONCache();
+        let cache = createEmptyJSONCache();
         {
             const state = {
                 offsetFromParent: 20,
@@ -148,7 +247,7 @@ describe("addJSONCacheNode function", () => {
 
     it("should update size of parent node", () => {
 
-        let cache = createJSONCache();
+        let cache = createEmptyJSONCache();
 
         {
             equal(cache.rootNode.state.size, '{}'.length);
@@ -222,7 +321,7 @@ describe("removeJSONCacheNode function", () => {
 
     it("should remove a cache node", () => {
 
-        let cache = createJSONCache();
+        let cache = createEmptyJSONCache();
 
         {
             const state = {
@@ -278,7 +377,7 @@ describe("removeJSONCacheNode function", () => {
 
     it("should update size of parent node", () => {
 
-        let cache = createJSONCache();
+        let cache = createEmptyJSONCache();
 
         {
             equal(cache.rootNode.state.size, '{}'.length);
@@ -371,7 +470,7 @@ describe("updateJSONCacheAfterEdit function", () => {
 
     it("should update offsets after edit position", () => {
 
-        let cache = createJSONCache();
+        let cache = createEmptyJSONCache();
 
         {
             const state = {
@@ -480,7 +579,7 @@ describe("updateJSONCacheAfterArrayInsert function", () => {
 
         // {"export_functions":[{"key":"value"},{"key":"value"},{"key":"value"}],"internal_functions":[{"key":"value"}]}
 
-        let cache = createJSONCache();
+        let cache = createEmptyJSONCache();
 
         {
             const state = {
@@ -697,7 +796,7 @@ describe("updateJSONCacheAfterArrayInsert function", () => {
 
     it("should update position after array insert position", () => {
 
-        let cache = createJSONCache();
+        let cache = createEmptyJSONCache();
 
         {
             const state = {
@@ -765,7 +864,7 @@ describe("updateJSONCacheAfterArrayDelete function", () => {
 
         // {"export_functions":[{"key":"value"},{"key":"value"},{"key":"value"}],"internal_functions":[{"key":"value"}]}
 
-        let cache = createJSONCache();
+        let cache = createEmptyJSONCache();
 
         {
             const state = {
@@ -991,7 +1090,7 @@ describe("updateJSONCacheAfterArrayDelete function", () => {
 
         // {"export_functions":[{"key":"value"},{"key":"value"},{"key":"value"}],"internal_functions":[{"key":"value"}]}
 
-        let cache = createJSONCache();
+        let cache = createEmptyJSONCache();
 
         {
             const state = {

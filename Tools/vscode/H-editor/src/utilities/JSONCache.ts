@@ -1,5 +1,5 @@
 import { JSONDelete, JSONEdit, JSONInsert } from "./editJSON";
-import { ParserState } from "./parseJSON";
+import { iterateThroughJSONStringUsingPosition, ParserState } from "./parseJSON";
 
 interface StateCache {
     offsetFromParent: number;
@@ -17,7 +17,7 @@ export interface JSONCache {
     rootNode: CacheNode;
 }
 
-export function createJSONCache(): JSONCache {
+export function createEmptyJSONCache(): JSONCache {
     return {
         rootNode: {
             value: "root",
@@ -32,6 +32,68 @@ export function createJSONCache(): JSONCache {
             }
         }
     };
+}
+
+function areArraysEqual(array0: any[], array1: any[]): boolean {
+    return array0.length === array1.length && array0.every((value, index) => value === array1[index]);
+}
+
+function calculateOffsetFromParent(cache: JSONCache, position: any[], currentOffset: number): number {
+
+    if (position.length === 1) {
+        return currentOffset;
+    }
+
+    const parentState = getJSONCacheState(cache, position.slice(0, position.length - 1));
+
+    if (parentState === undefined) {
+        throw Error("Parent is missing from cache!");
+    }
+
+    return currentOffset - parentState.offsetFromParent;
+}
+
+export function createJSONCache(text: string, keysToCache: any[]): JSONCache {
+
+    const cache = createEmptyJSONCache();
+
+    let currentKeyIndex = 0;
+
+    let parserState = {
+        stack: [],
+        expectKey: false
+    };
+
+    let currentOffset = 0;
+
+    let currentPosition: any[] = [];
+
+    while (currentKeyIndex < keysToCache.length && currentOffset < text.length) {
+
+        const result = iterateThroughJSONStringUsingPosition(parserState, currentPosition, text, currentOffset);
+
+        if (areArraysEqual(keysToCache[currentKeyIndex], currentPosition)) {
+
+            const offsetFromParent = calculateOffsetFromParent(cache, currentPosition, currentOffset);
+
+            const cacheState = {
+                offsetFromParent: offsetFromParent,
+                size: 2,
+                parserState: JSON.parse(JSON.stringify(parserState))
+            };
+
+            addJSONCacheNode(cache, currentPosition, cacheState);
+
+            currentKeyIndex += 1;
+        }
+
+        const textSize = result.nextStartIndex - currentOffset;
+        updateJSONCacheStateOffsetsAndSizes(cache, currentPosition, textSize);
+
+        currentOffset = result.nextStartIndex;
+    }
+
+    return cache;
 }
 
 function updateJSONCacheStateOffsetsAndSizes(cache: JSONCache, position: any[], deltaSize: number): void {
@@ -116,7 +178,7 @@ export function addJSONCacheNode(cache: JSONCache, position: any[], state: State
 
                 const sizeOfBlockPlusPossibleComma = currentNode.children.length > 1 ? sizeOfBlock + 1 : sizeOfBlock;
 
-                updateJSONCacheStateOffsetsAndSizes(cache, position.slice(0, position.length - 1), sizeOfBlockPlusPossibleComma);
+                //updateJSONCacheStateOffsetsAndSizes(cache, position.slice(0, position.length - 1), sizeOfBlockPlusPossibleComma);
             }
             return;
         }

@@ -1,7 +1,7 @@
 import { deepEqual, equal } from "assert";
 import 'mocha';
 
-import { ArrayPosition, findEndOfString, fromOffsetToPosition, fromPositionToOffset, getObjectAtPosition, iterateThroughJSONString, JSONParserEvent } from './parseJSON';
+import { ArrayPosition, findEndOfString, fromOffsetToPosition, fromPositionToOffset, getObjectAtPosition, iterateThroughJSONString, iterateThroughJSONStringUsingPosition, JSONParserEvent } from './parseJSON';
 
 describe("findEndOfString function", () => {
 
@@ -280,6 +280,135 @@ describe("iterateThroughJSONString", () => {
 
             deepEqual(state.stack, ['{', '[']);
             equal(state.expectKey, false);
+        }
+    });
+});
+
+describe("iterateThroughJSONStringUsingPosition function", () => {
+
+    it("should find next position correctly and return start value index", () => {
+
+        let state = {
+            stack: [],
+            expectKey: false
+        };
+
+        let currentPosition: any[] = [];
+
+        let currentOffset = 0;
+
+        const json = '{"language_version":{"major":1,"minor":2,"patch":3},"export_functions":[{"key":"value"},{"key":"value"},{"key":"value"}],"internal_functions":[{"key":"value"}]}';
+
+        {
+            const result = iterateThroughJSONStringUsingPosition(state, currentPosition, json, currentOffset);
+            currentOffset = result.nextStartIndex;
+
+            deepEqual(currentPosition, ["language_version"]);
+            equal(result.startValueIndex, 20);
+        }
+
+        {
+            const result = iterateThroughJSONStringUsingPosition(state, currentPosition, json, currentOffset);
+            currentOffset = result.nextStartIndex;
+
+            deepEqual(currentPosition, ["language_version", "major"]);
+            equal(result.startValueIndex, 29);
+        }
+
+        {
+            const result = iterateThroughJSONStringUsingPosition(state, currentPosition, json, currentOffset);
+            currentOffset = result.nextStartIndex;
+
+            deepEqual(currentPosition, ["language_version", "minor"]);
+            equal(result.startValueIndex, 39);
+        }
+
+        {
+            const result = iterateThroughJSONStringUsingPosition(state, currentPosition, json, currentOffset);
+            currentOffset = result.nextStartIndex;
+
+            deepEqual(currentPosition, ["language_version", "patch"]);
+            equal(result.startValueIndex, 49);
+        }
+
+        {
+            const result = iterateThroughJSONStringUsingPosition(state, currentPosition, json, currentOffset);
+            currentOffset = result.nextStartIndex;
+
+            deepEqual(currentPosition, ["export_functions"]);
+            equal(result.startValueIndex, 71);
+        }
+
+        {
+            const result = iterateThroughJSONStringUsingPosition(state, currentPosition, json, currentOffset);
+            currentOffset = result.nextStartIndex;
+
+            deepEqual(currentPosition, ["export_functions", 0]);
+            equal(result.startValueIndex, 72);
+        }
+
+        {
+            const result = iterateThroughJSONStringUsingPosition(state, currentPosition, json, currentOffset);
+            currentOffset = result.nextStartIndex;
+
+            deepEqual(currentPosition, ["export_functions", 0, "key"]);
+            equal(result.startValueIndex, 79);
+        }
+
+        {
+            const result = iterateThroughJSONStringUsingPosition(state, currentPosition, json, currentOffset);
+            currentOffset = result.nextStartIndex;
+
+            deepEqual(currentPosition, ["export_functions", 1]);
+            equal(result.startValueIndex, 88);
+        }
+
+        {
+            const result = iterateThroughJSONStringUsingPosition(state, currentPosition, json, currentOffset);
+            currentOffset = result.nextStartIndex;
+
+            deepEqual(currentPosition, ["export_functions", 1, "key"]);
+            equal(result.startValueIndex, 95);
+        }
+
+        {
+            const result = iterateThroughJSONStringUsingPosition(state, currentPosition, json, currentOffset);
+            currentOffset = result.nextStartIndex;
+
+            deepEqual(currentPosition, ["export_functions", 2]);
+            equal(result.startValueIndex, 104);
+        }
+
+        {
+            const result = iterateThroughJSONStringUsingPosition(state, currentPosition, json, currentOffset);
+            currentOffset = result.nextStartIndex;
+
+            deepEqual(currentPosition, ["export_functions", 2, "key"]);
+            equal(result.startValueIndex, 111);
+        }
+
+        {
+            const result = iterateThroughJSONStringUsingPosition(state, currentPosition, json, currentOffset);
+            currentOffset = result.nextStartIndex;
+
+            deepEqual(currentPosition, ["internal_functions"]);
+            equal(result.startValueIndex, 142);
+        }
+
+        {
+            const result = iterateThroughJSONStringUsingPosition(state, currentPosition, json, currentOffset);
+            currentOffset = result.nextStartIndex;
+
+            deepEqual(currentPosition, ["internal_functions", 0]);
+            equal(result.startValueIndex, 143);
+        }
+
+        {
+            const result = iterateThroughJSONStringUsingPosition(state, currentPosition, json, currentOffset);
+            currentOffset = result.nextStartIndex;
+
+            deepEqual(currentPosition, ["internal_functions", 0, "key"]);
+            equal(result.startValueIndex, 150);
         }
     });
 });
