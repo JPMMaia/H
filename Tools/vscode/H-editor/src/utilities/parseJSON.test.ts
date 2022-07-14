@@ -495,17 +495,17 @@ describe("fromPositionToOffset function", () => {
     it("should return offset of value in an object", () => {
 
         {
-            const json = '{"fruit": {"name": "orange"}}';
+            const json = '{"fruit":{"name":"orange"}}';
 
             {
                 const actualValue = fromPositionToOffset(startParserState, json, 0, [], ["fruit"]);
-                const expectedValue = 10;
+                const expectedValue = 9;
                 equal(actualValue.offset, expectedValue);
             }
 
             {
                 const actualValue = fromPositionToOffset(startParserState, json, 0, [], ["fruit", "name"]);
-                const expectedValue = 20;
+                const expectedValue = 17;
                 equal(actualValue.offset, expectedValue);
             }
         }
@@ -513,23 +513,23 @@ describe("fromPositionToOffset function", () => {
 
     it("should return offset of object in an array", () => {
         {
-            const json = '[ {"name":"orange"}, {"name":"pear"} ]';
+            const json = '[{"name":"orange"},{"name":"pear"}]';
 
             {
                 const actualValue = fromPositionToOffset(startParserState, json, 0, [], [0]);
-                const expectedValue = 2;
+                const expectedValue = 1;
                 equal(actualValue.offset, expectedValue);
             }
 
             {
                 const actualValue = fromPositionToOffset(startParserState, json, 0, [], [1]);
-                const expectedValue = 21;
+                const expectedValue = 19;
                 equal(actualValue.offset, expectedValue);
             }
 
             {
                 const actualValue = fromPositionToOffset(startParserState, json, 0, [], [1, "name"]);
-                const expectedValue = 30;
+                const expectedValue = 27;
                 equal(actualValue.offset, expectedValue);
             }
         }
@@ -537,23 +537,23 @@ describe("fromPositionToOffset function", () => {
 
     it("should return offset of number in an array", () => {
         {
-            const json = '[ 1, 2, 3 ]';
+            const json = '[1,2,3]';
 
             {
                 const actualValue = fromPositionToOffset(startParserState, json, 0, [], [0]);
-                const expectedValue = 2;
+                const expectedValue = 1;
                 equal(actualValue.offset, expectedValue);
             }
 
             {
                 const actualValue = fromPositionToOffset(startParserState, json, 0, [], [1]);
-                const expectedValue = 5;
+                const expectedValue = 3;
                 equal(actualValue.offset, expectedValue);
             }
 
             {
                 const actualValue = fromPositionToOffset(startParserState, json, 0, [], [2]);
-                const expectedValue = 8;
+                const expectedValue = 5;
                 equal(actualValue.offset, expectedValue);
             }
         }
@@ -561,17 +561,17 @@ describe("fromPositionToOffset function", () => {
 
     it("should return offset of string in an array", () => {
         {
-            const json = '[ "hello", "world" ]';
+            const json = '["hello","world"]';
 
             {
                 const actualValue = fromPositionToOffset(startParserState, json, 0, [], [0]);
-                const expectedValue = 3;
+                const expectedValue = 1;
                 equal(actualValue.offset, expectedValue);
             }
 
             {
                 const actualValue = fromPositionToOffset(startParserState, json, 0, [], [1]);
-                const expectedValue = 12;
+                const expectedValue = 9;
                 equal(actualValue.offset, expectedValue);
             }
         }
@@ -597,7 +597,7 @@ describe("fromPositionToOffset function", () => {
 
     it("should return correct offset given initial state", () => {
 
-        const json = '[ {"name":"orange"}, {"name":"pear"} ]';
+        const json = '[{"name":"orange"},{"name":"pear"}]';
 
         {
             const parserState = {
@@ -605,8 +605,8 @@ describe("fromPositionToOffset function", () => {
                 expectKey: false
             };
 
-            const actualValue = fromPositionToOffset(parserState, json, 21, [1], [1, "name"]);
-            const expectedValue = 30;
+            const actualValue = fromPositionToOffset(parserState, json, 19, [1], [1, "name"]);
+            const expectedValue = 27;
             equal(actualValue.offset, expectedValue);
         }
 
@@ -622,19 +622,19 @@ describe("fromOffsetToPosition function", () => {
             {
                 const actualValue = fromOffsetToPosition(json, 0);
                 const expectedValue: any[] = [];
-                equal(actualValue, expectedValue);
+                deepEqual(actualValue, expectedValue);
             }
 
             {
                 const actualValue = fromOffsetToPosition(json, 9);
                 const expectedValue = ["fruit"];
-                equal(actualValue, expectedValue);
+                deepEqual(actualValue, expectedValue);
             }
 
             {
                 const actualValue = fromOffsetToPosition(json, 17);
                 const expectedValue: any[] = ["fruit", "name"];
-                equal(actualValue, expectedValue);
+                deepEqual(actualValue, expectedValue);
             }
         }
 
@@ -644,25 +644,25 @@ describe("fromOffsetToPosition function", () => {
             {
                 const actualValue = fromOffsetToPosition(json, 10);
                 const expectedValue: any[] = ["fruits"];
-                equal(actualValue, expectedValue);
+                deepEqual(actualValue, expectedValue);
             }
 
             {
                 const actualValue = fromOffsetToPosition(json, 11);
                 const expectedValue = ["fruits", 0];
-                equal(actualValue, expectedValue);
+                deepEqual(actualValue, expectedValue);
             }
 
             {
                 const actualValue = fromOffsetToPosition(json, 29);
                 const expectedValue = ["fruits", 1];
-                equal(actualValue, expectedValue);
+                deepEqual(actualValue, expectedValue);
             }
 
             {
                 const actualValue = fromOffsetToPosition(json, 37);
                 const expectedValue = ["fruits", 1, "name"];
-                equal(actualValue, expectedValue);
+                deepEqual(actualValue, expectedValue);
             }
         }
     });

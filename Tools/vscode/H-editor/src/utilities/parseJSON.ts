@@ -451,7 +451,7 @@ export function fromPositionToOffset(startState: ParserState, text: string, star
           return { offset: offset, newState: state };
         }
         else if (currentCharacter === '"') {
-          return { offset: offset + 1, newState: state };
+          return { offset: offset, newState: state };
         }
         ++offset;
       }
@@ -477,6 +477,34 @@ export function fromPositionToOffset(startState: ParserState, text: string, star
   return { offset: -1, newState: state };
 }
 
-export function fromOffsetToPosition(text: string, offset: number): any[] {
-  return [];
+export function fromOffsetToPosition(text: string, targetOffset: number): any[] {
+
+  if (targetOffset === 0) {
+    return [];
+  }
+
+  let state = {
+    stack: [],
+    expectKey: false
+  };
+
+  let currentOffset = 0;
+  let currentPosition: any[] = [];
+
+  while (currentOffset < text.length) {
+
+    const result = iterateThroughJSONStringUsingPosition(state, currentPosition, text, currentOffset);
+
+    if (result.startValueIndex === targetOffset) {
+      return currentPosition;
+    }
+
+    if (result.startValueIndex > targetOffset) {
+      throw Error("fromOffsetToPosition() went past");
+    }
+
+    currentOffset = result.nextStartIndex;
+  }
+
+  throw Error("fromOffsetToPosition() reached end of file.");
 }
