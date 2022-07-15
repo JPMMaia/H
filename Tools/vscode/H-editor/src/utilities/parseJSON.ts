@@ -46,7 +46,7 @@ export interface ParseJSONIterateResult {
   endIndex: number
 }
 
-function isNumber(character: string): boolean {
+export function isNumber(character: string): boolean {
 
   if (character.length === 0 || character === ' ') {
     return false;
@@ -61,7 +61,7 @@ export interface FindResult {
   closeIndex: number
 }
 
-function findNumber(text: string, startIndex: number): FindResult {
+export function findNumber(text: string, startIndex: number): FindResult {
   let index = startIndex;
 
   while (index < text.length) {
