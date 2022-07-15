@@ -45,7 +45,7 @@ const m_frontendLanguageOptions = ref([
   { text: "C", value: "C" },
 ]);
 
-/*m_state.value = {
+m_state.value = {
   "language_version": {
     "major": 1,
     "minor": 2,
@@ -143,7 +143,7 @@ const m_frontendLanguageOptions = ref([
       ]
     }
   }
-};*/
+};
 
 function on_message_received(event: MessageEvent): void {
 
@@ -165,6 +165,24 @@ function on_message_received(event: MessageEvent): void {
 }
 
 window.addEventListener("message", on_message_received);
+
+function on_insert_element(position: any[]): void {
+  vscode.postMessage({
+    command: "insert:value",
+    data: {
+      position: position
+    }
+  });
+}
+
+function on_delete_element(position: any[]): void {
+  vscode.postMessage({
+    command: "delete:value",
+    data: {
+      position: position
+    }
+  });
+}
 
 function on_value_change(position: any[], new_value: any): void {
 
@@ -272,7 +290,14 @@ onMounted(() => {
   </main>
   
   <main v-if="m_state && (m_selectedFrontendLanguage === 'JSON')">
-    <JSON_object :value="m_state" v-on:update:value="(position, value) => on_value_change(position, value)" :indentation="0" :indentation_increment="1"></JSON_object>
+    <JSON_object
+      :value="m_state"
+      :indentation="0"
+      :indentation_increment="1"
+      v-on:insert:value="(position) => on_insert_element(position)"
+      v-on:delete:value="(position) => on_delete_element(position)"
+      v-on:update:value="(position, value) => on_value_change(position, value)">
+    </JSON_object>
   </main>
   
   <main v-else>

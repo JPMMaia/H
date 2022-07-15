@@ -10,6 +10,8 @@ const properties = defineProps<{
 }>();
 
 const emit = defineEmits<{
+    (e: 'insert:value', position: any[]): void,
+    (e: 'delete:value', position: any[]): void,
     (e: 'update:value', position: any[], value: any): void
 }>();
 
@@ -36,23 +38,35 @@ function on_number_value_change(event: Event): void {
     }
 }
 
-function on_array_content_change(index: number, childPosition: any[], value: any): void {
-    const position = [index].concat(childPosition);
+function pass_on_value_change_event(key: string | number, child_position: any[], value: any): void {
+    const position = [key].concat(child_position);
     emit("update:value", position, value);
 }
 
-function on_object_content_change(key: string, childPosition: any[], value: any): void {
-    const position = [key].concat(childPosition);
-    emit("update:value", position, value);
-}
-
-function on_add_or_remove_array_element(event: KeyboardEvent, index: number): void {
+function on_insert_or_remove_array_element(event: KeyboardEvent, index: number): void {
     if (event.key === "Enter") {
-        console.log("Insert at " + index);
+        const insert_at_index = index;
+        emit("insert:value", [insert_at_index]);
     }
     else if (event.key === "Backspace") {
-        console.log("Delete at " + (index - 1));
+        
+        if (index === 0) {
+            return;
+        }
+
+        const delete_at_index = index - 1;
+        emit("delete:value", [delete_at_index]);
     }
+}
+
+function pass_on_insert_array_element_event(key: string | number, child_position: any[]): void {
+    const position = [key].concat(child_position);
+    emit("insert:value", position);
+}
+
+function pass_on_delete_array_element_event(key: string | number, child_position: any[]): void {
+    const position = [key].concat(child_position);
+    emit("delete:value", position);
 }
 </script>
 
@@ -65,17 +79,19 @@ function on_add_or_remove_array_element(event: KeyboardEvent, index: number): vo
     </span>
     <span v-else-if="Array.isArray(properties.value)">
         <span>
-            <span>[<Press_key_editable placeholder="+" v-on:on_key_up="(event) => on_add_or_remove_array_element(event, 0)">
+            <span>[<Press_key_editable placeholder="+" v-on:on_key_up="(event) => on_insert_or_remove_array_element(event, 0)">
                 </Press_key_editable></span>
             <br v-if="properties.value.length !== 0">
             <span v-for="(item, index) in properties.value" v-bind:key="index">
                 <span :style="css_variables" class="key_indent">
                     <JSON_object :value="item"
-                        v-on:update:value="(position, value) => on_array_content_change(index, position, value)"
+                        v-on:insert:value="(position) => pass_on_insert_array_element_event(index, position)"
+                        v-on:delete:value="(position) => pass_on_delete_array_element_event(index, position)"
+                        v-on:update:value="(position, value) => pass_on_value_change_event(index, position, value)"
                         :indentation=children_indentation :indentation_increment="properties.indentation_increment">
                     </JSON_object>
                     <Press_key_editable placeholder="+"
-                        v-on:on_key_up="(event) => on_add_or_remove_array_element(event, index+1)">
+                        v-on:on_key_up="(event) => on_insert_or_remove_array_element(event, index+1)">
                     </Press_key_editable>
                     <span v-if="(index + 1) !== properties.value.length">,</span>
                 </span>
@@ -91,7 +107,9 @@ function on_add_or_remove_array_element(event: KeyboardEvent, index: number): vo
         <span v-for="(key, index) in Object.keys(properties.value)" v-bind:key="key">
             <span :style="css_variables" class="key_indent">&quot;{{key}}&quot;: <JSON_object
                     :value="properties.value[key]"
-                    v-on:update:value="(position, value) => on_object_content_change(key, position, value)"
+                    v-on:insert:value="(position) => pass_on_insert_array_element_event(key, position)"
+                    v-on:delete:value="(position) => pass_on_delete_array_element_event(key, position)"
+                    v-on:update:value="(position, value) => pass_on_value_change_event(key, position, value)"
                     :indentation=children_indentation :indentation_increment=" properties.indentation_increment">
                 </JSON_object><span v-if="(index + 1) !== Object.keys(properties.value).length">,</span></span>
             <br>
