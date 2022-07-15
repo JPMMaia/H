@@ -166,16 +166,27 @@ function on_message_received(event: MessageEvent): void {
 
 window.addEventListener("message", on_message_received);
 
+function on_value_change(position: any[], new_value: any): void {
 
+  vscode.postMessage({
+    command: "update:value",
+    data: {
+      position: position,
+      new_value: new_value
+    }
+  });
+}
 
 function on_function_name_change(index: number, function_declaration: any, is_export_declaration: boolean, new_name: any): void {
+
+  const functionDeclarationKey = is_export_declaration ? "export_declarations" : "internal_declarations";
+  const position = [functionDeclarationKey, index, "name"];
+
   vscode.postMessage({
-    command: "update:function_name",
+    command: "update:value",
     data: {
-      function_index: index,
-      function_id: function_declaration.id,
-      is_export_declaration: is_export_declaration,
-      new_name: new_name
+      position: position,
+      new_value: new_name
     }
   });
 }
@@ -261,7 +272,7 @@ onMounted(() => {
   </main>
   
   <main v-if="m_state && (m_selectedFrontendLanguage === 'JSON')">
-    <JSON_object :value="m_state" :indentation="0" :indentation_increment="1"></JSON_object>
+    <JSON_object :value="m_state" v-on:update:value="(position, value) => on_value_change(position, value)" :indentation="0" :indentation_increment="1"></JSON_object>
   </main>
   
   <main v-else>
