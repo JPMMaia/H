@@ -6,7 +6,8 @@ import * as settings from './settings';
 import { LanguageServer } from './LanguageServer';
 import { HEditorPanel } from './panels/HEditorPanel';
 import { HDocument } from './HDocument';
-import { RangeEx } from './utilities/RangeEx';
+import { fromOffsetToPosition, isNumber } from './utilities/parseJSON';
+import { createUpdateStateMessage } from './utilities/updateStateMessage';
 
 /**
  * Provider for H editors.
@@ -94,11 +95,7 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 			if (e.document.uri.toString() === document.uri.toString()) {
 
 				for (const change of e.contentChanges) {
-					const message = {
-						command: "initialize",
-						data: hDocument.getDocumentAsJson()
-					};
-
+					const message = createUpdateStateMessage(change, e.document, hDocument);
 					hPanel.sendMessage(message);
 				}
 			}

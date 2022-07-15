@@ -123,9 +123,9 @@ export class HEditorPanel {
           listener.createFunction(message.data.function_index, message.data.is_export_declaration);
         }
         break;
-      case "update:function_name":
+      case "update:value":
         for (const listener of this.listeners) {
-          listener.updateFunctionName(message.data.function_index, message.data.function_id, message.data.is_export_declaration, message.data.new_name);
+          listener.updateValue(message.data.position, message.data.new_value);
         }
         break;
     }

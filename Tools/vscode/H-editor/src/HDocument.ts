@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
-import { getObjectAtPosition, findEndOfString, fromPositionToOffset } from './utilities/parseJSON';
-import { RangeEx } from './utilities/RangeEx';
+import { findNumber, findEndOfString, fromPositionToOffset } from './utilities/parseJSON';
 import { updateState } from './utilities/updateState';
+import { createUpdateStateMessage } from './utilities/updateStateMessage';
 
 function createFunction(document: vscode.TextDocument, state: any, functionIndex: number, isExportDeclaration: boolean): Thenable<boolean> {
 
-    const text = document.getText(undefined);
+    /*const text = document.getText(undefined);
 
     const functionDeclarationKey = isExportDeclaration ? "export_declarations" : "internal_declarations";
 
@@ -23,6 +23,11 @@ function createFunction(document: vscode.TextDocument, state: any, functionIndex
     const range = new vscode.Range(
         document.positionAt(beginOffset),
         document.positionAt(endOffset)
+    );*/
+
+    const range = new vscode.Range(
+        document.positionAt(0),
+        document.positionAt(0)
     );
 
     const edit = new vscode.WorkspaceEdit();
@@ -36,15 +41,23 @@ function createFunction(document: vscode.TextDocument, state: any, functionIndex
     return vscode.workspace.applyEdit(edit);
 }
 
-function updateFunctionName(document: vscode.TextDocument, functionIndex: number, functionId: number, isExportDeclaration: boolean, newName: string): Thenable<boolean> {
+function updateValue(document: vscode.TextDocument, position: any[], newValue: string | number): Thenable<boolean> {
 
     const text = document.getText(undefined);
 
-    const functionDeclarationKey = isExportDeclaration ? "export_declarations" : "internal_declarations";
-    const functionDeclarationPosition = [functionDeclarationKey, functionIndex, "name"];
+    // TODO cache
 
-    const beginOffset = fromPositionToOffset(text, functionDeclarationPosition);
-    const endOffset = findEndOfString(text, beginOffset);
+    const parserState = {
+        stack: [],
+        expectKey: false
+    };
+
+    const result = fromPositionToOffset(parserState, text, 0, [], position);
+    const isStringValue = text[result.offset] === '"';
+
+    const beginOffset = result.offset;
+    const endOffset = isStringValue ? findEndOfString(text, beginOffset + 1) + 1 : findNumber(text, beginOffset).closeIndex;
+    const newWrappedValue = isStringValue ? '"' + newValue + '"' : String(newValue);
 
     const range = new vscode.Range(
         document.positionAt(beginOffset),
@@ -56,7 +69,7 @@ function updateFunctionName(document: vscode.TextDocument, functionIndex: number
     edit.replace(
         document.uri,
         range,
-        newName
+        newWrappedValue
     );
 
     return vscode.workspace.applyEdit(edit);
@@ -74,11 +87,7 @@ export class HDocument {
             if (e.document.uri.toString() === document.uri.toString()) {
 
                 for (const change of e.contentChanges) {
-                    const message = {
-                        command: "initialize",
-                        data: this.getDocumentAsJson()
-                    };
-
+                    const message = createUpdateStateMessage(change, e.document, this);
                     this.updateState(message);
                 }
             }
@@ -167,9 +176,9 @@ export class HDocument {
 
     }
 
-    public updateFunctionName(functionIndex: number, functionId: number, isExportDeclaration: boolean, newName: string): Thenable<boolean> {
+    public updateValue(position: any[], newValue: string | number): Thenable<boolean> {
 
-        return updateFunctionName(this.document, functionIndex, functionId, isExportDeclaration, newName);
+        return updateValue(this.document, position, newValue);
     }
 
     public getDocumentAsJson(): any | null {
