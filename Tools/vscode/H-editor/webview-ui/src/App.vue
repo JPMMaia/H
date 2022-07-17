@@ -149,7 +149,7 @@ function on_message_received(event: MessageEvent): void {
 
   const message = event.data;
 
-  if (message.command === "initialize" || message.command === "update") {
+  if (message.command === "initialize" || message.command === "update" || message.command === "insert" || message.command === "delete") {
 
       const stateReference = {
           get value() {

@@ -1,7 +1,7 @@
 import { deepEqual, equal } from "assert";
 import 'mocha';
 
-import { ArrayPosition, findEndOfString, fromOffsetToPosition, fromPositionToOffset, getObjectAtPosition, iterateThroughJSONString, iterateThroughJSONStringUsingPosition, JSONParserEvent } from './parseJSON';
+import { findEndOfString, fromOffsetToPosition, fromPositionToOffset, getObjectAtPosition, iterateThroughJSONString, iterateThroughJSONStringUsingPosition, JSONParserEvent, findEndOfCurrentObject } from './parseJSON';
 
 describe("findEndOfString function", () => {
 
@@ -303,7 +303,7 @@ describe("iterateThroughJSONStringUsingPosition function", () => {
             const result = iterateThroughJSONStringUsingPosition(state, currentPosition, json, currentOffset);
             currentOffset = result.nextStartIndex;
 
-            deepEqual(currentPosition, ["language_version"]);
+            deepEqual(result.position, ["language_version"]);
             equal(result.startValueIndex, 20);
         }
 
@@ -311,7 +311,7 @@ describe("iterateThroughJSONStringUsingPosition function", () => {
             const result = iterateThroughJSONStringUsingPosition(state, currentPosition, json, currentOffset);
             currentOffset = result.nextStartIndex;
 
-            deepEqual(currentPosition, ["language_version", "major"]);
+            deepEqual(result.position, ["language_version", "major"]);
             equal(result.startValueIndex, 29);
         }
 
@@ -319,7 +319,7 @@ describe("iterateThroughJSONStringUsingPosition function", () => {
             const result = iterateThroughJSONStringUsingPosition(state, currentPosition, json, currentOffset);
             currentOffset = result.nextStartIndex;
 
-            deepEqual(currentPosition, ["language_version", "minor"]);
+            deepEqual(result.position, ["language_version", "minor"]);
             equal(result.startValueIndex, 39);
         }
 
@@ -327,7 +327,7 @@ describe("iterateThroughJSONStringUsingPosition function", () => {
             const result = iterateThroughJSONStringUsingPosition(state, currentPosition, json, currentOffset);
             currentOffset = result.nextStartIndex;
 
-            deepEqual(currentPosition, ["language_version", "patch"]);
+            deepEqual(result.position, ["language_version", "patch"]);
             equal(result.startValueIndex, 49);
         }
 
@@ -335,7 +335,7 @@ describe("iterateThroughJSONStringUsingPosition function", () => {
             const result = iterateThroughJSONStringUsingPosition(state, currentPosition, json, currentOffset);
             currentOffset = result.nextStartIndex;
 
-            deepEqual(currentPosition, ["export_functions"]);
+            deepEqual(result.position, ["export_functions"]);
             equal(result.startValueIndex, 71);
         }
 
@@ -343,7 +343,7 @@ describe("iterateThroughJSONStringUsingPosition function", () => {
             const result = iterateThroughJSONStringUsingPosition(state, currentPosition, json, currentOffset);
             currentOffset = result.nextStartIndex;
 
-            deepEqual(currentPosition, ["export_functions", 0]);
+            deepEqual(result.position, ["export_functions", 0]);
             equal(result.startValueIndex, 72);
         }
 
@@ -351,7 +351,7 @@ describe("iterateThroughJSONStringUsingPosition function", () => {
             const result = iterateThroughJSONStringUsingPosition(state, currentPosition, json, currentOffset);
             currentOffset = result.nextStartIndex;
 
-            deepEqual(currentPosition, ["export_functions", 0, "key"]);
+            deepEqual(result.position, ["export_functions", 0, "key"]);
             equal(result.startValueIndex, 79);
         }
 
@@ -359,7 +359,7 @@ describe("iterateThroughJSONStringUsingPosition function", () => {
             const result = iterateThroughJSONStringUsingPosition(state, currentPosition, json, currentOffset);
             currentOffset = result.nextStartIndex;
 
-            deepEqual(currentPosition, ["export_functions", 1]);
+            deepEqual(result.position, ["export_functions", 1]);
             equal(result.startValueIndex, 88);
         }
 
@@ -367,7 +367,7 @@ describe("iterateThroughJSONStringUsingPosition function", () => {
             const result = iterateThroughJSONStringUsingPosition(state, currentPosition, json, currentOffset);
             currentOffset = result.nextStartIndex;
 
-            deepEqual(currentPosition, ["export_functions", 1, "key"]);
+            deepEqual(result.position, ["export_functions", 1, "key"]);
             equal(result.startValueIndex, 95);
         }
 
@@ -375,7 +375,7 @@ describe("iterateThroughJSONStringUsingPosition function", () => {
             const result = iterateThroughJSONStringUsingPosition(state, currentPosition, json, currentOffset);
             currentOffset = result.nextStartIndex;
 
-            deepEqual(currentPosition, ["export_functions", 2]);
+            deepEqual(result.position, ["export_functions", 2]);
             equal(result.startValueIndex, 104);
         }
 
@@ -383,7 +383,7 @@ describe("iterateThroughJSONStringUsingPosition function", () => {
             const result = iterateThroughJSONStringUsingPosition(state, currentPosition, json, currentOffset);
             currentOffset = result.nextStartIndex;
 
-            deepEqual(currentPosition, ["export_functions", 2, "key"]);
+            deepEqual(result.position, ["export_functions", 2, "key"]);
             equal(result.startValueIndex, 111);
         }
 
@@ -391,7 +391,15 @@ describe("iterateThroughJSONStringUsingPosition function", () => {
             const result = iterateThroughJSONStringUsingPosition(state, currentPosition, json, currentOffset);
             currentOffset = result.nextStartIndex;
 
-            deepEqual(currentPosition, ["internal_functions"]);
+            deepEqual(result.position, ["export_functions", 3]);
+            equal(result.startValueIndex, 119);
+        }
+
+        {
+            const result = iterateThroughJSONStringUsingPosition(state, currentPosition, json, currentOffset);
+            currentOffset = result.nextStartIndex;
+
+            deepEqual(result.position, ["internal_functions"]);
             equal(result.startValueIndex, 142);
         }
 
@@ -399,7 +407,7 @@ describe("iterateThroughJSONStringUsingPosition function", () => {
             const result = iterateThroughJSONStringUsingPosition(state, currentPosition, json, currentOffset);
             currentOffset = result.nextStartIndex;
 
-            deepEqual(currentPosition, ["internal_functions", 0]);
+            deepEqual(result.position, ["internal_functions", 0]);
             equal(result.startValueIndex, 143);
         }
 
@@ -407,8 +415,16 @@ describe("iterateThroughJSONStringUsingPosition function", () => {
             const result = iterateThroughJSONStringUsingPosition(state, currentPosition, json, currentOffset);
             currentOffset = result.nextStartIndex;
 
-            deepEqual(currentPosition, ["internal_functions", 0, "key"]);
+            deepEqual(result.position, ["internal_functions", 0, "key"]);
             equal(result.startValueIndex, 150);
+        }
+
+        {
+            const result = iterateThroughJSONStringUsingPosition(state, currentPosition, json, currentOffset);
+            currentOffset = result.nextStartIndex;
+
+            deepEqual(result.position, ["internal_functions", 1]);
+            equal(result.startValueIndex, 158);
         }
     });
 });
@@ -581,7 +597,7 @@ describe("fromPositionToOffset function", () => {
         {
             const json = '[]';
 
-            const actualValue = fromPositionToOffset(startParserState, json, 0, [], [ArrayPosition.begin]);
+            const actualValue = fromPositionToOffset(startParserState, json, 0, [], [0]);
             const expectedValue = 1;
             equal(actualValue.offset, expectedValue);
         }
@@ -589,7 +605,7 @@ describe("fromPositionToOffset function", () => {
         {
             const json = '[1,2]';
 
-            const actualValue = fromPositionToOffset(startParserState, json, 0, [], [ArrayPosition.end]);
+            const actualValue = fromPositionToOffset(startParserState, json, 0, [], [2]);
             const expectedValue = 4;
             equal(actualValue.offset, expectedValue);
         }
@@ -663,6 +679,73 @@ describe("fromOffsetToPosition function", () => {
                 const actualValue = fromOffsetToPosition(json, 37);
                 const expectedValue = ["fruits", 1, "name"];
                 deepEqual(actualValue, expectedValue);
+            }
+        }
+    });
+});
+
+describe("findEndOfCurrentObject function", () => {
+    it("should return offset of curly brace that closes the object", () => {
+
+        {
+            const json = '{"fruits":{"name":"orange"}}';
+
+            {
+                const parserState = {
+                    stack: [],
+                    expectKey: false
+                };
+
+                const actualValue = findEndOfCurrentObject(parserState, json, 0).offset;
+                const expectedValue = 28;
+                equal(actualValue, expectedValue);
+            }
+
+            {
+                const parserState = {
+                    stack: ['{'],
+                    expectKey: false
+                };
+
+                const actualValue = findEndOfCurrentObject(parserState, json, 10).offset;
+                const expectedValue = 27;
+                equal(actualValue, expectedValue);
+            }
+        }
+    });
+
+    it("should return offset at end of string", () => {
+
+        {
+            const json = '{"name":"orange"}';
+
+            {
+                const parserState = {
+                    stack: [],
+                    expectKey: false
+                };
+
+                const actualValue = findEndOfCurrentObject(parserState, json, 8).offset;
+                const expectedValue = 16;
+                equal(actualValue, expectedValue);
+            }
+        }
+    });
+
+    it("should return offset at end of number", () => {
+
+        {
+            const json = '{"name":123}';
+
+            {
+                const parserState = {
+                    stack: [],
+                    expectKey: false
+                };
+
+                const actualValue = findEndOfCurrentObject(parserState, json, 8).offset;
+                const expectedValue = 11;
+                equal(actualValue, expectedValue);
             }
         }
     });

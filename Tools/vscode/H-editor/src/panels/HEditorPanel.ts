@@ -123,6 +123,16 @@ export class HEditorPanel {
           listener.createFunction(message.data.function_index, message.data.is_export_declaration);
         }
         break;
+      case "insert:value":
+        for (const listener of this.listeners) {
+          listener.insertValue(message.data.position);
+        }
+        break;
+      case "delete:value":
+        for (const listener of this.listeners) {
+          listener.deleteValue(message.data.position);
+        }
+        break;
       case "update:value":
         for (const listener of this.listeners) {
           listener.updateValue(message.data.position, message.data.new_value);

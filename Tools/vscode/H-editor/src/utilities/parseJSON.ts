@@ -292,6 +292,7 @@ export function iterateThroughJSONString(state: ParserState, text: string, start
 }
 
 export interface ParseJSONIteratePositionResult {
+  position: any[],
   startValueIndex: number,
   nextStartIndex: number
 }
@@ -313,6 +314,7 @@ export function iterateThroughJSONStringUsingPosition(state: ParserState, curren
       }
 
       return {
+        position: [...currentPosition],
         startValueIndex: result.endIndex + 1,
         nextStartIndex: result.endIndex
       };
@@ -321,13 +323,23 @@ export function iterateThroughJSONStringUsingPosition(state: ParserState, curren
       currentPosition.push(-1);
     }
     else if (result.event === JSONParserEvent.closeArray) {
+
+      currentPosition[currentPosition.length - 1] += 1;
+      const position = [...currentPosition];
       currentPosition.pop();
+
+      return {
+        position: position,
+        startValueIndex: result.startIndex,
+        nextStartIndex: result.endIndex
+      };
     }
     else if (result.event === JSONParserEvent.openObject) {
       if (state.stack.length > 1 && state.stack[state.stack.length - 2] === '[') {
         currentPosition[currentPosition.length - 1] += 1;
 
         return {
+          position: [...currentPosition],
           startValueIndex: result.startIndex,
           nextStartIndex: result.endIndex
         };
@@ -343,6 +355,7 @@ export function iterateThroughJSONStringUsingPosition(state: ParserState, curren
         currentPosition[currentPosition.length - 1] += 1;
 
         return {
+          position: [...currentPosition],
           startValueIndex: result.startIndex,
           nextStartIndex: result.endIndex
         };
@@ -353,6 +366,7 @@ export function iterateThroughJSONStringUsingPosition(state: ParserState, curren
         currentPosition[currentPosition.length - 1] += 1;
 
         return {
+          position: [...currentPosition],
           startValueIndex: result.startIndex,
           nextStartIndex: result.endIndex
         };
@@ -363,6 +377,7 @@ export function iterateThroughJSONStringUsingPosition(state: ParserState, curren
   }
 
   return {
+    position: [...currentPosition],
     startValueIndex: text.length,
     nextStartIndex: text.length
   };
@@ -371,11 +386,6 @@ export function iterateThroughJSONStringUsingPosition(state: ParserState, curren
 function areArraysEqual(array0: any[], array1: any[]): boolean {
   return array0.length === array1.length && array0.every((value, index) => value === array1[index]);
 }
-
-export enum ArrayPosition {
-  begin = "array_begin",
-  end = "array_end"
-};
 
 export interface OffsetResult {
   offset: number;
@@ -413,6 +423,16 @@ export function fromPositionToOffset(startState: ParserState, text: string, star
       currentPosition.push(-1);
     }
     else if (result.event === JSONParserEvent.closeArray) {
+
+      {
+        currentPosition[currentPosition.length - 1] += 1;
+
+        if (areArraysEqual(currentPosition, position)) {
+          currentPosition.pop();
+          return { offset: offset, newState: state };
+        }
+      }
+
       currentPosition.pop();
     }
     else if (result.event === JSONParserEvent.openObject) {
@@ -457,20 +477,6 @@ export function fromPositionToOffset(startState: ParserState, text: string, star
       }
     }
 
-    if (result.event === JSONParserEvent.openArray) {
-      const positionPlusArrayBegin = currentPosition.slice(0, currentPosition.length - 1).concat(ArrayPosition.begin);
-      if (areArraysEqual(positionPlusArrayBegin, position)) {
-        return { offset: result.endIndex, newState: state };
-      }
-    }
-
-    if (result.event === JSONParserEvent.closeArray) {
-      const positionPlusArrayEnd = currentPosition.slice(0, currentPosition.length - 1).concat(ArrayPosition.end);
-      if (areArraysEqual(positionPlusArrayEnd, position)) {
-        return { offset: offset, newState: state };
-      }
-    }
-
     offset = result.endIndex;
   }
 
@@ -496,7 +502,7 @@ export function fromOffsetToPosition(text: string, targetOffset: number): any[] 
     const result = iterateThroughJSONStringUsingPosition(state, currentPosition, text, currentOffset);
 
     if (result.startValueIndex === targetOffset) {
-      return currentPosition;
+      return result.position;
     }
 
     if (result.startValueIndex > targetOffset) {
@@ -507,4 +513,61 @@ export function fromOffsetToPosition(text: string, targetOffset: number): any[] 
   }
 
   throw Error("fromOffsetToPosition() reached end of file.");
+}
+
+export function findEndOfCurrentObject(startState: ParserState, text: string, startIndex: number): OffsetResult {
+
+  let state = JSON.parse(JSON.stringify(startState));
+
+  let currentOffset = startIndex;
+
+  if (text[currentOffset] === '"') {
+    const offset = findEndOfString(text, currentOffset + 1) + 1;
+    return {
+      offset: offset,
+      newState: state
+    };
+  }
+  else if (isNumber(text[currentOffset])) {
+    const result = findNumber(text, currentOffset);
+    return {
+      offset: result.closeIndex,
+      newState: state
+    };
+  }
+
+  if (text[currentOffset] !== '{' && text[currentOffset] !== '[') {
+    throw Error("Expected open object/array");
+  }
+
+  let stack: any[] = [];
+
+  while (currentOffset < text.length) {
+
+    const result = iterateThroughJSONString(state, text, currentOffset);
+
+    if (result.event === JSONParserEvent.openObject) {
+      stack.push('{');
+    }
+    else if (result.event === JSONParserEvent.closeObject) {
+      stack.pop();
+    }
+    else if (result.event === JSONParserEvent.openArray) {
+      stack.push('[');
+    }
+    else if (result.event === JSONParserEvent.closeArray) {
+      stack.pop();
+    }
+
+    if (stack.length === 0) {
+      return {
+        offset: result.endIndex,
+        newState: state
+      };
+    }
+
+    currentOffset = result.endIndex;
+  }
+
+  throw Error("findEndOfCurrentObject() reached end of file.");
 }
