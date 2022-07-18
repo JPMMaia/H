@@ -3,6 +3,9 @@ add_library(H::Tools::Code_generator ALIAS H_Tools_Code_generator)
 
 target_compile_features(H_Tools_Code_generator PUBLIC cxx_std_23)
 
+find_package(RapidJSON CONFIG REQUIRED)
+target_link_libraries(H_Tools_Code_generator PRIVATE rapidjson)
+
 target_sources(H_Tools_Code_generator PRIVATE
     "Code_generator.cppm"
     "Code_generator.cpp"
@@ -33,3 +36,18 @@ target_link_libraries(H_Tools_Generate_JSON PRIVATE H_Tools_Code_generator)
 target_sources(H_Tools_Generate_JSON PRIVATE
     "main.cpp"
 )
+
+
+set(H_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}/../../")
+
+add_custom_command(
+    OUTPUT "${H_ROOT_DIR}/Tools/vscode/H-editor/src/utilities/h_core_reflection.json"
+    COMMAND H_Tools_Generate_JSON
+                ARGS
+                "reflection_json"
+                "${H_ROOT_DIR}/Source/Core/Core.cppm"
+                "${H_ROOT_DIR}/Tools/vscode/H-editor/src/utilities/h_core_reflection.json"
+    DEPENDS H_Tools_Generate_JSON "${H_ROOT_DIR}/Source/Core/Core.cppm"
+    VERBATIM
+)
+add_custom_target(Generate_h_core_reflection_json DEPENDS "${H_ROOT_DIR}/Tools/vscode/H-editor/src/utilities/h_core_reflection.json")

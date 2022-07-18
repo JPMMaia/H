@@ -11,6 +11,10 @@ module;
 #include <unordered_map>
 #include <unordered_set>
 
+#include <rapidjson/document.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
+
 module h.tools.code_generator;
 
 namespace h::tools::code_generator
@@ -1426,5 +1430,85 @@ namespace h::tools::code_generator
         }
 
         output_stream << "}\n";
+    }
+
+    void generate_json_data(
+        std::istream& input_stream,
+        std::ostream& output_stream
+    )
+    {
+        File_types const file_types = identify_file_types(
+            input_stream
+        );
+
+        rapidjson::StringBuffer buffer;
+        rapidjson::Writer<rapidjson::StringBuffer> writer{ buffer };
+
+        writer.StartObject();
+        {
+            {
+                writer.Key("enums");
+
+                writer.StartArray();
+                for (Enum const& enum_info : file_types.enums)
+                {
+                    writer.StartObject();
+                    {
+                        writer.Key("name");
+                        writer.String(enum_info.name.c_str());
+
+                        writer.Key("values");
+                        writer.StartArray();
+                        for (std::pmr::string const& value : enum_info.values)
+                        {
+                            writer.String(value.c_str());
+                        }
+                        writer.EndArray();
+                    }
+                    writer.EndObject();
+                }
+                writer.EndArray();
+            }
+
+            {
+                writer.Key("structs");
+
+                writer.StartArray();
+                for (Struct const& struct_info : file_types.structs)
+                {
+                    writer.StartObject();
+                    {
+                        writer.Key("name");
+                        writer.String(struct_info.name.c_str());
+
+                        writer.Key("members");
+                        writer.StartArray();
+                        for (Member const& member : struct_info.members)
+                        {
+                            writer.StartObject();
+                            {
+                                writer.Key("type");
+                                writer.StartObject();
+                                {
+                                    writer.Key("name");
+                                    writer.String(member.type.name.c_str());
+                                }
+                                writer.EndObject();
+
+                                writer.Key("name");
+                                writer.String(member.name.c_str());
+                            }
+                            writer.EndObject();
+                        }
+                        writer.EndArray();
+                    }
+                    writer.EndObject();
+                }
+                writer.EndArray();
+            }
+        }
+        writer.EndObject();
+
+        output_stream << buffer.GetString();
     }
 }

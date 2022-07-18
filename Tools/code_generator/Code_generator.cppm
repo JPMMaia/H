@@ -88,4 +88,9 @@ namespace h::tools::code_generator
         std::string_view const export_module_name,
         std::string_view const namespace_name
     );
+
+    export void generate_json_data(
+        std::istream& input_stream,
+        std::ostream& output_stream
+    );
 }
