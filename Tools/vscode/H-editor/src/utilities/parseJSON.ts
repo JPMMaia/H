@@ -274,7 +274,7 @@ export function iterateThroughJSONString(state: ParserState, text: string, start
           return {
             event: JSONParserEvent.string,
             value: text.substring(beginValueIndex + 1, index),
-            startIndex: beginKeyIndex,
+            startIndex: beginValueIndex,
             endIndex: index + 1
           };
         }
