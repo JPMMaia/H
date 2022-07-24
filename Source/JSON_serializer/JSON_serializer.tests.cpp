@@ -276,6 +276,7 @@ namespace h
 
         return h::Function_declaration
         {
+            .id = 125,
             .name = "Add",
             .return_type = Type_reference{.data = Fundamental_type::Int32},
             .parameter_types = std::move(parameter_types),
@@ -289,6 +290,7 @@ namespace h
     {
         std::pmr::string const json_data = R"JSON(
             {
+                "id": 125,
                 "name": "Add",
                 "return_type": {
                     "fundamental_type": "int32"
@@ -374,7 +376,7 @@ namespace h
 
         h::Function_definition function
         {
-            .name = "Foo",
+            .id = 125,
             .statements = std::move(statements)
         };
 
@@ -385,7 +387,7 @@ namespace h
     {
         std::pmr::string const json_data = R"JSON(
         {
-            "name": "Foo",
+            "id": 125,
             "statements": {
                 "size": 1,
                 "elements": [
@@ -459,6 +461,7 @@ namespace h
         return h::Module
         {
             .language_version = language_version,
+            .name = "module_name",
             .export_declarations = std::move(export_declarations),
             .internal_declarations = Module_declarations{},
             .definitions = std::move(definitions),
@@ -474,11 +477,13 @@ namespace h
                 "minor": 2,
                 "patch": 3
             },
+            "name": "module_name",
             "export_declarations": {
                 "function_declarations": {
                     "size": 1,
                     "elements": [
                         {
+                            "id": 125,
                             "name": "Add",
                             "return_type": {
                                 "fundamental_type": "int32"
@@ -522,7 +527,7 @@ namespace h
                     "size": 1,
                     "elements": [
                         {
-                            "name": "Foo",
+                            "id": 125,
                             "statements": {
                                 "size": 1,
                                 "elements": [

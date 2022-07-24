@@ -20,11 +20,11 @@ namespace h::json
         Key,
         Value
     };
-
+    
     export struct No_event_data
     {
     };
-
+    
     export template<typename Output_type, typename Value_type>
         bool read_value(
             Output_type& output,
@@ -48,7 +48,7 @@ namespace h::json
             return false;
         }
     }
-
+    
     template<typename Object_type, typename Event_data>
     bool read_object(
         Object_type& output,
@@ -57,7 +57,7 @@ namespace h::json
         std::pmr::vector<int>& state_stack,
         std::size_t const state_stack_position
     );
-
+    
     export template<typename Output_type, typename Event_data>
         bool read_object(
             std::pmr::vector<Output_type>& output,
@@ -71,9 +71,9 @@ namespace h::json
         {
             return false;
         }
-
+        
         int& state = state_stack[state_stack_position];
-
+        
         if (state == 0)
         {
             if (event == Event::Start_object)
@@ -161,7 +161,7 @@ namespace h::json
                     {
                         return false;
                     }
-
+                    
                     state = 4;
                     return true;
                 }
@@ -179,1881 +179,1901 @@ namespace h::json
                 return true;
             }
         }
-
+    
         return false;
     }
-
+    
     export template<typename Enum_type, typename Event_value>
-        bool read_enum(Enum_type& output, Event_value const value)
+    bool read_enum(Enum_type & output, Event_value const value)
     {
         return false;
     };
-
-    export template<>
-        bool read_enum(Fundamental_type& output, std::string_view const value)
+    
+export template<>
+bool read_enum(Fundamental_type& output, std::string_view const value)
+{
+    if (value == "byte")
     {
-        if (value == "byte")
-        {
-            output = Fundamental_type::Byte;
-            return true;
-        }
-        else if (value == "uint8")
-        {
-            output = Fundamental_type::Uint8;
-            return true;
-        }
-        else if (value == "uint16")
-        {
-            output = Fundamental_type::Uint16;
-            return true;
-        }
-        else if (value == "uint32")
-        {
-            output = Fundamental_type::Uint32;
-            return true;
-        }
-        else if (value == "uint64")
-        {
-            output = Fundamental_type::Uint64;
-            return true;
-        }
-        else if (value == "int8")
-        {
-            output = Fundamental_type::Int8;
-            return true;
-        }
-        else if (value == "int16")
-        {
-            output = Fundamental_type::Int16;
-            return true;
-        }
-        else if (value == "int32")
-        {
-            output = Fundamental_type::Int32;
-            return true;
-        }
-        else if (value == "int64")
-        {
-            output = Fundamental_type::Int64;
-            return true;
-        }
-        else if (value == "float16")
-        {
-            output = Fundamental_type::Float16;
-            return true;
-        }
-        else if (value == "float32")
-        {
-            output = Fundamental_type::Float32;
-            return true;
-        }
-        else if (value == "float64")
-        {
-            output = Fundamental_type::Float64;
-            return true;
-        }
-
-        std::cerr << std::format("Failed to read enum 'Fundamental_type' with value '{}'\n", value);
-        return false;
+        output = Fundamental_type::Byte;
+        return true;
     }
+else if (value == "uint8")
+{
+    output = Fundamental_type::Uint8;
+    return true;
+}
+else if (value == "uint16")
+{
+    output = Fundamental_type::Uint16;
+    return true;
+}
+else if (value == "uint32")
+{
+    output = Fundamental_type::Uint32;
+    return true;
+}
+else if (value == "uint64")
+{
+    output = Fundamental_type::Uint64;
+    return true;
+}
+else if (value == "int8")
+{
+    output = Fundamental_type::Int8;
+    return true;
+}
+else if (value == "int16")
+{
+    output = Fundamental_type::Int16;
+    return true;
+}
+else if (value == "int32")
+{
+    output = Fundamental_type::Int32;
+    return true;
+}
+else if (value == "int64")
+{
+    output = Fundamental_type::Int64;
+    return true;
+}
+else if (value == "float16")
+{
+    output = Fundamental_type::Float16;
+    return true;
+}
+else if (value == "float32")
+{
+    output = Fundamental_type::Float32;
+    return true;
+}
+else if (value == "float64")
+{
+    output = Fundamental_type::Float64;
+    return true;
+}
 
-    export template<>
-        bool read_enum(Variable_expression_type& output, std::string_view const value)
+    std::cerr << std::format("Failed to read enum 'Fundamental_type' with value '{}'\n", value);
+    return false;
+}
+
+export template<>
+bool read_enum(Variable_expression_type& output, std::string_view const value)
+{
+    if (value == "function_argument")
     {
-        if (value == "function_argument")
-        {
-            output = Variable_expression_type::Function_argument;
-            return true;
-        }
-        else if (value == "local_variable")
-        {
-            output = Variable_expression_type::Local_variable;
-            return true;
-        }
-        else if (value == "temporary")
-        {
-            output = Variable_expression_type::Temporary;
-            return true;
-        }
-
-        std::cerr << std::format("Failed to read enum 'Variable_expression_type' with value '{}'\n", value);
-        return false;
+        output = Variable_expression_type::Function_argument;
+        return true;
     }
+else if (value == "local_variable")
+{
+    output = Variable_expression_type::Local_variable;
+    return true;
+}
+else if (value == "temporary")
+{
+    output = Variable_expression_type::Temporary;
+    return true;
+}
 
-    export template<>
-        bool read_enum(Binary_operation& output, std::string_view const value)
+    std::cerr << std::format("Failed to read enum 'Variable_expression_type' with value '{}'\n", value);
+    return false;
+}
+
+export template<>
+bool read_enum(Binary_operation& output, std::string_view const value)
+{
+    if (value == "add")
     {
-        if (value == "add")
-        {
-            output = Binary_operation::Add;
-            return true;
-        }
-        else if (value == "subtract")
-        {
-            output = Binary_operation::Subtract;
-            return true;
-        }
-        else if (value == "multiply")
-        {
-            output = Binary_operation::Multiply;
-            return true;
-        }
-        else if (value == "signed_divide")
-        {
-            output = Binary_operation::Signed_divide;
-            return true;
-        }
-        else if (value == "unsigned_divide")
-        {
-            output = Binary_operation::Unsigned_divide;
-            return true;
-        }
-        else if (value == "less_than")
-        {
-            output = Binary_operation::Less_than;
-            return true;
-        }
-
-        std::cerr << std::format("Failed to read enum 'Binary_operation' with value '{}'\n", value);
-        return false;
+        output = Binary_operation::Add;
+        return true;
     }
+else if (value == "subtract")
+{
+    output = Binary_operation::Subtract;
+    return true;
+}
+else if (value == "multiply")
+{
+    output = Binary_operation::Multiply;
+    return true;
+}
+else if (value == "signed_divide")
+{
+    output = Binary_operation::Signed_divide;
+    return true;
+}
+else if (value == "unsigned_divide")
+{
+    output = Binary_operation::Unsigned_divide;
+    return true;
+}
+else if (value == "less_than")
+{
+    output = Binary_operation::Less_than;
+    return true;
+}
 
-    export template<>
-        bool read_enum(Linkage& output, std::string_view const value)
+    std::cerr << std::format("Failed to read enum 'Binary_operation' with value '{}'\n", value);
+    return false;
+}
+
+export template<>
+bool read_enum(Linkage& output, std::string_view const value)
+{
+    if (value == "external")
     {
-        if (value == "external")
-        {
-            output = Linkage::External;
-            return true;
-        }
-        else if (value == "private")
-        {
-            output = Linkage::Private;
-            return true;
-        }
-
-        std::cerr << std::format("Failed to read enum 'Linkage' with value '{}'\n", value);
-        return false;
+        output = Linkage::External;
+        return true;
     }
+else if (value == "private")
+{
+    output = Linkage::Private;
+    return true;
+}
 
+    std::cerr << std::format("Failed to read enum 'Linkage' with value '{}'\n", value);
+    return false;
+}
 
+    
     export template<typename Object_type, typename Event_data>
-        bool read_object(
-            Object_type& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        );
-
-    export template<typename Event_data>
-        bool read_object(
-            Module_reference& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    bool read_object(
+        Object_type& output,
+        Event const event,
+        Event_data const event_data,
+        std::pmr::vector<int>& state_stack,
+        std::size_t const state_stack_position
+    );
+    
+export template<typename Event_data>
+bool read_object(
+    Module_reference& output,
+    Event const event,
+    Event_data const event_data,
+    std::pmr::vector<int>& state_stack,
+    std::size_t const state_stack_position
+)
+{
+    if (state_stack_position >= state_stack.size())
     {
-        if (state_stack_position >= state_stack.size())
-        {
-            return false;
-        }
-
-        int& state = state_stack[state_stack_position];
-
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
-            {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "name")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Module_reference' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 1;
-            return read_value(output.name, "name", event_data);
-        }
-        }
-
-        std::cerr << "Error while reading 'Module_reference'.\n";
         return false;
     }
+    
+    int& state = state_stack[state_stack_position];
 
-    export template<typename Event_data>
-        bool read_object(
-            Struct_type_reference& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    switch (state)
     {
-        if (state_stack_position >= state_stack.size())
-        {
-            return false;
-        }
-
-        int& state = state_stack[state_stack_position];
-
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
-            {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "module_reference")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "id")
-                    {
-                        state = 5;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Struct_type_reference' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 4;
-            return read_object(output.module_reference, event, event_data, state_stack, state_stack_position + 1);
-        }
-        case 4:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
-            {
-                if (!read_object(output.module_reference, event, event_data, state_stack, state_stack_position + 1))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.module_reference, event, event_data, state_stack, state_stack_position + 1);
-            }
-        }
-        case 5:
+    case 0:
+    {
+        if (event == Event::Start_object)
         {
             state = 1;
-            return read_value(output.id, "id", event_data);
+            return true;
+        }
+        break;
+    }
+    case 1:
+    {
+        switch (event)
+        {
+        case Event::Key:
+        {
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
+            {
+if (event_data == "name")
+{
+    state = 3;
+    return true;
+}
+            }
+            break;
+        }
+        case Event::End_object:
+        {
+            state = 2;
+            return true;
         }
         }
-
-        std::cerr << "Error while reading 'Struct_type_reference'.\n";
+        break;
+    }
+    case 2:
+    {
+        std::cerr << "While parsing 'Module_reference' unexpected '}' found.\n";
         return false;
     }
+case 3:
+{
+    state = 1;
+    return read_value(output.name, "name", event_data);
+}
+    }
+    
+    std::cerr << "Error while reading 'Module_reference'.\n";
+    return false;
+}
 
-    export template<typename Event_data>
-        bool read_object(
-            Type_reference& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+export template<typename Event_data>
+bool read_object(
+    Struct_type_reference& output,
+    Event const event,
+    Event_data const event_data,
+    std::pmr::vector<int>& state_stack,
+    std::size_t const state_stack_position
+)
+{
+    if (state_stack_position >= state_stack.size())
     {
-        if (state_stack_position >= state_stack.size())
-        {
-            return false;
-        }
-
-        int& state = state_stack[state_stack_position];
-
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
-            {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "fundamental_type")
-                    {
-                        output.data = Fundamental_type{};
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "struct_type_reference")
-                    {
-                        output.data = Struct_type_reference{};
-                        state = 5;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Type_reference' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 1;
-            return read_enum(std::get<Fundamental_type>(output.data), event_data);
-        }
-        case 5:
-        {
-            state = 6;
-            return read_object(std::get<Struct_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1);
-        }
-        case 6:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
-            {
-                if (!read_object(std::get<Struct_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(std::get<Struct_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1);
-            }
-        }
-        }
-
-        std::cerr << "Error while reading 'Type_reference'.\n";
         return false;
     }
+    
+    int& state = state_stack[state_stack_position];
 
-    export template<typename Event_data>
-        bool read_object(
-            Variable_expression& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    switch (state)
     {
-        if (state_stack_position >= state_stack.size())
+    case 0:
+    {
+        if (event == Event::Start_object)
         {
-            return false;
+            state = 1;
+            return true;
         }
-
-        int& state = state_stack[state_stack_position];
-
-        switch (state)
+        break;
+    }
+    case 1:
+    {
+        switch (event)
         {
-        case 0:
+        case Event::Key:
         {
-            if (event == Event::Start_object)
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
             {
-                state = 1;
-                return true;
+if (event_data == "module_reference")
+{
+    state = 3;
+    return true;
+}
+else if (event_data == "id")
+{
+    state = 5;
+    return true;
+}
             }
             break;
         }
-        case 1:
+        case Event::End_object:
         {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "type")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "id")
-                    {
-                        state = 4;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Variable_expression' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 1;
-            return read_enum(output.type, event_data);
-        }
-        case 4:
-        {
-            state = 1;
-            return read_value(output.id, "id", event_data);
+            state = 2;
+            return true;
         }
         }
-
-        std::cerr << "Error while reading 'Variable_expression'.\n";
+        break;
+    }
+    case 2:
+    {
+        std::cerr << "While parsing 'Struct_type_reference' unexpected '}' found.\n";
         return false;
     }
-
-    export template<typename Event_data>
-        bool read_object(
-            Binary_expression& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+case 3:
+{
+    state = 4;
+    return read_object(output.module_reference, event, event_data, state_stack, state_stack_position + 1);
+}
+case 4:
+{
+    if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
     {
-        if (state_stack_position >= state_stack.size())
+        if (!read_object(output.module_reference, event, event_data, state_stack, state_stack_position + 1))
         {
             return false;
         }
+        
+        state = 1;
+        return true;
+    }
+    else
+    {
+        return read_object(output.module_reference, event, event_data, state_stack, state_stack_position + 1);
+    }
+}
+case 5:
+{
+    state = 1;
+    return read_value(output.id, "id", event_data);
+}
+    }
+    
+    std::cerr << "Error while reading 'Struct_type_reference'.\n";
+    return false;
+}
 
-        int& state = state_stack[state_stack_position];
-
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
-            {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "left_hand_side")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "right_hand_side")
-                    {
-                        state = 5;
-                        return true;
-                    }
-                    else if (event_data == "operation")
-                    {
-                        state = 7;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Binary_expression' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 4;
-            return read_object(output.left_hand_side, event, event_data, state_stack, state_stack_position + 1);
-        }
-        case 4:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
-            {
-                if (!read_object(output.left_hand_side, event, event_data, state_stack, state_stack_position + 1))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.left_hand_side, event, event_data, state_stack, state_stack_position + 1);
-            }
-        }
-        case 5:
-        {
-            state = 6;
-            return read_object(output.right_hand_side, event, event_data, state_stack, state_stack_position + 1);
-        }
-        case 6:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
-            {
-                if (!read_object(output.right_hand_side, event, event_data, state_stack, state_stack_position + 1))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.right_hand_side, event, event_data, state_stack, state_stack_position + 1);
-            }
-        }
-        case 7:
-        {
-            state = 1;
-            return read_enum(output.operation, event_data);
-        }
-        }
-
-        std::cerr << "Error while reading 'Binary_expression'.\n";
+export template<typename Event_data>
+bool read_object(
+    Type_reference& output,
+    Event const event,
+    Event_data const event_data,
+    std::pmr::vector<int>& state_stack,
+    std::size_t const state_stack_position
+)
+{
+    if (state_stack_position >= state_stack.size())
+    {
         return false;
     }
+    
+    int& state = state_stack[state_stack_position];
 
-    export template<typename Event_data>
-        bool read_object(
-            Call_expression& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    switch (state)
     {
-        if (state_stack_position >= state_stack.size())
-        {
-            return false;
-        }
-
-        int& state = state_stack[state_stack_position];
-
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
-            {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "function_name")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "arguments")
-                    {
-                        state = 4;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Call_expression' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
+    case 0:
+    {
+        if (event == Event::Start_object)
         {
             state = 1;
-            return read_value(output.function_name, "function_name", event_data);
+            return true;
         }
-        case 4:
+        break;
+    }
+    case 1:
+    {
+        switch (event)
         {
-            state = 5;
-            return read_object(output.arguments, event, event_data, state_stack, state_stack_position + 1);
-        }
-        case 5:
+        case Event::Key:
         {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
             {
-                if (!read_object(output.arguments, event, event_data, state_stack, state_stack_position + 1))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
+if (event_data == "fundamental_type")
+{
+    output.data = Fundamental_type{};
+    state = 3;
+    return true;
+}
+else if (event_data == "struct_type_reference")
+{
+    output.data = Struct_type_reference{};
+    state = 5;
+    return true;
+}
             }
-            else
-            {
-                return read_object(output.arguments, event, event_data, state_stack, state_stack_position + 1);
-            }
+            break;
+        }
+        case Event::End_object:
+        {
+            state = 2;
+            return true;
         }
         }
-
-        std::cerr << "Error while reading 'Call_expression'.\n";
+        break;
+    }
+    case 2:
+    {
+        std::cerr << "While parsing 'Type_reference' unexpected '}' found.\n";
         return false;
     }
-
-    export template<typename Event_data>
-        bool read_object(
-            Constant_expression& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+case 3:
+{
+    state = 1;
+    return read_enum(std::get<Fundamental_type>(output.data), event_data);
+}
+case 5:
+{
+    state = 6;
+    return read_object(std::get<Struct_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1);
+}
+case 6:
+{
+    if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
     {
-        if (state_stack_position >= state_stack.size())
+        if (!read_object(std::get<Struct_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1))
         {
             return false;
         }
+        
+        state = 1;
+        return true;
+    }
+    else
+    {
+        return read_object(std::get<Struct_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1);
+    }
+}
+    }
+    
+    std::cerr << "Error while reading 'Type_reference'.\n";
+    return false;
+}
 
-        int& state = state_stack[state_stack_position];
+export template<typename Event_data>
+bool read_object(
+    Variable_expression& output,
+    Event const event,
+    Event_data const event_data,
+    std::pmr::vector<int>& state_stack,
+    std::size_t const state_stack_position
+)
+{
+    if (state_stack_position >= state_stack.size())
+    {
+        return false;
+    }
+    
+    int& state = state_stack[state_stack_position];
 
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
-            {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "type")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "data")
-                    {
-                        state = 4;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Constant_expression' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
+    switch (state)
+    {
+    case 0:
+    {
+        if (event == Event::Start_object)
         {
             state = 1;
-            return read_enum(output.type, event_data);
+            return true;
         }
-        case 4:
+        break;
+    }
+    case 1:
+    {
+        switch (event)
+        {
+        case Event::Key:
+        {
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
+            {
+if (event_data == "type")
+{
+    state = 3;
+    return true;
+}
+else if (event_data == "id")
+{
+    state = 4;
+    return true;
+}
+            }
+            break;
+        }
+        case Event::End_object:
+        {
+            state = 2;
+            return true;
+        }
+        }
+        break;
+    }
+    case 2:
+    {
+        std::cerr << "While parsing 'Variable_expression' unexpected '}' found.\n";
+        return false;
+    }
+case 3:
+{
+    state = 1;
+    return read_enum(output.type, event_data);
+}
+case 4:
+{
+    state = 1;
+    return read_value(output.id, "id", event_data);
+}
+    }
+    
+    std::cerr << "Error while reading 'Variable_expression'.\n";
+    return false;
+}
+
+export template<typename Event_data>
+bool read_object(
+    Binary_expression& output,
+    Event const event,
+    Event_data const event_data,
+    std::pmr::vector<int>& state_stack,
+    std::size_t const state_stack_position
+)
+{
+    if (state_stack_position >= state_stack.size())
+    {
+        return false;
+    }
+    
+    int& state = state_stack[state_stack_position];
+
+    switch (state)
+    {
+    case 0:
+    {
+        if (event == Event::Start_object)
         {
             state = 1;
-            return read_value(output.data, "data", event_data);
+            return true;
+        }
+        break;
+    }
+    case 1:
+    {
+        switch (event)
+        {
+        case Event::Key:
+        {
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
+            {
+if (event_data == "left_hand_side")
+{
+    state = 3;
+    return true;
+}
+else if (event_data == "right_hand_side")
+{
+    state = 5;
+    return true;
+}
+else if (event_data == "operation")
+{
+    state = 7;
+    return true;
+}
+            }
+            break;
+        }
+        case Event::End_object:
+        {
+            state = 2;
+            return true;
         }
         }
-
-        std::cerr << "Error while reading 'Constant_expression'.\n";
+        break;
+    }
+    case 2:
+    {
+        std::cerr << "While parsing 'Binary_expression' unexpected '}' found.\n";
         return false;
     }
-
-    export template<typename Event_data>
-        bool read_object(
-            Return_expression& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+case 3:
+{
+    state = 4;
+    return read_object(output.left_hand_side, event, event_data, state_stack, state_stack_position + 1);
+}
+case 4:
+{
+    if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
     {
-        if (state_stack_position >= state_stack.size())
+        if (!read_object(output.left_hand_side, event, event_data, state_stack, state_stack_position + 1))
         {
             return false;
         }
-
-        int& state = state_stack[state_stack_position];
-
-        switch (state)
+        
+        state = 1;
+        return true;
+    }
+    else
+    {
+        return read_object(output.left_hand_side, event, event_data, state_stack, state_stack_position + 1);
+    }
+}
+case 5:
+{
+    state = 6;
+    return read_object(output.right_hand_side, event, event_data, state_stack, state_stack_position + 1);
+}
+case 6:
+{
+    if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+    {
+        if (!read_object(output.right_hand_side, event, event_data, state_stack, state_stack_position + 1))
         {
-        case 0:
-        {
-            if (event == Event::Start_object)
-            {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "variable")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Return_expression' unexpected '}' found.\n";
             return false;
         }
-        case 3:
-        {
-            state = 4;
-            return read_object(output.variable, event, event_data, state_stack, state_stack_position + 1);
-        }
-        case 4:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
-            {
-                if (!read_object(output.variable, event, event_data, state_stack, state_stack_position + 1))
-                {
-                    return false;
-                }
+        
+        state = 1;
+        return true;
+    }
+    else
+    {
+        return read_object(output.right_hand_side, event, event_data, state_stack, state_stack_position + 1);
+    }
+}
+case 7:
+{
+    state = 1;
+    return read_enum(output.operation, event_data);
+}
+    }
+    
+    std::cerr << "Error while reading 'Binary_expression'.\n";
+    return false;
+}
 
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.variable, event, event_data, state_stack, state_stack_position + 1);
-            }
-        }
-        }
-
-        std::cerr << "Error while reading 'Return_expression'.\n";
+export template<typename Event_data>
+bool read_object(
+    Call_expression& output,
+    Event const event,
+    Event_data const event_data,
+    std::pmr::vector<int>& state_stack,
+    std::size_t const state_stack_position
+)
+{
+    if (state_stack_position >= state_stack.size())
+    {
         return false;
     }
+    
+    int& state = state_stack[state_stack_position];
 
-    export template<typename Event_data>
-        bool read_object(
-            Expression& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    switch (state)
     {
-        if (state_stack_position >= state_stack.size())
-        {
-            return false;
-        }
-
-        int& state = state_stack[state_stack_position];
-
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
-            {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "binary_expression")
-                    {
-                        output.data = Binary_expression{};
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "call_expression")
-                    {
-                        output.data = Call_expression{};
-                        state = 5;
-                        return true;
-                    }
-                    else if (event_data == "constant_expression")
-                    {
-                        output.data = Constant_expression{};
-                        state = 7;
-                        return true;
-                    }
-                    else if (event_data == "return_expression")
-                    {
-                        output.data = Return_expression{};
-                        state = 9;
-                        return true;
-                    }
-                    else if (event_data == "variable_expression")
-                    {
-                        output.data = Variable_expression{};
-                        state = 11;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Expression' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 4;
-            return read_object(std::get<Binary_expression>(output.data), event, event_data, state_stack, state_stack_position + 1);
-        }
-        case 4:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
-            {
-                if (!read_object(std::get<Binary_expression>(output.data), event, event_data, state_stack, state_stack_position + 1))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(std::get<Binary_expression>(output.data), event, event_data, state_stack, state_stack_position + 1);
-            }
-        }
-        case 5:
-        {
-            state = 6;
-            return read_object(std::get<Call_expression>(output.data), event, event_data, state_stack, state_stack_position + 1);
-        }
-        case 6:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
-            {
-                if (!read_object(std::get<Call_expression>(output.data), event, event_data, state_stack, state_stack_position + 1))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(std::get<Call_expression>(output.data), event, event_data, state_stack, state_stack_position + 1);
-            }
-        }
-        case 7:
-        {
-            state = 8;
-            return read_object(std::get<Constant_expression>(output.data), event, event_data, state_stack, state_stack_position + 1);
-        }
-        case 8:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
-            {
-                if (!read_object(std::get<Constant_expression>(output.data), event, event_data, state_stack, state_stack_position + 1))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(std::get<Constant_expression>(output.data), event, event_data, state_stack, state_stack_position + 1);
-            }
-        }
-        case 9:
-        {
-            state = 10;
-            return read_object(std::get<Return_expression>(output.data), event, event_data, state_stack, state_stack_position + 1);
-        }
-        case 10:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
-            {
-                if (!read_object(std::get<Return_expression>(output.data), event, event_data, state_stack, state_stack_position + 1))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(std::get<Return_expression>(output.data), event, event_data, state_stack, state_stack_position + 1);
-            }
-        }
-        case 11:
-        {
-            state = 12;
-            return read_object(std::get<Variable_expression>(output.data), event, event_data, state_stack, state_stack_position + 1);
-        }
-        case 12:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
-            {
-                if (!read_object(std::get<Variable_expression>(output.data), event, event_data, state_stack, state_stack_position + 1))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(std::get<Variable_expression>(output.data), event, event_data, state_stack, state_stack_position + 1);
-            }
-        }
-        }
-
-        std::cerr << "Error while reading 'Expression'.\n";
-        return false;
-    }
-
-    export template<typename Event_data>
-        bool read_object(
-            Statement& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    case 0:
     {
-        if (state_stack_position >= state_stack.size())
-        {
-            return false;
-        }
-
-        int& state = state_stack[state_stack_position];
-
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
-            {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "id")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "name")
-                    {
-                        state = 4;
-                        return true;
-                    }
-                    else if (event_data == "expressions")
-                    {
-                        state = 5;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Statement' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
+        if (event == Event::Start_object)
         {
             state = 1;
-            return read_value(output.id, "id", event_data);
+            return true;
         }
-        case 4:
-        {
-            state = 1;
-            return read_value(output.name, "name", event_data);
-        }
-        case 5:
-        {
-            state = 6;
-            return read_object(output.expressions, event, event_data, state_stack, state_stack_position + 1);
-        }
-        case 6:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
-            {
-                if (!read_object(output.expressions, event, event_data, state_stack, state_stack_position + 1))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.expressions, event, event_data, state_stack, state_stack_position + 1);
-            }
-        }
-        }
-
-        std::cerr << "Error while reading 'Statement'.\n";
-        return false;
+        break;
     }
-
-    export template<typename Event_data>
-        bool read_object(
-            Function_declaration& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    case 1:
     {
-        if (state_stack_position >= state_stack.size())
+        switch (event)
         {
-            return false;
-        }
-
-        int& state = state_stack[state_stack_position];
-
-        switch (state)
+        case Event::Key:
         {
-        case 0:
-        {
-            if (event == Event::Start_object)
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
             {
-                state = 1;
-                return true;
+if (event_data == "function_name")
+{
+    state = 3;
+    return true;
+}
+else if (event_data == "arguments")
+{
+    state = 4;
+    return true;
+}
             }
             break;
         }
-        case 1:
+        case Event::End_object:
         {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "name")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "return_type")
-                    {
-                        state = 4;
-                        return true;
-                    }
-                    else if (event_data == "parameter_types")
-                    {
-                        state = 6;
-                        return true;
-                    }
-                    else if (event_data == "parameter_ids")
-                    {
-                        state = 8;
-                        return true;
-                    }
-                    else if (event_data == "parameter_names")
-                    {
-                        state = 10;
-                        return true;
-                    }
-                    else if (event_data == "linkage")
-                    {
-                        state = 12;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Function_declaration' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 1;
-            return read_value(output.name, "name", event_data);
-        }
-        case 4:
-        {
-            state = 5;
-            return read_object(output.return_type, event, event_data, state_stack, state_stack_position + 1);
-        }
-        case 5:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
-            {
-                if (!read_object(output.return_type, event, event_data, state_stack, state_stack_position + 1))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.return_type, event, event_data, state_stack, state_stack_position + 1);
-            }
-        }
-        case 6:
-        {
-            state = 7;
-            return read_object(output.parameter_types, event, event_data, state_stack, state_stack_position + 1);
-        }
-        case 7:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
-            {
-                if (!read_object(output.parameter_types, event, event_data, state_stack, state_stack_position + 1))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.parameter_types, event, event_data, state_stack, state_stack_position + 1);
-            }
-        }
-        case 8:
-        {
-            state = 9;
-            return read_object(output.parameter_ids, event, event_data, state_stack, state_stack_position + 1);
-        }
-        case 9:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
-            {
-                if (!read_object(output.parameter_ids, event, event_data, state_stack, state_stack_position + 1))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.parameter_ids, event, event_data, state_stack, state_stack_position + 1);
-            }
-        }
-        case 10:
-        {
-            state = 11;
-            return read_object(output.parameter_names, event, event_data, state_stack, state_stack_position + 1);
-        }
-        case 11:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
-            {
-                if (!read_object(output.parameter_names, event, event_data, state_stack, state_stack_position + 1))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.parameter_names, event, event_data, state_stack, state_stack_position + 1);
-            }
-        }
-        case 12:
-        {
-            state = 1;
-            return read_enum(output.linkage, event_data);
+            state = 2;
+            return true;
         }
         }
-
-        std::cerr << "Error while reading 'Function_declaration'.\n";
-        return false;
+        break;
     }
-
-    export template<typename Event_data>
-        bool read_object(
-            Function_definition& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    case 2:
     {
-        if (state_stack_position >= state_stack.size())
+        std::cerr << "While parsing 'Call_expression' unexpected '}' found.\n";
+        return false;
+    }
+case 3:
+{
+    state = 1;
+    return read_value(output.function_name, "function_name", event_data);
+}
+case 4:
+{
+    state = 5;
+    return read_object(output.arguments, event, event_data, state_stack, state_stack_position + 1);
+}
+case 5:
+{
+    if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+    {
+        if (!read_object(output.arguments, event, event_data, state_stack, state_stack_position + 1))
         {
             return false;
         }
+        
+        state = 1;
+        return true;
+    }
+    else
+    {
+        return read_object(output.arguments, event, event_data, state_stack, state_stack_position + 1);
+    }
+}
+    }
+    
+    std::cerr << "Error while reading 'Call_expression'.\n";
+    return false;
+}
 
-        int& state = state_stack[state_stack_position];
+export template<typename Event_data>
+bool read_object(
+    Constant_expression& output,
+    Event const event,
+    Event_data const event_data,
+    std::pmr::vector<int>& state_stack,
+    std::size_t const state_stack_position
+)
+{
+    if (state_stack_position >= state_stack.size())
+    {
+        return false;
+    }
+    
+    int& state = state_stack[state_stack_position];
 
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
-            {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "name")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "statements")
-                    {
-                        state = 4;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Function_definition' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
+    switch (state)
+    {
+    case 0:
+    {
+        if (event == Event::Start_object)
         {
             state = 1;
-            return read_value(output.name, "name", event_data);
+            return true;
         }
-        case 4:
+        break;
+    }
+    case 1:
+    {
+        switch (event)
         {
-            state = 5;
-            return read_object(output.statements, event, event_data, state_stack, state_stack_position + 1);
-        }
-        case 5:
+        case Event::Key:
         {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
             {
-                if (!read_object(output.statements, event, event_data, state_stack, state_stack_position + 1))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
+if (event_data == "type")
+{
+    state = 3;
+    return true;
+}
+else if (event_data == "data")
+{
+    state = 4;
+    return true;
+}
             }
-            else
-            {
-                return read_object(output.statements, event, event_data, state_stack, state_stack_position + 1);
-            }
+            break;
+        }
+        case Event::End_object:
+        {
+            state = 2;
+            return true;
         }
         }
-
-        std::cerr << "Error while reading 'Function_definition'.\n";
+        break;
+    }
+    case 2:
+    {
+        std::cerr << "While parsing 'Constant_expression' unexpected '}' found.\n";
         return false;
     }
+case 3:
+{
+    state = 1;
+    return read_enum(output.type, event_data);
+}
+case 4:
+{
+    state = 1;
+    return read_value(output.data, "data", event_data);
+}
+    }
+    
+    std::cerr << "Error while reading 'Constant_expression'.\n";
+    return false;
+}
 
-    export template<typename Event_data>
-        bool read_object(
-            Language_version& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+export template<typename Event_data>
+bool read_object(
+    Return_expression& output,
+    Event const event,
+    Event_data const event_data,
+    std::pmr::vector<int>& state_stack,
+    std::size_t const state_stack_position
+)
+{
+    if (state_stack_position >= state_stack.size())
     {
-        if (state_stack_position >= state_stack.size())
-        {
-            return false;
-        }
+        return false;
+    }
+    
+    int& state = state_stack[state_stack_position];
 
-        int& state = state_stack[state_stack_position];
-
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
-            {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "major")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "minor")
-                    {
-                        state = 4;
-                        return true;
-                    }
-                    else if (event_data == "patch")
-                    {
-                        state = 5;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Language_version' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
+    switch (state)
+    {
+    case 0:
+    {
+        if (event == Event::Start_object)
         {
             state = 1;
-            return read_value(output.major, "major", event_data);
+            return true;
         }
-        case 4:
+        break;
+    }
+    case 1:
+    {
+        switch (event)
+        {
+        case Event::Key:
+        {
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
+            {
+if (event_data == "variable")
+{
+    state = 3;
+    return true;
+}
+            }
+            break;
+        }
+        case Event::End_object:
+        {
+            state = 2;
+            return true;
+        }
+        }
+        break;
+    }
+    case 2:
+    {
+        std::cerr << "While parsing 'Return_expression' unexpected '}' found.\n";
+        return false;
+    }
+case 3:
+{
+    state = 4;
+    return read_object(output.variable, event, event_data, state_stack, state_stack_position + 1);
+}
+case 4:
+{
+    if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+    {
+        if (!read_object(output.variable, event, event_data, state_stack, state_stack_position + 1))
+        {
+            return false;
+        }
+        
+        state = 1;
+        return true;
+    }
+    else
+    {
+        return read_object(output.variable, event, event_data, state_stack, state_stack_position + 1);
+    }
+}
+    }
+    
+    std::cerr << "Error while reading 'Return_expression'.\n";
+    return false;
+}
+
+export template<typename Event_data>
+bool read_object(
+    Expression& output,
+    Event const event,
+    Event_data const event_data,
+    std::pmr::vector<int>& state_stack,
+    std::size_t const state_stack_position
+)
+{
+    if (state_stack_position >= state_stack.size())
+    {
+        return false;
+    }
+    
+    int& state = state_stack[state_stack_position];
+
+    switch (state)
+    {
+    case 0:
+    {
+        if (event == Event::Start_object)
         {
             state = 1;
-            return read_value(output.minor, "minor", event_data);
+            return true;
         }
-        case 5:
+        break;
+    }
+    case 1:
+    {
+        switch (event)
+        {
+        case Event::Key:
+        {
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
+            {
+if (event_data == "binary_expression")
+{
+    output.data = Binary_expression{};
+    state = 3;
+    return true;
+}
+else if (event_data == "call_expression")
+{
+    output.data = Call_expression{};
+    state = 5;
+    return true;
+}
+else if (event_data == "constant_expression")
+{
+    output.data = Constant_expression{};
+    state = 7;
+    return true;
+}
+else if (event_data == "return_expression")
+{
+    output.data = Return_expression{};
+    state = 9;
+    return true;
+}
+else if (event_data == "variable_expression")
+{
+    output.data = Variable_expression{};
+    state = 11;
+    return true;
+}
+            }
+            break;
+        }
+        case Event::End_object:
+        {
+            state = 2;
+            return true;
+        }
+        }
+        break;
+    }
+    case 2:
+    {
+        std::cerr << "While parsing 'Expression' unexpected '}' found.\n";
+        return false;
+    }
+case 3:
+{
+    state = 4;
+    return read_object(std::get<Binary_expression>(output.data), event, event_data, state_stack, state_stack_position + 1);
+}
+case 4:
+{
+    if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+    {
+        if (!read_object(std::get<Binary_expression>(output.data), event, event_data, state_stack, state_stack_position + 1))
+        {
+            return false;
+        }
+        
+        state = 1;
+        return true;
+    }
+    else
+    {
+        return read_object(std::get<Binary_expression>(output.data), event, event_data, state_stack, state_stack_position + 1);
+    }
+}
+case 5:
+{
+    state = 6;
+    return read_object(std::get<Call_expression>(output.data), event, event_data, state_stack, state_stack_position + 1);
+}
+case 6:
+{
+    if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+    {
+        if (!read_object(std::get<Call_expression>(output.data), event, event_data, state_stack, state_stack_position + 1))
+        {
+            return false;
+        }
+        
+        state = 1;
+        return true;
+    }
+    else
+    {
+        return read_object(std::get<Call_expression>(output.data), event, event_data, state_stack, state_stack_position + 1);
+    }
+}
+case 7:
+{
+    state = 8;
+    return read_object(std::get<Constant_expression>(output.data), event, event_data, state_stack, state_stack_position + 1);
+}
+case 8:
+{
+    if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+    {
+        if (!read_object(std::get<Constant_expression>(output.data), event, event_data, state_stack, state_stack_position + 1))
+        {
+            return false;
+        }
+        
+        state = 1;
+        return true;
+    }
+    else
+    {
+        return read_object(std::get<Constant_expression>(output.data), event, event_data, state_stack, state_stack_position + 1);
+    }
+}
+case 9:
+{
+    state = 10;
+    return read_object(std::get<Return_expression>(output.data), event, event_data, state_stack, state_stack_position + 1);
+}
+case 10:
+{
+    if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+    {
+        if (!read_object(std::get<Return_expression>(output.data), event, event_data, state_stack, state_stack_position + 1))
+        {
+            return false;
+        }
+        
+        state = 1;
+        return true;
+    }
+    else
+    {
+        return read_object(std::get<Return_expression>(output.data), event, event_data, state_stack, state_stack_position + 1);
+    }
+}
+case 11:
+{
+    state = 12;
+    return read_object(std::get<Variable_expression>(output.data), event, event_data, state_stack, state_stack_position + 1);
+}
+case 12:
+{
+    if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+    {
+        if (!read_object(std::get<Variable_expression>(output.data), event, event_data, state_stack, state_stack_position + 1))
+        {
+            return false;
+        }
+        
+        state = 1;
+        return true;
+    }
+    else
+    {
+        return read_object(std::get<Variable_expression>(output.data), event, event_data, state_stack, state_stack_position + 1);
+    }
+}
+    }
+    
+    std::cerr << "Error while reading 'Expression'.\n";
+    return false;
+}
+
+export template<typename Event_data>
+bool read_object(
+    Statement& output,
+    Event const event,
+    Event_data const event_data,
+    std::pmr::vector<int>& state_stack,
+    std::size_t const state_stack_position
+)
+{
+    if (state_stack_position >= state_stack.size())
+    {
+        return false;
+    }
+    
+    int& state = state_stack[state_stack_position];
+
+    switch (state)
+    {
+    case 0:
+    {
+        if (event == Event::Start_object)
         {
             state = 1;
-            return read_value(output.patch, "patch", event_data);
+            return true;
         }
-        }
-
-        std::cerr << "Error while reading 'Language_version'.\n";
-        return false;
+        break;
     }
-
-    export template<typename Event_data>
-        bool read_object(
-            Module_declarations& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    case 1:
     {
-        if (state_stack_position >= state_stack.size())
+        switch (event)
         {
-            return false;
-        }
-
-        int& state = state_stack[state_stack_position];
-
-        switch (state)
+        case Event::Key:
         {
-        case 0:
-        {
-            if (event == Event::Start_object)
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
             {
-                state = 1;
-                return true;
+if (event_data == "id")
+{
+    state = 3;
+    return true;
+}
+else if (event_data == "name")
+{
+    state = 4;
+    return true;
+}
+else if (event_data == "expressions")
+{
+    state = 5;
+    return true;
+}
             }
             break;
         }
-        case 1:
+        case Event::End_object:
         {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "function_declarations")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Module_declarations' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 4;
-            return read_object(output.function_declarations, event, event_data, state_stack, state_stack_position + 1);
-        }
-        case 4:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
-            {
-                if (!read_object(output.function_declarations, event, event_data, state_stack, state_stack_position + 1))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.function_declarations, event, event_data, state_stack, state_stack_position + 1);
-            }
+            state = 2;
+            return true;
         }
         }
-
-        std::cerr << "Error while reading 'Module_declarations'.\n";
-        return false;
+        break;
     }
-
-    export template<typename Event_data>
-        bool read_object(
-            Module_definitions& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    case 2:
     {
-        if (state_stack_position >= state_stack.size())
-        {
-            return false;
-        }
-
-        int& state = state_stack[state_stack_position];
-
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
-            {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "function_definitions")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Module_definitions' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 4;
-            return read_object(output.function_definitions, event, event_data, state_stack, state_stack_position + 1);
-        }
-        case 4:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
-            {
-                if (!read_object(output.function_definitions, event, event_data, state_stack, state_stack_position + 1))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.function_definitions, event, event_data, state_stack, state_stack_position + 1);
-            }
-        }
-        }
-
-        std::cerr << "Error while reading 'Module_definitions'.\n";
+        std::cerr << "While parsing 'Statement' unexpected '}' found.\n";
         return false;
     }
-
-    export template<typename Event_data>
-        bool read_object(
-            Module& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+case 3:
+{
+    state = 1;
+    return read_value(output.id, "id", event_data);
+}
+case 4:
+{
+    state = 1;
+    return read_value(output.name, "name", event_data);
+}
+case 5:
+{
+    state = 6;
+    return read_object(output.expressions, event, event_data, state_stack, state_stack_position + 1);
+}
+case 6:
+{
+    if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
     {
-        if (state_stack_position >= state_stack.size())
+        if (!read_object(output.expressions, event, event_data, state_stack, state_stack_position + 1))
         {
             return false;
         }
+        
+        state = 1;
+        return true;
+    }
+    else
+    {
+        return read_object(output.expressions, event, event_data, state_stack, state_stack_position + 1);
+    }
+}
+    }
+    
+    std::cerr << "Error while reading 'Statement'.\n";
+    return false;
+}
 
-        int& state = state_stack[state_stack_position];
-
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
-            {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "language_version")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "export_declarations")
-                    {
-                        state = 5;
-                        return true;
-                    }
-                    else if (event_data == "internal_declarations")
-                    {
-                        state = 7;
-                        return true;
-                    }
-                    else if (event_data == "definitions")
-                    {
-                        state = 9;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Module' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 4;
-            return read_object(output.language_version, event, event_data, state_stack, state_stack_position + 1);
-        }
-        case 4:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
-            {
-                if (!read_object(output.language_version, event, event_data, state_stack, state_stack_position + 1))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.language_version, event, event_data, state_stack, state_stack_position + 1);
-            }
-        }
-        case 5:
-        {
-            state = 6;
-            return read_object(output.export_declarations, event, event_data, state_stack, state_stack_position + 1);
-        }
-        case 6:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
-            {
-                if (!read_object(output.export_declarations, event, event_data, state_stack, state_stack_position + 1))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.export_declarations, event, event_data, state_stack, state_stack_position + 1);
-            }
-        }
-        case 7:
-        {
-            state = 8;
-            return read_object(output.internal_declarations, event, event_data, state_stack, state_stack_position + 1);
-        }
-        case 8:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
-            {
-                if (!read_object(output.internal_declarations, event, event_data, state_stack, state_stack_position + 1))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.internal_declarations, event, event_data, state_stack, state_stack_position + 1);
-            }
-        }
-        case 9:
-        {
-            state = 10;
-            return read_object(output.definitions, event, event_data, state_stack, state_stack_position + 1);
-        }
-        case 10:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
-            {
-                if (!read_object(output.definitions, event, event_data, state_stack, state_stack_position + 1))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.definitions, event, event_data, state_stack, state_stack_position + 1);
-            }
-        }
-        }
-
-        std::cerr << "Error while reading 'Module'.\n";
+export template<typename Event_data>
+bool read_object(
+    Function_declaration& output,
+    Event const event,
+    Event_data const event_data,
+    std::pmr::vector<int>& state_stack,
+    std::size_t const state_stack_position
+)
+{
+    if (state_stack_position >= state_stack.size())
+    {
         return false;
     }
+    
+    int& state = state_stack[state_stack_position];
+
+    switch (state)
+    {
+    case 0:
+    {
+        if (event == Event::Start_object)
+        {
+            state = 1;
+            return true;
+        }
+        break;
+    }
+    case 1:
+    {
+        switch (event)
+        {
+        case Event::Key:
+        {
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
+            {
+if (event_data == "id")
+{
+    state = 3;
+    return true;
+}
+else if (event_data == "name")
+{
+    state = 4;
+    return true;
+}
+else if (event_data == "return_type")
+{
+    state = 5;
+    return true;
+}
+else if (event_data == "parameter_types")
+{
+    state = 7;
+    return true;
+}
+else if (event_data == "parameter_ids")
+{
+    state = 9;
+    return true;
+}
+else if (event_data == "parameter_names")
+{
+    state = 11;
+    return true;
+}
+else if (event_data == "linkage")
+{
+    state = 13;
+    return true;
+}
+            }
+            break;
+        }
+        case Event::End_object:
+        {
+            state = 2;
+            return true;
+        }
+        }
+        break;
+    }
+    case 2:
+    {
+        std::cerr << "While parsing 'Function_declaration' unexpected '}' found.\n";
+        return false;
+    }
+case 3:
+{
+    state = 1;
+    return read_value(output.id, "id", event_data);
+}
+case 4:
+{
+    state = 1;
+    return read_value(output.name, "name", event_data);
+}
+case 5:
+{
+    state = 6;
+    return read_object(output.return_type, event, event_data, state_stack, state_stack_position + 1);
+}
+case 6:
+{
+    if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+    {
+        if (!read_object(output.return_type, event, event_data, state_stack, state_stack_position + 1))
+        {
+            return false;
+        }
+        
+        state = 1;
+        return true;
+    }
+    else
+    {
+        return read_object(output.return_type, event, event_data, state_stack, state_stack_position + 1);
+    }
+}
+case 7:
+{
+    state = 8;
+    return read_object(output.parameter_types, event, event_data, state_stack, state_stack_position + 1);
+}
+case 8:
+{
+    if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+    {
+        if (!read_object(output.parameter_types, event, event_data, state_stack, state_stack_position + 1))
+        {
+            return false;
+        }
+        
+        state = 1;
+        return true;
+    }
+    else
+    {
+        return read_object(output.parameter_types, event, event_data, state_stack, state_stack_position + 1);
+    }
+}
+case 9:
+{
+    state = 10;
+    return read_object(output.parameter_ids, event, event_data, state_stack, state_stack_position + 1);
+}
+case 10:
+{
+    if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+    {
+        if (!read_object(output.parameter_ids, event, event_data, state_stack, state_stack_position + 1))
+        {
+            return false;
+        }
+        
+        state = 1;
+        return true;
+    }
+    else
+    {
+        return read_object(output.parameter_ids, event, event_data, state_stack, state_stack_position + 1);
+    }
+}
+case 11:
+{
+    state = 12;
+    return read_object(output.parameter_names, event, event_data, state_stack, state_stack_position + 1);
+}
+case 12:
+{
+    if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+    {
+        if (!read_object(output.parameter_names, event, event_data, state_stack, state_stack_position + 1))
+        {
+            return false;
+        }
+        
+        state = 1;
+        return true;
+    }
+    else
+    {
+        return read_object(output.parameter_names, event, event_data, state_stack, state_stack_position + 1);
+    }
+}
+case 13:
+{
+    state = 1;
+    return read_enum(output.linkage, event_data);
+}
+    }
+    
+    std::cerr << "Error while reading 'Function_declaration'.\n";
+    return false;
+}
+
+export template<typename Event_data>
+bool read_object(
+    Function_definition& output,
+    Event const event,
+    Event_data const event_data,
+    std::pmr::vector<int>& state_stack,
+    std::size_t const state_stack_position
+)
+{
+    if (state_stack_position >= state_stack.size())
+    {
+        return false;
+    }
+    
+    int& state = state_stack[state_stack_position];
+
+    switch (state)
+    {
+    case 0:
+    {
+        if (event == Event::Start_object)
+        {
+            state = 1;
+            return true;
+        }
+        break;
+    }
+    case 1:
+    {
+        switch (event)
+        {
+        case Event::Key:
+        {
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
+            {
+if (event_data == "id")
+{
+    state = 3;
+    return true;
+}
+else if (event_data == "statements")
+{
+    state = 4;
+    return true;
+}
+            }
+            break;
+        }
+        case Event::End_object:
+        {
+            state = 2;
+            return true;
+        }
+        }
+        break;
+    }
+    case 2:
+    {
+        std::cerr << "While parsing 'Function_definition' unexpected '}' found.\n";
+        return false;
+    }
+case 3:
+{
+    state = 1;
+    return read_value(output.id, "id", event_data);
+}
+case 4:
+{
+    state = 5;
+    return read_object(output.statements, event, event_data, state_stack, state_stack_position + 1);
+}
+case 5:
+{
+    if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+    {
+        if (!read_object(output.statements, event, event_data, state_stack, state_stack_position + 1))
+        {
+            return false;
+        }
+        
+        state = 1;
+        return true;
+    }
+    else
+    {
+        return read_object(output.statements, event, event_data, state_stack, state_stack_position + 1);
+    }
+}
+    }
+    
+    std::cerr << "Error while reading 'Function_definition'.\n";
+    return false;
+}
+
+export template<typename Event_data>
+bool read_object(
+    Language_version& output,
+    Event const event,
+    Event_data const event_data,
+    std::pmr::vector<int>& state_stack,
+    std::size_t const state_stack_position
+)
+{
+    if (state_stack_position >= state_stack.size())
+    {
+        return false;
+    }
+    
+    int& state = state_stack[state_stack_position];
+
+    switch (state)
+    {
+    case 0:
+    {
+        if (event == Event::Start_object)
+        {
+            state = 1;
+            return true;
+        }
+        break;
+    }
+    case 1:
+    {
+        switch (event)
+        {
+        case Event::Key:
+        {
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
+            {
+if (event_data == "major")
+{
+    state = 3;
+    return true;
+}
+else if (event_data == "minor")
+{
+    state = 4;
+    return true;
+}
+else if (event_data == "patch")
+{
+    state = 5;
+    return true;
+}
+            }
+            break;
+        }
+        case Event::End_object:
+        {
+            state = 2;
+            return true;
+        }
+        }
+        break;
+    }
+    case 2:
+    {
+        std::cerr << "While parsing 'Language_version' unexpected '}' found.\n";
+        return false;
+    }
+case 3:
+{
+    state = 1;
+    return read_value(output.major, "major", event_data);
+}
+case 4:
+{
+    state = 1;
+    return read_value(output.minor, "minor", event_data);
+}
+case 5:
+{
+    state = 1;
+    return read_value(output.patch, "patch", event_data);
+}
+    }
+    
+    std::cerr << "Error while reading 'Language_version'.\n";
+    return false;
+}
+
+export template<typename Event_data>
+bool read_object(
+    Module_declarations& output,
+    Event const event,
+    Event_data const event_data,
+    std::pmr::vector<int>& state_stack,
+    std::size_t const state_stack_position
+)
+{
+    if (state_stack_position >= state_stack.size())
+    {
+        return false;
+    }
+    
+    int& state = state_stack[state_stack_position];
+
+    switch (state)
+    {
+    case 0:
+    {
+        if (event == Event::Start_object)
+        {
+            state = 1;
+            return true;
+        }
+        break;
+    }
+    case 1:
+    {
+        switch (event)
+        {
+        case Event::Key:
+        {
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
+            {
+if (event_data == "function_declarations")
+{
+    state = 3;
+    return true;
+}
+            }
+            break;
+        }
+        case Event::End_object:
+        {
+            state = 2;
+            return true;
+        }
+        }
+        break;
+    }
+    case 2:
+    {
+        std::cerr << "While parsing 'Module_declarations' unexpected '}' found.\n";
+        return false;
+    }
+case 3:
+{
+    state = 4;
+    return read_object(output.function_declarations, event, event_data, state_stack, state_stack_position + 1);
+}
+case 4:
+{
+    if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+    {
+        if (!read_object(output.function_declarations, event, event_data, state_stack, state_stack_position + 1))
+        {
+            return false;
+        }
+        
+        state = 1;
+        return true;
+    }
+    else
+    {
+        return read_object(output.function_declarations, event, event_data, state_stack, state_stack_position + 1);
+    }
+}
+    }
+    
+    std::cerr << "Error while reading 'Module_declarations'.\n";
+    return false;
+}
+
+export template<typename Event_data>
+bool read_object(
+    Module_definitions& output,
+    Event const event,
+    Event_data const event_data,
+    std::pmr::vector<int>& state_stack,
+    std::size_t const state_stack_position
+)
+{
+    if (state_stack_position >= state_stack.size())
+    {
+        return false;
+    }
+    
+    int& state = state_stack[state_stack_position];
+
+    switch (state)
+    {
+    case 0:
+    {
+        if (event == Event::Start_object)
+        {
+            state = 1;
+            return true;
+        }
+        break;
+    }
+    case 1:
+    {
+        switch (event)
+        {
+        case Event::Key:
+        {
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
+            {
+if (event_data == "function_definitions")
+{
+    state = 3;
+    return true;
+}
+            }
+            break;
+        }
+        case Event::End_object:
+        {
+            state = 2;
+            return true;
+        }
+        }
+        break;
+    }
+    case 2:
+    {
+        std::cerr << "While parsing 'Module_definitions' unexpected '}' found.\n";
+        return false;
+    }
+case 3:
+{
+    state = 4;
+    return read_object(output.function_definitions, event, event_data, state_stack, state_stack_position + 1);
+}
+case 4:
+{
+    if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+    {
+        if (!read_object(output.function_definitions, event, event_data, state_stack, state_stack_position + 1))
+        {
+            return false;
+        }
+        
+        state = 1;
+        return true;
+    }
+    else
+    {
+        return read_object(output.function_definitions, event, event_data, state_stack, state_stack_position + 1);
+    }
+}
+    }
+    
+    std::cerr << "Error while reading 'Module_definitions'.\n";
+    return false;
+}
+
+export template<typename Event_data>
+bool read_object(
+    Module& output,
+    Event const event,
+    Event_data const event_data,
+    std::pmr::vector<int>& state_stack,
+    std::size_t const state_stack_position
+)
+{
+    if (state_stack_position >= state_stack.size())
+    {
+        return false;
+    }
+    
+    int& state = state_stack[state_stack_position];
+
+    switch (state)
+    {
+    case 0:
+    {
+        if (event == Event::Start_object)
+        {
+            state = 1;
+            return true;
+        }
+        break;
+    }
+    case 1:
+    {
+        switch (event)
+        {
+        case Event::Key:
+        {
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
+            {
+if (event_data == "language_version")
+{
+    state = 3;
+    return true;
+}
+else if (event_data == "name")
+{
+    state = 5;
+    return true;
+}
+else if (event_data == "export_declarations")
+{
+    state = 6;
+    return true;
+}
+else if (event_data == "internal_declarations")
+{
+    state = 8;
+    return true;
+}
+else if (event_data == "definitions")
+{
+    state = 10;
+    return true;
+}
+            }
+            break;
+        }
+        case Event::End_object:
+        {
+            state = 2;
+            return true;
+        }
+        }
+        break;
+    }
+    case 2:
+    {
+        std::cerr << "While parsing 'Module' unexpected '}' found.\n";
+        return false;
+    }
+case 3:
+{
+    state = 4;
+    return read_object(output.language_version, event, event_data, state_stack, state_stack_position + 1);
+}
+case 4:
+{
+    if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+    {
+        if (!read_object(output.language_version, event, event_data, state_stack, state_stack_position + 1))
+        {
+            return false;
+        }
+        
+        state = 1;
+        return true;
+    }
+    else
+    {
+        return read_object(output.language_version, event, event_data, state_stack, state_stack_position + 1);
+    }
+}
+case 5:
+{
+    state = 1;
+    return read_value(output.name, "name", event_data);
+}
+case 6:
+{
+    state = 7;
+    return read_object(output.export_declarations, event, event_data, state_stack, state_stack_position + 1);
+}
+case 7:
+{
+    if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+    {
+        if (!read_object(output.export_declarations, event, event_data, state_stack, state_stack_position + 1))
+        {
+            return false;
+        }
+        
+        state = 1;
+        return true;
+    }
+    else
+    {
+        return read_object(output.export_declarations, event, event_data, state_stack, state_stack_position + 1);
+    }
+}
+case 8:
+{
+    state = 9;
+    return read_object(output.internal_declarations, event, event_data, state_stack, state_stack_position + 1);
+}
+case 9:
+{
+    if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+    {
+        if (!read_object(output.internal_declarations, event, event_data, state_stack, state_stack_position + 1))
+        {
+            return false;
+        }
+        
+        state = 1;
+        return true;
+    }
+    else
+    {
+        return read_object(output.internal_declarations, event, event_data, state_stack, state_stack_position + 1);
+    }
+}
+case 10:
+{
+    state = 11;
+    return read_object(output.definitions, event, event_data, state_stack, state_stack_position + 1);
+}
+case 11:
+{
+    if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+    {
+        if (!read_object(output.definitions, event, event_data, state_stack, state_stack_position + 1))
+        {
+            return false;
+        }
+        
+        state = 1;
+        return true;
+    }
+    else
+    {
+        return read_object(output.definitions, event, event_data, state_stack, state_stack_position + 1);
+    }
+}
+    }
+    
+    std::cerr << "Error while reading 'Module'.\n";
+    return false;
+}
 
 }

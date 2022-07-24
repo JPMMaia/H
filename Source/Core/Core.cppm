@@ -146,6 +146,7 @@ namespace h
 
     export struct Function_declaration
     {
+        std::uint64_t id;
         std::pmr::string name;
         Type_reference return_type;
         std::pmr::vector<Type_reference> parameter_types;
@@ -158,7 +159,7 @@ namespace h
 
     export struct Function_definition
     {
-        std::pmr::string name;
+        std::uint64_t id;
         std::pmr::vector<Statement> statements;
 
         friend auto operator<=>(Function_definition const&, Function_definition const&) = default;
@@ -190,6 +191,7 @@ namespace h
     export struct Module
     {
         Language_version language_version;
+        std::pmr::string name;
         Module_declarations export_declarations;
         Module_declarations internal_declarations;
         Module_definitions definitions;
