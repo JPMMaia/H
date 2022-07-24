@@ -157,17 +157,27 @@ function createDefaultValue(reflectionInfo: ReflectionInfo, type: ReflectionType
     }
     else if (isVariantType(type)) {
         const types = getVariantValueTypes(type);
-        return createDefaultValue(reflectionInfo, types[0]);
+        const defaultType = types[0];
+        return createDefaultValue(reflectionInfo, defaultType);
     }
     else if (isEnumType(reflectionInfo.enums, type)) {
         const enumReflection = getEnumType(reflectionInfo.enums, type);
-        return enumReflection.values[0];
+        return enumReflection.values[0].toLowerCase();
     }
     else { // If struct
         const structReflection = getStructType(reflectionInfo.structs, type);
         let object: any = {};
         for (const member of structReflection.members) {
-            object[member.name] = createDefaultValue(reflectionInfo, member.type);
+
+            if (isVariantType(member.type)) {
+                const types = getVariantValueTypes(member.type);
+                const defaultType = types[0];
+                const keyName = defaultType.name.toLowerCase();
+                object[keyName] = createDefaultValue(reflectionInfo, member.type);
+            }
+            else {
+                object[member.name] = createDefaultValue(reflectionInfo, member.type);
+            }
         }
         return object;
     }
