@@ -14,8 +14,25 @@ function removePossibleComma(text: string): string {
     return text;
 }
 
+function isInitializeChange(change: vscode.TextDocumentContentChangeEvent): boolean {
+    return change.range.start.line === 0 && change.range.start.character === 0;
+}
+
+function isDeleteChange(change: vscode.TextDocumentContentChangeEvent): boolean {
+    return change.rangeLength !== 0 && change.text.length === 0;
+}
+
+function isUpdateChange(change: vscode.TextDocumentContentChangeEvent): boolean {
+    return change.rangeLength !== 0 && change.text.length !== 0;
+}
+
+function isInsertChange(change: vscode.TextDocumentContentChangeEvent): boolean {
+    return change.rangeLength === 0 && change.text.length !== 0;
+}
+
 export function createUpdateStateMessage(change: vscode.TextDocumentContentChangeEvent, document: vscode.TextDocument, documentJSONProvider: any): any {
-    if (change.range.start.line === 0 && change.range.start.character === 0) {
+
+    if (isInitializeChange(change)) {
         const message = {
             command: "initialize",
             data: documentJSONProvider.getDocumentAsJson()
@@ -23,11 +40,12 @@ export function createUpdateStateMessage(change: vscode.TextDocumentContentChang
 
         return message;
     }
-    else if (change.text[0] === '"' || isNumber(change.text)) {
+    else if (isUpdateChange(change)) {
+        const documentText = document.getText(undefined);
+
         const startOffset = document.offsetAt(change.range.start);
 
         // TODO cache
-        const documentText = document.getText(undefined);
         const position = fromOffsetToPosition(documentText, startOffset);
 
         const value = change.text[0] === '"' ? change.text.substring(1, change.text.length - 1) : Number(change.text);
@@ -42,13 +60,15 @@ export function createUpdateStateMessage(change: vscode.TextDocumentContentChang
 
         return message;
     }
-    else if (change.text[0] === '{' || change.text[0] === ',') {
+    else if (isInsertChange(change)) {
+
+        const documentText = document.getText(undefined);
 
         const startOffset = document.offsetAt(change.range.start);
+        const startOffsetAfterComma = documentText[startOffset] === ',' ? startOffset + 1 : startOffset;
 
         // TODO cache
-        const documentText = document.getText(undefined);
-        const position = fromOffsetToPosition(documentText, startOffset);
+        const position = fromOffsetToPosition(documentText, startOffsetAfterComma);
 
         const jsonValue = removePossibleComma(change.text);
         const value = JSON.parse(jsonValue);
@@ -63,13 +83,15 @@ export function createUpdateStateMessage(change: vscode.TextDocumentContentChang
 
         return message;
     }
-    else if (change.text.length === 0) {
+    else if (isDeleteChange(change)) {
+
+        const documentText = document.getText(undefined);
 
         const startOffset = document.offsetAt(change.range.start);
+        const startOffsetAfterComma = documentText[startOffset] === ',' ? startOffset + 1 : startOffset;
 
         // TODO cache
-        const documentText = document.getText(undefined);
-        const position = fromOffsetToPosition(documentText, startOffset);
+        const position = fromOffsetToPosition(documentText, startOffsetAfterComma);
 
         const message = {
             command: "delete",

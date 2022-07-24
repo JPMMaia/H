@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import { findNumber, findEndOfString, fromPositionToOffset, findEndOfCurrentObject, ParserState } from './utilities/parseJSON';
 import { updateState } from './utilities/updateState';
 import { createUpdateStateMessage } from './utilities/updateStateMessage';
+import * as hCoreReflectionInfo from './utilities/h_core_reflection.json';
+import { createDefaultElement } from './utilities/coreModel';
 
 function createFunction(document: vscode.TextDocument, state: any, functionIndex: number, isExportDeclaration: boolean): Thenable<boolean> {
 
@@ -46,7 +48,7 @@ function addPossibleComma(text: string, insertOffset: number, textToInsert: stri
     if (text[insertOffset - 1] === '[' && text[insertOffset] === ']') {
         return textToInsert;
     }
-    else if (textToInsert[insertOffset] === ']') {
+    else if (text[insertOffset] === ']') {
         return ',' + textToInsert;
     }
     else {
@@ -90,7 +92,9 @@ function updateArraySize(document: vscode.TextDocument, text: string, position: 
 
 function insertValue(document: vscode.TextDocument, text: string, position: any[]): InsertInfo {
 
-    const newElementText = '{"key":"value"}'; // TODO
+    const reflectionInfo = { enums: hCoreReflectionInfo.enums, structs: hCoreReflectionInfo.structs };
+    const newElement = createDefaultElement(reflectionInfo, position);
+    const newElementText = JSON.stringify(newElement);
 
     // TODO cache
 
