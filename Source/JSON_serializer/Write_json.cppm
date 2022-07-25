@@ -313,11 +313,14 @@ namespace h::json
         )
     {
         writer.StartObject();
+        writer.Key("data");
+
+        writer.StartObject();
         if (std::holds_alternative<Fundamental_type>(output.data))
         {
-            writer.Key("data_type");
+            writer.Key("type");
             writer.String("fundamental_type");
-            writer.Key("data");
+            writer.Key("value");
             {
                 Fundamental_type const& value = std::get<Fundamental_type>(output.data);
                 std::string_view const enum_value_string = write_enum(value);
@@ -326,12 +329,14 @@ namespace h::json
         }
         else if (std::holds_alternative<Struct_type_reference>(output.data))
         {
-            writer.Key("data_type");
+            writer.Key("type");
             writer.String("struct_type_reference");
-            writer.Key("data");
+            writer.Key("value");
             Struct_type_reference const& value = std::get<Struct_type_reference>(output.data);
             write_object(writer, value);
         }
+        writer.EndObject();
+
         writer.EndObject();
     }
 
@@ -421,46 +426,51 @@ namespace h::json
         )
     {
         writer.StartObject();
+        writer.Key("data");
+
+        writer.StartObject();
         if (std::holds_alternative<Binary_expression>(output.data))
         {
-            writer.Key("data_type");
+            writer.Key("type");
             writer.String("binary_expression");
-            writer.Key("data");
+            writer.Key("value");
             Binary_expression const& value = std::get<Binary_expression>(output.data);
             write_object(writer, value);
         }
         else if (std::holds_alternative<Call_expression>(output.data))
         {
-            writer.Key("data_type");
+            writer.Key("type");
             writer.String("call_expression");
-            writer.Key("data");
+            writer.Key("value");
             Call_expression const& value = std::get<Call_expression>(output.data);
             write_object(writer, value);
         }
         else if (std::holds_alternative<Constant_expression>(output.data))
         {
-            writer.Key("data_type");
+            writer.Key("type");
             writer.String("constant_expression");
-            writer.Key("data");
+            writer.Key("value");
             Constant_expression const& value = std::get<Constant_expression>(output.data);
             write_object(writer, value);
         }
         else if (std::holds_alternative<Return_expression>(output.data))
         {
-            writer.Key("data_type");
+            writer.Key("type");
             writer.String("return_expression");
-            writer.Key("data");
+            writer.Key("value");
             Return_expression const& value = std::get<Return_expression>(output.data);
             write_object(writer, value);
         }
         else if (std::holds_alternative<Variable_expression>(output.data))
         {
-            writer.Key("data_type");
+            writer.Key("type");
             writer.String("variable_expression");
-            writer.Key("data");
+            writer.Key("value");
             Variable_expression const& value = std::get<Variable_expression>(output.data);
             write_object(writer, value);
         }
+        writer.EndObject();
+
         writer.EndObject();
     }
 

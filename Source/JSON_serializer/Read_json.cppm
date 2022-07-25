@@ -477,13 +477,13 @@ namespace h::json
         case 3:
         {
             state = 4;
-            return read_object(output.module_reference, event, event_data, state_stack, state_stack_position + 1);
+            return read_object(output.module_reference, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
         case 4:
         {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
-                if (!read_object(output.module_reference, event, event_data, state_stack, state_stack_position + 1))
+                if (!read_object(output.module_reference, event, event_data, state_stack, state_stack_position + 1 + 0))
                 {
                     return false;
                 }
@@ -493,7 +493,7 @@ namespace h::json
             }
             else
             {
-                return read_object(output.module_reference, event, event_data, state_stack, state_stack_position + 1);
+                return read_object(output.module_reference, event, event_data, state_stack, state_stack_position + 1 + 0);
             }
         }
         case 5:
@@ -542,7 +542,7 @@ namespace h::json
             {
                 if constexpr (std::is_same_v<Event_data, std::string_view>)
                 {
-                    if (event_data == "data_type")
+                    if (event_data == "data")
                     {
                         state = 3;
                         return true;
@@ -565,43 +565,54 @@ namespace h::json
         }
         case 3:
         {
+            if (event == Event::Start_object)
+            {
+                state = 5;
+                return true;
+            }
+        }
+        case 4:
+        {
+            if (event == Event::End_object)
+            {
+                state = 1;
+                return true;
+            }
+        }
+        case 5:
+        {
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
+            {
+                if (event == Event::Key && event_data == "type")
+                {
+                    state = 6;
+                    return true;
+                }
+            }
+        }
+        case 6:
+        {
             if constexpr (std::is_same_v<Event_data, std::string_view>)
             {
                 if (event_data == "fundamental_type")
                 {
                     output.data = Fundamental_type{};
-                    state = 4;
+                    state = 7;
                     return true;
                 }
                 else if (event_data == "struct_type_reference")
                 {
                     output.data = Struct_type_reference{};
-                    state = 7;
+                    state = 10;
                     return true;
                 }
             }
-        }
-        case 4:
-        {
-            if constexpr (std::is_same_v<Event_data, std::string_view>)
-            {
-                if (event == Event::Key && event_data == "data")
-                {
-                    state = 5;
-                    return true;
-                }
-            }
-        }
-        case 5:
-        {
-            state = 1;
-            return read_enum(std::get<Fundamental_type>(output.data), event_data);
         }
         case 7:
         {
             if constexpr (std::is_same_v<Event_data, std::string_view>)
             {
-                if (event == Event::Key && event_data == "data")
+                if (event == Event::Key && event_data == "value")
                 {
                     state = 8;
                     return true;
@@ -610,24 +621,40 @@ namespace h::json
         }
         case 8:
         {
-            state = 9;
-            return read_object(std::get<Struct_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1);
+            state = 4;
+            return read_enum(std::get<Fundamental_type>(output.data), event_data);
         }
-        case 9:
+        case 10:
         {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
             {
-                if (!read_object(std::get<Struct_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1))
+                if (event == Event::Key && event_data == "value")
+                {
+                    state = 11;
+                    return true;
+                }
+            }
+        }
+        case 11:
+        {
+            state = 12;
+            return read_object(std::get<Struct_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
+        }
+        case 12:
+        {
+            if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
+            {
+                if (!read_object(std::get<Struct_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1))
                 {
                     return false;
                 }
 
-                state = 1;
+                state = 4;
                 return true;
             }
             else
             {
-                return read_object(std::get<Struct_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1);
+                return read_object(std::get<Struct_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
             }
         }
         }
@@ -782,13 +809,13 @@ namespace h::json
         case 3:
         {
             state = 4;
-            return read_object(output.left_hand_side, event, event_data, state_stack, state_stack_position + 1);
+            return read_object(output.left_hand_side, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
         case 4:
         {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
-                if (!read_object(output.left_hand_side, event, event_data, state_stack, state_stack_position + 1))
+                if (!read_object(output.left_hand_side, event, event_data, state_stack, state_stack_position + 1 + 0))
                 {
                     return false;
                 }
@@ -798,19 +825,19 @@ namespace h::json
             }
             else
             {
-                return read_object(output.left_hand_side, event, event_data, state_stack, state_stack_position + 1);
+                return read_object(output.left_hand_side, event, event_data, state_stack, state_stack_position + 1 + 0);
             }
         }
         case 5:
         {
             state = 6;
-            return read_object(output.right_hand_side, event, event_data, state_stack, state_stack_position + 1);
+            return read_object(output.right_hand_side, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
         case 6:
         {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
-                if (!read_object(output.right_hand_side, event, event_data, state_stack, state_stack_position + 1))
+                if (!read_object(output.right_hand_side, event, event_data, state_stack, state_stack_position + 1 + 0))
                 {
                     return false;
                 }
@@ -820,7 +847,7 @@ namespace h::json
             }
             else
             {
-                return read_object(output.right_hand_side, event, event_data, state_stack, state_stack_position + 1);
+                return read_object(output.right_hand_side, event, event_data, state_stack, state_stack_position + 1 + 0);
             }
         }
         case 7:
@@ -903,13 +930,13 @@ namespace h::json
         case 4:
         {
             state = 5;
-            return read_object(output.arguments, event, event_data, state_stack, state_stack_position + 1);
+            return read_object(output.arguments, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
         case 5:
         {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
-                if (!read_object(output.arguments, event, event_data, state_stack, state_stack_position + 1))
+                if (!read_object(output.arguments, event, event_data, state_stack, state_stack_position + 1 + 0))
                 {
                     return false;
                 }
@@ -919,7 +946,7 @@ namespace h::json
             }
             else
             {
-                return read_object(output.arguments, event, event_data, state_stack, state_stack_position + 1);
+                return read_object(output.arguments, event, event_data, state_stack, state_stack_position + 1 + 0);
             }
         }
         }
@@ -1064,13 +1091,13 @@ namespace h::json
         case 3:
         {
             state = 4;
-            return read_object(output.variable, event, event_data, state_stack, state_stack_position + 1);
+            return read_object(output.variable, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
         case 4:
         {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
-                if (!read_object(output.variable, event, event_data, state_stack, state_stack_position + 1))
+                if (!read_object(output.variable, event, event_data, state_stack, state_stack_position + 1 + 0))
                 {
                     return false;
                 }
@@ -1080,7 +1107,7 @@ namespace h::json
             }
             else
             {
-                return read_object(output.variable, event, event_data, state_stack, state_stack_position + 1);
+                return read_object(output.variable, event, event_data, state_stack, state_stack_position + 1 + 0);
             }
         }
         }
@@ -1124,7 +1151,7 @@ namespace h::json
             {
                 if constexpr (std::is_same_v<Event_data, std::string_view>)
                 {
-                    if (event_data == "data_type")
+                    if (event_data == "data")
                     {
                         state = 3;
                         return true;
@@ -1147,78 +1174,72 @@ namespace h::json
         }
         case 3:
         {
+            if (event == Event::Start_object)
+            {
+                state = 5;
+                return true;
+            }
+        }
+        case 4:
+        {
+            if (event == Event::End_object)
+            {
+                state = 1;
+                return true;
+            }
+        }
+        case 5:
+        {
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
+            {
+                if (event == Event::Key && event_data == "type")
+                {
+                    state = 6;
+                    return true;
+                }
+            }
+        }
+        case 6:
+        {
             if constexpr (std::is_same_v<Event_data, std::string_view>)
             {
                 if (event_data == "binary_expression")
                 {
                     output.data = Binary_expression{};
-                    state = 4;
+                    state = 7;
                     return true;
                 }
                 else if (event_data == "call_expression")
                 {
                     output.data = Call_expression{};
-                    state = 7;
+                    state = 10;
                     return true;
                 }
                 else if (event_data == "constant_expression")
                 {
                     output.data = Constant_expression{};
-                    state = 10;
+                    state = 13;
                     return true;
                 }
                 else if (event_data == "return_expression")
                 {
                     output.data = Return_expression{};
-                    state = 13;
+                    state = 16;
                     return true;
                 }
                 else if (event_data == "variable_expression")
                 {
                     output.data = Variable_expression{};
-                    state = 16;
+                    state = 19;
                     return true;
                 }
-            }
-        }
-        case 4:
-        {
-            if constexpr (std::is_same_v<Event_data, std::string_view>)
-            {
-                if (event == Event::Key && event_data == "data")
-                {
-                    state = 5;
-                    return true;
-                }
-            }
-        }
-        case 5:
-        {
-            state = 6;
-            return read_object(std::get<Binary_expression>(output.data), event, event_data, state_stack, state_stack_position + 1);
-        }
-        case 6:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
-            {
-                if (!read_object(std::get<Binary_expression>(output.data), event, event_data, state_stack, state_stack_position + 1))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(std::get<Binary_expression>(output.data), event, event_data, state_stack, state_stack_position + 1);
             }
         }
         case 7:
         {
             if constexpr (std::is_same_v<Event_data, std::string_view>)
             {
-                if (event == Event::Key && event_data == "data")
+                if (event == Event::Key && event_data == "value")
                 {
                     state = 8;
                     return true;
@@ -1228,30 +1249,30 @@ namespace h::json
         case 8:
         {
             state = 9;
-            return read_object(std::get<Call_expression>(output.data), event, event_data, state_stack, state_stack_position + 1);
+            return read_object(std::get<Binary_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
         }
         case 9:
         {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+            if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
             {
-                if (!read_object(std::get<Call_expression>(output.data), event, event_data, state_stack, state_stack_position + 1))
+                if (!read_object(std::get<Binary_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1))
                 {
                     return false;
                 }
 
-                state = 1;
+                state = 4;
                 return true;
             }
             else
             {
-                return read_object(std::get<Call_expression>(output.data), event, event_data, state_stack, state_stack_position + 1);
+                return read_object(std::get<Binary_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
             }
         }
         case 10:
         {
             if constexpr (std::is_same_v<Event_data, std::string_view>)
             {
-                if (event == Event::Key && event_data == "data")
+                if (event == Event::Key && event_data == "value")
                 {
                     state = 11;
                     return true;
@@ -1261,30 +1282,30 @@ namespace h::json
         case 11:
         {
             state = 12;
-            return read_object(std::get<Constant_expression>(output.data), event, event_data, state_stack, state_stack_position + 1);
+            return read_object(std::get<Call_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
         }
         case 12:
         {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+            if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
             {
-                if (!read_object(std::get<Constant_expression>(output.data), event, event_data, state_stack, state_stack_position + 1))
+                if (!read_object(std::get<Call_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1))
                 {
                     return false;
                 }
 
-                state = 1;
+                state = 4;
                 return true;
             }
             else
             {
-                return read_object(std::get<Constant_expression>(output.data), event, event_data, state_stack, state_stack_position + 1);
+                return read_object(std::get<Call_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
             }
         }
         case 13:
         {
             if constexpr (std::is_same_v<Event_data, std::string_view>)
             {
-                if (event == Event::Key && event_data == "data")
+                if (event == Event::Key && event_data == "value")
                 {
                     state = 14;
                     return true;
@@ -1294,30 +1315,30 @@ namespace h::json
         case 14:
         {
             state = 15;
-            return read_object(std::get<Return_expression>(output.data), event, event_data, state_stack, state_stack_position + 1);
+            return read_object(std::get<Constant_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
         }
         case 15:
         {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+            if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
             {
-                if (!read_object(std::get<Return_expression>(output.data), event, event_data, state_stack, state_stack_position + 1))
+                if (!read_object(std::get<Constant_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1))
                 {
                     return false;
                 }
 
-                state = 1;
+                state = 4;
                 return true;
             }
             else
             {
-                return read_object(std::get<Return_expression>(output.data), event, event_data, state_stack, state_stack_position + 1);
+                return read_object(std::get<Constant_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
             }
         }
         case 16:
         {
             if constexpr (std::is_same_v<Event_data, std::string_view>)
             {
-                if (event == Event::Key && event_data == "data")
+                if (event == Event::Key && event_data == "value")
                 {
                     state = 17;
                     return true;
@@ -1327,23 +1348,56 @@ namespace h::json
         case 17:
         {
             state = 18;
-            return read_object(std::get<Variable_expression>(output.data), event, event_data, state_stack, state_stack_position + 1);
+            return read_object(std::get<Return_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
         }
         case 18:
         {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+            if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
             {
-                if (!read_object(std::get<Variable_expression>(output.data), event, event_data, state_stack, state_stack_position + 1))
+                if (!read_object(std::get<Return_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1))
                 {
                     return false;
                 }
 
-                state = 1;
+                state = 4;
                 return true;
             }
             else
             {
-                return read_object(std::get<Variable_expression>(output.data), event, event_data, state_stack, state_stack_position + 1);
+                return read_object(std::get<Return_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
+            }
+        }
+        case 19:
+        {
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
+            {
+                if (event == Event::Key && event_data == "value")
+                {
+                    state = 20;
+                    return true;
+                }
+            }
+        }
+        case 20:
+        {
+            state = 21;
+            return read_object(std::get<Variable_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
+        }
+        case 21:
+        {
+            if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
+            {
+                if (!read_object(std::get<Variable_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1))
+                {
+                    return false;
+                }
+
+                state = 4;
+                return true;
+            }
+            else
+            {
+                return read_object(std::get<Variable_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
             }
         }
         }
@@ -1431,13 +1485,13 @@ namespace h::json
         case 5:
         {
             state = 6;
-            return read_object(output.expressions, event, event_data, state_stack, state_stack_position + 1);
+            return read_object(output.expressions, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
         case 6:
         {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
-                if (!read_object(output.expressions, event, event_data, state_stack, state_stack_position + 1))
+                if (!read_object(output.expressions, event, event_data, state_stack, state_stack_position + 1 + 0))
                 {
                     return false;
                 }
@@ -1447,7 +1501,7 @@ namespace h::json
             }
             else
             {
-                return read_object(output.expressions, event, event_data, state_stack, state_stack_position + 1);
+                return read_object(output.expressions, event, event_data, state_stack, state_stack_position + 1 + 0);
             }
         }
         }
@@ -1555,13 +1609,13 @@ namespace h::json
         case 5:
         {
             state = 6;
-            return read_object(output.return_type, event, event_data, state_stack, state_stack_position + 1);
+            return read_object(output.return_type, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
         case 6:
         {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
-                if (!read_object(output.return_type, event, event_data, state_stack, state_stack_position + 1))
+                if (!read_object(output.return_type, event, event_data, state_stack, state_stack_position + 1 + 0))
                 {
                     return false;
                 }
@@ -1571,19 +1625,19 @@ namespace h::json
             }
             else
             {
-                return read_object(output.return_type, event, event_data, state_stack, state_stack_position + 1);
+                return read_object(output.return_type, event, event_data, state_stack, state_stack_position + 1 + 0);
             }
         }
         case 7:
         {
             state = 8;
-            return read_object(output.parameter_types, event, event_data, state_stack, state_stack_position + 1);
+            return read_object(output.parameter_types, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
         case 8:
         {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
-                if (!read_object(output.parameter_types, event, event_data, state_stack, state_stack_position + 1))
+                if (!read_object(output.parameter_types, event, event_data, state_stack, state_stack_position + 1 + 0))
                 {
                     return false;
                 }
@@ -1593,19 +1647,19 @@ namespace h::json
             }
             else
             {
-                return read_object(output.parameter_types, event, event_data, state_stack, state_stack_position + 1);
+                return read_object(output.parameter_types, event, event_data, state_stack, state_stack_position + 1 + 0);
             }
         }
         case 9:
         {
             state = 10;
-            return read_object(output.parameter_ids, event, event_data, state_stack, state_stack_position + 1);
+            return read_object(output.parameter_ids, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
         case 10:
         {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
-                if (!read_object(output.parameter_ids, event, event_data, state_stack, state_stack_position + 1))
+                if (!read_object(output.parameter_ids, event, event_data, state_stack, state_stack_position + 1 + 0))
                 {
                     return false;
                 }
@@ -1615,19 +1669,19 @@ namespace h::json
             }
             else
             {
-                return read_object(output.parameter_ids, event, event_data, state_stack, state_stack_position + 1);
+                return read_object(output.parameter_ids, event, event_data, state_stack, state_stack_position + 1 + 0);
             }
         }
         case 11:
         {
             state = 12;
-            return read_object(output.parameter_names, event, event_data, state_stack, state_stack_position + 1);
+            return read_object(output.parameter_names, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
         case 12:
         {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
-                if (!read_object(output.parameter_names, event, event_data, state_stack, state_stack_position + 1))
+                if (!read_object(output.parameter_names, event, event_data, state_stack, state_stack_position + 1 + 0))
                 {
                     return false;
                 }
@@ -1637,7 +1691,7 @@ namespace h::json
             }
             else
             {
-                return read_object(output.parameter_names, event, event_data, state_stack, state_stack_position + 1);
+                return read_object(output.parameter_names, event, event_data, state_stack, state_stack_position + 1 + 0);
             }
         }
         case 13:
@@ -1720,13 +1774,13 @@ namespace h::json
         case 4:
         {
             state = 5;
-            return read_object(output.statements, event, event_data, state_stack, state_stack_position + 1);
+            return read_object(output.statements, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
         case 5:
         {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
-                if (!read_object(output.statements, event, event_data, state_stack, state_stack_position + 1))
+                if (!read_object(output.statements, event, event_data, state_stack, state_stack_position + 1 + 0))
                 {
                     return false;
                 }
@@ -1736,7 +1790,7 @@ namespace h::json
             }
             else
             {
-                return read_object(output.statements, event, event_data, state_stack, state_stack_position + 1);
+                return read_object(output.statements, event, event_data, state_stack, state_stack_position + 1 + 0);
             }
         }
         }
@@ -1891,13 +1945,13 @@ namespace h::json
         case 3:
         {
             state = 4;
-            return read_object(output.function_declarations, event, event_data, state_stack, state_stack_position + 1);
+            return read_object(output.function_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
         case 4:
         {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
-                if (!read_object(output.function_declarations, event, event_data, state_stack, state_stack_position + 1))
+                if (!read_object(output.function_declarations, event, event_data, state_stack, state_stack_position + 1 + 0))
                 {
                     return false;
                 }
@@ -1907,7 +1961,7 @@ namespace h::json
             }
             else
             {
-                return read_object(output.function_declarations, event, event_data, state_stack, state_stack_position + 1);
+                return read_object(output.function_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
             }
         }
         }
@@ -1975,13 +2029,13 @@ namespace h::json
         case 3:
         {
             state = 4;
-            return read_object(output.function_definitions, event, event_data, state_stack, state_stack_position + 1);
+            return read_object(output.function_definitions, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
         case 4:
         {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
-                if (!read_object(output.function_definitions, event, event_data, state_stack, state_stack_position + 1))
+                if (!read_object(output.function_definitions, event, event_data, state_stack, state_stack_position + 1 + 0))
                 {
                     return false;
                 }
@@ -1991,7 +2045,7 @@ namespace h::json
             }
             else
             {
-                return read_object(output.function_definitions, event, event_data, state_stack, state_stack_position + 1);
+                return read_object(output.function_definitions, event, event_data, state_stack, state_stack_position + 1 + 0);
             }
         }
         }
@@ -2079,13 +2133,13 @@ namespace h::json
         case 3:
         {
             state = 4;
-            return read_object(output.language_version, event, event_data, state_stack, state_stack_position + 1);
+            return read_object(output.language_version, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
         case 4:
         {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
-                if (!read_object(output.language_version, event, event_data, state_stack, state_stack_position + 1))
+                if (!read_object(output.language_version, event, event_data, state_stack, state_stack_position + 1 + 0))
                 {
                     return false;
                 }
@@ -2095,7 +2149,7 @@ namespace h::json
             }
             else
             {
-                return read_object(output.language_version, event, event_data, state_stack, state_stack_position + 1);
+                return read_object(output.language_version, event, event_data, state_stack, state_stack_position + 1 + 0);
             }
         }
         case 5:
@@ -2106,13 +2160,13 @@ namespace h::json
         case 6:
         {
             state = 7;
-            return read_object(output.export_declarations, event, event_data, state_stack, state_stack_position + 1);
+            return read_object(output.export_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
         case 7:
         {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
-                if (!read_object(output.export_declarations, event, event_data, state_stack, state_stack_position + 1))
+                if (!read_object(output.export_declarations, event, event_data, state_stack, state_stack_position + 1 + 0))
                 {
                     return false;
                 }
@@ -2122,19 +2176,19 @@ namespace h::json
             }
             else
             {
-                return read_object(output.export_declarations, event, event_data, state_stack, state_stack_position + 1);
+                return read_object(output.export_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
             }
         }
         case 8:
         {
             state = 9;
-            return read_object(output.internal_declarations, event, event_data, state_stack, state_stack_position + 1);
+            return read_object(output.internal_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
         case 9:
         {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
-                if (!read_object(output.internal_declarations, event, event_data, state_stack, state_stack_position + 1))
+                if (!read_object(output.internal_declarations, event, event_data, state_stack, state_stack_position + 1 + 0))
                 {
                     return false;
                 }
@@ -2144,19 +2198,19 @@ namespace h::json
             }
             else
             {
-                return read_object(output.internal_declarations, event, event_data, state_stack, state_stack_position + 1);
+                return read_object(output.internal_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
             }
         }
         case 10:
         {
             state = 11;
-            return read_object(output.definitions, event, event_data, state_stack, state_stack_position + 1);
+            return read_object(output.definitions, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
         case 11:
         {
-            if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
-                if (!read_object(output.definitions, event, event_data, state_stack, state_stack_position + 1))
+                if (!read_object(output.definitions, event, event_data, state_stack, state_stack_position + 1 + 0))
                 {
                     return false;
                 }
@@ -2166,7 +2220,7 @@ namespace h::json
             }
             else
             {
-                return read_object(output.definitions, event, event_data, state_stack, state_stack_position + 1);
+                return read_object(output.definitions, event, event_data, state_stack, state_stack_position + 1 + 0);
             }
         }
         }

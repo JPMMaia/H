@@ -242,7 +242,7 @@ namespace h::tools::code_generator
         {
             if (is_variant_type(member.type))
             {
-                output_stream << "if (event_data == \"data_type\")\n";
+                output_stream << "if (event_data == \"data\")\n";
                 output_stream << "{\n";
                 output_stream << "    state = " << state << ";\n";
                 output_stream << "    return true;\n";
@@ -264,29 +264,31 @@ namespace h::tools::code_generator
         void generate_read_object_code(
             std::stringstream& output_stream,
             std::string_view const output_name,
-            int const state
+            int const state,
+            int const end_state,
+            int const stack_offset
         )
         {
             output_stream << "case " << state << ":\n";
             output_stream << "{\n";
             output_stream << "    state = " << (state + 1) << ";\n";
-            output_stream << "    return read_object(" << output_name << ", event, event_data, state_stack, state_stack_position + 1);\n";
+            output_stream << "    return read_object(" << output_name << ", event, event_data, state_stack, state_stack_position + 1 + " << stack_offset << ");\n";
             output_stream << "}\n";
             output_stream << "case " << (state + 1) << ":\n";
             output_stream << "{\n";
-            output_stream << "    if ((event == Event::End_object) && (state_stack_position + 2 == state_stack.size()))\n";
+            output_stream << "    if ((event == Event::End_object) && (state_stack_position + 2 + " << stack_offset << " == state_stack.size()))\n";
             output_stream << "    {\n";
-            output_stream << "        if (!read_object(" << output_name << ", event, event_data, state_stack, state_stack_position + 1))\n";
+            output_stream << "        if (!read_object(" << output_name << ", event, event_data, state_stack, state_stack_position + 1 + " << stack_offset << "))\n";
             output_stream << "        {\n";
             output_stream << "            return false;\n";
             output_stream << "        }\n";
             output_stream << "        \n";
-            output_stream << "        state = 1;\n";
+            output_stream << "        state = " << end_state << ";\n";
             output_stream << "        return true;\n";
             output_stream << "    }\n";
             output_stream << "    else\n";
             output_stream << "    {\n";
-            output_stream << "        return read_object(" << output_name << ", event, event_data, state_stack, state_stack_position + 1);\n";
+            output_stream << "        return read_object(" << output_name << ", event, event_data, state_stack, state_stack_position + 1 + " << stack_offset << ");\n";
             output_stream << "    }\n";
             output_stream << "}\n";
         }
@@ -307,7 +309,9 @@ namespace h::tools::code_generator
                 generate_read_object_code(
                     output_stream,
                     output_name,
-                    state
+                    state,
+                    1,
+                    0
                 );
 
                 return 2;
@@ -329,6 +333,43 @@ namespace h::tools::code_generator
                 {
                     output_stream << "case " << state << ":\n";
                     output_stream << "{\n";
+                    output_stream << "    if (event == Event::Start_object)\n";
+                    output_stream << "    {\n";
+                    output_stream << "        state = " << (state + 2) << ";\n";
+                    output_stream << "        return true;\n";
+                    output_stream << "    }\n";
+                    output_stream << "}\n";
+                }
+
+                const int end_object_state = (state + 1);
+                {
+                    output_stream << "case " << end_object_state << ":\n";
+                    output_stream << "{\n";
+                    output_stream << "    if (event == Event::End_object)\n";
+                    output_stream << "    {\n";
+                    output_stream << "        state = 1;\n";
+                    output_stream << "        return true;\n";
+                    output_stream << "    }\n";
+                    output_stream << "}\n";
+                }
+
+                {
+                    output_stream << "case " << (state + 2) << ":\n";
+                    output_stream << "{\n";
+                    output_stream << "    if constexpr (std::is_same_v<Event_data, std::string_view>)\n";
+                    output_stream << "    {\n";
+                    output_stream << "        if (event == Event::Key && event_data == \"type\")\n";
+                    output_stream << "        {\n";
+                    output_stream << "            state = " << (state + 3) << ";\n";
+                    output_stream << "            return true;\n";
+                    output_stream << "        }\n";
+                    output_stream << "    }\n";
+                    output_stream << "}\n";
+                }
+
+                {
+                    output_stream << "case " << (state + 3) << ":\n";
+                    output_stream << "{\n";
                     {
                         output_stream << "if constexpr (std::is_same_v<Event_data, std::string_view>)\n";
                         output_stream << "{\n";
@@ -336,7 +377,7 @@ namespace h::tools::code_generator
                         for (std::size_t index = 0; index < variadic_types.size(); ++index)
                         {
                             std::string_view const type_name = variadic_types[index];
-                            const int next_state = (state + 1 + 3 * index);
+                            const int next_state = (state + 4 + 3 * index);
 
                             output_stream << "if (event_data == \"" << to_lowercase(type_name) << "\")\n";
                             output_stream << "{\n";
@@ -358,7 +399,7 @@ namespace h::tools::code_generator
 
                 for (std::size_t index = 0; index < variadic_types.size(); ++index)
                 {
-                    const int current_state = (state + 1 + 3 * index);
+                    const int current_state = (state + 4 + 3 * index);
                     std::string_view const type_name = variadic_types[index];
                     Type const type = { .name = std::pmr::string{type_name} };
 
@@ -368,7 +409,7 @@ namespace h::tools::code_generator
                     output_stream << "{\n";
                     output_stream << "    if constexpr (std::is_same_v<Event_data, std::string_view>)\n";
                     output_stream << "    {\n";
-                    output_stream << "        if (event == Event::Key && event_data == \"data\")\n";
+                    output_stream << "        if (event == Event::Key && event_data == \"value\")\n";
                     output_stream << "        {\n";
                     output_stream << "            state = " << (current_state + 1) << ";\n";
                     output_stream << "            return true;\n";
@@ -380,7 +421,7 @@ namespace h::tools::code_generator
                     {
                         output_stream << "case " << (current_state + 1) << ":\n";
                         output_stream << "{\n";
-                        output_stream << "    state = 1;\n";
+                        output_stream << "    state = " << end_object_state << ";\n";
                         output_stream << "    return read_enum(" << output_name << ", event_data);\n";
                         output_stream << "}\n";
                     }
@@ -389,20 +430,22 @@ namespace h::tools::code_generator
                         generate_read_object_code(
                             output_stream,
                             output_name,
-                            current_state + 1
+                            current_state + 1,
+                            end_object_state,
+                            1
                         );
                     }
                     else
                     {
                         output_stream << "case " << (current_state + 1) << ":\n";
                         output_stream << "{\n";
-                        output_stream << "    state = 1;\n";
+                        output_stream << "    state = " << end_object_state << ";\n";
                         output_stream << "    return read_value(" << output_name << ", \"" << member.name << "\", event_data);\n";
                         output_stream << "}\n";
                     }
                 }
 
-                return 1 + 3 * static_cast<int>(variadic_types.size());
+                return 4 + 3 * static_cast<int>(variadic_types.size());
             }
             else
             {
@@ -615,6 +658,10 @@ namespace h::tools::code_generator
         {
             if (is_variant_type(member.type))
             {
+                output_stream << "    writer.Key(\"data\");\n";
+                output_stream << "\n";
+                output_stream << "    writer.StartObject();\n";
+
                 std::pmr::vector<std::pmr::string> const type_names = get_variadic_types(
                     member.type.name
                 );
@@ -631,9 +678,9 @@ namespace h::tools::code_generator
                     }
                     output_stream << "if (std::holds_alternative<" << type_name << ">(output." << member.name << "))\n";
                     output_stream << "    {\n";
-                    output_stream << "        writer.Key(\"data_type\");\n";
+                    output_stream << "        writer.Key(\"type\");\n";
                     output_stream << "        writer.String(\"" << to_lowercase(type_name) << "\");\n";
-                    output_stream << "        writer.Key(\"data\");\n";
+                    output_stream << "        writer.Key(\"value\");\n";
 
                     if (is_enum_type(underlying_type, enum_types))
                     {
@@ -658,6 +705,8 @@ namespace h::tools::code_generator
 
                     output_stream << "    }\n";
                 }
+
+                output_stream << "    writer.EndObject();\n\n";
             }
             else
             {

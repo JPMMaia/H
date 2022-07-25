@@ -68,8 +68,10 @@ namespace h
     {
         std::pmr::string const json_data = R"JSON(
             {
-                "data_type": "fundamental_type",
-                "data": "uint32"
+                "data": {
+                    "type": "fundamental_type",
+                    "value": "uint32"
+                }
             }
         )JSON";
 
@@ -95,7 +97,7 @@ namespace h
             .data = Fundamental_type::Uint32
         };
 
-        std::string const expected = "{\"data_type\":\"fundamental_type\",\"data\":\"uint32\"}";
+        std::string const expected = "{\"data\":{\"type\":\"fundamental_type\",\"value\":\"uint32\"}}";
 
         rapidjson::StringBuffer output_stream;
         rapidjson::Writer<rapidjson::StringBuffer> writer{ output_stream };
@@ -109,12 +111,14 @@ namespace h
     {
         std::pmr::string const json_data = R"JSON(
             {
-                "data_type": "struct_type_reference",
                 "data": {
-                    "module_reference": {
-                        "name": "module_foo"
-                    },
-                    "id": 10
+                    "type": "struct_type_reference",
+                    "value": {
+                        "module_reference": {
+                            "name": "module_foo"
+                        },
+                        "id": 10
+                    }
                 }
             }
         )JSON";
@@ -153,7 +157,7 @@ namespace h
             }
         };
 
-        std::string const expected = "{\"data_type\":\"struct_type_reference\",\"data\":{\"module_reference\":{\"name\":\"module_foo\"},\"id\":10}}";
+        std::string const expected = "{\"data\":{\"type\":\"struct_type_reference\",\"value\":{\"module_reference\":{\"name\":\"module_foo\"},\"id\":10}}}";
 
         rapidjson::StringBuffer output_stream;
         rapidjson::Writer<rapidjson::StringBuffer> writer{ output_stream };
@@ -335,19 +339,25 @@ namespace h
                 "id": 125,
                 "name": "Add",
                 "return_type": {
-                    "data_type": "fundamental_type",
-                    "data": "int32"
+                    "data": {
+                        "type": "fundamental_type",
+                        "value": "int32"
+                    }
                 },
                 "parameter_types": {
                     "size": 2,
                     "elements": [
                         {
-                            "data_type": "fundamental_type",
-                            "data": "int32"
+                            "data": {
+                                "type": "fundamental_type",
+                                "value": "int32"
+                            }
                         },
                         {
-                            "data_type": "fundamental_type",
-                            "data": "int32"
+                            "data": {
+                                "type": "fundamental_type",
+                                "value": "int32"
+                            }
                         }
                     ]
                 },
@@ -444,25 +454,29 @@ namespace h
                             "elements": 
                             [
                                 {
-                                    "data_type": "binary_expression",
                                     "data": {
-                                        "left_hand_side": {
-                                            "type": "function_argument",
-                                            "id": 0
-                                        },
-                                        "right_hand_side": {
-                                            "type": "function_argument",
-                                            "id": 1
-                                        },
-                                        "operation": "add"
+                                        "type": "binary_expression",
+                                        "value": {
+                                            "left_hand_side": {
+                                                "type": "function_argument",
+                                                "id": 0
+                                            },
+                                            "right_hand_side": {
+                                                "type": "function_argument",
+                                                "id": 1
+                                            },
+                                            "operation": "add"
+                                        }
                                     }
                                 },
                                 {
-                                    "data_type": "return_expression",
                                     "data": {
-                                        "variable": {
-                                            "type": "temporary",
-                                            "id": 0
+                                        "type": "return_expression",
+                                        "value": {
+                                            "variable": {
+                                                "type": "temporary",
+                                                "id": 0
+                                            }
                                         }
                                     }
                                 }
@@ -533,19 +547,25 @@ namespace h
                             "id": 125,
                             "name": "Add",
                             "return_type": {
-                                "data_type": "fundamental_type",
-                                "data": "int32"
+                                "data": {
+                                    "type": "fundamental_type",
+                                    "value": "int32"
+                                }
                             },
                             "parameter_types": {
                                 "size": 2,
                                 "elements": [
                                     {
-                                        "data_type": "fundamental_type",
-                                        "data": "int32"
+                                        "data": {
+                                            "type": "fundamental_type",
+                                            "value": "int32"
+                                        }
                                     },
                                     {
-                                        "data_type": "fundamental_type",
-                                        "data": "int32"
+                                        "data": {
+                                            "type": "fundamental_type",
+                                            "value": "int32"
+                                        }
                                     }
                                 ]
                             },
@@ -589,25 +609,29 @@ namespace h
                                             "elements": 
                                             [
                                                 {
-                                                    "data_type": "binary_expression",
                                                     "data": {
-                                                        "left_hand_side": {
-                                                            "type": "function_argument",
-                                                            "id": 0
-                                                        },
-                                                        "right_hand_side": {
-                                                            "type": "function_argument",
-                                                            "id": 1
-                                                        },
-                                                        "operation": "add"
+                                                        "type": "binary_expression",
+                                                        "value": {
+                                                            "left_hand_side": {
+                                                                "type": "function_argument",
+                                                                "id": 0
+                                                            },
+                                                            "right_hand_side": {
+                                                                "type": "function_argument",
+                                                                "id": 1
+                                                            },
+                                                            "operation": "add"
+                                                        }
                                                     }
                                                 },
                                                 {
-                                                    "data_type": "return_expression",
                                                     "data": {
-                                                        "variable": {
-                                                            "type": "temporary",
-                                                            "id": 0
+                                                        "type": "return_expression",
+                                                        "value": {
+                                                            "variable": {
+                                                                "type": "temporary",
+                                                                "id": 0
+                                                            }
                                                         }
                                                     }
                                                 }
