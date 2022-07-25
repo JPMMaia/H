@@ -242,33 +242,12 @@ namespace h::tools::code_generator
         {
             if (is_variant_type(member.type))
             {
-                std::pmr::vector<std::pmr::string> const variadic_types = get_variadic_types(member.type.name);
-
-                if (!variadic_types.empty())
-                {
-                    std::pmr::string const lowercase_type = to_lowercase(variadic_types[0]);
-
-                    output_stream << "if (event_data == \"" << lowercase_type << "\")\n";
-                    output_stream << "{\n";
-                    output_stream << "    output." << member.name << " = " << variadic_types[0] << "{};\n";
-                    output_stream << "    state = " << state << ";\n";
-                    output_stream << "    return true;\n";
-                    output_stream << "}\n";
-                }
-
-                for (std::size_t index = 1; index < variadic_types.size(); ++index)
-                {
-                    std::pmr::string const lowercase_type = to_lowercase(variadic_types[index]);
-
-                    output_stream << "else if (event_data == \"" << lowercase_type << "\")\n";
-                    output_stream << "{\n";
-                    output_stream << "    output." << member.name << " = " << variadic_types[index] << "{};\n";
-                    output_stream << "    state = " << (state + 2 * index) << ";\n";
-                    output_stream << "    return true;\n";
-                    output_stream << "}\n";
-                }
-
-                return 2 * static_cast<int>(variadic_types.size());
+                output_stream << "if (event_data == \"data_type\")\n";
+                output_stream << "{\n";
+                output_stream << "    state = " << state << ";\n";
+                output_stream << "    return true;\n";
+                output_stream << "}\n";
+                return 1;
             }
             else
             {
@@ -347,17 +326,59 @@ namespace h::tools::code_generator
             {
                 std::pmr::vector<std::pmr::string> const variadic_types = get_variadic_types(member.type.name);
 
+                {
+                    output_stream << "case " << state << ":\n";
+                    output_stream << "{\n";
+                    {
+                        output_stream << "if constexpr (std::is_same_v<Event_data, std::string_view>)\n";
+                        output_stream << "{\n";
+
+                        for (std::size_t index = 0; index < variadic_types.size(); ++index)
+                        {
+                            std::string_view const type_name = variadic_types[index];
+                            const int next_state = (state + 1 + 3 * index);
+
+                            output_stream << "if (event_data == \"" << to_lowercase(type_name) << "\")\n";
+                            output_stream << "{\n";
+                            output_stream << "    output.data = " << type_name << "{};\n";
+                            output_stream << "    state = " << next_state << ";\n";
+                            output_stream << "    return true;\n";
+                            output_stream << "}\n";
+
+                            if ((index + 1) != variadic_types.size())
+                            {
+                                output_stream << "else ";
+                            }
+                        }
+
+                        output_stream << "}\n";
+                    }
+                    output_stream << "}\n";
+                }
+
                 for (std::size_t index = 0; index < variadic_types.size(); ++index)
                 {
-                    const int current_state = (state + 2 * index);
+                    const int current_state = (state + 1 + 3 * index);
                     std::string_view const type_name = variadic_types[index];
                     Type const type = { .name = std::pmr::string{type_name} };
 
                     std::pmr::string const output_name = "std::get<" + std::pmr::string{ type_name } + ">(output." + member.name + ")";
 
+                    output_stream << "case " << current_state << ":\n";
+                    output_stream << "{\n";
+                    output_stream << "    if constexpr (std::is_same_v<Event_data, std::string_view>)\n";
+                    output_stream << "    {\n";
+                    output_stream << "        if (event == Event::Key && event_data == \"data\")\n";
+                    output_stream << "        {\n";
+                    output_stream << "            state = " << (current_state + 1) << ";\n";
+                    output_stream << "            return true;\n";
+                    output_stream << "        }\n";
+                    output_stream << "    }\n";
+                    output_stream << "}\n";
+
                     if (is_enum_type(type, enum_types))
                     {
-                        output_stream << "case " << current_state << ":\n";
+                        output_stream << "case " << (current_state + 1) << ":\n";
                         output_stream << "{\n";
                         output_stream << "    state = 1;\n";
                         output_stream << "    return read_enum(" << output_name << ", event_data);\n";
@@ -368,12 +389,12 @@ namespace h::tools::code_generator
                         generate_read_object_code(
                             output_stream,
                             output_name,
-                            current_state
+                            current_state + 1
                         );
                     }
                     else
                     {
-                        output_stream << "case " << current_state << ":\n";
+                        output_stream << "case " << (current_state + 1) << ":\n";
                         output_stream << "{\n";
                         output_stream << "    state = 1;\n";
                         output_stream << "    return read_value(" << output_name << ", \"" << member.name << "\", event_data);\n";
@@ -381,7 +402,7 @@ namespace h::tools::code_generator
                     }
                 }
 
-                return 2 * static_cast<int>(variadic_types.size());
+                return 1 + 3 * static_cast<int>(variadic_types.size());
             }
             else
             {
@@ -610,7 +631,9 @@ namespace h::tools::code_generator
                     }
                     output_stream << "if (std::holds_alternative<" << type_name << ">(output." << member.name << "))\n";
                     output_stream << "    {\n";
-                    output_stream << "        writer.Key(\"" << to_lowercase(type_name) << "\");\n";
+                    output_stream << "        writer.Key(\"data_type\");\n";
+                    output_stream << "        writer.String(\"" << to_lowercase(type_name) << "\");\n";
+                    output_stream << "        writer.Key(\"data\");\n";
 
                     if (is_enum_type(underlying_type, enum_types))
                     {

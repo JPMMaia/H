@@ -68,7 +68,8 @@ namespace h
     {
         std::pmr::string const json_data = R"JSON(
             {
-                "fundamental_type": "uint32"
+                "data_type": "fundamental_type",
+                "data": "uint32"
             }
         )JSON";
 
@@ -87,11 +88,29 @@ namespace h
         CHECK(actual == expected);
     }
 
+    TEST_CASE("Write Type_reference with Fundamental_type")
+    {
+        Type_reference const input
+        {
+            .data = Fundamental_type::Uint32
+        };
+
+        std::string const expected = "{\"data_type\":\"fundamental_type\",\"data\":\"uint32\"}";
+
+        rapidjson::StringBuffer output_stream;
+        rapidjson::Writer<rapidjson::StringBuffer> writer{ output_stream };
+        h::json::write(writer, input);
+
+        std::string const actual = output_stream.GetString();
+        CHECK(actual == expected);
+    }
+
     TEST_CASE("Read Type_reference with Struct_type_reference")
     {
         std::pmr::string const json_data = R"JSON(
             {
-                "struct_type_reference": {
+                "data_type": "struct_type_reference",
+                "data": {
                     "module_reference": {
                         "name": "module_foo"
                     },
@@ -118,6 +137,29 @@ namespace h
         REQUIRE(output.has_value());
 
         Type_reference const& actual = output.value();
+        CHECK(actual == expected);
+    }
+
+    TEST_CASE("Write Type_reference with Struct_type_reference")
+    {
+        Type_reference const input
+        {
+            .data = Struct_type_reference
+            {
+                .module_reference = Module_reference{
+                    .name = "module_foo"
+                },
+                .id = 10
+            }
+        };
+
+        std::string const expected = "{\"data_type\":\"struct_type_reference\",\"data\":{\"module_reference\":{\"name\":\"module_foo\"},\"id\":10}}";
+
+        rapidjson::StringBuffer output_stream;
+        rapidjson::Writer<rapidjson::StringBuffer> writer{ output_stream };
+        h::json::write(writer, input);
+
+        std::string const actual = output_stream.GetString();
         CHECK(actual == expected);
     }
 
@@ -293,16 +335,19 @@ namespace h
                 "id": 125,
                 "name": "Add",
                 "return_type": {
-                    "fundamental_type": "int32"
+                    "data_type": "fundamental_type",
+                    "data": "int32"
                 },
                 "parameter_types": {
                     "size": 2,
                     "elements": [
                         {
-                            "fundamental_type": "int32"
+                            "data_type": "fundamental_type",
+                            "data": "int32"
                         },
                         {
-                            "fundamental_type": "int32"
+                            "data_type": "fundamental_type",
+                            "data": "int32"
                         }
                     ]
                 },
@@ -399,7 +444,8 @@ namespace h
                             "elements": 
                             [
                                 {
-                                    "binary_expression": {
+                                    "data_type": "binary_expression",
+                                    "data": {
                                         "left_hand_side": {
                                             "type": "function_argument",
                                             "id": 0
@@ -412,7 +458,8 @@ namespace h
                                     }
                                 },
                                 {
-                                    "return_expression": {
+                                    "data_type": "return_expression",
+                                    "data": {
                                         "variable": {
                                             "type": "temporary",
                                             "id": 0
@@ -486,16 +533,19 @@ namespace h
                             "id": 125,
                             "name": "Add",
                             "return_type": {
-                                "fundamental_type": "int32"
+                                "data_type": "fundamental_type",
+                                "data": "int32"
                             },
                             "parameter_types": {
                                 "size": 2,
                                 "elements": [
                                     {
-                                        "fundamental_type": "int32"
+                                        "data_type": "fundamental_type",
+                                        "data": "int32"
                                     },
                                     {
-                                        "fundamental_type": "int32"
+                                        "data_type": "fundamental_type",
+                                        "data": "int32"
                                     }
                                 ]
                             },
@@ -539,7 +589,8 @@ namespace h
                                             "elements": 
                                             [
                                                 {
-                                                    "binary_expression": {
+                                                    "data_type": "binary_expression",
+                                                    "data": {
                                                         "left_hand_side": {
                                                             "type": "function_argument",
                                                             "id": 0
@@ -552,7 +603,8 @@ namespace h
                                                     }
                                                 },
                                                 {
-                                                    "return_expression": {
+                                                    "data_type": "return_expression",
+                                                    "data": {
                                                         "variable": {
                                                             "type": "temporary",
                                                             "id": 0
