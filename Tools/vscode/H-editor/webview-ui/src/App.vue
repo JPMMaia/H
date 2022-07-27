@@ -60,16 +60,25 @@ m_state.value = {
           "id": 0,
           "name": "Add",
           "return_type": {
-            "fundamental_type": "int32"
+            "data": {
+              "type": "fundamental_type",
+              "value": "int32"
+            }
           },
           "parameter_types": {
             "size": 2,
             "elements": [
               {
-                "fundamental_type": "int32"
+                "data": {
+                  "type": "fundamental_type",
+                  "value": "int32"
+                }
               },
               {
-                "fundamental_type": "int32"
+                "data": {
+                  "type": "fundamental_type",
+                  "value": "int32"
+                }
               }
             ]
           },
@@ -114,7 +123,9 @@ m_state.value = {
                   "size": 2,
                   "elements": [
                     {
-                      "binary_expression": {
+                      "data": {
+                        "type": "binary_expression",
+                        "value": {
                         "left_hand_side": {
                           "type": "function_argument",
                           "id": 0
@@ -124,13 +135,17 @@ m_state.value = {
                           "id": 1
                         },
                         "operation": "add"
+                        }
                       }
                     },
                     {
-                      "return_expression": {
+                      "data": {
+                        "type": "return_expression",
+                        "value": {
                         "variable": {
                           "type": "temporary",
                           "id": 0
+                          }
                         }
                       }
                     }
