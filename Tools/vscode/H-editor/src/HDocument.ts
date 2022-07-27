@@ -3,7 +3,7 @@ import { findNumber, findEndOfString, fromPositionToOffset, findEndOfCurrentObje
 import { updateState } from './utilities/updateState';
 import { createUpdateStateMessage } from './utilities/updateStateMessage';
 import * as hCoreReflectionInfo from './utilities/h_core_reflection.json';
-import { createDefaultElement } from './utilities/coreModel';
+import { createDefaultElement, createEmptyModule } from './utilities/coreModel';
 
 function createFunction(document: vscode.TextDocument, state: any, functionIndex: number, isExportDeclaration: boolean): Thenable<boolean> {
 
@@ -223,32 +223,13 @@ export class HDocument {
         const fileName = filePath.replace(/^.*[\\\/]/, '');
         const moduleName = fileName.substring(0, fileName.lastIndexOf('.')) || fileName;
 
-        const defaultModule = {
-            language_version: {
-                "major": 0,
-                "minor": 1,
-                "patch": 0
-            },
-            name: moduleName,
-            export_declarations: {
-                function_declarations: {
-                    size: 0,
-                    elements: []
-                }
-            },
-            internal_declarations: {
-                function_declarations: {
-                    size: 0,
-                    elements: []
-                }
-            },
-            definitions: {
-                function_definitions: {
-                    size: 0,
-                    elements: []
-                }
-            }
-        };
+        const reflectionInfo = { enums: hCoreReflectionInfo.enums, structs: hCoreReflectionInfo.structs };
+
+        const defaultModule = createEmptyModule(reflectionInfo);
+        defaultModule.name = moduleName;
+        defaultModule.language_version.major = 0;
+        defaultModule.language_version.minor = 1;
+        defaultModule.language_version.patch = 0;
 
         const newText = JSON.stringify(defaultModule);
 
