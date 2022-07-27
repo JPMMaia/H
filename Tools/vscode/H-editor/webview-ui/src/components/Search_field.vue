@@ -12,42 +12,17 @@ const emit = defineEmits<{
   (e: 'update', value: any): void
 }>();
 
-//const properties = defineProps<{}>();
-
 // TODO emit selected value event with cancelation token?
 // Expression could instantiate a search field when needed and listen to selected value event?
 
-/*const m_possible_values = [
-  { id: 0, name: "Africa" },
-  { id: 1, name: "America" },
-  { id: 2, name: "Asia" },
-  { id: 3, name: "Europe" },
-];*/
-
-const m_input_element = ref<HTMLElement | null>(null);
-const m_possible_values = ref<any[]>([]);
 const m_toggle = ref<boolean>(false);
 const m_search_term = ref("");
 const m_selected_value = ref<any | null>(null);
 const m_current_focus = ref<number | null>(null);
-let m_selected_value_callback: any | null = null;
 
 onMounted(() => {
   m_search_term.value = properties.current_search_term;
 })
-
-/*function focus(current_search_term: string, possible_values: any[], selected_value_callback: any): void {
-  if (m_input_element.value != null) {
-    m_search_term.value = current_search_term;
-    m_possible_values.value = possible_values;
-    m_selected_value_callback = selected_value_callback;
-    m_input_element.value.focus();
-  }
-}
-
-defineExpose({
-  focus,
-});*/
 
 const search_values = computed(() => {
   if (!m_toggle.value) {
@@ -55,25 +30,27 @@ const search_values = computed(() => {
   }
 
   if (m_search_term.value === "") {
-    return m_possible_values.value;
+    return properties.possible_values;
   }
 
   let matches = 0;
 
-  return m_possible_values.value.filter((value) => {
+  const matched_values = properties.possible_values.filter((value) => {
     if (
-      value.name.toLowerCase().includes(m_search_term.value.toLowerCase()) &&
+      value.toLowerCase().includes(m_search_term.value.toLowerCase()) &&
       matches < 10
     ) {
       matches++;
       return value;
     }
   });
+
+  return matched_values;
 });
 
-function select_value(value: any): void {
+function select_value(value: string): void {
   m_selected_value.value = value;
-  m_search_term.value = m_selected_value.value.name;
+  m_search_term.value = m_selected_value.value;
   m_toggle.value = false;
 
   emit("update", value);
@@ -122,34 +99,31 @@ function on_key_down(event: KeyboardEvent): void {
 function on_focus_out(event: FocusEvent): void {
   // If click was on top of the dropdown:
   if (m_current_focus.value == null) {
-    select_value({id: null, name: m_search_term.value});
+    select_value(m_search_term.value);
   }
 }
 </script>
 
 <template>
   <div class="autocomplete">
-    <input
-      ref="m_input_element"
-      type="text"
-      id="search"
-      placeholder="Type here..."
+    <Editable
       v-model="m_search_term"
-      @keydown="on_key_down"
-      @blur="on_focus_out"
-    />
+      v-on:event:on_key_down="on_key_down"
+      v-on:event:on_focus_out="on_focus_out"
+    >
+    </Editable>
 
     <div id="autocomplete-list" class="autocomplete-items">
       <ul v-if="search_values.length > 0">
         <li
           v-for="(value, index) in search_values"
-          :key="value.id"
+          :key="value"
           :class="{ 'autocomplete-active': m_current_focus === index }"
           @mouseup="select_value(value)"
           @mouseenter="m_current_focus = index"
           @mouseleave="m_current_focus = null"
         >
-          {{ value.name }}
+          {{ value }}
         </li>
       </ul>
     </div>
@@ -176,6 +150,7 @@ ul {
   top: 100%;
   left: 0;
   right: 0;
+  width: fit-content;
 }
 .autocomplete-items ul li {
   padding: 10px;
