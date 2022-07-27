@@ -9,6 +9,8 @@ import Language_version from "./components/Language_version.vue";
 import JSON_object from "./components/JSON_object.vue";
 
 import { get_type_name } from "./utilities/language"
+import { createViewOptionsHierarchy } from "./utilities/ViewOptions";
+import * as hCoreReflectionInfo from '../../src/utilities/h_core_reflection.json';
 
 // In order to use the Webview UI Toolkit web components they
 // must be registered with the browser (i.e. webview) using the
@@ -35,6 +37,9 @@ function handleHowdyClick() {
     text: "Hey there partner! 🤠",
   });
 }
+
+const m_reflectionInfo = { enums: hCoreReflectionInfo.enums, structs: hCoreReflectionInfo.structs };
+const m_viewOptions = createViewOptionsHierarchy(m_reflectionInfo);
 
 const m_state = ref<any | null>(null);
 
@@ -126,15 +131,15 @@ m_state.value = {
                       "data": {
                         "type": "binary_expression",
                         "value": {
-                        "left_hand_side": {
-                          "type": "function_argument",
-                          "id": 0
-                        },
-                        "right_hand_side": {
-                          "type": "function_argument",
-                          "id": 1
-                        },
-                        "operation": "add"
+                          "left_hand_side": {
+                            "type": "function_argument",
+                            "id": 0
+                          },
+                          "right_hand_side": {
+                            "type": "function_argument",
+                            "id": 1
+                          },
+                          "operation": "add"
                         }
                       }
                     },
@@ -142,9 +147,9 @@ m_state.value = {
                       "data": {
                         "type": "return_expression",
                         "value": {
-                        "variable": {
-                          "type": "temporary",
-                          "id": 0
+                          "variable": {
+                            "type": "temporary",
+                            "id": 0
                           }
                         }
                       }
@@ -307,6 +312,7 @@ onMounted(() => {
   <main v-if="m_state && (m_selectedFrontendLanguage === 'JSON')">
     <JSON_object
       :value="m_state"
+      :options="m_viewOptions"
       :indentation="0"
       :indentation_increment="1"
       v-on:insert:value="(position) => on_insert_element(position)"
