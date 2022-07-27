@@ -6,7 +6,9 @@ const properties = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: any): void
+  (e: 'update:modelValue', value: any): void,
+  (e: 'event:on_key_down', event: KeyboardEvent): void,
+  (e: 'event:on_focus_out', event: FocusEvent): void
 }>();
 
 const input_element = ref<HTMLInputElement | null>(null);
@@ -35,16 +37,24 @@ watch(model_value, (newValue, oldValue) => {
   }
 });
 
-function onInput(event: InputEvent | Event): void {
+function on_input(event: InputEvent | Event): void {
   if (input_element.value !== null) {
     input_element.value.style.width = calculate_input_element_width(input_element.value.value) + 'ch';
     emit('update:modelValue', input_element.value.value);
   }
 }
+
+function on_key_down(event: KeyboardEvent): void {
+  emit('event:on_key_down', event);
+}
+
+function on_focus_out(event: FocusEvent): void {
+  emit('event:on_focus_out', event);
+}
 </script>
 
 <template>
-  <input ref="input_element" type="text" :value="modelValue" @input="onInput" placeholder="<Empty value>"/>
+  <input ref="input_element" type="text" :value="modelValue" @input="on_input" @keydown="on_key_down" @blur="on_focus_out" placeholder="<Empty value>" />
 </template>
 
 <style scoped>
