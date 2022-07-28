@@ -1,5 +1,6 @@
 module;
 
+#include <compare>
 #include <memory_resource>
 #include <ostream>
 #include <string>
@@ -11,6 +12,8 @@ export module h.core;
 
 namespace h
 {
+    struct Type_reference;
+
     export enum class Fundamental_type
     {
         Byte,
@@ -29,6 +32,22 @@ namespace h
 
     export std::uint16_t get_precision(Fundamental_type type);
 
+    export struct Function_type
+    {
+        std::pmr::vector<Type_reference> return_types;
+        std::pmr::vector<Type_reference> parameter_types;
+        bool is_variadic;
+
+        friend auto operator<=>(Function_type const& lhs, Function_type const& rhs) = default;
+    };
+
+    export struct Pointer_type
+    {
+        std::pmr::vector<Type_reference> element_type;
+        bool is_mutable;
+
+        friend auto operator<=>(Pointer_type const& lhs, Pointer_type const& rhs) = default;
+    };
 
     export struct Module_reference
     {
@@ -49,12 +68,25 @@ namespace h
     {
         using Data_type = std::variant<
             Fundamental_type,
+            Function_type,
+            Pointer_type,
             Struct_type_reference
         >;
 
         Data_type data;
 
         friend auto operator<=>(Type_reference const&, Type_reference const&) = default;
+    };
+
+    export struct Struct_declaration
+    {
+        std::uint64_t id;
+        std::pmr::string name;
+        std::pmr::vector<Type_reference> types;
+        bool is_packed;
+        bool is_literal;
+
+        friend auto operator<=>(Struct_declaration const&, Struct_declaration const&) = default;
     };
 
     export enum class Variable_expression_type
@@ -148,8 +180,7 @@ namespace h
     {
         std::uint64_t id;
         std::pmr::string name;
-        Type_reference return_type;
-        std::pmr::vector<Type_reference> parameter_types;
+        Function_type type;
         std::pmr::vector<std::uint64_t> parameter_ids;
         std::pmr::vector<std::pmr::string> parameter_names;
         Linkage linkage;
@@ -176,6 +207,7 @@ namespace h
 
     export struct Module_declarations
     {
+        std::pmr::vector<Struct_declaration> struct_declarations;
         std::pmr::vector<Function_declaration> function_declarations;
 
         friend auto operator<=>(Module_declarations const&, Module_declarations const&) = default;
