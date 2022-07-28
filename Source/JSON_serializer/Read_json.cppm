@@ -252,6 +252,61 @@ namespace h::json
             output = Fundamental_type::Float64;
             return true;
         }
+        else if (value == "c_char")
+        {
+            output = Fundamental_type::C_char;
+            return true;
+        }
+        else if (value == "c_schar")
+        {
+            output = Fundamental_type::C_schar;
+            return true;
+        }
+        else if (value == "c_uchar")
+        {
+            output = Fundamental_type::C_uchar;
+            return true;
+        }
+        else if (value == "c_short")
+        {
+            output = Fundamental_type::C_short;
+            return true;
+        }
+        else if (value == "c_ushort")
+        {
+            output = Fundamental_type::C_ushort;
+            return true;
+        }
+        else if (value == "c_int")
+        {
+            output = Fundamental_type::C_int;
+            return true;
+        }
+        else if (value == "c_uint")
+        {
+            output = Fundamental_type::C_uint;
+            return true;
+        }
+        else if (value == "c_long")
+        {
+            output = Fundamental_type::C_long;
+            return true;
+        }
+        else if (value == "c_ulong")
+        {
+            output = Fundamental_type::C_ulong;
+            return true;
+        }
+        else if (value == "c_longlong")
+        {
+            output = Fundamental_type::C_longlong;
+            return true;
+        }
+        else if (value == "c_ulonglong")
+        {
+            output = Fundamental_type::C_ulonglong;
+            return true;
+        }
 
         std::cerr << std::format("Failed to read enum 'Fundamental_type' with value '{}'\n", value);
         return false;
@@ -345,6 +400,221 @@ namespace h::json
             std::pmr::vector<int>& state_stack,
             std::size_t const state_stack_position
         );
+
+    export template<typename Event_data>
+        bool read_object(
+            Function_type& output,
+            Event const event,
+            Event_data const event_data,
+            std::pmr::vector<int>& state_stack,
+            std::size_t const state_stack_position
+        )
+    {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
+        int& state = state_stack[state_stack_position];
+
+        switch (state)
+        {
+        case 0:
+        {
+            if (event == Event::Start_object)
+            {
+                state = 1;
+                return true;
+            }
+            break;
+        }
+        case 1:
+        {
+            switch (event)
+            {
+            case Event::Key:
+            {
+                if constexpr (std::is_same_v<Event_data, std::string_view>)
+                {
+                    if (event_data == "return_types")
+                    {
+                        state = 3;
+                        return true;
+                    }
+                    else if (event_data == "parameter_types")
+                    {
+                        state = 5;
+                        return true;
+                    }
+                    else if (event_data == "is_variadic")
+                    {
+                        state = 7;
+                        return true;
+                    }
+                }
+                break;
+            }
+            case Event::End_object:
+            {
+                state = 2;
+                return true;
+            }
+            }
+            break;
+        }
+        case 2:
+        {
+            std::cerr << "While parsing 'Function_type' unexpected '}' found.\n";
+            return false;
+        }
+        case 3:
+        {
+            state = 4;
+            return read_object(output.return_types, event, event_data, state_stack, state_stack_position + 1 + 0);
+        }
+        case 4:
+        {
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
+            {
+                if (!read_object(output.return_types, event, event_data, state_stack, state_stack_position + 1 + 0))
+                {
+                    return false;
+                }
+
+                state = 1;
+                return true;
+            }
+            else
+            {
+                return read_object(output.return_types, event, event_data, state_stack, state_stack_position + 1 + 0);
+            }
+        }
+        case 5:
+        {
+            state = 6;
+            return read_object(output.parameter_types, event, event_data, state_stack, state_stack_position + 1 + 0);
+        }
+        case 6:
+        {
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
+            {
+                if (!read_object(output.parameter_types, event, event_data, state_stack, state_stack_position + 1 + 0))
+                {
+                    return false;
+                }
+
+                state = 1;
+                return true;
+            }
+            else
+            {
+                return read_object(output.parameter_types, event, event_data, state_stack, state_stack_position + 1 + 0);
+            }
+        }
+        case 7:
+        {
+            state = 1;
+            return read_value(output.is_variadic, "is_variadic", event_data);
+        }
+        }
+
+        std::cerr << "Error while reading 'Function_type'.\n";
+        return false;
+    }
+
+    export template<typename Event_data>
+        bool read_object(
+            Pointer_type& output,
+            Event const event,
+            Event_data const event_data,
+            std::pmr::vector<int>& state_stack,
+            std::size_t const state_stack_position
+        )
+    {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
+        int& state = state_stack[state_stack_position];
+
+        switch (state)
+        {
+        case 0:
+        {
+            if (event == Event::Start_object)
+            {
+                state = 1;
+                return true;
+            }
+            break;
+        }
+        case 1:
+        {
+            switch (event)
+            {
+            case Event::Key:
+            {
+                if constexpr (std::is_same_v<Event_data, std::string_view>)
+                {
+                    if (event_data == "element_type")
+                    {
+                        state = 3;
+                        return true;
+                    }
+                    else if (event_data == "is_mutable")
+                    {
+                        state = 5;
+                        return true;
+                    }
+                }
+                break;
+            }
+            case Event::End_object:
+            {
+                state = 2;
+                return true;
+            }
+            }
+            break;
+        }
+        case 2:
+        {
+            std::cerr << "While parsing 'Pointer_type' unexpected '}' found.\n";
+            return false;
+        }
+        case 3:
+        {
+            state = 4;
+            return read_object(output.element_type, event, event_data, state_stack, state_stack_position + 1 + 0);
+        }
+        case 4:
+        {
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
+            {
+                if (!read_object(output.element_type, event, event_data, state_stack, state_stack_position + 1 + 0))
+                {
+                    return false;
+                }
+
+                state = 1;
+                return true;
+            }
+            else
+            {
+                return read_object(output.element_type, event, event_data, state_stack, state_stack_position + 1 + 0);
+            }
+        }
+        case 5:
+        {
+            state = 1;
+            return read_value(output.is_mutable, "is_mutable", event_data);
+        }
+        }
+
+        std::cerr << "Error while reading 'Pointer_type'.\n";
+        return false;
+    }
 
     export template<typename Event_data>
         bool read_object(
@@ -600,10 +870,22 @@ namespace h::json
                     state = 7;
                     return true;
                 }
+                else if (event_data == "function_type")
+                {
+                    output.data = Function_type{};
+                    state = 10;
+                    return true;
+                }
+                else if (event_data == "pointer_type")
+                {
+                    output.data = Pointer_type{};
+                    state = 13;
+                    return true;
+                }
                 else if (event_data == "struct_type_reference")
                 {
                     output.data = Struct_type_reference{};
-                    state = 10;
+                    state = 16;
                     return true;
                 }
             }
@@ -638,9 +920,75 @@ namespace h::json
         case 11:
         {
             state = 12;
-            return read_object(std::get<Struct_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
+            return read_object(std::get<Function_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
         }
         case 12:
+        {
+            if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
+            {
+                if (!read_object(std::get<Function_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1))
+                {
+                    return false;
+                }
+
+                state = 4;
+                return true;
+            }
+            else
+            {
+                return read_object(std::get<Function_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
+            }
+        }
+        case 13:
+        {
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
+            {
+                if (event == Event::Key && event_data == "value")
+                {
+                    state = 14;
+                    return true;
+                }
+            }
+        }
+        case 14:
+        {
+            state = 15;
+            return read_object(std::get<Pointer_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
+        }
+        case 15:
+        {
+            if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
+            {
+                if (!read_object(std::get<Pointer_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1))
+                {
+                    return false;
+                }
+
+                state = 4;
+                return true;
+            }
+            else
+            {
+                return read_object(std::get<Pointer_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
+            }
+        }
+        case 16:
+        {
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
+            {
+                if (event == Event::Key && event_data == "value")
+                {
+                    state = 17;
+                    return true;
+                }
+            }
+        }
+        case 17:
+        {
+            state = 18;
+            return read_object(std::get<Struct_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
+        }
+        case 18:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
             {
@@ -660,6 +1008,130 @@ namespace h::json
         }
 
         std::cerr << "Error while reading 'Type_reference'.\n";
+        return false;
+    }
+
+    export template<typename Event_data>
+        bool read_object(
+            Struct_declaration& output,
+            Event const event,
+            Event_data const event_data,
+            std::pmr::vector<int>& state_stack,
+            std::size_t const state_stack_position
+        )
+    {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
+        int& state = state_stack[state_stack_position];
+
+        switch (state)
+        {
+        case 0:
+        {
+            if (event == Event::Start_object)
+            {
+                state = 1;
+                return true;
+            }
+            break;
+        }
+        case 1:
+        {
+            switch (event)
+            {
+            case Event::Key:
+            {
+                if constexpr (std::is_same_v<Event_data, std::string_view>)
+                {
+                    if (event_data == "id")
+                    {
+                        state = 3;
+                        return true;
+                    }
+                    else if (event_data == "name")
+                    {
+                        state = 4;
+                        return true;
+                    }
+                    else if (event_data == "types")
+                    {
+                        state = 5;
+                        return true;
+                    }
+                    else if (event_data == "is_packed")
+                    {
+                        state = 7;
+                        return true;
+                    }
+                    else if (event_data == "is_literal")
+                    {
+                        state = 8;
+                        return true;
+                    }
+                }
+                break;
+            }
+            case Event::End_object:
+            {
+                state = 2;
+                return true;
+            }
+            }
+            break;
+        }
+        case 2:
+        {
+            std::cerr << "While parsing 'Struct_declaration' unexpected '}' found.\n";
+            return false;
+        }
+        case 3:
+        {
+            state = 1;
+            return read_value(output.id, "id", event_data);
+        }
+        case 4:
+        {
+            state = 1;
+            return read_value(output.name, "name", event_data);
+        }
+        case 5:
+        {
+            state = 6;
+            return read_object(output.types, event, event_data, state_stack, state_stack_position + 1 + 0);
+        }
+        case 6:
+        {
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
+            {
+                if (!read_object(output.types, event, event_data, state_stack, state_stack_position + 1 + 0))
+                {
+                    return false;
+                }
+
+                state = 1;
+                return true;
+            }
+            else
+            {
+                return read_object(output.types, event, event_data, state_stack, state_stack_position + 1 + 0);
+            }
+        }
+        case 7:
+        {
+            state = 1;
+            return read_value(output.is_packed, "is_packed", event_data);
+        }
+        case 8:
+        {
+            state = 1;
+            return read_value(output.is_literal, "is_literal", event_data);
+        }
+        }
+
+        std::cerr << "Error while reading 'Struct_declaration'.\n";
         return false;
     }
 
@@ -1555,29 +2027,24 @@ namespace h::json
                         state = 4;
                         return true;
                     }
-                    else if (event_data == "return_type")
+                    else if (event_data == "type")
                     {
                         state = 5;
                         return true;
                     }
-                    else if (event_data == "parameter_types")
+                    else if (event_data == "parameter_ids")
                     {
                         state = 7;
                         return true;
                     }
-                    else if (event_data == "parameter_ids")
+                    else if (event_data == "parameter_names")
                     {
                         state = 9;
                         return true;
                     }
-                    else if (event_data == "parameter_names")
-                    {
-                        state = 11;
-                        return true;
-                    }
                     else if (event_data == "linkage")
                     {
-                        state = 13;
+                        state = 11;
                         return true;
                     }
                 }
@@ -1609,13 +2076,13 @@ namespace h::json
         case 5:
         {
             state = 6;
-            return read_object(output.return_type, event, event_data, state_stack, state_stack_position + 1 + 0);
+            return read_object(output.type, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
         case 6:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
-                if (!read_object(output.return_type, event, event_data, state_stack, state_stack_position + 1 + 0))
+                if (!read_object(output.type, event, event_data, state_stack, state_stack_position + 1 + 0))
                 {
                     return false;
                 }
@@ -1625,37 +2092,15 @@ namespace h::json
             }
             else
             {
-                return read_object(output.return_type, event, event_data, state_stack, state_stack_position + 1 + 0);
+                return read_object(output.type, event, event_data, state_stack, state_stack_position + 1 + 0);
             }
         }
         case 7:
         {
             state = 8;
-            return read_object(output.parameter_types, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 8:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.parameter_types, event, event_data, state_stack, state_stack_position + 1 + 0))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.parameter_types, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
-        case 9:
-        {
-            state = 10;
             return read_object(output.parameter_ids, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
-        case 10:
+        case 8:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
@@ -1672,12 +2117,12 @@ namespace h::json
                 return read_object(output.parameter_ids, event, event_data, state_stack, state_stack_position + 1 + 0);
             }
         }
-        case 11:
+        case 9:
         {
-            state = 12;
+            state = 10;
             return read_object(output.parameter_names, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
-        case 12:
+        case 10:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
@@ -1694,7 +2139,7 @@ namespace h::json
                 return read_object(output.parameter_names, event, event_data, state_stack, state_stack_position + 1 + 0);
             }
         }
-        case 13:
+        case 11:
         {
             state = 1;
             return read_enum(output.linkage, event_data);
@@ -1921,9 +2366,14 @@ namespace h::json
             {
                 if constexpr (std::is_same_v<Event_data, std::string_view>)
                 {
-                    if (event_data == "function_declarations")
+                    if (event_data == "struct_declarations")
                     {
                         state = 3;
+                        return true;
+                    }
+                    else if (event_data == "function_declarations")
+                    {
+                        state = 5;
                         return true;
                     }
                 }
@@ -1945,9 +2395,31 @@ namespace h::json
         case 3:
         {
             state = 4;
-            return read_object(output.function_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
+            return read_object(output.struct_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
         case 4:
+        {
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
+            {
+                if (!read_object(output.struct_declarations, event, event_data, state_stack, state_stack_position + 1 + 0))
+                {
+                    return false;
+                }
+
+                state = 1;
+                return true;
+            }
+            else
+            {
+                return read_object(output.struct_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
+            }
+        }
+        case 5:
+        {
+            state = 6;
+            return read_object(output.function_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
+        }
+        case 6:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {

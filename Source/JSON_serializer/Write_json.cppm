@@ -62,6 +62,50 @@ namespace h::json
         {
             return "float64";
         }
+        else if (value == Fundamental_type::C_char)
+        {
+            return "c_char";
+        }
+        else if (value == Fundamental_type::C_schar)
+        {
+            return "c_schar";
+        }
+        else if (value == Fundamental_type::C_uchar)
+        {
+            return "c_uchar";
+        }
+        else if (value == Fundamental_type::C_short)
+        {
+            return "c_short";
+        }
+        else if (value == Fundamental_type::C_ushort)
+        {
+            return "c_ushort";
+        }
+        else if (value == Fundamental_type::C_int)
+        {
+            return "c_int";
+        }
+        else if (value == Fundamental_type::C_uint)
+        {
+            return "c_uint";
+        }
+        else if (value == Fundamental_type::C_long)
+        {
+            return "c_long";
+        }
+        else if (value == Fundamental_type::C_ulong)
+        {
+            return "c_ulong";
+        }
+        else if (value == Fundamental_type::C_longlong)
+        {
+            return "c_longlong";
+        }
+        else if (value == Fundamental_type::C_ulonglong)
+        {
+            return "c_ulonglong";
+        }
 
         throw std::runtime_error{ "Failed to write enum 'Fundamental_type'!\n" };
     }
@@ -131,6 +175,18 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Function_type const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Pointer_type const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Module_reference const& input
         );
 
@@ -144,6 +200,12 @@ namespace h::json
         void write_object(
             Writer_type& writer,
             Type_reference const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Struct_declaration const& input
         );
 
     export template<typename Writer_type>
@@ -283,6 +345,36 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Function_type const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("return_types");
+        write_object(writer, output.return_types);
+        writer.Key("parameter_types");
+        write_object(writer, output.parameter_types);
+        writer.Key("is_variadic");
+        writer.Bool(output.is_variadic);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Pointer_type const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("element_type");
+        write_object(writer, output.element_type);
+        writer.Key("is_mutable");
+        writer.Bool(output.is_mutable);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Module_reference const& output
         )
     {
@@ -327,6 +419,22 @@ namespace h::json
                 writer.String(enum_value_string.data(), enum_value_string.size());
             }
         }
+        else if (std::holds_alternative<Function_type>(output.data))
+        {
+            writer.Key("type");
+            writer.String("function_type");
+            writer.Key("value");
+            Function_type const& value = std::get<Function_type>(output.data);
+            write_object(writer, value);
+        }
+        else if (std::holds_alternative<Pointer_type>(output.data))
+        {
+            writer.Key("type");
+            writer.String("pointer_type");
+            writer.Key("value");
+            Pointer_type const& value = std::get<Pointer_type>(output.data);
+            write_object(writer, value);
+        }
         else if (std::holds_alternative<Struct_type_reference>(output.data))
         {
             writer.Key("type");
@@ -337,6 +445,26 @@ namespace h::json
         }
         writer.EndObject();
 
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Struct_declaration const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("id");
+        writer.Uint64(output.id);
+        writer.Key("name");
+        writer.String(output.name.data(), output.name.size());
+        writer.Key("types");
+        write_object(writer, output.types);
+        writer.Key("is_packed");
+        writer.Bool(output.is_packed);
+        writer.Key("is_literal");
+        writer.Bool(output.is_literal);
         writer.EndObject();
     }
 
@@ -501,10 +629,8 @@ namespace h::json
         writer.Uint64(output.id);
         writer.Key("name");
         writer.String(output.name.data(), output.name.size());
-        writer.Key("return_type");
-        write_object(writer, output.return_type);
-        writer.Key("parameter_types");
-        write_object(writer, output.parameter_types);
+        writer.Key("type");
+        write_object(writer, output.type);
         writer.Key("parameter_ids");
         write_object(writer, output.parameter_ids);
         writer.Key("parameter_names");
@@ -554,6 +680,8 @@ namespace h::json
         )
     {
         writer.StartObject();
+        writer.Key("struct_declarations");
+        write_object(writer, output.struct_declarations);
         writer.Key("function_declarations");
         write_object(writer, output.function_declarations);
         writer.EndObject();

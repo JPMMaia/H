@@ -320,12 +320,18 @@ namespace h
             "lhs", "rhs"
         };
 
+        h::Function_type function_type
+        {
+            .return_types = {Type_reference{.data = Fundamental_type::Int32}},
+            .parameter_types = std::move(parameter_types),
+            .is_variadic = false
+        };
+
         return h::Function_declaration
         {
             .id = 125,
             .name = "Add",
-            .return_type = Type_reference{.data = Fundamental_type::Int32},
-            .parameter_types = std::move(parameter_types),
+            .type = std::move(function_type),
             .parameter_ids = std::move(parameter_ids),
             .parameter_names = std::move(parameter_names),
             .linkage = Linkage::External
@@ -338,28 +344,36 @@ namespace h
             {
                 "id": 125,
                 "name": "Add",
-                "return_type": {
-                    "data": {
-                        "type": "fundamental_type",
-                        "value": "int32"
-                    }
-                },
-                "parameter_types": {
-                    "size": 2,
-                    "elements": [
-                        {
-                            "data": {
-                                "type": "fundamental_type",
-                                "value": "int32"
+                "type": {
+                    "return_types": {
+                        "size": 1,
+                        "elements": [
+                            {
+                                "data": {
+                                    "type": "fundamental_type",
+                                    "value": "int32"
+                                }
                             }
-                        },
-                        {
-                            "data": {
-                                "type": "fundamental_type",
-                                "value": "int32"
+                        ]            
+                    },
+                    "parameter_types": {
+                        "size": 2,
+                        "elements": [
+                            {
+                                "data": {
+                                    "type": "fundamental_type",
+                                    "value": "int32"
+                                }
+                            },
+                            {
+                                "data": {
+                                    "type": "fundamental_type",
+                                    "value": "int32"
+                                }
                             }
-                        }
-                    ]
+                        ]
+                    },
+                    "is_variadic": false
                 },
                 "parameter_ids": {
                     "size": 2,
@@ -546,28 +560,36 @@ namespace h
                         {
                             "id": 125,
                             "name": "Add",
-                            "return_type": {
-                                "data": {
-                                    "type": "fundamental_type",
-                                    "value": "int32"
-                                }
-                            },
-                            "parameter_types": {
-                                "size": 2,
-                                "elements": [
-                                    {
-                                        "data": {
-                                            "type": "fundamental_type",
-                                            "value": "int32"
+                            "type": {
+                                "return_types": {
+                                    "size": 1,
+                                    "elements": [
+                                        {
+                                            "data": {
+                                                "type": "fundamental_type",
+                                                "value": "int32"
+                                            }
                                         }
-                                    },
-                                    {
-                                        "data": {
-                                            "type": "fundamental_type",
-                                            "value": "int32"
+                                    ]
+                                },
+                                "parameter_types": {
+                                    "size": 2,
+                                    "elements": [
+                                        {
+                                            "data": {
+                                                "type": "fundamental_type",
+                                                "value": "int32"
+                                            }
+                                        },
+                                        {
+                                            "data": {
+                                                "type": "fundamental_type",
+                                                "value": "int32"
+                                            }
                                         }
-                                    }
-                                ]
+                                    ]
+                                },
+                                "is_variadic": false
                             },
                             "parameter_ids": {
                                 "size": 2,

@@ -84,6 +84,52 @@ namespace h::json::operators
         return output_stream;
     }
 
+    export std::istream& operator>>(std::istream& input_stream, Function_type& value)
+    {
+        rapidjson::Reader reader;
+        rapidjson::IStreamWrapper stream_wrapper{ input_stream };
+        std::optional<Function_type> const output = h::json::read<Function_type>(reader, stream_wrapper);
+
+        if (output)
+        {
+            value = std::move(*output);
+        }
+
+        return input_stream;
+    }
+
+    export std::ostream& operator<<(std::ostream& output_stream, Function_type const& value)
+    {
+        rapidjson::OStreamWrapper stream_wrapper{ output_stream };
+        rapidjson::Writer<rapidjson::OStreamWrapper> writer{ stream_wrapper };
+        h::json::write(writer, value);
+
+        return output_stream;
+    }
+
+    export std::istream& operator>>(std::istream& input_stream, Pointer_type& value)
+    {
+        rapidjson::Reader reader;
+        rapidjson::IStreamWrapper stream_wrapper{ input_stream };
+        std::optional<Pointer_type> const output = h::json::read<Pointer_type>(reader, stream_wrapper);
+
+        if (output)
+        {
+            value = std::move(*output);
+        }
+
+        return input_stream;
+    }
+
+    export std::ostream& operator<<(std::ostream& output_stream, Pointer_type const& value)
+    {
+        rapidjson::OStreamWrapper stream_wrapper{ output_stream };
+        rapidjson::Writer<rapidjson::OStreamWrapper> writer{ stream_wrapper };
+        h::json::write(writer, value);
+
+        return output_stream;
+    }
+
     export std::istream& operator>>(std::istream& input_stream, Module_reference& value)
     {
         rapidjson::Reader reader;
@@ -145,6 +191,29 @@ namespace h::json::operators
     }
 
     export std::ostream& operator<<(std::ostream& output_stream, Type_reference const& value)
+    {
+        rapidjson::OStreamWrapper stream_wrapper{ output_stream };
+        rapidjson::Writer<rapidjson::OStreamWrapper> writer{ stream_wrapper };
+        h::json::write(writer, value);
+
+        return output_stream;
+    }
+
+    export std::istream& operator>>(std::istream& input_stream, Struct_declaration& value)
+    {
+        rapidjson::Reader reader;
+        rapidjson::IStreamWrapper stream_wrapper{ input_stream };
+        std::optional<Struct_declaration> const output = h::json::read<Struct_declaration>(reader, stream_wrapper);
+
+        if (output)
+        {
+            value = std::move(*output);
+        }
+
+        return input_stream;
+    }
+
+    export std::ostream& operator<<(std::ostream& output_stream, Struct_declaration const& value)
     {
         rapidjson::OStreamWrapper stream_wrapper{ output_stream };
         rapidjson::Writer<rapidjson::OStreamWrapper> writer{ stream_wrapper };
