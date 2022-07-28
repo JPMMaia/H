@@ -27,7 +27,19 @@ namespace h
         Int64,
         Float16,
         Float32,
-        Float64
+        Float64,
+
+        C_char,
+        C_schar,
+        C_uchar,
+        C_short,
+        C_ushort,
+        C_int,
+        C_uint,
+        C_long,
+        C_ulong,
+        C_longlong,
+        C_ulonglong
     };
 
     export std::uint16_t get_precision(Fundamental_type type);
