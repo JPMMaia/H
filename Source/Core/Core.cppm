@@ -16,6 +16,7 @@ namespace h
 
     export enum class Fundamental_type
     {
+        Any_type,
         Byte,
         Uint8,
         Uint16,
