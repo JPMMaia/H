@@ -180,6 +180,11 @@ namespace h::c
         {
             return std::nullopt;
         }
+        case CXType_Elaborated:
+        {
+            CXType const named_type = clang_Type_getNamedType(type);
+            return create_type_reference(named_type);
+        }
         default:
         {
             String const type_spelling = { clang_getTypeSpelling(type) };
