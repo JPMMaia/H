@@ -189,7 +189,8 @@ namespace h::c
         {
             String const type_spelling = { clang_getTypeSpelling(type) };
             String const type_kind_spelling = { clang_getTypeKindSpelling(type.kind) };
-            std::cerr << "Did not recognize type.kind '" << type_kind_spelling.string_view() << "'! Type name is " << type_spelling.string_view() << "'\n";
+
+            std::cerr << "Did not recognize type.kind '" << type_kind_spelling.string_view() << "'! Type name is '" << type_spelling.string_view() << "'\n";
             throw std::runtime_error{ "Did not recognize type.kind!" };
         }
         }
