@@ -29,6 +29,7 @@ namespace h
         Float16,
         Float32,
         Float64,
+        Bool,
 
         C_char,
         C_schar,
