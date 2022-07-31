@@ -192,7 +192,12 @@ namespace h::json
     export template<>
         bool read_enum(Fundamental_type& output, std::string_view const value)
     {
-        if (value == "byte")
+        if (value == "any_type")
+        {
+            output = Fundamental_type::Any_type;
+            return true;
+        }
+        else if (value == "byte")
         {
             output = Fundamental_type::Byte;
             return true;
@@ -250,6 +255,11 @@ namespace h::json
         else if (value == "float64")
         {
             output = Fundamental_type::Float64;
+            return true;
+        }
+        else if (value == "bool")
+        {
+            output = Fundamental_type::Bool;
             return true;
         }
         else if (value == "c_char")
@@ -400,6 +410,73 @@ namespace h::json
             std::pmr::vector<int>& state_stack,
             std::size_t const state_stack_position
         );
+
+    export template<typename Event_data>
+        bool read_object(
+            Builtin_type_reference& output,
+            Event const event,
+            Event_data const event_data,
+            std::pmr::vector<int>& state_stack,
+            std::size_t const state_stack_position
+        )
+    {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
+        int& state = state_stack[state_stack_position];
+
+        switch (state)
+        {
+        case 0:
+        {
+            if (event == Event::Start_object)
+            {
+                state = 1;
+                return true;
+            }
+            break;
+        }
+        case 1:
+        {
+            switch (event)
+            {
+            case Event::Key:
+            {
+                if constexpr (std::is_same_v<Event_data, std::string_view>)
+                {
+                    if (event_data == "value")
+                    {
+                        state = 3;
+                        return true;
+                    }
+                }
+                break;
+            }
+            case Event::End_object:
+            {
+                state = 2;
+                return true;
+            }
+            }
+            break;
+        }
+        case 2:
+        {
+            std::cerr << "While parsing 'Builtin_type_reference' unexpected '}' found.\n";
+            return false;
+        }
+        case 3:
+        {
+            state = 1;
+            return read_value(output.value, "value", event_data);
+        }
+        }
+
+        std::cerr << "Error while reading 'Builtin_type_reference'.\n";
+        return false;
+    }
 
     export template<typename Event_data>
         bool read_object(
@@ -685,6 +762,100 @@ namespace h::json
 
     export template<typename Event_data>
         bool read_object(
+            Alias_type_reference& output,
+            Event const event,
+            Event_data const event_data,
+            std::pmr::vector<int>& state_stack,
+            std::size_t const state_stack_position
+        )
+    {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
+        int& state = state_stack[state_stack_position];
+
+        switch (state)
+        {
+        case 0:
+        {
+            if (event == Event::Start_object)
+            {
+                state = 1;
+                return true;
+            }
+            break;
+        }
+        case 1:
+        {
+            switch (event)
+            {
+            case Event::Key:
+            {
+                if constexpr (std::is_same_v<Event_data, std::string_view>)
+                {
+                    if (event_data == "module_reference")
+                    {
+                        state = 3;
+                        return true;
+                    }
+                    else if (event_data == "id")
+                    {
+                        state = 5;
+                        return true;
+                    }
+                }
+                break;
+            }
+            case Event::End_object:
+            {
+                state = 2;
+                return true;
+            }
+            }
+            break;
+        }
+        case 2:
+        {
+            std::cerr << "While parsing 'Alias_type_reference' unexpected '}' found.\n";
+            return false;
+        }
+        case 3:
+        {
+            state = 4;
+            return read_object(output.module_reference, event, event_data, state_stack, state_stack_position + 1 + 0);
+        }
+        case 4:
+        {
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
+            {
+                if (!read_object(output.module_reference, event, event_data, state_stack, state_stack_position + 1 + 0))
+                {
+                    return false;
+                }
+
+                state = 1;
+                return true;
+            }
+            else
+            {
+                return read_object(output.module_reference, event, event_data, state_stack, state_stack_position + 1 + 0);
+            }
+        }
+        case 5:
+        {
+            state = 1;
+            return read_value(output.id, "id", event_data);
+        }
+        }
+
+        std::cerr << "Error while reading 'Alias_type_reference'.\n";
+        return false;
+    }
+
+    export template<typename Event_data>
+        bool read_object(
             Struct_type_reference& output,
             Event const event,
             Event_data const event_data,
@@ -864,28 +1035,40 @@ namespace h::json
         {
             if constexpr (std::is_same_v<Event_data, std::string_view>)
             {
-                if (event_data == "fundamental_type")
+                if (event_data == "alias_type_reference")
+                {
+                    output.data = Alias_type_reference{};
+                    state = 7;
+                    return true;
+                }
+                else if (event_data == "builtin_type_reference")
+                {
+                    output.data = Builtin_type_reference{};
+                    state = 10;
+                    return true;
+                }
+                else if (event_data == "fundamental_type")
                 {
                     output.data = Fundamental_type{};
-                    state = 7;
+                    state = 13;
                     return true;
                 }
                 else if (event_data == "function_type")
                 {
                     output.data = Function_type{};
-                    state = 10;
+                    state = 16;
                     return true;
                 }
                 else if (event_data == "pointer_type")
                 {
                     output.data = Pointer_type{};
-                    state = 13;
+                    state = 19;
                     return true;
                 }
                 else if (event_data == "struct_type_reference")
                 {
                     output.data = Struct_type_reference{};
-                    state = 16;
+                    state = 22;
                     return true;
                 }
             }
@@ -903,8 +1086,25 @@ namespace h::json
         }
         case 8:
         {
-            state = 4;
-            return read_enum(std::get<Fundamental_type>(output.data), event_data);
+            state = 9;
+            return read_object(std::get<Alias_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
+        }
+        case 9:
+        {
+            if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
+            {
+                if (!read_object(std::get<Alias_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1))
+                {
+                    return false;
+                }
+
+                state = 4;
+                return true;
+            }
+            else
+            {
+                return read_object(std::get<Alias_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
+            }
         }
         case 10:
         {
@@ -920,9 +1120,58 @@ namespace h::json
         case 11:
         {
             state = 12;
-            return read_object(std::get<Function_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
+            return read_object(std::get<Builtin_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
         }
         case 12:
+        {
+            if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
+            {
+                if (!read_object(std::get<Builtin_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1))
+                {
+                    return false;
+                }
+
+                state = 4;
+                return true;
+            }
+            else
+            {
+                return read_object(std::get<Builtin_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
+            }
+        }
+        case 13:
+        {
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
+            {
+                if (event == Event::Key && event_data == "value")
+                {
+                    state = 14;
+                    return true;
+                }
+            }
+        }
+        case 14:
+        {
+            state = 4;
+            return read_enum(std::get<Fundamental_type>(output.data), event_data);
+        }
+        case 16:
+        {
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
+            {
+                if (event == Event::Key && event_data == "value")
+                {
+                    state = 17;
+                    return true;
+                }
+            }
+        }
+        case 17:
+        {
+            state = 18;
+            return read_object(std::get<Function_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
+        }
+        case 18:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
             {
@@ -939,23 +1188,23 @@ namespace h::json
                 return read_object(std::get<Function_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
             }
         }
-        case 13:
+        case 19:
         {
             if constexpr (std::is_same_v<Event_data, std::string_view>)
             {
                 if (event == Event::Key && event_data == "value")
                 {
-                    state = 14;
+                    state = 20;
                     return true;
                 }
             }
         }
-        case 14:
+        case 20:
         {
-            state = 15;
+            state = 21;
             return read_object(std::get<Pointer_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
         }
-        case 15:
+        case 21:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
             {
@@ -972,23 +1221,23 @@ namespace h::json
                 return read_object(std::get<Pointer_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
             }
         }
-        case 16:
+        case 22:
         {
             if constexpr (std::is_same_v<Event_data, std::string_view>)
             {
                 if (event == Event::Key && event_data == "value")
                 {
-                    state = 17;
+                    state = 23;
                     return true;
                 }
             }
         }
-        case 17:
+        case 23:
         {
-            state = 18;
+            state = 24;
             return read_object(std::get<Struct_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
         }
-        case 18:
+        case 24:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
             {
@@ -1008,6 +1257,110 @@ namespace h::json
         }
 
         std::cerr << "Error while reading 'Type_reference'.\n";
+        return false;
+    }
+
+    export template<typename Event_data>
+        bool read_object(
+            Alias_type_declaration& output,
+            Event const event,
+            Event_data const event_data,
+            std::pmr::vector<int>& state_stack,
+            std::size_t const state_stack_position
+        )
+    {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
+        int& state = state_stack[state_stack_position];
+
+        switch (state)
+        {
+        case 0:
+        {
+            if (event == Event::Start_object)
+            {
+                state = 1;
+                return true;
+            }
+            break;
+        }
+        case 1:
+        {
+            switch (event)
+            {
+            case Event::Key:
+            {
+                if constexpr (std::is_same_v<Event_data, std::string_view>)
+                {
+                    if (event_data == "id")
+                    {
+                        state = 3;
+                        return true;
+                    }
+                    else if (event_data == "name")
+                    {
+                        state = 4;
+                        return true;
+                    }
+                    else if (event_data == "type")
+                    {
+                        state = 5;
+                        return true;
+                    }
+                }
+                break;
+            }
+            case Event::End_object:
+            {
+                state = 2;
+                return true;
+            }
+            }
+            break;
+        }
+        case 2:
+        {
+            std::cerr << "While parsing 'Alias_type_declaration' unexpected '}' found.\n";
+            return false;
+        }
+        case 3:
+        {
+            state = 1;
+            return read_value(output.id, "id", event_data);
+        }
+        case 4:
+        {
+            state = 1;
+            return read_value(output.name, "name", event_data);
+        }
+        case 5:
+        {
+            state = 6;
+            return read_object(output.type, event, event_data, state_stack, state_stack_position + 1 + 0);
+        }
+        case 6:
+        {
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
+            {
+                if (!read_object(output.type, event, event_data, state_stack, state_stack_position + 1 + 0))
+                {
+                    return false;
+                }
+
+                state = 1;
+                return true;
+            }
+            else
+            {
+                return read_object(output.type, event, event_data, state_stack, state_stack_position + 1 + 0);
+            }
+        }
+        }
+
+        std::cerr << "Error while reading 'Alias_type_declaration'.\n";
         return false;
     }
 
@@ -2366,14 +2719,19 @@ namespace h::json
             {
                 if constexpr (std::is_same_v<Event_data, std::string_view>)
                 {
-                    if (event_data == "struct_declarations")
+                    if (event_data == "alias_type_declarations")
                     {
                         state = 3;
                         return true;
                     }
-                    else if (event_data == "function_declarations")
+                    else if (event_data == "struct_declarations")
                     {
                         state = 5;
+                        return true;
+                    }
+                    else if (event_data == "function_declarations")
+                    {
+                        state = 7;
                         return true;
                     }
                 }
@@ -2395,9 +2753,31 @@ namespace h::json
         case 3:
         {
             state = 4;
-            return read_object(output.struct_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
+            return read_object(output.alias_type_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
         case 4:
+        {
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
+            {
+                if (!read_object(output.alias_type_declarations, event, event_data, state_stack, state_stack_position + 1 + 0))
+                {
+                    return false;
+                }
+
+                state = 1;
+                return true;
+            }
+            else
+            {
+                return read_object(output.alias_type_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
+            }
+        }
+        case 5:
+        {
+            state = 6;
+            return read_object(output.struct_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
+        }
+        case 6:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
@@ -2414,12 +2794,12 @@ namespace h::json
                 return read_object(output.struct_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
             }
         }
-        case 5:
+        case 7:
         {
-            state = 6;
+            state = 8;
             return read_object(output.function_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
-        case 6:
+        case 8:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
