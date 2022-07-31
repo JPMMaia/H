@@ -1,11 +1,14 @@
 module;
 
+#include <format>
 #include <iostream>
 #include <memory_resource>
 #include <numeric>
 #include <optional>
 #include <string_view>
 #include <vector>
+
+#include <stdio.h>
 
 #include <clang-c/Index.h>
 
@@ -72,17 +75,19 @@ namespace h::c
         case CXType_Half:
         case CXType_Float16:
             return h::Fundamental_type::Float16;
+        case CXType_Bool:
+            return h::Fundamental_type::Bool;
         default:
             return std::nullopt;
         }
     }
 
-    std::optional<h::Type_reference> create_type_reference(CXType type);
+    std::optional<h::Type_reference> create_type_reference(C_declarations const& declarations, CXType type);
 
-    h::Function_type create_function_type(CXType const function_type)
+    h::Function_type create_function_type(C_declarations const& declarations, CXType const function_type)
     {
         CXType const result_type = clang_getResultType(function_type);
-        std::optional<h::Type_reference> result_type_reference = create_type_reference(result_type);
+        std::optional<h::Type_reference> result_type_reference = create_type_reference(declarations, result_type);
         std::pmr::vector<h::Type_reference> return_types =
             result_type_reference.has_value() ?
             std::pmr::vector<h::Type_reference>{*result_type_reference} :
@@ -97,7 +102,7 @@ namespace h::c
         {
             CXType const argument_type = clang_getArgType(function_type, argument_index);
 
-            std::optional<h::Type_reference> parameter_type = create_type_reference(argument_type);
+            std::optional<h::Type_reference> parameter_type = create_type_reference(declarations, argument_type);
             if (!parameter_type.has_value())
             {
                 throw std::runtime_error{ "Parameter type is void which is invalid!" };
@@ -118,7 +123,7 @@ namespace h::c
         return h_function_type;
     }
 
-    std::optional<h::Type_reference> create_type_reference(CXType const type)
+    std::optional<h::Type_reference> create_type_reference(C_declarations const& declarations, CXType const type)
     {
         {
             std::optional<h::Fundamental_type> const fundamental_type =
@@ -140,7 +145,7 @@ namespace h::c
             CXType const pointee_type = clang_getPointeeType(type);
             bool const is_const = clang_isConstQualifiedType(pointee_type);
 
-            std::optional<Type_reference> element_type = create_type_reference(pointee_type);
+            std::optional<Type_reference> element_type = create_type_reference(declarations, pointee_type);
 
             h::Pointer_type pointer_type
             {
@@ -160,12 +165,53 @@ namespace h::c
         }
         case CXType_Typedef:
         {
-            CXType const canonical_type = clang_getCanonicalType(type);
-            return create_type_reference(canonical_type);
+            String const type_spelling = { clang_getTypedefName(type) };
+            std::string_view const typedef_name = type_spelling.string_view();
+
+            if (typedef_name.starts_with("__builtin_"))
+            {
+                h::Builtin_type_reference reference
+                {
+                    .value = std::pmr::string{typedef_name}
+                };
+
+                return h::Type_reference
+                {
+                    .data = std::move(reference)
+                };
+            }
+
+            auto const location = std::find_if(
+                declarations.alias_type_declarations.begin(),
+                declarations.alias_type_declarations.end(),
+                [typedef_name](h::Alias_type_declaration const& declaration) -> bool { return declaration.name == typedef_name; }
+            );
+
+            if (location == declarations.alias_type_declarations.end())
+            {
+                std::string const message = std::format("Could not find typedef with name '{}'\n", typedef_name);
+                std::cerr << message;
+                throw std::runtime_error{ message };
+            }
+
+            h::Alias_type_declaration const& declaration = *location;
+
+            h::Alias_type_reference reference
+            {
+                .module_reference = {
+                    .name = {}
+                },
+                .id = declaration.id
+            };
+
+            return h::Type_reference
+            {
+                .data = std::move(reference)
+            };
         }
         case CXType_FunctionProto:
         {
-            h::Function_type function_type = create_function_type(type);
+            h::Function_type function_type = create_function_type(declarations, type);
             return h::Type_reference
             {
                 .data = function_type
@@ -183,7 +229,7 @@ namespace h::c
         case CXType_Elaborated:
         {
             CXType const named_type = clang_Type_getNamedType(type);
-            return create_type_reference(named_type);
+            return create_type_reference(declarations, named_type);
         }
         default:
         {
@@ -194,6 +240,28 @@ namespace h::c
             throw std::runtime_error{ "Did not recognize type.kind!" };
         }
         }
+    }
+
+    h::Alias_type_declaration create_alias_type_declaration(C_declarations const& declarations, std::uint64_t const id, CXCursor const cursor)
+    {
+        CXType const type = clang_getCursorType(cursor);
+        String const type_spelling = { clang_getTypeSpelling(type) };
+
+        CXType const canonical_type = clang_getCanonicalType(type);
+        std::optional<h::Type_reference> canonical_type_reference = create_type_reference(declarations, canonical_type);
+
+        std::pmr::vector<h::Type_reference> alias_type;
+        if (canonical_type_reference.has_value())
+        {
+            alias_type.push_back(*canonical_type_reference);
+        }
+
+        return h::Alias_type_declaration
+        {
+            .id = id,
+            .name = std::pmr::string{type_spelling.string_view()},
+            .type = std::move(alias_type)
+        };
     }
 
     std::pmr::vector<std::uint64_t> generate_parameter_ids(int const number_of_arguments)
@@ -224,31 +292,27 @@ namespace h::c
         return parameter_names;
     }
 
-    h::Function_declaration create_function_declaration(std::uint64_t const id, CXCursor const cursor)
+    h::Function_declaration create_function_declaration(C_declarations const& declarations, std::uint64_t const id, CXCursor const cursor)
     {
+        String const cursor_spelling = { clang_getCursorSpelling(cursor) };
+        std::string_view const function_name = cursor_spelling.string_view();
+
         CXType const function_type = clang_getCursorType(cursor);
 
-        h::Function_type h_function_type = create_function_type(function_type);
-
-        String const cursor_spelling = { clang_getCursorSpelling(cursor) };
+        h::Function_type h_function_type = create_function_type(declarations, function_type);
 
         int const number_of_arguments = clang_getNumArgTypes(function_type);
 
         return h::Function_declaration
         {
             .id = id,
-            .name = std::pmr::string{cursor_spelling.string_view()},
+            .name = std::pmr::string{function_name},
             .type = std::move(h_function_type),
             .parameter_ids = generate_parameter_ids(number_of_arguments),
             .parameter_names = create_parameter_names(cursor),
             .linkage = h::Linkage::External
         };
     }
-
-    struct Client_data
-    {
-        std::pmr::vector<h::Function_declaration> function_declarations;
-    };
 
     C_header import_header(std::filesystem::path const& header_path)
     {
@@ -279,7 +343,7 @@ namespace h::c
 
         auto const visitor = [](CXCursor current_cursor, CXCursor parent, CXClientData client_data) -> CXChildVisitResult
         {
-            Client_data* const data = reinterpret_cast<Client_data*>(client_data);
+            C_declarations* const declarations = reinterpret_cast<C_declarations*>(client_data);
 
             CXCursorKind const cursor_kind = clang_getCursorKind(current_cursor);
 
@@ -295,23 +359,31 @@ namespace h::c
                 }*/
             }
 
-            if (cursor_kind == CXCursor_FunctionDecl)
+            // TODO add builtin typedefs?
+
+            if (cursor_kind == CXCursor_TypedefDecl)
             {
-                std::uint64_t const function_id = data->function_declarations.size();
-                data->function_declarations.push_back(create_function_declaration(function_id, current_cursor));
+                std::uint64_t const alias_type_id = declarations->alias_type_declarations.size();
+                h::Alias_type_declaration declaration = create_alias_type_declaration(*declarations, alias_type_id, current_cursor);
+                declarations->alias_type_declarations.push_back(std::move(declaration));
+            }
+            else if (cursor_kind == CXCursor_FunctionDecl)
+            {
+                std::uint64_t const function_id = declarations->function_declarations.size();
+                declarations->function_declarations.push_back(create_function_declaration(*declarations, function_id, current_cursor));
             }
 
             return CXChildVisit_Continue;
         };
 
-        Client_data client_data;
+        C_declarations declarations;
 
         CXCursor cursor = clang_getTranslationUnitCursor(unit);
 
         clang_visitChildren(
             cursor,
             visitor,
-            &client_data
+            &declarations
         );
 
         clang_disposeTranslationUnit(unit);
@@ -325,11 +397,7 @@ namespace h::c
                 .patch = 0
             },
             .path = header_path,
-            .declarations =
-            {
-                .struct_declarations = {}, //TODO
-                .function_declarations = std::move(client_data.function_declarations)
-            }
+            .declarations = std::move(declarations)
         };
     }
 }
