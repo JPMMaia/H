@@ -46,6 +46,13 @@ namespace h
 
     export std::uint16_t get_precision(Fundamental_type type);
 
+    export struct Builtin_type_reference
+    {
+        std::pmr::string value;
+
+        friend auto operator<=>(Builtin_type_reference const& lhs, Builtin_type_reference const& rhs) = default;
+    };
+
     export struct Function_type
     {
         std::pmr::vector<Type_reference> return_types;
@@ -70,6 +77,14 @@ namespace h
         friend auto operator<=>(Module_reference const&, Module_reference const&) = default;
     };
 
+    export struct Alias_type_reference
+    {
+        Module_reference module_reference;
+        std::uint64_t id;
+
+        friend auto operator<=>(Alias_type_reference const&, Alias_type_reference const&) = default;
+    };
+
     export struct Struct_type_reference
     {
         Module_reference module_reference;
@@ -81,6 +96,8 @@ namespace h
     export struct Type_reference
     {
         using Data_type = std::variant<
+            Alias_type_reference,
+            Builtin_type_reference,
             Fundamental_type,
             Function_type,
             Pointer_type,
@@ -90,6 +107,15 @@ namespace h
         Data_type data;
 
         friend auto operator<=>(Type_reference const&, Type_reference const&) = default;
+    };
+
+    export struct Alias_type_declaration
+    {
+        std::uint64_t id;
+        std::pmr::string name;
+        std::pmr::vector<Type_reference> type;
+
+        friend auto operator<=>(Alias_type_declaration const& lhs, Alias_type_declaration const& rhs) = default;
     };
 
     export struct Struct_declaration
@@ -221,6 +247,7 @@ namespace h
 
     export struct Module_declarations
     {
+        std::pmr::vector<Alias_type_declaration> alias_type_declarations;
         std::pmr::vector<Struct_declaration> struct_declarations;
         std::pmr::vector<Function_declaration> function_declarations;
 
