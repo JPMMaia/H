@@ -44,6 +44,14 @@ namespace h::c
         return *location;
     }
 
+    h::Struct_declaration const& find_struct_declaration(h::c::C_header const& header, std::string_view const name)
+    {
+        std::span<h::Struct_declaration const> const struct_declarations = header.declarations.struct_declarations;
+        auto const location = std::find_if(struct_declarations.begin(), struct_declarations.end(), [name](h::Struct_declaration const& struct_declaration) -> bool { return struct_declaration.name == name; });
+        REQUIRE(location != struct_declarations.end());
+        return *location;
+    }
+
     TEST_CASE("Import stdio.h C header creates 'puts' function declaration")
     {
         std::filesystem::path const c_headers_path = g_c_headers_location;
@@ -120,5 +128,74 @@ namespace h::c
 
         CHECK(actual.values[4].name == "VK_PHYSICAL_DEVICE_TYPE_CPU");
         CHECK(actual.values[4].value == 4);
+    }
+
+    TEST_CASE("Import vulkan.h C header creates 'VkCommandPoolCreateInfo' enum")
+    {
+        std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
+        std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
+
+        h::c::C_header const header = h::c::import_header(vulkan_header_path);
+
+        CHECK(header.path == vulkan_header_path);
+
+        h::Enum_declaration const& actual = find_struct_declaration(header, "VkCommandPoolCreateInfo");
+
+        CHECK(actual.name == "VkCommandPoolCreateInfo");
+        CHECK(actual.is_packed == false);
+        CHECK(actual.is_literal == false);
+
+        REQUIRE(actual.member_types.size() == 4);
+        REQUIRE(actual.member_names.size() == 4);
+
+        {
+            CHECK(actual.member_names[0] == "sType");
+
+            h::Enum_declaration const& expected_type_declaration = find_enum_declaration(header, "VkStructureType");
+            h::Enum_type_reference const expected_type =
+            {
+                .module_reference = {
+                    .name = {}
+                },
+                .id = expected_type_declaration.id
+            };
+
+            CHECK(actual.member_types[0] == h::Type_reference{ .data = expected_type });
+        }
+
+        {
+            CHECK(actual.member_names[1] == "pNext");
+
+            h::Pointer_type const expected_type =
+            {
+                .element_type = {},
+                is_mutable = false
+            };
+
+            CHECK(actual.member_types[1] == h::Type_reference{ .data = expected_type });
+        }
+
+        {
+            CHECK(actual.member_names[2] == "flags");
+
+            h::Alias_declaration const& expected_type_declaration = find_alias_declaration(header, "VkCommandPoolCreateFlags");
+            h::Alias_type_reference const expected_type =
+            {
+                .module_reference = {
+                    .name = {}
+                },
+                .id = expected_type_declaration.id
+            };
+
+            CHECK(actual.member_types[2] == h::Type_reference{ .data = expected_type });
+        }
+
+        {
+            CHECK(actual.member_names[3] == "queueFamilyIndex");
+
+            h::Fundamental_type const expected_type = h::Fundamental_type::Uint32;
+
+            CHECK(actual.member_types[3] == h::Type_reference{ .data = expected_type });
+        }
     }
 }
