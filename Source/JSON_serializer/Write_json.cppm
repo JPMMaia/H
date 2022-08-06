@@ -213,6 +213,18 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Constant_array_type const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Enum_type_reference const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Struct_type_reference const& input
         );
 
@@ -226,6 +238,18 @@ namespace h::json
         void write_object(
             Writer_type& writer,
             Alias_type_declaration const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Enum_value const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Enum_declaration const& input
         );
 
     export template<typename Writer_type>
@@ -439,6 +463,34 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Constant_array_type const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("value_type");
+        write_object(writer, output.value_type);
+        writer.Key("size");
+        writer.Uint64(output.size);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Enum_type_reference const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("module_reference");
+        write_object(writer, output.module_reference);
+        writer.Key("id");
+        writer.Uint64(output.id);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Struct_type_reference const& output
         )
     {
@@ -474,6 +526,22 @@ namespace h::json
             writer.String("builtin_type_reference");
             writer.Key("value");
             Builtin_type_reference const& value = std::get<Builtin_type_reference>(output.data);
+            write_object(writer, value);
+        }
+        else if (std::holds_alternative<Constant_array_type>(output.data))
+        {
+            writer.Key("type");
+            writer.String("constant_array_type");
+            writer.Key("value");
+            Constant_array_type const& value = std::get<Constant_array_type>(output.data);
+            write_object(writer, value);
+        }
+        else if (std::holds_alternative<Enum_type_reference>(output.data))
+        {
+            writer.Key("type");
+            writer.String("enum_type_reference");
+            writer.Key("value");
+            Enum_type_reference const& value = std::get<Enum_type_reference>(output.data);
             write_object(writer, value);
         }
         else if (std::holds_alternative<Fundamental_type>(output.data))
@@ -529,6 +597,36 @@ namespace h::json
         writer.String(output.name.data(), output.name.size());
         writer.Key("type");
         write_object(writer, output.type);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Enum_value const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("name");
+        writer.String(output.name.data(), output.name.size());
+        writer.Key("value");
+        writer.Uint64(output.value);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Enum_declaration const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("id");
+        writer.Uint64(output.id);
+        writer.Key("name");
+        writer.String(output.name.data(), output.name.size());
+        writer.Key("values");
+        write_object(writer, output.values);
         writer.EndObject();
     }
 
@@ -766,6 +864,8 @@ namespace h::json
         writer.StartObject();
         writer.Key("alias_type_declarations");
         write_object(writer, output.alias_type_declarations);
+        writer.Key("enum_declarations");
+        write_object(writer, output.enum_declarations);
         writer.Key("struct_declarations");
         write_object(writer, output.struct_declarations);
         writer.Key("function_declarations");
