@@ -157,7 +157,8 @@ namespace h
     {
         std::uint64_t id;
         std::pmr::string name;
-        std::pmr::vector<Type_reference> types;
+        std::pmr::vector<Type_reference> member_types;
+        std::pmr::vector<std::pmr::string> member_names;
         bool is_packed;
         bool is_literal;
 
