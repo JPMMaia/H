@@ -82,6 +82,30 @@ namespace h::c
         }
     }
 
+    std::string_view find_enum_name(std::string_view const spelling)
+    {
+        std::size_t begin_word = 0;
+
+        for (std::size_t i = 0; i < spelling.size(); ++i)
+        {
+            char const character = spelling[i];
+            if (character == ' ' || (i + 1) == spelling.size())
+            {
+                std::size_t const end_word = character == ' ' ? i - begin_word : (i + 1) - begin_word;
+                std::string_view const word = spelling.substr(begin_word, end_word);
+
+                if (word != "enum" && word != "const")
+                {
+                    return word;
+                }
+
+                begin_word = i + 1;
+            }
+        }
+
+        throw std::runtime_error("Could not find enum name!");
+    }
+
     std::optional<h::Type_reference> create_type_reference(C_declarations const& declarations, CXType type);
 
     h::Function_type create_function_type(C_declarations const& declarations, CXType const function_type)
@@ -160,8 +184,36 @@ namespace h::c
         }
         case CXType_Enum:
         {
-            // TODO
-            return {};
+            String const enum_type_spelling = clang_getTypeSpelling(type);
+            std::string_view const enum_type_name = find_enum_name(enum_type_spelling.string_view());
+
+            auto const location = std::find_if(
+                declarations.enum_declarations.begin(),
+                declarations.enum_declarations.end(),
+                [enum_type_name](h::Enum_declaration const& declaration) -> bool { return declaration.name == enum_type_name; }
+            );
+
+            if (location == declarations.enum_declarations.end())
+            {
+                std::string const message = std::format("Could not find enum with name '{}'\n", enum_type_name);
+                std::cerr << message;
+                throw std::runtime_error{ message };
+            }
+
+            h::Enum_declaration const& declaration = *location;
+
+            h::Enum_type_reference reference
+            {
+                .module_reference = {
+                    .name = {}
+                },
+                .id = declaration.id
+            };
+
+            return h::Type_reference
+            {
+                .data = std::move(reference)
+            };
         }
         case CXType_Typedef:
         {
@@ -231,6 +283,31 @@ namespace h::c
             CXType const named_type = clang_Type_getNamedType(type);
             return create_type_reference(declarations, named_type);
         }
+        case CXType_ConstantArray:
+        {
+            CXType const element_type = clang_getArrayElementType(type);
+            long long const size = clang_getArraySize(type);
+
+            std::optional<h::Type_reference> element_type_reference = create_type_reference(declarations, element_type);
+
+            if (!element_type_reference.has_value())
+            {
+                std::string const message = "Element type of an array cannot be void!";
+                std::cerr << message << '\n';
+                throw std::runtime_error{ message };
+            }
+
+            h::Constant_array_type reference
+            {
+                .value_type = {std::move(*element_type_reference)},
+                .size = static_cast<std::uint64_t>(size)
+            };
+
+            return h::Type_reference
+            {
+                .data = std::move(reference)
+            };
+        }
         default:
         {
             String const type_spelling = { clang_getTypeSpelling(type) };
@@ -246,6 +323,7 @@ namespace h::c
     {
         CXType const type = clang_getCursorType(cursor);
         String const type_spelling = { clang_getTypeSpelling(type) };
+        std::string_view const type_name = type_spelling.string_view();
 
         CXType const canonical_type = clang_getCanonicalType(type);
         std::optional<h::Type_reference> canonical_type_reference = create_type_reference(declarations, canonical_type);
@@ -259,8 +337,58 @@ namespace h::c
         return h::Alias_type_declaration
         {
             .id = id,
-            .name = std::pmr::string{type_spelling.string_view()},
+            .name = std::pmr::string{type_name},
             .type = std::move(alias_type)
+        };
+    }
+
+    h::Enum_declaration create_enum_declaration(C_declarations const& declarations, std::uint64_t const id, CXCursor const cursor)
+    {
+        using Enum_values = std::pmr::vector<h::Enum_value>;
+
+        CXType const enum_type = clang_getCursorType(cursor);
+
+        String const enum_type_spelling = clang_getTypeSpelling(enum_type);
+        std::string_view const enum_type_name = find_enum_name(enum_type_spelling.string_view());
+
+        auto const visitor = [](CXCursor current_cursor, CXCursor parent, CXClientData client_data) -> CXChildVisitResult
+        {
+            Enum_values* const values = reinterpret_cast<Enum_values*>(client_data);
+
+            CXCursorKind const cursor_kind = clang_getCursorKind(current_cursor);
+
+            if (cursor_kind == CXCursor_EnumConstantDecl)
+            {
+                String const enum_constant_spelling = clang_getCursorSpelling(current_cursor);
+                std::string_view const enum_constant_name = enum_constant_spelling.string_view();
+
+                std::uint64_t const enum_constant_value = static_cast<std::uint64_t>(clang_getEnumConstantDeclUnsignedValue(current_cursor));
+
+                values->push_back(
+                    h::Enum_value
+                    {
+                        .name = std::pmr::string{enum_constant_name},
+                        .value = enum_constant_value
+                    }
+                );
+            }
+
+            return CXChildVisit_Continue;
+        };
+
+        Enum_values values;
+
+        clang_visitChildren(
+            cursor,
+            visitor,
+            &values
+        );
+
+        return h::Enum_declaration
+        {
+            .id = id,
+            .name = std::pmr::string{enum_type_name},
+            .values = std::move(values)
         };
     }
 
@@ -361,7 +489,13 @@ namespace h::c
 
             // TODO add builtin typedefs?
 
-            if (cursor_kind == CXCursor_TypedefDecl)
+            if (cursor_kind == CXCursor_EnumDecl)
+            {
+                std::uint64_t const enum_id = declarations->enum_declarations.size();
+                h::Enum_declaration declaration = create_enum_declaration(*declarations, enum_id, current_cursor);
+                declarations->enum_declarations.push_back(std::move(declaration));
+            }
+            else if (cursor_kind == CXCursor_TypedefDecl)
             {
                 std::uint64_t const alias_type_id = declarations->alias_type_declarations.size();
                 h::Alias_type_declaration declaration = create_alias_type_declaration(*declarations, alias_type_id, current_cursor);

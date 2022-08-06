@@ -18,11 +18,20 @@ import h.c_header_converter;
 namespace h::c
 {
     constexpr char const* g_c_headers_location = C_HEADERS_LOCATION;
+    constexpr char const* g_vulkan_headers_location = VULKAN_HEADERS_LOCATION;
 
     h::Alias_type_declaration const& find_alias_type_declaration(h::c::C_header const& header, std::string_view const name)
     {
         std::span<h::Alias_type_declaration const> const declarations = header.declarations.alias_type_declarations;
         auto const location = std::find_if(declarations.begin(), declarations.end(), [name](h::Alias_type_declaration const& value) -> bool { return value.name == name; });
+        REQUIRE(location != declarations.end());
+        return *location;
+    }
+
+    h::Enum_declaration const& find_enum_declaration(h::c::C_header const& header, std::string_view const name)
+    {
+        std::span<h::Enum_declaration const> const declarations = header.declarations.enum_declarations;
+        auto const location = std::find_if(declarations.begin(), declarations.end(), [name](h::Enum_declaration const& value) -> bool { return value.name == name; });
         REQUIRE(location != declarations.end());
         return *location;
     }
@@ -80,5 +89,36 @@ namespace h::c
 
         CHECK(actual.name == "time_t");
         CHECK(!actual.type.empty());
+    }
+
+    TEST_CASE("Import vulkan.h C header creates 'VkPhysicalDeviceType' enum")
+    {
+        std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
+        std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
+
+        h::c::C_header const header = h::c::import_header(vulkan_header_path);
+
+        CHECK(header.path == vulkan_header_path);
+
+        h::Enum_declaration const& actual = find_enum_declaration(header, "VkPhysicalDeviceType");
+
+        CHECK(actual.name == "VkPhysicalDeviceType");
+
+        REQUIRE(actual.values.size() >= 5);
+
+        CHECK(actual.values[0].name == "VK_PHYSICAL_DEVICE_TYPE_OTHER");
+        CHECK(actual.values[0].value == 0);
+
+        CHECK(actual.values[1].name == "VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU");
+        CHECK(actual.values[1].value == 1);
+
+        CHECK(actual.values[2].name == "VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU");
+        CHECK(actual.values[2].value == 2);
+
+        CHECK(actual.values[3].name == "VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU");
+        CHECK(actual.values[3].value == 3);
+
+        CHECK(actual.values[4].name == "VK_PHYSICAL_DEVICE_TYPE_CPU");
+        CHECK(actual.values[4].value == 4);
     }
 }
