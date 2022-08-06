@@ -85,6 +85,22 @@ namespace h
         friend auto operator<=>(Alias_type_reference const&, Alias_type_reference const&) = default;
     };
 
+    export struct Constant_array_type
+    {
+        std::pmr::vector<Type_reference> value_type;
+        std::uint64_t size;
+
+        friend auto operator<=>(Constant_array_type const&, Constant_array_type const&) = default;
+    };
+
+    export struct Enum_type_reference
+    {
+        Module_reference module_reference;
+        std::uint64_t id;
+
+        friend auto operator<=>(Enum_type_reference const&, Enum_type_reference const&) = default;
+    };
+
     export struct Struct_type_reference
     {
         Module_reference module_reference;
@@ -98,6 +114,8 @@ namespace h
         using Data_type = std::variant<
             Alias_type_reference,
             Builtin_type_reference,
+            Constant_array_type,
+            Enum_type_reference,
             Fundamental_type,
             Function_type,
             Pointer_type,
@@ -116,6 +134,23 @@ namespace h
         std::pmr::vector<Type_reference> type;
 
         friend auto operator<=>(Alias_type_declaration const& lhs, Alias_type_declaration const& rhs) = default;
+    };
+
+    export struct Enum_value
+    {
+        std::pmr::string name;
+        std::uint64_t value;
+
+        friend auto operator<=>(Enum_value const& lhs, Enum_value const& rhs) = default;
+    };
+
+    export struct Enum_declaration
+    {
+        std::uint64_t id;
+        std::pmr::string name;
+        std::pmr::vector<Enum_value> values;
+
+        friend auto operator<=>(Enum_declaration const& lhs, Enum_declaration const& rhs) = default;
     };
 
     export struct Struct_declaration
@@ -248,6 +283,7 @@ namespace h
     export struct Module_declarations
     {
         std::pmr::vector<Alias_type_declaration> alias_type_declarations;
+        std::pmr::vector<Enum_declaration> enum_declarations;
         std::pmr::vector<Struct_declaration> struct_declarations;
         std::pmr::vector<Function_declaration> function_declarations;
 
