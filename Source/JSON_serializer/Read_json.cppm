@@ -192,54 +192,14 @@ namespace h::json
     export template<>
         bool read_enum(Fundamental_type& output, std::string_view const value)
     {
-        if (value == "any_type")
+        if (value == "bool")
         {
-            output = Fundamental_type::Any_type;
+            output = Fundamental_type::Bool;
             return true;
         }
         else if (value == "byte")
         {
             output = Fundamental_type::Byte;
-            return true;
-        }
-        else if (value == "uint8")
-        {
-            output = Fundamental_type::Uint8;
-            return true;
-        }
-        else if (value == "uint16")
-        {
-            output = Fundamental_type::Uint16;
-            return true;
-        }
-        else if (value == "uint32")
-        {
-            output = Fundamental_type::Uint32;
-            return true;
-        }
-        else if (value == "uint64")
-        {
-            output = Fundamental_type::Uint64;
-            return true;
-        }
-        else if (value == "int8")
-        {
-            output = Fundamental_type::Int8;
-            return true;
-        }
-        else if (value == "int16")
-        {
-            output = Fundamental_type::Int16;
-            return true;
-        }
-        else if (value == "int32")
-        {
-            output = Fundamental_type::Int32;
-            return true;
-        }
-        else if (value == "int64")
-        {
-            output = Fundamental_type::Int64;
             return true;
         }
         else if (value == "float16")
@@ -257,9 +217,14 @@ namespace h::json
             output = Fundamental_type::Float64;
             return true;
         }
-        else if (value == "bool")
+        else if (value == "any_type")
         {
-            output = Fundamental_type::Bool;
+            output = Fundamental_type::Any_type;
+            return true;
+        }
+        else if (value == "c_bool")
+        {
+            output = Fundamental_type::C_bool;
             return true;
         }
         else if (value == "c_char")
@@ -410,6 +375,83 @@ namespace h::json
             std::pmr::vector<int>& state_stack,
             std::size_t const state_stack_position
         );
+
+    export template<typename Event_data>
+        bool read_object(
+            Integer_type& output,
+            Event const event,
+            Event_data const event_data,
+            std::pmr::vector<int>& state_stack,
+            std::size_t const state_stack_position
+        )
+    {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
+        int& state = state_stack[state_stack_position];
+
+        switch (state)
+        {
+        case 0:
+        {
+            if (event == Event::Start_object)
+            {
+                state = 1;
+                return true;
+            }
+            break;
+        }
+        case 1:
+        {
+            switch (event)
+            {
+            case Event::Key:
+            {
+                if constexpr (std::is_same_v<Event_data, std::string_view>)
+                {
+                    if (event_data == "number_of_bits")
+                    {
+                        state = 3;
+                        return true;
+                    }
+                    else if (event_data == "is_signed")
+                    {
+                        state = 4;
+                        return true;
+                    }
+                }
+                break;
+            }
+            case Event::End_object:
+            {
+                state = 2;
+                return true;
+            }
+            }
+            break;
+        }
+        case 2:
+        {
+            std::cerr << "While parsing 'Integer_type' unexpected '}' found.\n";
+            return false;
+        }
+        case 3:
+        {
+            state = 1;
+            return read_value(output.number_of_bits, "number_of_bits", event_data);
+        }
+        case 4:
+        {
+            state = 1;
+            return read_value(output.is_signed, "is_signed", event_data);
+        }
+        }
+
+        std::cerr << "Error while reading 'Integer_type'.\n";
+        return false;
+    }
 
     export template<typename Event_data>
         bool read_object(
@@ -1259,16 +1301,22 @@ namespace h::json
                     state = 22;
                     return true;
                 }
+                else if (event_data == "integer_type")
+                {
+                    output.data = Integer_type{};
+                    state = 25;
+                    return true;
+                }
                 else if (event_data == "pointer_type")
                 {
                     output.data = Pointer_type{};
-                    state = 25;
+                    state = 28;
                     return true;
                 }
                 else if (event_data == "struct_type_reference")
                 {
                     output.data = Struct_type_reference{};
-                    state = 28;
+                    state = 31;
                     return true;
                 }
             }
@@ -1468,13 +1516,13 @@ namespace h::json
         case 26:
         {
             state = 27;
-            return read_object(std::get<Pointer_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
+            return read_object(std::get<Integer_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
         }
         case 27:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
             {
-                if (!read_object(std::get<Pointer_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1))
+                if (!read_object(std::get<Integer_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1))
                 {
                     return false;
                 }
@@ -1484,7 +1532,7 @@ namespace h::json
             }
             else
             {
-                return read_object(std::get<Pointer_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
+                return read_object(std::get<Integer_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
             }
         }
         case 28:
@@ -1501,9 +1549,42 @@ namespace h::json
         case 29:
         {
             state = 30;
-            return read_object(std::get<Struct_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
+            return read_object(std::get<Pointer_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
         }
         case 30:
+        {
+            if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
+            {
+                if (!read_object(std::get<Pointer_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1))
+                {
+                    return false;
+                }
+
+                state = 4;
+                return true;
+            }
+            else
+            {
+                return read_object(std::get<Pointer_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
+            }
+        }
+        case 31:
+        {
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
+            {
+                if (event == Event::Key && event_data == "value")
+                {
+                    state = 32;
+                    return true;
+                }
+            }
+        }
+        case 32:
+        {
+            state = 33;
+            return read_object(std::get<Struct_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
+        }
+        case 33:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
             {
@@ -1856,19 +1937,24 @@ namespace h::json
                         state = 4;
                         return true;
                     }
-                    else if (event_data == "types")
+                    else if (event_data == "member_types")
                     {
                         state = 5;
                         return true;
                     }
-                    else if (event_data == "is_packed")
+                    else if (event_data == "member_names")
                     {
                         state = 7;
                         return true;
                     }
+                    else if (event_data == "is_packed")
+                    {
+                        state = 9;
+                        return true;
+                    }
                     else if (event_data == "is_literal")
                     {
-                        state = 8;
+                        state = 10;
                         return true;
                     }
                 }
@@ -1900,13 +1986,13 @@ namespace h::json
         case 5:
         {
             state = 6;
-            return read_object(output.types, event, event_data, state_stack, state_stack_position + 1 + 0);
+            return read_object(output.member_types, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
         case 6:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
-                if (!read_object(output.types, event, event_data, state_stack, state_stack_position + 1 + 0))
+                if (!read_object(output.member_types, event, event_data, state_stack, state_stack_position + 1 + 0))
                 {
                     return false;
                 }
@@ -1916,15 +2002,37 @@ namespace h::json
             }
             else
             {
-                return read_object(output.types, event, event_data, state_stack, state_stack_position + 1 + 0);
+                return read_object(output.member_types, event, event_data, state_stack, state_stack_position + 1 + 0);
             }
         }
         case 7:
         {
+            state = 8;
+            return read_object(output.member_names, event, event_data, state_stack, state_stack_position + 1 + 0);
+        }
+        case 8:
+        {
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
+            {
+                if (!read_object(output.member_names, event, event_data, state_stack, state_stack_position + 1 + 0))
+                {
+                    return false;
+                }
+
+                state = 1;
+                return true;
+            }
+            else
+            {
+                return read_object(output.member_names, event, event_data, state_stack, state_stack_position + 1 + 0);
+            }
+        }
+        case 9:
+        {
             state = 1;
             return read_value(output.is_packed, "is_packed", event_data);
         }
-        case 8:
+        case 10:
         {
             state = 1;
             return read_value(output.is_literal, "is_literal", event_data);

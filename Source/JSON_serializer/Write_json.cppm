@@ -14,45 +14,13 @@ namespace h::json
 {
     export std::string_view write_enum(Fundamental_type const value)
     {
-        if (value == Fundamental_type::Any_type)
+        if (value == Fundamental_type::Bool)
         {
-            return "any_type";
+            return "bool";
         }
         else if (value == Fundamental_type::Byte)
         {
             return "byte";
-        }
-        else if (value == Fundamental_type::Uint8)
-        {
-            return "uint8";
-        }
-        else if (value == Fundamental_type::Uint16)
-        {
-            return "uint16";
-        }
-        else if (value == Fundamental_type::Uint32)
-        {
-            return "uint32";
-        }
-        else if (value == Fundamental_type::Uint64)
-        {
-            return "uint64";
-        }
-        else if (value == Fundamental_type::Int8)
-        {
-            return "int8";
-        }
-        else if (value == Fundamental_type::Int16)
-        {
-            return "int16";
-        }
-        else if (value == Fundamental_type::Int32)
-        {
-            return "int32";
-        }
-        else if (value == Fundamental_type::Int64)
-        {
-            return "int64";
         }
         else if (value == Fundamental_type::Float16)
         {
@@ -66,9 +34,13 @@ namespace h::json
         {
             return "float64";
         }
-        else if (value == Fundamental_type::Bool)
+        else if (value == Fundamental_type::Any_type)
         {
-            return "bool";
+            return "any_type";
+        }
+        else if (value == Fundamental_type::C_bool)
+        {
+            return "c_bool";
         }
         else if (value == Fundamental_type::C_char)
         {
@@ -179,6 +151,12 @@ namespace h::json
 
         throw std::runtime_error{ "Failed to write enum 'Linkage'!\n" };
     }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Integer_type const& input
+        );
 
     export template<typename Writer_type>
         void write_object(
@@ -395,6 +373,20 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Integer_type const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("number_of_bits");
+        writer.Uint(output.number_of_bits);
+        writer.Key("is_signed");
+        writer.Bool(output.is_signed);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Builtin_type_reference const& output
         )
     {
@@ -563,6 +555,14 @@ namespace h::json
             Function_type const& value = std::get<Function_type>(output.data);
             write_object(writer, value);
         }
+        else if (std::holds_alternative<Integer_type>(output.data))
+        {
+            writer.Key("type");
+            writer.String("integer_type");
+            writer.Key("value");
+            Integer_type const& value = std::get<Integer_type>(output.data);
+            write_object(writer, value);
+        }
         else if (std::holds_alternative<Pointer_type>(output.data))
         {
             writer.Key("type");
@@ -641,8 +641,10 @@ namespace h::json
         writer.Uint64(output.id);
         writer.Key("name");
         writer.String(output.name.data(), output.name.size());
-        writer.Key("types");
-        write_object(writer, output.types);
+        writer.Key("member_types");
+        write_object(writer, output.member_types);
+        writer.Key("member_names");
+        write_object(writer, output.member_names);
         writer.Key("is_packed");
         writer.Bool(output.is_packed);
         writer.Key("is_literal");

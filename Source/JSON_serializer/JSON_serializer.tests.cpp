@@ -70,14 +70,14 @@ namespace h
             {
                 "data": {
                     "type": "fundamental_type",
-                    "value": "uint32"
+                    "value": "byte"
                 }
             }
         )JSON";
 
         Type_reference const expected
         {
-            .data = Fundamental_type::Uint32
+            .data = Fundamental_type::Byte
         };
 
         rapidjson::Reader reader;
@@ -94,10 +94,10 @@ namespace h
     {
         Type_reference const input
         {
-            .data = Fundamental_type::Uint32
+            .data = Fundamental_type::Byte
         };
 
-        std::string const expected = "{\"data\":{\"type\":\"fundamental_type\",\"value\":\"uint32\"}}";
+        std::string const expected = "{\"data\":{\"type\":\"fundamental_type\",\"value\":\"byte\"}}";
 
         rapidjson::StringBuffer output_stream;
         rapidjson::Writer<rapidjson::StringBuffer> writer{ output_stream };
@@ -306,8 +306,8 @@ namespace h
     {
         std::pmr::vector<Type_reference> parameter_types
         {
-            Type_reference{.data = Fundamental_type::Int32},
-            Type_reference{.data = Fundamental_type::Int32},
+            Type_reference{.data = Fundamental_type::Byte},
+            Type_reference{.data = Fundamental_type::Byte},
         };
 
         std::pmr::vector<std::uint64_t> parameter_ids
@@ -322,7 +322,7 @@ namespace h
 
         h::Function_type function_type
         {
-            .return_types = {Type_reference{.data = Fundamental_type::Int32}},
+            .return_types = {Type_reference{.data = Fundamental_type::Byte}},
             .parameter_types = std::move(parameter_types),
             .is_variadic = false
         };
@@ -351,7 +351,7 @@ namespace h
                             {
                                 "data": {
                                     "type": "fundamental_type",
-                                    "value": "int32"
+                                    "value": "byte"
                                 }
                             }
                         ]            
@@ -362,13 +362,13 @@ namespace h
                             {
                                 "data": {
                                     "type": "fundamental_type",
-                                    "value": "int32"
+                                    "value": "byte"
                                 }
                             },
                             {
                                 "data": {
                                     "type": "fundamental_type",
-                                    "value": "int32"
+                                    "value": "byte"
                                 }
                             }
                         ]
@@ -567,7 +567,7 @@ namespace h
                                         {
                                             "data": {
                                                 "type": "fundamental_type",
-                                                "value": "int32"
+                                                "value": "byte"
                                             }
                                         }
                                     ]
@@ -578,13 +578,13 @@ namespace h
                                         {
                                             "data": {
                                                 "type": "fundamental_type",
-                                                "value": "int32"
+                                                "value": "byte"
                                             }
                                         },
                                         {
                                             "data": {
                                                 "type": "fundamental_type",
-                                                "value": "int32"
+                                                "value": "byte"
                                             }
                                         }
                                     ]
