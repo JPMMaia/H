@@ -20,6 +20,14 @@ namespace h::c
     constexpr char const* g_c_headers_location = C_HEADERS_LOCATION;
     constexpr char const* g_vulkan_headers_location = VULKAN_HEADERS_LOCATION;
 
+    h::Alias_type_declaration const& find_alias_type_declaration(h::c::C_header const& header, std::uint64_t const id)
+    {
+        std::span<h::Alias_type_declaration const> const declarations = header.declarations.alias_type_declarations;
+        auto const location = std::find_if(declarations.begin(), declarations.end(), [id](h::Alias_type_declaration const& value) -> bool { return value.id == id; });
+        REQUIRE(location != declarations.end());
+        return *location;
+    }
+
     h::Alias_type_declaration const& find_alias_type_declaration(h::c::C_header const& header, std::string_view const name)
     {
         std::span<h::Alias_type_declaration const> const declarations = header.declarations.alias_type_declarations;
@@ -139,7 +147,7 @@ namespace h::c
 
         CHECK(header.path == vulkan_header_path);
 
-        h::Enum_declaration const& actual = find_struct_declaration(header, "VkCommandPoolCreateInfo");
+        h::Struct_declaration const& actual = find_struct_declaration(header, "VkCommandPoolCreateInfo");
 
         CHECK(actual.name == "VkCommandPoolCreateInfo");
         CHECK(actual.is_packed == false);
@@ -160,7 +168,20 @@ namespace h::c
                 .id = expected_type_declaration.id
             };
 
-            CHECK(actual.member_types[0] == h::Type_reference{ .data = expected_type });
+            if (std::holds_alternative<h::Alias_type_reference>(actual.member_types[0].data))
+            {
+                h::Alias_type_reference const& alias_type_reference = std::get<h::Alias_type_reference>(actual.member_types[0].data);
+
+                REQUIRE(alias_type_reference.module_reference.name == "");
+                h::Alias_type_declaration const& alias_type_declaration = find_alias_type_declaration(header, alias_type_reference.id);
+                REQUIRE(alias_type_declaration.type.size() == 1);
+
+                CHECK(alias_type_declaration.type[0] == h::Type_reference{ .data = expected_type });
+            }
+            else
+            {
+                CHECK(actual.member_types[0] == h::Type_reference{ .data = expected_type });
+            }
         }
 
         {
@@ -169,7 +190,7 @@ namespace h::c
             h::Pointer_type const expected_type =
             {
                 .element_type = {},
-                is_mutable = false
+                .is_mutable = false
             };
 
             CHECK(actual.member_types[1] == h::Type_reference{ .data = expected_type });
@@ -178,7 +199,7 @@ namespace h::c
         {
             CHECK(actual.member_names[2] == "flags");
 
-            h::Alias_declaration const& expected_type_declaration = find_alias_declaration(header, "VkCommandPoolCreateFlags");
+            h::Alias_type_declaration const& expected_type_declaration = find_alias_type_declaration(header, "VkCommandPoolCreateFlags");
             h::Alias_type_reference const expected_type =
             {
                 .module_reference = {
@@ -193,7 +214,11 @@ namespace h::c
         {
             CHECK(actual.member_names[3] == "queueFamilyIndex");
 
-            h::Fundamental_type const expected_type = h::Fundamental_type::Uint32;
+            h::Integer_type const expected_type =
+            {
+                .number_of_bits = 32,
+                .is_signed = false
+            };
 
             CHECK(actual.member_types[3] == h::Type_reference{ .data = expected_type });
         }

@@ -5,7 +5,9 @@ module;
 #include <memory_resource>
 #include <numeric>
 #include <optional>
+#include <span>
 #include <string_view>
+#include <variant>
 #include <vector>
 
 #include <stdio.h>
@@ -16,7 +18,7 @@ module h.c_header_converter;
 
 namespace h::c
 {
-    static constexpr bool g_debug = false;
+    static constexpr bool g_debug = true;
 
     struct String
     {
@@ -41,15 +43,13 @@ namespace h::c
     {
         switch (type_kind)
         {
+        case CXType_Bool:
+            return h::Fundamental_type::C_bool;
         case CXType_Char_U:
         case CXType_Char_S:
             return h::Fundamental_type::C_char;
         case CXType_UChar:
             return h::Fundamental_type::C_uchar;
-        case CXType_Char16:
-            return h::Fundamental_type::Int16;
-        case CXType_Char32:
-            return h::Fundamental_type::Int32;
         case CXType_UShort:
             return h::Fundamental_type::C_ushort;
         case CXType_UInt:
@@ -75,10 +75,41 @@ namespace h::c
         case CXType_Half:
         case CXType_Float16:
             return h::Fundamental_type::Float16;
-        case CXType_Bool:
-            return h::Fundamental_type::Bool;
         default:
             return std::nullopt;
+        }
+    }
+
+    bool is_integer(CXTypeKind const type_kind)
+    {
+        switch (type_kind)
+        {
+        case CXType_Char16:
+        case CXType_Char32:
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    h::Integer_type create_integer_type(CXTypeKind const type_kind)
+    {
+        switch (type_kind)
+        {
+        case CXType_Char16:
+            return h::Integer_type
+            {
+                .number_of_bits = 16,
+                .is_signed = true
+            };
+        case CXType_Char32:
+            return h::Integer_type
+            {
+                .number_of_bits = 32,
+                .is_signed = true
+            };
+        default:
+            throw std::runtime_error{ "Type is not integer!" };
         }
     }
 
@@ -158,6 +189,16 @@ namespace h::c
                 return h::Type_reference
                 {
                     .data = *fundamental_type
+                };
+            }
+
+            if (is_integer(type.kind))
+            {
+                h::Integer_type const integer_type = create_integer_type(type.kind);
+
+                return h::Type_reference
+                {
+                    .data = integer_type
                 };
             }
         }
@@ -442,6 +483,384 @@ namespace h::c
         };
     }
 
+    h::Type_reference create_type_reference_from_bit_field(CXCursor const cursor, CXType const type)
+    {
+        CXType const canonical_type = clang_getCanonicalType(type);
+
+        std::uint32_t const bit_field_width = static_cast<std::uint32_t>(clang_getFieldDeclBitWidth(cursor));
+
+        switch (canonical_type.kind)
+        {
+        case CXType_Int:
+            return h::Type_reference
+            {
+                .data = h::Integer_type
+                {
+                    .number_of_bits = bit_field_width,
+                    .is_signed = true
+                }
+            };
+        case CXType_UInt:
+            return h::Type_reference
+            {
+                .data = h::Integer_type
+                {
+                    .number_of_bits = bit_field_width,
+                    .is_signed = false
+                }
+            };
+        case CXType_Bool:
+            if (bit_field_width != 1)
+            {
+                throw std::runtime_error{ "Bit field width of bool must be 1!" };
+            }
+
+            return h::Type_reference
+            {
+                .data = h::Fundamental_type::Bool
+            };
+
+        default:
+            throw std::runtime_error{ "Data type does not support bit field!" };
+        }
+    }
+
+    h::Struct_declaration create_struct_declaration(C_declarations const& declarations, std::uint64_t const id, CXCursor const cursor)
+    {
+        struct Client_data
+        {
+            C_declarations const* declarations;
+            h::Struct_declaration* struct_declaration;
+        };
+
+        String const cursor_spelling = { clang_getCursorSpelling(cursor) };
+        std::string_view const struct_name = cursor_spelling.string_view();
+
+        auto const visitor = [](CXCursor current_cursor, CXCursor parent, CXClientData client_data) -> CXChildVisitResult
+        {
+            Client_data* const data = reinterpret_cast<Client_data*>(client_data);
+
+            CXCursorKind const cursor_kind = clang_getCursorKind(current_cursor);
+
+            if (cursor_kind == CXCursor_FieldDecl)
+            {
+                String const member_spelling = clang_getCursorSpelling(current_cursor);
+                std::string_view const member_name = member_spelling.string_view();
+
+                CXType const member_type = clang_getCursorType(current_cursor);
+
+                if (clang_Cursor_isBitField(current_cursor))
+                {
+                    h::Type_reference member_type_reference = create_type_reference_from_bit_field(current_cursor, member_type);
+
+                    data->struct_declaration->member_names.push_back(std::pmr::string{ member_name });
+                    data->struct_declaration->member_types.push_back(std::move(member_type_reference));
+                }
+                else
+                {
+                    std::optional<h::Type_reference> const member_type_reference = create_type_reference(*data->declarations, member_type);
+
+                    if (!member_type_reference.has_value())
+                    {
+                        throw std::runtime_error{ "Member type of struct cannot be void!" };
+                    }
+
+                    data->struct_declaration->member_names.push_back(std::pmr::string{ member_name });
+                    data->struct_declaration->member_types.push_back(std::move(*member_type_reference));
+                }
+            }
+
+            return CXChildVisit_Continue;
+        };
+
+        h::Struct_declaration struct_declaration
+        {
+            .id = id,
+            .name = std::pmr::string{struct_name},
+            .member_types = {},
+            .member_names = {},
+            .is_packed = false,
+            .is_literal = false,
+        };
+
+        Client_data client_data
+        {
+            .declarations = &declarations,
+            .struct_declaration = &struct_declaration
+        };
+
+        clang_visitChildren(
+            cursor,
+            visitor,
+            &client_data
+        );
+
+        return struct_declaration;
+    }
+
+    bool is_fixed_width_integer_typedef_name(std::string_view const name)
+    {
+        return
+            name == "int8_t" ||
+            name == "int16_t" ||
+            name == "int32_t" ||
+            name == "int64_t" ||
+            name == "uint8_t" ||
+            name == "uint16_t" ||
+            name == "uint32_t" ||
+            name == "uint64_t";
+    }
+
+    bool is_fixed_width_integer_typedef_reference(h::Alias_type_reference const& reference, std::span<std::uint64_t const> const integer_alias_ids)
+    {
+        if (!reference.module_reference.name.empty())
+        {
+            return false;
+        }
+
+        auto const location = std::find(
+            integer_alias_ids.begin(),
+            integer_alias_ids.end(),
+            reference.id
+        );
+
+        return location != integer_alias_ids.end();
+    }
+
+    h::Integer_type create_integer_type_from_fixed_width_integer_typedef_name(std::string_view const name)
+    {
+        if (name == "int8_t")
+        {
+            return h::Integer_type
+            {
+                .number_of_bits = 8,
+                .is_signed = true
+            };
+        }
+        else if (name == "int16_t")
+        {
+            return h::Integer_type
+            {
+                .number_of_bits = 16,
+                .is_signed = true
+            };
+        }
+        else if (name == "int32_t")
+        {
+            return h::Integer_type
+            {
+                .number_of_bits = 32,
+                .is_signed = true
+            };
+        }
+        else if (name == "int64_t")
+        {
+            return h::Integer_type
+            {
+                .number_of_bits = 64,
+                .is_signed = true
+            };
+        }
+        else if (name == "uint8_t")
+        {
+            return h::Integer_type
+            {
+                .number_of_bits = 8,
+                .is_signed = false
+            };
+        }
+        else if (name == "uint16_t")
+        {
+            return h::Integer_type
+            {
+                .number_of_bits = 16,
+                .is_signed = false
+            };
+        }
+        else if (name == "uint32_t")
+        {
+            return h::Integer_type
+            {
+                .number_of_bits = 32,
+                .is_signed = false
+            };
+        }
+        else if (name == "uint64_t")
+        {
+            return h::Integer_type
+            {
+                .number_of_bits = 64,
+                .is_signed = false
+            };
+        }
+
+        std::string const message = std::format("Unrecognized fixed width integer typedef name '{}'", name);
+        throw std::runtime_error{ message };
+    }
+
+    void convert_typedef_to_integer_type_if_necessary(
+        h::Type_reference& type,
+        std::span<h::Alias_type_declaration const> const alias_type_declarations,
+        std::span<std::uint64_t const> const integer_alias_ids,
+        std::span<std::size_t const> const integer_alias_indices
+    )
+    {
+        if (std::holds_alternative<h::Alias_type_reference>(type.data))
+        {
+            h::Alias_type_reference const& reference = std::get<h::Alias_type_reference>(type.data);
+
+            if (is_fixed_width_integer_typedef_reference(reference, integer_alias_ids))
+            {
+                auto const id_location = std::find(integer_alias_ids.begin(), integer_alias_ids.end(), reference.id);
+                auto const id_index = std::distance(integer_alias_ids.begin(), id_location);
+                std::size_t integer_alias_index = integer_alias_indices[id_index];
+                h::Alias_type_declaration const& integer_alias_declaration = alias_type_declarations[integer_alias_index];
+
+                type.data = create_integer_type_from_fixed_width_integer_typedef_name(integer_alias_declaration.name);
+            }
+        }
+        else if (std::holds_alternative<h::Constant_array_type>(type.data))
+        {
+            h::Constant_array_type& data = std::get<h::Constant_array_type>(type.data);
+
+            for (h::Type_reference& reference : data.value_type)
+            {
+                convert_typedef_to_integer_type_if_necessary(
+                    reference,
+                    alias_type_declarations,
+                    integer_alias_ids,
+                    integer_alias_indices
+                );
+            }
+        }
+        else if (std::holds_alternative<h::Function_type>(type.data))
+        {
+            h::Function_type& data = std::get<h::Function_type>(type.data);
+
+            for (h::Type_reference& reference : data.return_types)
+            {
+                convert_typedef_to_integer_type_if_necessary(
+                    reference,
+                    alias_type_declarations,
+                    integer_alias_ids,
+                    integer_alias_indices
+                );
+            }
+
+            for (h::Type_reference& reference : data.parameter_types)
+            {
+                convert_typedef_to_integer_type_if_necessary(
+                    reference,
+                    alias_type_declarations,
+                    integer_alias_ids,
+                    integer_alias_indices
+                );
+            }
+        }
+        else if (std::holds_alternative<h::Pointer_type>(type.data))
+        {
+            h::Pointer_type& data = std::get<h::Pointer_type>(type.data);
+
+            for (h::Type_reference& reference : data.element_type)
+            {
+                convert_typedef_to_integer_type_if_necessary(
+                    reference,
+                    alias_type_declarations,
+                    integer_alias_ids,
+                    integer_alias_indices
+                );
+            }
+        }
+    }
+
+    C_declarations convert_fixed_width_integers_typedefs_to_integer_types(C_declarations const& input)
+    {
+        std::pmr::vector<std::size_t> indices;
+        indices.reserve(8);
+
+        for (std::size_t index = 0; index < input.alias_type_declarations.size(); ++index)
+        {
+            h::Alias_type_declaration const& alias_type_declaration = input.alias_type_declarations[index];
+
+            if (is_fixed_width_integer_typedef_name(alias_type_declaration.name))
+            {
+                indices.push_back(index);
+
+                if (indices.size() == indices.capacity())
+                {
+                    break;
+                }
+            }
+        }
+
+        std::pmr::vector<std::uint64_t> ids;
+        ids.reserve(indices.size());
+
+        for (std::size_t const index : indices)
+        {
+            ids.push_back(input.alias_type_declarations[index].id);
+        }
+
+        C_declarations output = input;
+
+        for (std::size_t i = indices.size(); i > 0; --i)
+        {
+            std::size_t const index = indices[i - 1];
+            output.alias_type_declarations.erase(output.alias_type_declarations.begin() + index);
+        }
+
+        for (h::Alias_type_declaration& declaration : output.alias_type_declarations)
+        {
+            for (h::Type_reference& reference : declaration.type)
+            {
+                convert_typedef_to_integer_type_if_necessary(
+                    reference,
+                    input.alias_type_declarations,
+                    ids,
+                    indices
+                );
+            }
+        }
+
+        for (h::Struct_declaration& declaration : output.struct_declarations)
+        {
+            for (h::Type_reference& reference : declaration.member_types)
+            {
+                convert_typedef_to_integer_type_if_necessary(
+                    reference,
+                    input.alias_type_declarations,
+                    ids,
+                    indices
+                );
+            }
+        }
+
+        for (h::Function_declaration& declaration : output.function_declarations)
+        {
+            for (h::Type_reference& reference : declaration.type.return_types)
+            {
+                convert_typedef_to_integer_type_if_necessary(
+                    reference,
+                    input.alias_type_declarations,
+                    ids,
+                    indices
+                );
+            }
+
+            for (h::Type_reference& reference : declaration.type.parameter_types)
+            {
+                convert_typedef_to_integer_type_if_necessary(
+                    reference,
+                    input.alias_type_declarations,
+                    ids,
+                    indices
+                );
+            }
+        }
+
+        return output;
+    }
+
     C_header import_header(std::filesystem::path const& header_path)
     {
         CXIndex index = clang_createIndex(0, 0);
@@ -489,6 +908,8 @@ namespace h::c
 
             // TODO add builtin typedefs?
 
+            // TODO generate IDs from names
+
             if (cursor_kind == CXCursor_EnumDecl)
             {
                 std::uint64_t const enum_id = declarations->enum_declarations.size();
@@ -505,6 +926,11 @@ namespace h::c
             {
                 std::uint64_t const function_id = declarations->function_declarations.size();
                 declarations->function_declarations.push_back(create_function_declaration(*declarations, function_id, current_cursor));
+            }
+            else if (cursor_kind == CXCursor_StructDecl)
+            {
+                std::uint64_t const struct_id = declarations->struct_declarations.size();
+                declarations->struct_declarations.push_back(create_struct_declaration(*declarations, struct_id, current_cursor));
             }
 
             return CXChildVisit_Continue;
@@ -523,6 +949,8 @@ namespace h::c
         clang_disposeTranslationUnit(unit);
         clang_disposeIndex(index);
 
+        C_declarations const declarations_with_fixed_width_integers = convert_fixed_width_integers_typedefs_to_integer_types(declarations);
+
         return C_header
         {
             .language_version = {
@@ -531,7 +959,7 @@ namespace h::c
                 .patch = 0
             },
             .path = header_path,
-            .declarations = std::move(declarations)
+            .declarations = std::move(declarations_with_fixed_width_integers)
         };
     }
 }
