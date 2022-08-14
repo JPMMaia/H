@@ -16,21 +16,14 @@ namespace h
 
     export enum class Fundamental_type
     {
-        Any_type,
+        Bool,
         Byte,
-        Uint8,
-        Uint16,
-        Uint32,
-        Uint64,
-        Int8,
-        Int16,
-        Int32,
-        Int64,
         Float16,
         Float32,
         Float64,
-        Bool,
+        Any_type,
 
+        C_bool,
         C_char,
         C_schar,
         C_uchar,
@@ -45,6 +38,14 @@ namespace h
     };
 
     export std::uint16_t get_precision(Fundamental_type type);
+
+    export struct Integer_type
+    {
+        std::uint32_t number_of_bits;
+        bool is_signed;
+
+        friend auto operator<=>(Integer_type const& lhs, Integer_type const& rhs) = default;
+    };
 
     export struct Builtin_type_reference
     {
@@ -118,6 +119,7 @@ namespace h
             Enum_type_reference,
             Fundamental_type,
             Function_type,
+            Integer_type,
             Pointer_type,
             Struct_type_reference
         >;
