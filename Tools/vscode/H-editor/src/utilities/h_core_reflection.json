@@ -1,1 +1,592 @@
-{"enums":[{"name":"Fundamental_type","values":["Bool","Byte","Float16","Float32","Float64","Any_type","C_bool","C_char","C_schar","C_uchar","C_short","C_ushort","C_int","C_uint","C_long","C_ulong","C_longlong","C_ulonglong"]},{"name":"Variable_expression_type","values":["Function_argument","Local_variable","Temporary"]},{"name":"Binary_operation","values":["Add","Subtract","Multiply","Signed_divide","Unsigned_divide","Less_than"]},{"name":"Linkage","values":["External","Private"]}],"structs":[{"name":"Integer_type","members":[{"type":{"name":"std::uint32_t"},"name":"number_of_bits"},{"type":{"name":"bool"},"name":"is_signed"}]},{"name":"Builtin_type_reference","members":[{"type":{"name":"std::pmr::string"},"name":"value"}]},{"name":"Function_type","members":[{"type":{"name":"std::pmr::vector<Type_reference>"},"name":"return_types"},{"type":{"name":"std::pmr::vector<Type_reference>"},"name":"parameter_types"},{"type":{"name":"bool"},"name":"is_variadic"}]},{"name":"Pointer_type","members":[{"type":{"name":"std::pmr::vector<Type_reference>"},"name":"element_type"},{"type":{"name":"bool"},"name":"is_mutable"}]},{"name":"Module_reference","members":[{"type":{"name":"std::pmr::string"},"name":"name"}]},{"name":"Alias_type_reference","members":[{"type":{"name":"Module_reference"},"name":"module_reference"},{"type":{"name":"std::uint64_t"},"name":"id"}]},{"name":"Constant_array_type","members":[{"type":{"name":"std::pmr::vector<Type_reference>"},"name":"value_type"},{"type":{"name":"std::uint64_t"},"name":"size"}]},{"name":"Enum_type_reference","members":[{"type":{"name":"Module_reference"},"name":"module_reference"},{"type":{"name":"std::uint64_t"},"name":"id"}]},{"name":"Struct_type_reference","members":[{"type":{"name":"Module_reference"},"name":"module_reference"},{"type":{"name":"std::uint64_t"},"name":"id"}]},{"name":"Type_reference","members":[{"type":{"name":"std::variant<Alias_type_reference,Builtin_type_reference,Constant_array_type,Enum_type_reference,Fundamental_type,Function_type,Integer_type,Pointer_type,Struct_type_reference>"},"name":"data"}]},{"name":"Alias_type_declaration","members":[{"type":{"name":"std::uint64_t"},"name":"id"},{"type":{"name":"std::pmr::string"},"name":"name"},{"type":{"name":"std::pmr::vector<Type_reference>"},"name":"type"}]},{"name":"Enum_value","members":[{"type":{"name":"std::pmr::string"},"name":"name"},{"type":{"name":"std::uint64_t"},"name":"value"}]},{"name":"Enum_declaration","members":[{"type":{"name":"std::uint64_t"},"name":"id"},{"type":{"name":"std::pmr::string"},"name":"name"},{"type":{"name":"std::pmr::vector<Enum_value>"},"name":"values"}]},{"name":"Struct_declaration","members":[{"type":{"name":"std::uint64_t"},"name":"id"},{"type":{"name":"std::pmr::string"},"name":"name"},{"type":{"name":"std::pmr::vector<Type_reference>"},"name":"member_types"},{"type":{"name":"std::pmr::vector<std::pmr::string>"},"name":"member_names"},{"type":{"name":"bool"},"name":"is_packed"},{"type":{"name":"bool"},"name":"is_literal"}]},{"name":"Variable_expression","members":[{"type":{"name":"Variable_expression_type"},"name":"type"},{"type":{"name":"std::uint64_t"},"name":"id"}]},{"name":"Binary_expression","members":[{"type":{"name":"Variable_expression"},"name":"left_hand_side"},{"type":{"name":"Variable_expression"},"name":"right_hand_side"},{"type":{"name":"Binary_operation"},"name":"operation"}]},{"name":"Call_expression","members":[{"type":{"name":"std::pmr::string"},"name":"function_name"},{"type":{"name":"std::pmr::vector<Variable_expression>"},"name":"arguments"}]},{"name":"Constant_expression","members":[{"type":{"name":"Fundamental_type"},"name":"type"},{"type":{"name":"std::pmr::string"},"name":"data"}]},{"name":"Return_expression","members":[{"type":{"name":"Variable_expression"},"name":"variable"}]},{"name":"Expression","members":[{"type":{"name":"std::variant<Binary_expression,Call_expression,Constant_expression,Return_expression,Variable_expression>"},"name":"data"}]},{"name":"Statement","members":[{"type":{"name":"std::uint64_t"},"name":"id"},{"type":{"name":"std::pmr::string"},"name":"name"},{"type":{"name":"std::pmr::vector<Expression>"},"name":"expressions"}]},{"name":"Function_declaration","members":[{"type":{"name":"std::uint64_t"},"name":"id"},{"type":{"name":"std::pmr::string"},"name":"name"},{"type":{"name":"Function_type"},"name":"type"},{"type":{"name":"std::pmr::vector<std::uint64_t>"},"name":"parameter_ids"},{"type":{"name":"std::pmr::vector<std::pmr::string>"},"name":"parameter_names"},{"type":{"name":"Linkage"},"name":"linkage"}]},{"name":"Function_definition","members":[{"type":{"name":"std::uint64_t"},"name":"id"},{"type":{"name":"std::pmr::vector<Statement>"},"name":"statements"}]},{"name":"Language_version","members":[{"type":{"name":"std::uint32_t"},"name":"major"},{"type":{"name":"std::uint32_t"},"name":"minor"},{"type":{"name":"std::uint32_t"},"name":"patch"}]},{"name":"Module_declarations","members":[{"type":{"name":"std::pmr::vector<Alias_type_declaration>"},"name":"alias_type_declarations"},{"type":{"name":"std::pmr::vector<Enum_declaration>"},"name":"enum_declarations"},{"type":{"name":"std::pmr::vector<Struct_declaration>"},"name":"struct_declarations"},{"type":{"name":"std::pmr::vector<Function_declaration>"},"name":"function_declarations"}]},{"name":"Module_definitions","members":[{"type":{"name":"std::pmr::vector<Function_definition>"},"name":"function_definitions"}]},{"name":"Module","members":[{"type":{"name":"Language_version"},"name":"language_version"},{"type":{"name":"std::pmr::string"},"name":"name"},{"type":{"name":"Module_declarations"},"name":"export_declarations"},{"type":{"name":"Module_declarations"},"name":"internal_declarations"},{"type":{"name":"Module_definitions"},"name":"definitions"}]}]}
+{
+    "enums": [
+        {
+            "name": "Fundamental_type",
+            "values": [
+                "Bool",
+                "Byte",
+                "Float16",
+                "Float32",
+                "Float64",
+                "Any_type",
+                "C_bool",
+                "C_char",
+                "C_schar",
+                "C_uchar",
+                "C_short",
+                "C_ushort",
+                "C_int",
+                "C_uint",
+                "C_long",
+                "C_ulong",
+                "C_longlong",
+                "C_ulonglong"
+            ]
+        },
+        {
+            "name": "Variable_expression_type",
+            "values": [
+                "Function_argument",
+                "Local_variable",
+                "Temporary"
+            ]
+        },
+        {
+            "name": "Binary_operation",
+            "values": [
+                "Add",
+                "Subtract",
+                "Multiply",
+                "Signed_divide",
+                "Unsigned_divide",
+                "Less_than"
+            ]
+        },
+        {
+            "name": "Linkage",
+            "values": [
+                "External",
+                "Private"
+            ]
+        }
+    ],
+    "structs": [
+        {
+            "name": "Integer_type",
+            "members": [
+                {
+                    "type": {
+                        "name": "std::uint32_t"
+                    },
+                    "name": "number_of_bits"
+                },
+                {
+                    "type": {
+                        "name": "bool"
+                    },
+                    "name": "is_signed"
+                }
+            ]
+        },
+        {
+            "name": "Builtin_type_reference",
+            "members": [
+                {
+                    "type": {
+                        "name": "std::pmr::string"
+                    },
+                    "name": "value"
+                }
+            ]
+        },
+        {
+            "name": "Function_type",
+            "members": [
+                {
+                    "type": {
+                        "name": "std::pmr::vector<Type_reference>"
+                    },
+                    "name": "return_types"
+                },
+                {
+                    "type": {
+                        "name": "std::pmr::vector<Type_reference>"
+                    },
+                    "name": "parameter_types"
+                },
+                {
+                    "type": {
+                        "name": "bool"
+                    },
+                    "name": "is_variadic"
+                }
+            ]
+        },
+        {
+            "name": "Pointer_type",
+            "members": [
+                {
+                    "type": {
+                        "name": "std::pmr::vector<Type_reference>"
+                    },
+                    "name": "element_type"
+                },
+                {
+                    "type": {
+                        "name": "bool"
+                    },
+                    "name": "is_mutable"
+                }
+            ]
+        },
+        {
+            "name": "Module_reference",
+            "members": [
+                {
+                    "type": {
+                        "name": "std::pmr::string"
+                    },
+                    "name": "name"
+                }
+            ]
+        },
+        {
+            "name": "Alias_type_reference",
+            "members": [
+                {
+                    "type": {
+                        "name": "Module_reference"
+                    },
+                    "name": "module_reference"
+                },
+                {
+                    "type": {
+                        "name": "std::uint64_t"
+                    },
+                    "name": "id"
+                }
+            ]
+        },
+        {
+            "name": "Constant_array_type",
+            "members": [
+                {
+                    "type": {
+                        "name": "std::pmr::vector<Type_reference>"
+                    },
+                    "name": "value_type"
+                },
+                {
+                    "type": {
+                        "name": "std::uint64_t"
+                    },
+                    "name": "size"
+                }
+            ]
+        },
+        {
+            "name": "Enum_type_reference",
+            "members": [
+                {
+                    "type": {
+                        "name": "Module_reference"
+                    },
+                    "name": "module_reference"
+                },
+                {
+                    "type": {
+                        "name": "std::uint64_t"
+                    },
+                    "name": "id"
+                }
+            ]
+        },
+        {
+            "name": "Struct_type_reference",
+            "members": [
+                {
+                    "type": {
+                        "name": "Module_reference"
+                    },
+                    "name": "module_reference"
+                },
+                {
+                    "type": {
+                        "name": "std::uint64_t"
+                    },
+                    "name": "id"
+                }
+            ]
+        },
+        {
+            "name": "Type_reference",
+            "members": [
+                {
+                    "type": {
+                        "name": "std::variant<Alias_type_reference,Builtin_type_reference,Constant_array_type,Enum_type_reference,Fundamental_type,Function_type,Integer_type,Pointer_type,Struct_type_reference>"
+                    },
+                    "name": "data"
+                }
+            ]
+        },
+        {
+            "name": "Alias_type_declaration",
+            "members": [
+                {
+                    "type": {
+                        "name": "std::uint64_t"
+                    },
+                    "name": "id"
+                },
+                {
+                    "type": {
+                        "name": "std::pmr::string"
+                    },
+                    "name": "name"
+                },
+                {
+                    "type": {
+                        "name": "std::pmr::vector<Type_reference>"
+                    },
+                    "name": "type"
+                }
+            ]
+        },
+        {
+            "name": "Enum_value",
+            "members": [
+                {
+                    "type": {
+                        "name": "std::pmr::string"
+                    },
+                    "name": "name"
+                },
+                {
+                    "type": {
+                        "name": "std::uint64_t"
+                    },
+                    "name": "value"
+                }
+            ]
+        },
+        {
+            "name": "Enum_declaration",
+            "members": [
+                {
+                    "type": {
+                        "name": "std::uint64_t"
+                    },
+                    "name": "id"
+                },
+                {
+                    "type": {
+                        "name": "std::pmr::string"
+                    },
+                    "name": "name"
+                },
+                {
+                    "type": {
+                        "name": "std::pmr::vector<Enum_value>"
+                    },
+                    "name": "values"
+                }
+            ]
+        },
+        {
+            "name": "Struct_declaration",
+            "members": [
+                {
+                    "type": {
+                        "name": "std::uint64_t"
+                    },
+                    "name": "id"
+                },
+                {
+                    "type": {
+                        "name": "std::pmr::string"
+                    },
+                    "name": "name"
+                },
+                {
+                    "type": {
+                        "name": "std::pmr::vector<Type_reference>"
+                    },
+                    "name": "member_types"
+                },
+                {
+                    "type": {
+                        "name": "std::pmr::vector<std::pmr::string>"
+                    },
+                    "name": "member_names"
+                },
+                {
+                    "type": {
+                        "name": "bool"
+                    },
+                    "name": "is_packed"
+                },
+                {
+                    "type": {
+                        "name": "bool"
+                    },
+                    "name": "is_literal"
+                }
+            ]
+        },
+        {
+            "name": "Variable_expression",
+            "members": [
+                {
+                    "type": {
+                        "name": "Variable_expression_type"
+                    },
+                    "name": "type"
+                },
+                {
+                    "type": {
+                        "name": "std::uint64_t"
+                    },
+                    "name": "id"
+                }
+            ]
+        },
+        {
+            "name": "Binary_expression",
+            "members": [
+                {
+                    "type": {
+                        "name": "Variable_expression"
+                    },
+                    "name": "left_hand_side"
+                },
+                {
+                    "type": {
+                        "name": "Variable_expression"
+                    },
+                    "name": "right_hand_side"
+                },
+                {
+                    "type": {
+                        "name": "Binary_operation"
+                    },
+                    "name": "operation"
+                }
+            ]
+        },
+        {
+            "name": "Call_expression",
+            "members": [
+                {
+                    "type": {
+                        "name": "std::pmr::string"
+                    },
+                    "name": "function_name"
+                },
+                {
+                    "type": {
+                        "name": "std::pmr::vector<Variable_expression>"
+                    },
+                    "name": "arguments"
+                }
+            ]
+        },
+        {
+            "name": "Constant_expression",
+            "members": [
+                {
+                    "type": {
+                        "name": "Fundamental_type"
+                    },
+                    "name": "type"
+                },
+                {
+                    "type": {
+                        "name": "std::pmr::string"
+                    },
+                    "name": "data"
+                }
+            ]
+        },
+        {
+            "name": "Return_expression",
+            "members": [
+                {
+                    "type": {
+                        "name": "Variable_expression"
+                    },
+                    "name": "variable"
+                }
+            ]
+        },
+        {
+            "name": "Expression",
+            "members": [
+                {
+                    "type": {
+                        "name": "std::variant<Binary_expression,Call_expression,Constant_expression,Return_expression,Variable_expression>"
+                    },
+                    "name": "data"
+                }
+            ]
+        },
+        {
+            "name": "Statement",
+            "members": [
+                {
+                    "type": {
+                        "name": "std::uint64_t"
+                    },
+                    "name": "id"
+                },
+                {
+                    "type": {
+                        "name": "std::pmr::string"
+                    },
+                    "name": "name"
+                },
+                {
+                    "type": {
+                        "name": "std::pmr::vector<Expression>"
+                    },
+                    "name": "expressions"
+                }
+            ]
+        },
+        {
+            "name": "Function_declaration",
+            "members": [
+                {
+                    "type": {
+                        "name": "std::uint64_t"
+                    },
+                    "name": "id"
+                },
+                {
+                    "type": {
+                        "name": "std::pmr::string"
+                    },
+                    "name": "name"
+                },
+                {
+                    "type": {
+                        "name": "Function_type"
+                    },
+                    "name": "type"
+                },
+                {
+                    "type": {
+                        "name": "std::pmr::vector<std::uint64_t>"
+                    },
+                    "name": "parameter_ids"
+                },
+                {
+                    "type": {
+                        "name": "std::pmr::vector<std::pmr::string>"
+                    },
+                    "name": "parameter_names"
+                },
+                {
+                    "type": {
+                        "name": "Linkage"
+                    },
+                    "name": "linkage"
+                }
+            ]
+        },
+        {
+            "name": "Function_definition",
+            "members": [
+                {
+                    "type": {
+                        "name": "std::uint64_t"
+                    },
+                    "name": "id"
+                },
+                {
+                    "type": {
+                        "name": "std::pmr::vector<Statement>"
+                    },
+                    "name": "statements"
+                }
+            ]
+        },
+        {
+            "name": "Language_version",
+            "members": [
+                {
+                    "type": {
+                        "name": "std::uint32_t"
+                    },
+                    "name": "major"
+                },
+                {
+                    "type": {
+                        "name": "std::uint32_t"
+                    },
+                    "name": "minor"
+                },
+                {
+                    "type": {
+                        "name": "std::uint32_t"
+                    },
+                    "name": "patch"
+                }
+            ]
+        },
+        {
+            "name": "Module_declarations",
+            "members": [
+                {
+                    "type": {
+                        "name": "std::pmr::vector<Alias_type_declaration>"
+                    },
+                    "name": "alias_type_declarations"
+                },
+                {
+                    "type": {
+                        "name": "std::pmr::vector<Enum_declaration>"
+                    },
+                    "name": "enum_declarations"
+                },
+                {
+                    "type": {
+                        "name": "std::pmr::vector<Struct_declaration>"
+                    },
+                    "name": "struct_declarations"
+                },
+                {
+                    "type": {
+                        "name": "std::pmr::vector<Function_declaration>"
+                    },
+                    "name": "function_declarations"
+                }
+            ]
+        },
+        {
+            "name": "Module_definitions",
+            "members": [
+                {
+                    "type": {
+                        "name": "std::pmr::vector<Function_definition>"
+                    },
+                    "name": "function_definitions"
+                }
+            ]
+        },
+        {
+            "name": "Module",
+            "members": [
+                {
+                    "type": {
+                        "name": "Language_version"
+                    },
+                    "name": "language_version"
+                },
+                {
+                    "type": {
+                        "name": "std::pmr::string"
+                    },
+                    "name": "name"
+                },
+                {
+                    "type": {
+                        "name": "Module_declarations"
+                    },
+                    "name": "export_declarations"
+                },
+                {
+                    "type": {
+                        "name": "Module_declarations"
+                    },
+                    "name": "internal_declarations"
+                },
+                {
+                    "type": {
+                        "name": "Module_definitions"
+                    },
+                    "name": "definitions"
+                }
+            ]
+        }
+    ]
+}

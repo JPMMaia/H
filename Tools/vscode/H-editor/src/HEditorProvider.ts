@@ -94,10 +94,12 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 		const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument(e => {
 			if (e.document.uri.toString() === document.uri.toString()) {
 
+				const messages = [];
 				for (const change of e.contentChanges) {
 					const message = createUpdateStateMessage(change, e.document, hDocument);
-					hPanel.sendMessage(message);
+					messages.push(message);
 				}
+				hPanel.sendMessage(messages);
 			}
 		});
 
@@ -123,7 +125,7 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 					data: hDocument.getDocumentAsJson()
 				};
 
-				hPanel.sendMessage(message);
+				hPanel.sendMessage([message]);
 			}
 		}
 

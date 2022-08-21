@@ -17,7 +17,7 @@ export function updateState(stateReference: ObjectReference, message: any) {
         const position = data.hPosition;
 
         let reference = getObjectAtPosition(stateReference.value, position);
-        reference.value = data.text;
+        reference.value = data.value;
     }
     else if (message.command === "insert") {
         const data = message.data;

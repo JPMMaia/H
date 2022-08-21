@@ -4,6 +4,7 @@ import { updateState } from './utilities/updateState';
 import { createUpdateStateMessage } from './utilities/updateStateMessage';
 import * as hCoreReflectionInfo from './utilities/h_core_reflection.json';
 import { createDefaultElement, createEmptyModule } from './utilities/coreModel';
+import * as coreModel from './utilities/coreModel';
 
 function createFunction(document: vscode.TextDocument, state: any, functionIndex: number, isExportDeclaration: boolean): Thenable<boolean> {
 
@@ -178,13 +179,50 @@ function updateValue(document: vscode.TextDocument, position: any[], newValue: s
     return updateValueWithOffset(document, text, result.offset, newValue);
 }
 
+function updateVariant(reflectionInfo: coreModel.ReflectionInfo, document: vscode.TextDocument, position: any[], newVariantTypeValue: any): ReplaceInfo {
+
+    const variantValueTypeName = newVariantTypeValue.charAt(0).toUpperCase() + newVariantTypeValue.slice(1);
+    const variantValueType = {
+        name: variantValueTypeName
+    };
+    const newValue = coreModel.createDefaultValue(reflectionInfo, variantValueType);
+    const newElement = {
+        type: variantValueTypeName,
+        value: newValue
+    };
+
+    const text = document.getText(undefined);
+
+    // TODO cache
+
+    const parserState = {
+        stack: [],
+        expectKey: false
+    };
+
+    const beginOffsetResult = fromPositionToOffset(parserState, text, 0, [], position.slice(0, position.length - 1));
+    const endOffsetResult = findEndOfCurrentObject(parserState, text, beginOffsetResult.offset);
+
+    const range = new vscode.Range(
+        document.positionAt(beginOffsetResult.offset),
+        document.positionAt(endOffsetResult.offset)
+    );
+
+    return {
+        range: range,
+        newText: JSON.stringify(newElement)
+    };
+}
+
 export class HDocument {
 
     private state: any;
+    private reflectionInfo: coreModel.ReflectionInfo;
     private changeDocumentSubscription: vscode.Disposable;
 
     constructor(private document: vscode.TextDocument) {
         this.state = this.getDocumentAsJson();
+        this.reflectionInfo = coreModel.createReflectionInfo();
 
         this.changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument(e => {
             if (e.document.uri.toString() === document.uri.toString()) {
@@ -319,6 +357,22 @@ export class HDocument {
 
         return vscode.workspace.applyEdit(edit);
     }
+
+    public updateVariant(position: any[], newVariantType: any): Thenable<boolean> {
+
+        const replaceInfo = updateVariant(this.reflectionInfo, this.document, position, newVariantType);
+
+        const edit = new vscode.WorkspaceEdit();
+
+        edit.replace(
+            this.document.uri,
+            replaceInfo.range,
+            replaceInfo.newText
+        );
+
+        return vscode.workspace.applyEdit(edit);
+    }
+
 
     public getDocumentAsJson(): any | null {
         const text = this.document.getText();

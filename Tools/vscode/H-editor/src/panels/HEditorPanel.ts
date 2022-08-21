@@ -64,8 +64,8 @@ export class HEditorPanel {
     }
   }
 
-  public sendMessage(message: any): void {
-    this.panel.webview.postMessage(message);
+  public sendMessage(messages: any[]): void {
+    this.panel.webview.postMessage(messages);
   }
 
   /**
@@ -136,6 +136,11 @@ export class HEditorPanel {
       case "update:value":
         for (const listener of this.listeners) {
           listener.updateValue(message.data.position, message.data.new_value);
+        }
+        break;
+      case "update:variant_type":
+        for (const listener of this.listeners) {
+          listener.updateVariant(message.data.position, message.data.new_value);
         }
         break;
     }

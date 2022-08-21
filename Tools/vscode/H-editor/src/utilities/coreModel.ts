@@ -1,3 +1,5 @@
+import * as hCoreReflectionInfo from './h_core_reflection.json';
+
 export interface ReflectionEnum {
     name: string;
     values: string[];
@@ -39,6 +41,10 @@ export function isVariantType(type: ReflectionType): boolean {
     return type.name.startsWith("std::variant");
 }
 
+export function isVariantEnumType(type: ReflectionType): boolean {
+    return type.name.startsWith("std::variant") && type.name.endsWith("::Types");
+}
+
 export function getVariantValueTypes(type: ReflectionType): ReflectionType[] {
     const beginIndex = type.name.indexOf("<") + 1;
     const endIndex = type.name.lastIndexOf(">");
@@ -48,6 +54,10 @@ export function getVariantValueTypes(type: ReflectionType): ReflectionType[] {
 
     const types = typeNames.map(function (name): ReflectionType { return { name: name }; });
     return types;
+}
+
+export function isBooleanType(type: ReflectionType): boolean {
+    return type.name === "bool";
 }
 
 export function isIntegerType(type: ReflectionType): boolean {
@@ -154,6 +164,9 @@ export function createDefaultValue(reflectionInfo: ReflectionInfo, type: Reflect
     if (isIntegerType(type)) {
         return 0;
     }
+    else if (isBooleanType(type)) {
+        return false;
+    }
     else if (isStringType(type)) {
         return "";
     }
@@ -192,4 +205,9 @@ export function createDefaultElement(reflectionInfo: ReflectionInfo, position: a
 
 export function createEmptyModule(reflectionInfo: ReflectionInfo): any {
     return createDefaultValue(reflectionInfo, { name: "Module" });
+}
+
+export function createReflectionInfo(): ReflectionInfo {
+    const reflectionInfo = { enums: hCoreReflectionInfo.enums, structs: hCoreReflectionInfo.structs };
+    return reflectionInfo;
 }

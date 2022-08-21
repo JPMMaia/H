@@ -30,6 +30,21 @@ function isInsertChange(change: vscode.TextDocumentContentChangeEvent): boolean 
     return change.rangeLength === 0 && change.text.length !== 0;
 }
 
+function getUpdateValue(text: string): any {
+    if (text.charAt(0) === '"') {
+        return text.substring(1, text.length - 1);
+    }
+    else if (text.charAt(0) === '{') {
+        return JSON.parse(text);
+    }
+    else if (isNumber(text.charAt(0))) {
+        return Number(text);
+    }
+    else {
+        throw Error("Unrecognized update value type!");
+    }
+}
+
 export function createUpdateStateMessage(change: vscode.TextDocumentContentChangeEvent, document: vscode.TextDocument, documentJSONProvider: any): any {
 
     if (isInitializeChange(change)) {
@@ -48,13 +63,13 @@ export function createUpdateStateMessage(change: vscode.TextDocumentContentChang
         // TODO cache
         const position = fromOffsetToPosition(documentText, startOffset);
 
-        const value = change.text[0] === '"' ? change.text.substring(1, change.text.length - 1) : Number(change.text);
+        const value = getUpdateValue(change.text);
 
         const message = {
             command: "update",
             data: {
                 hPosition: position,
-                text: value
+                value: value
             }
         };
 
