@@ -8,9 +8,8 @@ import Function_declaration from "./components/Function_declaration.vue";
 import Language_version from "./components/Language_version.vue";
 import JSON_object from "./components/JSON_object.vue";
 
-import { get_type_name } from "./utilities/language"
-import { createViewOptionsHierarchy } from "./utilities/ViewOptions";
-import * as hCoreReflectionInfo from '../../src/utilities/h_core_reflection.json';
+import { get_type_name } from "./utilities/language";
+import * as hCoreReflectionInfo from "../../src/utilities/h_core_reflection.json";
 
 // In order to use the Webview UI Toolkit web components they
 // must be registered with the browser (i.e. webview) using the
@@ -39,7 +38,6 @@ function handleHowdyClick() {
 }
 
 const m_reflectionInfo = { enums: hCoreReflectionInfo.enums, structs: hCoreReflectionInfo.structs };
-const m_viewOptions = createViewOptionsHierarchy(m_reflectionInfo);
 
 const m_state = ref<any | null>(null);
 
@@ -50,137 +48,102 @@ const m_frontendLanguageOptions = ref([
   { text: "C", value: "C" },
 ]);
 
-m_state.value = {
-  "language_version": {
-    "major": 1,
-    "minor": 2,
-    "patch": 3
-  },
-  "name": "Example",
-  "export_declarations": {
-    "function_declarations": {
-      "size": 1,
-      "elements": [
+/*m_state.value = {
+  language_version: { major: 1, minor: 2, patch: 3 },
+  name: "module_name",
+  export_declarations: {
+    function_declarations: {
+      size: 1,
+      elements: [
         {
-          "id": 0,
-          "name": "Add",
-          "return_type": {
-            "data": {
-              "type": "fundamental_type",
-              "value": "int32"
-            }
+          id: 125,
+          name: "Add",
+          type: {
+            return_types: {
+              size: 1,
+              elements: [{ data: { type: "fundamental_type", value: "byte" } }],
+            },
+            parameter_types: {
+              size: 2,
+              elements: [
+                { data: { type: "fundamental_type", value: "byte" } },
+                { data: { type: "fundamental_type", value: "byte" } },
+              ],
+            },
+            is_variadic: false,
           },
-          "parameter_types": {
-            "size": 2,
-            "elements": [
-              {
-                "data": {
-                  "type": "fundamental_type",
-                  "value": "int32"
-                }
-              },
-              {
-                "data": {
-                  "type": "fundamental_type",
-                  "value": "int32"
-                }
-              }
-            ]
-          },
-          "parameter_ids": {
-            "size": 2,
-            "elements": [
-              0,
-              1
-            ]
-          },
-          "parameter_names": {
-            "size": 2,
-            "elements": [
-              "lhs",
-              "rhs"
-            ]
-          },
-          "linkage": "external"
-        }
-      ]
-    }
+          parameter_ids: { size: 2, elements: [0, 1] },
+          parameter_names: { size: 2, elements: ["lhs", "rhs"] },
+          linkage: "external",
+        },
+      ],
+    },
   },
-  "internal_declarations": {
-    "function_declarations": {
-      "size": 0,
-      "elements": []
-    }
-  },
-  "definitions": {
-    "function_definitions": {
-      "size": 1,
-      "elements": [
+  internal_declarations: { function_declarations: { size: 0, elements: [] } },
+  definitions: {
+    function_definitions: {
+      size: 1,
+      elements: [
         {
-          "id": 0,
-          "statements": {
-            "size": 1,
-            "elements": [
+          id: 125,
+          statements: {
+            size: 1,
+            elements: [
               {
-                "id": 0,
-                "name": "var_0",
-                "expressions": {
-                  "size": 2,
-                  "elements": [
+                id: 0,
+                name: "var_0",
+                expressions: {
+                  size: 2,
+                  elements: [
                     {
-                      "data": {
-                        "type": "binary_expression",
-                        "value": {
-                          "left_hand_side": {
-                            "type": "function_argument",
-                            "id": 0
-                          },
-                          "right_hand_side": {
-                            "type": "function_argument",
-                            "id": 1
-                          },
-                          "operation": "add"
-                        }
-                      }
+                      data: {
+                        type: "binary_expression",
+                        value: {
+                          left_hand_side: { type: "function_argument", id: 0 },
+                          right_hand_side: { type: "function_argument", id: 1 },
+                          operation: "add",
+                        },
+                      },
                     },
                     {
-                      "data": {
-                        "type": "return_expression",
-                        "value": {
-                          "variable": {
-                            "type": "temporary",
-                            "id": 0
-                          }
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            ]
-          }
-        }
-      ]
-    }
-  }
-};
+                      data: {
+                        type: "return_expression",
+                        value: { variable: { type: "temporary", id: 0 } },
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      ],
+    },
+  },
+};*/
 
 function on_message_received(event: MessageEvent): void {
+  const messages = event.data;
 
-  const message = event.data;
-
-  if (message.command === "initialize" || message.command === "update" || message.command === "insert" || message.command === "delete") {
-
+  for (const message of messages) {
+    if (
+      message.command === "initialize" ||
+      message.command === "update" ||
+      message.command === "insert" ||
+      message.command === "delete"
+    ) {
       const stateReference = {
-          get value() {
-            return m_state.value;
-          },
-          set value(value: any) {
-            m_state.value = value;
-          }
+        get value() {
+          return m_state.value;
+        },
+        set value(value: any) {
+          m_state.value = value;
+        },
       };
 
+      console.log(message);
       updateState(stateReference, message);
+    }
   }
 }
 
@@ -190,8 +153,8 @@ function on_insert_element(position: any[]): void {
   vscode.postMessage({
     command: "insert:value",
     data: {
-      position: position
-    }
+      position: position,
+    },
   });
 }
 
@@ -199,50 +162,61 @@ function on_delete_element(position: any[]): void {
   vscode.postMessage({
     command: "delete:value",
     data: {
-      position: position
-    }
+      position: position,
+    },
   });
 }
 
 function on_value_change(position: any[], new_value: any): void {
-
   vscode.postMessage({
     command: "update:value",
     data: {
       position: position,
-      new_value: new_value
-    }
+      new_value: new_value,
+    },
   });
 }
 
-function on_function_name_change(index: number, function_declaration: any, is_export_declaration: boolean, new_name: any): void {
+function on_variant_type_change(position: any[], new_value: any): void {
+  vscode.postMessage({
+    command: "update:variant_type",
+    data: {
+      position: position,
+      new_value: new_value,
+    },
+  });
+}
 
-  const functionDeclarationKey = is_export_declaration ? "export_declarations" : "internal_declarations";
+function on_function_name_change(
+  index: number,
+  function_declaration: any,
+  is_export_declaration: boolean,
+  new_name: any
+): void {
+  const functionDeclarationKey = is_export_declaration
+    ? "export_declarations"
+    : "internal_declarations";
   const position = [functionDeclarationKey, index, "name"];
 
   vscode.postMessage({
     command: "update:value",
     data: {
       position: position,
-      new_value: new_name
-    }
+      new_value: new_name,
+    },
   });
 }
 
 function create_module(): void {
-
   vscode.postMessage({
-    command: "create:module"
+    command: "create:module",
   });
-
 }
 
 function delete_module(): void {
-
   vscode.postMessage({
-    command: "delete:module"
+    command: "delete:module",
   });
-
 }
 
 function create_function(index: number, is_export_declaration: boolean): void {
@@ -250,84 +224,93 @@ function create_function(index: number, is_export_declaration: boolean): void {
     command: "create:function",
     data: {
       function_index: index,
-      is_export_declaration: is_export_declaration
-    }
+      is_export_declaration: is_export_declaration,
+    },
   });
 }
 
-onMounted(() => {
-})
+onMounted(() => { });
 </script>
 
 <template>
 
-<div>
-  
-  <nav>
-    <ul>
-      <li>
-        <select v-model="m_selectedFrontendLanguage">
-          <option v-for="option in m_frontendLanguageOptions" :value="option.value" v-bind:key="option.value">
-            {{ option.text }}
-          </option>
-        </select>
-      </li>
-    </ul>
-  </nav>
+  <div>
 
-  <main v-if="m_state && (m_selectedFrontendLanguage !== 'JSON')">
-    <h1>Module {{ m_state.name }}</h1>
-
-    <section>
-      <h2>Details</h2>
+    <nav>
       <ul>
-        <li>Language version: <Language_version :value="m_state.language_version"></Language_version></li>
+        <li>
+          <select v-model="m_selectedFrontendLanguage">
+            <option v-for="option in m_frontendLanguageOptions" :value="option.value" v-bind:key="option.value">
+              {{ option.text }}
+            </option>
+          </select>
+        </li>
       </ul>
-    </section>
+    </nav>
 
-    <section>
-      <h2>Public functions</h2>
-      <div v-for="(function_declaration, index) in m_state.export_declarations.function_declarations.elements" v-bind:key="function_declaration.id">
-        <Function_declaration :value="function_declaration" v-on:update:name="(new_name) => on_function_name_change(index, function_declaration, true, new_name)"></Function_declaration>
-      </div>
-      <p v-if="m_state.export_declarations.function_declarations.elements.length === 0">No public functions</p>
-      <vscode-button @click="create_function(m_state.export_declarations.function_declarations.size, true)">Add function</vscode-button>
-    </section>
+    <main v-if="m_state && (m_selectedFrontendLanguage !== 'JSON')">
+      <h1>Module {{ m_state.name }}</h1>
 
-    <section>
-      <h2>Private functions</h2>
-      <div v-for="function_declaration in m_state.internal_declarations.function_declarations.elements" v-bind:key="function_declaration.id">
-        <Function_declaration :value="function_declaration"></Function_declaration>
-      </div>
-      <p v-if="m_state.internal_declarations.function_declarations.elements.length === 0">No private functions</p>
-      <vscode-button @click="create_function(m_state.export_declarations.function_declarations.size, false)">Add function</vscode-button>
-    </section>
+      <section>
+        <h2>Details</h2>
+        <ul>
+          <li>Language version: <Language_version :value="m_state.language_version"></Language_version>
+          </li>
+        </ul>
+      </section>
 
-    <section>
-      <h2>Actions</h2>
-      <vscode-button @click="delete_module">Delete module</vscode-button>
-    </section>
-  </main>
-  
-  <main v-if="m_state && (m_selectedFrontendLanguage === 'JSON')">
-    <JSON_object
-      :value="m_state"
-      :options="m_viewOptions"
-      :indentation="0"
-      :indentation_increment="1"
-      v-on:insert:value="(position) => on_insert_element(position)"
-      v-on:delete:value="(position) => on_delete_element(position)"
-      v-on:update:value="(position, value) => on_value_change(position, value)">
-    </JSON_object>
-  </main>
-  
-  <main v-else>
-    This file is empty.
+      <section>
+        <h2>Public functions</h2>
+        <div v-for="(function_declaration, index) in m_state.export_declarations.function_declarations.elements"
+          v-bind:key="function_declaration.id">
+          <Function_declaration :value="function_declaration"
+            v-on:update:name="(new_name) => on_function_name_change(index, function_declaration, true, new_name)">
+          </Function_declaration>
+        </div>
+        <p v-if="m_state.export_declarations.function_declarations.elements.length === 0">No public functions</p>
+        <vscode-button @click="create_function(m_state.export_declarations.function_declarations.size, true)">Add
+          function</vscode-button>
+      </section>
 
-    <vscode-button @click="create_module">Create module</vscode-button>
-  </main>
-</div>
-  
+      <section>
+        <h2>Private functions</h2>
+        <div v-for="function_declaration in m_state.internal_declarations.function_declarations.elements"
+          v-bind:key="function_declaration.id">
+          <Function_declaration :value="function_declaration"></Function_declaration>
+        </div>
+        <p v-if="m_state.internal_declarations.function_declarations.elements.length === 0">No private functions</p>
+        <vscode-button @click="create_function(m_state.export_declarations.function_declarations.size, false)">Add
+          function</vscode-button>
+      </section>
+
+      <section>
+        <h2>Actions</h2>
+        <vscode-button @click="delete_module">Delete module</vscode-button>
+      </section>
+    </main>
+
+    <main v-if="m_state && (m_selectedFrontendLanguage === 'JSON')">
+      <JSON_object :value="m_state" :reflection-info="m_reflectionInfo" :reflection-type="{ name: 'Module' }"
+        :is-read-only="false" :indentation="0" :indentation_increment="1"
+        v-on:insert:value="(position) => on_insert_element(position)"
+        v-on:delete:value="(position) => on_delete_element(position)"
+        v-on:update:value="(position, value) => on_value_change(position, value)"
+        v-on:update:variant_type="(position, value) => on_variant_type_change(position, value)">
+      </JSON_object>
+
+      <section>
+        <h2>Actions</h2>
+        <vscode-button @click="delete_module">Delete module</vscode-button>
+      </section>
+    </main>
+
+    <main v-else>
+      This file is empty.
+
+      <vscode-button @click="create_module">Create module</vscode-button>
+    </main>
+  </div>
+
 </template>
 
 <style>
@@ -343,11 +326,11 @@ main {
   height: 100%;
 }
 
-main > * {
+main>* {
   margin: 1rem 0;
 }
 
-nav > ul {
+nav>ul {
   list-style-type: none;
   padding: 0;
   position: fixed;

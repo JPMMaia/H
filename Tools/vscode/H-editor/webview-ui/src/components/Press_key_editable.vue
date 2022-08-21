@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, defineEmits, defineProps, onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 
 const properties = defineProps<{
   placeholder: any;
