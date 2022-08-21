@@ -18,7 +18,8 @@
 	],
 	"activationEvents": [
 		"onCustomEditor:heditor.textEditor",
-		"onCommand:hello-world.showHelloWorld"
+		"onCommand:hello-world.showHelloWorld",
+		"onView:HEditorExplorer"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
@@ -38,7 +39,15 @@
 					}
 				]
 			}
-		]
+		],
+		"views": {
+			"explorer": [
+				{
+					"id": "HEditorExplorer",
+					"name": "H Editor Explorer"
+				}
+			]
+		}
 	},
 	"scripts": {
 		"install:all": "npm install && npm --prefix ./webview-ui install ./webview-ui",
@@ -56,6 +65,7 @@
 		"@types/vscode": "^1.52.0",
 		"@typescript-eslint/eslint-plugin": "^4.16.0",
 		"@typescript-eslint/parser": "^4.16.0",
+		"@vscode/codicons": "0.0.32",
 		"eslint": "^7.21.0",
 		"mocha": "^10.0.0",
 		"typescript": "^4.5.5",
