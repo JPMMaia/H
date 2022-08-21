@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { ReflectionType, ReflectionInfo } from "../../../src/utilities/coreModel";
+import type { Search_entry } from "@/utilities/Search_entry";
 import * as coreModel from "../../../src/utilities/coreModel";
 import Editable from './Editable.vue';
 import Press_key_editable from "./Press_key_editable.vue";
@@ -32,11 +33,11 @@ const css_variables = computed(() => {
     return `--indentation: ${properties.indentation}em; --key_indentation: ${properties.indentation + properties.indentation_increment}em;`;
 });
 
-function on_enum_value_selected(value: string): void {
+function on_enum_value_selected(id: number, value: string): void {
     emit("update:value", [], value);
 }
 
-function on_variant_type_selected(value: string): void {
+function on_variant_type_selected(id: number, value: string): void {
     emit("update:variant_type", [], value);
 }
 
@@ -138,14 +139,14 @@ function get_key_reflection_type(reflectionInfo: ReflectionInfo, reflectionType:
     throw Error("Key '" + key + "' does not reference a vector/variant/struct type!");
 }
 
-function get_enum_possible_values(reflectionInfo: ReflectionInfo, reflectionType: ReflectionType): string[] {
+function get_enum_possible_values(reflectionInfo: ReflectionInfo, reflectionType: ReflectionType): Search_entry[] {
     const enumType = coreModel.getEnumType(reflectionInfo.enums, reflectionType);
-    return enumType.values;
+    return enumType.values.map((value, index) => { return { id: index, name: value, icon: "codicon-symbol-enum" } });
 }
 
-function get_variant_type_possible_values(reflectionInfo: ReflectionInfo, reflectionType: ReflectionType): string[] {
+function get_variant_type_possible_values(reflectionInfo: ReflectionInfo, reflectionType: ReflectionType): Search_entry[] {
     const variantValueTypes = coreModel.getVariantValueTypes(reflectionType);
-    return variantValueTypes.map(value => value.name);
+    return variantValueTypes.map((value, index) => { return { id: index, name: value.name, icon: "codicon-symbol-parameter" } });
 }
 
 function is_key_read_only(reflectionType: ReflectionType, key: string): boolean {
