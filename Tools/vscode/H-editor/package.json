@@ -27,6 +27,11 @@
 			{
 				"command": "hello-world.showHelloWorld",
 				"title": "Hello World (Vue): Show"
+			},
+			{
+				"command": "HEditorExplorer.refresh",
+				"title": "Refresh HEditorExplorer",
+				"icon": "$(refresh)"
 			}
 		],
 		"customEditors": [

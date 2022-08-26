@@ -8,6 +8,30 @@ import { HEditorPanel } from './panels/HEditorPanel';
 import { HDocument } from './HDocument';
 import { fromOffsetToPosition, isNumber } from './utilities/parseJSON';
 import { createUpdateStateMessage } from './utilities/updateStateMessage';
+import { HDocumentManager } from './HDocumentManager';
+
+function updateHEditorExplorerTreeIfNeeded(documentUri: vscode.Uri, messages: any[]): void {
+
+	for (const message of messages) {
+
+		if (message.command === "update") {
+			const position: any[] = message.data.hPosition;
+
+			if (position.length === 5 && (position[0] === "export_declarations" || position[0] === "internal_declarations") && position[2] === "elements" && position[4] === "name") {
+				vscode.commands.executeCommand("HEditorExplorer.refresh", documentUri);
+			}
+		}
+		else if (message.command === "insert" || message.command === "delete") {
+
+			const position: any[] = message.data.hPosition;
+
+			if (position.length === 4 && (position[0] === "export_declarations" || position[0] === "internal_declarations") && position[2] === "elements" && typeof position[3] === "number") {
+				vscode.commands.executeCommand("HEditorExplorer.refresh", documentUri);
+			}
+		}
+	}
+
+}
 
 /**
  * Provider for H editors.
@@ -18,22 +42,16 @@ import { createUpdateStateMessage } from './utilities/updateStateMessage';
  */
 export class HEditorProvider implements vscode.CustomTextEditorProvider {
 
-	public static register(context: vscode.ExtensionContext): vscode.Disposable {
-		const provider = new HEditorProvider(context);
-		const providerRegistration = vscode.window.registerCustomEditorProvider(HEditorProvider.viewType, provider);
-		return providerRegistration;
-	}
-
-	private static readonly viewType = 'heditor.textEditor';
+	public static readonly viewType = 'heditor.textEditor';
 
 	private languageServer?: LanguageServer = undefined;
-	private registeredDocuments = new Map<vscode.Uri, HDocument>();
 	private registeredWebviews = new Map<number, HEditorPanel>();
 	private webviewDocuments = new Map<number, HDocument>();
 	private nextWebviewPanelID = 0;
 
 	constructor(
-		private readonly context: vscode.ExtensionContext
+		private readonly context: vscode.ExtensionContext,
+		private hDocumentManager: HDocumentManager
 	) {
 	}
 
@@ -59,15 +77,11 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 		_token: vscode.CancellationToken
 	): Promise<void> {
 
-		if (!this.registeredDocuments.has(document.uri)) {
-			const hDocument = new HDocument(document);
-			this.registeredDocuments.set(document.uri, hDocument);
+		if (!this.hDocumentManager.isDocumentRegistered(document.uri)) {
+			this.hDocumentManager.registerDocument(document.uri, document);
 		}
 
-		const hDocument = this.registeredDocuments.get(document.uri);
-		if (hDocument === undefined) {
-			throw Error("Could not retrieved registered document!");
-		}
+		const hDocument = this.hDocumentManager.getRegisteredDocument(document.uri);
 
 		const webpanelID = this.nextWebviewPanelID;
 		++this.nextWebviewPanelID;
@@ -100,6 +114,8 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 					messages.push(message);
 				}
 				hPanel.sendMessage(messages);
+
+				updateHEditorExplorerTreeIfNeeded(e.document.uri, messages);
 			}
 		});
 
@@ -112,7 +128,7 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 
 			if (document.isClosed) {
 				hDocument.dispose();
-				this.registeredDocuments.delete(document.uri);
+				this.hDocumentManager.unregisterDocument(document.uri);
 			}
 		});
 

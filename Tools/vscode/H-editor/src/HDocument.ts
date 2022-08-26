@@ -239,6 +239,10 @@ export class HDocument {
         this.changeDocumentSubscription.dispose();
     }
 
+    public getState(): any {
+        return this.state;
+    }
+
     public updateState(message: any): void {
 
         const self = this;
