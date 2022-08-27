@@ -1,14 +1,14 @@
-interface Vector<T> {
+export interface Vector<T> {
     size: number;
     elements: T[];
 }
 
-interface Variant<Type_enum, T> {
+export interface Variant<Type_enum, T> {
     type: Type_enum;
     value: T;
 }
 
-enum Fundamental_type {
+export enum Fundamental_type {
     Bool = "Bool",
     Byte = "Byte",
     Float16 = "Float16",
@@ -29,13 +29,13 @@ enum Fundamental_type {
     C_ulonglong = "C_ulonglong",
 }
 
-enum Variable_expression_type {
+export enum Variable_expression_type {
     Function_argument = "Function_argument",
     Local_variable = "Local_variable",
     Temporary = "Temporary",
 }
 
-enum Binary_operation {
+export enum Binary_operation {
     Add = "Add",
     Subtract = "Subtract",
     Multiply = "Multiply",
@@ -44,12 +44,12 @@ enum Binary_operation {
     Less_than = "Less_than",
 }
 
-enum Linkage {
+export enum Linkage {
     External = "External",
     Private = "Private",
 }
 
-enum Type_reference_enum {
+export enum Type_reference_enum {
     Alias_type_reference = "Alias_type_reference",
     Builtin_type_reference = "Builtin_type_reference",
     Constant_array_type = "Constant_array_type",
@@ -61,7 +61,7 @@ enum Type_reference_enum {
     Struct_type_reference = "Struct_type_reference",
 }
 
-enum Expression_enum {
+export enum Expression_enum {
     Binary_expression = "Binary_expression",
     Call_expression = "Call_expression",
     Constant_expression = "Constant_expression",
@@ -69,72 +69,72 @@ enum Expression_enum {
     Variable_expression = "Variable_expression",
 }
 
-interface Integer_type {
+export interface Integer_type {
     number_of_bits: number;
     is_signed: boolean;
 }
 
-interface Builtin_type_reference {
+export interface Builtin_type_reference {
     value: string;
 }
 
-interface Function_type {
+export interface Function_type {
     return_types: Vector<Type_reference>;
     parameter_types: Vector<Type_reference>;
     is_variadic: boolean;
 }
 
-interface Pointer_type {
+export interface Pointer_type {
     element_type: Vector<Type_reference>;
     is_mutable: boolean;
 }
 
-interface Module_reference {
+export interface Module_reference {
     name: string;
 }
 
-interface Alias_type_reference {
+export interface Alias_type_reference {
     module_reference: Module_reference;
     id: number;
 }
 
-interface Constant_array_type {
+export interface Constant_array_type {
     value_type: Vector<Type_reference>;
     size: number;
 }
 
-interface Enum_type_reference {
+export interface Enum_type_reference {
     module_reference: Module_reference;
     id: number;
 }
 
-interface Struct_type_reference {
+export interface Struct_type_reference {
     module_reference: Module_reference;
     id: number;
 }
 
-interface Type_reference {
+export interface Type_reference {
     data: Variant<Type_reference_enum, Alias_type_reference | Builtin_type_reference | Constant_array_type | Enum_type_reference | Fundamental_type | Function_type | Integer_type | Pointer_type | Struct_type_reference>;
 }
 
-interface Alias_type_declaration {
+export interface Alias_type_declaration {
     id: number;
     name: string;
     type: Vector<Type_reference>;
 }
 
-interface Enum_value {
+export interface Enum_value {
     name: string;
     value: number;
 }
 
-interface Enum_declaration {
+export interface Enum_declaration {
     id: number;
     name: string;
     values: Vector<Enum_value>;
 }
 
-interface Struct_declaration {
+export interface Struct_declaration {
     id: number;
     name: string;
     member_types: Vector<Type_reference>;
@@ -143,42 +143,42 @@ interface Struct_declaration {
     is_literal: boolean;
 }
 
-interface Variable_expression {
+export interface Variable_expression {
     type: Variable_expression_type;
     id: number;
 }
 
-interface Binary_expression {
+export interface Binary_expression {
     left_hand_side: Variable_expression;
     right_hand_side: Variable_expression;
     operation: Binary_operation;
 }
 
-interface Call_expression {
+export interface Call_expression {
     function_name: string;
     arguments: Vector<Variable_expression>;
 }
 
-interface Constant_expression {
+export interface Constant_expression {
     type: Fundamental_type;
     data: string;
 }
 
-interface Return_expression {
+export interface Return_expression {
     variable: Variable_expression;
 }
 
-interface Expression {
+export interface Expression {
     data: Variant<Expression_enum, Binary_expression | Call_expression | Constant_expression | Return_expression | Variable_expression>;
 }
 
-interface Statement {
+export interface Statement {
     id: number;
     name: string;
     expressions: Vector<Expression>;
 }
 
-interface Function_declaration {
+export interface Function_declaration {
     id: number;
     name: string;
     type: Function_type;
@@ -187,29 +187,29 @@ interface Function_declaration {
     linkage: Linkage;
 }
 
-interface Function_definition {
+export interface Function_definition {
     id: number;
     statements: Vector<Statement>;
 }
 
-interface Language_version {
+export interface Language_version {
     major: number;
     minor: number;
     patch: number;
 }
 
-interface Module_declarations {
+export interface Module_declarations {
     alias_type_declarations: Vector<Alias_type_declaration>;
     enum_declarations: Vector<Enum_declaration>;
     struct_declarations: Vector<Struct_declaration>;
     function_declarations: Vector<Function_declaration>;
 }
 
-interface Module_definitions {
+export interface Module_definitions {
     function_definitions: Vector<Function_definition>;
 }
 
-interface Module {
+export interface Module {
     language_version: Language_version;
     name: string;
     export_declarations: Module_declarations;
