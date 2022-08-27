@@ -1711,7 +1711,7 @@ namespace h::tools::code_generator
 
             std::pmr::string const variant_type_enum_name = generate_variant_types_enum_name(variant_type_names);
 
-            output_stream << "enum " << variant_type_enum_name << " {\n";
+            output_stream << "export enum " << variant_type_enum_name << " {\n";
             {
                 for (std::string_view const name : variant_type_names)
                 {
@@ -1741,14 +1741,14 @@ namespace h::tools::code_generator
             );
 
         {
-            output_stream << "interface Vector<T> {\n";
+            output_stream << "export interface Vector<T> {\n";
             output_stream << "    size: number;\n";
             output_stream << "    elements: T[];\n";
             output_stream << "}\n\n";
         }
 
         {
-            output_stream << "interface Variant<Type_enum, T> {\n";
+            output_stream << "export interface Variant<Type_enum, T> {\n";
             output_stream << "    type: Type_enum;\n";
             output_stream << "    value: T;\n";
             output_stream << "}\n\n";
@@ -1756,7 +1756,7 @@ namespace h::tools::code_generator
 
         for (Enum const& enum_info : file_types.enums)
         {
-            output_stream << "enum " << enum_info.name << " {\n";
+            output_stream << "export enum " << enum_info.name << " {\n";
             {
                 for (std::pmr::string const& value : enum_info.values)
                 {
@@ -1770,7 +1770,7 @@ namespace h::tools::code_generator
 
         for (Struct const& struct_info : file_types.structs)
         {
-            output_stream << "interface " << struct_info.name << " {\n";
+            output_stream << "export interface " << struct_info.name << " {\n";
             {
                 for (Member const& member : struct_info.members)
                 {
