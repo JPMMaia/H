@@ -8,7 +8,6 @@
             "name": "llvm",
             "features": [
                 "clang",
-                "disable-abi-breaking-checks",
                 "disable-assertions",
                 "disable-clang-static-analyzer",
                 "enable-bindings",
