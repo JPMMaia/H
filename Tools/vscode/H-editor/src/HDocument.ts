@@ -57,6 +57,14 @@ function addPossibleComma(text: string, insertOffset: number, textToInsert: stri
     }
 }
 
+function generateId(exportCollection: any[], internalCollection: any[]): number {
+
+    const exportIds: number[] = exportCollection.map(value => value.id);
+    const internalIds: number[] = internalCollection.map(value => value.id);
+
+    return 0; // TODO
+}
+
 interface InsertInfo {
     position: vscode.Position,
     newText: string
@@ -302,12 +310,7 @@ export class HDocument {
 
     }
 
-    public insertValue(position: any[]): Thenable<boolean> {
-
-        const text = this.document.getText(undefined);
-
-        const edit = new vscode.WorkspaceEdit();
-
+    private addInsertValueEdits(edit: vscode.WorkspaceEdit, text: string, position: any[]): void {
         const insertInfo = insertValue(this.document, text, position);
         edit.insert(
             this.document.uri,
@@ -321,6 +324,14 @@ export class HDocument {
             updateSizeInfo.range,
             updateSizeInfo.newText
         );
+    }
+
+    public insertValue(position: any[]): Thenable<boolean> {
+
+        const text = this.document.getText(undefined);
+
+        const edit = new vscode.WorkspaceEdit();
+        this.addInsertValueEdits(edit, text, position);
 
         return vscode.workspace.applyEdit(edit);
     }
@@ -377,6 +388,38 @@ export class HDocument {
         return vscode.workspace.applyEdit(edit);
     }
 
+    public addDeclaration(arrayName: string, isExport: boolean): Thenable<boolean> {
+        const declarationName = isExport ? "export_declarations" : "internal_declarations";
+        const declarations = this.state[declarationName][arrayName];
+        return this.insertValue(["internal_declarations", arrayName, "elements", declarations.elements.length]);
+    }
+
+    public deleteDeclarations(ids: number[]): void {
+
+    }
+
+    public addFunctionDeclarationAndDefinition(id: number, isExport: boolean): void {
+
+        const declarationName = isExport ? "export_declarations" : "internal_declarations";
+        const declarations = this.state[declarationName]["function_declarations"];
+
+        const position = ["internal_declarations", "function_declarations", "elements", declarations.elements.length];
+
+        const text = this.document.getText(undefined);
+
+        const edit = new vscode.WorkspaceEdit();
+        this.addInsertValueEdits(edit, text, position);
+
+
+    }
+
+    public deleteFunctionDefinitionAndDeclaration(id: number): void {
+        // TODO
+    }
+
+    public updateDeclarationName(id: number, newName: string): void {
+
+    }
 
     public getDocumentAsJson(): any | null {
         const text = this.document.getText();

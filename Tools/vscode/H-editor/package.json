@@ -32,6 +32,36 @@
 				"command": "HEditorExplorer.refresh",
 				"title": "Refresh HEditorExplorer",
 				"icon": "$(refresh)"
+			},
+			{
+				"command": "HEditorExplorer.addAlias",
+				"title": "Add alias",
+				"icon": "$(symbol-parameter)"
+			},
+			{
+				"command": "HEditorExplorer.addEnum",
+				"title": "Add enum",
+				"icon": "$(symbol-enum)"
+			},
+			{
+				"command": "HEditorExplorer.addStruct",
+				"title": "Add struct",
+				"icon": "$(symbol-namespace)"
+			},
+			{
+				"command": "HEditorExplorer.addFunction",
+				"title": "Add function",
+				"icon": "$(symbol-method)"
+			},
+			{
+				"command": "HEditorExplorer.delete",
+				"title": "Delete",
+				"icon": "$(remove)"
+			},
+			{
+				"command": "HEditorExplorer.editName",
+				"title": "Edit name",
+				"icon": "$(edit)"
 			}
 		],
 		"customEditors": [
@@ -45,6 +75,46 @@
 				]
 			}
 		],
+		"menus": {
+			"view/title": [
+				{
+					"command": "HEditorExplorer.refresh",
+					"when": "view == HEditorExplorer",
+					"group": "navigation"
+				}
+			],
+			"view/item/context": [
+				{
+					"command": "HEditorExplorer.addAlias",
+					"when": "view == HEditorExplorer && viewItem == hl_module_content",
+					"group": "inline"
+				},
+				{
+					"command": "HEditorExplorer.addEnum",
+					"when": "view == HEditorExplorer && viewItem == hl_module_content",
+					"group": "inline"
+				},
+				{
+					"command": "HEditorExplorer.addStruct",
+					"when": "view == HEditorExplorer && viewItem == hl_module_content",
+					"group": "inline"
+				},
+				{
+					"command": "HEditorExplorer.addFunction",
+					"when": "view == HEditorExplorer && viewItem == hl_module_content",
+					"group": "inline"
+				},
+				{
+					"command": "HEditorExplorer.delete",
+					"when": "view == HEditorExplorer && viewItem == alias_type_declaration || viewItem == enum_declaration || viewItem == struct_declaration || viewItem == function_declaration"
+				},
+				{
+					"command": "HEditorExplorer.editName",
+					"when": "view == HEditorExplorer && viewItem == alias_type_declaration || viewItem == enum_declaration || viewItem == struct_declaration || viewItem == function_declaration",
+					"group": "inline"
+				}
+			]
+		},
 		"views": {
 			"explorer": [
 				{

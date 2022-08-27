@@ -15,18 +15,23 @@ function getDocumentContentAsJson(hDocumentManager: HDocumentManager, documentUr
 
     if (hDocumentManager.isDocumentRegistered(documentUri)) {
         const hDocument = hDocumentManager.getRegisteredDocument(documentUri);
-        return new Promise(() => hDocument.getState());
+        return Promise.resolve(
+            (): any => {
+                return hDocument.getState();
+            }
+        );
     }
 
     return vscode.workspace.openTextDocument(documentUri).then(
-        (document) => {
+        (document): any => {
+            hDocumentManager.registerDocument(document.uri, document);
             const hDocument = hDocumentManager.getRegisteredDocument(document.uri);
             return hDocument.getState();
         }
     );
 }
 
-function getEntriesInDirectory(extensionUri: vscode.Uri, directoryUri: vscode.Uri): Entry[] {
+function getEntriesInDirectory(extensionUri: vscode.Uri, directoryUri: vscode.Uri): HEditorExplorerTreeEntry[] {
 
     if (!pathExists(directoryUri.fsPath)) {
         return [];
@@ -34,7 +39,7 @@ function getEntriesInDirectory(extensionUri: vscode.Uri, directoryUri: vscode.Ur
 
     const directory = fs.opendirSync(directoryUri.fsPath);
 
-    let entries: Entry[] = [];
+    let entries: HEditorExplorerTreeEntry[] = [];
 
     {
         let directoryEntry = directory.readSync();
@@ -46,7 +51,7 @@ function getEntriesInDirectory(extensionUri: vscode.Uri, directoryUri: vscode.Ur
 
                     const entryUri = vscode.Uri.joinPath(directoryUri, directoryEntry.name);
 
-                    const entry = new Entry(
+                    const entry = new HEditorExplorerTreeEntry(
                         directoryEntry.name,
                         "hl_module",
                         entryUri,
@@ -61,7 +66,7 @@ function getEntriesInDirectory(extensionUri: vscode.Uri, directoryUri: vscode.Ur
 
                 const entryUri = vscode.Uri.joinPath(directoryUri, directoryEntry.name);
 
-                const entry = new Entry(
+                const entry = new HEditorExplorerTreeEntry(
                     directoryEntry.name,
                     "directory",
                     entryUri,
@@ -79,9 +84,9 @@ function getEntriesInDirectory(extensionUri: vscode.Uri, directoryUri: vscode.Ur
     return entries;
 }
 
-function getEntriesInModule(extensionUri: vscode.Uri, entryUri: vscode.Uri): Entry[] {
+function getEntriesInModule(extensionUri: vscode.Uri, entryUri: vscode.Uri): HEditorExplorerTreeEntry[] {
 
-    const dependenciesEntry = new Entry(
+    const dependenciesEntry = new HEditorExplorerTreeEntry(
         "dependencies",
         "hl_module_dependencies",
         entryUri,
@@ -89,7 +94,7 @@ function getEntriesInModule(extensionUri: vscode.Uri, entryUri: vscode.Uri): Ent
         undefined
     );
 
-    const declarationsEntry = new Entry(
+    const declarationsEntry = new HEditorExplorerTreeEntry(
         "content",
         "hl_module_content",
         entryUri,
@@ -103,52 +108,56 @@ function getEntriesInModule(extensionUri: vscode.Uri, entryUri: vscode.Uri): Ent
     ];
 }
 
-function createEntriesFromDeclarations(extensionUri: vscode.Uri, declarations: any): Entry[] {
+function createEntriesFromDeclarations(extensionUri: vscode.Uri, declarations: any): HEditorExplorerTreeEntry[] {
 
-    const aliasEntries: Entry[] = declarations.alias_type_declarations.elements.map(
+    const aliasEntries: HEditorExplorerTreeEntry[] = declarations.alias_type_declarations.elements.map(
         (declaration: any) => {
-            return new Entry(
+            return new HEditorExplorerTreeEntry(
                 declaration.name,
                 "alias_type_declaration",
                 vscode.Uri.file(""),
                 vscode.TreeItemCollapsibleState.None,
-                vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode/codicons', 'src', 'icons', 'symbol-parameter.svg')
+                vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode/codicons', 'src', 'icons', 'symbol-parameter.svg'),
+                declaration.id
             );
         }
     );
 
     const enumEntries = declarations.enum_declarations.elements.map(
         (declaration: any) => {
-            return new Entry(
+            return new HEditorExplorerTreeEntry(
                 declaration.name,
                 "enum_declaration",
                 vscode.Uri.file(""),
                 vscode.TreeItemCollapsibleState.None,
-                vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode/codicons', 'src', 'icons', 'symbol-enum.svg')
+                vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode/codicons', 'src', 'icons', 'symbol-enum.svg'),
+                declaration.id
             );
         }
     );
 
     const structEntries = declarations.struct_declarations.elements.map(
         (declaration: any) => {
-            return new Entry(
+            return new HEditorExplorerTreeEntry(
                 declaration.name,
                 "struct_declaration",
                 vscode.Uri.file(""),
                 vscode.TreeItemCollapsibleState.None,
-                vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode/codicons', 'src', 'icons', 'symbol-structure.svg')
+                vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode/codicons', 'src', 'icons', 'symbol-structure.svg'),
+                declaration.id
             );
         }
     );
 
     const functionEntries = declarations.function_declarations.elements.map(
         (declaration: any) => {
-            return new Entry(
+            return new HEditorExplorerTreeEntry(
                 declaration.name,
                 "function_declaration",
                 vscode.Uri.file(""),
                 vscode.TreeItemCollapsibleState.None,
-                vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode/codicons', 'src', 'icons', 'symbol-method.svg')
+                vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode/codicons', 'src', 'icons', 'symbol-method.svg'),
+                declaration.id
             );
         }
     );
@@ -162,7 +171,7 @@ function createEntriesFromDeclarations(extensionUri: vscode.Uri, declarations: a
     ];
 }
 
-function getContentEntries(hDocumentManager: HDocumentManager, extensionUri: vscode.Uri, entryUri: vscode.Uri): Thenable<Entry[]> {
+function getContentEntries(hDocumentManager: HDocumentManager, extensionUri: vscode.Uri, entryUri: vscode.Uri): Thenable<HEditorExplorerTreeEntry[]> {
 
     return getDocumentContentAsJson(hDocumentManager, entryUri).then(
         (json) => {
@@ -186,10 +195,10 @@ function getUriFirstPart(firstUri: vscode.Uri, secondUri: vscode.Uri): string {
     return uriFirstPart;
 }
 
-export class HEditorExplorerTreeDataProvider implements vscode.TreeDataProvider<Entry> {
+export class HEditorExplorerTreeDataProvider implements vscode.TreeDataProvider<HEditorExplorerTreeEntry> {
 
-    private _onDidChangeTreeData: vscode.EventEmitter<Entry | undefined | null | void> = new vscode.EventEmitter<Entry | undefined | null | void>();
-    readonly onDidChangeTreeData: vscode.Event<Entry | undefined | null | void> = this._onDidChangeTreeData.event;
+    private _onDidChangeTreeData: vscode.EventEmitter<HEditorExplorerTreeEntry | undefined | null | void> = new vscode.EventEmitter<HEditorExplorerTreeEntry | undefined | null | void>();
+    readonly onDidChangeTreeData: vscode.Event<HEditorExplorerTreeEntry | undefined | null | void> = this._onDidChangeTreeData.event;
 
     constructor(
         private workspaceRootUri: vscode.Uri,
@@ -197,11 +206,11 @@ export class HEditorExplorerTreeDataProvider implements vscode.TreeDataProvider<
         private hDocumentManager: HDocumentManager
     ) { }
 
-    getTreeItem(element: Entry): vscode.TreeItem {
+    getTreeItem(element: HEditorExplorerTreeEntry): vscode.TreeItem {
         return element;
     }
 
-    getChildren(element?: Entry): Thenable<Entry[]> {
+    getChildren(element?: HEditorExplorerTreeEntry): Thenable<HEditorExplorerTreeEntry[]> {
 
         if (!this.workspaceRootUri.fsPath) {
             vscode.window.showInformationMessage('No entries in empty workspace');
@@ -239,7 +248,7 @@ export class HEditorExplorerTreeDataProvider implements vscode.TreeDataProvider<
 
 
 
-    private getEntryWithUri(workspaceRootUri: vscode.Uri, parent: Entry | undefined, uri: vscode.Uri): Thenable<Entry | undefined> {
+    private getEntryWithUri(workspaceRootUri: vscode.Uri, parent: HEditorExplorerTreeEntry | undefined, uri: vscode.Uri): Thenable<HEditorExplorerTreeEntry | undefined> {
 
         const uriFirstPart = getUriFirstPart(parent === undefined ? workspaceRootUri : parent.entryUri, uri);
 
@@ -278,14 +287,15 @@ export class HEditorExplorerTreeDataProvider implements vscode.TreeDataProvider<
     }
 }
 
-class Entry extends vscode.TreeItem {
+export class HEditorExplorerTreeEntry extends vscode.TreeItem {
 
     constructor(
         public readonly label: string,
         contextValue: string,
         public readonly entryUri: vscode.Uri,
         public readonly collapsibleState: vscode.TreeItemCollapsibleState,
-        iconPath: vscode.Uri | undefined
+        iconPath: vscode.Uri | undefined,
+        public readonly hID?: number
     ) {
         super(label, collapsibleState);
 
