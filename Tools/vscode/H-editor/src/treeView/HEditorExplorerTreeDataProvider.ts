@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { HDocumentManager } from '../HDocumentManager';
+import * as core from '../utilities/coreModelInterface';
 
 function pathExists(p: string): boolean {
     try {
@@ -11,19 +12,15 @@ function pathExists(p: string): boolean {
     return true;
 }
 
-function getDocumentContentAsJson(hDocumentManager: HDocumentManager, documentUri: vscode.Uri): Thenable<any> {
+function getDocumentContentAsJson(hDocumentManager: HDocumentManager, documentUri: vscode.Uri): Thenable<core.Module> {
 
     if (hDocumentManager.isDocumentRegistered(documentUri)) {
         const hDocument = hDocumentManager.getRegisteredDocument(documentUri);
-        return Promise.resolve(
-            (): any => {
-                return hDocument.getState();
-            }
-        );
+        return Promise.resolve(hDocument.getState());
     }
 
     return vscode.workspace.openTextDocument(documentUri).then(
-        (document): any => {
+        (document): core.Module => {
             hDocumentManager.registerDocument(document.uri, document);
             const hDocument = hDocumentManager.getRegisteredDocument(document.uri);
             return hDocument.getState();
@@ -108,10 +105,10 @@ function getEntriesInModule(extensionUri: vscode.Uri, entryUri: vscode.Uri): HEd
     ];
 }
 
-function createEntriesFromDeclarations(extensionUri: vscode.Uri, declarations: any): HEditorExplorerTreeEntry[] {
+function createEntriesFromDeclarations(extensionUri: vscode.Uri, declarations: core.Module_declarations): HEditorExplorerTreeEntry[] {
 
     const aliasEntries: HEditorExplorerTreeEntry[] = declarations.alias_type_declarations.elements.map(
-        (declaration: any) => {
+        (declaration: core.Alias_type_declaration) => {
             return new HEditorExplorerTreeEntry(
                 declaration.name,
                 "alias_type_declaration",
@@ -124,7 +121,7 @@ function createEntriesFromDeclarations(extensionUri: vscode.Uri, declarations: a
     );
 
     const enumEntries = declarations.enum_declarations.elements.map(
-        (declaration: any) => {
+        (declaration: core.Enum_declaration) => {
             return new HEditorExplorerTreeEntry(
                 declaration.name,
                 "enum_declaration",
@@ -137,7 +134,7 @@ function createEntriesFromDeclarations(extensionUri: vscode.Uri, declarations: a
     );
 
     const structEntries = declarations.struct_declarations.elements.map(
-        (declaration: any) => {
+        (declaration: core.Struct_declaration) => {
             return new HEditorExplorerTreeEntry(
                 declaration.name,
                 "struct_declaration",
@@ -150,7 +147,7 @@ function createEntriesFromDeclarations(extensionUri: vscode.Uri, declarations: a
     );
 
     const functionEntries = declarations.function_declarations.elements.map(
-        (declaration: any) => {
+        (declaration: core.Function_declaration) => {
             return new HEditorExplorerTreeEntry(
                 declaration.name,
                 "function_declaration",

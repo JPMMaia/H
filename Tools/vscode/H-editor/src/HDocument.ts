@@ -5,6 +5,7 @@ import { createUpdateStateMessage } from './utilities/updateStateMessage';
 import * as hCoreReflectionInfo from './utilities/h_core_reflection.json';
 import { createDefaultElement, createEmptyModule } from './utilities/coreModel';
 import * as coreModel from './utilities/coreModel';
+import * as core from './utilities/coreModelInterface';
 
 function createFunction(document: vscode.TextDocument, state: any, functionIndex: number, isExportDeclaration: boolean): Thenable<boolean> {
 
@@ -222,9 +223,13 @@ function updateVariant(reflectionInfo: coreModel.ReflectionInfo, document: vscod
     };
 }
 
+function getDeclarationsArrayLength(declarations: any, name: string) {
+    return declarations[name].elements.length;
+}
+
 export class HDocument {
 
-    private state: any;
+    private state: core.Module;
     private reflectionInfo: coreModel.ReflectionInfo;
     private changeDocumentSubscription: vscode.Disposable;
 
@@ -247,7 +252,7 @@ export class HDocument {
         this.changeDocumentSubscription.dispose();
     }
 
-    public getState(): any {
+    public getState(): core.Module {
         return this.state;
     }
 
@@ -390,8 +395,8 @@ export class HDocument {
 
     public addDeclaration(arrayName: string, isExport: boolean): Thenable<boolean> {
         const declarationName = isExport ? "export_declarations" : "internal_declarations";
-        const declarations = this.state[declarationName][arrayName];
-        return this.insertValue(["internal_declarations", arrayName, "elements", declarations.elements.length]);
+        const declarationsLength = getDeclarationsArrayLength(this.state[declarationName], arrayName);
+        return this.insertValue(["internal_declarations", arrayName, "elements", declarationsLength]);
     }
 
     public deleteDeclarations(ids: number[]): void {
@@ -410,7 +415,7 @@ export class HDocument {
         const edit = new vscode.WorkspaceEdit();
         this.addInsertValueEdits(edit, text, position);
 
-
+        // TODO
     }
 
     public deleteFunctionDefinitionAndDeclaration(id: number): void {
