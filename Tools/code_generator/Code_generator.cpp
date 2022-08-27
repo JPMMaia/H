@@ -5,6 +5,7 @@ module;
 #include <format>
 #include <istream>
 #include <optional>
+#include <ranges>
 #include <span>
 #include <sstream>
 #include <string>
@@ -197,6 +198,17 @@ namespace h::tools::code_generator
             return
                 type.name == "std::string" ||
                 type.name == "std::pmr::string";
+        }
+
+        std::pmr::string get_vector_value_type(
+            Type const& type
+        )
+        {
+            auto const open_location = type.name.find_first_of('<');
+            auto const close_location = type.name.find_last_of('>');
+            auto const count = close_location - open_location - 1;
+
+            return std::pmr::string{ type.name.substr(open_location + 1, count) };
         }
 
         std::pmr::vector<std::pmr::string> get_variadic_types(
@@ -1582,5 +1594,190 @@ namespace h::tools::code_generator
         writer.EndObject();
 
         output_stream << buffer.GetString();
+    }
+
+    std::pmr::string join(std::span<std::pmr::string const> const strings, std::string_view const delimiter)
+    {
+        std::pmr::string output;
+
+        for (unsigned int i = 0; i < strings.size(); ++i)
+        {
+            output += strings[i];
+
+            if ((i + 1) == strings.size())
+            {
+                break;
+            }
+
+            output += delimiter;
+        }
+
+        return output;
+    }
+
+    std::pmr::string generate_variant_types_enum_name(std::span<std::pmr::string const> const variant_type_names)
+    {
+        if (variant_type_names[0].ends_with("type_reference"))
+        {
+            return std::pmr::string{ "Type_reference_enum" };
+        }
+        else if (variant_type_names[0].ends_with("expression"))
+        {
+            return std::pmr::string{ "Expression_enum" };
+        }
+        else
+        {
+            return join(variant_type_names, "_") + "_enum";
+        }
+    }
+
+    std::pmr::string to_typescript_type(
+        Type const& type,
+        std::pmr::unordered_map<std::pmr::string, Enum> const& enum_map,
+        std::pmr::unordered_map<std::pmr::string, Struct> const& struct_map
+    )
+    {
+        if (is_int_type(type) || is_int64_type(type) || is_uint_type(type) || is_uint64_type(type) || is_double_type(type))
+        {
+            return std::pmr::string{ "number" };
+        }
+        else if (is_string_type(type))
+        {
+            return std::pmr::string{ "string" };
+        }
+        else if (is_bool_type(type))
+        {
+            return std::pmr::string{ "boolean" };
+        }
+        else if (is_enum_type(type, enum_map))
+        {
+            return type.name;
+        }
+        else if (is_struct_type(type, struct_map))
+        {
+            return type.name;
+        }
+        else if (is_vector_type(type))
+        {
+            std::pmr::string const value_type = get_vector_value_type(type);
+            std::pmr::string const typescript_type = to_typescript_type(Type{ .name = value_type }, enum_map, struct_map);
+            return std::pmr::string{ std::format("Vector<{}>", typescript_type) };
+        }
+        else if (is_variant_type(type))
+        {
+            std::pmr::vector<std::pmr::string> const variant_type_names = get_variadic_types(
+                type.name
+            );
+
+            std::pmr::string const variant_type_enum_name = generate_variant_types_enum_name(variant_type_names);
+
+            std::pmr::string const typescript_variant_type = join(variant_type_names, " | ");
+
+            return std::pmr::string{ std::format("Variant<{}, {}>", variant_type_enum_name, typescript_variant_type) };
+        }
+        else
+        {
+            throw std::runtime_error{ "Type not handled!" };
+        }
+    }
+
+    void generate_variant_enums(
+        std::ostream& output_stream,
+        std::span<Struct const> const struct_infos
+    )
+    {
+        auto variant_strings_view =
+            struct_infos |
+            std::views::transform([](Struct const& info) -> std::span<Member const> { return info.members; }) |
+            std::views::join |
+            std::views::filter([](Member const& member) -> bool { return is_variant_type(member.type); }) |
+            std::views::transform([](Member const& member) -> std::string_view { return member.type.name; }) |
+            std::views::common;
+
+        auto const variant_strings = [&]
+        {
+            std::pmr::vector<std::string_view> variant_strings{ variant_strings_view.begin(), variant_strings_view.end() };
+            std::ranges::sort(variant_strings);
+            auto const [first, last] = std::ranges::unique(variant_strings.begin(), variant_strings.end());
+            variant_strings.erase(first, last);
+            return variant_strings;
+        }();
+
+        for (std::string_view const variant_string : variant_strings)
+        {
+            std::pmr::vector<std::pmr::string> const variant_type_names = get_variadic_types(
+                variant_string
+            );
+
+            std::pmr::string const variant_type_enum_name = generate_variant_types_enum_name(variant_type_names);
+
+            output_stream << "enum " << variant_type_enum_name << " {\n";
+            {
+                for (std::string_view const name : variant_type_names)
+                {
+                    output_stream << std::format("    {} = \"{}\",\n", name, name);
+                }
+            }
+            output_stream << "}\n\n";
+        }
+    }
+
+    void generate_typescript_interface(
+        std::istream& input_stream,
+        std::ostream& output_stream
+    )
+    {
+        File_types const file_types = identify_file_types(
+            input_stream
+        );
+
+
+        std::pmr::unordered_map<std::pmr::string, Enum> const enum_map = create_name_map<Enum>(
+            file_types.enums
+            );
+
+        std::pmr::unordered_map<std::pmr::string, Struct> struct_map = create_name_map<Struct>(
+            file_types.structs
+            );
+
+        {
+            output_stream << "interface Vector<T> {\n";
+            output_stream << "    size: number;\n";
+            output_stream << "    elements: T[];\n";
+            output_stream << "}\n\n";
+        }
+
+        {
+            output_stream << "interface Variant<Type_enum, T> {\n";
+            output_stream << "    type: Type_enum;\n";
+            output_stream << "    value: T;\n";
+            output_stream << "}\n\n";
+        }
+
+        for (Enum const& enum_info : file_types.enums)
+        {
+            output_stream << "enum " << enum_info.name << " {\n";
+            {
+                for (std::pmr::string const& value : enum_info.values)
+                {
+                    output_stream << std::format("    {} = \"{}\",\n", value, value);
+                }
+            }
+            output_stream << "}\n\n";
+        }
+
+        generate_variant_enums(output_stream, file_types.structs);
+
+        for (Struct const& struct_info : file_types.structs)
+        {
+            output_stream << "interface " << struct_info.name << " {\n";
+            {
+                for (Member const& member : struct_info.members)
+                {
+                    output_stream << std::format("    {}: {};\n", member.name, to_typescript_type(member.type, enum_map, struct_map));
+                }
+            }
+            output_stream << "}\n\n";
+        }
     }
 }

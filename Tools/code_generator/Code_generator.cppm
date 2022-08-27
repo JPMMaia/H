@@ -93,4 +93,9 @@ namespace h::tools::code_generator
         std::istream& input_stream,
         std::ostream& output_stream
     );
+
+    export void generate_typescript_interface(
+        std::istream& input_stream,
+        std::ostream& output_stream
+    );
 }
