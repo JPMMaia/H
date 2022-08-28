@@ -214,6 +214,7 @@ export interface Module {
     name: string;
     export_declarations: Module_declarations;
     internal_declarations: Module_declarations;
+    next_unique_id: number;
     definitions: Module_definitions;
 }
 
