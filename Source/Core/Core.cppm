@@ -306,6 +306,7 @@ namespace h
         std::pmr::string name;
         Module_declarations export_declarations;
         Module_declarations internal_declarations;
+        std::uint64_t next_unique_id;
         Module_definitions definitions;
 
         friend auto operator<=>(Module const&, Module const&) = default;
