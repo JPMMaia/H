@@ -3543,9 +3543,14 @@ namespace h::json
                         state = 8;
                         return true;
                     }
-                    else if (event_data == "definitions")
+                    else if (event_data == "next_unique_id")
                     {
                         state = 10;
+                        return true;
+                    }
+                    else if (event_data == "definitions")
+                    {
+                        state = 11;
                         return true;
                     }
                 }
@@ -3637,10 +3642,15 @@ namespace h::json
         }
         case 10:
         {
-            state = 11;
-            return read_object(output.definitions, event, event_data, state_stack, state_stack_position + 1 + 0);
+            state = 1;
+            return read_value(output.next_unique_id, "next_unique_id", event_data);
         }
         case 11:
+        {
+            state = 12;
+            return read_object(output.definitions, event, event_data, state_stack, state_stack_position + 1 + 0);
+        }
+        case 12:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
