@@ -1,3 +1,4 @@
+import { onThrowError } from './errors';
 import * as hCoreReflectionInfo from './h_core_reflection.json';
 
 export interface ReflectionEnum {
@@ -83,7 +84,9 @@ export function isStringType(type: ReflectionType): boolean {
 export function getEnumType(enums: ReflectionEnum[], type: ReflectionType): ReflectionEnum {
     const match = enums.find(value => value.name === type.name);
     if (match === undefined) {
-        throw Error("Could not find enum " + type.name);
+        const message = "Could not find enum " + type.name;
+        onThrowError(message);
+        throw Error(message);
     }
     return match;
 }
@@ -101,7 +104,9 @@ export function isStructType(structs: ReflectionStruct[], type: ReflectionType):
 export function getStructType(structs: ReflectionStruct[], type: ReflectionType): ReflectionStruct {
     const match = structs.find(value => value.name === type.name);
     if (match === undefined) {
-        throw Error("Could not find struct " + type.name);
+        const message = "Could not find struct " + type.name;
+        onThrowError(message);
+        throw Error(message);
     }
     return match;
 }
@@ -110,7 +115,9 @@ export function findTypeReflection(reflectionInfo: ReflectionInfo, position: any
 
     const module = reflectionInfo.structs.find(value => value.name === "Module");
     if (module === undefined) {
-        throw Error("Could not find reflection info of Module!");
+        const message = "Could not find reflection info of Module!";
+        onThrowError(message);
+        throw Error(message);
     }
 
     let currentStruct = module;
@@ -127,7 +134,9 @@ export function findTypeReflection(reflectionInfo: ReflectionInfo, position: any
 
         const member = currentStruct.members.find(member => member.name === currentPosition);
         if (member === undefined) {
-            throw Error("Reflection data of " + currentPosition + " not found in " + currentStruct.name);
+            const message = "Reflection data of " + currentPosition + " not found in " + currentStruct.name;
+            onThrowError(message);
+            throw Error(message);
         }
 
         if (isVectorType(member.type)) {
@@ -139,18 +148,24 @@ export function findTypeReflection(reflectionInfo: ReflectionInfo, position: any
 
             const memberTypeReflectionInfo = reflectionInfo.structs.find(value => value.name === valueType.name);
             if (memberTypeReflectionInfo === undefined) {
-                throw Error("Could not find reflection data of " + member.type.name);
+                const message = "Could not find reflection data of " + member.type.name;
+                onThrowError(message);
+                throw Error(message);
             }
 
             currentStruct = memberTypeReflectionInfo;
         }
         else if (isVariantType(member.type)) {
-            throw Error("Not implemented yet!");
+            const message = "Not implemented yet!";
+            onThrowError(message);
+            throw Error(message);
         }
         else {
             const memberTypeReflectionInfo = reflectionInfo.structs.find(value => value.name === member.type.name);
             if (memberTypeReflectionInfo === undefined) {
-                throw Error("Could not find reflection data of " + member.type.name);
+                const message = "Could not find reflection data of " + member.type.name;
+                onThrowError(message);
+                throw Error(message);
             }
 
             currentStruct = memberTypeReflectionInfo;

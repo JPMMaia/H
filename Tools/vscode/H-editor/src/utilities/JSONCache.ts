@@ -1,4 +1,5 @@
 import { JSONDelete, JSONEdit, JSONInsert } from "./editJSON";
+import { onThrowError } from "./errors";
 import { iterateThroughJSONStringUsingPosition, ParserState } from "./parseJSON";
 
 interface StateCache {
@@ -47,7 +48,9 @@ function calculateOffsetFromParent(cache: JSONCache, position: any[], currentOff
     const parentState = getJSONCacheState(cache, position.slice(0, position.length - 1));
 
     if (parentState === undefined) {
-        throw Error("Parent is missing from cache!");
+        const message = "Parent is missing from cache!";
+        onThrowError(message);
+        throw Error(message);
     }
 
     return currentOffset - parentState.offsetFromParent;
@@ -141,7 +144,9 @@ export function addJSONCacheNode(cache: JSONCache, position: any[], state: State
         const nextNode = currentNode.children.find(childNode => childNode.value === currentPosition);
 
         if (nextNode === undefined && ((index + 1) !== position.length)) {
-            throw Error("Parent not found in cache");
+            const message = "Parent not found in cache";
+            onThrowError(message);
+            throw Error(message);
         }
 
         if ((nextNode === undefined) || (isArrayInsert && ((index + 1) === position.length))) {
@@ -415,7 +420,9 @@ export function updateJSONCacheAfterArrayDelete(cache: JSONCache, edit: JSONDele
         const nextNodeIndex = currentNode.children.findIndex(childNode => ((currentOffset + childNode.state.offsetFromParent) <= edit.range.startCharacter) && (edit.range.startCharacter < (currentOffset + childNode.state.offsetFromParent + childNode.state.size)));
 
         if (nextNodeIndex === -1) {
-            throw Error("Could not find which element to delete!");
+            const message = "Could not find which element to delete!";
+            onThrowError(message);
+            throw Error(message);
         }
 
         const nextNode = currentNode.children[nextNodeIndex];

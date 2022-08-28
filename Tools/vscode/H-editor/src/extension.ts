@@ -5,6 +5,7 @@ import { HEditorExplorerTreeDataProvider } from "./treeView/HEditorExplorerTreeD
 import type { HEditorExplorerTreeEntry } from "./treeView/HEditorExplorerTreeDataProvider";
 import { HDocumentManager } from "./HDocumentManager";
 import { HDocument } from "./HDocument";
+import { onThrowError } from "./utilities/errors";
 
 function openDocumentIfRequired(hDocumentManager: HDocumentManager, documentUri: vscode.Uri): Thenable<HDocument> {
 
@@ -114,7 +115,9 @@ export function activate(context: ExtensionContext) {
         openDocumentIfRequired(hDocumentManager, entry.entryUri).then(
           (document: HDocument) => {
             if (entry.hID === undefined) {
-              throw Error("Entry '" + entry.label + "' did not have a valid hID");
+              const message = "Entry '" + entry.label + "' did not have a valid hID";
+              onThrowError(message);
+              throw Error(message);
             }
 
             const options: vscode.InputBoxOptions = {

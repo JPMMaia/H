@@ -1,3 +1,5 @@
+import { onThrowError } from "./errors";
+
 export interface ObjectReference {
   get value(): any;
   set value(value: any);
@@ -81,7 +83,9 @@ export function findNumber(text: string, startIndex: number): FindResult {
     }
   }
 
-  throw Error("Error while parsing number!");
+  const message = "Error while parsing number!";
+  onThrowError(message);
+  throw Error(message);
 }
 
 export function findEndOfString(text: string, startIndex: number): number {
@@ -97,7 +101,9 @@ export function findEndOfString(text: string, startIndex: number): number {
     ++index;
   }
 
-  throw Error("Error while parsing string!");
+  const message = "Error while parsing string!";
+  onThrowError(message);
+  throw Error(message);
 }
 
 export function iterateThroughJSONString(state: ParserState, text: string, startIndex: number): ParseJSONIterateResult {
@@ -136,7 +142,9 @@ export function iterateThroughJSONString(state: ParserState, text: string, start
       ++index;
     }
 
-    throw Error("Unexpected end of string");
+    const message = "Unexpected end of string";
+    onThrowError(message);
+    throw Error(message);
   }
 
   let beginKeyIndex = -1;
@@ -288,7 +296,9 @@ export function iterateThroughJSONString(state: ParserState, text: string, start
     ++index;
   }
 
-  throw Error("Error while parsing JSON");
+  const message = "Error while parsing JSON";
+  onThrowError(message);
+  throw Error(message);
 }
 
 export interface ParseJSONIteratePositionResult {
@@ -506,13 +516,17 @@ export function fromOffsetToPosition(text: string, targetOffset: number): any[] 
     }
 
     if (result.startValueIndex > targetOffset) {
-      throw Error("fromOffsetToPosition() went past");
+      const message = "fromOffsetToPosition() went past";
+      onThrowError(message);
+      throw Error(message);
     }
 
     currentOffset = result.nextStartIndex;
   }
 
-  throw Error("fromOffsetToPosition() reached end of file.");
+  const message = "fromOffsetToPosition() reached end of file.";
+  onThrowError(message);
+  throw Error(message);
 }
 
 export function findEndOfCurrentObject(startState: ParserState, text: string, startIndex: number): OffsetResult {
@@ -537,7 +551,9 @@ export function findEndOfCurrentObject(startState: ParserState, text: string, st
   }
 
   if (text[currentOffset] !== '{' && text[currentOffset] !== '[') {
-    throw Error("Expected open object/array");
+    const message = "Expected open object/array";
+    onThrowError(message);
+    throw Error(message);
   }
 
   let stack: any[] = [];
@@ -569,5 +585,7 @@ export function findEndOfCurrentObject(startState: ParserState, text: string, st
     currentOffset = result.endIndex;
   }
 
-  throw Error("findEndOfCurrentObject() reached end of file.");
+  const message = "findEndOfCurrentObject() reached end of file.";
+  onThrowError(message);
+  throw Error(message);
 }

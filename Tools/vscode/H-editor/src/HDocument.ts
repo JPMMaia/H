@@ -6,6 +6,7 @@ import * as hCoreReflectionInfo from './utilities/h_core_reflection.json';
 import { createDefaultElement, createEmptyModule } from './utilities/coreModel';
 import * as coreModel from './utilities/coreModel';
 import * as core from './utilities/coreModelInterface';
+import { onThrowError } from './utilities/errors';
 
 function createFunction(document: vscode.TextDocument, state: any, functionIndex: number, isExportDeclaration: boolean): Thenable<boolean> {
 
@@ -435,7 +436,9 @@ export class HDocument {
         try {
             return JSON.parse(text);
         } catch {
-            throw new Error('Could not get document as json. Content is not valid json');
+            const message = "Could not get document as json. Content is not valid json";
+            onThrowError(message);
+            throw Error(message);
         }
     }
 }

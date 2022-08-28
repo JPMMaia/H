@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { onThrowError } from './errors';
 
 import { isNumber, fromOffsetToPosition } from './parseJSON';
 
@@ -41,7 +42,9 @@ function getUpdateValue(text: string): any {
         return Number(text);
     }
     else {
-        throw Error("Unrecognized update value type!");
+        const message = "Unrecognized update value type!";
+        onThrowError(message);
+        throw Error(message);
     }
 }
 
@@ -118,6 +121,10 @@ export function createUpdateStateMessage(change: vscode.TextDocumentContentChang
         return message;
     }
     else {
-        throw Error("Unrecognized change!");
+        const message = "Unrecognized change!";
+        onThrowError(message);
+        throw Error(message);
+    }
+}
     }
 }
