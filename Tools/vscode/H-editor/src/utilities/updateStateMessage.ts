@@ -15,19 +15,26 @@ function removePossibleComma(text: string): string {
     return text;
 }
 
-function isInitializeChange(change: vscode.TextDocumentContentChangeEvent): boolean {
+interface TextDocumentContentChange {
+    range: vscode.Range;
+    rangeOffset: number;
+    rangeLength: number;
+    text: string;
+}
+
+function isInitializeChange(change: TextDocumentContentChange): boolean {
     return change.range.start.line === 0 && change.range.start.character === 0;
 }
 
-function isDeleteChange(change: vscode.TextDocumentContentChangeEvent): boolean {
+function isDeleteChange(change: TextDocumentContentChange): boolean {
     return change.rangeLength !== 0 && change.text.length === 0;
 }
 
-function isUpdateChange(change: vscode.TextDocumentContentChangeEvent): boolean {
+function isUpdateChange(change: TextDocumentContentChange): boolean {
     return change.rangeLength !== 0 && change.text.length !== 0;
 }
 
-function isInsertChange(change: vscode.TextDocumentContentChangeEvent): boolean {
+function isInsertChange(change: TextDocumentContentChange): boolean {
     return change.rangeLength === 0 && change.text.length !== 0;
 }
 
@@ -48,7 +55,7 @@ function getUpdateValue(text: string): any {
     }
 }
 
-export function createUpdateStateMessage(change: vscode.TextDocumentContentChangeEvent, document: vscode.TextDocument, documentJSONProvider: any): any {
+export function createUpdateStateMessage(change: TextDocumentContentChange, document: vscode.TextDocument, documentJSONProvider: any): any {
 
     if (isInitializeChange(change)) {
         const message = {
@@ -126,5 +133,35 @@ export function createUpdateStateMessage(change: vscode.TextDocumentContentChang
         throw Error(message);
     }
 }
+
+export function createUpdateMessages(contentChanges: readonly vscode.TextDocumentContentChangeEvent[], document: vscode.TextDocument, documentJSONProvider: any): any[] {
+    const messages = [];
+
+    let offset = 0;
+    for (let index = contentChanges.length; index > 0; index -= 1) {
+        const change = contentChanges[index - 1];
+
+        if (change.range.start.line !== 0 && change.range.end.line !== 0) {
+            const message = "Document is not well formatted! Please remove all JSON spaces and new lines.";
+            onThrowError(message);
+            throw Error(message);
+        }
+
+        const changeWithOffset = {
+            range: new vscode.Range(
+                new vscode.Position(0, change.range.start.character + offset),
+                new vscode.Position(0, change.range.end.character + offset)
+            ),
+            rangeOffset: change.rangeOffset + offset,
+            rangeLength: change.rangeLength,
+            text: change.text
+        };
+
+        const message = createUpdateStateMessage(changeWithOffset, document, documentJSONProvider);
+        messages.push(message);
+
+        offset = (change.text.length - change.rangeLength);
     }
+
+    return messages;
 }

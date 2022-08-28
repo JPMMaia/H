@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { HDocumentManager } from '../HDocumentManager';
 import * as core from '../utilities/coreModelInterface';
+import { HDocument } from '../HDocument';
+import { createUpdateMessages } from '../utilities/updateStateMessage';
 
 function pathExists(p: string): boolean {
     try {
@@ -12,18 +14,18 @@ function pathExists(p: string): boolean {
     return true;
 }
 
-function getDocumentContentAsJson(hDocumentManager: HDocumentManager, documentUri: vscode.Uri): Thenable<core.Module> {
+function openOrGetDocument(hDocumentManager: HDocumentManager, documentUri: vscode.Uri): Thenable<HDocument> {
 
     if (hDocumentManager.isDocumentRegistered(documentUri)) {
         const hDocument = hDocumentManager.getRegisteredDocument(documentUri);
-        return Promise.resolve(hDocument.getState());
+        return Promise.resolve(hDocument);
     }
 
     return vscode.workspace.openTextDocument(documentUri).then(
-        (document): core.Module => {
+        (document): HDocument => {
             hDocumentManager.registerDocument(document.uri, document);
             const hDocument = hDocumentManager.getRegisteredDocument(document.uri);
-            return hDocument.getState();
+            return hDocument;
         }
     );
 }
@@ -168,16 +170,12 @@ function createEntriesFromDeclarations(extensionUri: vscode.Uri, declarations: c
     ];
 }
 
-function getContentEntries(hDocumentManager: HDocumentManager, extensionUri: vscode.Uri, entryUri: vscode.Uri): Thenable<HEditorExplorerTreeEntry[]> {
-
-    return getDocumentContentAsJson(hDocumentManager, entryUri).then(
-        (json) => {
-            return [
-                ...createEntriesFromDeclarations(extensionUri, json.export_declarations),
-                ...createEntriesFromDeclarations(extensionUri, json.internal_declarations)
-            ];
-        }
-    );
+function getContentEntries(document: HDocument, extensionUri: vscode.Uri, entryUri: vscode.Uri): HEditorExplorerTreeEntry[] {
+    const state = document.getState();
+    return [
+        ...createEntriesFromDeclarations(extensionUri, state.export_declarations),
+        ...createEntriesFromDeclarations(extensionUri, state.internal_declarations)
+    ];
 }
 
 function getUriFirstPart(firstUri: vscode.Uri, secondUri: vscode.Uri): string {
@@ -192,6 +190,30 @@ function getUriFirstPart(firstUri: vscode.Uri, secondUri: vscode.Uri): string {
     return uriFirstPart;
 }
 
+function shouldUpdate(documentUri: vscode.Uri, messages: any[]): boolean {
+
+    for (const message of messages) {
+
+        if (message.command === "update") {
+            const position: any[] = message.data.hPosition;
+
+            if (position.length === 5 && (position[0] === "export_declarations" || position[0] === "internal_declarations") && position[2] === "elements" && position[4] === "name") {
+                return true;
+            }
+        }
+        else if (message.command === "insert" || message.command === "delete") {
+
+            const position: any[] = message.data.hPosition;
+
+            if (position.length === 4 && (position[0] === "export_declarations" || position[0] === "internal_declarations") && position[2] === "elements" && typeof position[3] === "number") {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 export class HEditorExplorerTreeDataProvider implements vscode.TreeDataProvider<HEditorExplorerTreeEntry> {
 
     private _onDidChangeTreeData: vscode.EventEmitter<HEditorExplorerTreeEntry | undefined | null | void> = new vscode.EventEmitter<HEditorExplorerTreeEntry | undefined | null | void>();
@@ -202,6 +224,12 @@ export class HEditorExplorerTreeDataProvider implements vscode.TreeDataProvider<
         private extensionUri: vscode.Uri,
         private hDocumentManager: HDocumentManager
     ) { }
+
+    public onDidChangeTextDocument(e: vscode.TextDocumentChangeEvent, messages: any): void {
+        if (shouldUpdate(e.document.uri, messages)) {
+            this.refresh(e.document.uri);
+        }
+    }
 
     getTreeItem(element: HEditorExplorerTreeEntry): vscode.TreeItem {
         return element;
@@ -225,13 +253,18 @@ export class HEditorExplorerTreeDataProvider implements vscode.TreeDataProvider<
                 return Promise.resolve(entries);
             }
             else if (element.contextValue === "hl_module_content") {
-                const entriesPromise = getContentEntries(
-                    this.hDocumentManager,
-                    this.extensionUri,
-                    element.entryUri
-                );
 
-                return entriesPromise;
+                return openOrGetDocument(this.hDocumentManager, element.entryUri).then(
+                    document => {
+                        const entries = getContentEntries(
+                            document,
+                            this.extensionUri,
+                            element.entryUri
+                        );
+
+                        return entries;
+                    }
+                );
             }
             else {
                 return Promise.resolve([]);

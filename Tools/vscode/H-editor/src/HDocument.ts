@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { findNumber, findEndOfString, fromPositionToOffset, findEndOfCurrentObject, ParserState } from './utilities/parseJSON';
 import { updateState } from './utilities/updateState';
-import { createUpdateStateMessage } from './utilities/updateStateMessage';
 import * as hCoreReflectionInfo from './utilities/h_core_reflection.json';
 import { createDefaultElement, createEmptyModule } from './utilities/coreModel';
 import * as coreModel from './utilities/coreModel';
@@ -101,10 +100,10 @@ function updateArraySize(document: vscode.TextDocument, text: string, position: 
     return updateValueWithOffset(document, text, offsetResult.offset, newArraySize);
 }
 
-function insertValue(document: vscode.TextDocument, text: string, position: any[]): InsertInfo {
+function insertValue(document: vscode.TextDocument, text: string, position: any[], defaultValueOptions?: coreModel.DefaultValueOptions): InsertInfo {
 
     const reflectionInfo = { enums: hCoreReflectionInfo.enums, structs: hCoreReflectionInfo.structs };
-    const newElement = createDefaultElement(reflectionInfo, position);
+    const newElement = createDefaultElement(reflectionInfo, position, defaultValueOptions);
     const newElementText = JSON.stringify(newElement);
 
     // TODO cache
@@ -232,25 +231,21 @@ export class HDocument {
 
     private state: core.Module;
     private reflectionInfo: coreModel.ReflectionInfo;
-    private changeDocumentSubscription: vscode.Disposable;
 
     constructor(private document: vscode.TextDocument) {
         this.state = this.getDocumentAsJson();
         this.reflectionInfo = coreModel.createReflectionInfo();
-
-        this.changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument(e => {
-            if (e.document.uri.toString() === document.uri.toString()) {
-
-                for (const change of e.contentChanges) {
-                    const message = createUpdateStateMessage(change, e.document, this);
-                    this.updateState(message);
-                }
-            }
-        });
     }
 
-    public dispose(): void {
-        this.changeDocumentSubscription.dispose();
+    public getDocumentUri(): vscode.Uri {
+        return this.document.uri;
+    }
+
+    public onDidChangeTextDocument(e: vscode.TextDocumentChangeEvent, messages: any): void {
+        for (const message of messages) {
+            this.updateState(message);
+        }
+        this.document = e.document;
     }
 
     public getState(): core.Module {
@@ -316,8 +311,9 @@ export class HDocument {
 
     }
 
-    private addInsertValueEdits(edit: vscode.WorkspaceEdit, text: string, position: any[]): void {
-        const insertInfo = insertValue(this.document, text, position);
+    private addInsertValueEdits(edit: vscode.WorkspaceEdit, text: string, position: any[], defaultValueOptions?: coreModel.DefaultValueOptions): void {
+
+        const insertInfo = insertValue(this.document, text, position, defaultValueOptions);
         edit.insert(
             this.document.uri,
             insertInfo.position,
@@ -394,10 +390,37 @@ export class HDocument {
         return vscode.workspace.applyEdit(edit);
     }
 
-    public addDeclaration(arrayName: string, isExport: boolean): Thenable<boolean> {
+    public addDeclaration(arrayName: string, name: string, isExport: boolean): Thenable<boolean> {
+
+        if (arrayName === "function_declarations") {
+            const message = "Do not use addDeclaration to add function declarations. Use addFunctionDeclarationAndDefinition() instead";
+            onThrowError(message);
+            throw Error(message);
+        }
+
         const declarationName = isExport ? "export_declarations" : "internal_declarations";
         const declarationsLength = getDeclarationsArrayLength(this.state[declarationName], arrayName);
-        return this.insertValue(["internal_declarations", arrayName, "elements", declarationsLength]);
+        const declarationID = this.state.next_unique_id;
+
+        const text = this.document.getText(undefined);
+
+        const edit = new vscode.WorkspaceEdit();
+
+        const defaultValueOptions = {
+            id: declarationID,
+            name: name
+        };
+
+        this.addInsertValueEdits(edit, text, ["internal_declarations", arrayName, "elements", declarationsLength], defaultValueOptions);
+
+        const updateNextUniqueIdInfo = updateValue(this.document, ["next_unique_id"], declarationID + 1);
+        edit.replace(
+            this.document.uri,
+            updateNextUniqueIdInfo.range,
+            updateNextUniqueIdInfo.newText
+        );
+
+        return vscode.workspace.applyEdit(edit);
     }
 
     public deleteDeclarations(ids: number[]): void {

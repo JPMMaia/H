@@ -6,6 +6,7 @@ import type { HEditorExplorerTreeEntry } from "./treeView/HEditorExplorerTreeDat
 import { HDocumentManager } from "./HDocumentManager";
 import { HDocument } from "./HDocument";
 import { onThrowError } from "./utilities/errors";
+import { createUpdateMessages } from "./utilities/updateStateMessage";
 
 function openDocumentIfRequired(hDocumentManager: HDocumentManager, documentUri: vscode.Uri): Thenable<HDocument> {
 
@@ -26,16 +27,16 @@ function openDocumentIfRequired(hDocumentManager: HDocumentManager, documentUri:
 
 export function activate(context: ExtensionContext) {
 
-  const hDocumentManager = new HDocumentManager();
-
-  const hEditorProvider = new HEditorProvider(context, hDocumentManager);
-
-  {
-    const hEditorProviderRegistration = vscode.window.registerCustomEditorProvider(HEditorProvider.viewType, hEditorProvider);
-    context.subscriptions.push(hEditorProviderRegistration);
-  }
-
   if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length) {
+
+    const hDocumentManager = new HDocumentManager();
+
+    const hEditorProvider = new HEditorProvider(context, hDocumentManager);
+
+    {
+      const hEditorProviderRegistration = vscode.window.registerCustomEditorProvider(HEditorProvider.viewType, hEditorProvider);
+      context.subscriptions.push(hEditorProviderRegistration);
+    }
 
     const workspaceRootUri = vscode.workspace.workspaceFolders[0].uri;
     const treeDataProvider = new HEditorExplorerTreeDataProvider(workspaceRootUri, context.extensionUri, hDocumentManager);
@@ -56,11 +57,21 @@ export function activate(context: ExtensionContext) {
     vscode.commands.registerCommand(
       "HEditorExplorer.addAlias",
       (entry: HEditorExplorerTreeEntry, selectedEntries: HEditorExplorerTreeEntry[]) => {
-        openDocumentIfRequired(hDocumentManager, entry.entryUri).then(
-          (document: HDocument) => {
-            document.addDeclaration("alias_type_declarations", false);
+        const inputBoxOptions: vscode.InputBoxOptions = {
+          placeHolder: "Enter alias name"
+        };
+        vscode.window.showInputBox(inputBoxOptions).then(
+          value => {
+            if (value !== undefined && value.length > 0) {
+              openDocumentIfRequired(hDocumentManager, entry.entryUri).then(
+                (document: HDocument) => {
+                  document.addDeclaration("alias_type_declarations", value, false);
+                }
+              );
+            }
           }
         );
+
       }
     );
 
@@ -69,7 +80,7 @@ export function activate(context: ExtensionContext) {
       (entry: HEditorExplorerTreeEntry, selectedEntries: HEditorExplorerTreeEntry[]) => {
         openDocumentIfRequired(hDocumentManager, entry.entryUri).then(
           (document: HDocument) => {
-            document.addDeclaration("enum_declarations", false);
+            //document.addDeclaration("enum_declarations", false);
           }
         );
       }
@@ -80,7 +91,7 @@ export function activate(context: ExtensionContext) {
       (entry: HEditorExplorerTreeEntry, selectedEntries: HEditorExplorerTreeEntry[]) => {
         openDocumentIfRequired(hDocumentManager, entry.entryUri).then(
           (document: HDocument) => {
-            document.addDeclaration("struct_declarations", false);
+            //document.addDeclaration("struct_declarations", false);
           }
         );
       }
@@ -91,7 +102,7 @@ export function activate(context: ExtensionContext) {
       (entry: HEditorExplorerTreeEntry, selectedEntries: HEditorExplorerTreeEntry[]) => {
         openDocumentIfRequired(hDocumentManager, entry.entryUri).then(
           (document: HDocument) => {
-            document.addDeclaration("function_declarations", false);
+            //document.addDeclaration("function_declarations", false);
             // TODO addEmptyFunctionDefinition
           }
         );
@@ -134,6 +145,21 @@ export function activate(context: ExtensionContext) {
             );
           }
         );
+      }
+    );
+
+    vscode.workspace.onDidChangeTextDocument(
+      e => {
+
+        if (e.contentChanges.length > 0 && !e.document.isClosed && e.document.uri.path.startsWith(workspaceRootUri.path) && e.document.uri.path.endsWith(".hl")) {
+
+          const document = hDocumentManager.getRegisteredDocument(e.document.uri);
+          const messages = createUpdateMessages(e.contentChanges, e.document, document);
+
+          document.onDidChangeTextDocument(e, messages);
+          hEditorProvider.onDidChangeTextDocument(e, messages);
+          treeDataProvider.onDidChangeTextDocument(e, messages);
+        }
       }
     );
   }

@@ -7,30 +7,20 @@ import { LanguageServer } from './LanguageServer';
 import { HEditorPanel } from './panels/HEditorPanel';
 import { HDocument } from './HDocument';
 import { fromOffsetToPosition, isNumber } from './utilities/parseJSON';
-import { createUpdateStateMessage } from './utilities/updateStateMessage';
+import { createUpdateMessages } from './utilities/updateStateMessage';
 import { HDocumentManager } from './HDocumentManager';
 
-function updateHEditorExplorerTreeIfNeeded(documentUri: vscode.Uri, messages: any[]): void {
+function getWebviewPanelIDs(webviewDocuments: Map<number, HDocument>, documentUri: vscode.Uri): number[] {
 
-	for (const message of messages) {
+	const ids: number[] = [];
 
-		if (message.command === "update") {
-			const position: any[] = message.data.hPosition;
-
-			if (position.length === 5 && (position[0] === "export_declarations" || position[0] === "internal_declarations") && position[2] === "elements" && position[4] === "name") {
-				vscode.commands.executeCommand("HEditorExplorer.refresh", documentUri);
-			}
-		}
-		else if (message.command === "insert" || message.command === "delete") {
-
-			const position: any[] = message.data.hPosition;
-
-			if (position.length === 4 && (position[0] === "export_declarations" || position[0] === "internal_declarations") && position[2] === "elements" && typeof position[3] === "number") {
-				vscode.commands.executeCommand("HEditorExplorer.refresh", documentUri);
-			}
+	for (const entry of webviewDocuments.entries()) {
+		if (entry[1].getDocumentUri().toString() === documentUri.toString()) {
+			ids.push(entry[0]);
 		}
 	}
 
+	return ids;
 }
 
 /**
@@ -55,7 +45,7 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 	) {
 	}
 
-	private getWebviewPanelID(registeredWebviews: Map<number, HEditorPanel>, webviewPanel: vscode.WebviewPanel): number | undefined {
+	/*private getWebviewPanelID(registeredWebviews: Map<number, HEditorPanel>, webviewPanel: vscode.WebviewPanel): number | undefined {
 
 		for (const entry of registeredWebviews.entries()) {
 			if (entry[1].panel === webviewPanel) {
@@ -64,7 +54,7 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 		}
 
 		return undefined;
-	}
+	}*/
 
 	/**
 	 * Called when our custom editor is opened.
@@ -105,29 +95,13 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 		// Remember that a single text document can also be shared between multiple custom
 		// editors (this happens for example when you split a custom editor)
 
-		const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument(e => {
-			if (e.document.uri.toString() === document.uri.toString()) {
-
-				const messages = [];
-				for (const change of e.contentChanges) {
-					const message = createUpdateStateMessage(change, e.document, hDocument);
-					messages.push(message);
-				}
-				hPanel.sendMessage(messages);
-
-				updateHEditorExplorerTreeIfNeeded(e.document.uri, messages);
-			}
-		});
-
 		// Make sure we get rid of the listener when our editor is closed.
 		webviewPanel.onDidDispose(() => {
-			changeDocumentSubscription.dispose();
 
 			this.webviewDocuments.delete(webpanelID);
 			this.registeredWebviews.delete(webpanelID);
 
 			if (document.isClosed) {
-				hDocument.dispose();
 				this.hDocumentManager.unregisterDocument(document.uri);
 			}
 		});
@@ -150,6 +124,20 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 			//languageServer.request({ "echo_request": { "data": "Hello from vscode!" } });
 		}
 		this.requestHtmlTemplates(this.languageServer, webpanelID);*/
+	}
+
+	public onDidChangeTextDocument(e: vscode.TextDocumentChangeEvent, messages: any): void {
+
+		const webviewPanelIDs = getWebviewPanelIDs(this.webviewDocuments, e.document.uri);
+
+		for (const webviewPanelID of webviewPanelIDs) {
+			const hPanel = this.registeredWebviews.get(webviewPanelID);
+			if (hPanel === undefined) {
+				return;
+			}
+
+			hPanel.sendMessage(messages);
+		}
 	}
 
 	private requestHtmlTemplates(languageServer: LanguageServer, messageID: number): void {

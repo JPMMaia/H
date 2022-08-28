@@ -175,7 +175,12 @@ export function findTypeReflection(reflectionInfo: ReflectionInfo, position: any
     return currentStruct;
 }
 
-export function createDefaultValue(reflectionInfo: ReflectionInfo, type: ReflectionType): any {
+export interface DefaultValueOptions {
+    id?: number;
+    name?: string;
+}
+
+export function createDefaultValue(reflectionInfo: ReflectionInfo, type: ReflectionType, options?: DefaultValueOptions): any {
     if (isIntegerType(type)) {
         return 0;
     }
@@ -202,18 +207,26 @@ export function createDefaultValue(reflectionInfo: ReflectionInfo, type: Reflect
         const structReflection = getStructType(reflectionInfo.structs, type);
         let object: any = {};
         for (const member of structReflection.members) {
-            object[member.name] = createDefaultValue(reflectionInfo, member.type);
+            if (member.name === "id" && options !== undefined) {
+                object[member.name] = options.id;
+            }
+            else if (member.name === "name" && options !== undefined) {
+                object[member.name] = options.name;
+            }
+            else {
+                object[member.name] = createDefaultValue(reflectionInfo, member.type);
+            }
         }
         return object;
     }
 
 }
 
-export function createDefaultElement(reflectionInfo: ReflectionInfo, position: any[]): any {
+export function createDefaultElement(reflectionInfo: ReflectionInfo, position: any[], defaultValueOptions?: DefaultValueOptions): any {
 
     const typeReflection = findTypeReflection(reflectionInfo, position);
 
-    const object = createDefaultValue(reflectionInfo, typeReflection);
+    const object = createDefaultValue(reflectionInfo, typeReflection, defaultValueOptions);
 
     return object;
 }
