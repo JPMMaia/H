@@ -227,6 +227,41 @@ function getDeclarationsArrayLength(declarations: any, name: string) {
     return declarations[name].elements.length;
 }
 
+// findElementWithIdIndexOnArrays([{name: "export_declarations", array: this.state.export_declarations[arrayName].elements}, {name: "internal_declarations", array: this.state.internal_declarations[arrayName].elements}])
+
+interface NamedArray {
+    name: string;
+    array: any[];
+}
+
+function createDeclarationsNamedArrays(state: core.Module, arrayName: string): NamedArray[] {
+    if (arrayName === "alias_type_declarations" || arrayName === "enum_declarations" || arrayName === "struct_declarations" || arrayName === "function_declarations") {
+        return [
+            { name: "export_declarations", array: state.export_declarations[arrayName].elements },
+            { name: "internal_declarations", array: state.internal_declarations[arrayName].elements }
+        ];
+    }
+    else {
+        const message = "Invalid '" + arrayName + "' declarations array";
+        onThrowError(message);
+        throw Error(message);
+    }
+}
+
+function findElementWithIdIndexOnArrays(namedArrays: NamedArray[], id: number): { name: string, index: number } | undefined {
+
+    for (const namedArray of namedArrays) {
+
+        const index = namedArray.array.findIndex((value: any) => value.id === id);
+
+        if (index !== -1) {
+            return { name: namedArray.name, index: index };
+        }
+    }
+
+    return undefined;
+}
+
 export class HDocument {
 
     private state: core.Module;
@@ -446,8 +481,18 @@ export class HDocument {
         // TODO
     }
 
-    public updateDeclarationName(id: number, newName: string): void {
+    public updateDeclarationName(arrayName: string, id: number, newName: string): Thenable<boolean> {
 
+        const result = findElementWithIdIndexOnArrays(
+            createDeclarationsNamedArrays(this.state, arrayName),
+            id
+        );
+
+        if (result === undefined) {
+            return Promise.reject();
+        }
+
+        return this.updateValue([result.name, arrayName, "elements", result.index, "name"], newName);
     }
 
     public getDocumentAsJson(): any | null {

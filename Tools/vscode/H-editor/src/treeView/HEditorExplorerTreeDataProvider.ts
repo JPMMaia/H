@@ -107,14 +107,14 @@ function getEntriesInModule(extensionUri: vscode.Uri, entryUri: vscode.Uri): HEd
     ];
 }
 
-function createEntriesFromDeclarations(extensionUri: vscode.Uri, declarations: core.Module_declarations): HEditorExplorerTreeEntry[] {
+function createEntriesFromDeclarations(extensionUri: vscode.Uri, documentUri: vscode.Uri, declarations: core.Module_declarations): HEditorExplorerTreeEntry[] {
 
     const aliasEntries: HEditorExplorerTreeEntry[] = declarations.alias_type_declarations.elements.map(
         (declaration: core.Alias_type_declaration) => {
             return new HEditorExplorerTreeEntry(
                 declaration.name,
                 "alias_type_declaration",
-                vscode.Uri.file(""),
+                documentUri,
                 vscode.TreeItemCollapsibleState.None,
                 vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode/codicons', 'src', 'icons', 'symbol-parameter.svg'),
                 declaration.id
@@ -127,7 +127,7 @@ function createEntriesFromDeclarations(extensionUri: vscode.Uri, declarations: c
             return new HEditorExplorerTreeEntry(
                 declaration.name,
                 "enum_declaration",
-                vscode.Uri.file(""),
+                documentUri,
                 vscode.TreeItemCollapsibleState.None,
                 vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode/codicons', 'src', 'icons', 'symbol-enum.svg'),
                 declaration.id
@@ -140,7 +140,7 @@ function createEntriesFromDeclarations(extensionUri: vscode.Uri, declarations: c
             return new HEditorExplorerTreeEntry(
                 declaration.name,
                 "struct_declaration",
-                vscode.Uri.file(""),
+                documentUri,
                 vscode.TreeItemCollapsibleState.None,
                 vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode/codicons', 'src', 'icons', 'symbol-structure.svg'),
                 declaration.id
@@ -153,7 +153,7 @@ function createEntriesFromDeclarations(extensionUri: vscode.Uri, declarations: c
             return new HEditorExplorerTreeEntry(
                 declaration.name,
                 "function_declaration",
-                vscode.Uri.file(""),
+                documentUri,
                 vscode.TreeItemCollapsibleState.None,
                 vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode/codicons', 'src', 'icons', 'symbol-method.svg'),
                 declaration.id
@@ -173,8 +173,8 @@ function createEntriesFromDeclarations(extensionUri: vscode.Uri, declarations: c
 function getContentEntries(document: HDocument, extensionUri: vscode.Uri, entryUri: vscode.Uri): HEditorExplorerTreeEntry[] {
     const state = document.getState();
     return [
-        ...createEntriesFromDeclarations(extensionUri, state.export_declarations),
-        ...createEntriesFromDeclarations(extensionUri, state.internal_declarations)
+        ...createEntriesFromDeclarations(extensionUri, entryUri, state.export_declarations),
+        ...createEntriesFromDeclarations(extensionUri, entryUri, state.internal_declarations)
     ];
 }
 
