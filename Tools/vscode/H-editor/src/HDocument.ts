@@ -227,8 +227,6 @@ function getDeclarationsArrayLength(declarations: any, name: string) {
     return declarations[name].elements.length;
 }
 
-// findElementWithIdIndexOnArrays([{name: "export_declarations", array: this.state.export_declarations[arrayName].elements}, {name: "internal_declarations", array: this.state.internal_declarations[arrayName].elements}])
-
 interface NamedArray {
     name: string;
     array: any[];
@@ -260,6 +258,60 @@ function findElementWithIdIndexOnArrays(namedArrays: NamedArray[], id: number): 
     }
 
     return undefined;
+}
+
+function getStateFromPosition(state: any, position: any[]): any {
+    if (position.length === 0) {
+        return state;
+    }
+
+    return getStateFromPosition(state[position[0]], position.slice(1));
+}
+
+interface ElementWithID {
+    id: number;
+}
+
+function findElementIndicesWithID(elements: ElementWithID[], ids: number[]): number[] {
+    const indices: number[] = [];
+    for (let index = 0; index < elements.length; ++index) {
+        const element = elements[index];
+        for (const id of ids) {
+            if (element.id === id) {
+                indices.push(index);
+            }
+        }
+    }
+    return indices;
+}
+
+function deleteValues(
+    edit: vscode.WorkspaceEdit,
+    ids: number[],
+    elements: ElementWithID[],
+    vectorPosition: any[],
+    document: vscode.TextDocument,
+    text: string
+): void {
+
+    const indices = findElementIndicesWithID(elements, ids);
+    indices.sort((first, second) => second - first);
+
+    for (const index of indices) {
+
+        const deleteInfo = deleteValue(document, text, vectorPosition.concat("elements", index));
+        edit.delete(
+            document.uri,
+            deleteInfo.range
+        );
+    }
+
+    const updateSizeInfo = updateArraySize(document, text, vectorPosition, -indices.length);
+    edit.replace(
+        document.uri,
+        updateSizeInfo.range,
+        updateSizeInfo.newText
+    );
 }
 
 export class HDocument {
@@ -458,8 +510,47 @@ export class HDocument {
         return vscode.workspace.applyEdit(edit);
     }
 
-    public deleteDeclarations(ids: number[]): void {
+    public deleteDeclarations(ids: number[]): Thenable<boolean> {
 
+        const text = this.document.getText(undefined);
+
+        const edit = new vscode.WorkspaceEdit();
+
+        const internalExportValues = [
+            "export_declarations",
+            "internal_declarations"
+        ];
+
+        const declarationTypeValues = [
+            "alias_type_declarations",
+            "enum_declarations",
+            "struct_declarations",
+            "function_declarations"
+        ];
+
+        for (const internalExportValue of internalExportValues) {
+            for (const declarationTypeValue of declarationTypeValues) {
+                deleteValues(
+                    edit,
+                    ids,
+                    getStateFromPosition(this.state, [internalExportValue, declarationTypeValue, "elements"]),
+                    [internalExportValue, declarationTypeValue],
+                    this.document,
+                    text
+                );
+            }
+        }
+
+        deleteValues(
+            edit,
+            ids,
+            this.state.definitions.function_definitions.elements,
+            ["definitions", "function_definitions"],
+            this.document,
+            text
+        );
+
+        return vscode.workspace.applyEdit(edit);
     }
 
     public addFunctionDeclarationAndDefinition(name: string, isExport: boolean): Thenable<boolean> {

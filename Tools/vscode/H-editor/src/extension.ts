@@ -101,11 +101,22 @@ export function activate(context: ExtensionContext) {
     vscode.commands.registerCommand(
       "HEditorExplorer.delete",
       (entry: HEditorExplorerTreeEntry, selectedEntries: HEditorExplorerTreeEntry[]) => {
-        openDocumentIfRequired(hDocumentManager, entry.entryUri).then(
-          (document: HDocument) => {
-            // TODO
-          }
-        );
+
+        if (selectedEntries === undefined) {
+          selectedEntries = [entry];
+        }
+
+        if (selectedEntries.length > 0) {
+          openDocumentIfRequired(hDocumentManager, entry.entryUri).then(
+            (document: HDocument) => {
+              const ids = selectedEntries
+                .map(value => value.hID !== undefined ? value.hID : -1)
+                .filter(value => value !== -1);
+
+              document.deleteDeclarations(ids);
+            }
+          );
+        }
       }
     );
 
