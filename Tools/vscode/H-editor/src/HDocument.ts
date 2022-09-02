@@ -462,19 +462,47 @@ export class HDocument {
 
     }
 
-    public addFunctionDeclarationAndDefinition(name: string, isExport: boolean): void {
+    public addFunctionDeclarationAndDefinition(name: string, isExport: boolean): Thenable<boolean> {
 
-        const declarationName = isExport ? "export_declarations" : "internal_declarations";
-        const declarations = this.state[declarationName]["function_declarations"];
-
-        const position = ["internal_declarations", "function_declarations", "elements", declarations.elements.length];
+        const declarationID = this.state.next_unique_id;
 
         const text = this.document.getText(undefined);
 
         const edit = new vscode.WorkspaceEdit();
-        this.addInsertValueEdits(edit, text, position);
 
-        // TODO
+        {
+            const updateNextUniqueIdInfo = updateValue(this.document, ["next_unique_id"], declarationID + 1);
+
+            edit.replace(
+                this.document.uri,
+                updateNextUniqueIdInfo.range,
+                updateNextUniqueIdInfo.newText
+            );
+        }
+
+        {
+            const definitionsLength = this.state.definitions.function_definitions.elements.length;
+
+            const defaultValueOptions = {
+                id: declarationID
+            };
+
+            this.addInsertValueEdits(edit, text, ["definitions", "function_definitions", "elements", definitionsLength], defaultValueOptions);
+        }
+
+        {
+            const declarationName = isExport ? "export_declarations" : "internal_declarations";
+            const declarationsLength = getDeclarationsArrayLength(this.state[declarationName], "function_declarations");
+
+            const defaultValueOptions = {
+                id: declarationID,
+                name: name
+            };
+
+            this.addInsertValueEdits(edit, text, [declarationName, "function_declarations", "elements", declarationsLength], defaultValueOptions);
+        }
+
+        return vscode.workspace.applyEdit(edit);
     }
 
     public deleteFunctionDefinitionAndDeclaration(id: number): void {
