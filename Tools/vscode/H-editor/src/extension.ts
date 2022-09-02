@@ -25,18 +25,14 @@ function openDocumentIfRequired(hDocumentManager: HDocumentManager, documentUri:
   }
 }
 
-function showInputBoxAndAddDeclaration(hDocumentManager: HDocumentManager, documentUri: vscode.Uri, placeHolder: string, declarationType: string) {
-
-  const inputBoxOptions: vscode.InputBoxOptions = {
-    placeHolder: placeHolder
-  };
+function showInputBoxAndOpenDocumentIfRequired(hDocumentManager: HDocumentManager, documentUri: vscode.Uri, inputBoxOptions: vscode.InputBoxOptions, callback: (value: string, document: HDocument) => void) {
 
   vscode.window.showInputBox(inputBoxOptions).then(
     value => {
       if (value !== undefined && value.length > 0) {
         openDocumentIfRequired(hDocumentManager, documentUri).then(
           (document: HDocument) => {
-            document.addDeclaration(declarationType, value, false);
+            callback(value, document);
           }
         );
       }
@@ -77,33 +73,28 @@ export function activate(context: ExtensionContext) {
     vscode.commands.registerCommand(
       "HEditorExplorer.addAlias",
       (entry: HEditorExplorerTreeEntry, selectedEntries: HEditorExplorerTreeEntry[]) => {
-        showInputBoxAndAddDeclaration(hDocumentManager, entry.entryUri, "Enter alias name", "alias_type_declarations");
+        showInputBoxAndOpenDocumentIfRequired(hDocumentManager, entry.entryUri, { placeHolder: "Enter alias name" }, (value, document) => document.addDeclaration("alias_type_declarations", value, false));
       }
     );
 
     vscode.commands.registerCommand(
       "HEditorExplorer.addEnum",
       (entry: HEditorExplorerTreeEntry, selectedEntries: HEditorExplorerTreeEntry[]) => {
-        showInputBoxAndAddDeclaration(hDocumentManager, entry.entryUri, "Enter enum name", "enum_declarations");
+        showInputBoxAndOpenDocumentIfRequired(hDocumentManager, entry.entryUri, { placeHolder: "Enter enum name" }, (value, document) => document.addDeclaration("enum_declarations", value, false));
       }
     );
 
     vscode.commands.registerCommand(
       "HEditorExplorer.addStruct",
       (entry: HEditorExplorerTreeEntry, selectedEntries: HEditorExplorerTreeEntry[]) => {
-        showInputBoxAndAddDeclaration(hDocumentManager, entry.entryUri, "Enter struct name", "struct_declarations");
+        showInputBoxAndOpenDocumentIfRequired(hDocumentManager, entry.entryUri, { placeHolder: "Enter struct name" }, (value, document) => document.addDeclaration("struct_declarations", value, false));
       }
     );
 
     vscode.commands.registerCommand(
       "HEditorExplorer.addFunction",
       (entry: HEditorExplorerTreeEntry, selectedEntries: HEditorExplorerTreeEntry[]) => {
-        openDocumentIfRequired(hDocumentManager, entry.entryUri).then(
-          (document: HDocument) => {
-            //document.addDeclaration("function_declarations", false);
-            // TODO addEmptyFunctionDefinition
-          }
-        );
+        showInputBoxAndOpenDocumentIfRequired(hDocumentManager, entry.entryUri, { placeHolder: "Enter function name" }, (value, document) => document.addFunctionDeclarationAndDefinition(value, false));
       }
     );
 
@@ -128,25 +119,13 @@ export function activate(context: ExtensionContext) {
           throw Error(message);
         }
 
-        const options: vscode.InputBoxOptions = {
-          placeHolder: "Enter the new name",
-          value: entry.label
-        };
-        vscode.window.showInputBox(options).then(
-          (newName: string | undefined) => {
-            if (newName === undefined || newName.length === 0 || entry.hID === undefined) {
-              return;
+        const arrayName = entry.contextValue + "s";
+
+        showInputBoxAndOpenDocumentIfRequired(hDocumentManager, entry.entryUri, { placeHolder: "Enter the new name", value: entry.label },
+          (value, document) => {
+            if (entry.hID !== undefined) {
+              document.updateDeclarationName(arrayName, entry.hID, value);
             }
-
-            const arrayName = entry.contextValue + "s";
-
-            openDocumentIfRequired(hDocumentManager, entry.entryUri).then(
-              (document: HDocument) => {
-                if (entry.hID !== undefined) {
-                  document.updateDeclarationName(arrayName, entry.hID, newName);
-                }
-              }
-            );
           }
         );
       }

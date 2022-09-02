@@ -462,7 +462,7 @@ export class HDocument {
 
     }
 
-    public addFunctionDeclarationAndDefinition(id: number, isExport: boolean): void {
+    public addFunctionDeclarationAndDefinition(name: string, isExport: boolean): void {
 
         const declarationName = isExport ? "export_declarations" : "internal_declarations";
         const declarations = this.state[declarationName]["function_declarations"];
