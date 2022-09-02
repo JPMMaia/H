@@ -471,13 +471,15 @@ export class HDocument {
         const edit = new vscode.WorkspaceEdit();
 
         {
-            const updateNextUniqueIdInfo = updateValue(this.document, ["next_unique_id"], declarationID + 1);
+            const declarationName = isExport ? "export_declarations" : "internal_declarations";
+            const declarationsLength = getDeclarationsArrayLength(this.state[declarationName], "function_declarations");
 
-            edit.replace(
-                this.document.uri,
-                updateNextUniqueIdInfo.range,
-                updateNextUniqueIdInfo.newText
-            );
+            const defaultValueOptions = {
+                id: declarationID,
+                name: name
+            };
+
+            this.addInsertValueEdits(edit, text, [declarationName, "function_declarations", "elements", declarationsLength], defaultValueOptions);
         }
 
         {
@@ -491,15 +493,13 @@ export class HDocument {
         }
 
         {
-            const declarationName = isExport ? "export_declarations" : "internal_declarations";
-            const declarationsLength = getDeclarationsArrayLength(this.state[declarationName], "function_declarations");
+            const updateNextUniqueIdInfo = updateValue(this.document, ["next_unique_id"], declarationID + 1);
 
-            const defaultValueOptions = {
-                id: declarationID,
-                name: name
-            };
-
-            this.addInsertValueEdits(edit, text, [declarationName, "function_declarations", "elements", declarationsLength], defaultValueOptions);
+            edit.replace(
+                this.document.uri,
+                updateNextUniqueIdInfo.range,
+                updateNextUniqueIdInfo.newText
+            );
         }
 
         return vscode.workspace.applyEdit(edit);
