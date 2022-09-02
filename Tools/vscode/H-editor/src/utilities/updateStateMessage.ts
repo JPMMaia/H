@@ -160,7 +160,7 @@ export function createUpdateMessages(contentChanges: readonly vscode.TextDocumen
         const message = createUpdateStateMessage(changeWithOffset, document, documentJSONProvider);
         messages.push(message);
 
-        offset = (change.text.length - change.rangeLength);
+        offset += (change.text.length - change.rangeLength);
     }
 
     return messages;
