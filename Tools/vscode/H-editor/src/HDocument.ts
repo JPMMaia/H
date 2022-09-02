@@ -446,7 +446,7 @@ export class HDocument {
             name: name
         };
 
-        this.addInsertValueEdits(edit, text, ["internal_declarations", arrayName, "elements", declarationsLength], defaultValueOptions);
+        this.addInsertValueEdits(edit, text, [declarationName, arrayName, "elements", declarationsLength], defaultValueOptions);
 
         const updateNextUniqueIdInfo = updateValue(this.document, ["next_unique_id"], declarationID + 1);
         edit.replace(
