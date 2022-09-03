@@ -3,6 +3,7 @@ import { onMounted, ref } from "vue";
 import { provideVSCodeDesignSystem, vsCodeButton } from "@vscode/webview-ui-toolkit";
 import { vscode } from "./utilities/vscode";
 import { updateState } from "../../src/utilities/updateState";
+import * as core from "../../src/utilities/coreModelInterface";
 
 import Function_declaration from "./components/Function_declaration.vue";
 import Language_version from "./components/Language_version.vue";
@@ -39,53 +40,90 @@ function handleHowdyClick() {
 
 const m_reflectionInfo = { enums: hCoreReflectionInfo.enums, structs: hCoreReflectionInfo.structs };
 
-const m_state = ref<any | null>(null);
+const m_state = ref<core.Module | null>(null);
+
+const m_selectedView = ref<string | null>("module_view");
+const m_viewOptions = ref([
+  { text: "Module view", value: "module_view" },
+  { text: "Function view", value: "function_view" }
+]);
+
+const m_selectedFunction = ref<string | undefined>(undefined);
 
 const m_selectedFrontendLanguage = ref<string | null>("JSON");
-
 const m_frontendLanguageOptions = ref([
   { text: "JSON", value: "JSON" },
   { text: "C", value: "C" },
 ]);
 
-/*m_state.value = {
+m_state.value = {
   language_version: { major: 1, minor: 2, patch: 3 },
   name: "module_name",
   export_declarations: {
+    alias_type_declarations: {
+      size: 0,
+      elements: []
+    },
+    enum_declarations: {
+      size: 0,
+      elements: []
+    },
+    struct_declarations: {
+      size: 0,
+      elements: []
+    },
     function_declarations: {
       size: 1,
       elements: [
         {
-          id: 125,
+          id: 0,
           name: "Add",
           type: {
             return_types: {
               size: 1,
-              elements: [{ data: { type: "fundamental_type", value: "byte" } }],
+              elements: [{ data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } }],
             },
             parameter_types: {
               size: 2,
               elements: [
-                { data: { type: "fundamental_type", value: "byte" } },
-                { data: { type: "fundamental_type", value: "byte" } },
+                { data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } },
+                { data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } },
               ],
             },
             is_variadic: false,
           },
           parameter_ids: { size: 2, elements: [0, 1] },
           parameter_names: { size: 2, elements: ["lhs", "rhs"] },
-          linkage: "external",
+          linkage: core.Linkage.External,
         },
       ],
     },
   },
-  internal_declarations: { function_declarations: { size: 0, elements: [] } },
+  internal_declarations: {
+    alias_type_declarations: {
+      size: 0,
+      elements: []
+    },
+    enum_declarations: {
+      size: 0,
+      elements: []
+    },
+    struct_declarations: {
+      size: 0,
+      elements: []
+    },
+    function_declarations: {
+      size: 0,
+      elements: []
+    }
+  },
+  next_unique_id: 1,
   definitions: {
     function_definitions: {
       size: 1,
       elements: [
         {
-          id: 125,
+          id: 0,
           statements: {
             size: 1,
             elements: [
@@ -97,18 +135,18 @@ const m_frontendLanguageOptions = ref([
                   elements: [
                     {
                       data: {
-                        type: "binary_expression",
+                        type: core.Expression_enum.Binary_expression,
                         value: {
-                          left_hand_side: { type: "function_argument", id: 0 },
-                          right_hand_side: { type: "function_argument", id: 1 },
-                          operation: "add",
+                          left_hand_side: { type: core.Variable_expression_type.Function_argument, id: 0 },
+                          right_hand_side: { type: core.Variable_expression_type.Function_argument, id: 1 },
+                          operation: core.Binary_operation.Add,
                         },
                       },
                     },
                     {
                       data: {
-                        type: "return_expression",
-                        value: { variable: { type: "temporary", id: 0 } },
+                        type: core.Expression_enum.Return_expression,
+                        value: { variable: { type: core.Variable_expression_type.Temporary, id: 0 } },
                       },
                     },
                   ],
@@ -120,7 +158,7 @@ const m_frontendLanguageOptions = ref([
       ],
     },
   },
-};*/
+};
 
 function on_message_received(event: MessageEvent): void {
   const messages = event.data;
@@ -239,6 +277,25 @@ onMounted(() => { });
     <nav>
       <ul>
         <li>
+          <select v-model="m_selectedView">
+            <option v-for="option in m_viewOptions" :value="option.value" v-bind:key="option.value">
+              {{ option.text }}
+            </option>
+          </select>
+        </li>
+        <li v-if="m_selectedView === 'function_view'">
+          <select v-model="m_selectedFunction">
+            <option v-for="declaration in m_state?.export_declarations.function_declarations.elements"
+              :value="declaration.id" v-bind:key="declaration.id">
+              {{ declaration.name }}
+            </option>
+            <option v-for="declaration in m_state?.internal_declarations.function_declarations.elements"
+              :value="declaration.id" v-bind:key="declaration.id">
+              {{ declaration.name }}
+            </option>
+          </select>
+        </li>
+        <li>
           <select v-model="m_selectedFrontendLanguage">
             <option v-for="option in m_frontendLanguageOptions" :value="option.value" v-bind:key="option.value">
               {{ option.text }}
@@ -248,66 +305,78 @@ onMounted(() => { });
       </ul>
     </nav>
 
-    <main v-if="m_state && (m_selectedFrontendLanguage !== 'JSON')">
-      <h1>Module {{ m_state.name }}</h1>
+    <main>
 
-      <section>
-        <h2>Details</h2>
-        <ul>
-          <li>Language version: <Language_version :value="m_state.language_version"></Language_version>
-          </li>
-        </ul>
-      </section>
+      <div v-if="m_state && m_selectedView === 'module_view'">
 
-      <section>
-        <h2>Public functions</h2>
-        <div v-for="(function_declaration, index) in m_state.export_declarations.function_declarations.elements"
-          v-bind:key="function_declaration.id">
-          <Function_declaration :value="function_declaration"
-            v-on:update:name="(new_name) => on_function_name_change(index, function_declaration, true, new_name)">
-          </Function_declaration>
+        <div v-if="m_state && (m_selectedFrontendLanguage !== 'JSON')">
+          <h1>Module {{ m_state.name }}</h1>
+
+          <section>
+            <h2>Details</h2>
+            <ul>
+              <li>Language version: <Language_version :value="m_state.language_version"></Language_version>
+              </li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>Public functions</h2>
+            <div v-for="(function_declaration, index) in m_state.export_declarations.function_declarations.elements"
+              v-bind:key="function_declaration.id">
+              <Function_declaration :value="function_declaration"
+                v-on:update:name="(new_name) => on_function_name_change(index, function_declaration, true, new_name)">
+              </Function_declaration>
+            </div>
+            <p v-if="m_state.export_declarations.function_declarations.elements.length === 0">No public functions</p>
+            <vscode-button @click="create_function(m_state.export_declarations.function_declarations.size, true)">Add
+              function</vscode-button>
+          </section>
+
+          <section>
+            <h2>Private functions</h2>
+            <div v-for="function_declaration in m_state.internal_declarations.function_declarations.elements"
+              v-bind:key="function_declaration.id">
+              <Function_declaration :value="function_declaration"></Function_declaration>
+            </div>
+            <p v-if="m_state.internal_declarations.function_declarations.elements.length === 0">No private functions</p>
+            <vscode-button @click="create_function(m_state.export_declarations.function_declarations.size, false)">Add
+              function</vscode-button>
+          </section>
+
+          <section>
+            <h2>Actions</h2>
+            <vscode-button @click="delete_module">Delete module</vscode-button>
+          </section>
         </div>
-        <p v-if="m_state.export_declarations.function_declarations.elements.length === 0">No public functions</p>
-        <vscode-button @click="create_function(m_state.export_declarations.function_declarations.size, true)">Add
-          function</vscode-button>
-      </section>
 
-      <section>
-        <h2>Private functions</h2>
-        <div v-for="function_declaration in m_state.internal_declarations.function_declarations.elements"
-          v-bind:key="function_declaration.id">
-          <Function_declaration :value="function_declaration"></Function_declaration>
+        <div v-if="m_state && (m_selectedFrontendLanguage === 'JSON')">
+          <JSON_object :value="m_state" :reflection-info="m_reflectionInfo" :reflection-type="{ name: 'Module' }"
+            :is-read-only="false" :indentation="0" :indentation_increment="1"
+            v-on:insert:value="(position) => on_insert_element(position)"
+            v-on:delete:value="(position) => on_delete_element(position)"
+            v-on:update:value="(position, value) => on_value_change(position, value)"
+            v-on:update:variant_type="(position, value) => on_variant_type_change(position, value)">
+          </JSON_object>
+
+          <section>
+            <h2>Actions</h2>
+            <vscode-button @click="delete_module">Delete module</vscode-button>
+          </section>
         </div>
-        <p v-if="m_state.internal_declarations.function_declarations.elements.length === 0">No private functions</p>
-        <vscode-button @click="create_function(m_state.export_declarations.function_declarations.size, false)">Add
-          function</vscode-button>
-      </section>
 
-      <section>
-        <h2>Actions</h2>
-        <vscode-button @click="delete_module">Delete module</vscode-button>
-      </section>
-    </main>
+        <div v-else>
+          This file is empty.
 
-    <main v-if="m_state && (m_selectedFrontendLanguage === 'JSON')">
-      <JSON_object :value="m_state" :reflection-info="m_reflectionInfo" :reflection-type="{ name: 'Module' }"
-        :is-read-only="false" :indentation="0" :indentation_increment="1"
-        v-on:insert:value="(position) => on_insert_element(position)"
-        v-on:delete:value="(position) => on_delete_element(position)"
-        v-on:update:value="(position, value) => on_value_change(position, value)"
-        v-on:update:variant_type="(position, value) => on_variant_type_change(position, value)">
-      </JSON_object>
+          <vscode-button @click="create_module">Create module</vscode-button>
+        </div>
 
-      <section>
-        <h2>Actions</h2>
-        <vscode-button @click="delete_module">Delete module</vscode-button>
-      </section>
-    </main>
+      </div>
 
-    <main v-else>
-      This file is empty.
+      <div v-if="m_state && m_selectedView === 'function_view' && m_selectedFunction !== undefined">
+        <!-- TODO -->
+      </div>
 
-      <vscode-button @click="create_module">Create module</vscode-button>
     </main>
   </div>
 
