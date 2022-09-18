@@ -6,7 +6,7 @@ const properties = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: any): void,
+  (e: 'update:modelValue', value: string): void,
   (e: 'event:on_key_down', event: KeyboardEvent): void,
   (e: 'event:on_focus_out', event: FocusEvent): void
 }>();
@@ -54,11 +54,11 @@ function on_focus_out(event: FocusEvent): void {
 </script>
 
 <template>
-  <input ref="input_element" type="text" :value="modelValue" @input="on_input" @keydown="on_key_down" @blur="on_focus_out" placeholder="<Empty value>" />
+  <input ref="input_element" type="text" :value="modelValue" @input="on_input" @keydown="on_key_down"
+    @blur="on_focus_out" placeholder="<Empty value>" />
 </template>
 
 <style scoped>
-
 input {
   border: 0;
   outline: 0;
