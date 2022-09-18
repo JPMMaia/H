@@ -11,7 +11,7 @@ const properties = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'update', id: number, name: string): void
+  (e: 'update', id: number, name: string, data: any): void
 }>();
 
 // TODO emit selected value event with cancelation token?
@@ -57,7 +57,7 @@ function select_value(value_to_select: Search_entry): void {
     m_search_term.value = value_to_select.name;
     m_toggle.value = false;
 
-    emit("update", value_to_select.id, value_to_select.name);
+    emit("update", value_to_select.id, value_to_select.name, value_to_select.data);
   }
 }
 
