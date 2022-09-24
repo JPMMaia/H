@@ -5,6 +5,7 @@ import { computed, ref } from "vue";
 import * as core from "../../../../src/utilities/coreModelInterface";
 
 import Number_input from "../Number_input.vue";
+import Select_type_reference from "./Select_type_reference.vue";
 
 const properties = defineProps<{
     module: core.Module;
@@ -43,14 +44,22 @@ function on_size_updated(new_value: number): void {
 </script>
 
 <template>
-    <Number_input :modelValue="constant_array_type_value.size" :minimum="1" :maximum=Number.MAX_VALUE
-        v-on:update:modelValue="on_size_updated">
-    </Number_input>
-    <!-- TODO constant array type -->
-    <!-- <Select_type_reference :module="properties.module"
-                    :current_type_reference="constant_array_type_reference" v-on:update:type_reference=""> -->
+    <div>
+        <label for="array_size">Size </label>
+        <Number_input id="array_size" :modelValue="constant_array_type_value.size" :minimum="1"
+            :maximum=Number.MAX_VALUE v-on:update:modelValue="on_size_updated">
+        </Number_input>
+    </div>
+    <div>
+        <label for="array_type">Type</label>
+        <Select_type_reference id="array_type" :module="properties.module"
+            :current_type_reference="properties.current_type_reference">
+        </Select_type_reference>
+    </div>
 </template>
 
 <style scoped>
-
+#array_type {
+    padding-left: 4ch;
+}
 </style>

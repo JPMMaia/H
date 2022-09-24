@@ -6,11 +6,9 @@ import * as core from "../../../../src/utilities/coreModelInterface";
 import * as coreInterfaceHelpers from "../../../../src/utilities/coreModelInterfaceHelpers";
 import * as searchUtilities from "../../utilities/Search_utilities";
 
-import Search_field from "../Search_field.vue";
 import type { Search_entry } from "@/utilities/Search_entry";
 import type { CodeWithSourceMap } from "source-map";
 import { onThrowError } from "../../../../src/utilities/errors";
-import Editable from "../Editable.vue";
 
 import Select_builtin_type_reference from "./Select_builtin_type_reference.vue";
 import Select_constant_array_type_reference from "./Select_constant_array_type_reference.vue";
@@ -29,9 +27,6 @@ const properties = defineProps<{
 const emit = defineEmits<{
     (e: 'update:type_reference', value: core.Type_reference): void,
 }>();
-
-const selected_meta_type = ref<string | undefined>(undefined);
-const current_type_reference = ref<core.Type_reference>(properties.current_type_reference);
 
 function get_meta_type(type: core.Type_reference_enum): string {
 
@@ -71,7 +66,15 @@ function create_default_type_reference(): core.Type_reference {
     return new_type_reference;
 }
 
-// TODO on selected_meta_type changed
+const selected_meta_type = ref<string>(get_meta_type(properties.current_type_reference.data.type));
+const current_type_reference = ref<core.Type_reference>(properties.current_type_reference);
+
+function on_meta_type_changed(event: Event): void {
+    if (event.target !== null) {
+        const target = event.target as HTMLSelectElement;
+        selected_meta_type.value = target.value;
+    }
+}
 
 function on_type_reference_updated(new_type_reference: core.Type_reference): void {
     emit("update:type_reference", new_type_reference);
@@ -81,7 +84,8 @@ function on_type_reference_updated(new_type_reference: core.Type_reference): voi
 
 <template>
     <div>
-        <select v-model="selected_meta_type">
+        <select :value="selected_meta_type" :modelValue="selected_meta_type"
+            v-on:change="event => on_meta_type_changed(event)">
             <option value="Builtin_type">Builtin type</option>
             <option value="Constant_array_type">Constant array</option>
             <option value="Fundamental_type">Fundamental type</option>

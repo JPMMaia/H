@@ -5,6 +5,7 @@ import { computed, ref } from "vue";
 import * as core from "../../../../src/utilities/coreModelInterface";
 
 import Checkbox_input from "../Checkbox_input.vue";
+import Select_type_reference from "./Select_type_reference.vue";
 
 const properties = defineProps<{
     module: core.Module;
@@ -49,8 +50,16 @@ function on_is_mutable_updated(new_value: boolean): void {
             v-on:update:modelValue="on_is_mutable_updated">
         </Checkbox_input>
     </div>
+    <div>
+        <label for="value_type">Type</label>
+        <Select_type_reference id="value_type" :module="properties.module"
+            :current_type_reference="properties.current_type_reference">
+        </Select_type_reference>
+    </div>
 </template>
 
 <style scoped>
-
+#value_type {
+    padding-left: 4ch;
+}
 </style>

@@ -4,7 +4,7 @@ import { computed, ref } from "vue";
 
 import * as core from "../../../../src/utilities/coreModelInterface";
 
-import Editable from "./Editable.vue";
+import Editable from "../Editable.vue";
 
 const properties = defineProps<{
     current_type_reference: core.Type_reference;

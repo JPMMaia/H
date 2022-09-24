@@ -6,6 +6,8 @@ import * as core from "../../../../src/utilities/coreModelInterface";
 import * as name_utilities from "../../utilities/Name_utilities";
 import * as search_utilities from "../../utilities/Search_utilities";
 
+import Search_field from "../Search_field.vue";
+
 const properties = defineProps<{
     current_type_reference: core.Type_reference;
 }>();
