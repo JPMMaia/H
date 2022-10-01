@@ -1,6 +1,32 @@
 import * as core from "./coreModelInterface";
 import { onThrowError } from "./errors";
 
+export interface FindFunctionDeclarationResult {
+    index: number,
+    isExportDeclaration: boolean
+};
+
+export function findFunctionDeclarationIndexWithId(module: core.Module, functionId: number): FindFunctionDeclarationResult {
+
+    {
+        const index = module.export_declarations.function_declarations.elements.findIndex(value => value.id === functionId);
+        if (index !== -1) {
+            return { index: index, isExportDeclaration: true };
+        }
+    }
+
+    {
+        const index = module.internal_declarations.function_declarations.elements.findIndex(value => value.id === functionId);
+        if (index !== -1) {
+            return { index: index, isExportDeclaration: false };
+        }
+    }
+
+    const message = "Could not find function declaration with ID " + functionId.toString();
+    onThrowError(message);
+    throw Error(message);
+}
+
 export function findFunctionDeclarationWithId(module: core.Module, id: number): core.Function_declaration {
 
     {
@@ -129,4 +155,11 @@ export function getVisibleOtherTypesForModule(module: core.Module): OtherTypes {
         enumTypes: enumTypes,
         structTypes: structTypes
     };
+}
+
+export interface FunctionParameterInfo {
+    index: number,
+    id: number,
+    name: string,
+    type: core.Type_reference
 }

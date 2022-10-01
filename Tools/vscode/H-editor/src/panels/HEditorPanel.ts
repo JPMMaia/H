@@ -85,6 +85,8 @@ export class HEditorPanel {
     // The JS file from the Vue build output
     const scriptUri = getUri(webview, extensionUri, ["webview-ui", "build", "assets", "index.js"]);
 
+    const codiconsUri = getUri(webview, extensionUri, ["node_modules", "@vscode/codicons", "dist", "codicon.css"]);
+
     // Tip: Install the es6-string-html VS Code extension to enable code highlighting below
     return /*html*/ `
       <!DOCTYPE html>
@@ -92,7 +94,10 @@ export class HEditorPanel {
         <head>
           <meta charset="UTF-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
           <link rel="stylesheet" type="text/css" href="${stylesUri}">
+          <link rel="stylesheet" type="text/css" href="${codiconsUri}">
+
           <title>Hello World</title>
         </head>
         <body>
@@ -141,6 +146,26 @@ export class HEditorPanel {
       case "update:variant_type":
         for (const listener of this.listeners) {
           listener.updateVariant(message.data.position, message.data.new_value);
+        }
+        break;
+      case "add:function_parameter":
+        for (const listener of this.listeners) {
+          listener.addFunctionParameter(message.data.function_id, message.data.parameter_info);
+        }
+        break;
+      case "remove:function_parameter":
+        for (const listener of this.listeners) {
+          listener.removeFunctionParameter(message.data.function_id, message.data.parameter_index);
+        }
+        break;
+      case "move_up:function_parameter":
+        for (const listener of this.listeners) {
+          listener.moveFunctionParameterUp(message.data.function_id, message.data.parameter_index);
+        }
+        break;
+      case "move_down:function_parameter":
+        for (const listener of this.listeners) {
+          listener.moveFunctionParameterDown(message.data.function_id, message.data.parameter_index);
         }
         break;
     }

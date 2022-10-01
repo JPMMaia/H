@@ -3,7 +3,8 @@ import { onMounted, ref } from "vue";
 import { provideVSCodeDesignSystem, vsCodeButton } from "@vscode/webview-ui-toolkit";
 import { vscode } from "./utilities/vscode";
 import { updateState } from "../../src/utilities/updateState";
-import type * as core from "../../src/utilities/coreModelInterface";
+import * as core from "../../src/utilities/coreModelInterface";
+import type * as coreHelpers from "../../src/utilities/coreModelInterfaceHelpers";
 
 import Function_declaration from "./components/Function_declaration.vue";
 import Function_parameters from "./components/Function_parameters.vue";
@@ -58,7 +59,7 @@ const m_frontendLanguageOptions = ref([
   { text: "C", value: "C" },
 ]);
 
-/*m_state.value = {
+m_state.value = {
   language_version: { major: 1, minor: 2, patch: 3 },
   name: "module_name",
   export_declarations: {
@@ -160,7 +161,7 @@ const m_frontendLanguageOptions = ref([
       ],
     },
   },
-};*/
+};
 
 function get_module(): core.Module {
   if (m_state.value !== null) {
@@ -281,6 +282,46 @@ function create_function(index: number, is_export_declaration: boolean): void {
   });
 }
 
+function add_function_parameter(function_id: number, parameter_info: coreHelpers.FunctionParameterInfo): void {
+  vscode.postMessage({
+    command: "add:function_parameter",
+    data: {
+      function_id: function_id,
+      parameter_info: parameter_info
+    }
+  });
+}
+
+function remove_function_parameter(function_id: number, parameter_index: number): void {
+  vscode.postMessage({
+    command: "remove:function_parameter",
+    data: {
+      function_id: function_id,
+      parameter_index: parameter_index
+    }
+  });
+}
+
+function move_function_parameter_up(function_id: number, parameter_index: number): void {
+  vscode.postMessage({
+    command: "move_up:function_parameter",
+    data: {
+      function_id: function_id,
+      parameter_index: parameter_index
+    }
+  });
+}
+
+function move_function_parameter_down(function_id: number, parameter_index: number): void {
+  vscode.postMessage({
+    command: "move_down:function_parameter",
+    data: {
+      function_id: function_id,
+      parameter_index: parameter_index
+    }
+  });
+}
+
 onMounted(() => { });
 </script>
 
@@ -319,7 +360,11 @@ onMounted(() => { });
       </ul>
 
       <Function_parameters v-if="m_selectedView === 'function_view' && m_selectedFunctionId !== undefined"
-        :module="get_module()" :function_id="m_selectedFunctionId">
+        :module="get_module()" :function_id="m_selectedFunctionId"
+        v-on:add:input_parameter="(function_id, parameter_info) => { if (m_selectedFunctionId!== undefined) add_function_parameter(function_id, parameter_info) }"
+        v-on:remove:input_parameter="(function_id, parameter_index) => { if (m_selectedFunctionId!== undefined) remove_function_parameter(function_id, parameter_index) }"
+        v-on:move-up:input_parameter="(function_id, parameter_index) => { if (m_selectedFunctionId!== undefined) move_function_parameter_up(function_id, parameter_index) }"
+        v-on:move-down:input_parameter="(function_id, parameter_index) => { if (m_selectedFunctionId!== undefined) move_function_parameter_down(function_id, parameter_index) }">
       </Function_parameters>
     </nav>
 
@@ -347,8 +392,9 @@ onMounted(() => { });
               </Function_declaration>
             </div>
             <p v-if="m_state.export_declarations.function_declarations.elements.length === 0">No public functions</p>
-            <vscode-button @click="create_function(m_state.export_declarations.function_declarations.size, true)">Add
-              function</vscode-button>
+            <vscode-button
+              v-on:click="() => {if(m_state !== null) create_function(m_state.export_declarations.function_declarations.size, true)}">
+              Add function</vscode-button>
           </section>
 
           <section>
@@ -358,8 +404,9 @@ onMounted(() => { });
               <Function_declaration :value="function_declaration"></Function_declaration>
             </div>
             <p v-if="m_state.internal_declarations.function_declarations.elements.length === 0">No private functions</p>
-            <vscode-button @click="create_function(m_state.export_declarations.function_declarations.size, false)">Add
-              function</vscode-button>
+            <vscode-button
+              v-on:click="() => {if (m_state !== null) create_function(m_state.export_declarations.function_declarations.size, false)}">
+              Add function</vscode-button>
           </section>
 
           <section>
@@ -391,7 +438,7 @@ onMounted(() => { });
 
       </div>
 
-      <div v-if="m_state && m_selectedView === 'function_view' && m_selectedFunction !== undefined">
+      <div v-if="m_state && m_selectedView === 'function_view' && m_selectedFunctionId !== undefined">
         <!-- TODO -->
       </div>
 
