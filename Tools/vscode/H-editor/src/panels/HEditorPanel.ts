@@ -125,7 +125,7 @@ export class HEditorPanel {
         break;
       case "insert:value":
         for (const listener of this.listeners) {
-          listener.insertValue(message.data.position);
+          listener.insertValue(message.data.position, message.data.value);
         }
         break;
       case "delete:value":

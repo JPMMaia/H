@@ -3,7 +3,7 @@
 import { computed, onMounted, ref } from "vue";
 import "@vscode/codicons/dist/codicon.css";
 
-import * as core from "../../../src/utilities/coreModelInterface";
+import type * as core from "../../../src/utilities/coreModelInterface";
 import * as coreInterfaceHelpers from "../../../src/utilities/coreModelInterfaceHelpers";
 import * as searchUtilities from "../utilities/Search_utilities";
 
@@ -18,7 +18,7 @@ const properties = defineProps<{
 }>();
 
 const emit = defineEmits<{
-    (e: 'add:input_parameter'): void,
+    (e: 'add:input_parameter', index: number, name: string, type: core.Type_reference): void,
     (e: 'remove:input_parameter', index: number): void,
     (e: 'move-up:input_parameter', index: number): void,
     (e: 'move-down:input_parameter', index: number): void

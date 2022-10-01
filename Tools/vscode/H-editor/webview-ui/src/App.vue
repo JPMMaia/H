@@ -3,14 +3,16 @@ import { onMounted, ref } from "vue";
 import { provideVSCodeDesignSystem, vsCodeButton } from "@vscode/webview-ui-toolkit";
 import { vscode } from "./utilities/vscode";
 import { updateState } from "../../src/utilities/updateState";
-import * as core from "../../src/utilities/coreModelInterface";
+import type * as core from "../../src/utilities/coreModelInterface";
 
 import Function_declaration from "./components/Function_declaration.vue";
+import Function_parameters from "./components/Function_parameters.vue";
 import Language_version from "./components/Language_version.vue";
 import JSON_object from "./components/JSON_object.vue";
 
 import { get_type_name } from "./utilities/language";
 import * as hCoreReflectionInfo from "../../src/utilities/h_core_reflection.json";
+import { onThrowError } from "../../src/utilities/errors";
 
 // In order to use the Webview UI Toolkit web components they
 // must be registered with the browser (i.e. webview) using the
@@ -48,7 +50,7 @@ const m_viewOptions = ref([
   { text: "Function view", value: "function_view" }
 ]);
 
-const m_selectedFunction = ref<string | undefined>(undefined);
+const m_selectedFunctionId = ref<number | undefined>(undefined);
 
 const m_selectedFrontendLanguage = ref<string | null>("JSON");
 const m_frontendLanguageOptions = ref([
@@ -56,7 +58,7 @@ const m_frontendLanguageOptions = ref([
   { text: "C", value: "C" },
 ]);
 
-m_state.value = {
+/*m_state.value = {
   language_version: { major: 1, minor: 2, patch: 3 },
   name: "module_name",
   export_declarations: {
@@ -158,7 +160,18 @@ m_state.value = {
       ],
     },
   },
-};
+};*/
+
+function get_module(): core.Module {
+  if (m_state.value !== null) {
+    const module: core.Module = m_state.value;
+    return module;
+  }
+
+  const message = "get_module(): m_state is null!";
+  onThrowError(message);
+  throw Error(message);
+}
 
 function on_message_received(event: MessageEvent): void {
   const messages = event.data;
@@ -187,11 +200,12 @@ function on_message_received(event: MessageEvent): void {
 
 window.addEventListener("message", on_message_received);
 
-function on_insert_element(position: any[]): void {
+function on_insert_element(position: any[], value?: any): void {
   vscode.postMessage({
     command: "insert:value",
     data: {
       position: position,
+      value: value
     },
   });
 }
@@ -284,7 +298,7 @@ onMounted(() => { });
           </select>
         </li>
         <li v-if="m_selectedView === 'function_view'">
-          <select v-model="m_selectedFunction">
+          <select v-model="m_selectedFunctionId">
             <option v-for="declaration in m_state?.export_declarations.function_declarations.elements"
               :value="declaration.id" v-bind:key="declaration.id">
               {{ declaration.name }}
@@ -303,6 +317,10 @@ onMounted(() => { });
           </select>
         </li>
       </ul>
+
+      <Function_parameters v-if="m_selectedView === 'function_view' && m_selectedFunctionId !== undefined"
+        :module="get_module()" :function_id="m_selectedFunctionId">
+      </Function_parameters>
     </nav>
 
     <main>
@@ -353,7 +371,7 @@ onMounted(() => { });
         <div v-if="m_state && (m_selectedFrontendLanguage === 'JSON')">
           <JSON_object :value="m_state" :reflection-info="m_reflectionInfo" :reflection-type="{ name: 'Module' }"
             :is-read-only="false" :indentation="0" :indentation_increment="1"
-            v-on:insert:value="(position) => on_insert_element(position)"
+            v-on:insert:value="(position) => on_insert_element(position, undefined)"
             v-on:delete:value="(position) => on_delete_element(position)"
             v-on:update:value="(position, value) => on_value_change(position, value)"
             v-on:update:variant_type="(position, value) => on_variant_type_change(position, value)">

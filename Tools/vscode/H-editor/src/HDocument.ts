@@ -100,10 +100,10 @@ function updateArraySize(document: vscode.TextDocument, text: string, position: 
     return updateValueWithOffset(document, text, offsetResult.offset, newArraySize);
 }
 
-function insertValue(document: vscode.TextDocument, text: string, position: any[], defaultValueOptions?: coreModel.DefaultValueOptions): InsertInfo {
+function insertValue(document: vscode.TextDocument, text: string, position: any[], value?: any, defaultValueOptions?: coreModel.DefaultValueOptions): InsertInfo {
 
     const reflectionInfo = { enums: hCoreReflectionInfo.enums, structs: hCoreReflectionInfo.structs };
-    const newElement = createDefaultElement(reflectionInfo, position, defaultValueOptions);
+    const newElement = value !== undefined ? value : createDefaultElement(reflectionInfo, position, defaultValueOptions);
     const newElementText = JSON.stringify(newElement);
 
     // TODO cache
@@ -398,9 +398,9 @@ export class HDocument {
 
     }
 
-    private addInsertValueEdits(edit: vscode.WorkspaceEdit, text: string, position: any[], defaultValueOptions?: coreModel.DefaultValueOptions): void {
+    private addInsertValueEdits(edit: vscode.WorkspaceEdit, text: string, position: any[], value?: any, defaultValueOptions?: coreModel.DefaultValueOptions): void {
 
-        const insertInfo = insertValue(this.document, text, position, defaultValueOptions);
+        const insertInfo = insertValue(this.document, text, position, value, defaultValueOptions);
         edit.insert(
             this.document.uri,
             insertInfo.position,
@@ -415,12 +415,12 @@ export class HDocument {
         );
     }
 
-    public insertValue(position: any[]): Thenable<boolean> {
+    public insertValue(position: any[], value: any): Thenable<boolean> {
 
         const text = this.document.getText(undefined);
 
         const edit = new vscode.WorkspaceEdit();
-        this.addInsertValueEdits(edit, text, position);
+        this.addInsertValueEdits(edit, text, position, value);
 
         return vscode.workspace.applyEdit(edit);
     }
@@ -498,7 +498,7 @@ export class HDocument {
             name: name
         };
 
-        this.addInsertValueEdits(edit, text, [declarationName, arrayName, "elements", declarationsLength], defaultValueOptions);
+        this.addInsertValueEdits(edit, text, [declarationName, arrayName, "elements", declarationsLength], undefined, defaultValueOptions);
 
         const updateNextUniqueIdInfo = updateValue(this.document, ["next_unique_id"], declarationID + 1);
         edit.replace(
@@ -570,7 +570,7 @@ export class HDocument {
                 name: name
             };
 
-            this.addInsertValueEdits(edit, text, [declarationName, "function_declarations", "elements", declarationsLength], defaultValueOptions);
+            this.addInsertValueEdits(edit, text, [declarationName, "function_declarations", "elements", declarationsLength], undefined, defaultValueOptions);
         }
 
         {
@@ -580,7 +580,7 @@ export class HDocument {
                 id: declarationID
             };
 
-            this.addInsertValueEdits(edit, text, ["definitions", "function_definitions", "elements", definitionsLength], defaultValueOptions);
+            this.addInsertValueEdits(edit, text, ["definitions", "function_definitions", "elements", definitionsLength], undefined, defaultValueOptions);
         }
 
         {
