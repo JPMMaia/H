@@ -3,7 +3,7 @@
 import { computed, ref } from "vue";
 
 import * as core from "../../../../src/utilities/coreModelInterface";
-import * as name_utilities from "../../utilities/Name_utilities";
+import * as type_utilities from "../../utilities/Type_utilities";
 import * as search_utilities from "../../utilities/Search_utilities";
 
 import Search_field from "../Search_field.vue";
@@ -25,7 +25,7 @@ const integer_type_value = ref<core.Integer_type>(initial_value);
 
 function on_select_integer_type(id: number, name: string, data: any): void {
 
-    const integer_type = name_utilities.parse_integer_type(name);
+    const integer_type = type_utilities.parse_integer_type(name);
 
     const new_type_reference: core.Type_reference = {
         data: {
@@ -41,7 +41,7 @@ function on_select_integer_type(id: number, name: string, data: any): void {
 
 <template>
     <Search_field :possible_values="search_utilities.get_byte_aligned_integer_types_search_entries()"
-        :current_search_term="name_utilities.get_integer_name(integer_type_value)" v-on:update="on_select_integer_type">
+        :current_search_term="type_utilities.get_integer_name(integer_type_value)" v-on:update="on_select_integer_type">
     </Search_field>
 </template>
 

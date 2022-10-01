@@ -4,7 +4,7 @@ import { computed, ref } from "vue";
 
 import * as core from "../../../../src/utilities/coreModelInterface";
 
-import * as name_utilities from "../../utilities/Name_utilities";
+import * as type_utilities from "../../utilities/Type_utilities";
 import * as search_utilities from "../../utilities/Search_utilities";
 
 import Search_field from "../Search_field.vue";
@@ -34,7 +34,7 @@ function create_initial_value(current_type_reference: core.Type_reference): core
 }
 
 const initial_value = create_initial_value(properties.current_type_reference);
-const initial_search_term = initial_value === undefined ? "" : name_utilities.get_other_type_reference_name(properties.module, properties.current_type_reference.data.type, initial_value);
+const initial_search_term = initial_value === undefined ? "" : type_utilities.get_other_type_reference_name(properties.module, properties.current_type_reference.data.type, initial_value);
 
 function on_value_updated(id: number, name: string, data: any): void {
 

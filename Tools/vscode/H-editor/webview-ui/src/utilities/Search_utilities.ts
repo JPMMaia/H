@@ -1,7 +1,7 @@
 import * as core from "../../../src/utilities/coreModelInterface";
 import * as coreInterfaceHelpers from "../../../src/utilities/coreModelInterfaceHelpers";
 import type { Search_entry } from "./Search_entry";
-import * as nameUtilities from "./Name_utilities";
+import * as nameUtilities from "./Type_utilities";
 
 export function get_fundamental_types_search_entries(): Search_entry[] {
 

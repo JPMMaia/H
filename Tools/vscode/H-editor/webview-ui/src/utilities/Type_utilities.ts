@@ -58,3 +58,18 @@ export function get_other_type_reference_name(
         throw Error(message);
     }
 }
+
+export function create_default_type_reference(): core.Type_reference {
+
+    const new_type_reference: core.Type_reference = {
+        data: {
+            type: core.Type_reference_enum.Integer_type,
+            value: {
+                number_of_bits: 32,
+                is_signed: true
+            }
+        }
+    };
+
+    return new_type_reference;
+}
