@@ -141,12 +141,12 @@ function get_key_reflection_type(reflectionInfo: ReflectionInfo, reflectionType:
 
 function get_enum_possible_values(reflectionInfo: ReflectionInfo, reflectionType: ReflectionType): Search_entry[] {
     const enumType = coreModel.getEnumType(reflectionInfo.enums, reflectionType);
-    return enumType.values.map((value, index) => { return { id: index, name: value, icon: "codicon-symbol-enum" } });
+    return enumType.values.map((value, index) => { return { id: index, name: value, icon: "codicon-symbol-enum", data: undefined } });
 }
 
 function get_variant_type_possible_values(reflectionInfo: ReflectionInfo, reflectionType: ReflectionType): Search_entry[] {
     const variantValueTypes = coreModel.getVariantValueTypes(reflectionType);
-    return variantValueTypes.map((value, index) => { return { id: index, name: value.name, icon: "codicon-symbol-parameter" } });
+    return variantValueTypes.map((value, index) => { return { id: index, name: value.name, icon: "codicon-symbol-parameter", data: undefined } });
 }
 
 function is_key_read_only(reflectionType: ReflectionType, key: string): boolean {
