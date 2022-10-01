@@ -4,6 +4,7 @@ import { computed, ref } from "vue";
 
 import * as core from "../../../../src/utilities/coreModelInterface";
 import * as coreInterfaceHelpers from "../../../../src/utilities/coreModelInterfaceHelpers";
+import * as type_utilities from "../../utilities/Type_utilities";
 import * as searchUtilities from "../../utilities/Search_utilities";
 
 import type { Search_entry } from "@/utilities/Search_entry";
@@ -51,21 +52,6 @@ function get_meta_type(type: core.Type_reference_enum): string {
     }
 }
 
-function create_default_type_reference(): core.Type_reference {
-
-    const new_type_reference: core.Type_reference = {
-        data: {
-            type: core.Type_reference_enum.Integer_type,
-            value: {
-                number_of_bits: 32,
-                is_signed: true
-            }
-        }
-    };
-
-    return new_type_reference;
-}
-
 const selected_meta_type = ref<string>(get_meta_type(properties.current_type_reference.data.type));
 const current_type_reference = ref<core.Type_reference>(properties.current_type_reference);
 
@@ -103,7 +89,7 @@ function on_type_reference_updated(new_type_reference: core.Type_reference): voi
             <div v-if="selected_meta_type === 'Constant_array_type'">
                 <Select_constant_array_type_reference :module="properties.module"
                     :current_type_reference="current_type_reference"
-                    :default_value_type="create_default_type_reference()"
+                    :default_value_type="type_utilities.create_default_type_reference()"
                     v-on:update:type_reference="on_type_reference_updated"></Select_constant_array_type_reference>
             </div>
             <div v-if="selected_meta_type === 'Fundamental_type'">
@@ -118,14 +104,14 @@ function on_type_reference_updated(new_type_reference: core.Type_reference): voi
             <div v-if="selected_meta_type === 'Pointer_type'">
                 <Select_pointer_type_reference :module="properties.module"
                     :current_type_reference="current_type_reference"
-                    :default_value_type="{size: 1, elements: [create_default_type_reference()]}"
+                    :default_value_type="{size: 1, elements: [type_utilities.create_default_type_reference()]}"
                     v-on:update:type_reference="on_type_reference_updated">
                 </Select_pointer_type_reference>
             </div>
             <div v-if="selected_meta_type === 'Function_type'">
                 <Select_function_type_reference :module="properties.module"
                     :current_type_reference="current_type_reference"
-                    :default_value_type="create_default_type_reference()"
+                    :default_value_type="type_utilities.create_default_type_reference()"
                     v-on:update:type_reference="on_type_reference_updated">
                 </Select_function_type_reference>
             </div>
