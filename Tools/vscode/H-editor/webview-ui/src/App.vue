@@ -361,10 +361,10 @@ onMounted(() => { });
 
       <Function_parameters v-if="m_selectedView === 'function_view' && m_selectedFunctionId !== undefined"
         :module="get_module()" :function_id="m_selectedFunctionId"
-        v-on:add:input_parameter="(function_id, parameter_info) => { if (m_selectedFunctionId!== undefined) add_function_parameter(function_id, parameter_info) }"
-        v-on:remove:input_parameter="(function_id, parameter_index) => { if (m_selectedFunctionId!== undefined) remove_function_parameter(function_id, parameter_index) }"
-        v-on:move-up:input_parameter="(function_id, parameter_index) => { if (m_selectedFunctionId!== undefined) move_function_parameter_up(function_id, parameter_index) }"
-        v-on:move-down:input_parameter="(function_id, parameter_index) => { if (m_selectedFunctionId!== undefined) move_function_parameter_down(function_id, parameter_index) }">
+        v-on:add:parameter="(function_id, parameter_info) => { if (m_selectedFunctionId!== undefined) add_function_parameter(function_id, parameter_info) }"
+        v-on:remove:parameter="(function_id, parameter_index) => { if (m_selectedFunctionId!== undefined) remove_function_parameter(function_id, parameter_index) }"
+        v-on:move-up:parameter="(function_id, parameter_index) => { if (m_selectedFunctionId!== undefined) move_function_parameter_up(function_id, parameter_index) }"
+        v-on:move-down:parameter="(function_id, parameter_index) => { if (m_selectedFunctionId!== undefined) move_function_parameter_down(function_id, parameter_index) }">
       </Function_parameters>
     </nav>
 

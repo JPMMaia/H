@@ -1,16 +1,15 @@
 <script setup lang="ts">
 
-import { computed, onMounted, ref } from "vue";
+import { computed, ref } from "vue";
 import "@vscode/codicons/dist/codicon.css";
 
 import type * as core from "../../../src/utilities/coreModelInterface";
 import * as coreInterfaceHelpers from "../../../src/utilities/coreModelInterfaceHelpers";
 import * as type_utilities from "../utilities/Type_utilities";
-import * as searchUtilities from "../utilities/Search_utilities";
 
-import Editable from "./Editable.vue";
-import Search_field from "./Search_field.vue";
+import List from "./common/List.vue";
 import Select_type_reference from "./type_reference/Select_type_reference.vue";
+import Text_input from "./common/Text_input.vue";
 
 
 const properties = defineProps<{
@@ -19,47 +18,41 @@ const properties = defineProps<{
 }>();
 
 const emit = defineEmits<{
-    (e: 'add:input_parameter', function_id: number, parameter_info: coreInterfaceHelpers.FunctionParameterInfo): void,
-    (e: 'remove:input_parameter', function_id: number, index: number): void,
-    (e: 'move-up:input_parameter', function_id: number, index: number): void,
-    (e: 'move-down:input_parameter', function_id: number, index: number): void
+    (e: 'add:parameter', function_id: number, parameter_info: coreInterfaceHelpers.FunctionParameterInfo): void,
+    (e: 'remove:parameter', function_id: number, index: number): void,
+    (e: 'move-up:parameter', function_id: number, index: number): void,
+    (e: 'move-down:parameter', function_id: number, index: number): void
 }>();
 
 const function_declaration = computed(() => {
     return coreInterfaceHelpers.findFunctionDeclarationWithId(properties.module, properties.function_id);
 });
 
-const function_definiton = computed(() => {
-    return coreInterfaceHelpers.findFunctionDefinitionWithId(properties.module, properties.function_id);
+interface Function_parameter {
+    id: number,
+    name: string,
+    type: core.Type_reference
+}
+
+const function_parameters = computed(() => {
+
+    const parameters: Function_parameter[] = [];
+
+    for (let index = 0; index < function_declaration.value.parameter_ids.size; ++index) {
+
+        const parameter: Function_parameter = {
+            id: function_declaration.value.parameter_ids.elements[index],
+            name: function_declaration.value.parameter_names.elements[index],
+            type: function_declaration.value.type.parameter_types.elements[index]
+        };
+
+        parameters.push(parameter);
+    }
+
+    return parameters;
 });
 
-function get_function_parameter_type(parameter_index: number): core.Type_reference {
-    const parameter_type = function_declaration.value.type.parameter_types.elements[parameter_index];
-    return parameter_type;
-}
-
-const select_parameter_html_element = ref<HTMLSelectElement | undefined>(undefined);
-const selected_parameter_index = ref<number | undefined>(function_declaration.value.parameter_ids.size > 0 ? 0 : undefined);
-
-function select_parameter(index: number): void {
-
-    if (select_parameter_html_element.value !== undefined) {
-        const select_element = select_parameter_html_element.value;
-        select_element.value = index.toString();
-    }
-
-    selected_parameter_index.value = index;
-}
-
-function on_selected_parameter_index_changed(event: Event): void {
-    if (event.target !== null) {
-        const target = event.target as HTMLSelectElement;
-        const index = Number(target.value);
-        if (!isNaN(index)) {
-            selected_parameter_index.value = index;
-        }
-    }
-}
+const id_name = "function_" + properties.function_id.toString();
 
 function calculate_new_function_parameter_id(function_declaration: core.Function_declaration): number {
 
@@ -83,81 +76,47 @@ function add_function_parameter(index: number): void {
         type: type_reference
     };
 
-    emit("add:input_parameter", properties.function_id, parameter_info);
+    emit("add:parameter", properties.function_id, parameter_info);
 }
 
 function remove_function_parameter(index: number): void {
-    emit("remove:input_parameter", properties.function_id, index);
+    emit("remove:parameter", properties.function_id, index);
 }
 
 function move_function_parameter_up(index: number): void {
-    if (index > 0) {
-        emit("move-up:input_parameter", properties.function_id, index);
-        select_parameter(index - 1);
-    }
+    emit("move-up:parameter", properties.function_id, index);
 }
 
 function move_function_parameter_down(index: number): void {
-    if ((index + 1) < function_declaration.value.parameter_ids.size) {
-        emit("move-down:input_parameter", properties.function_id, index);
-        select_parameter(index + 1);
-    }
+    emit("move-down:parameter", properties.function_id, index);
 }
 
 </script>
 
 <template>
-    <div>
-        <select ref="select_parameter_html_element" :name="function_declaration.name + '_parameters_select'"
-            :modelValue="selected_parameter_index" v-on:change="event => on_selected_parameter_index_changed(event)"
-            :size="function_declaration.parameter_ids.size">
-            <option v-for="(parameter_id, index) in function_declaration.parameter_ids.elements" v-bind:key="index"
-                :value="index">
-                {{function_declaration.parameter_names.elements[index]}}:
-                {{coreInterfaceHelpers.getUnderlyingTypeName(properties.module,
-                function_declaration.type.parameter_types.elements[index])}}
-            </option>
-        </select>
-        <div>
-            <vscode-button
-                @click="add_function_parameter(selected_parameter_index !== undefined ? selected_parameter_index+1 : 0)">
-                <i class="codicon codicon-add"></i>
-            </vscode-button>
-            <vscode-button :disabled="selected_parameter_index === undefined"
-                @click="remove_function_parameter(selected_parameter_index !== undefined ? selected_parameter_index : 0)">
-                <i class="codicon codicon-remove"></i>
-            </vscode-button>
-            <vscode-button :disabled="selected_parameter_index === undefined || selected_parameter_index === 0"
-                @click="move_function_parameter_up(selected_parameter_index !== undefined ? selected_parameter_index : 0)">
-                <i class="codicon codicon-triangle-up"></i>
-            </vscode-button>
-            <vscode-button
-                :disabled="selected_parameter_index === undefined || (selected_parameter_index + 1) === function_declaration.parameter_ids.size"
-                @click="move_function_parameter_down(selected_parameter_index !== undefined ? selected_parameter_index : 0)">
-                <i class="codicon codicon-triangle-down"></i>
-            </vscode-button>
-        </div>
-        <div v-if="selected_parameter_index !== undefined">
+    <List :items="function_parameters" v-on:add:item="add_function_parameter"
+        v-on:remove:item="remove_function_parameter" v-on:move-up:item="move_function_parameter_up"
+        v-on:move-down:item="move_function_parameter_down">
+        <template #item_title="{name, type}">
+            {{name}}: {{coreInterfaceHelpers.getUnderlyingTypeName(properties.module, type)}}
+        </template>
+        <template #item_body="{id, name, type}">
             <div>
-                <label for="parameter_name">Name: </label>
-                <Editable id="parameter_name"
-                    :model-value="function_declaration.parameter_names.elements[selected_parameter_index]">
-                </Editable>
+                <label :for="id_name + '_parameter_name_' + id">Name: </label>
+                <Text_input id="id_name + '_parameter_name_' + id" :modelValue="name"></Text_input>
             </div>
             <div>
-                <label for="parameter_type_select">Type: </label>
-                <Select_type_reference id="parameter_type_select" :key="selected_parameter_index"
-                    :module="properties.module"
-                    :current_type_reference="get_function_parameter_type(selected_parameter_index)">
+                <label for="id_name + '_parameter_type_' + id">Type: </label>
+                <Select_type_reference id="id_name + '_parameter_type_' + id" :module="properties.module"
+                    :current_type_reference="type" class="insert_padding_left">
                 </Select_type_reference>
             </div>
-
-        </div>
-    </div>
+        </template>
+    </List>
 </template>
 
 <style scoped>
-#parameter_type_select {
+.insert_padding_left {
     padding-left: 4ch;
 }
 </style>
