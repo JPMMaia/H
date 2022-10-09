@@ -63,32 +63,34 @@ function move_item_down(index: number): void {
 </script>
 
 <template>
-    <select ref="select_item_html_element" :modelValue="selected_item_index"
-        v-on:change="event => on_selected_item_index_changed(event)" :size="Math.min(properties.items.length, 3)">
-        <option v-for="(item, index) in properties.items" v-bind:key="index" :value="index">
-            <slot name="item_title" v-bind="item"></slot>
-        </option>
-    </select>
     <div>
-        <vscode-button @click="add_item(selected_item_index !== undefined ? selected_item_index+1 : 0)">
-            <i class="codicon codicon-add"></i>
-        </vscode-button>
-        <vscode-button :disabled="selected_item_index === undefined"
-            @click="remove_item(selected_item_index !== undefined ? selected_item_index : 0)">
-            <i class="codicon codicon-remove"></i>
-        </vscode-button>
-        <vscode-button :disabled="selected_item_index === undefined || selected_item_index === 0"
-            @click="move_item_up(selected_item_index !== undefined ? selected_item_index : 0)">
-            <i class="codicon codicon-triangle-up"></i>
-        </vscode-button>
-        <vscode-button
-            :disabled="selected_item_index === undefined || (selected_item_index + 1) === properties.items.length"
-            @click="move_item_down(selected_item_index !== undefined ? selected_item_index : 0)">
-            <i class="codicon codicon-triangle-down"></i>
-        </vscode-button>
-    </div>
-    <div v-if="selected_item_index !== undefined">
-        <slot name="item_body" v-bind="properties.items[selected_item_index]" :key="selected_item_index"></slot>
+        <select ref="select_item_html_element" :modelValue="selected_item_index"
+            v-on:change="event => on_selected_item_index_changed(event)" :size="Math.max(properties.items.length, 3)">
+            <option v-for="(item, index) in properties.items" v-bind:key="index" :value="index">
+                <slot name="item_title" v-bind="item"></slot>
+            </option>
+        </select>
+        <div>
+            <vscode-button @click="add_item(selected_item_index !== undefined ? selected_item_index+1 : 0)">
+                <i class="codicon codicon-add"></i>
+            </vscode-button>
+            <vscode-button :disabled="selected_item_index === undefined"
+                @click="remove_item(selected_item_index !== undefined ? selected_item_index : 0)">
+                <i class="codicon codicon-remove"></i>
+            </vscode-button>
+            <vscode-button :disabled="selected_item_index === undefined || selected_item_index === 0"
+                @click="move_item_up(selected_item_index !== undefined ? selected_item_index : 0)">
+                <i class="codicon codicon-triangle-up"></i>
+            </vscode-button>
+            <vscode-button
+                :disabled="selected_item_index === undefined || (selected_item_index + 1) === properties.items.length"
+                @click="move_item_down(selected_item_index !== undefined ? selected_item_index : 0)">
+                <i class="codicon codicon-triangle-down"></i>
+            </vscode-button>
+        </div>
+        <div v-if="selected_item_index !== undefined">
+            <slot name="item_body" v-bind="properties.items[selected_item_index]" :key="selected_item_index"></slot>
+        </div>
     </div>
 </template>
 

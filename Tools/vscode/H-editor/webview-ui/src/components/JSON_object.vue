@@ -182,7 +182,7 @@ function is_key_read_only(reflectionType: ReflectionType, key: string): boolean 
                     v-on:on_key_up="(event) => on_insert_or_remove_array_element(event, 0)">
                 </Press_key_editable></span>
             <br v-if="properties.value.length !== 0">
-            <span v-for="(item, index) in properties.value" v-bind:key="index">
+            <span v-for="(item, index) in properties.value" v-bind:key="item">
                 <span :style="css_variables" class="key_indent">
                     <JSON_object :value="item" :reflectionInfo="properties.reflectionInfo"
                         :reflectionType="coreModel.getVectorValueType(properties.reflectionType)" :isReadOnly="false"
@@ -206,7 +206,7 @@ function is_key_read_only(reflectionType: ReflectionType, key: string): boolean 
     <span v-else>
         <span>{</span>
         <br v-if="Object.keys(properties.value).length !== 0">
-        <span v-for="(key, index) in Object.keys(properties.value)" v-bind:key="key">
+        <span v-for="(key, index) in Object.keys(properties.value)" v-bind:key="properties.value[key]">
             <span :style="css_variables" class="key_indent">&quot;{{ key }}&quot;: <JSON_object
                     :value="properties.value[key]" :reflectionInfo="properties.reflectionInfo"
                     :reflectionType="get_key_reflection_type(properties.reflectionInfo, properties.reflectionType, properties.value, key)"

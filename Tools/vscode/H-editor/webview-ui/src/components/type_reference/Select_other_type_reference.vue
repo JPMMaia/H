@@ -1,6 +1,6 @@
 <script setup lang="ts">
 
-import { computed, ref } from "vue";
+import { computed } from "vue";
 
 import * as core from "../../../../src/utilities/coreModelInterface";
 
@@ -18,7 +18,7 @@ const emit = defineEmits<{
     (e: 'update:type_reference', value: core.Type_reference): void,
 }>();
 
-function create_initial_value(current_type_reference: core.Type_reference): core.Alias_type_reference | core.Enum_type_reference | core.Struct_type_reference | undefined {
+function get_underlying_type_reference(current_type_reference: core.Type_reference): core.Alias_type_reference | core.Enum_type_reference | core.Struct_type_reference | undefined {
     if (current_type_reference.data.type === core.Type_reference_enum.Alias_type_reference) {
         return current_type_reference.data.value as core.Alias_type_reference;
     }
@@ -33,8 +33,15 @@ function create_initial_value(current_type_reference: core.Type_reference): core
     }
 }
 
-const initial_value = create_initial_value(properties.current_type_reference);
-const initial_search_term = initial_value === undefined ? "" : type_utilities.get_other_type_reference_name(properties.module, properties.current_type_reference.data.type, initial_value);
+const search_term = computed(() => {
+    const type_reference = get_underlying_type_reference(properties.current_type_reference);
+    if (type_reference !== undefined) {
+        return type_utilities.get_other_type_reference_name(properties.module, properties.current_type_reference.data.type, type_reference);
+    }
+    else {
+        return "";
+    }
+});
 
 function on_value_updated(id: number, name: string, data: any): void {
 
@@ -100,9 +107,9 @@ function on_value_updated(id: number, name: string, data: any): void {
 </script>
 
 <template>
-    <Search_field
+    <Search_field :key="search_term"
         :possible_values="search_utilities.get_other_visible_types_for_module_search_entries(properties.module)"
-        :current_search_term="initial_search_term" v-on:update="on_value_updated">
+        :current_search_term="search_term" v-on:update="on_value_updated">
     </Search_field>
 </template>
 

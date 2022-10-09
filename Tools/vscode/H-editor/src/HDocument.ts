@@ -101,7 +101,7 @@ function updateArraySize(document: vscode.TextDocument, text: string, position: 
     return updateValueWithOffset(document, text, offsetResult.offset, newArraySize);
 }
 
-function insertValue(document: vscode.TextDocument, text: string, position: any[], value?: any, defaultValueOptions?: coreModel.DefaultValueOptions): InsertInfo {
+function insertVectorElement(document: vscode.TextDocument, text: string, position: any[], value?: any, defaultValueOptions?: coreModel.DefaultValueOptions): InsertInfo {
 
     const reflectionInfo = { enums: hCoreReflectionInfo.enums, structs: hCoreReflectionInfo.structs };
     const newElement = value !== undefined ? value : createDefaultElement(reflectionInfo, position, defaultValueOptions);
@@ -126,7 +126,7 @@ function insertValue(document: vscode.TextDocument, text: string, position: any[
     };
 }
 
-function deleteValue(document: vscode.TextDocument, text: string, position: any[]): DeleteInfo {
+function deleteVectorElement(document: vscode.TextDocument, text: string, position: any[]): DeleteInfo {
 
     // TODO cache
 
@@ -136,10 +136,7 @@ function deleteValue(document: vscode.TextDocument, text: string, position: any[
     };
 
     const startOffsetResult = fromPositionToOffset(parserState, text, 0, [], position);
-    parserState = startOffsetResult.newState;
-    parserState.stack.splice(parserState.stack.length - 1, 1);
-
-    const endOffsetResult = findEndOfCurrentObject(parserState, text, startOffsetResult.offset);
+    const endOffsetResult = findEndOfCurrentObject(startOffsetResult.newState, text, startOffsetResult.offset);
 
     const startOffset = startOffsetResult.offset;
     const endOffset = text[endOffsetResult.offset] === ',' ? endOffsetResult.offset + 1 : endOffsetResult.offset;
@@ -154,6 +151,32 @@ function deleteValue(document: vscode.TextDocument, text: string, position: any[
     };
 }
 
+function setVectorElement(document: vscode.TextDocument, text: string, position: any[], newElement: any): ReplaceInfo {
+
+    // TODO cache
+
+    let parserState: ParserState = {
+        stack: [],
+        expectKey: false
+    };
+
+    const startOffsetResult = fromPositionToOffset(parserState, text, 0, [], position);
+    const endOffsetResult = findEndOfCurrentObject(startOffsetResult.newState, text, startOffsetResult.offset);
+
+    const startOffset = startOffsetResult.offset;
+    const endOffset = endOffsetResult.offset;
+
+    const range = new vscode.Range(
+        document.positionAt(startOffset),
+        document.positionAt(endOffset)
+    );
+
+    return {
+        range: range,
+        newText: JSON.stringify(newElement)
+    };
+}
+
 function moveVectorElementUp(edit: vscode.WorkspaceEdit, document: vscode.TextDocument, text: string, vectorPosition: any[], module: core.Module, elementIndex: number): void {
 
     if (elementIndex === 0) {
@@ -164,10 +187,10 @@ function moveVectorElementUp(edit: vscode.WorkspaceEdit, document: vscode.TextDo
     const elementReference = getObjectAtPosition(module, elementPosition);
     const element = JSON.parse(JSON.stringify(elementReference.value));
 
-    const deleteInfo = deleteValue(document, text, elementPosition);
+    const deleteInfo = deleteVectorElement(document, text, elementPosition);
 
     const newElementPosition = vectorPosition.concat("elements", elementIndex - 1);
-    const insertInfo = insertValue(document, text, newElementPosition, element);
+    const insertInfo = insertVectorElement(document, text, newElementPosition, element);
 
     edit.delete(
         document.uri,
@@ -323,7 +346,7 @@ function findElementIndicesWithID(elements: ElementWithID[], ids: number[]): num
     return indices;
 }
 
-function deleteValuesWithID(
+function deleteVectorElementsWithID(
     edit: vscode.WorkspaceEdit,
     ids: number[],
     elements: ElementWithID[],
@@ -337,7 +360,7 @@ function deleteValuesWithID(
 
     for (const index of indices) {
 
-        const deleteInfo = deleteValue(document, text, vectorPosition.concat("elements", index));
+        const deleteInfo = deleteVectorElement(document, text, vectorPosition.concat("elements", index));
         edit.delete(
             document.uri,
             deleteInfo.range
@@ -352,9 +375,9 @@ function deleteValuesWithID(
     );
 }
 
-function insertValueAndUpdateArraySize(edit: vscode.WorkspaceEdit, document: vscode.TextDocument, text: string, position: any[], value?: any, defaultValueOptions?: coreModel.DefaultValueOptions): void {
+function insertVectorElementAndUpdateArraySize(edit: vscode.WorkspaceEdit, document: vscode.TextDocument, text: string, position: any[], value?: any, defaultValueOptions?: coreModel.DefaultValueOptions): void {
 
-    const insertInfo = insertValue(document, text, position, value, defaultValueOptions);
+    const insertInfo = insertVectorElement(document, text, position, value, defaultValueOptions);
     edit.insert(
         document.uri,
         insertInfo.position,
@@ -369,7 +392,7 @@ function insertValueAndUpdateArraySize(edit: vscode.WorkspaceEdit, document: vsc
     );
 }
 
-function deleteValuesAndUpdateArraySize(edit: vscode.WorkspaceEdit, document: vscode.TextDocument, text: string, vectorPosition: any[], indices: number[]): void {
+function deleteVectorElementsAndUpdateArraySize(edit: vscode.WorkspaceEdit, document: vscode.TextDocument, text: string, vectorPosition: any[], indices: number[]): void {
 
     indices.sort((first, second) => second - first);
 
@@ -377,7 +400,7 @@ function deleteValuesAndUpdateArraySize(edit: vscode.WorkspaceEdit, document: vs
 
         const position = vectorPosition.concat("elements", index);
 
-        const deleteInfo = deleteValue(document, text, position);
+        const deleteInfo = deleteVectorElement(document, text, position);
         edit.delete(
             document.uri,
             deleteInfo.range
@@ -403,17 +426,17 @@ function addFunctionParameter(edit: vscode.WorkspaceEdit, document: vscode.TextD
 
     {
         const position = [declarationName, "function_declarations", "elements", functionIndex, "type", "parameter_types", "elements", parameterInfo.index];
-        insertValueAndUpdateArraySize(edit, document, text, position, parameterInfo.type);
+        insertVectorElementAndUpdateArraySize(edit, document, text, position, parameterInfo.type);
     }
 
     {
         const position = [declarationName, "function_declarations", "elements", functionIndex, "parameter_names", "elements", parameterInfo.index];
-        insertValueAndUpdateArraySize(edit, document, text, position, parameterInfo.name);
+        insertVectorElementAndUpdateArraySize(edit, document, text, position, parameterInfo.name);
     }
 
     {
         const position = [declarationName, "function_declarations", "elements", functionIndex, "parameter_ids", "elements", parameterInfo.index];
-        insertValueAndUpdateArraySize(edit, document, text, position, parameterInfo.id);
+        insertVectorElementAndUpdateArraySize(edit, document, text, position, parameterInfo.id);
     }
 }
 
@@ -428,17 +451,17 @@ function removeFunctionParameter(edit: vscode.WorkspaceEdit, document: vscode.Te
 
     {
         const vectorPosition = [declarationName, "function_declarations", "elements", functionIndex, "parameter_ids"];
-        deleteValuesAndUpdateArraySize(edit, document, text, vectorPosition, [parameterIndex]);
+        deleteVectorElementsAndUpdateArraySize(edit, document, text, vectorPosition, [parameterIndex]);
     }
 
     {
         const vectorPosition = [declarationName, "function_declarations", "elements", functionIndex, "parameter_names"];
-        deleteValuesAndUpdateArraySize(edit, document, text, vectorPosition, [parameterIndex]);
+        deleteVectorElementsAndUpdateArraySize(edit, document, text, vectorPosition, [parameterIndex]);
     }
 
     {
         const vectorPosition = [declarationName, "function_declarations", "elements", functionIndex, "type", "parameter_types"];
-        deleteValuesAndUpdateArraySize(edit, document, text, vectorPosition, [parameterIndex]);
+        deleteVectorElementsAndUpdateArraySize(edit, document, text, vectorPosition, [parameterIndex]);
     }
 }
 
@@ -490,6 +513,35 @@ function moveFunctionParameterDown(edit: vscode.WorkspaceEdit, document: vscode.
         const vectorPosition = [declarationName, "function_declarations", "elements", functionIndex, "parameter_ids"];
         moveVectorElementDown(edit, document, text, vectorPosition, module, parameterIndex);
     }
+}
+
+function updateFunctionParameter(edit: vscode.WorkspaceEdit, document: vscode.TextDocument, module: core.Module, functionId: number, parameterId: number, vectorName: string, newValue: any): void {
+
+    const result = coreHelpers.findFunctionDeclarationIndexWithId(module, functionId);
+    const functionIndex = result.index;
+    const isExportDeclaration = result.isExportDeclaration;
+
+    const declarationName = isExportDeclaration ? "export_declarations" : "internal_declarations";
+
+    const parameterIndex =
+        isExportDeclaration ?
+            module.export_declarations.function_declarations.elements[functionIndex].parameter_ids.elements.findIndex(id => id === parameterId) :
+            module.internal_declarations.function_declarations.elements[functionIndex].parameter_ids.elements.findIndex(id => id === parameterId);
+
+    if (parameterIndex === -1) {
+        return;
+    }
+
+    const position = vectorName === "type.parameter_types" ?
+        [declarationName, "function_declarations", "elements", functionIndex, "type", "parameter_types", "elements", parameterIndex] :
+        [declarationName, "function_declarations", "elements", functionIndex, vectorName, "elements", parameterIndex];
+    const replaceInfo = setVectorElement(document, document.getText(undefined), position, newValue);
+
+    edit.replace(
+        document.uri,
+        replaceInfo.range,
+        replaceInfo.newText
+    );
 }
 
 export class HDocument {
@@ -578,7 +630,7 @@ export class HDocument {
 
     private addInsertValueEdits(edit: vscode.WorkspaceEdit, text: string, position: any[], value?: any, defaultValueOptions?: coreModel.DefaultValueOptions): void {
 
-        const insertInfo = insertValue(this.document, text, position, value, defaultValueOptions);
+        const insertInfo = insertVectorElement(this.document, text, position, value, defaultValueOptions);
         edit.insert(
             this.document.uri,
             insertInfo.position,
@@ -593,7 +645,7 @@ export class HDocument {
         );
     }
 
-    public insertValue(position: any[], value: any): Thenable<boolean> {
+    public insertVectorElement(position: any[], value: any): Thenable<boolean> {
 
         const text = this.document.getText(undefined);
 
@@ -603,13 +655,13 @@ export class HDocument {
         return vscode.workspace.applyEdit(edit);
     }
 
-    public deleteValue(position: any[]): Thenable<boolean> {
+    public deleteVectorElement(position: any[]): Thenable<boolean> {
 
         const text = this.document.getText(undefined);
 
         const edit = new vscode.WorkspaceEdit();
 
-        const deleteInfo = deleteValue(this.document, text, position);
+        const deleteInfo = deleteVectorElement(this.document, text, position);
         edit.delete(
             this.document.uri,
             deleteInfo.range
@@ -708,7 +760,7 @@ export class HDocument {
 
         for (const internalExportValue of internalExportValues) {
             for (const declarationTypeValue of declarationTypeValues) {
-                deleteValuesWithID(
+                deleteVectorElementsWithID(
                     edit,
                     ids,
                     getStateFromPosition(this.state, [internalExportValue, declarationTypeValue, "elements"]),
@@ -719,7 +771,7 @@ export class HDocument {
             }
         }
 
-        deleteValuesWithID(
+        deleteVectorElementsWithID(
             edit,
             ids,
             this.state.definitions.function_definitions.elements,
@@ -810,6 +862,21 @@ export class HDocument {
         const edit = new vscode.WorkspaceEdit();
 
         moveFunctionParameterDown(edit, this.document, this.state, functionId, parameterIndex);
+
+        return vscode.workspace.applyEdit(edit);
+    }
+
+    public updateFunctionParameter(functionId: number, parameterId: number, attribute: string, newValue: any): Thenable<boolean> {
+        const edit = new vscode.WorkspaceEdit();
+
+        if (attribute === "name") {
+            const value: string = newValue;
+            updateFunctionParameter(edit, this.document, this.state, functionId, parameterId, "parameter_names", value);
+        }
+        else if (attribute === "type") {
+            const value: core.Type_reference = newValue;
+            updateFunctionParameter(edit, this.document, this.state, functionId, parameterId, "type.parameter_types", value);
+        }
 
         return vscode.workspace.applyEdit(edit);
     }

@@ -111,9 +111,9 @@ export function get_other_visible_types_for_module_search_entries(module: core.M
         }
     );
 
-    return {
+    return [
         ...alias_entries,
         ...enum_entries,
         ...struct_entries
-    };
+    ];
 }

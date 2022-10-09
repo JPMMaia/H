@@ -3,7 +3,7 @@ import { onMounted, ref } from "vue";
 import { provideVSCodeDesignSystem, vsCodeButton } from "@vscode/webview-ui-toolkit";
 import { vscode } from "./utilities/vscode";
 import { updateState } from "../../src/utilities/updateState";
-import * as core from "../../src/utilities/coreModelInterface";
+import type * as core from "../../src/utilities/coreModelInterface";
 import type * as coreHelpers from "../../src/utilities/coreModelInterfaceHelpers";
 
 import Function_declaration from "./components/Function_declaration.vue";
@@ -43,8 +43,6 @@ function handleHowdyClick() {
 
 const m_reflectionInfo = { enums: hCoreReflectionInfo.enums, structs: hCoreReflectionInfo.structs };
 
-const m_state = ref<core.Module | null>(null);
-
 const m_selectedView = ref<string | null>("module_view");
 const m_viewOptions = ref([
   { text: "Module view", value: "module_view" },
@@ -59,7 +57,13 @@ const m_frontendLanguageOptions = ref([
   { text: "C", value: "C" },
 ]);
 
-m_state.value = {
+interface State {
+  module: core.Module | undefined
+};
+
+const m_state = ref<State>({ module: undefined });
+
+/*m_state.value.module = {
   language_version: { major: 1, minor: 2, patch: 3 },
   name: "module_name",
   export_declarations: {
@@ -161,18 +165,7 @@ m_state.value = {
       ],
     },
   },
-};
-
-function get_module(): core.Module {
-  if (m_state.value !== null) {
-    const module: core.Module = m_state.value;
-    return module;
-  }
-
-  const message = "get_module(): m_state is null!";
-  onThrowError(message);
-  throw Error(message);
-}
+};*/
 
 function on_message_received(event: MessageEvent): void {
   const messages = event.data;
@@ -184,17 +177,17 @@ function on_message_received(event: MessageEvent): void {
       message.command === "insert" ||
       message.command === "delete"
     ) {
-      const stateReference = {
+      const moduleReference = {
         get value() {
-          return m_state.value;
+          return m_state.value.module;
         },
         set value(value: any) {
-          m_state.value = value;
+          m_state.value.module = value;
         },
       };
 
       console.log(message);
-      updateState(stateReference, message);
+      updateState(moduleReference, message);
     }
   }
 }
@@ -322,6 +315,18 @@ function move_function_parameter_down(function_id: number, parameter_index: numb
   });
 }
 
+function update_function_parameter(function_id: number, parameter_id: number, attribute: string, new_value: any): void {
+  vscode.postMessage({
+    command: "update:function_parameter",
+    data: {
+      function_id: function_id,
+      parameter_id: parameter_id,
+      attribute: attribute,
+      new_value: JSON.stringify(new_value)
+    }
+  });
+}
+
 onMounted(() => { });
 </script>
 
@@ -329,7 +334,7 @@ onMounted(() => { });
 
   <div>
 
-    <nav>
+    <nav v-if="m_state.module !== undefined">
       <ul>
         <li>
           <select v-model="m_selectedView">
@@ -340,11 +345,11 @@ onMounted(() => { });
         </li>
         <li v-if="m_selectedView === 'function_view'">
           <select v-model="m_selectedFunctionId">
-            <option v-for="declaration in m_state?.export_declarations.function_declarations.elements"
+            <option v-for="declaration in m_state.module.export_declarations.function_declarations.elements"
               :value="declaration.id" v-bind:key="declaration.id">
               {{ declaration.name }}
             </option>
-            <option v-for="declaration in m_state?.internal_declarations.function_declarations.elements"
+            <option v-for="declaration in m_state.module.internal_declarations.function_declarations.elements"
               :value="declaration.id" v-bind:key="declaration.id">
               {{ declaration.name }}
             </option>
@@ -360,52 +365,56 @@ onMounted(() => { });
       </ul>
 
       <Function_parameters v-if="m_selectedView === 'function_view' && m_selectedFunctionId !== undefined"
-        :module="get_module()" :function_id="m_selectedFunctionId"
-        v-on:add:parameter="(function_id, parameter_info) => { if (m_selectedFunctionId!== undefined) add_function_parameter(function_id, parameter_info) }"
-        v-on:remove:parameter="(function_id, parameter_index) => { if (m_selectedFunctionId!== undefined) remove_function_parameter(function_id, parameter_index) }"
-        v-on:move-up:parameter="(function_id, parameter_index) => { if (m_selectedFunctionId!== undefined) move_function_parameter_up(function_id, parameter_index) }"
-        v-on:move-down:parameter="(function_id, parameter_index) => { if (m_selectedFunctionId!== undefined) move_function_parameter_down(function_id, parameter_index) }">
+        :module="m_state.module" :function_id="m_selectedFunctionId"
+        v-on:add:parameter="(function_id, parameter_info) => { add_function_parameter(function_id, parameter_info) }"
+        v-on:remove:parameter="(function_id, parameter_index) => { remove_function_parameter(function_id, parameter_index) }"
+        v-on:move-up:parameter="(function_id, parameter_index) => { move_function_parameter_up(function_id, parameter_index) }"
+        v-on:move-down:parameter="(function_id, parameter_index) => { move_function_parameter_down(function_id, parameter_index) }"
+        v-on:update:parameter="(function_id, parameter_id, attribute, new_value) => update_function_parameter(function_id, parameter_id, attribute, new_value)">
       </Function_parameters>
     </nav>
 
     <main>
 
-      <div v-if="m_state && m_selectedView === 'module_view'">
+      <div v-if="m_selectedView === 'module_view'">
 
-        <div v-if="m_state && (m_selectedFrontendLanguage !== 'JSON')">
-          <h1>Module {{ m_state.name }}</h1>
+        <div v-if="(m_state.module !== undefined) && (m_selectedFrontendLanguage !== 'JSON')">
+          <h1>Module {{ m_state.module.name }}</h1>
 
           <section>
             <h2>Details</h2>
             <ul>
-              <li>Language version: <Language_version :value="m_state.language_version"></Language_version>
+              <li>Language version: <Language_version :value="m_state.module.language_version"></Language_version>
               </li>
             </ul>
           </section>
 
           <section>
             <h2>Public functions</h2>
-            <div v-for="(function_declaration, index) in m_state.export_declarations.function_declarations.elements"
+            <div
+              v-for="(function_declaration, index) in m_state.module.export_declarations.function_declarations.elements"
               v-bind:key="function_declaration.id">
               <Function_declaration :value="function_declaration"
                 v-on:update:name="(new_name) => on_function_name_change(index, function_declaration, true, new_name)">
               </Function_declaration>
             </div>
-            <p v-if="m_state.export_declarations.function_declarations.elements.length === 0">No public functions</p>
+            <p v-if="m_state.module.export_declarations.function_declarations.elements.length === 0">No public functions
+            </p>
             <vscode-button
-              v-on:click="() => {if(m_state !== null) create_function(m_state.export_declarations.function_declarations.size, true)}">
+              v-on:click="() => {if(m_state.module !== undefined) create_function(m_state.module.export_declarations.function_declarations.size, true)}">
               Add function</vscode-button>
           </section>
 
           <section>
             <h2>Private functions</h2>
-            <div v-for="function_declaration in m_state.internal_declarations.function_declarations.elements"
+            <div v-for="function_declaration in m_state.module.internal_declarations.function_declarations.elements"
               v-bind:key="function_declaration.id">
               <Function_declaration :value="function_declaration"></Function_declaration>
             </div>
-            <p v-if="m_state.internal_declarations.function_declarations.elements.length === 0">No private functions</p>
+            <p v-if="m_state.module.internal_declarations.function_declarations.elements.length === 0">No private
+              functions</p>
             <vscode-button
-              v-on:click="() => {if (m_state !== null) create_function(m_state.export_declarations.function_declarations.size, false)}">
+              v-on:click="() => {if (m_state.module !== undefined) create_function(m_state.module.export_declarations.function_declarations.size, false)}">
               Add function</vscode-button>
           </section>
 
@@ -415,8 +424,8 @@ onMounted(() => { });
           </section>
         </div>
 
-        <div v-if="m_state && (m_selectedFrontendLanguage === 'JSON')">
-          <JSON_object :value="m_state" :reflection-info="m_reflectionInfo" :reflection-type="{ name: 'Module' }"
+        <div v-if="(m_state.module !== undefined) && (m_selectedFrontendLanguage === 'JSON')">
+          <JSON_object :value="m_state.module" :reflection-info="m_reflectionInfo" :reflection-type="{ name: 'Module' }"
             :is-read-only="false" :indentation="0" :indentation_increment="1"
             v-on:insert:value="(position) => on_insert_element(position, undefined)"
             v-on:delete:value="(position) => on_delete_element(position)"
@@ -438,7 +447,8 @@ onMounted(() => { });
 
       </div>
 
-      <div v-if="m_state && m_selectedView === 'function_view' && m_selectedFunctionId !== undefined">
+      <div
+        v-if="(m_state.module !== undefined) && (m_selectedView === 'function_view') && (m_selectedFunctionId !== undefined)">
         <!-- TODO -->
       </div>
 

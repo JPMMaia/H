@@ -404,7 +404,7 @@ export interface OffsetResult {
 
 export function fromPositionToOffset(startState: ParserState, text: string, startIndex: number, startPosition: any[], position: any[]): OffsetResult {
 
-  let state = JSON.parse(JSON.stringify(startState));
+  let state: ParserState = JSON.parse(JSON.stringify(startState));
 
   if (position.length === 0) {
     return { offset: startIndex, newState: state };
@@ -413,7 +413,10 @@ export function fromPositionToOffset(startState: ParserState, text: string, star
   let offset = startIndex;
   let currentPosition = startPosition;
 
-  if (!isNaN(currentPosition[currentPosition.length - 1])) {
+  const isPositionAVectorIndex = !isNaN(position[position.length - 1]);
+  const isCurrentPositionAVectorIndex = !isNaN(currentPosition[currentPosition.length - 1]);
+
+  if (isCurrentPositionAVectorIndex) {
     currentPosition[currentPosition.length - 1] -= 1;
   }
 
@@ -478,7 +481,15 @@ export function fromPositionToOffset(startState: ParserState, text: string, star
       while (offset < text.length) {
         const currentCharacter = text[offset];
         if (currentCharacter === '{' || currentCharacter === '[' || isNumber(currentCharacter)) {
-          return { offset: offset, newState: state };
+
+          if (isPositionAVectorIndex) {
+            state.expectKey = false;
+            state.stack.splice(state.stack.length - 1, 1);
+            return { offset: offset, newState: state };
+          }
+          else {
+            return { offset: offset, newState: state };
+          }
         }
         else if (currentCharacter === '"') {
           return { offset: offset, newState: state };

@@ -62,20 +62,81 @@ export function findFunctionDefinitionWithId(module: core.Module, id: number): c
     throw Error(message);
 }
 
+export function findElementWithId(arrays: any[][], id: number): any {
+    for (const array of arrays) {
+        const element = array.find(value => value.id === id);
+        if (element !== undefined) {
+            return element;
+        }
+    }
+
+    const message = "Could not find element!";
+    onThrowError(message);
+    throw Error(message);
+}
+
+export function findAliasTypeDeclarationWithID(module: core.Module, id: number): core.Alias_type_declaration {
+    const element: core.Alias_type_declaration = findElementWithId([module.export_declarations.alias_type_declarations.elements, module.internal_declarations.alias_type_declarations.elements], id);
+    return element;
+}
+
+export function findEnumTypeDeclarationWithID(module: core.Module, id: number): core.Enum_declaration {
+    const element: core.Enum_declaration = findElementWithId([module.export_declarations.enum_declarations.elements, module.internal_declarations.enum_declarations.elements], id);
+    return element;
+}
+
+export function findStructDeclarationWithID(module: core.Module, id: number): core.Struct_declaration {
+    const element: core.Struct_declaration = findElementWithId([module.export_declarations.struct_declarations.elements, module.internal_declarations.struct_declarations.elements], id);
+    return element;
+}
+
+export function findModule(modules: core.Module[], reference: core.Module_reference): any {
+
+    const module = modules.find(module => module.name === reference.name);
+    if (module !== undefined) {
+        return module;
+    }
+
+    const message = "Could not find element!";
+    onThrowError(message);
+    throw Error(message);
+}
+
 export function getUnderlyingTypeName(
-    module: core.Module,
+    modules: core.Module[],
     typeReference: core.Type_reference
 ): string {
 
     switch (typeReference.data.type) {
         case core.Type_reference_enum.Alias_type_reference:
-            break;
+            {
+                // @ts-ignore
+                const value: core.Alias_type_reference = typeReference.data.value;
+                const module = findModule(modules, value.module_reference);
+                const declaration = findAliasTypeDeclarationWithID(module, value.id);
+                return `${module.name}.${declaration.name}`;
+            }
         case core.Type_reference_enum.Builtin_type_reference:
-            break;
+            {
+                // @ts-ignore
+                const value: core.Builtin_type_reference = typeReference.data.value;
+                return value.value;
+            }
         case core.Type_reference_enum.Constant_array_type:
-            break;
+            {
+                // @ts-ignore
+                const value: core.Constant_array_type = typeReference.data.value;
+                const valueTypeName = getUnderlyingTypeName(modules, value.value_type.elements[0]);
+                return `${valueTypeName}[${value.size}]`;
+            }
         case core.Type_reference_enum.Enum_type_reference:
-            break;
+            {
+                // @ts-ignore
+                const value: core.Enum_type_reference = typeReference.data.value;
+                const module = findModule(modules, value.module_reference);
+                const declaration = findEnumTypeDeclarationWithID(module, value.id);
+                return `${module.name}.${declaration.name}`;
+            }
         case core.Type_reference_enum.Fundamental_type:
             {
                 // @ts-ignore
@@ -83,7 +144,16 @@ export function getUnderlyingTypeName(
                 return value.toString();
             }
         case core.Type_reference_enum.Function_type:
-            break;
+            {
+                // @ts-ignore
+                const value: core.Function_type = typeReference.data.value;
+                const parameterNames = value.parameter_types.elements.map(value => getUnderlyingTypeName(modules, value));
+                const variadicKeyword = value.is_variadic ? ", ..." : "";
+                const parametersString = "(" + parameterNames.join(", ") + variadicKeyword + ")";
+                const returnTypeNames = value.return_types.elements.map(value => getUnderlyingTypeName(modules, value));
+                const returnTypesString = returnTypeNames.length === 0 ? "void" : (returnTypeNames.length === 1 ? returnTypeNames[0] : ("{" + returnTypeNames.join(", ") + "}"));
+                return `${parametersString} -> ${returnTypesString}`;
+            }
         case core.Type_reference_enum.Integer_type:
             {
                 // @ts-ignore
@@ -91,12 +161,24 @@ export function getUnderlyingTypeName(
                 return (value.is_signed ? "Int" : "Uint") + value.number_of_bits.toString();
             }
         case core.Type_reference_enum.Pointer_type:
-            break;
+            {
+                // @ts-ignore
+                const value: core.Pointer_type = typeReference.data.value;
+                const valueTypeName = value.element_type.elements.length === 0 ? "void" : getUnderlyingTypeName(modules, value.element_type.elements[0]);
+                const mutableKeyword = value.is_mutable ? " mutable" : "";
+                return `${valueTypeName}${mutableKeyword}*`;
+            }
         case core.Type_reference_enum.Struct_type_reference:
-            break;
+            {
+                // @ts-ignore
+                const value: core.Struct_type_reference = typeReference.data.value;
+                const module = findModule(modules, value.module_reference);
+                const declaration = findStructDeclarationWithID(module, value.id);
+                return `${module.name}.${declaration.name}`;
+            }
     }
 
-    const message = "getUnderlyingType() not implemented for " + typeReference;
+    const message = "getUnderlyingTypeName() not implemented for " + typeReference;
     onThrowError(message);
     throw Error(message);
 }

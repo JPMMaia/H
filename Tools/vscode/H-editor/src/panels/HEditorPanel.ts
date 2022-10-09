@@ -168,6 +168,14 @@ export class HEditorPanel {
           listener.moveFunctionParameterDown(message.data.function_id, message.data.parameter_index);
         }
         break;
+      case "update:function_parameter":
+        {
+          const newValue = JSON.parse(message.data.new_value);
+          for (const listener of this.listeners) {
+            listener.updateFunctionParameter(message.data.function_id, message.data.parameter_id, message.data.attribute, newValue);
+          }
+          break;
+        }
     }
   }
 

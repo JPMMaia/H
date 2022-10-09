@@ -21,7 +21,8 @@ const emit = defineEmits<{
     (e: 'add:parameter', function_id: number, parameter_info: coreInterfaceHelpers.FunctionParameterInfo): void,
     (e: 'remove:parameter', function_id: number, index: number): void,
     (e: 'move-up:parameter', function_id: number, index: number): void,
-    (e: 'move-down:parameter', function_id: number, index: number): void
+    (e: 'move-down:parameter', function_id: number, index: number): void,
+    (e: 'update:parameter', function_id: number, parameter_id: number, attribute: string, new_value: any): void,
 }>();
 
 const function_declaration = computed(() => {
@@ -91,6 +92,14 @@ function move_function_parameter_down(index: number): void {
     emit("move-down:parameter", properties.function_id, index);
 }
 
+function update_parameter_name(parameter_id: number, new_name: string): void {
+    emit("update:parameter", properties.function_id, parameter_id, "name", new_name);
+}
+
+function update_parameter_type(parameter_id: number, new_type: core.Type_reference): void {
+    emit("update:parameter", properties.function_id, parameter_id, "type", new_type);
+}
+
 </script>
 
 <template>
@@ -98,17 +107,19 @@ function move_function_parameter_down(index: number): void {
         v-on:remove:item="remove_function_parameter" v-on:move-up:item="move_function_parameter_up"
         v-on:move-down:item="move_function_parameter_down">
         <template #item_title="{name, type}">
-            {{name}}: {{coreInterfaceHelpers.getUnderlyingTypeName(properties.module, type)}}
+            {{name}}: {{coreInterfaceHelpers.getUnderlyingTypeName([properties.module], type)}}
         </template>
         <template #item_body="{id, name, type}">
             <div>
                 <label :for="id_name + '_parameter_name_' + id">Name: </label>
-                <Text_input id="id_name + '_parameter_name_' + id" :modelValue="name"></Text_input>
+                <Text_input id="id_name + '_parameter_name_' + id" :modelValue="name"
+                    v-on:update:modelValue="(value) => update_parameter_name(id, value)"></Text_input>
             </div>
             <div>
                 <label for="id_name + '_parameter_type_' + id">Type: </label>
                 <Select_type_reference id="id_name + '_parameter_type_' + id" :module="properties.module"
-                    :current_type_reference="type" class="insert_padding_left">
+                    :current_type_reference="type" class="insert_padding_left"
+                    v-on:update:type_reference="(value) => update_parameter_type(id, value)">
                 </Select_type_reference>
             </div>
         </template>
