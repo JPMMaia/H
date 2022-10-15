@@ -555,12 +555,12 @@ namespace h::json
             {
                 if constexpr (std::is_same_v<Event_data, std::string_view>)
                 {
-                    if (event_data == "return_types")
+                    if (event_data == "input_parameter_types")
                     {
                         state = 3;
                         return true;
                     }
-                    else if (event_data == "parameter_types")
+                    else if (event_data == "output_parameter_types")
                     {
                         state = 5;
                         return true;
@@ -589,13 +589,13 @@ namespace h::json
         case 3:
         {
             state = 4;
-            return read_object(output.return_types, event, event_data, state_stack, state_stack_position + 1 + 0);
+            return read_object(output.input_parameter_types, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
         case 4:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
-                if (!read_object(output.return_types, event, event_data, state_stack, state_stack_position + 1 + 0))
+                if (!read_object(output.input_parameter_types, event, event_data, state_stack, state_stack_position + 1 + 0))
                 {
                     return false;
                 }
@@ -605,19 +605,19 @@ namespace h::json
             }
             else
             {
-                return read_object(output.return_types, event, event_data, state_stack, state_stack_position + 1 + 0);
+                return read_object(output.input_parameter_types, event, event_data, state_stack, state_stack_position + 1 + 0);
             }
         }
         case 5:
         {
             state = 6;
-            return read_object(output.parameter_types, event, event_data, state_stack, state_stack_position + 1 + 0);
+            return read_object(output.output_parameter_types, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
         case 6:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
-                if (!read_object(output.parameter_types, event, event_data, state_stack, state_stack_position + 1 + 0))
+                if (!read_object(output.output_parameter_types, event, event_data, state_stack, state_stack_position + 1 + 0))
                 {
                     return false;
                 }
@@ -627,7 +627,7 @@ namespace h::json
             }
             else
             {
-                return read_object(output.parameter_types, event, event_data, state_stack, state_stack_position + 1 + 0);
+                return read_object(output.output_parameter_types, event, event_data, state_stack, state_stack_position + 1 + 0);
             }
         }
         case 7:
@@ -2940,19 +2940,29 @@ namespace h::json
                         state = 5;
                         return true;
                     }
-                    else if (event_data == "parameter_ids")
+                    else if (event_data == "input_parameter_ids")
                     {
                         state = 7;
                         return true;
                     }
-                    else if (event_data == "parameter_names")
+                    else if (event_data == "input_parameter_names")
                     {
                         state = 9;
                         return true;
                     }
-                    else if (event_data == "linkage")
+                    else if (event_data == "output_parameter_ids")
                     {
                         state = 11;
+                        return true;
+                    }
+                    else if (event_data == "output_parameter_names")
+                    {
+                        state = 13;
+                        return true;
+                    }
+                    else if (event_data == "linkage")
+                    {
+                        state = 15;
                         return true;
                     }
                 }
@@ -3006,13 +3016,13 @@ namespace h::json
         case 7:
         {
             state = 8;
-            return read_object(output.parameter_ids, event, event_data, state_stack, state_stack_position + 1 + 0);
+            return read_object(output.input_parameter_ids, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
         case 8:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
-                if (!read_object(output.parameter_ids, event, event_data, state_stack, state_stack_position + 1 + 0))
+                if (!read_object(output.input_parameter_ids, event, event_data, state_stack, state_stack_position + 1 + 0))
                 {
                     return false;
                 }
@@ -3022,19 +3032,19 @@ namespace h::json
             }
             else
             {
-                return read_object(output.parameter_ids, event, event_data, state_stack, state_stack_position + 1 + 0);
+                return read_object(output.input_parameter_ids, event, event_data, state_stack, state_stack_position + 1 + 0);
             }
         }
         case 9:
         {
             state = 10;
-            return read_object(output.parameter_names, event, event_data, state_stack, state_stack_position + 1 + 0);
+            return read_object(output.input_parameter_names, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
         case 10:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
-                if (!read_object(output.parameter_names, event, event_data, state_stack, state_stack_position + 1 + 0))
+                if (!read_object(output.input_parameter_names, event, event_data, state_stack, state_stack_position + 1 + 0))
                 {
                     return false;
                 }
@@ -3044,10 +3054,54 @@ namespace h::json
             }
             else
             {
-                return read_object(output.parameter_names, event, event_data, state_stack, state_stack_position + 1 + 0);
+                return read_object(output.input_parameter_names, event, event_data, state_stack, state_stack_position + 1 + 0);
             }
         }
         case 11:
+        {
+            state = 12;
+            return read_object(output.output_parameter_ids, event, event_data, state_stack, state_stack_position + 1 + 0);
+        }
+        case 12:
+        {
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
+            {
+                if (!read_object(output.output_parameter_ids, event, event_data, state_stack, state_stack_position + 1 + 0))
+                {
+                    return false;
+                }
+
+                state = 1;
+                return true;
+            }
+            else
+            {
+                return read_object(output.output_parameter_ids, event, event_data, state_stack, state_stack_position + 1 + 0);
+            }
+        }
+        case 13:
+        {
+            state = 14;
+            return read_object(output.output_parameter_names, event, event_data, state_stack, state_stack_position + 1 + 0);
+        }
+        case 14:
+        {
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
+            {
+                if (!read_object(output.output_parameter_names, event, event_data, state_stack, state_stack_position + 1 + 0))
+                {
+                    return false;
+                }
+
+                state = 1;
+                return true;
+            }
+            else
+            {
+                return read_object(output.output_parameter_names, event, event_data, state_stack, state_stack_position + 1 + 0);
+            }
+        }
+        case 15:
         {
             state = 1;
             return read_enum(output.linkage, event_data);

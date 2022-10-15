@@ -403,10 +403,10 @@ namespace h::json
         )
     {
         writer.StartObject();
-        writer.Key("return_types");
-        write_object(writer, output.return_types);
-        writer.Key("parameter_types");
-        write_object(writer, output.parameter_types);
+        writer.Key("input_parameter_types");
+        write_object(writer, output.input_parameter_types);
+        writer.Key("output_parameter_types");
+        write_object(writer, output.output_parameter_types);
         writer.Key("is_variadic");
         writer.Bool(output.is_variadic);
         writer.EndObject();
@@ -815,10 +815,14 @@ namespace h::json
         writer.String(output.name.data(), output.name.size());
         writer.Key("type");
         write_object(writer, output.type);
-        writer.Key("parameter_ids");
-        write_object(writer, output.parameter_ids);
-        writer.Key("parameter_names");
-        write_object(writer, output.parameter_names);
+        writer.Key("input_parameter_ids");
+        write_object(writer, output.input_parameter_ids);
+        writer.Key("input_parameter_names");
+        write_object(writer, output.input_parameter_names);
+        writer.Key("output_parameter_ids");
+        write_object(writer, output.output_parameter_ids);
+        writer.Key("output_parameter_names");
+        write_object(writer, output.output_parameter_names);
         writer.Key("linkage");
         {
             std::string_view const enum_value_string = write_enum(output.linkage);

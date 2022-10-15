@@ -56,8 +56,8 @@ namespace h
 
     export struct Function_type
     {
-        std::pmr::vector<Type_reference> return_types;
-        std::pmr::vector<Type_reference> parameter_types;
+        std::pmr::vector<Type_reference> input_parameter_types;
+        std::pmr::vector<Type_reference> output_parameter_types;
         bool is_variadic;
 
         friend auto operator<=>(Function_type const& lhs, Function_type const& rhs) = default;
@@ -259,8 +259,10 @@ namespace h
         std::uint64_t id;
         std::pmr::string name;
         Function_type type;
-        std::pmr::vector<std::uint64_t> parameter_ids;
-        std::pmr::vector<std::pmr::string> parameter_names;
+        std::pmr::vector<std::uint64_t> input_parameter_ids;
+        std::pmr::vector<std::pmr::string> input_parameter_names;
+        std::pmr::vector<std::uint64_t> output_parameter_ids;
+        std::pmr::vector<std::pmr::string> output_parameter_names;
         Linkage linkage;
 
         friend auto operator<=>(Function_declaration const&, Function_declaration const&) = default;

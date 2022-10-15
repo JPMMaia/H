@@ -79,8 +79,8 @@ export interface Builtin_type_reference {
 }
 
 export interface Function_type {
-    return_types: Vector<Type_reference>;
-    parameter_types: Vector<Type_reference>;
+    input_parameter_types: Vector<Type_reference>;
+    output_parameter_types: Vector<Type_reference>;
     is_variadic: boolean;
 }
 
@@ -182,8 +182,10 @@ export interface Function_declaration {
     id: number;
     name: string;
     type: Function_type;
-    parameter_ids: Vector<number>;
-    parameter_names: Vector<string>;
+    input_parameter_ids: Vector<number>;
+    input_parameter_names: Vector<string>;
+    output_parameter_ids: Vector<number>;
+    output_parameter_names: Vector<string>;
     linkage: Linkage;
 }
 

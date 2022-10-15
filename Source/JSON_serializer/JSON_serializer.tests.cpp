@@ -308,20 +308,30 @@ namespace h
             Type_reference{.data = Fundamental_type::Byte},
         };
 
-        std::pmr::vector<std::uint64_t> parameter_ids
+        std::pmr::vector<std::uint64_t> input_parameter_ids
         {
             0, 1
         };
 
-        std::pmr::vector<std::pmr::string> parameter_names
+        std::pmr::vector<std::pmr::string> input_parameter_names
         {
             "lhs", "rhs"
         };
 
+        std::pmr::vector<std::uint64_t> output_parameter_ids
+        {
+            0
+        };
+
+        std::pmr::vector<std::pmr::string> output_parameter_names
+        {
+            {"sum"}
+        };
+
         h::Function_type function_type
         {
-            .return_types = {Type_reference{.data = Fundamental_type::Byte}},
-            .parameter_types = std::move(parameter_types),
+            .input_parameter_types = std::move(parameter_types),
+            .output_parameter_types = {Type_reference{.data = Fundamental_type::Byte}},
             .is_variadic = false
         };
 
@@ -330,8 +340,10 @@ namespace h
             .id = 125,
             .name = "Add",
             .type = std::move(function_type),
-            .parameter_ids = std::move(parameter_ids),
-            .parameter_names = std::move(parameter_names),
+            .input_parameter_ids = std::move(input_parameter_ids),
+            .input_parameter_names = std::move(input_parameter_names),
+            .output_parameter_ids = std::move(output_parameter_ids),
+            .output_parameter_names = std::move(output_parameter_names),
             .linkage = Linkage::External
         };
     }
@@ -343,18 +355,7 @@ namespace h
                 "id": 125,
                 "name": "Add",
                 "type": {
-                    "return_types": {
-                        "size": 1,
-                        "elements": [
-                            {
-                                "data": {
-                                    "type": "fundamental_type",
-                                    "value": "byte"
-                                }
-                            }
-                        ]            
-                    },
-                    "parameter_types": {
+                    "input_parameter_types": {
                         "size": 2,
                         "elements": [
                             {
@@ -371,18 +372,41 @@ namespace h
                             }
                         ]
                     },
+                    "output_parameter_types": {
+                        "size": 1,
+                        "elements": [
+                            {
+                                "data": {
+                                    "type": "fundamental_type",
+                                    "value": "byte"
+                                }
+                            }
+                        ]            
+                    },
                     "is_variadic": false
                 },
-                "parameter_ids": {
+                "input_parameter_ids": {
                     "size": 2,
                     "elements": [
                         0, 1
                     ]
                 },
-                "parameter_names": {
+                "input_parameter_names": {
                     "size": 2,
                     "elements": [
                         "lhs", "rhs"
+                    ]
+                },
+                "output_parameter_ids": {
+                    "size": 1,
+                    "elements": [
+                        0
+                    ]
+                },
+                "output_parameter_names": {
+                    "size": 1,
+                    "elements": [
+                        "sum"
                     ]
                 },
                 "linkage": "external"
@@ -559,18 +583,7 @@ namespace h
                             "id": 125,
                             "name": "Add",
                             "type": {
-                                "return_types": {
-                                    "size": 1,
-                                    "elements": [
-                                        {
-                                            "data": {
-                                                "type": "fundamental_type",
-                                                "value": "byte"
-                                            }
-                                        }
-                                    ]
-                                },
-                                "parameter_types": {
+                                "input_parameter_types": {
                                     "size": 2,
                                     "elements": [
                                         {
@@ -587,18 +600,41 @@ namespace h
                                         }
                                     ]
                                 },
+                                "output_parameter_types": {
+                                    "size": 1,
+                                    "elements": [
+                                        {
+                                            "data": {
+                                                "type": "fundamental_type",
+                                                "value": "byte"
+                                            }
+                                        }
+                                    ]
+                                },
                                 "is_variadic": false
                             },
-                            "parameter_ids": {
+                            "input_parameter_ids": {
                                 "size": 2,
                                 "elements": [
                                     0, 1
                                 ]
                             },
-                            "parameter_names": {
+                            "input_parameter_names": {
                                 "size": 2,
                                 "elements": [
                                     "lhs", "rhs"
+                                ]
+                            },
+                            "output_parameter_ids": {
+                                "size": 1,
+                                "elements": [
+                                    0
+                                ]
+                            },
+                            "output_parameter_names": {
+                                "size": 1,
+                                "elements": [
+                                    "sum"
                                 ]
                             },
                             "linkage": "external"

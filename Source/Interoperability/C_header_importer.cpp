@@ -143,15 +143,15 @@ namespace h::c
     {
         CXType const result_type = clang_getResultType(function_type);
         std::optional<h::Type_reference> result_type_reference = create_type_reference(declarations, result_type);
-        std::pmr::vector<h::Type_reference> return_types =
+        std::pmr::vector<h::Type_reference> output_parameter_types =
             result_type_reference.has_value() ?
             std::pmr::vector<h::Type_reference>{*result_type_reference} :
             std::pmr::vector<h::Type_reference>{};
 
         int const number_of_arguments = clang_getNumArgTypes(function_type);
 
-        std::pmr::vector<h::Type_reference> parameter_types;
-        parameter_types.reserve(number_of_arguments);
+        std::pmr::vector<h::Type_reference> input_parameter_types;
+        input_parameter_types.reserve(number_of_arguments);
 
         for (int argument_index = 0; argument_index < number_of_arguments; ++argument_index)
         {
@@ -163,15 +163,15 @@ namespace h::c
                 throw std::runtime_error{ "Parameter type is void which is invalid!" };
             }
 
-            parameter_types.push_back(std::move(*parameter_type));
+            input_parameter_types.push_back(std::move(*parameter_type));
         }
 
         bool const is_variadic = clang_isFunctionTypeVariadic(function_type) == 1;
 
         h::Function_type h_function_type
         {
-            .return_types = std::move(return_types),
-            .parameter_types = std::move(parameter_types),
+            .input_parameter_types = std::move(input_parameter_types),
+            .output_parameter_types = std::move(output_parameter_types),
             .is_variadic = is_variadic
         };
 
@@ -443,7 +443,7 @@ namespace h::c
         return parameter_ids;
     }
 
-    std::pmr::vector<std::pmr::string> create_parameter_names(CXCursor const cursor)
+    std::pmr::vector<std::pmr::string> create_input_parameter_names(CXCursor const cursor)
     {
         int const number_of_arguments = clang_Cursor_getNumArguments(cursor);
 
@@ -461,6 +461,16 @@ namespace h::c
         return parameter_names;
     }
 
+    std::pmr::vector<std::pmr::string> create_output_parameter_names(std::size_t const number_of_outputs)
+    {
+        if (number_of_outputs == 0)
+        {
+            return {};
+        }
+
+        return std::pmr::vector<std::pmr::string>{"result"};
+    }
+
     h::Function_declaration create_function_declaration(C_declarations const& declarations, std::uint64_t const id, CXCursor const cursor)
     {
         String const cursor_spelling = { clang_getCursorSpelling(cursor) };
@@ -470,15 +480,15 @@ namespace h::c
 
         h::Function_type h_function_type = create_function_type(declarations, function_type);
 
-        int const number_of_arguments = clang_getNumArgTypes(function_type);
-
         return h::Function_declaration
         {
             .id = id,
             .name = std::pmr::string{function_name},
             .type = std::move(h_function_type),
-            .parameter_ids = generate_parameter_ids(number_of_arguments),
-            .parameter_names = create_parameter_names(cursor),
+            .input_parameter_ids = generate_parameter_ids(h_function_type.input_parameter_types.size()),
+            .input_parameter_names = create_input_parameter_names(cursor),
+            .output_parameter_ids = generate_parameter_ids(h_function_type.output_parameter_types.size()),
+            .output_parameter_names = create_output_parameter_names(h_function_type.output_parameter_types.size()),
             .linkage = h::Linkage::External
         };
     }
@@ -737,7 +747,7 @@ namespace h::c
         {
             h::Function_type& data = std::get<h::Function_type>(type.data);
 
-            for (h::Type_reference& reference : data.return_types)
+            for (h::Type_reference& reference : data.input_parameter_types)
             {
                 convert_typedef_to_integer_type_if_necessary(
                     reference,
@@ -747,7 +757,7 @@ namespace h::c
                 );
             }
 
-            for (h::Type_reference& reference : data.parameter_types)
+            for (h::Type_reference& reference : data.output_parameter_types)
             {
                 convert_typedef_to_integer_type_if_necessary(
                     reference,
@@ -837,7 +847,7 @@ namespace h::c
 
         for (h::Function_declaration& declaration : output.function_declarations)
         {
-            for (h::Type_reference& reference : declaration.type.return_types)
+            for (h::Type_reference& reference : declaration.type.input_parameter_types)
             {
                 convert_typedef_to_integer_type_if_necessary(
                     reference,
@@ -847,7 +857,7 @@ namespace h::c
                 );
             }
 
-            for (h::Type_reference& reference : declaration.type.parameter_types)
+            for (h::Type_reference& reference : declaration.type.output_parameter_types)
             {
                 convert_typedef_to_integer_type_if_necessary(
                     reference,

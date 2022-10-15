@@ -39,12 +39,12 @@ const function_parameters = computed(() => {
 
     const parameters: Function_parameter[] = [];
 
-    for (let index = 0; index < function_declaration.value.parameter_ids.size; ++index) {
+    for (let index = 0; index < function_declaration.value.input_parameter_ids.size; ++index) {
 
         const parameter: Function_parameter = {
-            id: function_declaration.value.parameter_ids.elements[index],
-            name: function_declaration.value.parameter_names.elements[index],
-            type: function_declaration.value.type.parameter_types.elements[index]
+            id: function_declaration.value.input_parameter_ids.elements[index],
+            name: function_declaration.value.input_parameter_names.elements[index],
+            type: function_declaration.value.type.input_parameter_types.elements[index]
         };
 
         parameters.push(parameter);
@@ -57,9 +57,9 @@ const id_name = "function_" + properties.function_id.toString();
 
 function calculate_new_function_parameter_id(function_declaration: core.Function_declaration): number {
 
-    let id = function_declaration.parameter_ids.size;
+    let id = function_declaration.input_parameter_ids.size;
 
-    for (const existing_id of function_declaration.parameter_ids.elements) {
+    for (const existing_id of function_declaration.input_parameter_ids.elements) {
         id = Math.max(id, existing_id + 1);
     }
 

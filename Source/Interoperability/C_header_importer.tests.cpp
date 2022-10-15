@@ -72,21 +72,24 @@ namespace h::c
         CHECK(actual.name == "puts");
 
         {
-            h::Type_reference const expected_return_type{ .data = h::Fundamental_type::C_int };
-
-            REQUIRE(actual.type.return_types.size() == 1);
-            CHECK(actual.type.return_types[0] == expected_return_type);
-        };
-
-        {
             h::Type_reference const c_char_type_reference{ .data = h::Fundamental_type::C_char };
             h::Type_reference const c_char_const_pointer_type_reference{ .data = h::Pointer_type{.element_type = c_char_type_reference, .is_mutable = false } };
-            CHECK(actual.type.parameter_types == std::pmr::vector<h::Type_reference>{c_char_const_pointer_type_reference});
+            CHECK(actual.type.input_parameter_types == std::pmr::vector<h::Type_reference>{c_char_const_pointer_type_reference});
         }
 
-        CHECK(actual.parameter_ids.size() == 1);
-        REQUIRE(actual.parameter_names.size() == 1);
-        CHECK(!actual.parameter_names[0].empty());
+        {
+            h::Type_reference const expected_return_type{ .data = h::Fundamental_type::C_int };
+
+            REQUIRE(actual.type.output_parameter_types.size() == 1);
+            CHECK(actual.type.output_parameter_types[0] == expected_return_type);
+        }
+
+        CHECK(actual.input_parameter_ids.size() == 1);
+        REQUIRE(actual.input_parameter_names.size() == 1);
+        CHECK(!actual.input_parameter_names[0].empty());
+        CHECK(actual.output_parameter_ids.size() == 1);
+        REQUIRE(actual.output_parameter_names.size() == 1);
+        CHECK(!actual.output_parameter_names[0].empty());
         CHECK(actual.linkage == Linkage::External);
     }
 

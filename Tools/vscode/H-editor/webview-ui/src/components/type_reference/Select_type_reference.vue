@@ -120,17 +120,13 @@ function on_meta_type_changed(event: Event): void {
         }
         else if (new_meta_type === "Function_type") {
             const default_value: core.Function_type = {
-                return_types: {
-                    size: 1,
-                    elements: [
-                        type_utilities.create_default_type_reference()
-                    ]
+                input_parameter_types: {
+                    size: 0,
+                    elements: []
                 },
-                parameter_types: {
-                    size: 1,
-                    elements: [
-                        type_utilities.create_default_type_reference()
-                    ]
+                output_parameter_types: {
+                    size: 0,
+                    elements: []
                 },
                 is_variadic: false
             };

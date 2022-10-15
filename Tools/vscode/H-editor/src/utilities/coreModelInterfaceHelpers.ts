@@ -147,11 +147,11 @@ export function getUnderlyingTypeName(
             {
                 // @ts-ignore
                 const value: core.Function_type = typeReference.data.value;
-                const parameterNames = value.parameter_types.elements.map(value => getUnderlyingTypeName(modules, value));
-                const variadicKeyword = value.is_variadic ? ", ..." : "";
-                const parametersString = "(" + parameterNames.join(", ") + variadicKeyword + ")";
-                const returnTypeNames = value.return_types.elements.map(value => getUnderlyingTypeName(modules, value));
-                const returnTypesString = returnTypeNames.length === 0 ? "void" : (returnTypeNames.length === 1 ? returnTypeNames[0] : ("{" + returnTypeNames.join(", ") + "}"));
+                const parameterNames = value.input_parameter_types.elements.map(value => getUnderlyingTypeName(modules, value));
+                const parameterNamesPlusVariadic = value.is_variadic ? parameterNames.concat("...") : parameterNames;
+                const parametersString = "(" + parameterNamesPlusVariadic.join(", ") + ")";
+                const returnTypeNames = value.output_parameter_types.elements.map(value => getUnderlyingTypeName(modules, value));
+                const returnTypesString = "(" + returnTypeNames.join(", ") + ")";
                 return `${parametersString} -> ${returnTypesString}`;
             }
         case core.Type_reference_enum.Integer_type:
