@@ -1,5 +1,6 @@
 module;
 
+#include <format>
 #include <iostream>
 #include <memory_resource>
 #include <variant>

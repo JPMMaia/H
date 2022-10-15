@@ -7,6 +7,7 @@ module;
 #include <format>
 #include <iostream>
 #include <memory_resource>
+#include <optional>
 #include <span>
 #include <string>
 #include <type_traits>
