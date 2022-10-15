@@ -1102,6 +1102,7 @@ namespace h::tools::code_generator
 
         output_stream << "module;\n";
         output_stream << '\n';
+        output_stream << "#include <format>\n";
         output_stream << "#include <iostream>\n";
         output_stream << "#include <memory_resource>\n";
         output_stream << "#include <variant>\n";
