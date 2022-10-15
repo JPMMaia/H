@@ -48,6 +48,16 @@ function on_string_value_change(event: Event): void {
     }
 }
 
+function on_boolean_selected(id: number, name: string, data: any): void {
+
+    if (name !== "false" && name !== "true") {
+        return;
+    }
+
+    const value = name === "false" ? false : true;
+    emit("update:value", [], value);
+}
+
 function on_number_value_change(event: Event): void {
     if (event.target !== null && event.target instanceof HTMLInputElement) {
         const value = event.target.value;
@@ -149,6 +159,13 @@ function get_variant_type_possible_values(reflectionInfo: ReflectionInfo, reflec
     return variantValueTypes.map((value, index) => { return { id: index, name: value.name, icon: "codicon-symbol-parameter", data: undefined } });
 }
 
+function get_boolean_possible_values(): Search_entry[] {
+    return [
+        { id: 0, name: "false", icon: "codicon-symbol-boolean", data: undefined },
+        { id: 1, name: "true", icon: "codicon-symbol-boolean", data: undefined },
+    ];
+}
+
 function is_key_read_only(reflectionType: ReflectionType, key: string): boolean {
     return coreModel.isVectorType(reflectionType) && key == "size";
 }
@@ -171,6 +188,11 @@ function is_key_read_only(reflectionType: ReflectionType, key: string): boolean 
             @input="on_string_value_change"></Editable>&quot;</span>
     <span v-else-if="typeof properties.value === 'number' && properties.isReadOnly">
         {{ properties.value }}
+    </span>
+    <span v-else-if="typeof properties.value === 'boolean'">
+        <Search_field :possible_values="get_boolean_possible_values()"
+            :current_search_term="properties.value.toString()" v-on:update="on_boolean_selected">
+        </Search_field>
     </span>
     <span v-else-if="typeof properties.value === 'number'">
         <Editable :modelValue="properties.value" @input="on_number_value_change">
