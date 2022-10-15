@@ -36,7 +36,7 @@ if(BUILD_TESTING)
    target_link_libraries(H_c_header_importer_tests PRIVATE H_c_header_importer)
 
    find_package(Catch2 CONFIG REQUIRED)
-   target_link_libraries(H_c_header_importer_tests PRIVATE Catch2::Catch2)
+   target_link_libraries(H_c_header_importer_tests PRIVATE Catch2::Catch2 Catch2::Catch2WithMain)
 
    target_compile_definitions(
       H_c_header_importer_tests

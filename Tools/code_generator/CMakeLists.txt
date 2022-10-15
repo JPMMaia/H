@@ -17,7 +17,7 @@ if(BUILD_TESTING)
    target_link_libraries(H_Tools_Code_generator_tests PRIVATE H_Tools_Code_generator)
 
    find_package(Catch2 CONFIG REQUIRED)
-   target_link_libraries(H_Tools_Code_generator_tests PRIVATE Catch2::Catch2)
+   target_link_libraries(H_Tools_Code_generator_tests PRIVATE Catch2::Catch2 Catch2::Catch2WithMain)
 
    target_sources(H_Tools_Code_generator_tests PRIVATE "Code_generator.tests.cpp")
 

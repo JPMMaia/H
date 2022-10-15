@@ -11,9 +11,7 @@
 import h.core;
 import h.c_header_converter;
 
-#define CATCH_CONFIG_MAIN
-//#define CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 
 namespace h::c
 {

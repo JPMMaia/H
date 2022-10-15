@@ -22,7 +22,7 @@ if(BUILD_TESTING)
    target_link_libraries(H_JSON_serializer_tests PRIVATE H_JSON_serializer)
 
    find_package(Catch2 CONFIG REQUIRED)
-   target_link_libraries(H_JSON_serializer_tests PRIVATE Catch2::Catch2)
+   target_link_libraries(H_JSON_serializer_tests PRIVATE Catch2::Catch2WithMain)
 
    target_sources(H_JSON_serializer_tests PRIVATE "JSON_serializer.tests.cpp")
 
