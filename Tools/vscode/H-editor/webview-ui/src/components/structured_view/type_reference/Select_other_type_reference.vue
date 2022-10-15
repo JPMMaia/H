@@ -2,12 +2,12 @@
 
 import { computed } from "vue";
 
-import * as core from "../../../../src/utilities/coreModelInterface";
+import * as core from "../../../../../src/utilities/coreModelInterface";
 
-import * as type_utilities from "../../utilities/Type_utilities";
-import * as search_utilities from "../../utilities/Search_utilities";
+import * as type_utilities from "../../../utilities/Type_utilities";
+import * as search_utilities from "../../../utilities/Search_utilities";
 
-import Search_field from "../Search_field.vue";
+import Search_field from "../../Search_field.vue";
 
 const properties = defineProps<{
     module: core.Module;

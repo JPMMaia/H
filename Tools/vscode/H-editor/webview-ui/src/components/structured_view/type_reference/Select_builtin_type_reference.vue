@@ -2,9 +2,9 @@
 
 import { computed } from "vue";
 
-import * as core from "../../../../src/utilities/coreModelInterface";
+import * as core from "../../../../../src/utilities/coreModelInterface";
 
-import Text_input from "../common/Text_input.vue";
+import Text_input from "../../common/Text_input.vue";
 
 const properties = defineProps<{
     current_type_reference: core.Type_reference;

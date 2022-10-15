@@ -2,9 +2,9 @@
 
 import { computed } from "vue";
 
-import * as core from "../../../../src/utilities/coreModelInterface";
+import * as core from "../../../../../src/utilities/coreModelInterface";
 
-import Checkbox_input from "../Checkbox_input.vue";
+import Checkbox_input from "../../common/Checkbox_input.vue";
 import Select_function_type_parameter from "./Select_function_type_parameter.vue";
 
 const properties = defineProps<{

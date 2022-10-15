@@ -3,13 +3,13 @@
 import { computed, ref } from "vue";
 import "@vscode/codicons/dist/codicon.css";
 
-import type * as core from "../../../src/utilities/coreModelInterface";
-import * as coreInterfaceHelpers from "../../../src/utilities/coreModelInterfaceHelpers";
-import * as type_utilities from "../utilities/Type_utilities";
+import type * as core from "../../../../src/utilities/coreModelInterface";
+import * as coreInterfaceHelpers from "../../../../src/utilities/coreModelInterfaceHelpers";
+import * as type_utilities from "../../utilities/Type_utilities";
 
-import List from "./common/List.vue";
+import List from "../common/List.vue";
 import Select_type_reference from "./type_reference/Select_type_reference.vue";
-import Text_input from "./common/Text_input.vue";
+import Text_input from "../common/Text_input.vue";
 
 
 const properties = defineProps<{

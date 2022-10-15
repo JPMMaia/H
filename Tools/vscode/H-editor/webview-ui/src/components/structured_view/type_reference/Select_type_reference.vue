@@ -2,14 +2,14 @@
 
 import { computed, ref } from "vue";
 
-import * as core from "../../../../src/utilities/coreModelInterface";
-import * as coreInterfaceHelpers from "../../../../src/utilities/coreModelInterfaceHelpers";
-import * as type_utilities from "../../utilities/Type_utilities";
-import * as search_utilities from "../../utilities/Search_utilities";
+import * as core from "../../../../../src/utilities/coreModelInterface";
+import * as coreInterfaceHelpers from "../../../../../src/utilities/coreModelInterfaceHelpers";
+import * as type_utilities from "../../../utilities/Type_utilities";
+import * as search_utilities from "../../../utilities/Search_utilities";
 
 import type { Search_entry } from "@/utilities/Search_entry";
 import type { CodeWithSourceMap } from "source-map";
-import { onThrowError } from "../../../../src/utilities/errors";
+import { onThrowError } from "../../../../../src/utilities/errors";
 
 import Select_builtin_type_reference from "./Select_builtin_type_reference.vue";
 import Select_constant_array_type_reference from "./Select_constant_array_type_reference.vue";

@@ -2,10 +2,10 @@
 
 import { computed } from "vue";
 
-import * as core from "../../../../src/utilities/coreModelInterface";
-import * as search_utilities from "../../utilities/Search_utilities";
+import * as core from "../../../../../src/utilities/coreModelInterface";
+import * as search_utilities from "../../../utilities/Search_utilities";
 
-import Search_field from "../Search_field.vue";
+import Search_field from "../../Search_field.vue";
 
 const properties = defineProps<{
     current_type_reference: core.Type_reference;

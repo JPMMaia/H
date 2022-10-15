@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import type { ReflectionType, ReflectionInfo } from "../../../src/utilities/coreModel";
+import type { ReflectionType, ReflectionInfo } from "../../../../src/utilities/coreModel";
 import type { Search_entry } from "@/utilities/Search_entry";
-import * as coreModel from "../../../src/utilities/coreModel";
+import * as coreModel from "../../../../src/utilities/coreModel";
 import Editable from './Editable.vue';
 import Press_key_editable from "./Press_key_editable.vue";
-import Search_field from './Search_field.vue';
+import Search_field from '../Search_field.vue';
 
 const g_debug = false;
 

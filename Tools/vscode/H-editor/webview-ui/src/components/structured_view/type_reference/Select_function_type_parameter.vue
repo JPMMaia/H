@@ -2,10 +2,10 @@
 
 import { computed } from "vue";
 
-import type * as core from "../../../../src/utilities/coreModelInterface";
-import * as core_helpers from "../../../../src/utilities/coreModelInterfaceHelpers";
+import type * as core from "../../../../../src/utilities/coreModelInterface";
+import * as core_helpers from "../../../../../src/utilities/coreModelInterfaceHelpers";
 
-import List from "../common/List.vue";
+import List from "../../common/List.vue";
 import Select_type_reference from "./Select_type_reference.vue";
 
 const properties = defineProps<{

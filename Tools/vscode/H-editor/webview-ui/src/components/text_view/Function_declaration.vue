@@ -3,11 +3,11 @@ import { get_type_name } from '@/utilities/language';
 import Editable from './Editable.vue';
 
 const properties = defineProps<{
-  value: any;
+    value: any;
 }>();
 
 const emit = defineEmits<{
-  (e: 'update:name', value: any): void
+    (e: 'update:name', value: any): void
 }>();
 
 function on_name_change(event: Event) {

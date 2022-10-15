@@ -2,9 +2,9 @@
 
 import { computed } from "vue";
 
-import * as core from "../../../../src/utilities/coreModelInterface";
+import * as core from "../../../../../src/utilities/coreModelInterface";
 
-import Number_input from "../Number_input.vue";
+import Number_input from "../../common/Number_input.vue";
 import Select_type_reference from "./Select_type_reference.vue";
 
 const properties = defineProps<{

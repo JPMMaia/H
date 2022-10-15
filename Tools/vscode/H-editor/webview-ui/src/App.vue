@@ -6,10 +6,10 @@ import { updateState } from "../../src/utilities/updateState";
 import type * as core from "../../src/utilities/coreModelInterface";
 import type * as coreHelpers from "../../src/utilities/coreModelInterfaceHelpers";
 
-import Function_declaration from "./components/Function_declaration.vue";
-import Function_parameters from "./components/Function_parameters.vue";
-import Language_version from "./components/Language_version.vue";
-import JSON_object from "./components/JSON_object.vue";
+import Function_declaration from "./components/text_view/Function_declaration.vue";
+import Function_parameters from "./components/structured_view/Function_parameters.vue";
+import Language_version from "./components/text_view/Language_version.vue";
+import JSON_object from "./components/text_view/JSON_object.vue";
 
 import { get_type_name } from "./utilities/language";
 import * as hCoreReflectionInfo from "../../src/utilities/h_core_reflection.json";
