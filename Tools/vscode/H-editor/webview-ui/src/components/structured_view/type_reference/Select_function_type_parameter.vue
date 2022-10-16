@@ -4,6 +4,7 @@ import { computed } from "vue";
 
 import type * as core from "../../../../../src/utilities/coreModelInterface";
 import * as core_helpers from "../../../../../src/utilities/coreModelInterfaceHelpers";
+import * as vector_helpers from "../../../utilities/Vector_helpers";
 
 import List from "../../common/List.vue";
 import Select_type_reference from "./Select_type_reference.vue";
@@ -18,28 +19,6 @@ const emit = defineEmits<{
     (e: 'update:type_references', value: core.Vector<core.Type_reference>): void,
 }>();
 
-function add_element_at_position(array: core.Vector<any>, index: number, element: any): void {
-    if ((index + 1) >= array.elements.length) {
-        array.elements.push(element);
-    }
-    else {
-        array.elements.splice(index, 0, element);
-    }
-
-    array.size += 1;
-}
-
-function remove_element_at_position(array: core.Vector<any>, index: number): void {
-    array.elements.splice(index, 1);
-    array.size -= 1;
-}
-
-function swap_elements(array: core.Vector<any>, first_index: number, second_index: number): void {
-    const first = array.elements[first_index];
-    array.elements[first_index] = array.elements[second_index];
-    array.elements[second_index] = first;
-}
-
 function emit_update_type_references(type_references: core.Vector<core.Type_reference>): void {
     emit("update:type_references", type_references);
 }
@@ -49,7 +28,7 @@ function add_parameter(index: number): void {
     const default_value: core.Type_reference = properties.default_value_type;
 
     const new_vector = properties.type_references;
-    add_element_at_position(new_vector, index + 1, default_value);
+    vector_helpers.add_element_at_position(new_vector, index + 1, default_value);
 
     emit_update_type_references(new_vector);
 }
@@ -57,7 +36,7 @@ function add_parameter(index: number): void {
 function remove_parameter(index: number): void {
 
     const new_vector = properties.type_references;
-    remove_element_at_position(new_vector, index);
+    vector_helpers.remove_element_at_position(new_vector, index);
 
     emit_update_type_references(new_vector);
 }
@@ -69,7 +48,7 @@ function move_parameter_up(index: number): void {
     }
 
     const new_vector = properties.type_references;
-    swap_elements(new_vector, index - 1, index);
+    vector_helpers.swap_elements(new_vector, index - 1, index);
 
     emit_update_type_references(new_vector);
 }
@@ -81,7 +60,7 @@ function move_parameter_down(index: number): void {
     }
 
     const new_vector = properties.type_references;
-    swap_elements(new_vector, index, index + 1);
+    vector_helpers.swap_elements(new_vector, index, index + 1);
 
     emit_update_type_references(new_vector);
 }
