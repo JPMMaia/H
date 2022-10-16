@@ -148,34 +148,11 @@ export class HEditorPanel {
           listener.updateVariant(message.data.position, message.data.new_value);
         }
         break;
-      case "add:function_parameter":
+      case "update:function_declaration":
         for (const listener of this.listeners) {
-          listener.addFunctionParameter(message.data.function_id, message.data.parameter_info);
+          listener.updateFunctionDeclaration(JSON.parse(message.data.function_declaration));
         }
         break;
-      case "remove:function_parameter":
-        for (const listener of this.listeners) {
-          listener.removeFunctionParameter(message.data.function_id, message.data.parameter_index);
-        }
-        break;
-      case "move_up:function_parameter":
-        for (const listener of this.listeners) {
-          listener.moveFunctionParameterUp(message.data.function_id, message.data.parameter_index);
-        }
-        break;
-      case "move_down:function_parameter":
-        for (const listener of this.listeners) {
-          listener.moveFunctionParameterDown(message.data.function_id, message.data.parameter_index);
-        }
-        break;
-      case "update:function_parameter":
-        {
-          const newValue = JSON.parse(message.data.new_value);
-          for (const listener of this.listeners) {
-            listener.updateFunctionParameter(message.data.function_id, message.data.parameter_id, message.data.attribute, newValue);
-          }
-          break;
-        }
     }
   }
 

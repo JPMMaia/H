@@ -1,0 +1,1 @@
+export { default as Function_declaration } from './Function_declaration.vue';

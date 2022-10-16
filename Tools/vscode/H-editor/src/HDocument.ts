@@ -415,127 +415,17 @@ function deleteVectorElementsAndUpdateArraySize(edit: vscode.WorkspaceEdit, docu
     );
 }
 
-function addFunctionParameter(edit: vscode.WorkspaceEdit, document: vscode.TextDocument, module: core.Module, functionId: number, parameterInfo: coreHelpers.FunctionParameterInfo): void {
+function updateFunctionDeclaration(edit: vscode.WorkspaceEdit, document: vscode.TextDocument, module: core.Module, functionDeclaration: core.Function_declaration): void {
 
-    const result = coreHelpers.findFunctionDeclarationIndexWithId(module, functionId);
+    const result = coreHelpers.findFunctionDeclarationIndexWithId(module, functionDeclaration.id);
     const functionIndex = result.index;
     const isExportDeclaration = result.isExportDeclaration;
 
     const declarationName = isExportDeclaration ? "export_declarations" : "internal_declarations";
     const text = document.getText(undefined);
 
-    {
-        const position = [declarationName, "function_declarations", "elements", functionIndex, "type", "input_parameter_types", "elements", parameterInfo.index];
-        insertVectorElementAndUpdateArraySize(edit, document, text, position, parameterInfo.type);
-    }
-
-    {
-        const position = [declarationName, "function_declarations", "elements", functionIndex, "input_parameter_names", "elements", parameterInfo.index];
-        insertVectorElementAndUpdateArraySize(edit, document, text, position, parameterInfo.name);
-    }
-
-    {
-        const position = [declarationName, "function_declarations", "elements", functionIndex, "inpur_parameter_ids", "elements", parameterInfo.index];
-        insertVectorElementAndUpdateArraySize(edit, document, text, position, parameterInfo.id);
-    }
-}
-
-function removeFunctionParameter(edit: vscode.WorkspaceEdit, document: vscode.TextDocument, module: core.Module, functionId: number, parameterIndex: number): void {
-
-    const result = coreHelpers.findFunctionDeclarationIndexWithId(module, functionId);
-    const functionIndex = result.index;
-    const isExportDeclaration = result.isExportDeclaration;
-
-    const declarationName = isExportDeclaration ? "export_declarations" : "internal_declarations";
-    const text = document.getText();
-
-    {
-        const vectorPosition = [declarationName, "function_declarations", "elements", functionIndex, "input_parameter_ids"];
-        deleteVectorElementsAndUpdateArraySize(edit, document, text, vectorPosition, [parameterIndex]);
-    }
-
-    {
-        const vectorPosition = [declarationName, "function_declarations", "elements", functionIndex, "input_parameter_names"];
-        deleteVectorElementsAndUpdateArraySize(edit, document, text, vectorPosition, [parameterIndex]);
-    }
-
-    {
-        const vectorPosition = [declarationName, "function_declarations", "elements", functionIndex, "type", "input_parameter_types"];
-        deleteVectorElementsAndUpdateArraySize(edit, document, text, vectorPosition, [parameterIndex]);
-    }
-}
-
-function moveFunctionParameterUp(edit: vscode.WorkspaceEdit, document: vscode.TextDocument, module: core.Module, functionId: number, parameterIndex: number): void {
-
-    const result = coreHelpers.findFunctionDeclarationIndexWithId(module, functionId);
-    const functionIndex = result.index;
-    const isExportDeclaration = result.isExportDeclaration;
-
-    const declarationName = isExportDeclaration ? "export_declarations" : "internal_declarations";
-    const text = document.getText(undefined);
-
-    {
-        const vectorPosition = [declarationName, "function_declarations", "elements", functionIndex, "type", "input_parameter_types"];
-        moveVectorElementUp(edit, document, text, vectorPosition, module, parameterIndex);
-    }
-
-    {
-        const vectorPosition = [declarationName, "function_declarations", "elements", functionIndex, "input_parameter_names"];
-        moveVectorElementUp(edit, document, text, vectorPosition, module, parameterIndex);
-    }
-
-    {
-        const vectorPosition = [declarationName, "function_declarations", "elements", functionIndex, "input_parameter_ids"];
-        moveVectorElementUp(edit, document, text, vectorPosition, module, parameterIndex);
-    }
-}
-
-function moveFunctionParameterDown(edit: vscode.WorkspaceEdit, document: vscode.TextDocument, module: core.Module, functionId: number, parameterIndex: number): void {
-
-    const result = coreHelpers.findFunctionDeclarationIndexWithId(module, functionId);
-    const functionIndex = result.index;
-    const isExportDeclaration = result.isExportDeclaration;
-
-    const declarationName = isExportDeclaration ? "export_declarations" : "internal_declarations";
-    const text = document.getText(undefined);
-
-    {
-        const vectorPosition = [declarationName, "function_declarations", "elements", functionIndex, "type", "input_parameter_types"];
-        moveVectorElementDown(edit, document, text, vectorPosition, module, parameterIndex);
-    }
-
-    {
-        const vectorPosition = [declarationName, "function_declarations", "elements", functionIndex, "input_parameter_names"];
-        moveVectorElementDown(edit, document, text, vectorPosition, module, parameterIndex);
-    }
-
-    {
-        const vectorPosition = [declarationName, "function_declarations", "elements", functionIndex, "input_parameter_ids"];
-        moveVectorElementDown(edit, document, text, vectorPosition, module, parameterIndex);
-    }
-}
-
-function updateFunctionParameter(edit: vscode.WorkspaceEdit, document: vscode.TextDocument, module: core.Module, functionId: number, parameterId: number, vectorName: string, newValue: any): void {
-
-    const result = coreHelpers.findFunctionDeclarationIndexWithId(module, functionId);
-    const functionIndex = result.index;
-    const isExportDeclaration = result.isExportDeclaration;
-
-    const declarationName = isExportDeclaration ? "export_declarations" : "internal_declarations";
-
-    const parameterIndex =
-        isExportDeclaration ?
-            module.export_declarations.function_declarations.elements[functionIndex].input_parameter_ids.elements.findIndex(id => id === parameterId) :
-            module.internal_declarations.function_declarations.elements[functionIndex].input_parameter_ids.elements.findIndex(id => id === parameterId);
-
-    if (parameterIndex === -1) {
-        return;
-    }
-
-    const position = vectorName === "type.input_parameter_types" ?
-        [declarationName, "function_declarations", "elements", functionIndex, "type", "input_parameter_types", "elements", parameterIndex] :
-        [declarationName, "function_declarations", "elements", functionIndex, vectorName, "elements", parameterIndex];
-    const replaceInfo = setVectorElement(document, document.getText(undefined), position, newValue);
+    const position = [declarationName, "function_declarations", "elements", functionIndex];
+    const replaceInfo = setVectorElement(document, text, position, functionDeclaration);
 
     edit.replace(
         document.uri,
@@ -830,53 +720,11 @@ export class HDocument {
         // TODO
     }
 
-    public addFunctionParameter(functionId: number, parameterInfo: coreHelpers.FunctionParameterInfo): Thenable<boolean> {
+    public updateFunctionDeclaration(functionDeclaration: core.Function_declaration): Thenable<boolean> {
 
         const edit = new vscode.WorkspaceEdit();
 
-        addFunctionParameter(edit, this.document, this.state, functionId, parameterInfo);
-
-        return vscode.workspace.applyEdit(edit);
-    }
-
-    public removeFunctionParameter(functionId: number, parameterIndex: number): Thenable<boolean> {
-
-        const edit = new vscode.WorkspaceEdit();
-
-        removeFunctionParameter(edit, this.document, this.state, functionId, parameterIndex);
-
-        return vscode.workspace.applyEdit(edit);
-    }
-
-    public moveFunctionParameterUp(functionId: number, parameterIndex: number): Thenable<boolean> {
-
-        const edit = new vscode.WorkspaceEdit();
-
-        moveFunctionParameterUp(edit, this.document, this.state, functionId, parameterIndex);
-
-        return vscode.workspace.applyEdit(edit);
-    }
-
-    public moveFunctionParameterDown(functionId: number, parameterIndex: number): Thenable<boolean> {
-
-        const edit = new vscode.WorkspaceEdit();
-
-        moveFunctionParameterDown(edit, this.document, this.state, functionId, parameterIndex);
-
-        return vscode.workspace.applyEdit(edit);
-    }
-
-    public updateFunctionParameter(functionId: number, parameterId: number, attribute: string, newValue: any): Thenable<boolean> {
-        const edit = new vscode.WorkspaceEdit();
-
-        if (attribute === "name") {
-            const value: string = newValue;
-            updateFunctionParameter(edit, this.document, this.state, functionId, parameterId, "input_parameter_names", value);
-        }
-        else if (attribute === "type") {
-            const value: core.Type_reference = newValue;
-            updateFunctionParameter(edit, this.document, this.state, functionId, parameterId, "type.input_parameter_types", value);
-        }
+        updateFunctionDeclaration(edit, this.document, this.state, functionDeclaration);
 
         return vscode.workspace.applyEdit(edit);
     }

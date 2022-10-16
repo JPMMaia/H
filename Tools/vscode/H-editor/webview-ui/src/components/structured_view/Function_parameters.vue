@@ -6,6 +6,8 @@ import "@vscode/codicons/dist/codicon.css";
 import type * as core from "../../../../src/utilities/coreModelInterface";
 import * as coreInterfaceHelpers from "../../../../src/utilities/coreModelInterfaceHelpers";
 import * as type_utilities from "../../utilities/Type_utilities";
+import * as vector_helpers from "../../utilities/Vector_helpers";
+import { onThrowError } from "../../../../src/utilities/errors";
 
 import List from "../common/List.vue";
 import Select_type_reference from "./type_reference/Select_type_reference.vue";
@@ -14,37 +16,31 @@ import Text_input from "../common/Text_input.vue";
 
 const properties = defineProps<{
     module: core.Module;
-    function_id: number;
+    parameter_ids: core.Vector<number>;
+    parameter_names: core.Vector<string>;
+    parameter_types: core.Vector<core.Type_reference>;
 }>();
 
 const emit = defineEmits<{
-    (e: 'add:parameter', function_id: number, parameter_info: coreInterfaceHelpers.FunctionParameterInfo): void,
-    (e: 'remove:parameter', function_id: number, index: number): void,
-    (e: 'move-up:parameter', function_id: number, index: number): void,
-    (e: 'move-down:parameter', function_id: number, index: number): void,
-    (e: 'update:parameter', function_id: number, parameter_id: number, attribute: string, new_value: any): void,
+    (e: 'update', parameter_ids: core.Vector<number>, parameter_names: core.Vector<string>, parameter_types: core.Vector<core.Type_reference>): void,
 }>();
 
-const function_declaration = computed(() => {
-    return coreInterfaceHelpers.findFunctionDeclarationWithId(properties.module, properties.function_id);
-});
-
-interface Function_parameter {
+interface List_item_info {
     id: number,
     name: string,
     type: core.Type_reference
 }
 
-const function_parameters = computed(() => {
+const list_items = computed(() => {
 
-    const parameters: Function_parameter[] = [];
+    const parameters: List_item_info[] = [];
 
-    for (let index = 0; index < function_declaration.value.input_parameter_ids.size; ++index) {
+    for (let index = 0; index < properties.parameter_ids.size; ++index) {
 
-        const parameter: Function_parameter = {
-            id: function_declaration.value.input_parameter_ids.elements[index],
-            name: function_declaration.value.input_parameter_names.elements[index],
-            type: function_declaration.value.type.input_parameter_types.elements[index]
+        const parameter: List_item_info = {
+            id: properties.parameter_ids.elements[index],
+            name: properties.parameter_names.elements[index],
+            type: properties.parameter_types.elements[index]
         };
 
         parameters.push(parameter);
@@ -53,13 +49,13 @@ const function_parameters = computed(() => {
     return parameters;
 });
 
-const id_name = "function_" + properties.function_id.toString();
+const id_name = "function_parameters";
 
-function calculate_new_function_parameter_id(function_declaration: core.Function_declaration): number {
+function calculate_new_function_parameter_id(parameter_ids: core.Vector<number>): number {
 
-    let id = function_declaration.input_parameter_ids.size;
+    let id = parameter_ids.size;
 
-    for (const existing_id of function_declaration.input_parameter_ids.elements) {
+    for (const existing_id of parameter_ids.elements) {
         id = Math.max(id, existing_id + 1);
     }
 
@@ -67,45 +63,117 @@ function calculate_new_function_parameter_id(function_declaration: core.Function
 }
 
 function add_function_parameter(index: number): void {
-    const parameter_id = calculate_new_function_parameter_id(function_declaration.value);
-    const type_reference = type_utilities.create_default_type_reference();
 
-    const parameter_info: coreInterfaceHelpers.FunctionParameterInfo = {
-        index: index,
-        id: parameter_id,
-        name: "value_" + parameter_id.toString(),
-        type: type_reference
-    };
+    const new_id = calculate_new_function_parameter_id(properties.parameter_ids);
+    const new_name = "value_" + new_id.toString();
+    const new_type = type_utilities.create_default_type_reference();
 
-    emit("add:parameter", properties.function_id, parameter_info);
+    const insert_index = index + 1;
+
+    const new_parameter_ids = properties.parameter_ids;
+    vector_helpers.add_element_at_position(new_parameter_ids, insert_index, new_id);
+
+    const new_parameter_names = properties.parameter_names;
+    vector_helpers.add_element_at_position(new_parameter_names, insert_index, new_name);
+
+    const new_parameter_types = properties.parameter_types;
+    vector_helpers.add_element_at_position(new_parameter_types, insert_index, new_type);
+
+    emit("update", new_parameter_ids, new_parameter_names, new_parameter_types);
 }
 
 function remove_function_parameter(index: number): void {
-    emit("remove:parameter", properties.function_id, index);
+
+    const new_parameter_ids = properties.parameter_ids;
+    vector_helpers.remove_element_at_position(new_parameter_ids, index);
+
+    const new_parameter_names = properties.parameter_names;
+    vector_helpers.remove_element_at_position(new_parameter_names, index);
+
+    const new_parameter_types = properties.parameter_types;
+    vector_helpers.remove_element_at_position(new_parameter_types, index);
+
+    emit("update", new_parameter_ids, new_parameter_names, new_parameter_types);
 }
 
 function move_function_parameter_up(index: number): void {
-    emit("move-up:parameter", properties.function_id, index);
+
+    if (index === 0) {
+        return;
+    }
+
+    const first_index = index - 1;
+    const second_index = index;
+
+    const new_parameter_ids = properties.parameter_ids;
+    vector_helpers.swap_elements(new_parameter_ids, first_index, second_index);
+
+    const new_parameter_names = properties.parameter_names;
+    vector_helpers.swap_elements(new_parameter_names, first_index, second_index);
+
+    const new_parameter_types = properties.parameter_types;
+    vector_helpers.swap_elements(new_parameter_types, first_index, second_index);
+
+    emit("update", new_parameter_ids, new_parameter_names, new_parameter_types);
 }
 
 function move_function_parameter_down(index: number): void {
-    emit("move-down:parameter", properties.function_id, index);
+
+    if ((index + 1) >= properties.parameter_ids.size) {
+        return;
+    }
+
+    const first_index = index;
+    const second_index = index + 1;
+
+    const new_parameter_ids = properties.parameter_ids;
+    vector_helpers.swap_elements(new_parameter_ids, first_index, second_index);
+
+    const new_parameter_names = properties.parameter_names;
+    vector_helpers.swap_elements(new_parameter_names, first_index, second_index);
+
+    const new_parameter_types = properties.parameter_types;
+    vector_helpers.swap_elements(new_parameter_types, first_index, second_index);
+
+    emit("update", new_parameter_ids, new_parameter_names, new_parameter_types);
+}
+
+function find_index_of_parameter(parameter_id: number): number {
+    const index = properties.parameter_ids.elements.find(value => value == parameter_id);
+    if (index !== undefined) {
+        return index;
+    }
+
+    const message = "Could not find index of parameter!";
+    onThrowError(message);
+    throw new Error(message);
 }
 
 function update_parameter_name(parameter_id: number, new_name: string): void {
-    emit("update:parameter", properties.function_id, parameter_id, "name", new_name);
+
+    const index = find_index_of_parameter(parameter_id);
+
+    const new_parameter_names = properties.parameter_names;
+    new_parameter_names.elements[index] = new_name;
+
+    emit("update", properties.parameter_ids, new_parameter_names, properties.parameter_types);
 }
 
 function update_parameter_type(parameter_id: number, new_type: core.Type_reference): void {
-    emit("update:parameter", properties.function_id, parameter_id, "type", new_type);
+
+    const index = find_index_of_parameter(parameter_id);
+
+    const new_parameter_types = properties.parameter_types;
+    new_parameter_types.elements[index] = new_type;
+
+    emit("update", properties.parameter_ids, properties.parameter_names, new_parameter_types);
 }
 
 </script>
 
 <template>
-    <List :items="function_parameters" v-on:add:item="add_function_parameter"
-        v-on:remove:item="remove_function_parameter" v-on:move-up:item="move_function_parameter_up"
-        v-on:move-down:item="move_function_parameter_down">
+    <List :items="list_items" v-on:add:item="add_function_parameter" v-on:remove:item="remove_function_parameter"
+        v-on:move-up:item="move_function_parameter_up" v-on:move-down:item="move_function_parameter_down">
         <template #item_title="{name, type}">
             {{name}}: {{coreInterfaceHelpers.getUnderlyingTypeName([properties.module], type)}}
         </template>

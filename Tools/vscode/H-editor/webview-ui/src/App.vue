@@ -7,7 +7,7 @@ import type * as core from "../../src/utilities/coreModelInterface";
 import type * as coreHelpers from "../../src/utilities/coreModelInterfaceHelpers";
 
 import Function_declaration from "./components/text_view/Function_declaration.vue";
-import Function_parameters from "./components/structured_view/Function_parameters.vue";
+import * as Structured_view from "./components/structured_view/components";
 import Language_version from "./components/text_view/Language_version.vue";
 import JSON_object from "./components/text_view/JSON_object.vue";
 
@@ -275,54 +275,11 @@ function create_function(index: number, is_export_declaration: boolean): void {
   });
 }
 
-function add_function_parameter(function_id: number, parameter_info: coreHelpers.FunctionParameterInfo): void {
+function update_function_declaration(function_declaration: core.Function_declaration): void {
   vscode.postMessage({
-    command: "add:function_parameter",
+    command: "update:function_declaration",
     data: {
-      function_id: function_id,
-      parameter_info: parameter_info
-    }
-  });
-}
-
-function remove_function_parameter(function_id: number, parameter_index: number): void {
-  vscode.postMessage({
-    command: "remove:function_parameter",
-    data: {
-      function_id: function_id,
-      parameter_index: parameter_index
-    }
-  });
-}
-
-function move_function_parameter_up(function_id: number, parameter_index: number): void {
-  vscode.postMessage({
-    command: "move_up:function_parameter",
-    data: {
-      function_id: function_id,
-      parameter_index: parameter_index
-    }
-  });
-}
-
-function move_function_parameter_down(function_id: number, parameter_index: number): void {
-  vscode.postMessage({
-    command: "move_down:function_parameter",
-    data: {
-      function_id: function_id,
-      parameter_index: parameter_index
-    }
-  });
-}
-
-function update_function_parameter(function_id: number, parameter_id: number, attribute: string, new_value: any): void {
-  vscode.postMessage({
-    command: "update:function_parameter",
-    data: {
-      function_id: function_id,
-      parameter_id: parameter_id,
-      attribute: attribute,
-      new_value: JSON.stringify(new_value)
+      function_declaration: JSON.stringify(function_declaration)
     }
   });
 }
@@ -364,14 +321,11 @@ onMounted(() => { });
         </li>
       </ul>
 
-      <Function_parameters v-if="m_selectedView === 'function_view' && m_selectedFunctionId !== undefined"
-        :module="m_state.module" :function_id="m_selectedFunctionId"
-        v-on:add:parameter="(function_id, parameter_info) => { add_function_parameter(function_id, parameter_info) }"
-        v-on:remove:parameter="(function_id, parameter_index) => { remove_function_parameter(function_id, parameter_index) }"
-        v-on:move-up:parameter="(function_id, parameter_index) => { move_function_parameter_up(function_id, parameter_index) }"
-        v-on:move-down:parameter="(function_id, parameter_index) => { move_function_parameter_down(function_id, parameter_index) }"
-        v-on:update:parameter="(function_id, parameter_id, attribute, new_value) => update_function_parameter(function_id, parameter_id, attribute, new_value)">
-      </Function_parameters>
+      <Structured_view.Function_declaration
+        v-if="m_selectedView === 'function_view' && m_selectedFunctionId !== undefined" :module="m_state.module"
+        :function_id="m_selectedFunctionId"
+        v-on:update:function_declaration="function_declaration => update_function_declaration(function_declaration)">
+      </Structured_view.Function_declaration>
     </nav>
 
     <main>
