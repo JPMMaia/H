@@ -86,21 +86,23 @@ const m_state = ref<State>({ module: undefined });
           id: 0,
           name: "Add",
           type: {
-            return_types: {
-              size: 1,
-              elements: [{ data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } }],
-            },
-            parameter_types: {
+            input_parameter_types: {
               size: 2,
               elements: [
                 { data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } },
                 { data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } },
               ],
             },
+            output_parameter_types: {
+              size: 1,
+              elements: [{ data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } }],
+            },
             is_variadic: false,
           },
-          parameter_ids: { size: 2, elements: [0, 1] },
-          parameter_names: { size: 2, elements: ["lhs", "rhs"] },
+          input_parameter_ids: { size: 2, elements: [0, 1] },
+          input_parameter_names: { size: 2, elements: ["lhs", "rhs"] },
+          output_parameter_ids: { size: 1, elements: [0] },
+          output_parameter_names: { size: 1, elements: ["result"] },
           linkage: core.Linkage.External,
         },
       ],
