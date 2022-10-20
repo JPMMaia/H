@@ -148,7 +148,6 @@ function drag_end(event: DragEvent, item_index: number): void {
                             <slot name="item_content" v-bind="item" :key="item"></slot>
                         </div>
                     </div>
-                    <div class="add_left_margin">Content</div>
                 </div>
             </div>
         </TransitionGroup>
