@@ -31,7 +31,6 @@ const emit = defineEmits<{
 
 const is_other_option_available = computed(() => {
     const visible_types = search_utilities.get_other_visible_types_for_module_search_entries(properties.module);
-    console.log("Size is " + visible_types.length);
     return visible_types.length > 0;
 });
 
