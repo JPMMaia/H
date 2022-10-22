@@ -9,9 +9,8 @@ import * as type_utilities from "../../utilities/Type_utilities";
 import * as vector_helpers from "../../utilities/Vector_helpers";
 import { onThrowError } from "../../../../src/utilities/errors";
 
-import List from "../common/List.vue";
+import * as Common from "../common/components";
 import Select_type_reference from "./type_reference/Select_type_reference.vue";
-import Text_input from "../common/Text_input.vue";
 
 
 const properties = defineProps<{
@@ -172,26 +171,27 @@ function update_parameter_type(parameter_id: number, new_type: core.Type_referen
 </script>
 
 <template>
-    <List :items="list_items" v-on:add:item="add_function_parameter" v-on:remove:item="remove_function_parameter"
-        v-on:move-up:item="move_function_parameter_up" v-on:move-down:item="move_function_parameter_down">
+    <Common.Select_list :items="list_items" v-on:add:item="add_function_parameter"
+        v-on:remove:item="remove_function_parameter" v-on:move-up:item="move_function_parameter_up"
+        v-on:move-down:item="move_function_parameter_down">
         <template #item_title="{name, type}">
             {{name}}: {{coreInterfaceHelpers.getUnderlyingTypeName([properties.module], type)}}
         </template>
         <template #item_body="{id, name, type}">
             <div>
                 <label :for="id_name + '_parameter_name_' + id">Name: </label>
-                <Text_input id="id_name + '_parameter_name_' + id" :modelValue="name"
-                    v-on:update:modelValue="(value) => update_parameter_name(id, value)"></Text_input>
+                <Common.Text_input id="id_name + '_parameter_name_' + id" :modelValue="name"
+                    v-on:update:modelValue="(value: string) => update_parameter_name(id, value)"></Common.Text_input>
             </div>
             <div>
                 <label for="id_name + '_parameter_type_' + id">Type: </label>
                 <Select_type_reference id="id_name + '_parameter_type_' + id" :module="properties.module"
                     :current_type_reference="type" class="insert_padding_left"
-                    v-on:update:type_reference="(value) => update_parameter_type(id, value)">
+                    v-on:update:type_reference="(value: core.Type_reference) => update_parameter_type(id, value)">
                 </Select_type_reference>
             </div>
         </template>
-    </List>
+    </Common.Select_list>
 </template>
 
 <style scoped>

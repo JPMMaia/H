@@ -6,10 +6,8 @@ import "@vscode/codicons/dist/codicon.css";
 import * as core from "../../../../src/utilities/coreModelInterface";
 import * as coreInterfaceHelpers from "../../../../src/utilities/coreModelInterfaceHelpers";
 
-import Checkbox_input from "../common/Checkbox_input.vue";
+import * as Common from "../common/components";
 import Function_parameters from "./Function_parameters.vue";
-import Select_dropdown from "../common/Select_dropdown.vue";
-import Text_input from "../common/Text_input.vue";
 
 const properties = defineProps<{
     module: core.Module;
@@ -73,48 +71,56 @@ function on_output_parameters_changed(parameter_ids: core.Vector<number>, parame
 </script>
 
 <template>
-    <section class="column_container add_margin">
-        <header class="row_container"><i class="codicon codicon-symbol-method"></i> Function declaration</header>
-        <div class="add_padding_left add_margin">
-            <div>
-                <label :for="properties.function_id + '-function_name'">Name: </label>
-                <Text_input :id="properties.function_id + '-function_name'" :modelValue="function_declaration.name"
-                    v-on:update:modelValue="value => on_name_changed(value)">
-                </Text_input>
+    <Common.Collapsible>
+        <template #summary="{}">
+            <div class="row_container">
+                <i class="codicon codicon-symbol-method"></i> {{function_declaration.name}}
             </div>
-            <div>
-                <label :for="properties.function_id + '-linkage'">Linkage: </label>
-                <Select_dropdown :id="properties.function_id + '-linkage'"
-                    :current_item="function_declaration.linkage.toString()" :items="Object.keys(core.Linkage)"
-                    :to_string="v => v" v-on:update="(index, value) => on_linkage_changed(value)">
-                </Select_dropdown>
+        </template>
+        <template #content="{}">
+            <div class="column_container add_padding_left add_margin">
+                <div>
+                    <label :for="properties.function_id + '-function_name'">Name: </label>
+                    <Common.Text_input :id="properties.function_id + '-function_name'"
+                        :modelValue="function_declaration.name"
+                        v-on:update:modelValue="(value: string) => on_name_changed(value)">
+                    </Common.Text_input>
+                </div>
+                <div>
+                    <label :for="properties.function_id + '-linkage'">Linkage: </label>
+                    <Common.Select_dropdown :id="properties.function_id + '-linkage'"
+                        :current_item="function_declaration.linkage.toString()" :items="Object.keys(core.Linkage)"
+                        :to_string="v => v" v-on:update="(index: number, value: string) => on_linkage_changed(value)">
+                    </Common.Select_dropdown>
+                </div>
+                <div>
+                    <label :for="properties.function_id + '-input_function_parameters'">Input parameters: </label>
+                    <Function_parameters :id="properties.function_id + '-input_function_parameters'"
+                        :module="properties.module" :parameter_ids="function_declaration.input_parameter_ids"
+                        :parameter_names="function_declaration.input_parameter_names"
+                        :parameter_types="function_declaration.type.input_parameter_types"
+                        v-on:update="(parameter_ids, parameter_names, types) => on_input_parameters_changed(parameter_ids, parameter_names, types)">
+                    </Function_parameters>
+                </div>
+                <div>
+                    <label :for="properties.function_id + '-is_variadic'">Is variadic: </label>
+                    <Common.Checkbox_input :id="properties.function_id + '-is_variadic'"
+                        :modelValue="function_declaration.type.is_variadic"
+                        v-on:update:modelValue="(value: boolean) => on_is_variadic_changed(value)">
+                    </Common.Checkbox_input>
+                </div>
+                <div>
+                    <label :for="properties.function_id + '-output_function_parameters'">Output parameters: </label>
+                    <Function_parameters :id="properties.function_id + '-output_function_parameters'"
+                        :module="properties.module" :parameter_ids="function_declaration.output_parameter_ids"
+                        :parameter_names="function_declaration.output_parameter_names"
+                        :parameter_types="function_declaration.type.output_parameter_types"
+                        v-on:update="(parameter_ids, parameter_names, types) => on_output_parameters_changed(parameter_ids, parameter_names, types)">
+                    </Function_parameters>
+                </div>
             </div>
-            <div>
-                <label :for="properties.function_id + '-input_function_parameters'">Input parameters: </label>
-                <Function_parameters :id="properties.function_id + '-input_function_parameters'"
-                    :module="properties.module" :parameter_ids="function_declaration.input_parameter_ids"
-                    :parameter_names="function_declaration.input_parameter_names"
-                    :parameter_types="function_declaration.type.input_parameter_types"
-                    v-on:update="(parameter_ids, parameter_names, types) => on_input_parameters_changed(parameter_ids, parameter_names, types)">
-                </Function_parameters>
-            </div>
-            <div>
-                <label :for="properties.function_id + '-is_variadic'">Is variadic: </label>
-                <Checkbox_input :id="properties.function_id + '-is_variadic'"
-                    :modelValue="function_declaration.type.is_variadic"
-                    v-on:update:modelValue="value => on_is_variadic_changed(value)"></Checkbox_input>
-            </div>
-            <div>
-                <label :for="properties.function_id + '-output_function_parameters'">Output parameters: </label>
-                <Function_parameters :id="properties.function_id + '-output_function_parameters'"
-                    :module="properties.module" :parameter_ids="function_declaration.output_parameter_ids"
-                    :parameter_names="function_declaration.output_parameter_names"
-                    :parameter_types="function_declaration.type.output_parameter_types"
-                    v-on:update="(parameter_ids, parameter_names, types) => on_output_parameters_changed(parameter_ids, parameter_names, types)">
-                </Function_parameters>
-            </div>
-        </div>
-    </section>
+        </template>
+    </Common.Collapsible>
 </template>
 
 <style scoped>

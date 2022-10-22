@@ -6,7 +6,7 @@ import type * as core from "../../../../../src/utilities/coreModelInterface";
 import * as core_helpers from "../../../../../src/utilities/coreModelInterfaceHelpers";
 import * as vector_helpers from "../../../utilities/Vector_helpers";
 
-import List from "../../common/List.vue";
+import * as Common from "../../common/components";
 import Select_type_reference from "./Select_type_reference.vue";
 
 const properties = defineProps<{
@@ -99,7 +99,7 @@ const list_items = computed(() => {
 </script>
 
 <template>
-    <List :items="list_items" v-on:add:item="add_parameter" v-on:remove:item="remove_parameter"
+    <Common.Select_list :items="list_items" v-on:add:item="add_parameter" v-on:remove:item="remove_parameter"
         v-on:move-up:item="move_parameter_up" v-on:move-down:item="move_parameter_down">
         <template #item_title="{type}">
             {{core_helpers.getUnderlyingTypeName([properties.module], type)}}
@@ -113,7 +113,7 @@ const list_items = computed(() => {
                 </Select_type_reference>
             </div>
         </template>
-    </List>
+    </Common.Select_list>
 </template>
 
 <style scoped>
