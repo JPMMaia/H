@@ -5,6 +5,7 @@ import { vscode } from "./utilities/vscode";
 import { updateState } from "../../src/utilities/updateState";
 import type * as core from "../../src/utilities/coreModelInterface";
 import type * as coreHelpers from "../../src/utilities/coreModelInterfaceHelpers";
+import * as Module_examples from "./utilities/Module_examples";
 
 import Function_declaration from "./components/text_view/Function_declaration.vue";
 import * as Structured_view from "./components/structured_view/components";
@@ -63,111 +64,7 @@ interface State {
 
 const m_state = ref<State>({ module: undefined });
 
-/*m_state.value.module = {
-  language_version: { major: 1, minor: 2, patch: 3 },
-  name: "module_name",
-  export_declarations: {
-    alias_type_declarations: {
-      size: 0,
-      elements: []
-    },
-    enum_declarations: {
-      size: 0,
-      elements: []
-    },
-    struct_declarations: {
-      size: 0,
-      elements: []
-    },
-    function_declarations: {
-      size: 1,
-      elements: [
-        {
-          id: 0,
-          name: "Add",
-          type: {
-            input_parameter_types: {
-              size: 2,
-              elements: [
-                { data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } },
-                { data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } },
-              ],
-            },
-            output_parameter_types: {
-              size: 1,
-              elements: [{ data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } }],
-            },
-            is_variadic: false,
-          },
-          input_parameter_ids: { size: 2, elements: [0, 1] },
-          input_parameter_names: { size: 2, elements: ["lhs", "rhs"] },
-          output_parameter_ids: { size: 1, elements: [0] },
-          output_parameter_names: { size: 1, elements: ["result"] },
-          linkage: core.Linkage.External,
-        },
-      ],
-    },
-  },
-  internal_declarations: {
-    alias_type_declarations: {
-      size: 0,
-      elements: []
-    },
-    enum_declarations: {
-      size: 0,
-      elements: []
-    },
-    struct_declarations: {
-      size: 0,
-      elements: []
-    },
-    function_declarations: {
-      size: 0,
-      elements: []
-    }
-  },
-  next_unique_id: 1,
-  definitions: {
-    function_definitions: {
-      size: 1,
-      elements: [
-        {
-          id: 0,
-          statements: {
-            size: 1,
-            elements: [
-              {
-                id: 0,
-                name: "var_0",
-                expressions: {
-                  size: 2,
-                  elements: [
-                    {
-                      data: {
-                        type: core.Expression_enum.Binary_expression,
-                        value: {
-                          left_hand_side: { type: core.Variable_expression_type.Function_argument, id: 0 },
-                          right_hand_side: { type: core.Variable_expression_type.Function_argument, id: 1 },
-                          operation: core.Binary_operation.Add,
-                        },
-                      },
-                    },
-                    {
-                      data: {
-                        type: core.Expression_enum.Return_expression,
-                        value: { variable: { type: core.Variable_expression_type.Temporary, id: 0 } },
-                      },
-                    },
-                  ],
-                },
-              },
-            ],
-          },
-        },
-      ],
-    },
-  },
-};*/
+m_state.value.module = Module_examples.create_default();
 
 function on_message_received(event: MessageEvent): void {
   const messages = event.data;
