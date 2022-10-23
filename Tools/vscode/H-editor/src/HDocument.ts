@@ -6,6 +6,7 @@ import { createDefaultElement, createEmptyModule } from './utilities/coreModel';
 import * as coreModel from './utilities/coreModel';
 import * as core from './utilities/coreModelInterface';
 import * as coreHelpers from './utilities/coreModelInterfaceHelpers';
+import * as Change from "./utilities/Change";
 import { onThrowError } from './utilities/errors';
 
 function createFunction(document: vscode.TextDocument, state: any, functionIndex: number, isExportDeclaration: boolean): Thenable<boolean> {
@@ -434,6 +435,130 @@ function updateFunctionDeclaration(edit: vscode.WorkspaceEdit, document: vscode.
     );
 }
 
+function updateObject(document: vscode.TextDocument, text: string, position: any[], newElement: any): ReplaceInfo {
+
+    // TODO cache
+
+    let parserState: ParserState = {
+        stack: [],
+        expectKey: false
+    };
+
+    const startOffsetResult = fromPositionToOffset(parserState, text, 0, [], position);
+    const endOffsetResult = findEndOfCurrentObject(startOffsetResult.newState, text, startOffsetResult.offset);
+
+    const startOffset = startOffsetResult.offset;
+    const endOffset = endOffsetResult.offset;
+
+    const range = new vscode.Range(
+        document.positionAt(startOffset),
+        document.positionAt(endOffset)
+    );
+
+    return {
+        range: range,
+        newText: JSON.stringify(newElement)
+    };
+}
+
+
+function doAddElementOfVectorChange(edit: vscode.WorkspaceEdit, document: vscode.TextDocument, text: string, change: Change.Add_element_to_vector, position: any[]): void {
+
+    const elementPosition = position.concat(change.vector_name, "elements", change.index);
+    insertVectorElementAndUpdateArraySize(edit, document, text, elementPosition, change.value);
+}
+
+function doRemoveElementOfVectorChange(edit: vscode.WorkspaceEdit, document: vscode.TextDocument, text: string, change: Change.Remove_element_of_vector, position: any[]): void {
+
+    const vectorPosition = position.concat(change.vector_name);
+    deleteVectorElementsAndUpdateArraySize(edit, document, text, vectorPosition, [change.index]);
+}
+
+function doSetElementOfVectorChange(edit: vscode.WorkspaceEdit, document: vscode.TextDocument, text: string, change: Change.Set_element_of_vector, position: any[]): void {
+
+    const elementPosition = position.concat(change.vector_name, "elements", change.index);
+
+    const replaceInfo = updateObject(document, text, elementPosition, change.value);
+
+    edit.replace(
+        document.uri,
+        replaceInfo.range,
+        replaceInfo.newText
+    );
+}
+
+function doMoveElementOfVectorChange(edit: vscode.WorkspaceEdit, document: vscode.TextDocument, text: string, module: core.Module, change: Change.Move_element_of_vector, position: any[]): void {
+
+    if (change.from_index === change.to_index) {
+        return;
+    }
+
+    const currentElementPosition = position.concat(change.vector_name, "elements", change.from_index);
+    const elementReference = getObjectAtPosition(module, currentElementPosition);
+    const element = JSON.parse(JSON.stringify(elementReference.value));
+
+    const targetElementPosition = position.concat(change.vector_name, "elements", change.to_index + 1);
+
+    const insertInfo = insertVectorElement(document, text, targetElementPosition, element);
+
+    edit.insert(
+        document.uri,
+        insertInfo.position,
+        insertInfo.newText
+    );
+
+    const deleteInfo = deleteVectorElement(document, text, currentElementPosition);
+
+    edit.delete(
+        document.uri,
+        deleteInfo.range
+    );
+}
+
+function doUpdateChange(edit: vscode.WorkspaceEdit, document: vscode.TextDocument, text: string, change: Change.Update, position: any[]): void {
+
+    const targetPosition = position.concat(change.key);
+
+    const replaceInfo = updateObject(document, text, targetPosition, change.value);
+
+    edit.replace(
+        document.uri,
+        replaceInfo.range,
+        replaceInfo.newText
+    );
+}
+
+function updateWithNewChanges(edit: vscode.WorkspaceEdit, document: vscode.TextDocument, module: core.Module, newChanges: Change.Hierarchy, position: any[]): void {
+
+    const text = document.getText(undefined);
+
+    for (const change of newChanges.changes) {
+        switch (change.type) {
+            case Change.Type.Add_element_to_vector:
+                doAddElementOfVectorChange(edit, document, text, change.value as Change.Add_element_to_vector, position);
+                break;
+            case Change.Type.Remove_element_of_vector:
+                doRemoveElementOfVectorChange(edit, document, text, change.value as Change.Remove_element_of_vector, position);
+                break;
+            case Change.Type.Set_element_of_vector:
+                doSetElementOfVectorChange(edit, document, text, change.value as Change.Set_element_of_vector, position);
+                break;
+            case Change.Type.Move_element_of_vector:
+                doMoveElementOfVectorChange(edit, document, text, module, change.value as Change.Move_element_of_vector, position);
+                break;
+            case Change.Type.Update:
+                doUpdateChange(edit, document, text, change.value as Change.Update, position);
+                break;
+        }
+    }
+
+    for (const pair of newChanges.children) {
+        const childrenPosition = position.concat(...pair.position);
+        const childrenChanges = pair.hierarchy;
+        updateWithNewChanges(edit, document, module, childrenChanges, childrenPosition);
+    }
+}
+
 export class HDocument {
 
     private state: core.Module;
@@ -718,6 +843,24 @@ export class HDocument {
 
     public deleteFunctionDefinitionAndDeclaration(id: number): void {
         // TODO
+    }
+
+    public update(newChanges: Change.Hierarchy): Thenable<boolean> {
+
+        const edit = new vscode.WorkspaceEdit();
+
+        updateWithNewChanges(edit, this.document, this.state, newChanges, []);
+
+        return vscode.workspace.applyEdit(edit);
+    }
+
+    public updateAliasTypeDeclaration(aliasTypeDeclaration: core.Alias_type_declaration): Thenable<boolean> {
+
+        const edit = new vscode.WorkspaceEdit();
+
+        updateAliasTypeDeclaration(edit, this.document, this.state, aliasTypeDeclaration);
+
+        return vscode.workspace.applyEdit(edit);
     }
 
     public updateFunctionDeclaration(functionDeclaration: core.Function_declaration): Thenable<boolean> {

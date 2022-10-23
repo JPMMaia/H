@@ -153,6 +153,11 @@ export class HEditorPanel {
           listener.updateFunctionDeclaration(JSON.parse(message.data.function_declaration));
         }
         break;
+      case "new_changes":
+        for (const listener of this.listeners) {
+          listener.update(JSON.parse(message.data.new_changes));
+        }
+        break;
     }
   }
 
