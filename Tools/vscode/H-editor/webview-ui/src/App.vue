@@ -175,6 +175,15 @@ function create_function(index: number, is_export_declaration: boolean): void {
   });
 }
 
+function on_new_changes(new_changes: Change.Hierarchy): void {
+  vscode.postMessage({
+    command: "new_changes",
+    data: {
+      new_changes: JSON.stringify(new_changes)
+    }
+  });
+}
+
 function update_function_declaration(function_declaration: core.Function_declaration): void {
   vscode.postMessage({
     command: "update:function_declaration",
