@@ -1,12 +1,39 @@
 import * as core from "./coreModelInterface";
 import { onThrowError } from "./errors";
 
-export interface FindFunctionDeclarationResult {
+export interface FindDeclarationResult {
     index: number,
     isExportDeclaration: boolean
 };
 
-export function findFunctionDeclarationIndexWithId(module: core.Module, functionId: number): FindFunctionDeclarationResult {
+export function findElementIndexWithId(exportArray: any[], internalArray: any[], id: number): FindDeclarationResult {
+
+    {
+        const index = exportArray.findIndex(value => value.id === id);
+        if (index !== -1) {
+            return {
+                index: index,
+                isExportDeclaration: true
+            };
+        }
+    }
+
+    {
+        const index = internalArray.findIndex(value => value.id === id);
+        if (index !== -1) {
+            return {
+                index: index,
+                isExportDeclaration: false
+            };
+        }
+    }
+
+    const message = "Could not find element!";
+    onThrowError(message);
+    throw Error(message);
+}
+
+export function findFunctionDeclarationIndexWithId(module: core.Module, functionId: number): FindDeclarationResult {
 
     {
         const index = module.export_declarations.function_declarations.elements.findIndex(value => value.id === functionId);
