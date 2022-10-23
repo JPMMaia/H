@@ -9,19 +9,20 @@ import * as type_utilities from "../../utilities/Type_utilities";
 import * as vector_helpers from "../../utilities/Vector_helpers";
 import { onThrowError } from "../../../../src/utilities/errors";
 
+import * as Change from "../../../../src/utilities/Change";
 import * as Common from "../common/components";
 import Select_type_reference from "./type_reference/Select_type_reference.vue";
-
 
 const properties = defineProps<{
     module: core.Module;
     parameter_ids: core.Vector<number>;
     parameter_names: core.Vector<string>;
     parameter_types: core.Vector<core.Type_reference>;
+    is_input_parameters: boolean;
 }>();
 
 const emit = defineEmits<{
-    (e: 'update', parameter_ids: core.Vector<number>, parameter_names: core.Vector<string>, parameter_types: core.Vector<core.Type_reference>): void,
+    (e: 'new_changes', new_changes: Change.Hierarchy): void
 }>();
 
 interface List_item_info {
@@ -61,38 +62,59 @@ function calculate_new_function_parameter_id(parameter_ids: core.Vector<number>)
     return id;
 }
 
+function create_vector_name(name: string) {
+    return properties.is_input_parameters ? "input_" + name : "output_" + name;
+}
+
 function add_function_parameter(index: number): void {
 
+    const insert_index = index;
     const new_id = calculate_new_function_parameter_id(properties.parameter_ids);
     const new_name = "value_" + new_id.toString();
     const new_type = type_utilities.create_default_type_reference();
 
-    const insert_index = index + 1;
+    const new_changes: Change.Hierarchy = {
+        changes: [
+            Change.create_add_element_to_vector(create_vector_name("parameter_ids"), insert_index, new_id),
+            Change.create_add_element_to_vector(create_vector_name("parameter_names"), insert_index, new_name),
+        ],
+        children: [
+            {
+                position: ["type"],
+                hierarchy: {
+                    changes: [
+                        Change.create_add_element_to_vector(create_vector_name("parameter_types"), insert_index, new_type)
+                    ],
+                    children: []
+                }
+            }
+        ]
+    };
 
-    const new_parameter_ids = properties.parameter_ids;
-    vector_helpers.add_element_at_position(new_parameter_ids, insert_index, new_id);
-
-    const new_parameter_names = properties.parameter_names;
-    vector_helpers.add_element_at_position(new_parameter_names, insert_index, new_name);
-
-    const new_parameter_types = properties.parameter_types;
-    vector_helpers.add_element_at_position(new_parameter_types, insert_index, new_type);
-
-    emit("update", new_parameter_ids, new_parameter_names, new_parameter_types);
+    emit("new_changes", new_changes);
 }
 
 function remove_function_parameter(index: number): void {
 
-    const new_parameter_ids = properties.parameter_ids;
-    vector_helpers.remove_element_at_position(new_parameter_ids, index);
+    const new_changes: Change.Hierarchy = {
+        changes: [
+            Change.create_remove_element_of_vector(create_vector_name("parameter_ids"), index),
+            Change.create_remove_element_of_vector(create_vector_name("parameter_names"), index),
+        ],
+        children: [
+            {
+                position: ["type"],
+                hierarchy: {
+                    changes: [
+                        Change.create_remove_element_of_vector(create_vector_name("parameter_types"), index)
+                    ],
+                    children: []
+                }
+            }
+        ]
+    };
 
-    const new_parameter_names = properties.parameter_names;
-    vector_helpers.remove_element_at_position(new_parameter_names, index);
-
-    const new_parameter_types = properties.parameter_types;
-    vector_helpers.remove_element_at_position(new_parameter_types, index);
-
-    emit("update", new_parameter_ids, new_parameter_names, new_parameter_types);
+    emit("new_changes", new_changes);
 }
 
 function move_function_parameter_up(index: number): void {
@@ -101,19 +123,28 @@ function move_function_parameter_up(index: number): void {
         return;
     }
 
-    const first_index = index - 1;
-    const second_index = index;
+    const from_index = index - 1;
+    const to_index = index;
 
-    const new_parameter_ids = properties.parameter_ids;
-    vector_helpers.swap_elements(new_parameter_ids, first_index, second_index);
+    const new_changes: Change.Hierarchy = {
+        changes: [
+            Change.create_move_element_of_vector(create_vector_name("parameter_ids"), from_index, to_index),
+            Change.create_move_element_of_vector(create_vector_name("parameter_names"), from_index, to_index),
+        ],
+        children: [
+            {
+                position: ["type"],
+                hierarchy: {
+                    changes: [
+                        Change.create_move_element_of_vector(create_vector_name("parameter_types"), from_index, to_index)
+                    ],
+                    children: []
+                }
+            }
+        ]
+    };
 
-    const new_parameter_names = properties.parameter_names;
-    vector_helpers.swap_elements(new_parameter_names, first_index, second_index);
-
-    const new_parameter_types = properties.parameter_types;
-    vector_helpers.swap_elements(new_parameter_types, first_index, second_index);
-
-    emit("update", new_parameter_ids, new_parameter_names, new_parameter_types);
+    emit("new_changes", new_changes);
 }
 
 function move_function_parameter_down(index: number): void {
@@ -122,19 +153,28 @@ function move_function_parameter_down(index: number): void {
         return;
     }
 
-    const first_index = index;
-    const second_index = index + 1;
+    const from_index = index;
+    const to_index = index + 1;
 
-    const new_parameter_ids = properties.parameter_ids;
-    vector_helpers.swap_elements(new_parameter_ids, first_index, second_index);
+    const new_changes: Change.Hierarchy = {
+        changes: [
+            Change.create_move_element_of_vector(create_vector_name("parameter_ids"), from_index, to_index),
+            Change.create_move_element_of_vector(create_vector_name("parameter_names"), from_index, to_index),
+        ],
+        children: [
+            {
+                position: ["type"],
+                hierarchy: {
+                    changes: [
+                        Change.create_move_element_of_vector(create_vector_name("parameter_types"), from_index, to_index)
+                    ],
+                    children: []
+                }
+            }
+        ]
+    };
 
-    const new_parameter_names = properties.parameter_names;
-    vector_helpers.swap_elements(new_parameter_names, first_index, second_index);
-
-    const new_parameter_types = properties.parameter_types;
-    vector_helpers.swap_elements(new_parameter_types, first_index, second_index);
-
-    emit("update", new_parameter_ids, new_parameter_names, new_parameter_types);
+    emit("new_changes", new_changes);
 }
 
 function find_index_of_parameter(parameter_id: number): number {
@@ -152,20 +192,37 @@ function update_parameter_name(parameter_id: number, new_name: string): void {
 
     const index = find_index_of_parameter(parameter_id);
 
-    const new_parameter_names = properties.parameter_names;
-    new_parameter_names.elements[index] = new_name;
+    const new_changes: Change.Hierarchy = {
+        changes: [
+            Change.create_set_element_of_vector(create_vector_name("parameter_names"), index, new_name)
+        ],
+        children: []
+    };
 
-    emit("update", properties.parameter_ids, new_parameter_names, properties.parameter_types);
+    emit("new_changes", new_changes);
 }
 
 function update_parameter_type(parameter_id: number, new_type: core.Type_reference): void {
 
     const index = find_index_of_parameter(parameter_id);
 
-    const new_parameter_types = properties.parameter_types;
-    new_parameter_types.elements[index] = new_type;
+    const new_changes: Change.Hierarchy = {
+        changes: [
+        ],
+        children: [
+            {
+                position: ["type"],
+                hierarchy: {
+                    changes: [
+                        Change.create_set_element_of_vector(create_vector_name("parameter_types"), index, new_type)
+                    ],
+                    children: []
+                }
+            }
+        ]
+    };
 
-    emit("update", properties.parameter_ids, properties.parameter_names, new_parameter_types);
+    emit("new_changes", new_changes);
 }
 
 </script>

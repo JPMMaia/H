@@ -12,6 +12,7 @@ import * as Structured_view from "./components/structured_view/components";
 import Language_version from "./components/text_view/Language_version.vue";
 import JSON_object from "./components/text_view/JSON_object.vue";
 
+import type * as Change from "../../src/utilities/Change";
 import { get_type_name } from "./utilities/language";
 import * as hCoreReflectionInfo from "../../src/utilities/h_core_reflection.json";
 import { onThrowError } from "../../src/utilities/errors";
@@ -228,6 +229,10 @@ onMounted(() => { });
     </nav>
 
     <main>
+
+      <Structured_view.Module_declarations_view v-if="m_state.module !== undefined" :module="m_state.module"
+        v-on:new_changes="on_new_changes" v-on:update:function_declaration="update_function_declaration">
+      </Structured_view.Module_declarations_view>
 
       <div v-if="m_selectedView === 'module_view'">
 

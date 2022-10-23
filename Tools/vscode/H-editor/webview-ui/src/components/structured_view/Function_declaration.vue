@@ -8,6 +8,7 @@ import * as coreInterfaceHelpers from "../../../../src/utilities/coreModelInterf
 
 import * as Common from "../common/components";
 import Function_parameters from "./Function_parameters.vue";
+import * as Change from "../../../../src/utilities/Change";
 
 const properties = defineProps<{
     module: core.Module;
@@ -15,7 +16,7 @@ const properties = defineProps<{
 }>();
 
 const emit = defineEmits<{
-    (e: 'update:function_declaration', new_value: core.Function_declaration): void
+    (e: 'new_changes', new_changes: Change.Hierarchy): void
 }>();
 
 const function_declaration = computed(() => {
@@ -24,47 +25,49 @@ const function_declaration = computed(() => {
 
 function on_name_changed(value: string): void {
 
-    const new_function_declaration: core.Function_declaration = function_declaration.value;
-    new_function_declaration.name = value;
+    const new_changes: Change.Hierarchy = {
+        changes: [
+            Change.create_update("name", value)
+        ],
+        children: []
+    };
 
-    emit("update:function_declaration", new_function_declaration);
+    emit("new_changes", new_changes);
 }
 
 function on_linkage_changed(value: string): void {
     const linkage = core.Linkage[value as keyof typeof core.Linkage];
 
-    const new_function_declaration: core.Function_declaration = function_declaration.value;
-    new_function_declaration.linkage = linkage;
+    const new_changes: Change.Hierarchy = {
+        changes: [
+            Change.create_update("linkage", linkage)
+        ],
+        children: []
+    };
 
-    emit("update:function_declaration", new_function_declaration);
+    emit("new_changes", new_changes);
 }
 
-function on_input_parameters_changed(parameter_ids: core.Vector<number>, parameter_names: core.Vector<string>, types: core.Vector<core.Type_reference>): void {
+function on_input_parameters_changed(new_changes: Change.Hierarchy): void {
 
-    const new_function_declaration: core.Function_declaration = function_declaration.value;
-    new_function_declaration.input_parameter_ids = parameter_ids;
-    new_function_declaration.input_parameter_names = parameter_names;
-    new_function_declaration.type.input_parameter_types = types;
-
-    emit("update:function_declaration", new_function_declaration);
+    emit("new_changes", new_changes);
 }
 
 function on_is_variadic_changed(value: boolean): void {
 
-    const new_function_declaration: core.Function_declaration = function_declaration.value;
-    new_function_declaration.type.is_variadic = value;
+    const new_changes: Change.Hierarchy = {
+        changes: [
+            Change.create_update("is_variadic", value)
+        ],
+        children: []
+    };
 
-    emit("update:function_declaration", new_function_declaration);
+    emit("new_changes", new_changes);
 }
 
-function on_output_parameters_changed(parameter_ids: core.Vector<number>, parameter_names: core.Vector<string>, types: core.Vector<core.Type_reference>): void {
+function on_output_parameters_changed(new_changes: Change.Hierarchy): void {
 
-    const new_function_declaration: core.Function_declaration = function_declaration.value;
-    new_function_declaration.output_parameter_ids = parameter_ids;
-    new_function_declaration.output_parameter_names = parameter_names;
-    new_function_declaration.type.output_parameter_types = types;
-
-    emit("update:function_declaration", new_function_declaration);
+    emit("new_changes", new_changes);
 }
 
 
@@ -98,8 +101,8 @@ function on_output_parameters_changed(parameter_ids: core.Vector<number>, parame
                     <Function_parameters :id="properties.function_id + '-input_function_parameters'"
                         :module="properties.module" :parameter_ids="function_declaration.input_parameter_ids"
                         :parameter_names="function_declaration.input_parameter_names"
-                        :parameter_types="function_declaration.type.input_parameter_types"
-                        v-on:update="(parameter_ids, parameter_names, types) => on_input_parameters_changed(parameter_ids, parameter_names, types)">
+                        :parameter_types="function_declaration.type.input_parameter_types" :is_input_parameters="true"
+                        v-on:new_changes="on_input_parameters_changed">
                     </Function_parameters>
                 </div>
                 <div>
@@ -114,8 +117,8 @@ function on_output_parameters_changed(parameter_ids: core.Vector<number>, parame
                     <Function_parameters :id="properties.function_id + '-output_function_parameters'"
                         :module="properties.module" :parameter_ids="function_declaration.output_parameter_ids"
                         :parameter_names="function_declaration.output_parameter_names"
-                        :parameter_types="function_declaration.type.output_parameter_types"
-                        v-on:update="(parameter_ids, parameter_names, types) => on_output_parameters_changed(parameter_ids, parameter_names, types)">
+                        :parameter_types="function_declaration.type.output_parameter_types" :is_input_parameters="false"
+                        v-on:new_changes="on_output_parameters_changed">
                     </Function_parameters>
                 </div>
             </div>
