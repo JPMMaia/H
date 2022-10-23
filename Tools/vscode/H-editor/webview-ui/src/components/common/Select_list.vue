@@ -1,6 +1,6 @@
 <script setup lang="ts">
 
-import { computed, onMounted, ref } from "vue";
+import { ref, watch } from "vue";
 import "@vscode/codicons/dist/codicon.css";
 
 const properties = defineProps<{
@@ -18,15 +18,33 @@ const emit = defineEmits<{
 const select_item_html_element = ref<HTMLSelectElement | undefined>(undefined);
 const selected_item_index = ref<number | undefined>(properties.items.length > 0 ? 0 : undefined);
 
-function select_parameter(index: number): void {
+let add_element_pending: number | undefined = undefined;
+
+async function select_parameter(index: number | undefined): Promise<void> {
+
+    selected_item_index.value = index;
 
     if (select_item_html_element.value !== undefined) {
         const select_element = select_item_html_element.value;
-        select_element.value = index.toString();
+        select_element.value = index !== undefined ? index.toString() : "";
     }
-
-    selected_item_index.value = index;
 }
+
+watch(() => properties.items, (new_value: any[], old_value: any[]) => {
+
+    if (add_element_pending !== undefined && add_element_pending < new_value.length) {
+        select_parameter(add_element_pending);
+        add_element_pending = undefined;
+    }
+    else if (selected_item_index.value !== undefined && selected_item_index.value >= new_value.length) {
+        if (new_value.length === 0) {
+            select_parameter(undefined);
+        }
+        else {
+            select_parameter(new_value.length - 1);
+        }
+    }
+});
 
 function on_selected_item_index_changed(event: Event): void {
     if (event.target !== null) {
@@ -39,6 +57,7 @@ function on_selected_item_index_changed(event: Event): void {
 }
 
 function add_item(index: number): void {
+    add_element_pending = index;
     emit("add:item", index);
 }
 
@@ -68,7 +87,8 @@ function move_item_down(index: number): void {
             <select class="fill_grow" ref="select_item_html_element" :modelValue="selected_item_index"
                 v-on:change="event => on_selected_item_index_changed(event)"
                 :size="Math.max(properties.items.length, 3)">
-                <option v-for="(item, index) in properties.items" v-bind:key="index" :value="index">
+                <option v-for="(item, index) in properties.items" v-bind:key="index" :value="index"
+                    :selected="selected_item_index === index">
                     <slot name="item_title" v-bind="item"></slot>
                 </option>
             </select>
