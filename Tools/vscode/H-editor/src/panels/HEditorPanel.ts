@@ -52,9 +52,12 @@ export class HEditorPanel {
    * Cleans up and disposes of webview resources when the webview panel is closed.
    */
   private dispose() {
+    if (this.panel !== null) {
     // Dispose of the current webview panel
     this.panel.dispose();
+    }
 
+    if (this._disposables !== null) {
     // Dispose of all disposables (i.e. commands) for the current webview panel
     while (this._disposables.length) {
       const disposable = this._disposables.pop();
@@ -62,6 +65,7 @@ export class HEditorPanel {
         disposable.dispose();
       }
     }
+  }
   }
 
   public sendMessage(messages: any[]): void {
