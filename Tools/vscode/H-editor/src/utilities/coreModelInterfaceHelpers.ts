@@ -272,3 +272,42 @@ export interface FunctionParameterInfo {
     name: string,
     type: core.Type_reference
 }
+
+export function get_declarations_vector(declarations: core.Module_declarations, vector_name: string): core.Vector<any> {
+
+    if (vector_name === "alias_type_declarations" || vector_name === "enum_declarations" || vector_name === "struct_declarations" || vector_name === "function_declarations") {
+        return declarations[vector_name];
+    }
+    else {
+        const message = "Invalid '" + vector_name + "' declarations array";
+        onThrowError(message);
+        throw Error(message);
+    }
+}
+
+export function get_position_of_vector_element(module: core.Module, id: number): any[] | undefined {
+
+    const declaration_names = [
+        "export_declarations",
+        "internal_declarations"
+    ];
+
+    const vector_names = [
+        "alias_type_declarations",
+        "enum_declarations",
+        "struct_declarations",
+        "function_declarations"
+    ];
+
+    for (const declaration_name of declaration_names) {
+        for (const vector_name of vector_names) {
+            // @ts-ignore
+            const index = module[declaration_name][vector_name].elements.findIndex(value => value.id === id);
+            if (index !== -1) {
+                return [declaration_name, vector_name, "elements", index];
+            }
+        }
+    }
+
+    return undefined;
+}
