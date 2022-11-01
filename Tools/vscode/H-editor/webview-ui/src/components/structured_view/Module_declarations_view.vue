@@ -15,7 +15,6 @@ const properties = defineProps<{
 
 const emit = defineEmits<{
     (e: 'new_changes', new_changes: Change.Hierarchy): void
-    (e: 'update:function_declaration', new_value: core.Function_declaration): void
 }>();
 
 enum Item_type {
@@ -100,17 +99,25 @@ function on_new_changes(type: Item_type, index: number, is_export: boolean, chil
 
 <template>
     <Common.List :items="all_items">
-        <template #item_content="{type, value, index, is_export}">
+        <template #item_content="{ type, value, index, is_export }">
             <Structured_view.Alias_type_declaration v-if="type === Item_type.Alias" :module="properties.module"
                 :alias_type_declaration="value"
                 v-on:new_changes="(new_changes: Change.Hierarchy) => on_new_changes(Item_type.Alias, index, is_export, new_changes)">
             </Structured_view.Alias_type_declaration>
+            <Structured_view.Enum_declaration v-else-if="type === Item_type.Enum" :module="properties.module"
+                :enum_declaration="value"
+                v-on:new_changes="(new_changes: Change.Hierarchy) => on_new_changes(Item_type.Enum, index, is_export, new_changes)">
+            </Structured_view.Enum_declaration>
+            <Structured_view.Struct_declaration v-else-if="type === Item_type.Struct" :module="properties.module"
+                :struct_declaration="value"
+                v-on:new_changes="(new_changes: Change.Hierarchy) => on_new_changes(Item_type.Struct, index, is_export, new_changes)">
+            </Structured_view.Struct_declaration>
             <Structured_view.Function_declaration v-else-if="type === Item_type.Function" :module="properties.module"
                 :function_id="value.id"
                 v-on:new_changes="(new_changes: Change.Hierarchy) => on_new_changes(Item_type.Function, index, is_export, new_changes)">
             </Structured_view.Function_declaration>
             <div v-else>
-                {{value.name}}
+                {{ value.name }}
             </div>
         </template>
     </Common.List>

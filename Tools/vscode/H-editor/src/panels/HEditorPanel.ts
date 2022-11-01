@@ -53,19 +53,19 @@ export class HEditorPanel {
    */
   private dispose() {
     if (this.panel !== null) {
-    // Dispose of the current webview panel
-    this.panel.dispose();
+      // Dispose of the current webview panel
+      this.panel.dispose();
     }
 
     if (this._disposables !== null) {
-    // Dispose of all disposables (i.e. commands) for the current webview panel
-    while (this._disposables.length) {
-      const disposable = this._disposables.pop();
-      if (disposable) {
-        disposable.dispose();
+      // Dispose of all disposables (i.e. commands) for the current webview panel
+      while (this._disposables.length) {
+        const disposable = this._disposables.pop();
+        if (disposable) {
+          disposable.dispose();
+        }
       }
     }
-  }
   }
 
   public sendMessage(messages: any[]): void {
@@ -125,36 +125,6 @@ export class HEditorPanel {
       case "delete:module":
         for (const listener of this.listeners) {
           listener.deleteModule();
-        }
-        break;
-      case "create:function":
-        for (const listener of this.listeners) {
-          listener.createFunction(message.data.function_index, message.data.is_export_declaration);
-        }
-        break;
-      case "insert:value":
-        for (const listener of this.listeners) {
-          listener.insertValue(message.data.position, message.data.value);
-        }
-        break;
-      case "delete:value":
-        for (const listener of this.listeners) {
-          listener.deleteValue(message.data.position);
-        }
-        break;
-      case "update:value":
-        for (const listener of this.listeners) {
-          listener.updateValue(message.data.position, message.data.new_value);
-        }
-        break;
-      case "update:variant_type":
-        for (const listener of this.listeners) {
-          listener.updateVariant(message.data.position, message.data.new_value);
-        }
-        break;
-      case "update:function_declaration":
-        for (const listener of this.listeners) {
-          listener.updateFunctionDeclaration(JSON.parse(message.data.function_declaration));
         }
         break;
       case "new_changes":

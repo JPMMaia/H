@@ -94,65 +94,6 @@ function on_message_received(event: MessageEvent): void {
 
 window.addEventListener("message", on_message_received);
 
-function on_insert_element(position: any[], value?: any): void {
-  vscode.postMessage({
-    command: "insert:value",
-    data: {
-      position: position,
-      value: value
-    },
-  });
-}
-
-function on_delete_element(position: any[]): void {
-  vscode.postMessage({
-    command: "delete:value",
-    data: {
-      position: position,
-    },
-  });
-}
-
-function on_value_change(position: any[], new_value: any): void {
-  vscode.postMessage({
-    command: "update:value",
-    data: {
-      position: position,
-      new_value: new_value,
-    },
-  });
-}
-
-function on_variant_type_change(position: any[], new_value: any): void {
-  vscode.postMessage({
-    command: "update:variant_type",
-    data: {
-      position: position,
-      new_value: new_value,
-    },
-  });
-}
-
-function on_function_name_change(
-  index: number,
-  function_declaration: any,
-  is_export_declaration: boolean,
-  new_name: any
-): void {
-  const functionDeclarationKey = is_export_declaration
-    ? "export_declarations"
-    : "internal_declarations";
-  const position = [functionDeclarationKey, index, "name"];
-
-  vscode.postMessage({
-    command: "update:value",
-    data: {
-      position: position,
-      new_value: new_name,
-    },
-  });
-}
-
 function create_module(): void {
   vscode.postMessage({
     command: "create:module",
@@ -165,30 +106,11 @@ function delete_module(): void {
   });
 }
 
-function create_function(index: number, is_export_declaration: boolean): void {
-  vscode.postMessage({
-    command: "create:function",
-    data: {
-      function_index: index,
-      is_export_declaration: is_export_declaration,
-    },
-  });
-}
-
 function on_new_changes(new_changes: Change.Hierarchy): void {
   vscode.postMessage({
     command: "new_changes",
     data: {
       new_changes: JSON.stringify(new_changes)
-    }
-  });
-}
-
-function update_function_declaration(function_declaration: core.Function_declaration): void {
-  vscode.postMessage({
-    command: "update:function_declaration",
-    data: {
-      function_declaration: JSON.stringify(function_declaration)
     }
   });
 }
@@ -229,75 +151,21 @@ onMounted(() => { });
           </select>
         </li>
       </ul>
-
-      <Structured_view.Function_declaration
-        v-if="m_selectedView === 'function_view' && m_selectedFunctionId !== undefined" :module="m_state.module"
-        :function_id="m_selectedFunctionId"
-        v-on:update:function_declaration="function_declaration => update_function_declaration(function_declaration)">
-      </Structured_view.Function_declaration>
     </nav>
 
     <main>
 
-      <Structured_view.Module_declarations_view v-if="m_state.module !== undefined" :module="m_state.module"
-        v-on:new_changes="on_new_changes" v-on:update:function_declaration="update_function_declaration">
-      </Structured_view.Module_declarations_view>
-
       <div v-if="m_selectedView === 'module_view'">
 
         <div v-if="(m_state.module !== undefined) && (m_selectedFrontendLanguage !== 'JSON')">
-          <h1>Module {{ m_state.module.name }}</h1>
-
-          <section>
-            <h2>Details</h2>
-            <ul>
-              <li>Language version: <Language_version :value="m_state.module.language_version"></Language_version>
-              </li>
-            </ul>
-          </section>
-
-          <section>
-            <h2>Public functions</h2>
-            <div
-              v-for="(function_declaration, index) in m_state.module.export_declarations.function_declarations.elements"
-              v-bind:key="function_declaration.id">
-              <Function_declaration :value="function_declaration"
-                v-on:update:name="(new_name) => on_function_name_change(index, function_declaration, true, new_name)">
-              </Function_declaration>
-            </div>
-            <p v-if="m_state.module.export_declarations.function_declarations.elements.length === 0">No public functions
-            </p>
-            <vscode-button
-              v-on:click="() => {if(m_state.module !== undefined) create_function(m_state.module.export_declarations.function_declarations.size, true)}">
-              Add function</vscode-button>
-          </section>
-
-          <section>
-            <h2>Private functions</h2>
-            <div v-for="function_declaration in m_state.module.internal_declarations.function_declarations.elements"
-              v-bind:key="function_declaration.id">
-              <Function_declaration :value="function_declaration"></Function_declaration>
-            </div>
-            <p v-if="m_state.module.internal_declarations.function_declarations.elements.length === 0">No private
-              functions</p>
-            <vscode-button
-              v-on:click="() => {if (m_state.module !== undefined) create_function(m_state.module.export_declarations.function_declarations.size, false)}">
-              Add function</vscode-button>
-          </section>
-
-          <section>
-            <h2>Actions</h2>
-            <vscode-button @click="delete_module">Delete module</vscode-button>
-          </section>
+          <Structured_view.Module_declarations_view v-if="m_state.module !== undefined" :module="m_state.module"
+            v-on:new_changes="on_new_changes">
+          </Structured_view.Module_declarations_view>
         </div>
 
         <div v-if="(m_state.module !== undefined) && (m_selectedFrontendLanguage === 'JSON')">
-          <JSON_object :value="m_state.module" :reflection-info="m_reflectionInfo" :reflection-type="{ name: 'Module' }"
-            :is-read-only="false" :indentation="0" :indentation_increment="1"
-            v-on:insert:value="(position) => on_insert_element(position, undefined)"
-            v-on:delete:value="(position) => on_delete_element(position)"
-            v-on:update:value="(position, value) => on_value_change(position, value)"
-            v-on:update:variant_type="(position, value) => on_variant_type_change(position, value)">
+          <JSON_object :value="m_state.module" :reflection_info="m_reflectionInfo" :reflection_type="{ name: 'Module' }"
+            :is_read_only="false" :indentation="4" :add_comma="false" v-on:new_changes="on_new_changes">
           </JSON_object>
 
           <section>

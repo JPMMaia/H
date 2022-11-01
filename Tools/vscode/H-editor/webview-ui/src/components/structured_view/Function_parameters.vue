@@ -231,10 +231,10 @@ function update_parameter_type(parameter_id: number, new_type: core.Type_referen
     <Common.Select_list :items="list_items" v-on:add:item="add_function_parameter"
         v-on:remove:item="remove_function_parameter" v-on:move-up:item="move_function_parameter_up"
         v-on:move-down:item="move_function_parameter_down">
-        <template #item_title="{name, type}">
-            {{name}}: {{coreInterfaceHelpers.getUnderlyingTypeName([properties.module], type)}}
+        <template #item_title="{ name, type }">
+            {{ name }}: {{ coreInterfaceHelpers.getUnderlyingTypeName([properties.module], type) }}
         </template>
-        <template #item_body="{id, name, type}">
+        <template #item_body="{ id, name, type }">
             <div>
                 <label :for="id_name + '_parameter_name_' + id">Name: </label>
                 <Common.Text_input id="id_name + '_parameter_name_' + id" :modelValue="name"

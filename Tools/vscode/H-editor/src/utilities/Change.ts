@@ -3,6 +3,7 @@ export enum Type {
     Remove_element_of_vector,
     Set_element_of_vector,
     Move_element_of_vector,
+    Add_number,
     Update
 }
 
@@ -29,6 +30,11 @@ export interface Move_element_of_vector {
     to_index: number
 }
 
+export interface Add_number {
+    key: string
+    value: number
+}
+
 export interface Update {
     key: string,
     value: any
@@ -36,7 +42,7 @@ export interface Update {
 
 export interface Change {
     type: Type,
-    value: Add_element_to_vector | Remove_element_of_vector | Move_element_of_vector | Update
+    value: Add_element_to_vector | Remove_element_of_vector | Move_element_of_vector | Add_number | Update
 }
 
 export interface Position_hierarchy_pair {
@@ -100,6 +106,19 @@ export function create_move_element_of_vector(vector_name: string, from_index: n
 
     return {
         type: Type.Move_element_of_vector,
+        value: change
+    };
+}
+
+export function create_add_number(key: string, value: number): Change {
+
+    const change: Add_number = {
+        key: key,
+        value: value
+    };
+
+    return {
+        type: Type.Add_number,
         value: change
     };
 }

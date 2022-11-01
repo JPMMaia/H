@@ -178,7 +178,7 @@ function on_type_reference_updated(new_type_reference: core.Type_reference): voi
             </div>
             <div
                 v-if="selected_meta_type === 'Constant_array_type' && properties.current_type_reference.data.type === core.Type_reference_enum.Constant_array_type">
-                <Select_constant_array_type_reference :module=" properties.module"
+                <Select_constant_array_type_reference :module="properties.module"
                     :current_type_reference="properties.current_type_reference"
                     :default_value_type="type_utilities.create_default_type_reference()"
                     v-on:update:type_reference="on_type_reference_updated">
@@ -186,7 +186,7 @@ function on_type_reference_updated(new_type_reference: core.Type_reference): voi
             </div>
             <div
                 v-if="selected_meta_type === 'Fundamental_type' && properties.current_type_reference.data.type === core.Type_reference_enum.Fundamental_type">
-                <Select_fundamental_type_reference :current_type_reference=" properties.current_type_reference"
+                <Select_fundamental_type_reference :current_type_reference="properties.current_type_reference"
                     v-on:update:type_reference="on_type_reference_updated">
                 </Select_fundamental_type_reference>
             </div>
@@ -200,7 +200,7 @@ function on_type_reference_updated(new_type_reference: core.Type_reference): voi
                 v-if="selected_meta_type === 'Pointer_type' && properties.current_type_reference.data.type === core.Type_reference_enum.Pointer_type">
                 <Select_pointer_type_reference :module="properties.module"
                     :current_type_reference="properties.current_type_reference"
-                    :default_value_type="{size: 1, elements: [type_utilities.create_default_type_reference()]}"
+                    :default_value_type="{ size: 1, elements: [type_utilities.create_default_type_reference()] }"
                     v-on:update:type_reference="on_type_reference_updated">
                 </Select_pointer_type_reference>
             </div>

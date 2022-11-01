@@ -1,128 +1,94 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { ReflectionType, ReflectionInfo } from "../../../../src/utilities/coreModel";
-import type { Search_entry } from "@/utilities/Search_entry";
 import * as coreModel from "../../../../src/utilities/coreModel";
-import Editable from './Editable.vue';
-import Press_key_editable from "./Press_key_editable.vue";
-import Search_field from '../Search_field.vue';
+import JSON_boolean from "./JSON_boolean.vue";
+import JSON_enum from "./JSON_enum.vue";
+import JSON_number from "./JSON_number.vue";
+import JSON_string from "./JSON_string.vue";
+import JSON_variant from "./JSON_variant.vue";
+import JSON_vector from "./JSON_vector.vue";
+import * as Change from "../../../../src/utilities/Change";
 
 const g_debug = false;
 
 const properties = defineProps<{
     value: any;
-    reflectionInfo: ReflectionInfo;
-    reflectionType: ReflectionType;
-    isReadOnly: boolean;
+    reflection_info: ReflectionInfo;
+    reflection_type: ReflectionType;
+    is_read_only: boolean;
     indentation: number;
-    indentation_increment: number;
+    add_comma: boolean
 }>();
 
 const emit = defineEmits<{
-    (e: 'insert:value', position: any[]): void,
-    (e: 'delete:value', position: any[]): void,
-    (e: 'update:value', position: any[], value: any): void,
-    (e: 'update:variant_type', position: any[], variant_type: any): void
+    (e: 'new_changes', new_changes: Change.Hierarchy): void,
+    (e: 'update', new_value: any): void
 }>();
 
-const children_indentation = computed(() => {
-    return properties.indentation + properties.indentation_increment;
-});
-
 const css_variables = computed(() => {
-    return `--indentation: ${properties.indentation}em; --key_indentation: ${properties.indentation + properties.indentation_increment}em;`;
+    return `--indentation: ${properties.indentation}ch;`;
 });
 
-function on_enum_value_selected(id: number, value: string): void {
-    emit("update:value", [], value);
+const object_keys = computed(() => {
+    return Object.keys(properties.value);
+})
+
+function on_new_changes(new_changes: Change.Hierarchy): void {
+    emit("new_changes", new_changes);
 }
 
-function on_variant_type_selected(id: number, value: string): void {
-    emit("update:variant_type", [], value);
+function on_key_new_changes(key: string, children_changes: Change.Hierarchy): void {
+
+    const new_changes: Change.Hierarchy = {
+        changes: [],
+        children: [
+            {
+                position: [key],
+                hierarchy: children_changes
+            }
+        ]
+    };
+
+    emit("new_changes", new_changes);
 }
 
-function on_string_value_change(event: Event): void {
-    if (event.target !== null && event.target instanceof HTMLInputElement) {
-        const value = event.target.value;
-        emit("update:value", [], value);
-    }
+function on_value_update(new_value: any): void {
+    emit("update", new_value);
 }
 
-function on_boolean_selected(id: number, name: string, data: any): void {
+function on_key_value_update(key: string, new_value: any): void {
 
-    if (name !== "false" && name !== "true") {
-        return;
-    }
+    const new_changes: Change.Hierarchy = {
+        changes: [
+            Change.create_update(key, new_value)
+        ],
+        children: []
+    };
 
-    const value = name === "false" ? false : true;
-    emit("update:value", [], value);
+    emit("new_changes", new_changes);
 }
 
-function on_number_value_change(event: Event): void {
-    if (event.target !== null && event.target instanceof HTMLInputElement) {
-        const value = event.target.value;
-        const valueToEmit = (value.length !== 0 && !isNaN(Number(value))) ? Number(value) : 0;
-        emit("update:value", [], valueToEmit);
-    }
-}
-
-function pass_on_variant_type_change_event(key: string | number, child_position: any[], variant_type: any): void {
-
-    const position = [key].concat(child_position);
-    emit("update:variant_type", position, variant_type);
-}
-
-function pass_on_value_change_event(key: string | number, child_position: any[], value: any): void {
-    const position = [key].concat(child_position);
-    emit("update:value", position, value);
-}
-
-function on_insert_or_remove_array_element(event: KeyboardEvent, index: number): void {
-    if (event.key === "Enter") {
-        const insert_at_index = index;
-        emit("insert:value", [insert_at_index]);
-    }
-    else if (event.key === "Backspace") {
-
-        if (index === 0) {
-            return;
-        }
-
-        const delete_at_index = index - 1;
-        emit("delete:value", [delete_at_index]);
-    }
-}
-
-function pass_on_insert_array_element_event(key: string | number, child_position: any[]): void {
-    const position = [key].concat(child_position);
-    emit("insert:value", position);
-}
-
-function pass_on_delete_array_element_event(key: string | number, child_position: any[]): void {
-    const position = [key].concat(child_position);
-    emit("delete:value", position);
-}
-
-function get_key_reflection_type(reflectionInfo: ReflectionInfo, reflectionType: ReflectionType, objectValue: any, key: string): ReflectionType {
+function get_key_reflection_type(reflection_info: ReflectionInfo, reflection_type: ReflectionType, objectValue: any, key: string): ReflectionType {
 
     if (g_debug) {
-        console.log("JSON_object: get_child_options(): " + reflectionType.name + " " + key);
+        console.log("JSON_object: get_child_options(): " + reflection_type.name + " " + key);
     }
 
-    if (coreModel.isVectorType(reflectionType)) {
+    if (coreModel.isVectorType(reflection_type)) {
         if (key == "size") {
             return {
                 name: "std::uint64_t"
             };
         }
         else if (key == "elements") {
-            return reflectionType;
+            return reflection_type;
         }
     }
-    else if (coreModel.isVariantType(reflectionType)) {
+    else if (coreModel.isVariantType(reflection_type)) {
         if (key == "type") {
             return {
-                name: reflectionType.name + "::Types"
+                name: reflection_type.name + "::Types"
             };
         }
         else if (key == "value") {
@@ -133,8 +99,8 @@ function get_key_reflection_type(reflectionInfo: ReflectionInfo, reflectionType:
             };
         }
     }
-    else if (coreModel.isStructType(reflectionInfo.structs, reflectionType)) {
-        const structReflection = coreModel.getStructType(reflectionInfo.structs, reflectionType);
+    else if (coreModel.isStructType(reflection_info.structs, reflection_type)) {
+        const structReflection = coreModel.getStructType(reflection_info.structs, reflection_type);
 
         const memberReflectionIndex = structReflection.members.findIndex(value => value.name == key);
 
@@ -149,109 +115,98 @@ function get_key_reflection_type(reflectionInfo: ReflectionInfo, reflectionType:
     throw Error("Key '" + key + "' does not reference a vector/variant/struct type!");
 }
 
-function get_enum_possible_values(reflectionInfo: ReflectionInfo, reflectionType: ReflectionType): Search_entry[] {
-    const enumType = coreModel.getEnumType(reflectionInfo.enums, reflectionType);
-    return enumType.values.map((value, index) => { return { id: index, name: value, icon: "codicon-symbol-enum", data: undefined } });
+function is_key_read_only(reflection_type: ReflectionType, key: string): boolean {
+    return coreModel.isVectorType(reflection_type) && key == "size";
 }
 
-function get_variant_type_possible_values(reflectionInfo: ReflectionInfo, reflectionType: ReflectionType): Search_entry[] {
-    const variantValueTypes = coreModel.getVariantValueTypes(reflectionType);
-    return variantValueTypes.map((value, index) => { return { id: index, name: value.name, icon: "codicon-symbol-parameter", data: undefined } });
-}
-
-function get_boolean_possible_values(): Search_entry[] {
-    return [
-        { id: 0, name: "false", icon: "codicon-symbol-boolean", data: undefined },
-        { id: 1, name: "true", icon: "codicon-symbol-boolean", data: undefined },
-    ];
-}
-
-function is_key_read_only(reflectionType: ReflectionType, key: string): boolean {
-    return coreModel.isVectorType(reflectionType) && key == "size";
+function is_key_an_object(value: any, reflection_info: ReflectionInfo, reflection_type: ReflectionType, key: string): boolean {
+    const type = typeof value[key];
+    const is_fundamental = (type === "boolean") || (type === "number") || (type === "string");
+    const key_reflection_type = get_key_reflection_type(reflection_info, reflection_type, value, key);
+    const is_enum = coreModel.isEnumType(reflection_info.enums, key_reflection_type);
+    return !is_fundamental && !is_enum;
 }
 </script>
 
 <template>
-    <span v-if="coreModel.isEnumType(properties.reflectionInfo.enums, properties.reflectionType)">
-        &quot;<Search_field
-            :possible_values="get_enum_possible_values(properties.reflectionInfo, properties.reflectionType)"
-            :current_search_term="properties.value" v-on:update="on_enum_value_selected">
-        </Search_field>&quot;
-    </span>
-    <span v-else-if="coreModel.isVariantEnumType(properties.reflectionType)">
-        &quot;<Search_field
-            :possible_values="get_variant_type_possible_values(properties.reflectionInfo, properties.reflectionType)"
-            :current_search_term="properties.value" v-on:update="on_variant_type_selected">
-        </Search_field>&quot;
-    </span>
-    <span v-else-if="typeof properties.value === 'string'">&quot;<Editable :modelValue="properties.value"
-            @input="on_string_value_change"></Editable>&quot;</span>
-    <span v-else-if="typeof properties.value === 'number' && properties.isReadOnly">
+    <div v-if="coreModel.isEnumType(properties.reflection_info.enums, properties.reflection_type)"
+        class="horizontal_container">
+        <JSON_enum :value="properties.value" :reflection_info="properties.reflection_info"
+            :reflection_type="properties.reflection_type" v-on:update="on_value_update"></JSON_enum>
+        <div v-if="add_comma">,</div>
+    </div>
+    <div v-else-if="properties.is_read_only && ((typeof properties.value === 'boolean') || (typeof properties.value === 'number') || (typeof properties.value === 'string'))"
+        class="horizontal_container">
         {{ properties.value }}
-    </span>
-    <span v-else-if="typeof properties.value === 'boolean'">
-        <Search_field :possible_values="get_boolean_possible_values()"
-            :current_search_term="properties.value.toString()" v-on:update="on_boolean_selected">
-        </Search_field>
-    </span>
-    <span v-else-if="typeof properties.value === 'number'">
-        <Editable :modelValue="properties.value" @input="on_number_value_change">
-        </Editable>
-    </span>
-    <span v-else-if="Array.isArray(properties.value)">
-        <span>
-            <span>[<Press_key_editable placeholder="+"
-                    v-on:on_key_up="(event) => on_insert_or_remove_array_element(event, 0)">
-                </Press_key_editable></span>
-            <br v-if="properties.value.length !== 0">
-            <span v-for="(item, index) in properties.value" v-bind:key="item">
-                <span :style="css_variables" class="key_indent">
-                    <JSON_object :value="item" :reflectionInfo="properties.reflectionInfo"
-                        :reflectionType="coreModel.getVectorValueType(properties.reflectionType)" :isReadOnly="false"
-                        v-on:insert:value="(position) => pass_on_insert_array_element_event(index, position)"
-                        v-on:delete:value="(position) => pass_on_delete_array_element_event(index, position)"
-                        v-on:update:value="(position, value) => pass_on_value_change_event(index, position, value)"
-                        v-on:update:variant_type="(position, new_variant_type) => pass_on_variant_type_change_event(index, position, new_variant_type)"
-                        :indentation=children_indentation :indentation_increment="properties.indentation_increment">
-                    </JSON_object>
-                    <Press_key_editable placeholder="+"
-                        v-on:on_key_up="(event) => on_insert_or_remove_array_element(event, index + 1)">
-                    </Press_key_editable>
-                    <span v-if="(index + 1) !== properties.value.length">,</span>
-                </span>
-                <br>
-            </span>
-            <span v-if="properties.value.length !== 0" :style="css_variables" class="indent">]</span>
-            <span v-else>]</span>
-        </span>
-    </span>
-    <span v-else>
-        <span>{</span>
-        <br v-if="Object.keys(properties.value).length !== 0">
-        <span v-for="(key, index) in Object.keys(properties.value)" v-bind:key="properties.value[key]">
-            <span :style="css_variables" class="key_indent">&quot;{{ key }}&quot;: <JSON_object
-                    :value="properties.value[key]" :reflectionInfo="properties.reflectionInfo"
-                    :reflectionType="get_key_reflection_type(properties.reflectionInfo, properties.reflectionType, properties.value, key)"
-                    :isReadOnly="is_key_read_only(properties.reflectionType, key)"
-                    v-on:insert:value="(position) => pass_on_insert_array_element_event(key, position)"
-                    v-on:delete:value="(position) => pass_on_delete_array_element_event(key, position)"
-                    v-on:update:value="(position, value) => pass_on_value_change_event(key, position, value)"
-                    v-on:update:variant_type="(position, new_variant_type) => pass_on_variant_type_change_event(key, position, new_variant_type)"
-                    :indentation=children_indentation :indentation_increment="properties.indentation_increment">
-                </JSON_object><span v-if="(index + 1) !== Object.keys(properties.value).length">,</span></span>
-            <br>
-        </span>
-        <span v-if="Object.keys(properties.value).length !== 0" :style="css_variables" class="indent">}</span>
-        <span v-else>}</span>
-    </span>
+        <div v-if="add_comma">,</div>
+    </div>
+    <div v-else-if="typeof properties.value === 'string'" class="horizontal_container">
+        <JSON_string :value="properties.value" v-on:update="on_value_update"></JSON_string>
+        <div v-if="add_comma">,</div>
+    </div>
+    <div v-else-if="typeof properties.value === 'boolean'" class="horizontal_container">
+        <JSON_boolean :value="properties.value" v-on:update="on_value_update"></JSON_boolean>
+        <div v-if="add_comma">,</div>
+    </div>
+    <div v-else-if="typeof properties.value === 'number'" class="horizontal_container">
+        <JSON_number :value="properties.value" v-on:update="on_value_update"></JSON_number>
+        <div v-if="add_comma">,</div>
+    </div>
+    <div v-else-if="coreModel.isVariantType(properties.reflection_type)" class="horizontal_container">
+        <JSON_variant :value="properties.value" :reflection_info="properties.reflection_info"
+            :reflection_type="properties.reflection_type" :indentation="indentation" :add_comma="add_comma"
+            v-on:new_changes="on_new_changes"></JSON_variant>
+    </div>
+    <div v-else :style="css_variables" class="vertical_container">
+        <div>{</div>
+        <div class="vertical_container add_left_padding">
+            <div v-for="(key, index) in object_keys" v-bind:key="index" class="horizontal_container">
+                <div
+                    :class="is_key_an_object(properties.value, properties.reflection_info, properties.reflection_type, key) ? 'vertical_container' : 'horizontal_container add_horizontal_gap'">
+                    <div>&quot;{{ key }}&quot;:</div>
+                    <div>
+                        <JSON_vector
+                            v-if="coreModel.isVectorType(get_key_reflection_type(properties.reflection_info, properties.reflection_type, properties.value, key))"
+                            :vector_name="key" :value="properties.value[key]"
+                            :reflection_info="properties.reflection_info"
+                            :reflection_type="get_key_reflection_type(properties.reflection_info, properties.reflection_type, properties.value, key)"
+                            :indentation="properties.indentation" :add_comma="(index + 1) < object_keys.length"
+                            v-on:new_changes="on_new_changes">
+                        </JSON_vector>
+                        <JSON_object v-else :value="properties.value[key]" :reflection_info="properties.reflection_info"
+                            :reflection_type="get_key_reflection_type(properties.reflection_info, properties.reflection_type, properties.value, key)"
+                            :is_read_only="is_key_read_only(properties.reflection_type, key)" :indentation="indentation"
+                            :add_comma="(index + 1) < object_keys.length"
+                            v-on:new_changes="(new_changes: Change.Hierarchy) => on_key_new_changes(key, new_changes)"
+                            v-on:update="(new_value: any) => on_key_value_update(key, new_value)">
+                        </JSON_object>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="horizontal_container">
+            <div>}</div>
+            <div v-if="add_comma">,</div>
+        </div>
+    </div>
 </template>
 
 <style scoped>
-.indent {
-    margin-left: var(--indentation);
+.add_left_padding {
+    padding-left: var(--indentation);
 }
 
-.key_indent {
-    margin-left: var(--key_indentation);
+.horizontal_container {
+    display: flex;
+    flex-direction: row;
+}
+
+.add_horizontal_gap {
+    column-gap: 1ch;
+}
+
+.vertical_container {
+    display: flex;
+    flex-direction: column;
 }
 </style>
