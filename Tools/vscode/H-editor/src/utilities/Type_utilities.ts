@@ -1,7 +1,7 @@
-import * as core from "../../../src/utilities/coreModelInterface";
+import * as core from "./coreModelInterface";
 
-import * as coreInterfaceHelpers from "../../../src/utilities/coreModelInterfaceHelpers";
-import { onThrowError } from "../../../src/utilities/errors";
+import * as coreInterfaceHelpers from "./coreModelInterfaceHelpers";
+import { onThrowError } from "./errors";
 
 export function get_integer_name(integer_type: core.Integer_type): string {
     if (integer_type.is_signed) {

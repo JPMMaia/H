@@ -5,7 +5,7 @@ import "@vscode/codicons/dist/codicon.css";
 
 import type * as core from "../../../../src/utilities/coreModelInterface";
 import * as coreInterfaceHelpers from "../../../../src/utilities/coreModelInterfaceHelpers";
-import * as type_utilities from "../../utilities/Type_utilities";
+import * as type_utilities from "../../../../src/utilities/Type_utilities";
 import * as vector_helpers from "../../utilities/Vector_helpers";
 import { onThrowError } from "../../../../src/utilities/errors";
 

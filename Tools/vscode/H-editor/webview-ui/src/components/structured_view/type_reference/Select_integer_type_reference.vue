@@ -3,7 +3,7 @@
 import { computed } from "vue";
 
 import * as core from "../../../../../src/utilities/coreModelInterface";
-import * as type_utilities from "../../../utilities/Type_utilities";
+import * as type_utilities from "../../../../../src/utilities/Type_utilities";
 import * as search_utilities from "../../../utilities/Search_utilities";
 
 import Search_field from "../../Search_field.vue";
