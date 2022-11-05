@@ -122,7 +122,7 @@ function is_variant_value_an_object(variant_type: string, reflection_info: Refle
                 <JSON_object :value="variant_value" :reflection_info="properties.reflection_info"
                     :reflection_type="variant_value_reflection_type"
                     :is_read_only="is_key_read_only(properties.reflection_type, 'value')" :indentation="indentation"
-                    :add_comma="false" v-on:on_new_changes="on_new_changes">
+                    :add_comma="false" v-on:on_new_changes="on_new_changes" v-bind:key="variant_value">
                 </JSON_object>
             </div>
         </div>

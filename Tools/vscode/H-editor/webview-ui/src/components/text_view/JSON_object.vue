@@ -160,7 +160,7 @@ function is_key_an_object(value: any, reflection_info: ReflectionInfo, reflectio
     <div v-else :style="css_variables" class="vertical_container">
         <div>{</div>
         <div class="vertical_container add_left_padding">
-            <div v-for="(key, index) in object_keys" v-bind:key="index" class="horizontal_container">
+            <div v-for="(key, index) in object_keys" class="horizontal_container">
                 <div
                     :class="is_key_an_object(properties.value, properties.reflection_info, properties.reflection_type, key) ? 'vertical_container' : 'horizontal_container add_horizontal_gap'">
                     <div>&quot;{{ key }}&quot;:</div>
