@@ -3,6 +3,7 @@ import { onMounted, ref } from "vue";
 import { provideVSCodeDesignSystem, vsCodeButton } from "@vscode/webview-ui-toolkit";
 import { vscode } from "./utilities/vscode";
 import { updateState } from "../../src/utilities/updateState";
+import { update_module_with_change } from "../../src/utilities/Change_update";
 import type * as core from "../../src/utilities/coreModelInterface";
 import type * as coreHelpers from "../../src/utilities/coreModelInterfaceHelpers";
 import * as Module_examples from "./utilities/Module_examples";
@@ -43,6 +44,8 @@ function handleHowdyClick() {
   });
 }
 
+const g_webview_only = false;
+
 const m_reflectionInfo = { enums: hCoreReflectionInfo.enums, structs: hCoreReflectionInfo.structs };
 
 const m_selectedView = ref<string | null>("module_view");
@@ -65,7 +68,9 @@ interface State {
 
 const m_state = ref<State>({ module: undefined });
 
+if (g_webview_only) {
 m_state.value.module = Module_examples.create_default();
+}
 
 function on_message_received(event: MessageEvent): void {
   const messages = event.data;
@@ -113,6 +118,11 @@ function on_new_changes(new_changes: Change.Hierarchy): void {
       new_changes: JSON.stringify(new_changes)
     }
   });
+
+  if (g_webview_only && m_state.value.module !== undefined) {
+    update_module_with_change(m_state.value.module, new_changes, []);
+    console.log(m_state.value.module);
+  }
 }
 
 onMounted(() => { });
