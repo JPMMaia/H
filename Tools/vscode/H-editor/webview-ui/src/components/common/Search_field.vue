@@ -100,6 +100,12 @@ function on_key_down(event: KeyboardEvent): void {
       select_value(value_to_select);
     }
   }
+  else if (event.key === " ") {
+    const entry_to_select = search_values.value.find(entry => entry.name === m_search_term.value);
+    if (entry_to_select !== undefined) {
+      select_value(entry_to_select);
+    }
+  }
 }
 
 function on_focus_out(event: FocusEvent): void {
