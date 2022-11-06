@@ -96,7 +96,7 @@ export function create_default(): core.Module {
                 ]
             },
             function_declarations: {
-                size: 3,
+                size: 4,
                 elements: [
                     {
                         id: 30,
@@ -147,6 +147,29 @@ export function create_default(): core.Module {
                     {
                         id: 32,
                         name: "My_function_2",
+                        type: {
+                            input_parameter_types: {
+                                size: 2,
+                                elements: [
+                                    { data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } },
+                                    { data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } },
+                                ],
+                            },
+                            output_parameter_types: {
+                                size: 1,
+                                elements: [{ data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } }],
+                            },
+                            is_variadic: false,
+                        },
+                        input_parameter_ids: { size: 2, elements: [0, 1] },
+                        input_parameter_names: { size: 2, elements: ["lhs", "rhs"] },
+                        output_parameter_ids: { size: 1, elements: [0] },
+                        output_parameter_names: { size: 1, elements: ["result"] },
+                        linkage: core.Linkage.External,
+                    },
+                    {
+                        id: 33,
+                        name: "Empty_function",
                         type: {
                             input_parameter_types: {
                                 size: 2,
@@ -393,6 +416,13 @@ export function create_default(): core.Module {
                                     },
                                 },
                             ],
+                        },
+                    },
+                    {
+                        id: 33,
+                        statements: {
+                            size: 0,
+                            elements: [],
                         },
                     },
                     {
