@@ -7,6 +7,7 @@ import * as core from "../../../../src/utilities/coreModelInterface";
 import * as coreInterfaceHelpers from "../../../../src/utilities/coreModelInterfaceHelpers";
 
 import * as Common from "../common/components";
+import Function_definition from "./Function_definition.vue";
 import Function_parameters from "./Function_parameters.vue";
 import * as Change from "../../../../src/utilities/Change";
 
@@ -16,11 +17,16 @@ const properties = defineProps<{
 }>();
 
 const emit = defineEmits<{
-    (e: 'new_changes', new_changes: Change.Hierarchy): void
+    (e: 'declaration:new_changes', new_changes: Change.Hierarchy): void,
+    (e: 'definition:new_changes', new_changes: Change.Hierarchy): void
 }>();
 
 const function_declaration = computed(() => {
     return coreInterfaceHelpers.findFunctionDeclarationWithId(properties.module, properties.function_id);
+});
+
+const function_definition = computed(() => {
+    return coreInterfaceHelpers.findFunctionDefinitionWithId(properties.module, properties.function_id);
 });
 
 function on_name_changed(value: string): void {
@@ -32,7 +38,7 @@ function on_name_changed(value: string): void {
         children: []
     };
 
-    emit("new_changes", new_changes);
+    emit("declaration:new_changes", new_changes);
 }
 
 function on_linkage_changed(value: string): void {
@@ -45,12 +51,12 @@ function on_linkage_changed(value: string): void {
         children: []
     };
 
-    emit("new_changes", new_changes);
+    emit("declaration:new_changes", new_changes);
 }
 
 function on_input_parameters_changed(new_changes: Change.Hierarchy): void {
 
-    emit("new_changes", new_changes);
+    emit("declaration:new_changes", new_changes);
 }
 
 function on_is_variadic_changed(value: boolean): void {
@@ -62,14 +68,18 @@ function on_is_variadic_changed(value: boolean): void {
         children: []
     };
 
-    emit("new_changes", new_changes);
+    emit("declaration:new_changes", new_changes);
 }
 
 function on_output_parameters_changed(new_changes: Change.Hierarchy): void {
 
-    emit("new_changes", new_changes);
+    emit("declaration:new_changes", new_changes);
 }
 
+function on_definition_new_changes(new_changes: Change.Hierarchy): void {
+
+    emit("definition:new_changes", new_changes);
+}
 
 </script>
 
@@ -77,7 +87,7 @@ function on_output_parameters_changed(new_changes: Change.Hierarchy): void {
     <Common.Collapsible>
         <template #summary="{}">
             <div class="row_container">
-                <i class="codicon codicon-symbol-method"></i> {{function_declaration.name}}
+                <i class="codicon codicon-symbol-method"></i> {{ function_declaration.name }}
             </div>
         </template>
         <template #content="{}">
@@ -120,6 +130,11 @@ function on_output_parameters_changed(new_changes: Change.Hierarchy): void {
                         :parameter_types="function_declaration.type.output_parameter_types" :is_input_parameters="false"
                         v-on:new_changes="on_output_parameters_changed">
                     </Function_parameters>
+                </div>
+                <div>
+                    <Function_definition :module="module" :function_definition="function_definition"
+                        v-on:new_changes="on_definition_new_changes">
+                    </Function_definition>
                 </div>
             </div>
         </template>

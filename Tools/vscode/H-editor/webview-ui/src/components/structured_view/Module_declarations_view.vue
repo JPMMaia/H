@@ -95,6 +95,11 @@ function on_new_changes(type: Item_type, index: number, is_export: boolean, chil
     emit("new_changes", new_changes);
 }
 
+function on_function_definition_new_changes(new_changes: Change.Hierarchy): void {
+
+    emit("new_changes", new_changes);
+}
+
 </script>
 
 <template>
@@ -114,7 +119,8 @@ function on_new_changes(type: Item_type, index: number, is_export: boolean, chil
             </Structured_view.Struct_declaration>
             <Structured_view.Function_declaration v-else-if="type === Item_type.Function" :module="properties.module"
                 :function_id="value.id"
-                v-on:new_changes="(new_changes: Change.Hierarchy) => on_new_changes(Item_type.Function, index, is_export, new_changes)">
+                v-on:declaration:new_changes="(new_changes: Change.Hierarchy) => on_new_changes(Item_type.Function, index, is_export, new_changes)"
+                v-on:definition:new_changes="on_function_definition_new_changes">
             </Structured_view.Function_declaration>
             <div v-else>
                 {{ value.name }}
