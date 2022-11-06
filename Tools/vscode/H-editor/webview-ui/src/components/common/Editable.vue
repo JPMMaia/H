@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from "vue";
 
 const properties = defineProps<{
   modelValue: any;
+  placeholder?: string;
 }>();
 
 const emit = defineEmits<{
@@ -14,6 +15,10 @@ const emit = defineEmits<{
 const input_element = ref<HTMLInputElement | null>(null);
 
 const model_value = computed(() => { return properties.modelValue; });
+
+const placeholder = computed(() => {
+  return properties.placeholder !== undefined ? properties.placeholder : "<Empty Value>";
+});
 
 function calculate_input_element_width(value: any): number {
 
@@ -55,7 +60,7 @@ function on_focus_out(event: FocusEvent): void {
 
 <template>
   <input ref="input_element" type="text" :value="modelValue" @input="on_input" @keydown="on_key_down"
-    @blur="on_focus_out" placeholder="<Empty value>" />
+    @blur="on_focus_out" :placeholder="placeholder" />
 </template>
 
 <style scoped>
