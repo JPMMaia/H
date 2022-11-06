@@ -2,7 +2,7 @@
 import type { ReflectionType, ReflectionInfo } from "../../../../src/utilities/coreModel";
 import type { Search_entry } from "@/utilities/Search_entry";
 import * as coreModel from "../../../../src/utilities/coreModel";
-import Search_field from '../Search_field.vue';
+import Search_field from '../common/Search_field.vue';
 
 const properties = defineProps<{
     value: string;

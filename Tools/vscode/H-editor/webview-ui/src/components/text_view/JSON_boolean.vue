@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Search_entry } from "@/utilities/Search_entry";
-import Search_field from '../Search_field.vue';
+import Search_field from '../common/Search_field.vue';
 
 const properties = defineProps<{
     value: boolean;
