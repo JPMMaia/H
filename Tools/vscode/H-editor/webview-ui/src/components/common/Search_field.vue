@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from "vue";
 import type { Search_entry } from "../../utilities/Search_entry";
 import "@vscode/codicons/dist/codicon.css";
 
-import Editable from "../text_view/Editable.vue";
+import Editable from "./Editable.vue";
 
 const properties = defineProps<{
   possible_values: Search_entry[];

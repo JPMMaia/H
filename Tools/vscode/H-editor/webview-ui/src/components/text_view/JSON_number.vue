@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import Editable from './Editable.vue';
+import Editable from '../common/Editable.vue';
 
 const properties = defineProps<{
     value: number;

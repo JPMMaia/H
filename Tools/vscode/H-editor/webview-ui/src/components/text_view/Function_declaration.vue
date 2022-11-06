@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { get_type_name } from '@/utilities/language';
-import Editable from './Editable.vue';
+import Editable from '../common/Editable.vue';
 
 const properties = defineProps<{
     value: any;
