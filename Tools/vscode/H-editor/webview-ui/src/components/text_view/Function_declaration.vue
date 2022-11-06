@@ -20,7 +20,7 @@ function on_name_change(event: Event) {
 <template>
     <h_ut_function_declaration>
         <template v-slot:return_type>
-            {{get_type_name(value.return_type)}}
+            {{ get_type_name(value.return_type) }}
         </template>
         <template v-slot:name>
             <Editable :modelValue="value.name" @input="on_name_change"></Editable>
