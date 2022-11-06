@@ -239,6 +239,12 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Function_reference const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Variable_expression const& input
         );
 
@@ -258,6 +264,12 @@ namespace h::json
         void write_object(
             Writer_type& writer,
             Constant_expression const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Invalid_expression const& input
         );
 
     export template<typename Writer_type>
@@ -655,6 +667,20 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Function_reference const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("module_reference");
+        write_object(writer, output.module_reference);
+        writer.Key("function_id");
+        writer.Uint64(output.function_id);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Variable_expression const& output
         )
     {
@@ -695,8 +721,8 @@ namespace h::json
         )
     {
         writer.StartObject();
-        writer.Key("function_name");
-        writer.String(output.function_name.data(), output.function_name.size());
+        writer.Key("function_reference");
+        write_object(writer, output.function_reference);
         writer.Key("arguments");
         write_object(writer, output.arguments);
         writer.EndObject();
@@ -716,6 +742,18 @@ namespace h::json
         }
         writer.Key("data");
         writer.String(output.data.data(), output.data.size());
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Invalid_expression const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("value");
+        writer.String(output.value.data(), output.value.size());
         writer.EndObject();
     }
 
@@ -763,6 +801,14 @@ namespace h::json
             writer.String("constant_expression");
             writer.Key("value");
             Constant_expression const& value = std::get<Constant_expression>(output.data);
+            write_object(writer, value);
+        }
+        else if (std::holds_alternative<Invalid_expression>(output.data))
+        {
+            writer.Key("type");
+            writer.String("invalid_expression");
+            writer.Key("value");
+            Invalid_expression const& value = std::get<Invalid_expression>(output.data);
             write_object(writer, value);
         }
         else if (std::holds_alternative<Return_expression>(output.data))

@@ -65,6 +65,7 @@ export enum Expression_enum {
     Binary_expression = "Binary_expression",
     Call_expression = "Call_expression",
     Constant_expression = "Constant_expression",
+    Invalid_expression = "Invalid_expression",
     Return_expression = "Return_expression",
     Variable_expression = "Variable_expression",
 }
@@ -143,6 +144,11 @@ export interface Struct_declaration {
     is_literal: boolean;
 }
 
+export interface Function_reference {
+    module_reference: Module_reference;
+    function_id: number;
+}
+
 export interface Variable_expression {
     type: Variable_expression_type;
     id: number;
@@ -155,7 +161,7 @@ export interface Binary_expression {
 }
 
 export interface Call_expression {
-    function_name: string;
+    function_reference: Function_reference;
     arguments: Vector<Variable_expression>;
 }
 
@@ -164,12 +170,16 @@ export interface Constant_expression {
     data: string;
 }
 
+export interface Invalid_expression {
+    value: string;
+}
+
 export interface Return_expression {
     variable: Variable_expression;
 }
 
 export interface Expression {
-    data: Variant<Expression_enum, Binary_expression | Call_expression | Constant_expression | Return_expression | Variable_expression>;
+    data: Variant<Expression_enum, Binary_expression | Call_expression | Constant_expression | Invalid_expression | Return_expression | Variable_expression>;
 }
 
 export interface Statement {

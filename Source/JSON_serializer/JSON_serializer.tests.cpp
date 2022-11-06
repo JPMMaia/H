@@ -253,7 +253,12 @@ namespace h
     {
         std::pmr::string const json_data = R"JSON(
             {
-                "function_name": "foo",
+                "function_reference": {
+                    "module_reference": {
+                        "name": "default"
+                    },
+                    "function_id": 1
+                },
                 "arguments": {
                     "size": 2,
                     "elements": [
@@ -286,7 +291,12 @@ namespace h
 
         Call_expression const expected
         {
-            .function_name = "foo",
+            .function_reference = {
+                .module_reference = {
+                    .name = "default"
+                },
+                .function_id = 1,
+            },
             .arguments = std::move(arguments)
         };
 

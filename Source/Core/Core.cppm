@@ -167,6 +167,14 @@ namespace h
         friend auto operator<=>(Struct_declaration const&, Struct_declaration const&) = default;
     };
 
+    export struct Function_reference
+    {
+        Module_reference module_reference;
+        std::uint64_t function_id;
+
+        friend auto operator<=>(Function_reference const&, Function_reference const&) = default;
+    };
+
     export enum class Variable_expression_type
     {
         Function_argument,
@@ -203,7 +211,7 @@ namespace h
 
     export struct Call_expression
     {
-        std::pmr::string function_name;
+        Function_reference function_reference;
         std::pmr::vector<Variable_expression> arguments;
 
         friend auto operator<=>(Call_expression const&, Call_expression const&) = default;
@@ -215,6 +223,13 @@ namespace h
         std::pmr::string data;
 
         friend auto operator<=>(Constant_expression const&, Constant_expression const&) = default;
+    };
+
+    export struct Invalid_expression
+    {
+        std::pmr::string value;
+
+        friend auto operator<=>(Invalid_expression const&, Invalid_expression const&) = default;
     };
 
     export struct Return_expression
@@ -230,6 +245,7 @@ namespace h
             Binary_expression,
             Call_expression,
             Constant_expression,
+            Invalid_expression,
             Return_expression,
             Variable_expression
         >;

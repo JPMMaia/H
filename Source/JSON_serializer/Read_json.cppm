@@ -2046,6 +2046,100 @@ namespace h::json
 
     export template<typename Event_data>
         bool read_object(
+            Function_reference& output,
+            Event const event,
+            Event_data const event_data,
+            std::pmr::vector<int>& state_stack,
+            std::size_t const state_stack_position
+        )
+    {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
+        int& state = state_stack[state_stack_position];
+
+        switch (state)
+        {
+        case 0:
+        {
+            if (event == Event::Start_object)
+            {
+                state = 1;
+                return true;
+            }
+            break;
+        }
+        case 1:
+        {
+            switch (event)
+            {
+            case Event::Key:
+            {
+                if constexpr (std::is_same_v<Event_data, std::string_view>)
+                {
+                    if (event_data == "module_reference")
+                    {
+                        state = 3;
+                        return true;
+                    }
+                    else if (event_data == "function_id")
+                    {
+                        state = 5;
+                        return true;
+                    }
+                }
+                break;
+            }
+            case Event::End_object:
+            {
+                state = 2;
+                return true;
+            }
+            }
+            break;
+        }
+        case 2:
+        {
+            std::cerr << "While parsing 'Function_reference' unexpected '}' found.\n";
+            return false;
+        }
+        case 3:
+        {
+            state = 4;
+            return read_object(output.module_reference, event, event_data, state_stack, state_stack_position + 1 + 0);
+        }
+        case 4:
+        {
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
+            {
+                if (!read_object(output.module_reference, event, event_data, state_stack, state_stack_position + 1 + 0))
+                {
+                    return false;
+                }
+
+                state = 1;
+                return true;
+            }
+            else
+            {
+                return read_object(output.module_reference, event, event_data, state_stack, state_stack_position + 1 + 0);
+            }
+        }
+        case 5:
+        {
+            state = 1;
+            return read_value(output.function_id, "function_id", event_data);
+        }
+        }
+
+        std::cerr << "Error while reading 'Function_reference'.\n";
+        return false;
+    }
+
+    export template<typename Event_data>
+        bool read_object(
             Variable_expression& output,
             Event const event,
             Event_data const event_data,
@@ -2277,14 +2371,14 @@ namespace h::json
             {
                 if constexpr (std::is_same_v<Event_data, std::string_view>)
                 {
-                    if (event_data == "function_name")
+                    if (event_data == "function_reference")
                     {
                         state = 3;
                         return true;
                     }
                     else if (event_data == "arguments")
                     {
-                        state = 4;
+                        state = 5;
                         return true;
                     }
                 }
@@ -2305,15 +2399,32 @@ namespace h::json
         }
         case 3:
         {
-            state = 1;
-            return read_value(output.function_name, "function_name", event_data);
+            state = 4;
+            return read_object(output.function_reference, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
         case 4:
         {
-            state = 5;
-            return read_object(output.arguments, event, event_data, state_stack, state_stack_position + 1 + 0);
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
+            {
+                if (!read_object(output.function_reference, event, event_data, state_stack, state_stack_position + 1 + 0))
+                {
+                    return false;
+                }
+
+                state = 1;
+                return true;
+            }
+            else
+            {
+                return read_object(output.function_reference, event, event_data, state_stack, state_stack_position + 1 + 0);
+            }
         }
         case 5:
+        {
+            state = 6;
+            return read_object(output.arguments, event, event_data, state_stack, state_stack_position + 1 + 0);
+        }
+        case 6:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
@@ -2410,6 +2521,73 @@ namespace h::json
         }
 
         std::cerr << "Error while reading 'Constant_expression'.\n";
+        return false;
+    }
+
+    export template<typename Event_data>
+        bool read_object(
+            Invalid_expression& output,
+            Event const event,
+            Event_data const event_data,
+            std::pmr::vector<int>& state_stack,
+            std::size_t const state_stack_position
+        )
+    {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
+        int& state = state_stack[state_stack_position];
+
+        switch (state)
+        {
+        case 0:
+        {
+            if (event == Event::Start_object)
+            {
+                state = 1;
+                return true;
+            }
+            break;
+        }
+        case 1:
+        {
+            switch (event)
+            {
+            case Event::Key:
+            {
+                if constexpr (std::is_same_v<Event_data, std::string_view>)
+                {
+                    if (event_data == "value")
+                    {
+                        state = 3;
+                        return true;
+                    }
+                }
+                break;
+            }
+            case Event::End_object:
+            {
+                state = 2;
+                return true;
+            }
+            }
+            break;
+        }
+        case 2:
+        {
+            std::cerr << "While parsing 'Invalid_expression' unexpected '}' found.\n";
+            return false;
+        }
+        case 3:
+        {
+            state = 1;
+            return read_value(output.value, "value", event_data);
+        }
+        }
+
+        std::cerr << "Error while reading 'Invalid_expression'.\n";
         return false;
     }
 
@@ -2602,16 +2780,22 @@ namespace h::json
                     state = 13;
                     return true;
                 }
+                else if (event_data == "invalid_expression")
+                {
+                    output.data = Invalid_expression{};
+                    state = 16;
+                    return true;
+                }
                 else if (event_data == "return_expression")
                 {
                     output.data = Return_expression{};
-                    state = 16;
+                    state = 19;
                     return true;
                 }
                 else if (event_data == "variable_expression")
                 {
                     output.data = Variable_expression{};
-                    state = 19;
+                    state = 22;
                     return true;
                 }
             }
@@ -2729,13 +2913,13 @@ namespace h::json
         case 17:
         {
             state = 18;
-            return read_object(std::get<Return_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
+            return read_object(std::get<Invalid_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
         }
         case 18:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
             {
-                if (!read_object(std::get<Return_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1))
+                if (!read_object(std::get<Invalid_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1))
                 {
                     return false;
                 }
@@ -2745,7 +2929,7 @@ namespace h::json
             }
             else
             {
-                return read_object(std::get<Return_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
+                return read_object(std::get<Invalid_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
             }
         }
         case 19:
@@ -2762,9 +2946,42 @@ namespace h::json
         case 20:
         {
             state = 21;
-            return read_object(std::get<Variable_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
+            return read_object(std::get<Return_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
         }
         case 21:
+        {
+            if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
+            {
+                if (!read_object(std::get<Return_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1))
+                {
+                    return false;
+                }
+
+                state = 4;
+                return true;
+            }
+            else
+            {
+                return read_object(std::get<Return_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
+            }
+        }
+        case 22:
+        {
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
+            {
+                if (event == Event::Key && event_data == "value")
+                {
+                    state = 23;
+                    return true;
+                }
+            }
+        }
+        case 23:
+        {
+            state = 24;
+            return read_object(std::get<Variable_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
+        }
+        case 24:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
             {
