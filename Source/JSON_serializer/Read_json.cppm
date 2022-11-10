@@ -301,11 +301,6 @@ namespace h::json
             output = Variable_expression_type::Local_variable;
             return true;
         }
-        else if (value == "temporary")
-        {
-            output = Variable_expression_type::Temporary;
-            return true;
-        }
 
         std::cerr << std::format("Failed to read enum 'Variable_expression_type' with value '{}'\n", value);
         return false;
@@ -2217,6 +2212,73 @@ namespace h::json
 
     export template<typename Event_data>
         bool read_object(
+            Expression_index& output,
+            Event const event,
+            Event_data const event_data,
+            std::pmr::vector<int>& state_stack,
+            std::size_t const state_stack_position
+        )
+    {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
+        int& state = state_stack[state_stack_position];
+
+        switch (state)
+        {
+        case 0:
+        {
+            if (event == Event::Start_object)
+            {
+                state = 1;
+                return true;
+            }
+            break;
+        }
+        case 1:
+        {
+            switch (event)
+            {
+            case Event::Key:
+            {
+                if constexpr (std::is_same_v<Event_data, std::string_view>)
+                {
+                    if (event_data == "expression_index")
+                    {
+                        state = 3;
+                        return true;
+                    }
+                }
+                break;
+            }
+            case Event::End_object:
+            {
+                state = 2;
+                return true;
+            }
+            }
+            break;
+        }
+        case 2:
+        {
+            std::cerr << "While parsing 'Expression_index' unexpected '}' found.\n";
+            return false;
+        }
+        case 3:
+        {
+            state = 1;
+            return read_value(output.expression_index, "expression_index", event_data);
+        }
+        }
+
+        std::cerr << "Error while reading 'Expression_index'.\n";
+        return false;
+    }
+
+    export template<typename Event_data>
+        bool read_object(
             Binary_expression& output,
             Event const event,
             Event_data const event_data,
@@ -2626,7 +2688,7 @@ namespace h::json
             {
                 if constexpr (std::is_same_v<Event_data, std::string_view>)
                 {
-                    if (event_data == "variable")
+                    if (event_data == "expression")
                     {
                         state = 3;
                         return true;
@@ -2650,13 +2712,13 @@ namespace h::json
         case 3:
         {
             state = 4;
-            return read_object(output.variable, event, event_data, state_stack, state_stack_position + 1 + 0);
+            return read_object(output.expression, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
         case 4:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
-                if (!read_object(output.variable, event, event_data, state_stack, state_stack_position + 1 + 0))
+                if (!read_object(output.expression, event, event_data, state_stack, state_stack_position + 1 + 0))
                 {
                     return false;
                 }
@@ -2666,7 +2728,7 @@ namespace h::json
             }
             else
             {
-                return read_object(output.variable, event, event_data, state_stack, state_stack_position + 1 + 0);
+                return read_object(output.expression, event, event_data, state_stack, state_stack_position + 1 + 0);
             }
         }
         }

@@ -32,7 +32,6 @@ export enum Fundamental_type {
 export enum Variable_expression_type {
     Function_argument = "Function_argument",
     Local_variable = "Local_variable",
-    Temporary = "Temporary",
 }
 
 export enum Binary_operation {
@@ -154,15 +153,19 @@ export interface Variable_expression {
     id: number;
 }
 
+export interface Expression_index {
+    expression_index: number;
+}
+
 export interface Binary_expression {
-    left_hand_side: Variable_expression;
-    right_hand_side: Variable_expression;
+    left_hand_side: Expression_index;
+    right_hand_side: Expression_index;
     operation: Binary_operation;
 }
 
 export interface Call_expression {
     function_reference: Function_reference;
-    arguments: Vector<Variable_expression>;
+    arguments: Vector<Expression_index>;
 }
 
 export interface Constant_expression {
@@ -175,7 +178,7 @@ export interface Invalid_expression {
 }
 
 export interface Return_expression {
-    variable: Variable_expression;
+    expression: Expression_index;
 }
 
 export interface Expression {

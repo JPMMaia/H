@@ -100,10 +100,6 @@ namespace h::json
         {
             return "local_variable";
         }
-        else if (value == Variable_expression_type::Temporary)
-        {
-            return "temporary";
-        }
 
         throw std::runtime_error{ "Failed to write enum 'Variable_expression_type'!\n" };
     }
@@ -246,6 +242,12 @@ namespace h::json
         void write_object(
             Writer_type& writer,
             Variable_expression const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Expression_index const& input
         );
 
     export template<typename Writer_type>
@@ -698,6 +700,18 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Expression_index const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("expression_index");
+        writer.Uint64(output.expression_index);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Binary_expression const& output
         )
     {
@@ -764,8 +778,8 @@ namespace h::json
         )
     {
         writer.StartObject();
-        writer.Key("variable");
-        write_object(writer, output.variable);
+        writer.Key("expression");
+        write_object(writer, output.expression);
         writer.EndObject();
     }
 

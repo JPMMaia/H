@@ -169,7 +169,6 @@ namespace h
     {
         CHECK(h::json::read_enum<Variable_expression_type>("function_argument") == Variable_expression_type::Function_argument);
         CHECK(h::json::read_enum<Variable_expression_type>("local_variable") == Variable_expression_type::Local_variable);
-        CHECK(h::json::read_enum<Variable_expression_type>("temporary") == Variable_expression_type::Temporary);
     }
 
     TEST_CASE("Read Variable_expression")
@@ -213,12 +212,10 @@ namespace h
         std::pmr::string const json_data = R"JSON(
             {
                 "left_hand_side": {
-                    "type": "local_variable",
-                    "id": 3
+                    "expression_index": 2
                 },
                 "right_hand_side": {
-                    "type": "local_variable",
-                    "id": 1
+                    "expression_index": 3
                 },
                 "operation": "subtract"
             }
@@ -226,15 +223,13 @@ namespace h
 
         Binary_expression const expected
         {
-            .left_hand_side = Variable_expression
+            .left_hand_side = Expression_index
             {
-                .type = Variable_expression_type::Local_variable,
-                .id = 3
+                .expression_index = 2
             },
-            .right_hand_side = Variable_expression
+            .right_hand_side = Expression_index
             {
-                .type = Variable_expression_type::Local_variable,
-                .id = 1
+                .expression_index = 3
             },
             .operation = Binary_operation::Subtract
         };
@@ -263,30 +258,26 @@ namespace h
                     "size": 2,
                     "elements": [
                         {
-                            "type": "local_variable",
-                            "id": 3
+                            "expression_index": 3
                         },
                         {
-                            "type": "temporary",
-                            "id": 1
+                            "expression_index": 1
                         }
                     ]
                 }
             }
         )JSON";
 
-        std::pmr::vector<Variable_expression> arguments
+        std::pmr::vector<Expression_index> arguments
         {
-            Variable_expression
+            Expression_index
             {
-                .type = Variable_expression_type::Local_variable,
-                .id = 3
+                .expression_index = 3
             },
-            Variable_expression
+            Expression_index
             {
-                .type = Variable_expression_type::Temporary,
-                .id = 1
-            }
+                .expression_index = 1
+            },
         };
 
         Call_expression const expected
@@ -441,23 +432,32 @@ namespace h
         {
             {
                 Expression{
+                    .data = Variable_expression{
+                        .type = Variable_expression_type::Function_argument,
+                        .id = 0
+                    }
+                },
+                Expression{
+                    .data = Variable_expression{
+                        .type = Variable_expression_type::Function_argument,
+                        .id = 1
+                    }
+                },
+                Expression{
                     .data = Binary_expression{
-                        .left_hand_side = Variable_expression{
-                            .type = Variable_expression_type::Function_argument,
-                            .id = 0
+                        .left_hand_side = Expression_index{
+                            .expression_index = 0
                         },
-                        .right_hand_side = Variable_expression{
-                            .type = Variable_expression_type::Function_argument,
-                            .id = 1
+                        .right_hand_side = Expression_index{
+                            .expression_index = 1
                         },
                         .operation = Binary_operation::Add
                     }
                 },
                 Expression{
                     .data = Return_expression{
-                        .variable = Variable_expression{
-                            .type = Variable_expression_type::Temporary,
-                            .id = 0
+                        .expression = Expression_index{
+                            .expression_index = 2
                         },
                     }
                 }
@@ -496,20 +496,36 @@ namespace h
                         "id": 0,
                         "name": "var_0",
                         "expressions": {
-                            "size": 2,
+                            "size": 4,
                             "elements": 
                             [
+                                {
+                                    "data": {
+                                        "type": "variable_expression",
+                                        "value": {
+                                            "type": "function_argument",
+                                            "id": 0
+                                        }
+                                    }
+                                },
+                                {
+                                    "data": {
+                                        "type": "variable_expression",
+                                        "value": {
+                                            "type": "function_argument",
+                                            "id": 1
+                                        }
+                                    }
+                                },
                                 {
                                     "data": {
                                         "type": "binary_expression",
                                         "value": {
                                             "left_hand_side": {
-                                                "type": "function_argument",
-                                                "id": 0
+                                                "expression_index": 0
                                             },
                                             "right_hand_side": {
-                                                "type": "function_argument",
-                                                "id": 1
+                                                "expression_index": 1
                                             },
                                             "operation": "add"
                                         }
@@ -519,9 +535,8 @@ namespace h
                                     "data": {
                                         "type": "return_expression",
                                         "value": {
-                                            "variable": {
-                                                "type": "temporary",
-                                                "id": 0
+                                            "expression": {
+                                                "expression_index": 2
                                             }
                                         }
                                     }
@@ -671,20 +686,36 @@ namespace h
                                         "id": 0,
                                         "name": "var_0",
                                         "expressions": {
-                                            "size": 2,
+                                            "size": 4,
                                             "elements": 
                                             [
+                                                {
+                                                    "data": {
+                                                        "type": "variable_expression",
+                                                        "value": {
+                                                            "type": "function_argument",
+                                                            "id": 0
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "data": {
+                                                        "type": "variable_expression",
+                                                        "value": {
+                                                            "type": "function_argument",
+                                                            "id": 1
+                                                        }
+                                                    }
+                                                },
                                                 {
                                                     "data": {
                                                         "type": "binary_expression",
                                                         "value": {
                                                             "left_hand_side": {
-                                                                "type": "function_argument",
-                                                                "id": 0
+                                                                "expression_index": 0
                                                             },
                                                             "right_hand_side": {
-                                                                "type": "function_argument",
-                                                                "id": 1
+                                                                "expression_index": 1
                                                             },
                                                             "operation": "add"
                                                         }
@@ -694,9 +725,8 @@ namespace h
                                                     "data": {
                                                         "type": "return_expression",
                                                         "value": {
-                                                            "variable": {
-                                                                "type": "temporary",
-                                                                "id": 0
+                                                            "expression": {
+                                                                "expression_index": 2
                                                             }
                                                         }
                                                     }

@@ -178,8 +178,7 @@ namespace h
     export enum class Variable_expression_type
     {
         Function_argument,
-        Local_variable,
-        Temporary
+        Local_variable
     };
 
     export struct Variable_expression
@@ -188,6 +187,13 @@ namespace h
         std::uint64_t id;
 
         friend auto operator<=>(Variable_expression const&, Variable_expression const&) = default;
+    };
+
+    export struct Expression_index
+    {
+        std::uint64_t expression_index;
+
+        friend auto operator<=>(Expression_index const&, Expression_index const&) = default;
     };
 
     export enum class Binary_operation
@@ -202,8 +208,8 @@ namespace h
 
     export struct Binary_expression
     {
-        Variable_expression left_hand_side;
-        Variable_expression right_hand_side;
+        Expression_index left_hand_side;
+        Expression_index right_hand_side;
         Binary_operation operation;
 
         friend auto operator<=>(Binary_expression const&, Binary_expression const&) = default;
@@ -212,7 +218,7 @@ namespace h
     export struct Call_expression
     {
         Function_reference function_reference;
-        std::pmr::vector<Variable_expression> arguments;
+        std::pmr::vector<Expression_index> arguments;
 
         friend auto operator<=>(Call_expression const&, Call_expression const&) = default;
     };
@@ -234,7 +240,7 @@ namespace h
 
     export struct Return_expression
     {
-        Variable_expression variable;
+        Expression_index expression;
 
         friend auto operator<=>(Return_expression const&, Return_expression const&) = default;
     };
