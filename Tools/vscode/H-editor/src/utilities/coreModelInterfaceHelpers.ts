@@ -1,6 +1,11 @@
 import * as core from "./coreModelInterface";
 import { onThrowError } from "./errors";
 
+export function get_module(module: core.Module, reference: core.Module_reference): core.Module {
+    // TODO
+    return module;
+}
+
 export interface FindDeclarationResult {
     index: number,
     isExportDeclaration: boolean
