@@ -328,14 +328,32 @@ export function create_default(): core.Module {
                                     id: 0,
                                     name: "var_0",
                                     expressions: {
-                                        size: 2,
+                                        size: 4,
                                         elements: [
+                                            {
+                                                data: {
+                                                    type: core.Expression_enum.Variable_expression,
+                                                    value: {
+                                                        type: core.Variable_expression_type.Function_argument,
+                                                        id: 0
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                data: {
+                                                    type: core.Expression_enum.Variable_expression,
+                                                    value: {
+                                                        type: core.Variable_expression_type.Function_argument,
+                                                        id: 1
+                                                    }
+                                                }
+                                            },
                                             {
                                                 data: {
                                                     type: core.Expression_enum.Binary_expression,
                                                     value: {
-                                                        left_hand_side: { type: core.Variable_expression_type.Function_argument, id: 0 },
-                                                        right_hand_side: { type: core.Variable_expression_type.Function_argument, id: 1 },
+                                                        left_hand_side: { expression_index: 0 },
+                                                        right_hand_side: { expression_index: 1 },
                                                         operation: core.Binary_operation.Add,
                                                     },
                                                 },
@@ -343,7 +361,7 @@ export function create_default(): core.Module {
                                             {
                                                 data: {
                                                     type: core.Expression_enum.Return_expression,
-                                                    value: { variable: { type: core.Variable_expression_type.Temporary, id: 0 } },
+                                                    value: { expression: { expression_index: 2 } },
                                                 },
                                             },
                                         ],
@@ -361,14 +379,32 @@ export function create_default(): core.Module {
                                     id: 0,
                                     name: "var_0",
                                     expressions: {
-                                        size: 2,
+                                        size: 4,
                                         elements: [
+                                            {
+                                                data: {
+                                                    type: core.Expression_enum.Variable_expression,
+                                                    value: {
+                                                        type: core.Variable_expression_type.Function_argument,
+                                                        id: 0
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                data: {
+                                                    type: core.Expression_enum.Variable_expression,
+                                                    value: {
+                                                        type: core.Variable_expression_type.Function_argument,
+                                                        id: 1
+                                                    }
+                                                }
+                                            },
                                             {
                                                 data: {
                                                     type: core.Expression_enum.Binary_expression,
                                                     value: {
-                                                        left_hand_side: { type: core.Variable_expression_type.Function_argument, id: 0 },
-                                                        right_hand_side: { type: core.Variable_expression_type.Function_argument, id: 1 },
+                                                        left_hand_side: { expression_index: 0 },
+                                                        right_hand_side: { expression_index: 1 },
                                                         operation: core.Binary_operation.Add,
                                                     },
                                                 },
@@ -376,7 +412,7 @@ export function create_default(): core.Module {
                                             {
                                                 data: {
                                                     type: core.Expression_enum.Return_expression,
-                                                    value: { variable: { type: core.Variable_expression_type.Temporary, id: 0 } },
+                                                    value: { expression: { expression_index: 2 } },
                                                 },
                                             },
                                         ],
@@ -394,14 +430,32 @@ export function create_default(): core.Module {
                                     id: 0,
                                     name: "var_0",
                                     expressions: {
-                                        size: 2,
+                                        size: 4,
                                         elements: [
+                                            {
+                                                data: {
+                                                    type: core.Expression_enum.Variable_expression,
+                                                    value: {
+                                                        type: core.Variable_expression_type.Function_argument,
+                                                        id: 0
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                data: {
+                                                    type: core.Expression_enum.Variable_expression,
+                                                    value: {
+                                                        type: core.Variable_expression_type.Function_argument,
+                                                        id: 1
+                                                    }
+                                                }
+                                            },
                                             {
                                                 data: {
                                                     type: core.Expression_enum.Binary_expression,
                                                     value: {
-                                                        left_hand_side: { type: core.Variable_expression_type.Function_argument, id: 0 },
-                                                        right_hand_side: { type: core.Variable_expression_type.Function_argument, id: 1 },
+                                                        left_hand_side: { expression_index: 0 },
+                                                        right_hand_side: { expression_index: 1 },
                                                         operation: core.Binary_operation.Add,
                                                     },
                                                 },
@@ -409,7 +463,7 @@ export function create_default(): core.Module {
                                             {
                                                 data: {
                                                     type: core.Expression_enum.Return_expression,
-                                                    value: { variable: { type: core.Variable_expression_type.Temporary, id: 0 } },
+                                                    value: { expression: { expression_index: 2 } },
                                                 },
                                             },
                                         ],
@@ -434,14 +488,32 @@ export function create_default(): core.Module {
                                     id: 0,
                                     name: "var_0",
                                     expressions: {
-                                        size: 2,
+                                        size: 4,
                                         elements: [
+                                            {
+                                                data: {
+                                                    type: core.Expression_enum.Variable_expression,
+                                                    value: {
+                                                        type: core.Variable_expression_type.Function_argument,
+                                                        id: 0
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                data: {
+                                                    type: core.Expression_enum.Variable_expression,
+                                                    value: {
+                                                        type: core.Variable_expression_type.Function_argument,
+                                                        id: 1
+                                                    }
+                                                }
+                                            },
                                             {
                                                 data: {
                                                     type: core.Expression_enum.Binary_expression,
                                                     value: {
-                                                        left_hand_side: { type: core.Variable_expression_type.Function_argument, id: 0 },
-                                                        right_hand_side: { type: core.Variable_expression_type.Function_argument, id: 1 },
+                                                        left_hand_side: { expression_index: 0 },
+                                                        right_hand_side: { expression_index: 1 },
                                                         operation: core.Binary_operation.Add,
                                                     },
                                                 },
@@ -449,7 +521,7 @@ export function create_default(): core.Module {
                                             {
                                                 data: {
                                                     type: core.Expression_enum.Return_expression,
-                                                    value: { variable: { type: core.Variable_expression_type.Temporary, id: 0 } },
+                                                    value: { expression: { expression_index: 2 } },
                                                 },
                                             },
                                         ],
