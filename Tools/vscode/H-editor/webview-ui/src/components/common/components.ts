@@ -2,6 +2,7 @@ export { default as Checkbox_input } from './Checkbox_input.vue';
 export { default as Collapsible } from './Collapsible.vue';
 export { default as Drag_and_drop_list } from './Drag_and_drop_list.vue';
 export { default as Editable } from './Editable.vue';
+export { default as Node_tree } from './Node_tree.vue';
 export { default as Number_input } from './Number_input.vue';
 export { default as List } from './List.vue';
 export { default as Search_field } from './Search_field.vue';
