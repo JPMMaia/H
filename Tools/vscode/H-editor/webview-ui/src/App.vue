@@ -3,7 +3,7 @@ import { onMounted, ref } from "vue";
 import { provideVSCodeDesignSystem, vsCodeButton } from "@vscode/webview-ui-toolkit";
 import { vscode } from "./utilities/vscode";
 import { updateState } from "../../src/utilities/updateState";
-import { update_module_with_change } from "../../src/utilities/Change_update";
+import { update_object_with_change } from "../../src/utilities/Change_update";
 import type * as core from "../../src/utilities/coreModelInterface";
 import type * as coreHelpers from "../../src/utilities/coreModelInterfaceHelpers";
 import * as Module_examples from "./utilities/Module_examples";
@@ -120,7 +120,7 @@ function on_new_changes(new_changes: Change.Hierarchy): void {
   });
 
   if (g_webview_only && m_state.value.module !== undefined) {
-    update_module_with_change(m_state.value.module, new_changes, []);
+    update_object_with_change(m_state.value.module, new_changes, []);
     console.log(m_state.value.module);
   }
 }
