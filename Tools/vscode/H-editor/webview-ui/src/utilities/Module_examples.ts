@@ -332,6 +332,22 @@ export function create_default(): core.Module {
                                         elements: [
                                             {
                                                 data: {
+                                                    type: core.Expression_enum.Return_expression,
+                                                    value: { expression: { expression_index: 1 } },
+                                                },
+                                            },
+                                            {
+                                                data: {
+                                                    type: core.Expression_enum.Binary_expression,
+                                                    value: {
+                                                        left_hand_side: { expression_index: 2 },
+                                                        right_hand_side: { expression_index: 3 },
+                                                        operation: core.Binary_operation.Add,
+                                                    },
+                                                },
+                                            },
+                                            {
+                                                data: {
                                                     type: core.Expression_enum.Variable_expression,
                                                     value: {
                                                         type: core.Variable_expression_type.Function_argument,
@@ -347,23 +363,7 @@ export function create_default(): core.Module {
                                                         id: 1
                                                     }
                                                 }
-                                            },
-                                            {
-                                                data: {
-                                                    type: core.Expression_enum.Binary_expression,
-                                                    value: {
-                                                        left_hand_side: { expression_index: 0 },
-                                                        right_hand_side: { expression_index: 1 },
-                                                        operation: core.Binary_operation.Add,
-                                                    },
-                                                },
-                                            },
-                                            {
-                                                data: {
-                                                    type: core.Expression_enum.Return_expression,
-                                                    value: { expression: { expression_index: 2 } },
-                                                },
-                                            },
+                                            }
                                         ],
                                     },
                                 },
@@ -383,6 +383,22 @@ export function create_default(): core.Module {
                                         elements: [
                                             {
                                                 data: {
+                                                    type: core.Expression_enum.Return_expression,
+                                                    value: { expression: { expression_index: 1 } },
+                                                },
+                                            },
+                                            {
+                                                data: {
+                                                    type: core.Expression_enum.Binary_expression,
+                                                    value: {
+                                                        left_hand_side: { expression_index: 2 },
+                                                        right_hand_side: { expression_index: 3 },
+                                                        operation: core.Binary_operation.Add,
+                                                    },
+                                                },
+                                            },
+                                            {
+                                                data: {
                                                     type: core.Expression_enum.Variable_expression,
                                                     value: {
                                                         type: core.Variable_expression_type.Function_argument,
@@ -398,23 +414,7 @@ export function create_default(): core.Module {
                                                         id: 1
                                                     }
                                                 }
-                                            },
-                                            {
-                                                data: {
-                                                    type: core.Expression_enum.Binary_expression,
-                                                    value: {
-                                                        left_hand_side: { expression_index: 0 },
-                                                        right_hand_side: { expression_index: 1 },
-                                                        operation: core.Binary_operation.Add,
-                                                    },
-                                                },
-                                            },
-                                            {
-                                                data: {
-                                                    type: core.Expression_enum.Return_expression,
-                                                    value: { expression: { expression_index: 2 } },
-                                                },
-                                            },
+                                            }
                                         ],
                                     },
                                 },
@@ -434,6 +434,22 @@ export function create_default(): core.Module {
                                         elements: [
                                             {
                                                 data: {
+                                                    type: core.Expression_enum.Return_expression,
+                                                    value: { expression: { expression_index: 1 } },
+                                                },
+                                            },
+                                            {
+                                                data: {
+                                                    type: core.Expression_enum.Binary_expression,
+                                                    value: {
+                                                        left_hand_side: { expression_index: 2 },
+                                                        right_hand_side: { expression_index: 3 },
+                                                        operation: core.Binary_operation.Add,
+                                                    },
+                                                },
+                                            },
+                                            {
+                                                data: {
                                                     type: core.Expression_enum.Variable_expression,
                                                     value: {
                                                         type: core.Variable_expression_type.Function_argument,
@@ -449,23 +465,7 @@ export function create_default(): core.Module {
                                                         id: 1
                                                     }
                                                 }
-                                            },
-                                            {
-                                                data: {
-                                                    type: core.Expression_enum.Binary_expression,
-                                                    value: {
-                                                        left_hand_side: { expression_index: 0 },
-                                                        right_hand_side: { expression_index: 1 },
-                                                        operation: core.Binary_operation.Add,
-                                                    },
-                                                },
-                                            },
-                                            {
-                                                data: {
-                                                    type: core.Expression_enum.Return_expression,
-                                                    value: { expression: { expression_index: 2 } },
-                                                },
-                                            },
+                                            }
                                         ],
                                     },
                                 },
@@ -492,6 +492,22 @@ export function create_default(): core.Module {
                                         elements: [
                                             {
                                                 data: {
+                                                    type: core.Expression_enum.Return_expression,
+                                                    value: { expression: { expression_index: 1 } },
+                                                },
+                                            },
+                                            {
+                                                data: {
+                                                    type: core.Expression_enum.Binary_expression,
+                                                    value: {
+                                                        left_hand_side: { expression_index: 2 },
+                                                        right_hand_side: { expression_index: 3 },
+                                                        operation: core.Binary_operation.Add,
+                                                    },
+                                                },
+                                            },
+                                            {
+                                                data: {
                                                     type: core.Expression_enum.Variable_expression,
                                                     value: {
                                                         type: core.Variable_expression_type.Function_argument,
@@ -507,23 +523,7 @@ export function create_default(): core.Module {
                                                         id: 1
                                                     }
                                                 }
-                                            },
-                                            {
-                                                data: {
-                                                    type: core.Expression_enum.Binary_expression,
-                                                    value: {
-                                                        left_hand_side: { expression_index: 0 },
-                                                        right_hand_side: { expression_index: 1 },
-                                                        operation: core.Binary_operation.Add,
-                                                    },
-                                                },
-                                            },
-                                            {
-                                                data: {
-                                                    type: core.Expression_enum.Return_expression,
-                                                    value: { expression: { expression_index: 2 } },
-                                                },
-                                            },
+                                            }
                                         ],
                                     },
                                 },
