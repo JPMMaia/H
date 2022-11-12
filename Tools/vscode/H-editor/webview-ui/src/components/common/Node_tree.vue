@@ -10,14 +10,13 @@ const properties = defineProps<{
 </script>
 
 <template>
-    <slot v-if="node.type === Node_type.Leaf" name="content" :node_value="(node.value as Leaf_node).value">
+    <slot v-if="node.type === Node_type.Leaf" :node_value="(node.value as Leaf_node).value">
     </slot>
     <div v-else-if="node.type === Node_type.Branch" class="horizontal_container add_horizontal_gap">
-        <Node_tree v-for="child_node of (node.value as Branch_node).children" :node="child_node">
-            <template v-slot:content="node_properties: any">
-                <slot name="content" :node_value="node_properties.node_value">
-                </slot>
-            </template>
+        <Node_tree v-for="child_node of (node.value as Branch_node).children" :node="child_node"
+            v-slot="slot_properties: any">
+            <slot :node_value="slot_properties.node_value">
+            </slot>
         </Node_tree>
     </div>
 </template>
