@@ -77,8 +77,6 @@ export function find_sibling(
     let current_sibling = find_function(root_element, element);
 
     while (current_sibling !== undefined && !predicate(current_sibling)) {
-        const x = current_sibling.textContent;
-        console.log(x);
         current_sibling = find_function(root_element, current_sibling);
     }
 
