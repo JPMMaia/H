@@ -1,16 +1,22 @@
 <script setup lang="ts">
 import "@vscode/codicons/dist/codicon.css";
+
+function on_click_icon(event: MouseEvent): void {
+    event.preventDefault();
+}
 </script>
 
 <template>
     <details ref="details_element">
         <summary class="horizontal_container">
             <i class="codicon codicon-chevron-right rotate_on_open"></i>
-            <slot name="summary"></slot>
+            <span v-on:click="on_click_icon">
+                <slot name="summary"></slot>
+            </span>
         </summary>
-        <div class="vertical_container">
+        <span class="add_left_margin vertical_container">
             <slot name="content"></slot>
-        </div>
+        </span>
     </details>
 </template>
 
@@ -23,6 +29,10 @@ import "@vscode/codicons/dist/codicon.css";
 .vertical_container {
     display: flex;
     flex-direction: column;
+}
+
+.add_left_margin {
+    margin-left: 2ch;
 }
 
 details>summary>i.rotate_on_open {

@@ -12,6 +12,7 @@ import Function_declaration from "./components/text_view/Function_declaration.vu
 import * as Structured_view from "./components/structured_view/components";
 import Language_version from "./components/text_view/Language_version.vue";
 import JSON_object from "./components/text_view/JSON_object.vue";
+import * as Declarations from "./components/structured_view/Declaration_helpers";
 
 import type * as Change from "../../src/utilities/Change";
 import { get_type_name } from "./utilities/language";
@@ -167,7 +168,13 @@ onMounted(() => { });
 
       <div v-if="m_selectedView === 'module_view'">
 
-        <div v-if="(m_state.module !== undefined) && (m_selectedFrontendLanguage !== 'JSON')">
+        <div v-if="(m_state.module !== undefined)">
+          <Structured_view.Module_view v-if="m_state.module !== undefined" :module="m_state.module"
+            :declarations="Declarations.get_all_items(m_state.module)" v-on:new_changes="on_new_changes">
+          </Structured_view.Module_view>
+        </div>
+
+        <div v-if="(m_state.module !== undefined)">
           <Structured_view.Module_declarations_view v-if="m_state.module !== undefined" :module="m_state.module"
             v-on:new_changes="on_new_changes">
           </Structured_view.Module_declarations_view>
