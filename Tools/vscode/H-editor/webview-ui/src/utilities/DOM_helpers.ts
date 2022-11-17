@@ -86,6 +86,7 @@ export function find_sibling(
 export function set_caret_position(node: Node, selection: Selection, position: number): void {
     const range = document.createRange();
     range.setStart(node, position);
+    range.setEnd(node, position);
 
     selection.removeAllRanges();
     selection.addRange(range);
@@ -189,28 +190,85 @@ export function find_next_caret_position(root_element: HTMLElement, input_elemen
     return undefined;
 }
 
+function find_element(element: Element, get_next_element: (element: Element) => Element | undefined, is_element: (sibling: Element) => boolean): Element | undefined {
+
+    const next = get_next_element(element);
+
+    if (next === undefined) {
+        return undefined;
+    }
+
+    if (is_element(next)) {
+        return next;
+    }
+
+    return find_element(next, get_next_element, is_element);
+}
+
+function get_next_sibling(element: Element): Element | undefined {
+    return (element.nextElementSibling !== null) ? element.nextElementSibling : undefined;
+}
+
+function get_parent(element: Element): Element | undefined {
+    return (element.parentElement !== null) ? element.parentElement : undefined;
+}
+
+export function find_start_of_line_editable(element: Element): Element | undefined {
+    const parent_div = find_element(element, get_parent, parent => parent.tagName === "DIV");
+
+    if (parent_div !== undefined) {
+        const first_element = find_left_leaf_element(parent_div);
+        const first_editable = is_content_editable(first_element) ? first_element : find_element(first_element, element => find_next_leaf_sibling(parent_div, element), is_content_editable);
+        return first_editable;
+    }
+
+    return undefined;
+}
+
+export function find_end_of_line_editable(element: Element): Element | undefined {
+    const parent_div = find_element(element, get_parent, parent => parent.tagName === "DIV");
+
+    if (parent_div !== undefined) {
+        const last_element = find_right_leaf_element(parent_div);
+        const last_editable = is_content_editable(last_element) ? last_element : find_element(last_element, element => find_previous_leaf_sibling(parent_div, element), is_content_editable);
+        return last_editable;
+    }
+
+    return undefined;
+}
+
 export function move_caret_once(root_element: HTMLElement, input_element: HTMLElement, offset: number, selection: Selection): void {
 
     const new_caret_position = find_next_caret_position(root_element, input_element, offset, selection, is_content_editable);
 
     if (new_caret_position !== undefined) {
         new_caret_position.node.parentElement?.focus();
-        set_caret_caret_position(new_caret_position.node, selection, new_caret_position.offset);
+        set_caret_position(new_caret_position.node, selection, new_caret_position.offset);
     }
 }
 
-export function move_caret_to_start(root_element: HTMLElement): void {
-    const first_element = find_left_leaf_element(root_element);
-    const first_input = first_element as HTMLInputElement;
+export function move_caret_to_start(element: HTMLElement, selection: Selection): void {
 
-    first_input.focus();
-    first_input.setSelectionRange(0, 0);
+    const first_editable = find_start_of_line_editable(element);
+
+    if (first_editable !== undefined && first_editable.childNodes.length > 0) {
+        const node = first_editable.childNodes[0];
+        if (node.nodeValue !== null) {
+            (first_editable as HTMLElement).focus();
+            set_caret_position(node, selection, 0);
+        }
+    }
 }
 
-export function move_caret_to_end(root_element: HTMLElement): void {
-    const last_element = find_right_leaf_element(root_element);
-    const last_input = last_element as HTMLInputElement;
+export function move_caret_to_end(element: HTMLElement, selection: Selection): void {
 
-    last_input.focus();
-    last_input.setSelectionRange(last_input.value.length, last_input.value.length);
+    const last_editable = find_end_of_line_editable(element);
+
+    if (last_editable !== undefined && last_editable.childNodes.length > 0) {
+        const node = last_editable.childNodes[last_editable.childNodes.length - 1];
+        if (node.nodeValue !== null) {
+            (last_editable as HTMLElement).focus();
+            set_caret_position(node, selection, node.nodeValue.length);
+        }
+    }
 }

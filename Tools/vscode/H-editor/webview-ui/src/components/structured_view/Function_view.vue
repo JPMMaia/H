@@ -114,38 +114,17 @@ function on_key_down(event: KeyboardEvent): void {
     else if (event.key === "Home") {
         const selection = window.getSelection();
         if (selection !== null) {
-            // TODO find root element
-            DOM_helpers.move_caret_to_start(root_element, selection);
+            DOM_helpers.move_caret_to_start(element, selection);
             event.preventDefault();
         }
     }
     else if (event.key === "End") {
         const selection = window.getSelection();
         if (selection !== null) {
-            // TODO find root element
-            DOM_helpers.move_caret_to_end(root_element, selection);
+            DOM_helpers.move_caret_to_end(element, selection);
             event.preventDefault();
         }
     }
-}
-
-function find_element(element: Element, get_next_element: (element: Element) => Element | undefined, is_element: (sibling: Element) => boolean): Element | undefined {
-
-    const next = get_next_element(element);
-
-    if (next === undefined) {
-        return undefined;
-    }
-
-    if (is_element(next)) {
-        return next;
-    }
-
-    return find_element(next, get_next_element, is_element);
-}
-
-function get_next_sibling(element: Element): Element | undefined {
-    return (element.nextElementSibling !== null) ? element.nextElementSibling : undefined;
 }
 
 function get_next_parameter_name_span(previous_type_span: HTMLElement): HTMLElement | undefined {
