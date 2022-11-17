@@ -83,10 +83,17 @@ export function find_sibling(
     return current_sibling;
 }
 
-function set_caret_caret_position(node: Node, selection: Selection, position: number): void {
+export function set_caret_position(node: Node, selection: Selection, position: number): void {
     const range = document.createRange();
     range.setStart(node, position);
-    range.collapse(true);
+
+    selection.removeAllRanges();
+    selection.addRange(range);
+}
+
+export function select_whole_text(node: Node, selection: Selection): void {
+    const range = document.createRange();
+    range.selectNodeContents(node);
 
     selection.removeAllRanges();
     selection.addRange(range);
@@ -162,8 +169,8 @@ export function find_next_caret_position(root_element: HTMLElement, input_elemen
 
                     if (text !== null) {
                         return {
-                            node: caret_element.childNodes[caret_element.childNodes.length - 1],
-                            offset: text.length
+                            node: caret_element.childNodes[0],
+                            offset: 0
                         };
                     }
                 }

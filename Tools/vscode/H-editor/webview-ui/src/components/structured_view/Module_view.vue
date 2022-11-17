@@ -23,22 +23,35 @@ function get_declaration_name(item: Declarations.Item): string {
     return item.type.toString() + item.value.id + "_" + item.value.name;
 }
 
-function on_module_space_input(event: Event): void {
-
-    if (event.target !== null) {
-        const element = event.target as HTMLElement;
-        console.log(element.nodeValue);
+function get_item_type_vector_name(type: Declarations.Item_type): string {
+    switch (type) {
+        case Declarations.Item_type.Alias:
+            return "alias_type_declarations";
+        case Declarations.Item_type.Enum:
+            return "enum_declarations";
+        case Declarations.Item_type.Struct:
+            return "struct_declarations";
+        case Declarations.Item_type.Function:
+            return "function_declarations";
     }
-
 }
 
-function on_module_space_key_up(event: KeyboardEvent): void {
+function on_new_changes(type: Declarations.Item_type, index: number, is_export: boolean, children_changes: Change.Hierarchy): void {
 
-    if (event.target !== null) {
-        const element = event.target as HTMLElement;
-        console.log(element.nodeValue);
-    }
+    const declarations_name = is_export ? "export_declarations" : "internal_declarations";
+    const vector_name = get_item_type_vector_name(type);
 
+    const new_changes: Change.Hierarchy = {
+        changes: [],
+        children: [
+            {
+                position: [declarations_name, vector_name, "elements", index],
+                hierarchy: children_changes
+            }
+        ]
+    };
+
+    emit("new_changes", new_changes);
 }
 
 const main_element_ref = ref<HTMLElement | null>(null);
@@ -46,7 +59,7 @@ const main_element_ref = ref<HTMLElement | null>(null);
 </script>
 
 <template>
-    <main ref="main_element_ref" v-on:input="on_module_space_input">
+    <main ref="main_element_ref">
         <section name="Declarations/definitions">
             <section v-if="properties.declarations.length === 0" name="Module_space" class="add_left_margin"
                 contenteditable="true">
@@ -55,7 +68,8 @@ const main_element_ref = ref<HTMLElement | null>(null);
             <section v-for="(declaration, index) of properties.declarations" :name="get_declaration_name(declaration)">
                 <Structured_view.Function_view
                     v-if="declaration.type === Declarations.Item_type.Function && main_element_ref !== null"
-                    :module="properties.module" :function_id="declaration.value.id" :root_element="main_element_ref">
+                    :module="properties.module" :function_id="declaration.value.id" :root_element="main_element_ref"
+                    v-on:declaration:new_changes="(children_changes: Change.Hierarchy) => on_new_changes(declaration.type, declaration.index, declaration.is_export, children_changes)">
                 </Structured_view.Function_view>
                 <section name="Module_space" class="add_left_margin" contenteditable="true">
                     <br>

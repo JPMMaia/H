@@ -1,6 +1,6 @@
 <script setup lang="ts">
 
-import { computed, ref } from "vue";
+import { computed, nextTick, ref } from "vue";
 import "@vscode/codicons/dist/codicon.css";
 
 import * as Core from "../../../../src/utilities/coreModelInterface";
@@ -11,6 +11,7 @@ import Function_definition from "./Function_definition.vue";
 import Function_parameters from "./Function_parameters.vue";
 import * as Change from "../../../../src/utilities/Change";
 import * as DOM_helpers from "../../utilities/DOM_helpers";
+import * as Function_change_helpers from "../../utilities/Function_change_helpers";
 
 const properties = defineProps<{
     module: Core.Module;
@@ -110,25 +111,102 @@ function on_key_down(event: KeyboardEvent): void {
         move_caret_once(root_element, element, 1);
         event.preventDefault();
     }
-
-    /*const input_element = event.target as HTMLInputElement;
-
-    if (event.key === "ArrowLeft") {
-        DOM_helpers.move_caret_once(root_element, input_element, -1, event.shiftKey);
-        event.preventDefault();
-    }
-    else if (event.key === "ArrowRight") {
-        DOM_helpers.move_caret_once(root_element, input_element, 1, event.shiftKey);
-        event.preventDefault();
-    }
     else if (event.key === "Home") {
-        DOM_helpers.move_caret_to_start(root_element);
-        event.preventDefault();
+        const selection = window.getSelection();
+        if (selection !== null) {
+            // TODO find root element
+            DOM_helpers.move_caret_to_start(root_element, selection);
+            event.preventDefault();
+        }
     }
     else if (event.key === "End") {
-        DOM_helpers.move_caret_to_end(root_element);
-        event.preventDefault();
-    }*/
+        const selection = window.getSelection();
+        if (selection !== null) {
+            // TODO find root element
+            DOM_helpers.move_caret_to_end(root_element, selection);
+            event.preventDefault();
+        }
+    }
+}
+
+function find_element(element: Element, get_next_element: (element: Element) => Element | undefined, is_element: (sibling: Element) => boolean): Element | undefined {
+
+    const next = get_next_element(element);
+
+    if (next === undefined) {
+        return undefined;
+    }
+
+    if (is_element(next)) {
+        return next;
+    }
+
+    return find_element(next, get_next_element, is_element);
+}
+
+function get_next_sibling(element: Element): Element | undefined {
+    return (element.nextElementSibling !== null) ? element.nextElementSibling : undefined;
+}
+
+function get_next_parameter_name_span(previous_type_span: HTMLElement): HTMLElement | undefined {
+
+    if (previous_type_span.parentElement !== null) {
+        const grandparent = previous_type_span.parentElement.parentElement;
+        if (grandparent !== null) {
+            const next_input_parameter_span_parent = grandparent.nextElementSibling;
+            if (next_input_parameter_span_parent !== null && next_input_parameter_span_parent.children.length > 0) {
+                const next_input_parameter_span = next_input_parameter_span_parent.children[0]
+                if (next_input_parameter_span !== null && next_input_parameter_span.children.length > 0) {
+                    const name_span = next_input_parameter_span.children[0];
+                    return name_span as HTMLElement;
+                }
+            }
+        }
+    }
+
+    return undefined;
+}
+
+function on_input_parameter_change(event: Event, tag: string, parameter_index: number, is_input_parameter: boolean): void {
+    if (event.target === null) {
+        return;
+    }
+
+    const element = event.target as HTMLElement;
+
+    if (element.textContent !== null && element.textContent.length > 0) {
+        const trimmed_text = element.textContent.trim();
+
+        if (tag === "Name" && trimmed_text.charAt(0) === ",") {
+            const new_changes = Function_change_helpers.add_function_parameter(parameter_index, function_declaration.value.input_parameter_ids, is_input_parameter);
+            emit("declaration:new_changes", new_changes);
+
+            nextTick(() => {
+                const selection = window.getSelection();
+                if (selection !== null && element.childNodes.length > 0) {
+                    DOM_helpers.select_whole_text(element.childNodes[0], selection);
+                }
+            });
+        }
+        else if (tag === "Type" && trimmed_text.charAt(trimmed_text.length - 1) === ",") {
+            const new_changes = Function_change_helpers.add_function_parameter(parameter_index + 1, function_declaration.value.input_parameter_ids, is_input_parameter);
+            emit("declaration:new_changes", new_changes);
+
+            nextTick(() => {
+                if (element.textContent !== null) {
+                    element.textContent = element.textContent.substring(0, element.textContent.length - 1);
+                }
+
+                const next_name_span = get_next_parameter_name_span(element);
+                if (next_name_span !== undefined) {
+                    const selection = window.getSelection();
+                    if (selection !== null && next_name_span.childNodes.length > 0) {
+                        DOM_helpers.select_whole_text(next_name_span.childNodes[0], selection);
+                    }
+                }
+            });
+        }
+    }
 }
 
 </script>
@@ -137,23 +215,27 @@ function on_key_down(event: KeyboardEvent): void {
     <Common.Collapsible>
         <template #summary="{}">
             <div data-tag="Type" data-type="Function_declaration">
-                <span data-tag="Keyword" class="keyword" contenteditable="true"
+                <span data-tag="Keyword" data-line="start" class="keyword" contenteditable="true"
                     v-on:keydown="on_key_down">function</span>
                 <span data-tag="Space">&nbsp;</span>
                 <span data-tag="Member" data-member="name" contenteditable="true" v-on:keydown="on_key_down">{{
-                function_declaration.name
+                        function_declaration.name
                 }}</span>
                 <span data-tag="Start_function_input_parameters">(</span>
                 <span v-for="(_, input_parameter_index) of function_declaration.input_parameter_ids.elements">
                     <span data-tag="Input_parameter">
-                        <span data-tag="Name" contenteditable="true" v-on:keydown="on_key_down">
+                        <span data-tag="Name" contenteditable="true"
+                            v-on:input="event => on_input_parameter_change(event, 'Name', input_parameter_index, true)"
+                            v-on:keydown="on_key_down">
                             {{ function_declaration.input_parameter_names.elements[input_parameter_index] }}
                         </span>
                         <span data-tag="Symbol">:</span>
                         <span data-tag="Space">&nbsp;</span>
-                        <span data-tag="Type" class="type" contenteditable="true" v-on:keydown="on_key_down">
+                        <span data-tag="Type" class="type" contenteditable="true"
+                            v-on:input="event => on_input_parameter_change(event, 'Type', input_parameter_index, true)"
+                            v-on:keydown="on_key_down">
                             {{ Core_Helpers.getUnderlyingTypeName([properties.module],
-                            function_declaration.type.input_parameter_types.elements[input_parameter_index])
+                                    function_declaration.type.input_parameter_types.elements[input_parameter_index])
                             }}
                         </span>
                     </span>
@@ -169,14 +251,18 @@ function on_key_down(event: KeyboardEvent): void {
                 <span data-tag="Start_function_output_parameters">(</span>
                 <span v-for="(_, output_parameter_index) of function_declaration.output_parameter_ids.elements">
                     <span data-tag="output_parameter">
-                        <span data-tag="Name" contenteditable="true" v-on:keydown="on_key_down">
+                        <span data-tag="Name" contenteditable="true"
+                            v-on:input="event => on_input_parameter_change(event, 'Name', output_parameter_index, false)"
+                            v-on:keydown="on_key_down">
                             {{ function_declaration.output_parameter_names.elements[output_parameter_index] }}
                         </span>
                         <span data-tag="Symbol">:</span>
                         <span data-tag="Space">&nbsp;</span>
-                        <span data-tag="Type" class="type" contenteditable="true" v-on:keydown="on_key_down">
+                        <span data-tag="Type" class="type" contenteditable="true"
+                            v-on:input="event => on_input_parameter_change(event, 'Type', output_parameter_index, false)"
+                            v-on:keydown="on_key_down">
                             {{ Core_Helpers.getUnderlyingTypeName([properties.module],
-                            function_declaration.type.output_parameter_types.elements[output_parameter_index])
+                                    function_declaration.type.output_parameter_types.elements[output_parameter_index])
                             }}
                         </span>
                     </span>
