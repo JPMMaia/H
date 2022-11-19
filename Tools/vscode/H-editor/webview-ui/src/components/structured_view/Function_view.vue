@@ -10,6 +10,7 @@ import * as Common from "../common/components";
 import Function_definition from "./Function_definition.vue";
 import Function_parameters from "./Function_parameters.vue";
 import * as Change from "../../../../src/utilities/Change";
+import * as Caret_helpers from "../../utilities/Caret_helpers";
 import * as DOM_helpers from "../../utilities/DOM_helpers";
 import * as Function_change_helpers from "../../utilities/Function_change_helpers";
 
@@ -84,46 +85,14 @@ function on_definition_new_changes(new_changes: Change.Hierarchy): void {
     emit("definition:new_changes", new_changes);
 }
 
-function move_caret_once(root_element: HTMLElement, element: HTMLElement, offset: number): void {
-    if (element.childNodes.length > 0) {
-        const selection = window.getSelection();
-        if (selection !== null) {
-            DOM_helpers.move_caret_once(root_element, element, offset, selection);
-        }
-    }
-}
-
 function on_key_down(event: KeyboardEvent): void {
 
-    const root_element = properties.root_element;
-
-    if (event.target === null || root_element === null) {
+    if (event.target === null) {
         return;
     }
 
-    const element = event.target as HTMLElement;
-
-    if (event.key === "ArrowLeft") {
-        move_caret_once(root_element, element, -1);
+    if (Caret_helpers.handle_caret_keys(event)) {
         event.preventDefault();
-    }
-    else if (event.key === "ArrowRight") {
-        move_caret_once(root_element, element, 1);
-        event.preventDefault();
-    }
-    else if (event.key === "Home") {
-        const selection = window.getSelection();
-        if (selection !== null) {
-            DOM_helpers.move_caret_to_start(element, selection);
-            event.preventDefault();
-        }
-    }
-    else if (event.key === "End") {
-        const selection = window.getSelection();
-        if (selection !== null) {
-            DOM_helpers.move_caret_to_end(element, selection);
-            event.preventDefault();
-        }
     }
 }
 
@@ -259,9 +228,8 @@ function on_input_parameter_change(event: Event, tag: string, parameter_index: n
             <div data-tag="Type" data-type="Function_definition">
                 <span data-tag="Start_function_definition">{</span>
                 <div data-tag="Function_body">
-                    <span contenteditable="true" v-on:keydown="on_key_down">
-                        <hr>
-                    </span>
+                    <div contenteditable="true" v-on:keydown="on_key_down"
+                        v-on:focusin="Caret_helpers.handle_focus_empty_space">&#8203;</div>
                 </div>
                 <span data-tag="End_function_definition">}</span>
             </div>

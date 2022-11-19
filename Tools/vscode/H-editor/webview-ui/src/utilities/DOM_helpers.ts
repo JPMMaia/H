@@ -114,12 +114,74 @@ function is_content_editable(element: Element): boolean {
     return false;
 }
 
+export function iterate_backward_with_skip(element: Element, skip: (element: Element) => boolean): Element | undefined {
+
+    if (element.previousElementSibling !== null) {
+        const sibling = element.previousElementSibling;
+
+        if (skip(sibling) || sibling.children.length === 0) {
+            return sibling;
+        }
+
+        let child = sibling.children[sibling.children.length - 1];
+
+        while (child.children.length > 0) {
+            child = child.children[child.children.length - 1];
+        }
+
+        return child;
+    }
+    else {
+        return element.parentElement !== null ? element.parentElement : undefined;
+    }
+}
+
+export function iterate_backward(element: Element): Element | undefined {
+
+    return iterate_backward_with_skip(element, _ => false);
+}
+
+export function iterate_forward_with_skip(element: Element, skip: (element: Element) => boolean): Element | undefined {
+
+    if (element.children.length > 0 && !skip(element)) {
+        return element.children[0];
+    }
+    else if (element.nextElementSibling !== null) {
+        return element.nextElementSibling;
+    }
+    else {
+        let parent = element.parentElement;
+
+        while (parent !== null && parent.nextElementSibling === null) {
+            parent = parent.parentElement;
+        }
+
+        if (parent !== null && parent.nextElementSibling !== null) {
+            return parent.nextElementSibling;
+        }
+        else {
+            return undefined;
+        }
+    }
+}
+
+export function iterate_forward(element: Element): Element | undefined {
+
+    return iterate_forward_with_skip(element, _ => false);
+}
+
 export interface Caret_position {
     node: Node;
     offset: number;
 }
 
-export function find_next_caret_position(root_element: HTMLElement, input_element: HTMLElement, offset: number, selection: Selection, filter: (element: Element) => boolean): Caret_position | undefined {
+function is_empty_space(text: string): boolean {
+    const trimmed_text = text.trim();
+    const empty = "\u200B";
+    return trimmed_text === empty;
+}
+
+export function find_next_caret_position(input_element: HTMLElement, offset: number, selection: Selection, filter: (element: Element) => boolean): Caret_position | undefined {
 
     if (input_element.childNodes.length === 0) {
         return undefined;
@@ -130,20 +192,19 @@ export function find_next_caret_position(root_element: HTMLElement, input_elemen
     if (text_content === null) {
         return undefined;
     }
+    const text_content_length = is_empty_space(text_content) ? 0 : text_content.length;
 
     if (input_element.parentElement !== null) {
 
-        const caret_position = selection.focusOffset + offset;
+        const caret_position = is_empty_space(text_content) ? offset : selection.focusOffset + offset;
 
         if (caret_position < 0) {
-            const previous_sibling = find_sibling(root_element, input_element, find_previous_leaf_sibling, is_content_editable);
 
-            if (previous_sibling !== undefined) {
-                const previous_element = previous_sibling as HTMLElement;
+            const previous_element = iterate_backward_with_skip(input_element, is_hidden_inside_closed_details_element);
+            if (previous_element !== undefined) {
+                const caret_element = find_element(previous_element, current => iterate_backward_with_skip(current, is_hidden_inside_closed_details_element), is_content_editable);
 
-                const caret_element = (previous_element.childNodes.length > 0) ? previous_element : previous_element.parentElement;
-
-                if (caret_element !== null) {
+                if (caret_element !== undefined) {
                     const text_node = caret_element.childNodes[0];
                     const text = text_node.textContent;
 
@@ -156,15 +217,13 @@ export function find_next_caret_position(root_element: HTMLElement, input_elemen
                 }
             }
         }
-        else if (caret_position > text_content.length) {
-            const next_sibling = find_sibling(root_element, input_element, find_next_leaf_sibling, is_content_editable);
+        else if (caret_position > text_content_length) {
 
-            if (next_sibling !== undefined) {
-                const next_element = next_sibling as HTMLElement;
+            const next_element = iterate_forward_with_skip(input_element, is_hidden_inside_closed_details_element);
+            if (next_element !== undefined) {
+                const caret_element = find_element(next_element, current => iterate_forward_with_skip(current, is_hidden_inside_closed_details_element), is_content_editable);
 
-                const caret_element = (next_element.childNodes.length > 0) ? next_element : next_element.parentElement;
-
-                if (caret_element !== null) {
+                if (caret_element !== undefined) {
                     const text_node = caret_element.childNodes[0];
                     const text = text_node.textContent;
 
@@ -192,17 +251,21 @@ export function find_next_caret_position(root_element: HTMLElement, input_elemen
 
 function find_element(element: Element, get_next_element: (element: Element) => Element | undefined, is_element: (sibling: Element) => boolean): Element | undefined {
 
-    const next = get_next_element(element);
-
-    if (next === undefined) {
-        return undefined;
+    if (is_element(element)) {
+        return element;
     }
 
-    if (is_element(next)) {
-        return next;
+    let next = get_next_element(element);
+
+    while (next !== undefined && !is_element(next)) {
+        next = get_next_element(next);
     }
 
-    return find_element(next, get_next_element, is_element);
+    return next;
+}
+
+function get_previous_sibling(element: Element): Element | undefined {
+    return (element.previousElementSibling !== null) ? element.previousElementSibling : undefined;
 }
 
 function get_next_sibling(element: Element): Element | undefined {
@@ -213,33 +276,108 @@ function get_parent(element: Element): Element | undefined {
     return (element.parentElement !== null) ? element.parentElement : undefined;
 }
 
-export function find_start_of_line_editable(element: Element): Element | undefined {
-    const parent_div = find_element(element, get_parent, parent => parent.tagName === "DIV");
+export function is_new_line_container_element(element: Element): boolean {
+    return element.tagName === "DIV" || element.tagName === "SECTION";
+}
 
-    if (parent_div !== undefined) {
-        const first_element = find_left_leaf_element(parent_div);
-        const first_editable = is_content_editable(first_element) ? first_element : find_element(first_element, element => find_next_leaf_sibling(parent_div, element), is_content_editable);
-        return first_editable;
+export function is_hidden_inside_closed_details_element(element: Element): boolean {
+
+    if (element.tagName === "DETAILS") {
+        return false;
     }
 
-    return undefined;
+    const details_or_summary_ancestor = find_element(element, get_parent, current => current.tagName === "DETAILS" || current.tagName === "SUMMARY");
+
+    if (details_or_summary_ancestor === undefined) {
+        return false;
+    }
+
+    if (details_or_summary_ancestor.tagName === "SUMMARY") {
+        return false;
+    }
+
+    const details_ancestor = details_or_summary_ancestor;
+    const open = details_ancestor.getAttribute("open");
+    if (open !== null && (open.length === 0 || open === "true")) {
+        return false;
+    }
+    return true;
+}
+
+export function find_left_editable_child(parent: Element): Element | undefined {
+    const first_element = find_left_leaf_element(parent);
+    const first_editable = is_content_editable(first_element) ? first_element : find_element(first_element, element => find_next_leaf_sibling(parent, element), is_content_editable);
+    return first_editable;
+}
+
+export function find_right_editable_child(parent: Element): Element | undefined {
+    const last_element = find_left_leaf_element(parent);
+    const last_editable = is_content_editable(last_element) ? last_element : find_element(last_element, element => find_previous_leaf_sibling(parent, element), is_content_editable);
+    return last_editable;
+}
+
+export function find_start_of_line_editable(element: Element): Element | undefined {
+    const parent_div = find_element(element, get_parent, is_new_line_container_element);
+
+    if (parent_div === undefined) {
+        return undefined;
+    }
+
+    return find_element(parent_div, iterate_forward, is_content_editable);
 }
 
 export function find_end_of_line_editable(element: Element): Element | undefined {
-    const parent_div = find_element(element, get_parent, parent => parent.tagName === "DIV");
-
-    if (parent_div !== undefined) {
-        const last_element = find_right_leaf_element(parent_div);
-        const last_editable = is_content_editable(last_element) ? last_element : find_element(last_element, element => find_previous_leaf_sibling(parent_div, element), is_content_editable);
-        return last_editable;
+    const parent_div = find_element(element, get_parent, is_new_line_container_element);
+    if (parent_div === undefined) {
+        return undefined;
     }
 
-    return undefined;
+    const right_most_child = find_element(parent_div, current => current.children[current.children.length - 1], current => current.children.length === 0);
+
+    if (right_most_child === undefined) {
+        return undefined;
+    }
+
+    return find_element(right_most_child, iterate_backward, is_content_editable);
 }
 
-export function move_caret_once(root_element: HTMLElement, input_element: HTMLElement, offset: number, selection: Selection): void {
+export function find_previous_line_editable(element: Element): Element | undefined {
 
-    const new_caret_position = find_next_caret_position(root_element, input_element, offset, selection, is_content_editable);
+    const start_of_line = find_start_of_line_editable(element);
+    if (start_of_line === undefined) {
+        return undefined;
+    }
+
+    let current = iterate_backward_with_skip(start_of_line, is_hidden_inside_closed_details_element);
+    while (current !== undefined && !is_content_editable(current)) {
+        current = iterate_backward_with_skip(current, is_hidden_inside_closed_details_element);
+    }
+
+    if (current !== undefined) {
+        return find_start_of_line_editable(current);
+    }
+
+    return current;
+}
+
+export function find_next_line_editable(element: Element): Element | undefined {
+
+    const end_of_line = find_end_of_line_editable(element);
+    if (end_of_line === undefined) {
+        return undefined;
+    }
+
+    let current = iterate_forward_with_skip(end_of_line, is_hidden_inside_closed_details_element);
+    while (current !== undefined && !is_content_editable(current)) {
+        current = iterate_forward_with_skip(current, is_hidden_inside_closed_details_element);
+    }
+
+    return current;
+}
+
+export function move_caret_once(input_element: HTMLElement, offset: number, selection: Selection): void {
+
+    const new_caret_position = find_next_caret_position(input_element, offset, selection, is_content_editable);
 
     if (new_caret_position !== undefined) {
         new_caret_position.node.parentElement?.focus();

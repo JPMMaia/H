@@ -10,6 +10,8 @@ import * as Common from "../common/components";
 import * as Structured_view from "./components";
 import * as Declarations from "./Declaration_helpers";
 
+import * as Caret_helpers from "../../utilities/Caret_helpers";
+
 const properties = defineProps<{
     module: core.Module;
     declarations: Declarations.Item[]
@@ -54,6 +56,17 @@ function on_new_changes(type: Declarations.Item_type, index: number, is_export: 
     emit("new_changes", new_changes);
 }
 
+function on_key_down(event: KeyboardEvent): void {
+
+    if (event.target === null) {
+        return;
+    }
+
+    if (Caret_helpers.handle_caret_keys(event)) {
+        event.preventDefault();
+    }
+}
+
 const main_element_ref = ref<HTMLElement | null>(null);
 
 </script>
@@ -61,20 +74,40 @@ const main_element_ref = ref<HTMLElement | null>(null);
 <template>
     <main ref="main_element_ref">
         <section name="Declarations/definitions">
-            <section v-if="properties.declarations.length === 0" name="Module_space" class="add_left_margin"
-                contenteditable="true">
-                <br>
+            <section v-if="properties.declarations.length === 0" name="Module_space" class="add_left_margin">
+                <div>
+                    <span contenteditable="true" v-on:keydown="on_key_down"
+                        v-on:focusin="Caret_helpers.handle_focus_empty_space">
+                        &#8203;
+                    </span>
+                </div>
             </section>
-            <section v-for="(declaration, index) of properties.declarations" :name="get_declaration_name(declaration)">
-                <Structured_view.Function_view
-                    v-if="declaration.type === Declarations.Item_type.Function && main_element_ref !== null"
-                    :module="properties.module" :function_id="declaration.value.id" :root_element="main_element_ref"
-                    v-on:declaration:new_changes="(children_changes: Change.Hierarchy) => on_new_changes(declaration.type, declaration.index, declaration.is_export, children_changes)">
-                </Structured_view.Function_view>
-                <section name="Module_space" class="add_left_margin" contenteditable="true">
-                    <br>
+            <template v-for="(declaration, index) of properties.declarations">
+                <section :name="get_declaration_name(declaration)">
+                    <div v-if="declaration.type === Declarations.Item_type.Alias" class="add_left_margin">
+                        <div contenteditable="true" v-on:keydown="on_key_down">alias {{ declaration.value.name }}</div>
+                    </div>
+                    <div v-else-if="declaration.type === Declarations.Item_type.Enum" class="add_left_margin">
+                        <div contenteditable="true" v-on:keydown="on_key_down">enum {{ declaration.value.name }}</div>
+                    </div>
+                    <div v-else-if="declaration.type === Declarations.Item_type.Struct" class="add_left_margin">
+                        <div contenteditable="true" v-on:keydown="on_key_down">struct {{ declaration.value.name }}</div>
+                    </div>
+                    <Structured_view.Function_view
+                        v-else-if="declaration.type === Declarations.Item_type.Function && main_element_ref !== null"
+                        :module="properties.module" :function_id="declaration.value.id" :root_element="main_element_ref"
+                        v-on:declaration:new_changes="(children_changes: Change.Hierarchy) => on_new_changes(declaration.type, declaration.index, declaration.is_export, children_changes)">
+                    </Structured_view.Function_view>
                 </section>
-            </section>
+                <section name="Module_space" class="add_left_margin">
+                    <div>
+                        <span contenteditable="true" v-on:keydown="on_key_down"
+                            v-on:focusin="Caret_helpers.handle_focus_empty_space">
+                            &#8203;
+                        </span>
+                    </div>
+                </section>
+            </template>
         </section>
 
         <section name="function_add_0">
@@ -164,5 +197,10 @@ const main_element_ref = ref<HTMLElement | null>(null);
 
 /*[contenteditable] {
     outline: none;
+}*/
+
+/*[contenteditable] {
+    display: block;
+    height: 1.2em;
 }*/
 </style>
