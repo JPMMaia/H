@@ -1,16 +1,24 @@
 <script setup lang="ts">
 import "@vscode/codicons/dist/codicon.css";
 
-function on_click_icon(event: MouseEvent): void {
+function on_click_summary(event: MouseEvent): void {
+
+    if (event.target !== null) {
+        const target = event.target as HTMLElement;
+        if (target.getAttribute("name") === "Collapsible_icon") {
+            return;
+        }
+    }
+
     event.preventDefault();
 }
 </script>
 
 <template>
     <details ref="details_element">
-        <summary class="horizontal_container">
-            <i class="codicon codicon-chevron-right rotate_on_open"></i>
-            <span v-on:click="on_click_icon">
+        <summary class="horizontal_container" v-on:click="on_click_summary" tabindex="-1">
+            <i name="Collapsible_icon" class="codicon codicon-chevron-right rotate_on_open"></i>
+            <span>
                 <slot name="summary"></slot>
             </span>
         </summary>
