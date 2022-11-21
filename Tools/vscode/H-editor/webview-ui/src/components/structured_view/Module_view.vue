@@ -1,9 +1,9 @@
 <script setup lang="ts">
 
-import { computed, onMounted, ref } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import "@vscode/codicons/dist/codicon.css";
 
-import type * as core from "../../../../src/utilities/coreModelInterface";
+import type * as Core from "../../../../src/utilities/coreModelInterface";
 
 import type * as Change from "../../../../src/utilities/Change";
 import * as Common from "../common/components";
@@ -11,9 +11,10 @@ import * as Structured_view from "./components";
 import * as Declarations from "./Declaration_helpers";
 
 import * as Caret_helpers from "../../utilities/Caret_helpers";
+import * as Module_change_helpers from "../../utilities/Module_change_helpers";
 
 const properties = defineProps<{
-    module: core.Module;
+    module: Core.Module;
     declarations: Declarations.Item[]
 }>();
 
@@ -21,9 +22,31 @@ const emit = defineEmits<{
     (e: 'new_changes', new_changes: Change.Hierarchy): void
 }>();
 
-function get_declaration_name(item: Declarations.Item): string {
-    return item.type.toString() + item.value.id + "_" + item.value.name;
-}
+const main_element_ref = ref<HTMLElement | null>(null);
+
+const declaration_indices = ref<number[] | undefined>();
+
+onMounted(() => {
+    declaration_indices.value = [];
+    for (let index = 0; index < properties.declarations.length; ++index) {
+        declaration_indices.value.push(index);
+    }
+});
+
+const ordered_declarations = computed(() => {
+
+    const items: Declarations.Item[] = [];
+
+    if (declaration_indices.value === undefined) {
+        return items;
+    }
+
+    for (const index of declaration_indices.value) {
+        items.push(properties.declarations[index]);
+    }
+
+    return items;
+});
 
 function get_item_type_vector_name(type: Declarations.Item_type): string {
     switch (type) {
@@ -65,9 +88,71 @@ function on_key_down(event: KeyboardEvent): void {
     if (Caret_helpers.handle_caret_keys(event)) {
         event.preventDefault();
     }
+
+    if (event.key === "Enter") {
+        event.preventDefault();
+    }
 }
 
-const main_element_ref = ref<HTMLElement | null>(null);
+function update_declaration_indices(declaration_indices: number[], order_index: number, new_item_index: number): void {
+    for (let index = 0; index < declaration_indices.length; ++index) {
+        if (declaration_indices[index] >= new_item_index) {
+            declaration_indices[index] += 1;
+        }
+    }
+
+    declaration_indices.splice(order_index, 0, new_item_index);
+}
+
+function set_caret_position_at_function_name_element(declaration: Declarations.Item): void {
+    const declaration_id_name = Declarations.get_declaration_id_name(properties.module, declaration);
+    const function_section = document.getElementById(declaration_id_name);
+    if (function_section !== null) {
+        const function_name_span = function_section.querySelector('span[data-tag="Member"][data-member="name"]');
+        if (function_name_span !== null) {
+            Caret_helpers.select_whole_text(function_name_span as HTMLElement);
+        }
+    }
+}
+
+function on_empty_space_input(event: Event, order_index: number): void {
+
+    if (event.target === null) {
+        return;
+    }
+
+    const element = event.target as HTMLElement;
+
+    const text_content = element.textContent;
+
+    if (text_content === null) {
+        return;
+    }
+
+    if (text_content === "function \u200B") {
+
+        const function_id = properties.module.next_unique_id;
+        const new_changes = Module_change_helpers.create_function(properties.module, "<function_name>");
+        emit("new_changes", new_changes);
+
+        nextTick(() => {
+
+            const item_index = Declarations.find_item_index(properties.module, properties.declarations, function_id);
+            if (item_index !== undefined && declaration_indices.value !== undefined) {
+                update_declaration_indices(declaration_indices.value, order_index, item_index);
+
+                nextTick(() => {
+                    set_caret_position_at_function_name_element(properties.declarations[item_index]);
+                });
+            }
+
+            element.textContent = "\u200B";
+        });
+    }
+}
+
+watch(() => properties.declarations, (new_value: Declarations.Item[], old_value: Declarations.Item[]) => {
+});
 
 </script>
 
@@ -76,35 +161,47 @@ const main_element_ref = ref<HTMLElement | null>(null);
         <section name="Declarations/definitions">
             <section v-if="properties.declarations.length === 0" name="Module_space" class="add_left_margin">
                 <div>
-                    <span contenteditable="true" v-on:keydown="on_key_down"
-                        v-on:focusin="Caret_helpers.handle_focus_empty_space">
-                        &#8203;
-                    </span>
+                    <span contenteditable="true" v-on:input="event => on_empty_space_input(event, 0)"
+                        v-on:keydown="on_key_down"
+                        v-on:focusin="Caret_helpers.handle_focus_empty_space">&ZeroWidthSpace;</span>
                 </div>
             </section>
-            <template v-for="(declaration, index) of properties.declarations">
-                <section :name="get_declaration_name(declaration)">
+            <template v-for="(declaration, order_index) of ordered_declarations">
+                <section :id="Declarations.get_declaration_id_name(properties.module, declaration)">
                     <div v-if="declaration.type === Declarations.Item_type.Alias" class="add_left_margin">
-                        <div contenteditable="true" v-on:keydown="on_key_down">alias {{ declaration.value.name }}</div>
+                        <div contenteditable="true" v-on:keydown="on_key_down">
+                            alias {{ Declarations.get_item_value(properties.module,
+                                    declaration).name
+                            }}
+                        </div>
                     </div>
                     <div v-else-if="declaration.type === Declarations.Item_type.Enum" class="add_left_margin">
-                        <div contenteditable="true" v-on:keydown="on_key_down">enum {{ declaration.value.name }}</div>
+                        <div contenteditable="true" v-on:keydown="on_key_down">
+                            enum {{ Declarations.get_item_value(properties.module,
+                                    declaration).name
+                            }}
+                        </div>
                     </div>
                     <div v-else-if="declaration.type === Declarations.Item_type.Struct" class="add_left_margin">
-                        <div contenteditable="true" v-on:keydown="on_key_down">struct {{ declaration.value.name }}</div>
+                        <div contenteditable="true" v-on:keydown="on_key_down">
+                            struct {{ Declarations.get_item_value(properties.module,
+                                    declaration).name
+                            }}
+                        </div>
                     </div>
                     <Structured_view.Function_view
                         v-else-if="declaration.type === Declarations.Item_type.Function && main_element_ref !== null"
-                        :module="properties.module" :function_id="declaration.value.id" :root_element="main_element_ref"
+                        :module="properties.module"
+                        :function_id="Declarations.get_item_value(properties.module, declaration).id"
+                        :root_element="main_element_ref"
                         v-on:declaration:new_changes="(children_changes: Change.Hierarchy) => on_new_changes(declaration.type, declaration.index, declaration.is_export, children_changes)">
                     </Structured_view.Function_view>
                 </section>
                 <section name="Module_space" class="add_left_margin">
                     <div>
-                        <span contenteditable="true" v-on:keydown="on_key_down"
-                            v-on:focusin="Caret_helpers.handle_focus_empty_space">
-                            &#8203;
-                        </span>
+                        <span contenteditable="true" v-on:input="event => on_empty_space_input(event, order_index + 1)"
+                            v-on:keydown="on_key_down"
+                            v-on:focusin="Caret_helpers.handle_focus_empty_space">&ZeroWidthSpace;</span>
                     </div>
                 </section>
             </template>

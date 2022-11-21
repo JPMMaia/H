@@ -7,8 +7,6 @@ import * as Core from "../../../../src/utilities/coreModelInterface";
 import * as Core_Helpers from "../../../../src/utilities/coreModelInterfaceHelpers";
 
 import * as Common from "../common/components";
-import Function_definition from "./Function_definition.vue";
-import Function_parameters from "./Function_parameters.vue";
 import * as Change from "../../../../src/utilities/Change";
 import * as Caret_helpers from "../../utilities/Caret_helpers";
 import * as DOM_helpers from "../../utilities/DOM_helpers";
@@ -229,7 +227,7 @@ function on_input_parameter_change(event: Event, tag: string, parameter_index: n
                 <span data-tag="Start_function_definition">{</span>
                 <div data-tag="Function_body">
                     <div contenteditable="true" v-on:keydown="on_key_down"
-                        v-on:focusin="Caret_helpers.handle_focus_empty_space">&#8203;</div>
+                        v-on:focusin="Caret_helpers.handle_focus_empty_space">&ZeroWidthSpace;</div>
                 </div>
                 <span data-tag="End_function_definition">}</span>
             </div>

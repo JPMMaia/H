@@ -1,15 +1,20 @@
 import * as DOM_helpers from "./DOM_helpers";
 
-function set_caret_position(element: HTMLElement, offset: number): void {
-    if (element.childNodes.length > 0) {
-        const selection = window.getSelection();
-        if (selection !== null) {
-            DOM_helpers.set_caret_position(element, selection, offset);
-        }
+export function set_caret_position(node: Node, offset: number): void {
+    const selection = window.getSelection();
+    if (selection !== null) {
+        DOM_helpers.set_caret_position(node, selection, offset);
     }
 }
 
-function move_caret_once(element: HTMLElement, offset: number): void {
+export function select_whole_text(node: Node): void {
+    const selection = window.getSelection();
+    if (selection !== null) {
+        DOM_helpers.select_whole_text(node, selection);
+    }
+}
+
+export function move_caret_once(element: HTMLElement, offset: number): void {
     if (element.childNodes.length > 0) {
         const selection = window.getSelection();
         if (selection !== null) {
