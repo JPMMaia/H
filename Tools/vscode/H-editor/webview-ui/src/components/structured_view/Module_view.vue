@@ -94,7 +94,7 @@ function on_key_down(event: KeyboardEvent): void {
     }
 }
 
-function update_declaration_indices(declaration_indices: number[], order_index: number, new_item_index: number): void {
+function add_declaration_index(declaration_indices: number[], order_index: number, new_item_index: number): void {
     for (let index = 0; index < declaration_indices.length; ++index) {
         if (declaration_indices[index] >= new_item_index) {
             declaration_indices[index] += 1;
@@ -104,15 +104,61 @@ function update_declaration_indices(declaration_indices: number[], order_index: 
     declaration_indices.splice(order_index, 0, new_item_index);
 }
 
-function set_caret_position_at_function_name_element(declaration: Declarations.Item): void {
+function remove_declaration_index(declaration_indices: number[], order_index: number): void {
+
+    const item_index = declaration_indices[order_index];
+    declaration_indices.splice(order_index, 1);
+
+    for (let index = 0; index < declaration_indices.length; ++index) {
+        if (declaration_indices[index] >= item_index) {
+            declaration_indices[index] -= 1;
+        }
+    }
+}
+
+function get_space_element(space_index: number): HTMLElement | undefined {
+
+    if (main_element_ref.value !== null) {
+        const selector = 'span[data-space-index="' + space_index + '"]';
+        const space_span = main_element_ref.value.querySelector(selector);
+        if (space_span !== null) {
+            return space_span as HTMLElement;
+        }
+    }
+
+    return undefined;
+}
+
+function get_declaration_first_keyword_element(order_index: number): HTMLElement | undefined {
+
+    if (main_element_ref.value !== null) {
+
+        const declaration_element_selector = 'section[data-declaration-order-index="' + order_index + '"]';
+        const declaration_element = main_element_ref.value.querySelector(declaration_element_selector);
+        if (declaration_element !== null) {
+
+            const keyword_span_selector = 'span[contenteditable="true"]';
+            const keyword_span = declaration_element.querySelector(keyword_span_selector);
+            if (keyword_span !== null) {
+                return keyword_span as HTMLElement;
+            }
+        }
+    }
+
+    return undefined;
+}
+
+function get_function_declaration_name_element(declaration: Declarations.Item): HTMLElement | undefined {
     const declaration_id_name = Declarations.get_declaration_id_name(properties.module, declaration);
     const function_section = document.getElementById(declaration_id_name);
     if (function_section !== null) {
         const function_name_span = function_section.querySelector('span[data-tag="Member"][data-member="name"]');
         if (function_name_span !== null) {
-            Caret_helpers.select_whole_text(function_name_span as HTMLElement);
+            return function_name_span as HTMLElement;
         }
     }
+
+    return undefined;
 }
 
 function on_empty_space_input(event: Event, order_index: number): void {
@@ -139,15 +185,94 @@ function on_empty_space_input(event: Event, order_index: number): void {
 
             const item_index = Declarations.find_item_index(properties.module, properties.declarations, function_id);
             if (item_index !== undefined && declaration_indices.value !== undefined) {
-                update_declaration_indices(declaration_indices.value, order_index, item_index);
+                add_declaration_index(declaration_indices.value, order_index, item_index);
 
                 nextTick(() => {
-                    set_caret_position_at_function_name_element(properties.declarations[item_index]);
+                    const function_name_span = get_function_declaration_name_element(properties.declarations[item_index]);
+                    if (function_name_span !== undefined) {
+                        Caret_helpers.select_whole_text(function_name_span);
+                    }
                 });
             }
 
             element.textContent = "\u200B";
         });
+    }
+}
+
+function on_keyword_change(order_index: number, new_value: string): void {
+
+    const trimmed_new_value = new_value.trim().replace("\u200B", "");
+
+    if (trimmed_new_value == "alias") {
+        // TODO create new alias
+    }
+    else if (trimmed_new_value == "enum") {
+        // TODO create new enum
+    }
+    else if (trimmed_new_value == "struct") {
+        // TODO create new struct
+    }
+    else if (trimmed_new_value == "function") {
+        // TODO create new function
+    }
+    else {
+        const item = ordered_declarations.value[order_index];
+        const declaration = Declarations.get_item_value(properties.module, item);
+
+        if (declaration_indices.value !== undefined) {
+            remove_declaration_index(declaration_indices.value, order_index);
+        }
+
+        const new_changes = Module_change_helpers.delete_function(properties.module, declaration.id);
+        emit("new_changes", new_changes);
+
+        nextTick(() => {
+            const space_span = get_space_element(order_index);
+            if (space_span !== undefined) {
+                space_span.textContent = "\u200B";
+                nextTick(() => {
+                    const node = space_span.childNodes.length > 0 ? space_span.childNodes[0] : space_span;
+                    Caret_helpers.set_caret_position(node, 0);
+                });
+            }
+        });
+    }
+}
+
+function transfer_caret_selection_to_item(order_index: number): void {
+    const element = get_declaration_first_keyword_element(order_index);
+    if (element !== undefined) {
+        const selection = window.getSelection();
+        if (selection !== null) {
+            Caret_helpers.transfer_caret_selection(element.childNodes.length > 0 ? element.childNodes[0] : element);
+        }
+    }
+}
+
+function on_item_keyboard_event(order_index: number, event: KeyboardEvent): void {
+
+    if (event.altKey && event.key === "ArrowUp") {
+        if (declaration_indices.value !== undefined && order_index > 0) {
+            const temporary = declaration_indices.value[order_index];
+            declaration_indices.value[order_index] = declaration_indices.value[order_index - 1];
+            declaration_indices.value[order_index - 1] = temporary;
+
+            nextTick(() => {
+                transfer_caret_selection_to_item(order_index - 1);
+            });
+        }
+    }
+    else if (event.altKey && event.key === "ArrowDown") {
+        if (declaration_indices.value !== undefined && (order_index + 1) < declaration_indices.value.length) {
+            const temporary = declaration_indices.value[order_index];
+            declaration_indices.value[order_index] = declaration_indices.value[order_index + 1];
+            declaration_indices.value[order_index + 1] = temporary;
+
+            nextTick(() => {
+                transfer_caret_selection_to_item(order_index + 1);
+            });
+        }
     }
 }
 
@@ -161,13 +286,14 @@ watch(() => properties.declarations, (new_value: Declarations.Item[], old_value:
         <section name="Declarations/definitions">
             <section v-if="properties.declarations.length === 0" name="Module_space" class="add_left_margin">
                 <div>
-                    <span contenteditable="true" v-on:input="event => on_empty_space_input(event, 0)"
-                        v-on:keydown="on_key_down"
+                    <span data-space-index="0" contenteditable="true"
+                        v-on:input="event => on_empty_space_input(event, 0)" v-on:keydown="on_key_down"
                         v-on:focusin="Caret_helpers.handle_focus_empty_space">&ZeroWidthSpace;</span>
                 </div>
             </section>
             <template v-for="(declaration, order_index) of ordered_declarations">
-                <section :id="Declarations.get_declaration_id_name(properties.module, declaration)">
+                <section :id="Declarations.get_declaration_id_name(properties.module, declaration)"
+                    :data-declaration-order-index="order_index">
                     <div v-if="declaration.type === Declarations.Item_type.Alias" class="add_left_margin">
                         <div contenteditable="true" v-on:keydown="on_key_down">
                             alias {{ Declarations.get_item_value(properties.module,
@@ -194,12 +320,15 @@ watch(() => properties.declarations, (new_value: Declarations.Item[], old_value:
                         :module="properties.module"
                         :function_id="Declarations.get_item_value(properties.module, declaration).id"
                         :root_element="main_element_ref"
-                        v-on:declaration:new_changes="(children_changes: Change.Hierarchy) => on_new_changes(declaration.type, declaration.index, declaration.is_export, children_changes)">
+                        v-on:declaration:new_changes="(children_changes: Change.Hierarchy) => on_new_changes(declaration.type, declaration.index, declaration.is_export, children_changes)"
+                        v-on:update:function_keyword="(new_value: string) => on_keyword_change(order_index, new_value)"
+                        v-on:keyboard_event:function_keyword="(event: KeyboardEvent) => on_item_keyboard_event(order_index, event)">
                     </Structured_view.Function_view>
                 </section>
                 <section name="Module_space" class="add_left_margin">
                     <div>
-                        <span contenteditable="true" v-on:input="event => on_empty_space_input(event, order_index + 1)"
+                        <span :data-space-index="order_index + 1" contenteditable="true"
+                            v-on:input="event => on_empty_space_input(event, order_index + 1)"
                             v-on:keydown="on_key_down"
                             v-on:focusin="Caret_helpers.handle_focus_empty_space">&ZeroWidthSpace;</span>
                     </div>

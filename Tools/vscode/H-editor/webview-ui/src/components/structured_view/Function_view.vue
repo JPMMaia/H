@@ -20,7 +20,9 @@ const properties = defineProps<{
 
 const emit = defineEmits<{
     (e: 'declaration:new_changes', new_changes: Change.Hierarchy): void,
-    (e: 'definition:new_changes', new_changes: Change.Hierarchy): void
+    (e: 'definition:new_changes', new_changes: Change.Hierarchy): void,
+    (e: 'update:function_keyword', value: string): void,
+    (e: 'keyboard_event:function_keyword', event: KeyboardEvent): void
 }>();
 
 const function_declaration = computed(() => {
@@ -155,6 +157,35 @@ function on_input_parameter_change(event: Event, tag: string, parameter_index: n
     }
 }
 
+function on_function_keyword_input(event: Event): void {
+    if (event.target === null) {
+        return;
+    }
+
+    const target = event.target as HTMLElement;
+
+    const text = target.childNodes.length > 0 ? (target.childNodes[0].textContent ? target.childNodes[0].textContent : "") : "";
+    const trimmed_text = text.trim().replace("\u200B", "");
+
+    if (trimmed_text !== "function") {
+        emit("update:function_keyword", text);
+    }
+}
+
+function on_function_keyword_key_down(event: KeyboardEvent): void {
+
+    if (event.target === null) {
+        return;
+    }
+
+    if (Caret_helpers.handle_caret_keys(event)) {
+        event.preventDefault();
+    }
+    else {
+        emit("keyboard_event:function_keyword", event);
+    }
+}
+
 </script>
 
 <template>
@@ -162,7 +193,7 @@ function on_input_parameter_change(event: Event, tag: string, parameter_index: n
         <template #summary="{}">
             <div data-tag="Type" data-type="Function_declaration">
                 <span data-tag="Keyword" data-line="start" class="keyword" contenteditable="true"
-                    v-on:keydown="on_key_down">function</span>
+                    v-on:input="on_function_keyword_input" v-on:keydown="on_function_keyword_key_down">function</span>
                 <span data-tag="Space">&nbsp;</span>
                 <span data-tag="Member" data-member="name" contenteditable="true" v-on:keydown="on_key_down">{{
                         function_declaration.name

@@ -7,6 +7,32 @@ export function set_caret_position(node: Node, offset: number): void {
     }
 }
 
+export function transfer_caret_selection(node: Node): void {
+    const selection = window.getSelection();
+    if (selection !== null) {
+        const start = selection.rangeCount > 0 ? selection.getRangeAt(0).startOffset : 0;
+        const end = selection.rangeCount > 0 ? selection.getRangeAt(0).endOffset : 0;
+        DOM_helpers.set_caret_selection(node, selection, start, end);
+    }
+}
+
+export function set_caret_position_at_start(node: Node): void {
+    const selection = window.getSelection();
+    if (selection !== null) {
+        const offset = 0;
+        DOM_helpers.set_caret_position(node, selection, offset);
+    }
+}
+
+export function set_caret_position_at_end(node: Node): void {
+    const selection = window.getSelection();
+    if (selection !== null) {
+        const text = node.textContent;
+        const offset = text !== null ? text.length : 0;
+        DOM_helpers.set_caret_position(node, selection, offset);
+    }
+}
+
 export function select_whole_text(node: Node): void {
     const selection = window.getSelection();
     if (selection !== null) {
@@ -26,6 +52,10 @@ export function move_caret_once(element: HTMLElement, offset: number): void {
 export function handle_caret_keys(event: KeyboardEvent): boolean {
 
     const element = event.target as HTMLElement;
+
+    if (event.shiftKey || event.ctrlKey || event.altKey) {
+        return false;
+    }
 
     if (event.key === "ArrowLeft") {
         move_caret_once(element, -1);

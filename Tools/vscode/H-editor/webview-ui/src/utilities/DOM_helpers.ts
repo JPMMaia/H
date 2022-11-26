@@ -92,6 +92,15 @@ export function set_caret_position(node: Node, selection: Selection, position: n
     selection.addRange(range);
 }
 
+export function set_caret_selection(node: Node, selection: Selection, start: number, end: number): void {
+    const range = document.createRange();
+    range.setStart(node, start);
+    range.setEnd(node, end);
+
+    selection.removeAllRanges();
+    selection.addRange(range);
+}
+
 export function select_whole_text(node: Node, selection: Selection): void {
     const range = document.createRange();
     range.selectNodeContents(node);
