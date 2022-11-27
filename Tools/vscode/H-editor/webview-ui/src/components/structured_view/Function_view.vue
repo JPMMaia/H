@@ -33,6 +33,8 @@ const function_definition = computed(() => {
     return Core_Helpers.findFunctionDefinitionWithId(properties.module, properties.function_id);
 });
 
+const function_declaration_element_ref = ref<HTMLElement | null>(null);
+
 function on_name_changed(value: string): void {
 
     const new_changes: Change.Hierarchy = {
@@ -85,6 +87,39 @@ function on_definition_new_changes(new_changes: Change.Hierarchy): void {
     emit("definition:new_changes", new_changes);
 }
 
+function get_parameter_element(parameter_index: number, is_input_parameter: boolean): HTMLElement | undefined {
+
+    if (function_declaration_element_ref.value === null) {
+        return undefined;
+    }
+
+    const data_tag = is_input_parameter ? "Input_parameter" : "Output_parameter";
+
+    const parameter_selector = 'span[data-tag="' + data_tag + '"][data-parameter-index="' + parameter_index + '"]';
+    const parameter_span = function_declaration_element_ref.value.querySelector(parameter_selector);
+    if (parameter_span !== null) {
+        return parameter_span as HTMLElement;
+    }
+
+    return undefined;
+}
+
+function get_parameter_name_element(parameter_index: number, is_input_parameter: boolean): HTMLElement | undefined {
+
+    const parameter_element = get_parameter_element(parameter_index, is_input_parameter);
+    if (parameter_element === undefined) {
+        return undefined;
+    }
+
+    const name_selector = 'span[data-tag="Name"]';
+    const name_span = parameter_element.querySelector(name_selector);
+    if (name_span !== null) {
+        return name_span as HTMLElement;
+    }
+
+    return undefined;
+}
+
 function on_key_down(event: KeyboardEvent): void {
 
     if (event.target === null) {
@@ -93,6 +128,47 @@ function on_key_down(event: KeyboardEvent): void {
 
     if (Caret_helpers.handle_caret_keys(event)) {
         event.preventDefault();
+    }
+}
+
+function on_parameter_name_key_down(parameter_index: number, is_input_parameter: boolean, event: KeyboardEvent): void {
+
+    if (event.target === null) {
+        return;
+    }
+
+    if (Caret_helpers.handle_caret_keys(event)) {
+        event.preventDefault();
+    }
+
+    if (event.altKey && event.key === "ArrowUp") {
+
+        const new_changes = Function_change_helpers.move_function_parameter_up(parameter_index, is_input_parameter);
+        if (new_changes !== undefined) {
+            emit("declaration:new_changes", new_changes);
+
+            nextTick(() => {
+                const parameter_name_element = get_parameter_name_element(parameter_index - 1, is_input_parameter);
+                if (parameter_name_element !== undefined) {
+                    Caret_helpers.transfer_caret_selection(parameter_name_element.childNodes.length > 0 ? parameter_name_element.childNodes[0] : parameter_name_element);
+                }
+            });
+        }
+    }
+    else if (event.altKey && event.key === "ArrowDown") {
+
+        const number_of_parameters = is_input_parameter ? function_declaration.value.input_parameter_ids.elements.length : function_declaration.value.output_parameter_ids.elements.length;
+        const new_changes = Function_change_helpers.move_function_parameter_down(parameter_index, number_of_parameters, is_input_parameter);
+        if (new_changes !== undefined) {
+            emit("declaration:new_changes", new_changes);
+
+            nextTick(() => {
+                const parameter_name_element = get_parameter_name_element(parameter_index + 1, is_input_parameter);
+                if (parameter_name_element !== undefined) {
+                    Caret_helpers.transfer_caret_selection(parameter_name_element.childNodes.length > 0 ? parameter_name_element.childNodes[0] : parameter_name_element);
+                }
+            });
+        }
     }
 }
 
@@ -115,7 +191,7 @@ function get_next_parameter_name_span(previous_type_span: HTMLElement): HTMLElem
     return undefined;
 }
 
-function on_input_parameter_change(event: Event, tag: string, parameter_index: number, is_input_parameter: boolean): void {
+function on_parameter_change(event: Event, tag: string, parameter_index: number, is_input_parameter: boolean): void {
     if (event.target === null) {
         return;
     }
@@ -186,30 +262,45 @@ function on_function_keyword_key_down(event: KeyboardEvent): void {
     }
 }
 
+function on_function_name_input(event: Event): void {
+    if (event.target === null) {
+        return;
+    }
+
+    const target = event.target as HTMLElement;
+    const value = target.textContent;
+    if (value === null) {
+        return;
+    }
+
+    on_name_changed(value);
+}
+
 </script>
 
 <template>
     <Common.Collapsible>
         <template #summary="{}">
-            <div data-tag="Type" data-type="Function_declaration">
+            <div ref="function_declaration_element_ref" data-tag="Type" data-type="Function_declaration">
                 <span data-tag="Keyword" data-line="start" class="keyword" contenteditable="true"
                     v-on:input="on_function_keyword_input" v-on:keydown="on_function_keyword_key_down">function</span>
                 <span data-tag="Space">&nbsp;</span>
-                <span data-tag="Member" data-member="name" contenteditable="true" v-on:keydown="on_key_down">{{
-                        function_declaration.name
-                }}</span>
+                <span data-tag="Member" data-member="name" contenteditable="true" v-on:keydown="on_key_down"
+                    v-on:input="on_function_name_input">
+                    {{ function_declaration.name }}
+                </span>
                 <span data-tag="Start_function_input_parameters">(</span>
-                <span v-for="(_, input_parameter_index) of function_declaration.input_parameter_ids.elements">
-                    <span data-tag="Input_parameter">
+                <template v-for="(_, input_parameter_index) of function_declaration.input_parameter_ids.elements">
+                    <span data-tag="Input_parameter" :data-parameter-index="input_parameter_index">
                         <span data-tag="Name" contenteditable="true"
-                            v-on:input="event => on_input_parameter_change(event, 'Name', input_parameter_index, true)"
-                            v-on:keydown="on_key_down">
+                            v-on:input="event => on_parameter_change(event, 'Name', input_parameter_index, true)"
+                            v-on:keydown="(event: KeyboardEvent) => on_parameter_name_key_down(input_parameter_index, true, event)">
                             {{ function_declaration.input_parameter_names.elements[input_parameter_index] }}
                         </span>
                         <span data-tag="Symbol">:</span>
                         <span data-tag="Space">&nbsp;</span>
                         <span data-tag="Type" class="type" contenteditable="true"
-                            v-on:input="event => on_input_parameter_change(event, 'Type', input_parameter_index, true)"
+                            v-on:input="event => on_parameter_change(event, 'Type', input_parameter_index, true)"
                             v-on:keydown="on_key_down">
                             {{ Core_Helpers.getUnderlyingTypeName([properties.module],
                                     function_declaration.type.input_parameter_types.elements[input_parameter_index])
@@ -220,23 +311,23 @@ function on_function_keyword_key_down(event: KeyboardEvent): void {
                         data.tag="Parameter_separator">,</span>
                     <span v-if="(input_parameter_index + 1) < function_declaration.input_parameter_ids.elements.length"
                         data-tag="Space">&nbsp;</span>
-                </span>
+                </template>
                 <span data-tag="End_function_input_parameters">)</span>
                 <span data-tag="Space">&nbsp;</span>
                 <span data-tag="Symbol">-></span>
                 <span data-tag="Space">&nbsp;</span>
                 <span data-tag="Start_function_output_parameters">(</span>
-                <span v-for="(_, output_parameter_index) of function_declaration.output_parameter_ids.elements">
-                    <span data-tag="output_parameter">
+                <template v-for="(_, output_parameter_index) of function_declaration.output_parameter_ids.elements">
+                    <span data-tag="Output_parameter" :data-parameter-index="output_parameter_index">
                         <span data-tag="Name" contenteditable="true"
-                            v-on:input="event => on_input_parameter_change(event, 'Name', output_parameter_index, false)"
-                            v-on:keydown="on_key_down">
+                            v-on:input="event => on_parameter_change(event, 'Name', output_parameter_index, false)"
+                            v-on:keydown="(event: KeyboardEvent) => on_parameter_name_key_down(output_parameter_index, false, event)">
                             {{ function_declaration.output_parameter_names.elements[output_parameter_index] }}
                         </span>
                         <span data-tag="Symbol">:</span>
                         <span data-tag="Space">&nbsp;</span>
                         <span data-tag="Type" class="type" contenteditable="true"
-                            v-on:input="event => on_input_parameter_change(event, 'Type', output_parameter_index, false)"
+                            v-on:input="event => on_parameter_change(event, 'Type', output_parameter_index, false)"
                             v-on:keydown="on_key_down">
                             {{ Core_Helpers.getUnderlyingTypeName([properties.module],
                                     function_declaration.type.output_parameter_types.elements[output_parameter_index])
@@ -249,7 +340,7 @@ function on_function_keyword_key_down(event: KeyboardEvent): void {
                     <span
                         v-if="(output_parameter_index + 1) < function_declaration.output_parameter_ids.elements.length"
                         data-tag="Space">&nbsp;</span>
-                </span>
+                </template>
                 <span data-tag="End_function_output_parameters">)</span>
             </div>
         </template>
