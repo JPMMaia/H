@@ -10,6 +10,7 @@ import * as Common from "../common/components";
 import * as Change from "../../../../src/utilities/Change";
 import * as Caret_helpers from "../../utilities/Caret_helpers";
 import * as DOM_helpers from "../../utilities/DOM_helpers";
+import * as Keyboard_helpers from "../../utilities/Keyboard_helpers";
 import * as Function_change_helpers from "../../utilities/Function_change_helpers";
 
 const properties = defineProps<{
@@ -276,6 +277,38 @@ function on_function_name_input(event: Event): void {
     on_name_changed(value);
 }
 
+function on_empty_parameter_key_down(is_input_parameter: boolean, event: KeyboardEvent): void {
+    if (event.target === null) {
+        return;
+    }
+
+    if (Caret_helpers.handle_caret_keys(event)) {
+        event.preventDefault();
+    }
+    else {
+        if (Keyboard_helpers.is_letter(event.key)) {
+            const function_ids = is_input_parameter ? function_declaration.value.input_parameter_ids : function_declaration.value.output_parameter_ids;
+            const new_changes = Function_change_helpers.add_function_parameter(0, function_ids, is_input_parameter, event.key);
+            emit("declaration:new_changes", new_changes);
+
+            nextTick(
+                () => {
+                    const parameter_name_element = get_parameter_name_element(0, is_input_parameter);
+                    if (parameter_name_element !== undefined) {
+                        Caret_helpers.set_caret_position_at_end(parameter_name_element);
+                    }
+                }
+            );
+        }
+
+        event.preventDefault();
+    }
+}
+
+function cancel_keypress(event: KeyboardEvent): void {
+    event.preventDefault();
+}
+
 </script>
 
 <template>
@@ -290,6 +323,9 @@ function on_function_name_input(event: Event): void {
                     {{ function_declaration.name }}
                 </span>
                 <span data-tag="Start_function_input_parameters">(</span>
+                <span v-if="function_declaration.input_parameter_ids.elements.length === 0" contenteditable="true"
+                    v-on:keydown="event => on_empty_parameter_key_down(true, event)"
+                    v-on:keypress="cancel_keypress">&ZeroWidthSpace;</span>
                 <template v-for="(_, input_parameter_index) of function_declaration.input_parameter_ids.elements">
                     <span data-tag="Input_parameter" :data-parameter-index="input_parameter_index">
                         <span data-tag="Name" contenteditable="true"
@@ -317,6 +353,9 @@ function on_function_name_input(event: Event): void {
                 <span data-tag="Symbol">-></span>
                 <span data-tag="Space">&nbsp;</span>
                 <span data-tag="Start_function_output_parameters">(</span>
+                <span v-if="function_declaration.output_parameter_ids.elements.length === 0" contenteditable="true"
+                    v-on:keydown="event => on_empty_parameter_key_down(false, event)"
+                    v-on:keypress="cancel_keypress">&ZeroWidthSpace;</span>
                 <template v-for="(_, output_parameter_index) of function_declaration.output_parameter_ids.elements">
                     <span data-tag="Output_parameter" :data-parameter-index="output_parameter_index">
                         <span data-tag="Name" contenteditable="true"

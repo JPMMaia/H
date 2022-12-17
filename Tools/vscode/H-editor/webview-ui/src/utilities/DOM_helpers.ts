@@ -190,6 +190,28 @@ function is_empty_space(text: string): boolean {
     return trimmed_text === empty;
 }
 
+export function find_previous_editable_element(current_element: Element): Element | undefined {
+
+    const previous_element = iterate_backward_with_skip(current_element, is_hidden_inside_closed_details_element);
+    if (previous_element === undefined) {
+        return undefined;
+    }
+
+    const previous_editable_element = find_element(previous_element, current => iterate_backward_with_skip(current, is_hidden_inside_closed_details_element), is_content_editable);
+    return previous_editable_element;
+}
+
+export function find_next_editable_element(current_element: Element): Element | undefined {
+
+    const next_element = iterate_forward_with_skip(current_element, is_hidden_inside_closed_details_element);
+    if (next_element === undefined) {
+        return undefined;
+    }
+
+    const next_editable_element = find_element(next_element, current => iterate_forward_with_skip(current, is_hidden_inside_closed_details_element), is_content_editable);
+    return next_editable_element;
+}
+
 export function find_next_caret_position(input_element: HTMLElement, offset: number, selection: Selection, filter: (element: Element) => boolean): Caret_position | undefined {
 
     if (input_element.childNodes.length === 0) {
@@ -209,39 +231,31 @@ export function find_next_caret_position(input_element: HTMLElement, offset: num
 
         if (caret_position < 0) {
 
-            const previous_element = iterate_backward_with_skip(input_element, is_hidden_inside_closed_details_element);
-            if (previous_element !== undefined) {
-                const caret_element = find_element(previous_element, current => iterate_backward_with_skip(current, is_hidden_inside_closed_details_element), is_content_editable);
+            const previous_editable_element = find_previous_editable_element(input_element);
+            if (previous_editable_element !== undefined) {
+                const text_node = previous_editable_element.childNodes[0];
+                const text = text_node.textContent;
 
-                if (caret_element !== undefined) {
-                    const text_node = caret_element.childNodes[0];
-                    const text = text_node.textContent;
-
-                    if (text !== null) {
-                        return {
-                            node: caret_element.childNodes[caret_element.childNodes.length - 1],
-                            offset: text.length
-                        };
-                    }
+                if (text !== null) {
+                    return {
+                        node: previous_editable_element.childNodes[previous_editable_element.childNodes.length - 1],
+                        offset: text.length
+                    };
                 }
             }
         }
         else if (caret_position > text_content_length) {
 
-            const next_element = iterate_forward_with_skip(input_element, is_hidden_inside_closed_details_element);
-            if (next_element !== undefined) {
-                const caret_element = find_element(next_element, current => iterate_forward_with_skip(current, is_hidden_inside_closed_details_element), is_content_editable);
+            const next_editable_element = find_next_editable_element(input_element);
+            if (next_editable_element !== undefined) {
+                const text_node = next_editable_element.childNodes[0];
+                const text = text_node.textContent;
 
-                if (caret_element !== undefined) {
-                    const text_node = caret_element.childNodes[0];
-                    const text = text_node.textContent;
-
-                    if (text !== null) {
-                        return {
-                            node: caret_element.childNodes[0],
-                            offset: 0
-                        };
-                    }
+                if (text !== null) {
+                    return {
+                        node: next_editable_element.childNodes[0],
+                        offset: 0
+                    };
                 }
             }
         }

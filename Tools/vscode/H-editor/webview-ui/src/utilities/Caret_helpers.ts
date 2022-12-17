@@ -95,6 +95,19 @@ export function handle_caret_keys(event: KeyboardEvent): boolean {
         }
         return true;
     }
+    else if (event.key === "Tab") {
+        const selection = window.getSelection();
+        if (selection !== null && selection.focusNode !== null) {
+            if (selection.focusNode.nodeType === Node.ELEMENT_NODE) {
+                const focus_element = selection.focusNode as Element;
+                const next_editable_element = DOM_helpers.find_next_editable_element(focus_element);
+                if (next_editable_element !== undefined) {
+                    const node = next_editable_element.childNodes.length > 0 ? next_editable_element.childNodes[0] : next_editable_element;
+                    DOM_helpers.set_caret_position(node, selection, 0);
+                }
+            }
+        }
+    }
 
     return false;
 }

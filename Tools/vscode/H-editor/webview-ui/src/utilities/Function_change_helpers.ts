@@ -18,11 +18,11 @@ function calculate_new_function_parameter_id(parameter_ids: Core.Vector<number>)
     return id;
 }
 
-export function add_function_parameter(index: number, parameter_ids: Core.Vector<number>, is_input_parameter: boolean): Change.Hierarchy {
+export function add_function_parameter(index: number, parameter_ids: Core.Vector<number>, is_input_parameter: boolean, name?: string): Change.Hierarchy {
 
     const insert_index = index;
     const new_id = calculate_new_function_parameter_id(parameter_ids);
-    const new_name = "value_" + new_id.toString();
+    const new_name = name !== undefined ? name : "value_" + new_id.toString();
     const new_type = Type_utilities.create_default_type_reference();
 
     const new_changes: Change.Hierarchy = {
