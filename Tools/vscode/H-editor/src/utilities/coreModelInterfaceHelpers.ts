@@ -11,6 +11,32 @@ export interface FindDeclarationResult {
     isExportDeclaration: boolean
 };
 
+export function get_function_declaration(module: core.Module, result: FindDeclarationResult): core.Function_declaration {
+    const declarations = result.isExportDeclaration ? module.export_declarations : module.internal_declarations;
+    return declarations.function_declarations.elements[result.index];
+}
+
+export function find_function_declaration_index(module: core.Module, function_reference: core.Function_reference): FindDeclarationResult {
+    if (module.name !== function_reference.module_reference.name) {
+        throw Error("find_function_declaration is meant to be used to find a function in the module itself (not module dependencies)");
+    }
+
+    return findFunctionDeclarationIndexWithId(module, function_reference.function_id);
+}
+
+export function find_function_declaration(module: core.Module, function_reference: core.Function_reference): core.Function_declaration | undefined {
+    if (module.name !== function_reference.module_reference.name) {
+        throw Error("find_function_declaration is meant to be used to find a function in the module itself (not module dependencies)");
+    }
+
+    const result = find_function_declaration_index(module, function_reference);
+    if (result.index === -1) {
+        return undefined;
+    }
+
+    return get_function_declaration(module, result);
+}
+
 export function findElementIndexWithId(exportArray: any[], internalArray: any[], id: number): FindDeclarationResult {
 
     {
@@ -315,4 +341,111 @@ export function get_position_of_vector_element(module: core.Module, id: number):
     }
 
     return undefined;
+}
+
+export function is_return_statement_with_variable_declaration(module: core.Module, statement: core.Statement): boolean {
+
+    if (statement.expressions.elements.length === 0) {
+        return false;
+    }
+
+    const first_expression = statement.expressions.elements[0];
+
+    return first_expression.data.type === core.Expression_enum.Return_expression;
+}
+
+export function is_statement_with_variable_declaration(module: core.Module, function_declaration: core.Function_declaration, statements: core.Statement[], statement: core.Statement): boolean {
+
+    const type_reference = get_type_of_statement(module, function_declaration, statements, statement);
+    if (type_reference === undefined) {
+        return false;
+    }
+
+    return type_reference.length > 0;
+}
+
+export function get_type_of_function_input_parameter(function_declaration: core.Function_declaration, input_parameter_id: number): core.Type_reference | undefined {
+    const parameter_index = function_declaration.input_parameter_ids.elements.findIndex(id => id === input_parameter_id);
+    if (parameter_index === -1) {
+        return undefined;
+    }
+
+    return function_declaration.type.input_parameter_types.elements[parameter_index];
+}
+
+export function get_type_of_function_output_parameter(function_declaration: core.Function_declaration, output_parameter_id: number): core.Type_reference | undefined {
+    const parameter_index = function_declaration.output_parameter_ids.elements.findIndex(id => id === output_parameter_id);
+    if (parameter_index === -1) {
+        return undefined;
+    }
+
+    return function_declaration.type.output_parameter_types.elements[parameter_index];
+}
+
+export function get_type_of_expression(module: core.Module, function_declaration: core.Function_declaration, statements: core.Statement[], expressions: core.Expression[], expression: core.Expression): core.Type_reference[] | undefined {
+
+    if (expression.data.type === core.Expression_enum.Invalid_expression || expression.data.type === core.Expression_enum.Return_expression) {
+        return undefined;
+    }
+
+    if (expression.data.type === core.Expression_enum.Binary_expression) {
+        const binary_expression = expression.data.value as core.Binary_expression;
+        const left_hand_side_expression = expressions[binary_expression.left_hand_side.expression_index];
+        return get_type_of_expression(module, function_declaration, statements, expressions, left_hand_side_expression);
+    }
+    else if (expression.data.type === core.Expression_enum.Call_expression) {
+        const call_expression = expression.data.value as core.Call_expression;
+        const call_function_module = get_module(module, call_expression.function_reference.module_reference);
+        const call_function_declaration = find_function_declaration(call_function_module, call_expression.function_reference);
+        if (call_function_declaration !== undefined) {
+            if (call_function_declaration.output_parameter_ids.elements.length > 1) {
+                throw Error("TODO implement");
+            }
+
+            if (call_function_declaration.output_parameter_ids.elements.length === 0) {
+                return [];
+            }
+
+            return [call_function_declaration.type.output_parameter_types.elements[0]];
+        }
+    }
+    else if (expression.data.type === core.Expression_enum.Constant_expression) {
+        const constant_expression = expression.data.value as core.Constant_expression;
+        return [
+            {
+                data: {
+                    type: core.Type_reference_enum.Fundamental_type,
+                    value: constant_expression.type
+                }
+            }
+        ];
+    }
+    else if (expression.data.type === core.Expression_enum.Variable_expression) {
+        const variable_expression = expression.data.value as core.Variable_expression;
+        if (variable_expression.type === core.Variable_expression_type.Function_argument) {
+            const input_parameter_type = get_type_of_function_input_parameter(function_declaration, variable_expression.id);
+            if (input_parameter_type !== undefined) {
+                return [input_parameter_type];
+            }
+        }
+        else if (variable_expression.type === core.Variable_expression_type.Local_variable) {
+            const statement = statements.find(statement => statement.id === variable_expression.id);
+            if (statement !== undefined) {
+                return get_type_of_statement(module, function_declaration, statements, statement);
+            }
+        }
+    }
+
+    return undefined;
+}
+
+export function get_type_of_statement(module: core.Module, function_declaration: core.Function_declaration, statements: core.Statement[], statement: core.Statement): core.Type_reference[] | undefined {
+
+    if (statement.expressions.elements.length === 0) {
+        return undefined;
+    }
+
+    const first_expression = statement.expressions.elements[0];
+
+    return get_type_of_expression(module, function_declaration, statements, statement.expressions.elements, first_expression);
 }
