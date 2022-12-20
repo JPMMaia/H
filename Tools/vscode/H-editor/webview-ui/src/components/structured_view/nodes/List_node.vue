@@ -12,15 +12,20 @@ const properties = defineProps<{
     node: Abstract_syntax_tree_helpers.Node;
 }>();
 
-const node_children = computed(() => {
-    return (properties.node.data as Abstract_syntax_tree_helpers.List_data).elements;
+const data = computed(() => {
+    return properties.node.data as Abstract_syntax_tree_helpers.List_data;
 });
 
 </script>
 
 <template>
-    <span>
-        <template v-for="(child_node, child_index) in node_children">
+    <div v-if="data.html_tag === 'div'">
+        <template v-for="(child_node, child_index) in data.elements">
+            <Nodes.Node :module="properties.module" :node="child_node"></Nodes.Node>
+        </template>
+    </div>
+    <span v-else-if="data.html_tag === 'span'">
+        <template v-for="(child_node, child_index) in data.elements">
             <Nodes.Node :module="properties.module" :node="child_node"></Nodes.Node>
         </template>
     </span>

@@ -2,21 +2,30 @@ import * as Core from "../../../src/utilities/coreModelInterface";
 import * as Core_helpers from "../../../src/utilities/coreModelInterfaceHelpers";
 
 export enum Node_data_type {
+    Collapsible,
     List,
     String
 }
 
+export interface Collapsible_data {
+    summary: Node;
+    body: Node;
+}
+
 export interface List_data {
     elements: Node[];
+    html_tag: string;
 }
 
 export interface String_data {
     value: string;
+    html_tag: string;
+    is_content_editable: boolean;
 }
 
 export interface Node {
     data_type: Node_data_type;
-    data: List_data | String_data
+    data: Collapsible_data | List_data | String_data | undefined
     parent: Node | undefined;
     index_in_parent: number | undefined;
     metadata: Metadata;
@@ -33,6 +42,7 @@ export enum Metadata_type {
     Expression_invalid,
     Expression_variable,
     Expression_return,
+    Function,
     Function_declaration,
     Function_definition,
     Function_keyword,
@@ -45,6 +55,7 @@ export enum Metadata_type {
     Space,
     Separator,
     Statement,
+    Statement_end,
     Variable_declaration,
     Variable_name,
     Variable_type,
@@ -199,7 +210,8 @@ export function create_list_node(parent: Node, index_in_parent: number, elements
     return {
         data_type: Node_data_type.List,
         data: {
-            elements: elements
+            elements: elements,
+            html_tag: "span"
         },
         parent: parent,
         index_in_parent: index_in_parent,
@@ -207,11 +219,13 @@ export function create_list_node(parent: Node, index_in_parent: number, elements
     };
 }
 
-export function create_string_node(parent: Node, index_in_parent: number, value: string, metadata: Metadata): Node {
+export function create_string_node(parent: Node, index_in_parent: number, value: string, html_tag: string, is_content_editable: boolean, metadata: Metadata): Node {
     return {
         data_type: Node_data_type.String,
         data: {
-            value: value
+            value: value,
+            html_tag: "span",
+            is_content_editable: is_content_editable
         },
         parent: parent,
         index_in_parent: index_in_parent,
@@ -219,49 +233,53 @@ export function create_string_node(parent: Node, index_in_parent: number, value:
     };
 }
 
-export function create_separator_node_tree(parent: Node, index_in_parent: number, separator: string): Node {
-    return create_string_node(parent, index_in_parent, separator, { type: Metadata_type.Separator });
+export function create_separator_node_tree(parent: Node, index_in_parent: number, separator: string, is_content_editable: boolean): Node {
+    return create_string_node(parent, index_in_parent, separator, "span", is_content_editable, { type: Metadata_type.Separator });
 }
 
-export function create_open_parenthesis_node_tree(parent: Node, index_in_parent: number): Node {
-    return create_string_node(parent, index_in_parent, "(", { type: Metadata_type.Parenthesis_open });
+export function create_open_parenthesis_node_tree(parent: Node, index_in_parent: number, is_content_editable: boolean): Node {
+    return create_string_node(parent, index_in_parent, "(", "span", is_content_editable, { type: Metadata_type.Parenthesis_open });
 }
 
-export function create_close_parenthesis_node_tree(parent: Node, index_in_parent: number): Node {
-    return create_string_node(parent, index_in_parent, ")", { type: Metadata_type.Parenthesis_close });
+export function create_close_parenthesis_node_tree(parent: Node, index_in_parent: number, is_content_editable: boolean): Node {
+    return create_string_node(parent, index_in_parent, ")", "span", is_content_editable, { type: Metadata_type.Parenthesis_close });
 }
 
-export function create_open_curly_braces_node_tree(parent: Node, index_in_parent: number): Node {
-    return create_string_node(parent, index_in_parent, "{", { type: Metadata_type.Curly_braces_open });
+export function create_open_curly_braces_node_tree(parent: Node, index_in_parent: number, is_content_editable: boolean): Node {
+    return create_string_node(parent, index_in_parent, "{", "div", is_content_editable, { type: Metadata_type.Curly_braces_open });
 }
 
-export function create_close_curly_braces_node_tree(parent: Node, index_in_parent: number): Node {
-    return create_string_node(parent, index_in_parent, "}", { type: Metadata_type.Curly_braces_close });
+export function create_close_curly_braces_node_tree(parent: Node, index_in_parent: number, is_content_editable: boolean): Node {
+    return create_string_node(parent, index_in_parent, "}", "div", is_content_editable, { type: Metadata_type.Curly_braces_close });
 }
 
 export function create_assignment_node_tree(parent: Node, index_in_parent: number): Node {
-    return create_string_node(parent, index_in_parent, " = ", { type: Metadata_type.Assignment });
+    return create_string_node(parent, index_in_parent, " = ", "span", false, { type: Metadata_type.Assignment });
 }
 
 export function create_variable_keyword_node_tree(parent: Node, index_in_parent: number, is_mutable: boolean): Node {
-    return create_string_node(parent, index_in_parent, is_mutable ? "mutable" : "var", { type: is_mutable ? Metadata_type.Variable_mutable_keyword : Metadata_type.Variable_keyword });
+    return create_string_node(parent, index_in_parent, is_mutable ? "mutable" : "var", "span", true, { type: is_mutable ? Metadata_type.Variable_mutable_keyword : Metadata_type.Variable_keyword });
 }
 
 export function create_space_node_tree(parent: Node, index_in_parent: number): Node {
-    return create_string_node(parent, index_in_parent, " ", { type: Metadata_type.Space });
+    return create_string_node(parent, index_in_parent, " ", "span", false, { type: Metadata_type.Space });
+}
+
+export function create_statement_end_node_tree(parent: Node, index_in_parent: number): Node {
+    return create_string_node(parent, index_in_parent, ";", "span", false, { type: Metadata_type.Statement_end });
 }
 
 export function create_variable_name_node_tree(parent: Node, index_in_parent: number, name: string): Node {
-    return create_string_node(parent, index_in_parent, name, { type: Metadata_type.Variable_name });
+    return create_string_node(parent, index_in_parent, name, "span", true, { type: Metadata_type.Variable_name });
 }
 
 export function create_variable_type_reference_node_tree(parent: Node, index_in_parent: number, module: Core.Module, type: Core.Type_reference): Node {
     const name = Core_helpers.getUnderlyingTypeName([module], type);
-    return create_string_node(parent, index_in_parent, name, { type: Metadata_type.Variable_type });
+    return create_string_node(parent, index_in_parent, name, "span", true, { type: Metadata_type.Variable_type });
 }
 
 export function create_variable_type_builtin_type_node_tree(parent: Node, index_in_parent: number, type: Core.Builtin_type_reference): Node {
-    return create_string_node(parent, index_in_parent, type.value, { type: Metadata_type.Variable_type });
+    return create_string_node(parent, index_in_parent, type.value, "span", true, { type: Metadata_type.Variable_type });
 }
 
 export function create_variable_type_node_tree(parent: Node, index_in_parent: number, module: Core.Module, type: Core.Type_reference): Node {
@@ -278,9 +296,7 @@ export function create_function_parameter_node_tree(parent: Node, index_in_paren
 
     const root: Node = {
         data_type: Node_data_type.List,
-        data: {
-            elements: []
-        },
+        data: undefined,
         parent: parent,
         index_in_parent: index_in_parent,
         metadata: {
@@ -291,9 +307,10 @@ export function create_function_parameter_node_tree(parent: Node, index_in_paren
     root.data = {
         elements: [
             create_variable_name_node_tree(root, 0, parameter_name),
-            create_separator_node_tree(root, 1, ": "),
+            create_separator_node_tree(root, 1, ":", false),
             create_variable_type_node_tree(root, 2, module, parameter_type)
-        ]
+        ],
+        html_tag: "span"
     };
 
     return root;
@@ -315,9 +332,7 @@ export function create_function_parameters_node_tree(
     const root: Node = {
         data_type: Node_data_type.List,
         index_in_parent: index_in_parent,
-        data: {
-            elements: []
-        },
+        data: undefined,
         parent: parent,
         metadata: {
             type: is_input_parameters_list ? Metadata_type.Function_input_parameter_list : Metadata_type.Function_output_parameter_list
@@ -329,19 +344,20 @@ export function create_function_parameters_node_tree(
     });
 
     if (is_variadic) {
-        const variadic_node = create_string_node(root, 0, variadic_symbol, { type: Metadata_type.Variadic_symbol });
+        const variadic_node = create_string_node(root, 0, variadic_symbol, "span", true, { type: Metadata_type.Variadic_symbol });
         parameters.push(variadic_node);
     }
 
-    interleave(parameters, [create_separator_node_tree(root, 0, separator)]);
+    interleave(parameters, [create_separator_node_tree(root, 0, separator, false)]);
 
-    parameters.splice(0, 0, create_open_parenthesis_node_tree(root, 0));
-    parameters.push(create_close_parenthesis_node_tree(root, 0));
+    parameters.splice(0, 0, create_open_parenthesis_node_tree(root, 0, false));
+    parameters.push(create_close_parenthesis_node_tree(root, 0, false));
 
     set_index_in_parent(parameters);
 
     root.data = {
-        elements: parameters
+        elements: parameters,
+        html_tag: "span"
     };
 
     return root;
@@ -352,9 +368,7 @@ export function create_function_declaration_node_tree(parent: Node | undefined, 
     const root: Node = {
         data_type: Node_data_type.List,
         index_in_parent: index_in_parent,
-        data: {
-            elements: []
-        },
+        data: undefined,
         parent: parent,
         metadata: {
             type: Metadata_type.Function_declaration
@@ -363,12 +377,14 @@ export function create_function_declaration_node_tree(parent: Node | undefined, 
 
     root.data = {
         elements: [
-            create_string_node(root, 0, "function", { type: Metadata_type.Function_keyword }),
-            create_string_node(root, 1, function_declaration.name, { type: Metadata_type.Function_name }),
-            create_function_parameters_node_tree(root, 2, module, true, function_declaration.input_parameter_ids.elements, function_declaration.input_parameter_names.elements, function_declaration.type.input_parameter_types.elements, function_declaration.type.is_variadic, variadic_symbol, separator),
-            create_string_node(root, 3, " -> ", { type: Metadata_type.Separator }),
-            create_function_parameters_node_tree(root, 4, module, false, function_declaration.output_parameter_ids.elements, function_declaration.output_parameter_names.elements, function_declaration.type.output_parameter_types.elements, false, variadic_symbol, separator),
-        ]
+            create_string_node(root, 0, "function", "span", true, { type: Metadata_type.Function_keyword }),
+            create_space_node_tree(root, 1),
+            create_string_node(root, 2, function_declaration.name, "span", true, { type: Metadata_type.Function_name }),
+            create_function_parameters_node_tree(root, 3, module, true, function_declaration.input_parameter_ids.elements, function_declaration.input_parameter_names.elements, function_declaration.type.input_parameter_types.elements, function_declaration.type.is_variadic, variadic_symbol, separator),
+            create_string_node(root, 4, "->", "span", false, { type: Metadata_type.Separator }),
+            create_function_parameters_node_tree(root, 5, module, false, function_declaration.output_parameter_ids.elements, function_declaration.output_parameter_names.elements, function_declaration.type.output_parameter_types.elements, false, variadic_symbol, separator),
+        ],
+        html_tag: "span"
     };
 
     return root;
@@ -378,16 +394,14 @@ export function create_function_definition_node_tree(
     parent: Node | undefined,
     index_in_parent: number | undefined,
     module: Core.Module,
-    function_definition: Core.Function_definition,
-    function_declaration: Core.Function_declaration
+    function_declaration: Core.Function_declaration,
+    function_definition: Core.Function_definition
 ): Node {
 
     const root: Node = {
         data_type: Node_data_type.List,
         index_in_parent: index_in_parent,
-        data: {
-            elements: []
-        },
+        data: undefined,
         parent: parent,
         metadata: {
             type: Metadata_type.Function_definition
@@ -396,8 +410,35 @@ export function create_function_definition_node_tree(
 
     root.data = {
         elements: [
-            create_code_block_node_tree(root, 0, module, function_declaration, function_definition.statements.elements, function_definition.statements.elements),
-        ]
+            create_code_block_node_tree(root, 0, module, function_declaration, function_definition.statements.elements, function_definition.statements.elements, false),
+        ],
+        html_tag: "div"
+    };
+
+    return root;
+}
+
+export function create_function_node_tree(
+    parent: Node | undefined,
+    index_in_parent: number | undefined,
+    module: Core.Module,
+    function_definition: Core.Function_definition,
+    function_declaration: Core.Function_declaration
+): Node {
+
+    const root: Node = {
+        data_type: Node_data_type.Collapsible,
+        index_in_parent: index_in_parent,
+        data: undefined,
+        parent: parent,
+        metadata: {
+            type: Metadata_type.Function
+        }
+    };
+
+    root.data = {
+        summary: create_function_declaration_node_tree(root, 0, module, function_declaration, "...", ","),
+        body: create_function_definition_node_tree(root, 1, module, function_declaration, function_definition)
     };
 
     return root;
@@ -414,17 +455,17 @@ export function create_variable_expression_node_tree(
         const parameter_index = function_declaration.input_parameter_ids.elements.findIndex(id => id === expression.id);
         if (parameter_index !== -1) {
             const name = function_declaration.input_parameter_names.elements[parameter_index];
-            return create_string_node(parent, index_in_parent, name, { type: Metadata_type.Expression_variable });
+            return create_string_node(parent, index_in_parent, name, "span", true, { type: Metadata_type.Expression_variable });
         }
     }
     else if (expression.type === Core.Variable_expression_type.Local_variable) {
         const statement = statements.find(statement => statement.id === expression.id);
         if (statement !== undefined) {
-            return create_string_node(parent, index_in_parent, statement.name, { type: Metadata_type.Expression_variable });
+            return create_string_node(parent, index_in_parent, statement.name, "span", true, { type: Metadata_type.Expression_variable });
         }
     }
 
-    return create_string_node(parent, index_in_parent, "<not_found>", { type: Metadata_type.Expression_variable });
+    return create_string_node(parent, index_in_parent, "<not_found>", "span", true, { type: Metadata_type.Expression_variable });
 }
 
 export function get_binary_operation_string(operation: Core.Binary_operation): string {
@@ -451,9 +492,7 @@ export function create_expression_node_tree(
     const root: Node = {
         data_type: Node_data_type.List,
         index_in_parent: index_in_parent,
-        data: {
-            elements: []
-        },
+        data: undefined,
         parent: parent,
         metadata: {
             type: Metadata_type.Expression
@@ -469,41 +508,46 @@ export function create_expression_node_tree(
         root.data = {
             elements: [
                 create_expression_node_tree(root, 0, module, function_declaration, statements, statement, binary_expression.left_hand_side.expression_index),
-                create_string_node(root, 1, binary_operation_string, { type: Metadata_type.Binary_operation }),
+                create_string_node(root, 1, binary_operation_string, "span", true, { type: Metadata_type.Binary_operation }),
                 create_expression_node_tree(root, 2, module, function_declaration, statements, statement, binary_expression.right_hand_side.expression_index),
-            ]
+            ],
+            html_tag: "span"
         };
     }
     else if (expression.data.type === Core.Expression_enum.Constant_expression) {
         const constant_expression = expression.data.value as Core.Constant_expression;
         root.data = {
             elements: [
-                create_string_node(root, 0, constant_expression.data, { type: Metadata_type.Expression_constant })
-            ]
+                create_string_node(root, 0, constant_expression.data, "span", true, { type: Metadata_type.Expression_constant })
+            ],
+            html_tag: "span"
         };
     }
     else if (expression.data.type === Core.Expression_enum.Invalid_expression) {
         const invalid_expression = expression.data.value as Core.Invalid_expression;
         root.data = {
             elements: [
-                create_string_node(root, 0, invalid_expression.value, { type: Metadata_type.Expression_invalid })
-            ]
+                create_string_node(root, 0, invalid_expression.value, "span", true, { type: Metadata_type.Expression_invalid })
+            ],
+            html_tag: "span"
         };
     }
     else if (expression.data.type === Core.Expression_enum.Variable_expression) {
         root.data = {
             elements: [
                 create_variable_expression_node_tree(root, 0, function_declaration, statements, expression.data.value as Core.Variable_expression)
-            ]
+            ],
+            html_tag: "span"
         };
     }
     else if (expression.data.type === Core.Expression_enum.Return_expression) {
         const return_expression = expression.data.value as Core.Return_expression;
         root.data = {
             elements: [
-                create_string_node(root, 0, "return", { type: Metadata_type.Expression_return }),
+                create_string_node(root, 0, "return", "span", true, { type: Metadata_type.Expression_return }),
                 create_expression_node_tree(root, 1, module, function_declaration, statements, statement, return_expression.expression.expression_index)
-            ]
+            ],
+            html_tag: "span"
         };
     }
     else {
@@ -518,9 +562,7 @@ export function create_variable_declaration_node_tree(parent: Node | undefined, 
     const root: Node = {
         data_type: Node_data_type.List,
         index_in_parent: index_in_parent,
-        data: {
-            elements: []
-        },
+        data: undefined,
         parent: parent,
         metadata: {
             type: Metadata_type.Variable_declaration
@@ -532,9 +574,10 @@ export function create_variable_declaration_node_tree(parent: Node | undefined, 
             create_variable_keyword_node_tree(root, 0, false),
             create_space_node_tree(root, 1),
             create_variable_name_node_tree(root, 2, name),
-            create_separator_node_tree(root, 3, ": "),
+            create_separator_node_tree(root, 3, ":", false),
             create_variable_type_node_tree(root, 4, module, type)
-        ]
+        ],
+        html_tag: "span"
     };
 
     return root;
@@ -552,9 +595,7 @@ export function create_statement_node_tree(
     const root: Node = {
         data_type: Node_data_type.List,
         index_in_parent: index_in_parent,
-        data: {
-            elements: []
-        },
+        data: undefined,
         parent: parent,
         metadata: {
             type: Metadata_type.Statement
@@ -573,15 +614,19 @@ export function create_statement_node_tree(
             elements: [
                 create_variable_declaration_node_tree(root, 0, module, statement.name, type_reference[0]),
                 create_assignment_node_tree(root, 1),
-                create_expression_node_tree(root, 2, module, function_declaration, statements, statement, 0)
-            ]
+                create_expression_node_tree(root, 2, module, function_declaration, statements, statement, 0),
+                create_statement_end_node_tree(root, 3)
+            ],
+            html_tag: "div"
         };
     }
     else {
         root.data = {
             elements: [
-                create_expression_node_tree(root, 0, module, function_declaration, statements, statement, 0)
-            ]
+                create_expression_node_tree(root, 0, module, function_declaration, statements, statement, 0),
+                create_statement_end_node_tree(root, 1)
+            ],
+            html_tag: "div"
         };
     }
 
@@ -594,15 +639,14 @@ export function create_code_block_node_tree(
     module: Core.Module,
     function_declaration: Core.Function_declaration,
     all_statements: Core.Statement[],
-    code_block_statements: Core.Statement[]
+    code_block_statements: Core.Statement[],
+    are_parenthesis_editable: boolean
 ): Node {
 
     const root: Node = {
         data_type: Node_data_type.List,
         index_in_parent: index_in_parent,
-        data: {
-            elements: []
-        },
+        data: undefined,
         parent: parent,
         metadata: {
             type: Metadata_type.Code_block
@@ -613,10 +657,11 @@ export function create_code_block_node_tree(
 
     root.data = {
         elements: [
-            create_open_curly_braces_node_tree(root, 0),
+            create_open_curly_braces_node_tree(root, 0, are_parenthesis_editable),
             ...statements_node_tree,
-            create_close_curly_braces_node_tree(root, code_block_statements.length + 1),
-        ]
+            create_close_curly_braces_node_tree(root, code_block_statements.length + 1, are_parenthesis_editable),
+        ],
+        html_tag: "span"
     };
 
     return root;

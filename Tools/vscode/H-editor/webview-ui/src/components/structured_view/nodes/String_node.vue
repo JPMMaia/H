@@ -2,7 +2,7 @@
 
 import { computed } from "vue";
 
-import * as Abstract_syntax_tree_helpers from "../../../utilities/Abstract_syntax_tree_helpers";
+import type * as Abstract_syntax_tree_helpers from "../../../utilities/Abstract_syntax_tree_helpers";
 import type * as Core from "../../../../../src/utilities/coreModelInterface";
 
 const properties = defineProps<{
@@ -10,29 +10,21 @@ const properties = defineProps<{
     node: Abstract_syntax_tree_helpers.Node;
 }>();
 
-const node_value = computed(() => {
-    return (properties.node.data as Abstract_syntax_tree_helpers.String_data).value;
-});
-
-const is_content_editable = computed(() => {
-    switch (properties.node.metadata.type) {
-        case Abstract_syntax_tree_helpers.Metadata_type.Separator:
-            return false;
-        default:
-            return true;
-    }
+const data = computed(() => {
+    return properties.node.data as Abstract_syntax_tree_helpers.String_data;
 });
 
 function on_key_down(event: KeyboardEvent): void {
-
-
 }
 
 </script>
 
 <template>
-    <span :contenteditable="is_content_editable" v-on:keydown="on_key_down">
-        {{ node_value }}
+    <div v-if="data.html_tag === 'div'" :contenteditable="data.is_content_editable" v-on:keydown="on_key_down">
+        {{ data.value }}
+    </div>
+    <span v-else-if="data.html_tag === 'span'" :contenteditable="data.is_content_editable" v-on:keydown="on_key_down">
+        {{ data.value }}
     </span>
 </template>
 
