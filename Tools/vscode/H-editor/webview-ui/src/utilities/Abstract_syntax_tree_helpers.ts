@@ -15,6 +15,7 @@ export interface Collapsible_data {
 export interface List_data {
     elements: Node[];
     html_tag: string;
+    html_class: string;
 }
 
 export interface String_data {
@@ -307,10 +308,11 @@ export function create_function_parameter_node_tree(parent: Node, index_in_paren
     root.data = {
         elements: [
             create_variable_name_node_tree(root, 0, parameter_name),
-            create_separator_node_tree(root, 1, ":", false),
+            create_separator_node_tree(root, 1, ": ", false),
             create_variable_type_node_tree(root, 2, module, parameter_type)
         ],
-        html_tag: "span"
+        html_tag: "span",
+        html_class: ""
     };
 
     return root;
@@ -357,7 +359,8 @@ export function create_function_parameters_node_tree(
 
     root.data = {
         elements: parameters,
-        html_tag: "span"
+        html_tag: "span",
+        html_class: ""
     };
 
     return root;
@@ -381,10 +384,11 @@ export function create_function_declaration_node_tree(parent: Node | undefined, 
             create_space_node_tree(root, 1),
             create_string_node(root, 2, function_declaration.name, "span", true, { type: Metadata_type.Function_name }),
             create_function_parameters_node_tree(root, 3, module, true, function_declaration.input_parameter_ids.elements, function_declaration.input_parameter_names.elements, function_declaration.type.input_parameter_types.elements, function_declaration.type.is_variadic, variadic_symbol, separator),
-            create_string_node(root, 4, "->", "span", false, { type: Metadata_type.Separator }),
+            create_string_node(root, 4, " -> ", "span", false, { type: Metadata_type.Separator }),
             create_function_parameters_node_tree(root, 5, module, false, function_declaration.output_parameter_ids.elements, function_declaration.output_parameter_names.elements, function_declaration.type.output_parameter_types.elements, false, variadic_symbol, separator),
         ],
-        html_tag: "span"
+        html_tag: "span",
+        html_class: ""
     };
 
     return root;
@@ -412,7 +416,8 @@ export function create_function_definition_node_tree(
         elements: [
             create_code_block_node_tree(root, 0, module, function_declaration, function_definition.statements.elements, function_definition.statements.elements, false),
         ],
-        html_tag: "div"
+        html_tag: "div",
+        html_class: ""
     };
 
     return root;
@@ -437,7 +442,7 @@ export function create_function_node_tree(
     };
 
     root.data = {
-        summary: create_function_declaration_node_tree(root, 0, module, function_declaration, "...", ","),
+        summary: create_function_declaration_node_tree(root, 0, module, function_declaration, "...", ", "),
         body: create_function_definition_node_tree(root, 1, module, function_declaration, function_definition)
     };
 
@@ -511,7 +516,8 @@ export function create_expression_node_tree(
                 create_string_node(root, 1, binary_operation_string, "span", true, { type: Metadata_type.Binary_operation }),
                 create_expression_node_tree(root, 2, module, function_declaration, statements, statement, binary_expression.right_hand_side.expression_index),
             ],
-            html_tag: "span"
+            html_tag: "span",
+            html_class: "horizontal_container add_space_between_nodes"
         };
     }
     else if (expression.data.type === Core.Expression_enum.Constant_expression) {
@@ -520,7 +526,8 @@ export function create_expression_node_tree(
             elements: [
                 create_string_node(root, 0, constant_expression.data, "span", true, { type: Metadata_type.Expression_constant })
             ],
-            html_tag: "span"
+            html_tag: "span",
+            html_class: ""
         };
     }
     else if (expression.data.type === Core.Expression_enum.Invalid_expression) {
@@ -529,7 +536,8 @@ export function create_expression_node_tree(
             elements: [
                 create_string_node(root, 0, invalid_expression.value, "span", true, { type: Metadata_type.Expression_invalid })
             ],
-            html_tag: "span"
+            html_tag: "span",
+            html_class: ""
         };
     }
     else if (expression.data.type === Core.Expression_enum.Variable_expression) {
@@ -537,7 +545,8 @@ export function create_expression_node_tree(
             elements: [
                 create_variable_expression_node_tree(root, 0, function_declaration, statements, expression.data.value as Core.Variable_expression)
             ],
-            html_tag: "span"
+            html_tag: "span",
+            html_class: ""
         };
     }
     else if (expression.data.type === Core.Expression_enum.Return_expression) {
@@ -547,7 +556,8 @@ export function create_expression_node_tree(
                 create_string_node(root, 0, "return", "span", true, { type: Metadata_type.Expression_return }),
                 create_expression_node_tree(root, 1, module, function_declaration, statements, statement, return_expression.expression.expression_index)
             ],
-            html_tag: "span"
+            html_tag: "span",
+            html_class: "horizontal_container add_space_between_nodes"
         };
     }
     else {
@@ -574,10 +584,11 @@ export function create_variable_declaration_node_tree(parent: Node | undefined, 
             create_variable_keyword_node_tree(root, 0, false),
             create_space_node_tree(root, 1),
             create_variable_name_node_tree(root, 2, name),
-            create_separator_node_tree(root, 3, ":", false),
+            create_separator_node_tree(root, 3, ": ", false),
             create_variable_type_node_tree(root, 4, module, type)
         ],
-        html_tag: "span"
+        html_tag: "span",
+        html_class: ""
     };
 
     return root;
@@ -617,7 +628,8 @@ export function create_statement_node_tree(
                 create_expression_node_tree(root, 2, module, function_declaration, statements, statement, 0),
                 create_statement_end_node_tree(root, 3)
             ],
-            html_tag: "div"
+            html_tag: "div",
+            html_class: "horizontal_container add_indentation"
         };
     }
     else {
@@ -626,7 +638,8 @@ export function create_statement_node_tree(
                 create_expression_node_tree(root, 0, module, function_declaration, statements, statement, 0),
                 create_statement_end_node_tree(root, 1)
             ],
-            html_tag: "div"
+            html_tag: "div",
+            html_class: "horizontal_container add_indentation"
         };
     }
 
@@ -661,7 +674,8 @@ export function create_code_block_node_tree(
             ...statements_node_tree,
             create_close_curly_braces_node_tree(root, code_block_statements.length + 1, are_parenthesis_editable),
         ],
-        html_tag: "span"
+        html_tag: "span",
+        html_class: ""
     };
 
     return root;

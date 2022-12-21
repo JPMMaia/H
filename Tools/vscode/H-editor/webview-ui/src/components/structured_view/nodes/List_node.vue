@@ -19,12 +19,12 @@ const data = computed(() => {
 </script>
 
 <template>
-    <div v-if="data.html_tag === 'div'">
+    <div v-if="data.html_tag === 'div'" :class="data.html_class">
         <template v-for="(child_node, child_index) in data.elements">
             <Nodes.Node :module="properties.module" :node="child_node"></Nodes.Node>
         </template>
     </div>
-    <span v-else-if="data.html_tag === 'span'">
+    <span v-else-if="data.html_tag === 'span'" :class="data.html_class">
         <template v-for="(child_node, child_index) in data.elements">
             <Nodes.Node :module="properties.module" :node="child_node"></Nodes.Node>
         </template>
@@ -32,5 +32,21 @@ const data = computed(() => {
 </template>
 
 <style scoped>
+.horizontal_container {
+    display: flex;
+    flex-direction: row;
+}
 
+.vertical_container {
+    display: flex;
+    flex-direction: column;
+}
+
+.add_space_between_nodes {
+    column-gap: 1ch;
+}
+
+.add_indentation {
+    margin-left: 4ch;
+}
 </style>
