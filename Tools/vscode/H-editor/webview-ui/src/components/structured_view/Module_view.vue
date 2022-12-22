@@ -13,6 +13,9 @@ import * as Declarations from "./Declaration_helpers";
 import * as Caret_helpers from "../../utilities/Caret_helpers";
 import * as Module_change_helpers from "../../utilities/Module_change_helpers";
 
+import * as Abstract_syntax_tree_helpers from "../../utilities/Abstract_syntax_tree_helpers";
+import * as Nodes from "./nodes/components";
+
 const properties = defineProps<{
     module: Core.Module;
     declarations: Declarations.Item[]
@@ -279,11 +282,20 @@ function on_item_keyboard_event(order_index: number, event: KeyboardEvent): void
 watch(() => properties.declarations, (new_value: Declarations.Item[], old_value: Declarations.Item[]) => {
 });
 
+const module_node_tree = computed(() => {
+    return Abstract_syntax_tree_helpers.create_module_code_tree(properties.module);
+});
+
 </script>
 
 <template>
     <main ref="main_element_ref">
-        <section name="Declarations/definitions">
+
+        <Nodes.Node :module="properties.module" :node="module_node_tree">
+        </Nodes.Node>
+
+
+        <!--<section name="Declarations/definitions">
             <section v-if="properties.declarations.length === 0" name="Module_space" class="add_left_margin">
                 <div>
                     <span data-space-index="0" contenteditable="true"
@@ -334,7 +346,7 @@ watch(() => properties.declarations, (new_value: Declarations.Item[], old_value:
                     </div>
                 </section>
             </template>
-        </section>
+        </section>-->
 
         <section name="function_add_0">
             <div name="function_declaration">

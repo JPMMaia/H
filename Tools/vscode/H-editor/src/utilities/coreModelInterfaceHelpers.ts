@@ -11,6 +11,15 @@ export interface FindDeclarationResult {
     isExportDeclaration: boolean
 };
 
+export function create_function_reference(module: core.Module, id: number): core.Function_reference {
+    return {
+        module_reference: {
+            name: module.name
+        },
+        function_id: id
+    };
+}
+
 export function get_function_declaration(module: core.Module, result: FindDeclarationResult): core.Function_declaration {
     const declarations = result.isExportDeclaration ? module.export_declarations : module.internal_declarations;
     return declarations.function_declarations.elements[result.index];
@@ -35,6 +44,14 @@ export function find_function_declaration(module: core.Module, function_referenc
     }
 
     return get_function_declaration(module, result);
+}
+
+export function find_function_definition(module: core.Module, function_reference: core.Function_reference): core.Function_definition {
+    if (module.name !== function_reference.module_reference.name) {
+        throw Error("find_function_declaration is meant to be used to find a function in the module itself (not module dependencies)");
+    }
+
+    return findFunctionDefinitionWithId(module, function_reference.function_id);
 }
 
 export function findElementIndexWithId(exportArray: any[], internalArray: any[], id: number): FindDeclarationResult {

@@ -38,6 +38,7 @@ export enum Metadata_type {
     Code_block,
     Curly_braces_open,
     Curly_braces_close,
+    Empty,
     Expression,
     Expression_constant,
     Expression_invalid,
@@ -51,6 +52,7 @@ export enum Metadata_type {
     Function_parameter,
     Function_input_parameter_list,
     Function_output_parameter_list,
+    Module,
     Parenthesis_open,
     Parenthesis_close,
     Space,
@@ -212,7 +214,8 @@ export function create_list_node(parent: Node, index_in_parent: number, elements
         data_type: Node_data_type.List,
         data: {
             elements: elements,
-            html_tag: "span"
+            html_tag: "span",
+            html_class: ""
         },
         parent: parent,
         index_in_parent: index_in_parent,
@@ -232,6 +235,10 @@ export function create_string_node(parent: Node, index_in_parent: number, value:
         index_in_parent: index_in_parent,
         metadata: metadata
     };
+}
+
+export function create_empty_node_tree(parent: Node, index_in_parent: number, html_tag: string): Node {
+    return create_string_node(parent, index_in_parent, "\u200B", html_tag, true, { type: Metadata_type.Empty });
 }
 
 export function create_separator_node_tree(parent: Node, index_in_parent: number, separator: string, is_content_editable: boolean): Node {
@@ -427,8 +434,8 @@ export function create_function_node_tree(
     parent: Node | undefined,
     index_in_parent: number | undefined,
     module: Core.Module,
-    function_definition: Core.Function_definition,
-    function_declaration: Core.Function_declaration
+    function_declaration: Core.Function_declaration,
+    function_definition: Core.Function_definition
 ): Node {
 
     const root: Node = {
@@ -675,6 +682,40 @@ export function create_code_block_node_tree(
             create_close_curly_braces_node_tree(root, code_block_statements.length + 1, are_parenthesis_editable),
         ],
         html_tag: "span",
+        html_class: ""
+    };
+
+    return root;
+}
+
+export function create_module_code_tree(
+    module: Core.Module
+): Node {
+
+    const root: Node = {
+        data_type: Node_data_type.List,
+        index_in_parent: undefined,
+        data: undefined,
+        parent: undefined,
+        metadata: {
+            type: Metadata_type.Module
+        }
+    };
+
+    const export_function_definitions = module.export_declarations.function_declarations.elements.map(declaration => Core_helpers.find_function_definition(module, Core_helpers.create_function_reference(module, declaration.id)));
+    const export_functions = module.export_declarations.function_declarations.elements.map((declaration, index) => create_function_node_tree(root, 0, module, declaration, export_function_definitions[index]));
+
+    const all_declarations = export_functions;
+
+    interleave(all_declarations, [create_empty_node_tree(root, 0, "div")]);
+
+    set_index_in_parent(all_declarations);
+
+    root.data = {
+        elements: [
+            ...all_declarations
+        ],
+        html_tag: "div",
         html_class: ""
     };
 
