@@ -34,7 +34,7 @@ function is_node_editable(node: Abstract_syntax_tree_helpers.Node): boolean {
 
 function find_previous_editable_node(node: Abstract_syntax_tree_helpers.Node): Abstract_syntax_tree_helpers.Node | undefined {
     const do_not_skip = (_: Abstract_syntax_tree_helpers.Node) => false;
-    return Abstract_syntax_tree_helpers.iterate_backward_and_skip_until(node, do_not_skip, is_node_editable);
+    return Abstract_syntax_tree_helpers.iterate_backward_and_skip_until(node, do_not_skip, is_node_editable).node;
 }
 
 function create_move_cursor_left_action(node: Abstract_syntax_tree_helpers.Node, selection: Selection): Action[] {

@@ -71,129 +71,256 @@ export interface Metadata {
     type: Metadata_type;
 }
 
-export function find_previous_sibling_node(node: Node): Node | undefined {
+export enum Iteration_action_type {
+    Go_to_parent,
+    Go_to_child
+}
+
+export interface Iteration_action {
+    type: Iteration_action_type;
+    index: number;
+}
+
+function create_go_to_parent_action(): Iteration_action {
+    return {
+        type: Iteration_action_type.Go_to_parent,
+        index: -1
+    };
+}
+
+function create_go_to_child_action(child_index: number): Iteration_action {
+    return {
+        type: Iteration_action_type.Go_to_child,
+        index: child_index
+    };
+}
+
+export interface Find_result {
+    node: Node | undefined;
+    iteration_actions: Iteration_action[];
+}
+
+function create_undefined_find_result(): Find_result {
+    return {
+        node: undefined,
+        iteration_actions: []
+    };
+}
+
+export function find_previous_sibling_node(node: Node): Find_result {
     if (node.parent === undefined || node.index_in_parent === undefined || node.index_in_parent === 0) {
-        return undefined;
+        return create_undefined_find_result();
     }
 
     const parent_child_nodes = (node.parent.data as List_data).elements;
-    return parent_child_nodes[node.index_in_parent - 1];
+
+    return {
+        node: parent_child_nodes[node.index_in_parent - 1],
+        iteration_actions: [
+            create_go_to_parent_action(),
+            create_go_to_child_action(node.index_in_parent - 1)
+        ]
+    };
 }
 
-export function find_next_sibling_node(node: Node): Node | undefined {
+export function find_next_sibling_node(node: Node): Find_result {
     if (node.parent === undefined || node.index_in_parent === undefined) {
-        return undefined;
+        return create_undefined_find_result();
     }
 
     const parent_child_nodes = (node.parent.data as List_data).elements;
 
     if ((node.index_in_parent + 1) >= parent_child_nodes.length) {
-        return undefined;
+        return create_undefined_find_result();
     }
 
-    return parent_child_nodes[node.index_in_parent + 1];
+    return {
+        node: parent_child_nodes[node.index_in_parent + 1],
+        iteration_actions: [
+            create_go_to_parent_action(),
+            create_go_to_child_action(node.index_in_parent + 1)
+        ]
+    };
 }
 
-export function find_left_most_leaf_node(node: Node): Node | undefined {
+export function find_left_most_leaf_node(node: Node): Find_result {
 
     if (node.data_type === Node_data_type.String) {
-        return node;
+        return {
+            node: node,
+            iteration_actions: []
+        };
     }
 
     const child_nodes = (node.data as List_data).elements;
 
     if (child_nodes.length === 0) {
-        return node;
+        return {
+            node: node,
+            iteration_actions: []
+        };
     }
 
-    return find_left_most_leaf_node(child_nodes[0]);
+    const result = find_left_most_leaf_node(child_nodes[0]);
+
+    return {
+        node: result.node,
+        iteration_actions: [
+            create_go_to_child_action(0),
+            ...result.iteration_actions
+        ]
+    };
 }
 
-export function find_right_most_leaf_node(node: Node): Node | undefined {
+export function find_right_most_leaf_node(node: Node): Find_result {
 
     if (node.data_type === Node_data_type.String) {
-        return node;
+        return {
+            node: node,
+            iteration_actions: []
+        };
     }
 
     const child_nodes = (node.data as List_data).elements;
 
     if (child_nodes.length === 0) {
-        return node;
+        return {
+            node: node,
+            iteration_actions: []
+        };
     }
 
-    return find_right_most_leaf_node(child_nodes[child_nodes.length - 1]);
+    const result = find_right_most_leaf_node(child_nodes[child_nodes.length - 1]);
+
+    return {
+        node: result.node,
+        iteration_actions: [
+            create_go_to_child_action(child_nodes.length - 1),
+            ...result.iteration_actions
+        ]
+    };
 }
 
-export function iterate_backward_and_skip(node: Node, skip: (element: Node) => boolean): Node | undefined {
+export function iterate_backward_and_skip(node: Node, skip: (element: Node) => boolean): Find_result {
 
-    const previous_sibling_node = find_previous_sibling_node(node);
+    const previous_sibling_node_result = find_previous_sibling_node(node);
+    const previous_sibling_node = previous_sibling_node_result.node;
 
     if (previous_sibling_node === undefined) {
-        return node.parent;
+        return {
+            node: node.parent,
+            iteration_actions: [
+                create_go_to_parent_action()
+            ]
+        };
     }
 
     if (skip(previous_sibling_node) || previous_sibling_node.data_type === Node_data_type.String) {
-        return previous_sibling_node;
+        return {
+            node: previous_sibling_node,
+            iteration_actions: previous_sibling_node_result.iteration_actions
+        };
     }
 
-    return find_right_most_leaf_node(previous_sibling_node);
+    const right_most_leaf_node_result = find_right_most_leaf_node(previous_sibling_node);
+    return {
+        node: right_most_leaf_node_result.node,
+        iteration_actions: [
+            ...previous_sibling_node_result.iteration_actions,
+            ...right_most_leaf_node_result.iteration_actions
+        ]
+    };
 }
 
-export function iterate_backward_and_skip_until(node: Node, skip: (element: Node) => boolean, is_node: (element: Node) => boolean): Node | undefined {
+export function iterate_backward_and_skip_until(node: Node, skip: (element: Node) => boolean, is_node: (element: Node) => boolean): Find_result {
 
-    let previous = iterate_backward_and_skip(node, skip);
+    const previous_result = iterate_backward_and_skip(node, skip);
 
-    while (previous !== undefined && !is_node(previous)) {
-        previous = iterate_backward_and_skip(previous, skip);
+    const iteration_actions = previous_result.iteration_actions;
+    let previous_node = previous_result.node;
+
+    while (previous_node !== undefined && !is_node(previous_node)) {
+        const new_previous_result = iterate_backward_and_skip(previous_node, skip);
+        iteration_actions.push(...new_previous_result.iteration_actions);
+        previous_node = new_previous_result.node;
     }
 
-    return previous;
+    return {
+        node: previous_node,
+        iteration_actions: iteration_actions
+    };
 }
 
-export function iterate_backward(node: Node): Node | undefined {
+export function iterate_backward(node: Node): Find_result {
     return iterate_backward_and_skip(node, _ => false);
 }
 
-export function iterate_forward_and_skip(node: Node, skip: (element: Node) => boolean): Node | undefined {
+export function iterate_forward_and_skip(node: Node, skip: (element: Node) => boolean): Find_result {
 
     if (node.data_type === Node_data_type.List && !skip(node)) {
         const child_nodes = (node.data as List_data).elements;
         if (child_nodes.length > 0) {
-            return child_nodes[0];
+            return {
+                node: child_nodes[0],
+                iteration_actions: [
+                    create_go_to_child_action(0)
+                ]
+            };
         }
     }
 
-    const next_sibling_node = find_next_sibling_node(node);
-    if (next_sibling_node !== undefined) {
-        return next_sibling_node;
+    const next_sibling_node_result = find_next_sibling_node(node);
+    if (next_sibling_node_result.node !== undefined) {
+        return {
+            node: next_sibling_node_result.node,
+            iteration_actions: next_sibling_node_result.iteration_actions
+        };
     }
 
     let parent = node.parent;
+    const iteration_actions: Iteration_action[] = [
+        create_go_to_parent_action()
+    ];
     while (parent !== undefined) {
 
-        const next_parent_sibling_node = find_next_sibling_node(parent);
-        if (next_parent_sibling_node !== undefined) {
-            return next_parent_sibling_node;
+        const next_parent_sibling_node_result = find_next_sibling_node(parent);
+        if (next_parent_sibling_node_result.node !== undefined) {
+            return {
+                node: next_parent_sibling_node_result.node,
+                iteration_actions: [
+                    ...iteration_actions,
+                    ...next_parent_sibling_node_result.iteration_actions
+                ]
+            };
         }
 
         parent = parent.parent;
+        iteration_actions.push(create_go_to_parent_action());
     }
 
-    return undefined;
+    return create_undefined_find_result();
 }
 
-export function iterate_forward_and_skip_until(node: Node, skip: (element: Node) => boolean, is_node: (element: Node) => boolean): Node | undefined {
+export function iterate_forward_and_skip_until(node: Node, skip: (element: Node) => boolean, is_node: (element: Node) => boolean): Find_result {
 
-    let next = iterate_forward_and_skip(node, skip);
+    const next_result = iterate_forward_and_skip(node, skip);
 
-    while (next !== undefined && !is_node(next)) {
-        next = iterate_forward_and_skip(next, skip);
+    const iteration_actions = next_result.iteration_actions;
+    let next_node = next_result.node;
+
+    while (next_node !== undefined && !is_node(next_node)) {
+        const new_next_result = iterate_forward_and_skip(next_node, skip);
+        iteration_actions.push(...new_next_result.iteration_actions);
+        next_node = new_next_result.node;
     }
 
-    return next;
+    return {
+        node: next_node,
+        iteration_actions: iteration_actions
+    };
 }
 
-export function iterate_forward(node: Node): Node | undefined {
+export function iterate_forward(node: Node): Find_result {
     return iterate_forward_and_skip(node, _ => false);
 }
 
@@ -209,7 +336,7 @@ function set_index_in_parent(elements: Node[]): void {
     }
 }
 
-export function create_list_node(parent: Node, index_in_parent: number, elements: Node[], metadata: Metadata): Node {
+export function create_list_node(parent: Node | undefined, index_in_parent: number, elements: Node[], metadata: Metadata): Node {
     return {
         data_type: Node_data_type.List,
         data: {
