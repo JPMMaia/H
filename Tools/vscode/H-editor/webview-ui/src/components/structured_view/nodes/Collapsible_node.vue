@@ -4,6 +4,7 @@ import { computed } from "vue";
 import "@vscode/codicons/dist/codicon.css";
 
 import * as Nodes from "./components";
+import * as Node_update from "./Node_update";
 
 import type * as Abstract_syntax_tree_helpers from "../../../utilities/Abstract_syntax_tree_helpers";
 import type * as Core from "../../../../../src/utilities/coreModelInterface";
@@ -11,6 +12,10 @@ import type * as Core from "../../../../../src/utilities/coreModelInterface";
 const properties = defineProps<{
     module: Core.Module;
     node: Abstract_syntax_tree_helpers.Node;
+}>();
+
+const emit = defineEmits<{
+    (e: "update", data: Node_update.Update): void
 }>();
 
 const data = computed(() => {
@@ -22,7 +27,15 @@ function on_click_summary(event: MouseEvent): void {
     if (event.target !== null) {
         const target = event.target as HTMLElement;
         if (target.getAttribute("name") === "Collapsible_icon") {
-            return;
+
+            const update: Node_update.Update = {
+                indices: properties.node.index_in_parent ? [properties.node.index_in_parent] : [],
+                type: Node_update.Update_type.Open_collapsible,
+                data: {
+                    value: !data.value.is_open
+                }
+            };
+            emit("update", update);
         }
     }
 
@@ -32,12 +45,12 @@ function on_click_summary(event: MouseEvent): void {
 </script>
 
 <template>
-    <details>
+    <details :open="data.is_open">
         <summary class="horizontal_container" v-on:click="on_click_summary" tabindex="-1">
             <i name="Collapsible_icon" class="codicon codicon-chevron-right rotate_on_open"></i>
-            <Nodes.Node :module="properties.module" :node="data.summary"></Nodes.Node>
+            <Nodes.Node :module="properties.module" :node="data.elements[0]"></Nodes.Node>
         </summary>
-        <Nodes.Node :module="properties.module" :node="data.body"></Nodes.Node>
+        <Nodes.Node :module="properties.module" :node="data.elements[1]"></Nodes.Node>
     </details>
 </template>
 
