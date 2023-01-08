@@ -4,7 +4,8 @@ export enum Type {
     Set_element_of_vector,
     Move_element_of_vector,
     Add_number,
-    Update
+    Update,
+    Initialize
 }
 
 export interface Add_element_to_vector {
@@ -40,9 +41,13 @@ export interface Update {
     value: any
 }
 
+export interface Initialize {
+    value: any
+}
+
 export interface Change {
     type: Type,
-    value: Add_element_to_vector | Remove_element_of_vector | Move_element_of_vector | Add_number | Update
+    value: Add_element_to_vector | Remove_element_of_vector | Move_element_of_vector | Add_number | Update | Initialize
 }
 
 export interface Position_hierarchy_pair {
@@ -133,6 +138,18 @@ export function create_update(key: string, value: any): Change {
 
     return {
         type: Type.Update,
+        value: change
+    };
+}
+
+export function create_initialize(value: any): Change {
+
+    const change: Initialize = {
+        value: value
+    };
+
+    return {
+        type: Type.Initialize,
         value: change
     };
 }
