@@ -18,7 +18,8 @@ import * as Nodes from "./nodes/components";
 
 const properties = defineProps<{
     module: Core.Module;
-    declarations: Declarations.Item[]
+    module_node_tree: Abstract_syntax_tree_helpers.Node_data_type;
+    declarations: Declarations.Item[];
 }>();
 
 const emit = defineEmits<{
@@ -282,16 +283,12 @@ function on_item_keyboard_event(order_index: number, event: KeyboardEvent): void
 watch(() => properties.declarations, (new_value: Declarations.Item[], old_value: Declarations.Item[]) => {
 });
 
-const module_node_tree = computed(() => {
-    return Abstract_syntax_tree_helpers.create_module_code_tree(properties.module);
-});
-
 </script>
 
 <template>
     <main ref="main_element_ref">
 
-        <Nodes.Node :module="properties.module" :node="module_node_tree">
+        <Nodes.Node :module="properties.module" :node="properties.module_node_tree">
         </Nodes.Node>
 
 
