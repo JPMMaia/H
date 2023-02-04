@@ -6,9 +6,9 @@ import type { HEditorExplorerTreeEntry } from "./treeView/HEditorExplorerTreeDat
 import { HDocumentManager } from "./HDocumentManager";
 import { HDocument } from "./HDocument";
 import { onThrowError } from "./utilities/errors";
-import { createUpdateMessages } from "./utilities/updateStateMessage";
 
 import * as Change from "./utilities/Change";
+import * as Change_update_from_text from "./utilities/Change_update_from_text";
 import * as core from "./utilities/coreModelInterface";
 import * as core_helpers from "./utilities/coreModelInterfaceHelpers";
 import * as type_utilities from "./utilities/Type_utilities";
@@ -389,11 +389,11 @@ export function activate(context: ExtensionContext) {
         if (e.contentChanges.length > 0 && !e.document.isClosed && e.document.uri.path.startsWith(workspaceRootUri.path) && e.document.uri.path.endsWith(".hl")) {
 
           const document = hDocumentManager.getRegisteredDocument(e.document.uri);
-          const messages = createUpdateMessages(e.contentChanges, e.document, document);
+          const changes = Change_update_from_text.create_change_updates_from_text_changes(e.contentChanges, e.document, document);
 
-          document.onDidChangeTextDocument(e, messages);
-          hEditorProvider.onDidChangeTextDocument(e, messages);
-          treeDataProvider.onDidChangeTextDocument(e, messages);
+          document.onDidChangeTextDocument(e, changes);
+          hEditorProvider.onDidChangeTextDocument(e, changes);
+          treeDataProvider.onDidChangeTextDocument(e, changes);
         }
       }
     );

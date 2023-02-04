@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
 import { findNumber, findEndOfString, fromPositionToOffset, findEndOfCurrentObject, ParserState, getObjectAtPosition } from './utilities/parseJSON';
-import { updateState } from './utilities/updateState';
 import * as hCoreReflectionInfo from './utilities/h_core_reflection.json';
 import { createDefaultElement, createEmptyModule } from './utilities/coreModel';
 import * as coreModel from './utilities/coreModel';
 import * as core from './utilities/coreModelInterface';
 import * as Change from "./utilities/Change";
+import * as Change_update from "./utilities/Change_update";
 import { onThrowError } from './utilities/errors';
 
 function addPossibleComma(text: string, insertOffset: number, textToInsert: string): string {
@@ -316,10 +316,9 @@ export class HDocument {
         return this.document.uri;
     }
 
-    public onDidChangeTextDocument(e: vscode.TextDocumentChangeEvent, messages: any): void {
-        for (const message of messages) {
-            this.updateState(message);
-        }
+    public onDidChangeTextDocument(e: vscode.TextDocumentChangeEvent, changes: Change.Hierarchy[]): void {
+
+        this.updateState(changes);
         this.document = e.document;
     }
 
@@ -327,11 +326,11 @@ export class HDocument {
         return this.state;
     }
 
-    public updateState(message: any): void {
+    public updateState(changes: Change.Hierarchy[]): void {
 
         const self = this;
 
-        const stateReference = {
+        const module_pointer = {
             get value() {
                 return self.state;
             },
@@ -340,7 +339,9 @@ export class HDocument {
             }
         };
 
-        updateState(stateReference, message);
+        for (const change of changes) {
+            Change_update.update_object_with_change(module_pointer, change, []);
+        }
     }
 
     public replaceByDefaultModule(): void {

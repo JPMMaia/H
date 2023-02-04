@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import { HDocumentManager } from '../HDocumentManager';
 import * as core from '../utilities/coreModelInterface';
 import { HDocument } from '../HDocument';
-import { createUpdateMessages } from '../utilities/updateStateMessage';
+import * as Change from "../utilities/Change";
 
 function pathExists(p: string): boolean {
     try {
@@ -190,25 +190,62 @@ function getUriFirstPart(firstUri: vscode.Uri, secondUri: vscode.Uri): string {
     return uriFirstPart;
 }
 
-function shouldUpdate(documentUri: vscode.Uri, messages: any[]): boolean {
+function shouldUpdateChildChange(current_position: any[], change_hierarchy: Change.Hierarchy): boolean {
 
-    for (const message of messages) {
+    if (current_position.length === 0) {
+        return false;
+    }
 
-        if (message.command === "update") {
-            const position: any[] = message.data.hPosition;
+    if (current_position[0] !== "export_declarations" || current_position[0] !== "internal_declarations") {
+        return false;
+    }
 
-            if (position.length === 5 && (position[0] === "export_declarations" || position[0] === "internal_declarations") && position[2] === "elements" && position[4] === "name") {
+    if (current_position.length === 2) {
+        for (const change of change_hierarchy.changes) {
+            if (change.type === Change.Type.Add_element_to_vector || change.type === Change.Type.Remove_element_of_vector || change.type === Change.Type.Set_element_of_vector || change.type === Change.Type.Move_element_of_vector) {
                 return true;
             }
         }
-        else if (message.command === "insert" || message.command === "delete") {
+    }
 
-            const position: any[] = message.data.hPosition;
-
-            if (position.length === 4 && (position[0] === "export_declarations" || position[0] === "internal_declarations") && position[2] === "elements" && typeof position[3] === "number") {
+    if (current_position.length < 4) {
+        for (const child_position_hierarchy of change_hierarchy.children) {
+            if (shouldUpdateChildChange([...current_position, ...child_position_hierarchy.position], child_position_hierarchy.hierarchy)) {
                 return true;
             }
         }
+    }
+
+    if (current_position.length === 4) {
+        for (const change of change_hierarchy.changes) {
+            if (change.type === Change.Type.Update) {
+                const update = change.value as Change.Update;
+                if (update.key === "name") {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+function shouldUpdate(changes: Change.Hierarchy[]): boolean {
+
+    for (const change_hierarchy of changes) {
+
+        for (const change of change_hierarchy.changes) {
+            if (change.type === Change.Type.Initialize) {
+                return true;
+            }
+        }
+
+        for (const position_hierarchy of change_hierarchy.children) {
+            if (shouldUpdateChildChange(position_hierarchy.position, position_hierarchy.hierarchy)) {
+                return true;
+            }
+        }
+
     }
 
     return false;
@@ -225,8 +262,8 @@ export class HEditorExplorerTreeDataProvider implements vscode.TreeDataProvider<
         private hDocumentManager: HDocumentManager
     ) { }
 
-    public onDidChangeTextDocument(e: vscode.TextDocumentChangeEvent, messages: any): void {
-        if (shouldUpdate(e.document.uri, messages)) {
+    public onDidChangeTextDocument(e: vscode.TextDocumentChangeEvent, changes: Change.Hierarchy[]): void {
+        if (shouldUpdate(changes)) {
             this.refresh(e.document.uri);
         }
     }

@@ -2,7 +2,6 @@
 import { onMounted, ref } from "vue";
 import { provideVSCodeDesignSystem, vsCodeButton } from "@vscode/webview-ui-toolkit";
 import { vscode } from "./utilities/vscode";
-import { updateState } from "../../src/utilities/updateState";
 import { update_object_with_change } from "../../src/utilities/Change_update";
 import type * as core from "../../src/utilities/coreModelInterface";
 import type * as coreHelpers from "../../src/utilities/coreModelInterfaceHelpers";
@@ -15,6 +14,9 @@ import JSON_object from "./components/text_view/JSON_object.vue";
 import * as Declarations from "./components/structured_view/Declaration_helpers";
 
 import type * as Change from "../../src/utilities/Change";
+import * as Change_Update from "../../src/utilities/Change_update";
+import type * as Abstract_syntax_tree_helpers from "./utilities/Abstract_syntax_tree_helpers";
+import * as Abstract_syntax_tree_update from "./utilities/Abstract_syntax_tree_update";
 import { get_type_name } from "./utilities/language";
 import * as hCoreReflectionInfo from "../../src/utilities/h_core_reflection.json";
 import { onThrowError } from "../../src/utilities/errors";
@@ -45,7 +47,7 @@ function handleHowdyClick() {
   });
 }
 
-const g_webview_only = false;
+const g_webview_only = true;
 
 const m_reflectionInfo = { enums: hCoreReflectionInfo.enums, structs: hCoreReflectionInfo.structs };
 
@@ -64,36 +66,59 @@ const m_frontendLanguageOptions = ref([
 ]);
 
 interface State {
-  module: core.Module | undefined
+  module: core.Module | undefined;
+  module_node_tree: Abstract_syntax_tree_helpers.Node | undefined;
 };
 
-const m_state = ref<State>({ module: undefined });
+const m_state = ref<State>(
+  {
+    module: undefined,
+    module_node_tree: undefined
+  }
+);
 
 if (g_webview_only) {
-m_state.value.module = Module_examples.create_default();
+  m_state.value.module = Module_examples.create_default();
+}
+
+function update_state_with_new_changes(new_changes: Change.Hierarchy[]): void {
+  const module_reference = {
+    get value() {
+      return m_state.value.module;
+    },
+    set value(value: any) {
+      m_state.value.module = value;
+    },
+  };
+
+  const module_node_tree_reference = {
+    get value() {
+      return m_state.value.module_node_tree;
+    },
+    set value(value: any) {
+      m_state.value.module_node_tree = value;
+    },
+  };
+
+  for (const change of new_changes) {
+    Change_Update.update_object_with_change(module_reference, change, []);
+
+    if (m_state.value.module !== undefined) {
+      Abstract_syntax_tree_update.update_module_node_tree(m_state.value.module, module_node_tree_reference, change);
+    }
+  }
 }
 
 function on_message_received(event: MessageEvent): void {
   const messages = event.data;
 
   for (const message of messages) {
-    if (
-      message.command === "initialize" ||
-      message.command === "update" ||
-      message.command === "insert" ||
-      message.command === "delete"
-    ) {
-      const moduleReference = {
-        get value() {
-          return m_state.value.module;
-        },
-        set value(value: any) {
-          m_state.value.module = value;
-        },
-      };
 
-      console.log(message);
-      updateState(moduleReference, message);
+    console.log(message);
+
+    if (message.command === "new_changes") {
+      const new_changes: Change.Hierarchy[] = message.data.changes;
+      update_state_with_new_changes(new_changes);
     }
   }
 }
@@ -121,8 +146,8 @@ function on_new_changes(new_changes: Change.Hierarchy): void {
   });
 
   if (g_webview_only && m_state.value.module !== undefined) {
-    update_object_with_change(m_state.value.module, new_changes, []);
-    console.log(m_state.value.module);
+    console.log([new_changes]);
+    update_state_with_new_changes([new_changes]);
   }
 }
 
@@ -168,9 +193,10 @@ onMounted(() => { });
 
       <div v-if="m_selectedView === 'module_view'">
 
-        <div v-if="(m_state.module !== undefined)">
+        <div v-if="m_state.module !== undefined && m_state.module_node_tree !== undefined">
           <Structured_view.Module_view v-if="m_state.module !== undefined" :module="m_state.module"
-            :declarations="Declarations.get_all_items(m_state.module)" v-on:new_changes="on_new_changes">
+            :module_node_tree="m_state.module_node_tree" :declarations="Declarations.get_all_items(m_state.module)"
+            v-on:new_changes="on_new_changes">
           </Structured_view.Module_view>
         </div>
 

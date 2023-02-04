@@ -43,34 +43,40 @@ function do_update_change(object: any, change: Change.Update, position: any[]): 
     value_reference.value = change.value;
 }
 
-export function update_object_with_change(object: any, new_changes: Change.Hierarchy, position: any[]): void {
+function do_initialize_change(object_pointer: any, change: Change.Initialize): void {
+    object_pointer.value = change.value;
+}
+
+export function update_object_with_change(object_pointer: any, new_changes: Change.Hierarchy, position: any[]): void {
 
     for (const change of new_changes.changes) {
         switch (change.type) {
             case Change.Type.Add_element_to_vector:
-                do_add_element_of_vector_change(object, change.value as Change.Add_element_to_vector, position);
+                do_add_element_of_vector_change(object_pointer.value, change.value as Change.Add_element_to_vector, position);
                 break;
             case Change.Type.Remove_element_of_vector:
-                do_remove_element_of_vector_change(object, change.value as Change.Remove_element_of_vector, position);
+                do_remove_element_of_vector_change(object_pointer.value, change.value as Change.Remove_element_of_vector, position);
                 break;
             case Change.Type.Set_element_of_vector:
-                do_set_element_of_vector_change(object, change.value as Change.Set_element_of_vector, position);
+                do_set_element_of_vector_change(object_pointer.value, change.value as Change.Set_element_of_vector, position);
                 break;
             case Change.Type.Move_element_of_vector:
-                do_move_element_of_vector_change(object, change.value as Change.Move_element_of_vector, position);
+                do_move_element_of_vector_change(object_pointer.value, change.value as Change.Move_element_of_vector, position);
                 break;
             case Change.Type.Add_number:
-                do_add_number_change(object, change.value as Change.Add_number, position);
+                do_add_number_change(object_pointer.value, change.value as Change.Add_number, position);
                 break;
             case Change.Type.Update:
-                do_update_change(object, change.value as Change.Update, position);
+                do_update_change(object_pointer.value, change.value as Change.Update, position);
                 break;
+            case Change.Type.Initialize:
+                do_initialize_change(object_pointer, change.value as Change.Initialize);
         }
     }
 
     for (const pair of new_changes.children) {
         const childrenPosition = position.concat(...pair.position);
         const childrenChanges = pair.hierarchy;
-        update_object_with_change(object, childrenChanges, childrenPosition);
+        update_object_with_change(object_pointer, childrenChanges, childrenPosition);
     }
 }

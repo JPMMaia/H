@@ -7,8 +7,8 @@ import { LanguageServer } from './LanguageServer';
 import { HEditorPanel } from './panels/HEditorPanel';
 import { HDocument } from './HDocument';
 import { fromOffsetToPosition, isNumber } from './utilities/parseJSON';
-import { createUpdateMessages } from './utilities/updateStateMessage';
 import { HDocumentManager } from './HDocumentManager';
+import * as Change from "./utilities/Change";
 
 function getWebviewPanelIDs(webviewDocuments: Map<number, HDocument>, documentUri: vscode.Uri): number[] {
 
@@ -110,9 +110,21 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 			const jsonData = hDocument.getDocumentAsJson();
 
 			if (jsonData !== null) {
+
+				const initial_value = jsonData;
+
+				const change_hierarchy: Change.Hierarchy = {
+					changes: [
+						Change.create_initialize(initial_value)
+					],
+					children: []
+				};
+
 				const message = {
-					command: "initialize",
-					data: hDocument.getDocumentAsJson()
+					command: "new_changes",
+					data: {
+						"changes": [change_hierarchy]
+					}
 				};
 
 				hPanel.sendMessage([message]);
@@ -126,7 +138,7 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 		this.requestHtmlTemplates(this.languageServer, webpanelID);*/
 	}
 
-	public onDidChangeTextDocument(e: vscode.TextDocumentChangeEvent, messages: any): void {
+	public onDidChangeTextDocument(e: vscode.TextDocumentChangeEvent, changes: Change.Hierarchy[]): void {
 
 		const webviewPanelIDs = getWebviewPanelIDs(this.webviewDocuments, e.document.uri);
 
@@ -136,7 +148,14 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 				return;
 			}
 
-			hPanel.sendMessage(messages);
+			const message = {
+				command: "new_changes",
+				data: {
+					"changes": changes
+				}
+			};
+
+			hPanel.sendMessage([message]);
 		}
 	}
 
@@ -173,7 +192,7 @@ export class HEditorProvider implements vscode.CustomTextEditorProvider {
 		const webviewPanelID = data.id;
 		const webviewPanel = registeredWebviews.get(webviewPanelID);
 
-		if (webviewPanel != undefined) {
+		if (webviewPanel !== undefined) {
 			const html = data.create_html_templates_answer.templates.elements.join('');
 
 			//this.updateWebview(webviewPanel, html);
