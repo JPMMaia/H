@@ -8,8 +8,8 @@ export enum Node_data_type {
 }
 
 export interface Collapsible_data {
-    summary: Node;
-    body: Node;
+    elements: Node[];
+    is_open: boolean;
 }
 
 export interface List_data {
@@ -576,8 +576,11 @@ export function create_function_node_tree(
     };
 
     root.data = {
-        summary: create_function_declaration_node_tree(root, 0, module, function_declaration, "...", ", "),
-        body: create_function_definition_node_tree(root, 1, module, function_declaration, function_definition)
+        elements: [
+            create_function_declaration_node_tree(root, 0, module, function_declaration, "...", ", "),
+            create_function_definition_node_tree(root, 1, module, function_declaration, function_definition)
+        ],
+        is_open: false
     };
 
     return root;
@@ -831,6 +834,8 @@ export function create_module_code_tree(
 
     const export_function_definitions = module.export_declarations.function_declarations.elements.map(declaration => Core_helpers.find_function_definition(module, Core_helpers.create_function_reference(module, declaration.id)));
     const export_functions = module.export_declarations.function_declarations.elements.map((declaration, index) => create_function_node_tree(root, 0, module, declaration, export_function_definitions[index]));
+
+    // TODO add other declarations
 
     const all_declarations = export_functions;
 
