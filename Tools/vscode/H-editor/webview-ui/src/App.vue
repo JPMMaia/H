@@ -104,15 +104,17 @@ function update_store_with_new_changes(new_changes: Change.Hierarchy[]): void {
 }
 
 function on_message_received(event: MessageEvent): void {
-  const messages = event.data;
+  const message_data = event.data;
 
-  for (const message of messages) {
+  if ("source" in message_data && message_data.source === "H_editor") {
+    for (const message of message_data.messages) {
 
     console.log(message);
 
     if (message.command === "new_changes") {
       const new_changes: Change.Hierarchy[] = message.data.changes;
       update_store_with_new_changes(new_changes);
+      }
     }
   }
 }

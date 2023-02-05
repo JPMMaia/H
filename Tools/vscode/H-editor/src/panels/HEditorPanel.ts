@@ -69,7 +69,12 @@ export class HEditorPanel {
   }
 
   public sendMessage(messages: any[]): void {
-    this.panel.webview.postMessage(messages);
+    this.panel.webview.postMessage(
+      {
+        source: "H_editor",
+        messages: messages
+      }
+    );
   }
 
   /**
