@@ -6,10 +6,8 @@ import * as Nodes from "./components";
 import type * as Node_update from "./Node_update";
 
 import type * as Abstract_syntax_tree_helpers from "../../../utilities/Abstract_syntax_tree_helpers";
-import type * as Core from "../../../../../src/utilities/coreModelInterface";
 
 const properties = defineProps<{
-    module: Core.Module;
     node: Abstract_syntax_tree_helpers.Node;
 }>();
 
@@ -33,12 +31,12 @@ const data = computed(() => {
 <template>
     <div v-if="data.html_tag === 'div'" :class="data.html_class">
         <template v-for="(child_node, child_index) in data.elements">
-            <Nodes.Node :module="properties.module" :node="child_node" v-on:update="on_node_update"></Nodes.Node>
+            <Nodes.Node :node="child_node" v-on:update="on_node_update"></Nodes.Node>
         </template>
     </div>
     <span v-else-if="data.html_tag === 'span'" :class="data.html_class">
         <template v-for="(child_node, child_index) in data.elements">
-            <Nodes.Node :module="properties.module" :node="child_node" v-on:update="on_node_update"></Nodes.Node>
+            <Nodes.Node :node="child_node" v-on:update="on_node_update"></Nodes.Node>
         </template>
     </span>
 </template>

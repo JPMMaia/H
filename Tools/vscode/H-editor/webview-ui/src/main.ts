@@ -1,10 +1,13 @@
 import { applyMixins } from "@microsoft/fast-foundation";
 import { createApp, ref } from "vue";
 import App from "./App.vue";
+import { createPinia } from 'pinia';
 import { create_default_user_templates, register_user_template_components, type User_templates } from "./User_templates";
 
 const m_application = createApp(App);
 
+const m_pinia = createPinia();
+m_application.use(m_pinia);
 
 const m_user_templates = ref<User_templates>(create_default_user_templates());
 register_user_template_components(m_application, m_user_templates.value);

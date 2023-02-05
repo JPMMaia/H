@@ -4,10 +4,8 @@ import * as Nodes from "./components";
 import type * as Node_update from "./Node_update";
 
 import * as Abstract_syntax_tree_helpers from "../../../utilities/Abstract_syntax_tree_helpers";
-import type * as Core from "../../../../../src/utilities/coreModelInterface";
 
 const properties = defineProps<{
-    module: Core.Module;
     node: Abstract_syntax_tree_helpers.Node;
 }>();
 
@@ -26,12 +24,12 @@ function on_node_update(update: Node_update.Update): void {
 
 <template>
     <Nodes.Collapsible v-if="properties.node.data_type === Abstract_syntax_tree_helpers.Node_data_type.Collapsible"
-        :module="properties.module" :node="properties.node" v-on:update="on_node_update">
+        :node="properties.node" v-on:update="on_node_update">
     </Nodes.Collapsible>
     <Nodes.List_node v-else-if="properties.node.data_type === Abstract_syntax_tree_helpers.Node_data_type.List"
-        :module="properties.module" :node="properties.node" v-on:update="on_node_update">
+        :node="properties.node" v-on:update="on_node_update">
     </Nodes.List_node>
-    <Nodes.String_node v-else :module="properties.module" :node="properties.node">
+    <Nodes.String_node v-else :node="properties.node">
     </Nodes.String_node>
 </template>
 

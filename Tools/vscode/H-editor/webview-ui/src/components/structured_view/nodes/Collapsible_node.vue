@@ -7,10 +7,8 @@ import * as Nodes from "./components";
 import * as Node_update from "./Node_update";
 
 import type * as Abstract_syntax_tree_helpers from "../../../utilities/Abstract_syntax_tree_helpers";
-import type * as Core from "../../../../../src/utilities/coreModelInterface";
 
 const properties = defineProps<{
-    module: Core.Module;
     node: Abstract_syntax_tree_helpers.Node;
 }>();
 
@@ -48,9 +46,9 @@ function on_click_summary(event: MouseEvent): void {
     <details :open="data.is_open">
         <summary class="horizontal_container" v-on:click="on_click_summary" tabindex="-1">
             <i name="Collapsible_icon" class="codicon codicon-chevron-right rotate_on_open"></i>
-            <Nodes.Node :module="properties.module" :node="data.elements[0]"></Nodes.Node>
+            <Nodes.Node :node="data.elements[0]"></Nodes.Node>
         </summary>
-        <Nodes.Node :module="properties.module" :node="data.elements[1]"></Nodes.Node>
+        <Nodes.Node :node="data.elements[1]"></Nodes.Node>
     </details>
 </template>
 

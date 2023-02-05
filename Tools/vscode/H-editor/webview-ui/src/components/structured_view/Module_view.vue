@@ -13,7 +13,7 @@ import * as Declarations from "./Declaration_helpers";
 import * as Caret_helpers from "../../utilities/Caret_helpers";
 import * as Module_change_helpers from "../../utilities/Module_change_helpers";
 
-import * as Abstract_syntax_tree_helpers from "../../utilities/Abstract_syntax_tree_helpers";
+import type * as Abstract_syntax_tree_helpers from "../../utilities/Abstract_syntax_tree_helpers";
 import * as Nodes from "./nodes/components";
 
 const properties = defineProps<{
@@ -288,7 +288,7 @@ watch(() => properties.declarations, (new_value: Declarations.Item[], old_value:
 <template>
     <main ref="main_element_ref">
 
-        <Nodes.Node :module="properties.module" :node="properties.module_node_tree">
+        <Nodes.Node :node="properties.module_node_tree">
         </Nodes.Node>
 
 

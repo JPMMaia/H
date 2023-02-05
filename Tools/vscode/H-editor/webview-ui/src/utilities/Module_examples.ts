@@ -1,4 +1,11 @@
 import * as core from "../../../src/utilities/coreModelInterface";
+import * as core_reflection from "../../../src/utilities/coreModel";
+
+export function create_empty(): core.Module {
+    const reflection_info = core_reflection.createReflectionInfo();
+    const module = core_reflection.createEmptyModule(reflection_info);
+    return module;
+}
 
 export function create_default(): core.Module {
 

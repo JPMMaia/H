@@ -6,7 +6,6 @@ import type * as Abstract_syntax_tree_helpers from "../../../utilities/Abstract_
 import type * as Core from "../../../../../src/utilities/coreModelInterface";
 
 const properties = defineProps<{
-    module: Core.Module;
     node: Abstract_syntax_tree_helpers.Node;
 }>();
 

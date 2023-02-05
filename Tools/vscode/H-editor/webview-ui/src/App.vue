@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { provideVSCodeDesignSystem, vsCodeButton } from "@vscode/webview-ui-toolkit";
 import { vscode } from "./utilities/vscode";
 import { update_object_with_change } from "../../src/utilities/Change_update";
@@ -12,14 +12,17 @@ import * as Structured_view from "./components/structured_view/components";
 import Language_version from "./components/text_view/Language_version.vue";
 import JSON_object from "./components/text_view/JSON_object.vue";
 import * as Declarations from "./components/structured_view/Declaration_helpers";
+import * as Nodes from "./components/structured_view/nodes/components";
+import * as Node_update from "./components/structured_view/nodes/Node_update";
 
 import type * as Change from "../../src/utilities/Change";
 import * as Change_Update from "../../src/utilities/Change_update";
-import type * as Abstract_syntax_tree_helpers from "./utilities/Abstract_syntax_tree_helpers";
+import * as Abstract_syntax_tree_helpers from "./utilities/Abstract_syntax_tree_helpers";
 import * as Abstract_syntax_tree_update from "./utilities/Abstract_syntax_tree_update";
 import { get_type_name } from "./utilities/language";
 import * as hCoreReflectionInfo from "../../src/utilities/h_core_reflection.json";
 import { onThrowError } from "../../src/utilities/errors";
+import { use_main_store } from "./stores/Main_store";
 
 // In order to use the Webview UI Toolkit web components they
 // must be registered with the browser (i.e. webview) using the
@@ -65,47 +68,38 @@ const m_frontendLanguageOptions = ref([
   { text: "C", value: "C" },
 ]);
 
-interface State {
-  module: core.Module | undefined;
-  module_node_tree: Abstract_syntax_tree_helpers.Node | undefined;
-};
+const m_main_store = use_main_store();
 
-const m_state = ref<State>(
-  {
-    module: undefined,
-    module_node_tree: undefined
-  }
-);
+const module = computed(() => m_main_store.module);
+const module_abstract_syntax_tree = computed(() => m_main_store.module_abstract_syntax_tree);
 
 if (g_webview_only) {
-  m_state.value.module = Module_examples.create_default();
+  m_main_store.module = Module_examples.create_default();
+  m_main_store.module_abstract_syntax_tree = Abstract_syntax_tree_helpers.create_module_code_tree(m_main_store.module);
 }
 
-function update_state_with_new_changes(new_changes: Change.Hierarchy[]): void {
+function update_store_with_new_changes(new_changes: Change.Hierarchy[]): void {
   const module_reference = {
     get value() {
-      return m_state.value.module;
+      return m_main_store.module;
     },
     set value(value: any) {
-      m_state.value.module = value;
+      m_main_store.module = value;
     },
   };
 
   const module_node_tree_reference = {
     get value() {
-      return m_state.value.module_node_tree;
+      return m_main_store.module_abstract_syntax_tree;
     },
     set value(value: any) {
-      m_state.value.module_node_tree = value;
+      m_main_store.module_abstract_syntax_tree = value;
     },
   };
 
   for (const change of new_changes) {
     Change_Update.update_object_with_change(module_reference, change, []);
-
-    if (m_state.value.module !== undefined) {
-      Abstract_syntax_tree_update.update_module_node_tree(m_state.value.module, module_node_tree_reference, change);
-    }
+    Abstract_syntax_tree_update.update_module_node_tree(m_main_store.module, module_node_tree_reference, change);
   }
 }
 
@@ -118,7 +112,7 @@ function on_message_received(event: MessageEvent): void {
 
     if (message.command === "new_changes") {
       const new_changes: Change.Hierarchy[] = message.data.changes;
-      update_state_with_new_changes(new_changes);
+      update_store_with_new_changes(new_changes);
     }
   }
 }
@@ -145,20 +139,61 @@ function on_new_changes(new_changes: Change.Hierarchy): void {
     }
   });
 
-  if (g_webview_only && m_state.value.module !== undefined) {
+  if (g_webview_only) {
     console.log([new_changes]);
-    update_state_with_new_changes([new_changes]);
+    update_store_with_new_changes([new_changes]);
   }
 }
 
 onMounted(() => { });
+
+function get_child_node(node: Abstract_syntax_tree_helpers.Node, indices: number[]): Abstract_syntax_tree_helpers.Node {
+
+  if (indices.length === 0) {
+    return node;
+  }
+
+  const child_index = indices[0];
+
+  if (node.data_type === Abstract_syntax_tree_helpers.Node_data_type.Collapsible) {
+    const data = node.data as Abstract_syntax_tree_helpers.Collapsible_data;
+    return data.elements[child_index];
+  }
+  else if (node.data_type === Abstract_syntax_tree_helpers.Node_data_type.List) {
+    const data = node.data as Abstract_syntax_tree_helpers.List_data;
+    return data.elements[child_index];
+  }
+  else {
+    const message = "Trying to get child on leaf node!";
+    onThrowError(message);
+    throw Error(message);
+  }
+}
+
+function on_node_tree_update(data: Node_update.Update): void {
+  if (data.type === Node_update.Update_type.Open_collapsible) {
+    const node_tree = m_main_store.module_abstract_syntax_tree;
+    const child_node = get_child_node(node_tree, data.indices);
+
+    if (child_node.data_type !== Abstract_syntax_tree_helpers.Node_data_type.Collapsible) {
+      const message = "Trying to update non-collapsible node!";
+      onThrowError(message);
+      throw Error(message);
+    }
+
+    const collapsible_node_data = child_node.data as Abstract_syntax_tree_helpers.Collapsible_data;
+    const collapsible_update_data = data.data as Node_update.Open_collapsible_update;
+    collapsible_node_data.is_open = collapsible_update_data.value;
+  }
+}
+
 </script>
 
 <template>
 
   <div>
 
-    <nav v-if="m_state.module !== undefined">
+    <nav>
       <ul>
         <li>
           <select v-model="m_selectedView">
@@ -169,11 +204,11 @@ onMounted(() => { });
         </li>
         <li v-if="m_selectedView === 'function_view'">
           <select v-model="m_selectedFunctionId">
-            <option v-for="declaration in m_state.module.export_declarations.function_declarations.elements"
+            <option v-for="declaration in module.export_declarations.function_declarations.elements"
               :value="declaration.id" v-bind:key="declaration.id">
               {{ declaration.name }}
             </option>
-            <option v-for="declaration in m_state.module.internal_declarations.function_declarations.elements"
+            <option v-for="declaration in module.internal_declarations.function_declarations.elements"
               :value="declaration.id" v-bind:key="declaration.id">
               {{ declaration.name }}
             </option>
@@ -193,21 +228,24 @@ onMounted(() => { });
 
       <div v-if="m_selectedView === 'module_view'">
 
-        <div v-if="m_state.module !== undefined && m_state.module_node_tree !== undefined">
-          <Structured_view.Module_view v-if="m_state.module !== undefined" :module="m_state.module"
-            :module_node_tree="m_state.module_node_tree" :declarations="Declarations.get_all_items(m_state.module)"
-            v-on:new_changes="on_new_changes">
+        <div>
+          <Nodes.Node :node="module_abstract_syntax_tree" v-on:update="on_node_tree_update">
+          </Nodes.Node>
+        </div>
+
+        <!--<div>
+          <Structured_view.Module_view :module="module" :module_node_tree="module_abstract_syntax_tree"
+            :declarations="Declarations.get_all_items(module)" v-on:new_changes="on_new_changes">
           </Structured_view.Module_view>
-        </div>
+        </div>-->
 
-        <div v-if="(m_state.module !== undefined)">
-          <Structured_view.Module_declarations_view v-if="m_state.module !== undefined" :module="m_state.module"
-            v-on:new_changes="on_new_changes">
+        <!--<div>
+          <Structured_view.Module_declarations_view :module="module" v-on:new_changes="on_new_changes">
           </Structured_view.Module_declarations_view>
-        </div>
+        </div>-->
 
-        <div v-if="(m_state.module !== undefined) && (m_selectedFrontendLanguage === 'JSON')">
-          <JSON_object :value="m_state.module" :reflection_info="m_reflectionInfo" :reflection_type="{ name: 'Module' }"
+        <div v-if="m_selectedFrontendLanguage === 'JSON'">
+          <JSON_object :value="module" :reflection_info="m_reflectionInfo" :reflection_type="{ name: 'Module' }"
             :is_read_only="false" :indentation="4" :add_comma="false" v-on:new_changes="on_new_changes">
           </JSON_object>
 
@@ -225,8 +263,7 @@ onMounted(() => { });
 
       </div>
 
-      <div
-        v-if="(m_state.module !== undefined) && (m_selectedView === 'function_view') && (m_selectedFunctionId !== undefined)">
+      <div v-if="(m_selectedView === 'function_view') && (m_selectedFunctionId !== undefined)">
         <!-- TODO -->
       </div>
 
