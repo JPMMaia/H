@@ -153,3 +153,29 @@ export function create_initialize(value: any): Change {
         value: change
     };
 }
+
+function flatten_changes_auxiliary(output: { position: any[], change: Change }[], hierarchy: Hierarchy, current_position: any[]): void {
+
+    for (const change of hierarchy.changes) {
+        output.push({ position: current_position, change: change });
+    }
+
+    for (const child of hierarchy.children) {
+        flatten_changes_auxiliary(output, child.hierarchy, [...current_position, ...child.position]);
+    }
+}
+
+export function flatten_changes(hierarchy: Hierarchy): { position: any[], change: Change }[] {
+
+    const all_changes: { position: any[], change: Change }[] = [];
+
+    for (const change of hierarchy.changes) {
+        all_changes.push({ position: [], change: change });
+    }
+
+    for (const child of hierarchy.children) {
+        flatten_changes_auxiliary(all_changes, child.hierarchy, child.position);
+    }
+
+    return all_changes;
+}
