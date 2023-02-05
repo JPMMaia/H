@@ -32,10 +32,10 @@ function update_declarations_node_tree(module: Core.Module, declarations: Core.M
 function update_definitions_node_tree(definitions: Core.Module_definitions, declaration_nodes: Abstract_syntax_tree_helpers.Node[], change_hierarchy: Change.Hierarchy, position: any[]): void {
 }
 
-export function update_module_node_tree(module_node_tree_reference: any, module: Core.Module, symbols: Symbol_database.Edit_module_database, change_hierarchy: Change.Hierarchy): void {
+export function update_module_node_tree(module_node_tree_reference: any, module: Core.Module, change_hierarchy: Change.Hierarchy): void {
     for (const change of change_hierarchy.changes) {
         if (change.type === Change.Type.Initialize) {
-            module_node_tree_reference.value = Abstract_syntax_tree_helpers.create_module_code_tree(module, symbols);
+            module_node_tree_reference.value = Abstract_syntax_tree_helpers.create_module_code_tree(module);
         }
     }
 

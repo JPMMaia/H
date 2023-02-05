@@ -363,7 +363,7 @@ export function create_string_node(parent: Node, index_in_parent: number, value:
         data_type: Node_data_type.String,
         data: {
             value: value,
-            html_tag: "span",
+            html_tag: html_tag,
             is_content_editable: is_content_editable
         },
         parent: parent,
@@ -372,17 +372,12 @@ export function create_string_node(parent: Node, index_in_parent: number, value:
     };
 }
 
-export function create_symbol_or_string_node(parent: Node, index_in_parent: number, symbol: Symbol_database.Symbol | undefined, string_value: string, html_tag: string, is_content_editable: boolean, metadata: Metadata): Node {
-
-    if (symbol === undefined) {
-        return create_string_node(parent, index_in_parent, string_value, html_tag, is_content_editable, metadata);
-    }
-
+export function create_symbol_node(parent: Node, index_in_parent: number, symbol: Symbol_database.Symbol, html_tag: string, is_content_editable: boolean, metadata: Metadata): Node {
     return {
         data_type: Node_data_type.Symbol,
         data: {
             symbol: symbol,
-            html_tag: "span",
+            html_tag: html_tag,
             is_content_editable: is_content_editable
         },
         parent: parent,
@@ -431,30 +426,20 @@ export function create_statement_end_node_tree(parent: Node, index_in_parent: nu
     return create_string_node(parent, index_in_parent, ";", "span", false, { type: Metadata_type.Statement_end });
 }
 
-export function create_variable_name_node_tree(parent: Node, index_in_parent: number, name: string): Node {
-    return create_string_node(parent, index_in_parent, name, "span", true, { type: Metadata_type.Variable_name });
+export function create_variable_name_node_tree(parent: Node, index_in_parent: number, symbol: Symbol_database.Symbol): Node {
+    return create_symbol_node(parent, index_in_parent, symbol, "span", true, { type: Metadata_type.Variable_name });
 }
 
-export function create_variable_type_reference_node_tree(parent: Node, index_in_parent: number, module: Core.Module, type: Core.Type_reference): Node {
-    const name = Core_helpers.getUnderlyingTypeName([module], type);
-    return create_string_node(parent, index_in_parent, name, "span", true, { type: Metadata_type.Variable_type });
+export function create_variable_type_node_tree(parent: Node, index_in_parent: number, type: Symbol_database.Symbol): Node {
+    return create_symbol_node(parent, index_in_parent, type, "span", true, { type: Metadata_type.Variable_type });
 }
 
-export function create_variable_type_builtin_type_node_tree(parent: Node, index_in_parent: number, type: Core.Builtin_type_reference): Node {
-    return create_string_node(parent, index_in_parent, type.value, "span", true, { type: Metadata_type.Variable_type });
-}
-
-export function create_variable_type_node_tree(parent: Node, index_in_parent: number, module: Core.Module, type: Core.Type_reference): Node {
-
-    switch (type.data.type) {
-        case Core.Type_reference_enum.Builtin_type_reference:
-            return create_variable_type_builtin_type_node_tree(parent, index_in_parent, type.data as Core.Builtin_type_reference);
-        default:
-            return create_variable_type_reference_node_tree(parent, index_in_parent, module, type);
-    }
-}
-
-export function create_function_parameter_node_tree(parent: Node, index_in_parent: number, module: Core.Module, parameter_id: number, parameter_name: string, parameter_type: Core.Type_reference): Node {
+export function create_function_parameter_node_tree(
+    parent: Node,
+    index_in_parent: number,
+    parameter_name_symbol: Symbol_database.Symbol,
+    parameter_type_symbol: Symbol_database.Symbol
+): Node {
 
     const root: Node = {
         data_type: Node_data_type.List,
@@ -468,9 +453,9 @@ export function create_function_parameter_node_tree(parent: Node, index_in_paren
 
     root.data = {
         elements: [
-            create_variable_name_node_tree(root, 0, parameter_name),
+            create_variable_name_node_tree(root, 0, parameter_name_symbol),
             create_separator_node_tree(root, 1, ": ", false),
-            create_variable_type_node_tree(root, 2, module, parameter_type)
+            create_variable_type_node_tree(root, 2, parameter_type_symbol)
         ],
         html_tag: "span",
         html_class: ""
@@ -503,7 +488,9 @@ export function create_function_parameters_node_tree(
     };
 
     const parameters = parameter_ids.map((id, index) => {
-        return create_function_parameter_node_tree(root, 0, module, id, parameter_names[index], parameter_types[index])
+        const parameter_name_symbol = { id: () => id, type: Symbol_database.Type.Variable_declaration, name: () => parameter_names[index] };
+        const parameter_type_symbol = { id: () => id, type: Symbol_database.Type.Type_reference, name: () => Core_helpers.getUnderlyingTypeName([module], parameter_types[index]) };
+        return create_function_parameter_node_tree(root, 0, parameter_name_symbol, parameter_type_symbol)
     });
 
     if (is_variadic) {
@@ -531,7 +518,6 @@ export function create_function_declaration_node_tree(
     parent: Node | undefined,
     index_in_parent: number | undefined,
     module: Core.Module,
-    symbols: Symbol_database.Edit_module_database,
     function_declaration: Core.Function_declaration,
     variadic_symbol: string,
     separator: string
@@ -547,13 +533,13 @@ export function create_function_declaration_node_tree(
         }
     };
 
-    const function_name_symbol = Symbol_database.find_function_symbol(symbols, function_declaration.id);
+    const function_name_symbol = { id: () => function_declaration.id, type: Symbol_database.Type.Function_declaration, name: () => function_declaration.name };
 
     root.data = {
         elements: [
             create_string_node(root, 0, "function", "span", true, { type: Metadata_type.Function_keyword }),
             create_space_node_tree(root, 1),
-            create_symbol_or_string_node(root, 2, function_name_symbol, function_declaration.name, "span", true, { type: Metadata_type.Function_name }),
+            create_symbol_node(root, 2, function_name_symbol, "span", true, { type: Metadata_type.Function_name }),
             create_function_parameters_node_tree(root, 3, module, true, function_declaration.input_parameter_ids.elements, function_declaration.input_parameter_names.elements, function_declaration.type.input_parameter_types.elements, function_declaration.type.is_variadic, variadic_symbol, separator),
             create_string_node(root, 4, " -> ", "span", false, { type: Metadata_type.Separator }),
             create_function_parameters_node_tree(root, 5, module, false, function_declaration.output_parameter_ids.elements, function_declaration.output_parameter_names.elements, function_declaration.type.output_parameter_types.elements, false, variadic_symbol, separator),
@@ -598,7 +584,6 @@ export function create_function_node_tree(
     parent: Node | undefined,
     index_in_parent: number | undefined,
     module: Core.Module,
-    symbols: Symbol_database.Edit_module_database,
     function_declaration: Core.Function_declaration,
     function_definition: Core.Function_definition
 ): Node {
@@ -615,7 +600,7 @@ export function create_function_node_tree(
 
     root.data = {
         elements: [
-            create_function_declaration_node_tree(root, 0, module, symbols, function_declaration, "...", ", "),
+            create_function_declaration_node_tree(root, 0, module, function_declaration, "...", ", "),
             create_function_definition_node_tree(root, 1, module, function_declaration, function_definition)
         ],
         is_open: false
@@ -634,14 +619,15 @@ export function create_variable_expression_node_tree(
     if (expression.type === Core.Variable_expression_type.Function_argument) {
         const parameter_index = function_declaration.input_parameter_ids.elements.findIndex(id => id === expression.id);
         if (parameter_index !== -1) {
-            const name = function_declaration.input_parameter_names.elements[parameter_index];
-            return create_string_node(parent, index_in_parent, name, "span", true, { type: Metadata_type.Expression_variable });
+            const name_symbol = { id: () => parameter_index, type: Symbol_database.Type.Variable_declaration, name: () => function_declaration.input_parameter_names.elements[parameter_index] };
+            return create_symbol_node(parent, index_in_parent, name_symbol, "span", true, { type: Metadata_type.Expression_variable });
         }
     }
     else if (expression.type === Core.Variable_expression_type.Local_variable) {
         const statement = statements.find(statement => statement.id === expression.id);
         if (statement !== undefined) {
-            return create_string_node(parent, index_in_parent, statement.name, "span", true, { type: Metadata_type.Expression_variable });
+            const name_symbol = { id: () => statement.id, type: Symbol_database.Type.Variable_reference, name: () => statement.name };
+            return create_symbol_node(parent, index_in_parent, name_symbol, "span", true, { type: Metadata_type.Expression_variable });
         }
     }
 
@@ -683,12 +669,12 @@ export function create_expression_node_tree(
 
     if (expression.data.type === Core.Expression_enum.Binary_expression) {
         const binary_expression = expression.data.value as Core.Binary_expression;
-        const binary_operation_string = get_binary_operation_string(binary_expression.operation);
+        const binary_operation_symbol = { id: () => expression_index, type: Symbol_database.Type.Operation, name: () => get_binary_operation_string(binary_expression.operation) };
 
         root.data = {
             elements: [
                 create_expression_node_tree(root, 0, module, function_declaration, statements, statement, binary_expression.left_hand_side.expression_index),
-                create_string_node(root, 1, binary_operation_string, "span", true, { type: Metadata_type.Binary_operation }),
+                create_symbol_node(root, 1, binary_operation_symbol, "span", true, { type: Metadata_type.Binary_operation }),
                 create_expression_node_tree(root, 2, module, function_declaration, statements, statement, binary_expression.right_hand_side.expression_index),
             ],
             html_tag: "span",
@@ -697,9 +683,10 @@ export function create_expression_node_tree(
     }
     else if (expression.data.type === Core.Expression_enum.Constant_expression) {
         const constant_expression = expression.data.value as Core.Constant_expression;
+        const constant_expression_symbol = { id: () => expression_index, type: Symbol_database.Type.Constant, name: () => constant_expression.data };
         root.data = {
             elements: [
-                create_string_node(root, 0, constant_expression.data, "span", true, { type: Metadata_type.Expression_constant })
+                create_symbol_node(root, 0, constant_expression_symbol, "span", true, { type: Metadata_type.Expression_constant })
             ],
             html_tag: "span",
             html_class: ""
@@ -707,9 +694,10 @@ export function create_expression_node_tree(
     }
     else if (expression.data.type === Core.Expression_enum.Invalid_expression) {
         const invalid_expression = expression.data.value as Core.Invalid_expression;
+        const invalid_expression_symbol = { id: () => expression_index, type: Symbol_database.Type.Other, name: () => invalid_expression.value };
         root.data = {
             elements: [
-                create_string_node(root, 0, invalid_expression.value, "span", true, { type: Metadata_type.Expression_invalid })
+                create_symbol_node(root, 0, invalid_expression_symbol, "span", true, { type: Metadata_type.Expression_invalid })
             ],
             html_tag: "span",
             html_class: ""
@@ -742,7 +730,12 @@ export function create_expression_node_tree(
     return root;
 }
 
-export function create_variable_declaration_node_tree(parent: Node | undefined, index_in_parent: number | undefined, module: Core.Module, name: string, type: Core.Type_reference): Node {
+export function create_variable_declaration_node_tree(
+    parent: Node | undefined,
+    index_in_parent: number | undefined,
+    name_symbol: Symbol_database.Symbol,
+    type_symbol: Symbol_database.Symbol
+): Node {
 
     const root: Node = {
         data_type: Node_data_type.List,
@@ -758,9 +751,9 @@ export function create_variable_declaration_node_tree(parent: Node | undefined, 
         elements: [
             create_variable_keyword_node_tree(root, 0, false),
             create_space_node_tree(root, 1),
-            create_variable_name_node_tree(root, 2, name),
+            create_variable_name_node_tree(root, 2, name_symbol),
             create_separator_node_tree(root, 3, ": ", false),
-            create_variable_type_node_tree(root, 4, module, type)
+            create_variable_type_node_tree(root, 4, type_symbol)
         ],
         html_tag: "span",
         html_class: ""
@@ -796,9 +789,13 @@ export function create_statement_node_tree(
     const has_variable_declaration = type_reference !== undefined && type_reference.length > 0;
 
     if (has_variable_declaration) {
+
+        const variable_name_symbol = { id: () => statement.id, type: Symbol_database.Type.Variable_declaration, name: () => statement.name };
+        const variable_type_symbol = { id: () => statement.id, type: Symbol_database.Type.Type_reference, name: () => Core_helpers.getUnderlyingTypeName([module], type_reference[0]) };
+
         root.data = {
             elements: [
-                create_variable_declaration_node_tree(root, 0, module, statement.name, type_reference[0]),
+                create_variable_declaration_node_tree(root, 0, variable_name_symbol, variable_type_symbol),
                 create_assignment_node_tree(root, 1),
                 create_expression_node_tree(root, 2, module, function_declaration, statements, statement, 0),
                 create_statement_end_node_tree(root, 3)
@@ -857,8 +854,7 @@ export function create_code_block_node_tree(
 }
 
 export function create_module_code_tree(
-    module: Core.Module,
-    symbols: Symbol_database.Edit_module_database
+    module: Core.Module
 ): Node {
 
     const root: Node = {
@@ -872,7 +868,7 @@ export function create_module_code_tree(
     };
 
     const export_function_definitions = module.export_declarations.function_declarations.elements.map(declaration => Core_helpers.find_function_definition(module, Core_helpers.create_function_reference(module, declaration.id)));
-    const export_functions = module.export_declarations.function_declarations.elements.map((declaration, index) => create_function_node_tree(root, 0, module, symbols, declaration, export_function_definitions[index]));
+    const export_functions = module.export_declarations.function_declarations.elements.map((declaration, index) => create_function_node_tree(root, 0, module, declaration, export_function_definitions[index]));
 
     // TODO add other declarations
 

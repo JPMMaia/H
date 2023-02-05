@@ -77,7 +77,7 @@ const module_abstract_syntax_tree = computed(() => m_main_store.module_abstract_
 if (g_webview_only) {
   m_main_store.module = Module_examples.create_default();
   m_main_store.symbol_database = Symbol_database.create_edit_database(m_main_store.module);
-  m_main_store.module_abstract_syntax_tree = Abstract_syntax_tree_helpers.create_module_code_tree(m_main_store.module, m_main_store.symbol_database);
+  m_main_store.module_abstract_syntax_tree = Abstract_syntax_tree_helpers.create_module_code_tree(m_main_store.module);
 }
 
 function update_store_with_new_changes(new_changes: Change.Hierarchy[]): void {
@@ -102,7 +102,7 @@ function update_store_with_new_changes(new_changes: Change.Hierarchy[]): void {
   for (const change of new_changes) {
     Change_Update.update_object_with_change(module_reference, change, []);
     // TODO sync up symbol database
-    Abstract_syntax_tree_update.update_module_node_tree(module_node_tree_reference, m_main_store.module, m_main_store.symbol_database, change);
+    Abstract_syntax_tree_update.update_module_node_tree(module_node_tree_reference, m_main_store.module, change);
   }
 }
 
@@ -249,7 +249,7 @@ function on_node_tree_update(data: Node_update.Update): void {
           </Structured_view.Module_declarations_view>
         </div>-->
 
-        <div v-if="m_selectedFrontendLanguage === 'JSON'">
+        <!--<div v-if="m_selectedFrontendLanguage === 'JSON'">
           <JSON_object :value="module" :reflection_info="m_reflectionInfo" :reflection_type="{ name: 'Module' }"
             :is_read_only="false" :indentation="4" :add_comma="false" v-on:new_changes="on_new_changes">
           </JSON_object>
@@ -258,13 +258,13 @@ function on_node_tree_update(data: Node_update.Update): void {
             <h2>Actions</h2>
             <vscode-button @click="delete_module">Delete module</vscode-button>
           </section>
-        </div>
+        </div>-->
 
-        <div v-else>
+        <!--<div v-else>
           This file is empty.
 
           <vscode-button @click="create_module">Create module</vscode-button>
-        </div>
+        </div>-->
 
       </div>
 

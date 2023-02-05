@@ -27,7 +27,7 @@ const data_value = computed(() => {
     }
     else {
         const data = properties.node.data as Abstract_syntax_tree_helpers.Symbol_data;
-        return data.symbol.name;
+        return data.symbol.name();
     }
 });
 
