@@ -29,8 +29,8 @@ function on_node_update(update: Node_update.Update): void {
     <Nodes.List_node v-else-if="properties.node.data_type === Abstract_syntax_tree_helpers.Node_data_type.List"
         :node="properties.node" v-on:update="on_node_update">
     </Nodes.List_node>
-    <Nodes.String_node v-else :node="properties.node">
-    </Nodes.String_node>
+    <Nodes.String_or_symbol_node v-else :node="properties.node">
+    </Nodes.String_or_symbol_node>
 </template>
 
 <style scoped>

@@ -19,6 +19,7 @@ import type * as Change from "../../src/utilities/Change";
 import * as Change_Update from "../../src/utilities/Change_update";
 import * as Abstract_syntax_tree_helpers from "./utilities/Abstract_syntax_tree_helpers";
 import * as Abstract_syntax_tree_update from "./utilities/Abstract_syntax_tree_update";
+import * as Symbol_database from "./utilities/Symbol_database";
 import { get_type_name } from "./utilities/language";
 import * as hCoreReflectionInfo from "../../src/utilities/h_core_reflection.json";
 import { onThrowError } from "../../src/utilities/errors";
@@ -75,7 +76,8 @@ const module_abstract_syntax_tree = computed(() => m_main_store.module_abstract_
 
 if (g_webview_only) {
   m_main_store.module = Module_examples.create_default();
-  m_main_store.module_abstract_syntax_tree = Abstract_syntax_tree_helpers.create_module_code_tree(m_main_store.module);
+  m_main_store.symbol_database = Symbol_database.create_edit_database(m_main_store.module);
+  m_main_store.module_abstract_syntax_tree = Abstract_syntax_tree_helpers.create_module_code_tree(m_main_store.module, m_main_store.symbol_database);
 }
 
 function update_store_with_new_changes(new_changes: Change.Hierarchy[]): void {
@@ -99,7 +101,8 @@ function update_store_with_new_changes(new_changes: Change.Hierarchy[]): void {
 
   for (const change of new_changes) {
     Change_Update.update_object_with_change(module_reference, change, []);
-    Abstract_syntax_tree_update.update_module_node_tree(m_main_store.module, module_node_tree_reference, change);
+    // TODO sync up symbol database
+    Abstract_syntax_tree_update.update_module_node_tree(module_node_tree_reference, m_main_store.module, m_main_store.symbol_database, change);
   }
 }
 
@@ -109,11 +112,11 @@ function on_message_received(event: MessageEvent): void {
   if ("source" in message_data && message_data.source === "H_editor") {
     for (const message of message_data.messages) {
 
-    console.log(message);
+      console.log(message);
 
-    if (message.command === "new_changes") {
-      const new_changes: Change.Hierarchy[] = message.data.changes;
-      update_store_with_new_changes(new_changes);
+      if (message.command === "new_changes") {
+        const new_changes: Change.Hierarchy[] = message.data.changes;
+        update_store_with_new_changes(new_changes);
       }
     }
   }

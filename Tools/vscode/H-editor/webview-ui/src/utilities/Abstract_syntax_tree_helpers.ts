@@ -1,10 +1,12 @@
 import * as Core from "../../../src/utilities/coreModelInterface";
 import * as Core_helpers from "../../../src/utilities/coreModelInterfaceHelpers";
+import * as Symbol_database from "./Symbol_database";
 
 export enum Node_data_type {
     Collapsible,
     List,
-    String
+    String,
+    Symbol
 }
 
 export interface Collapsible_data {
@@ -24,9 +26,15 @@ export interface String_data {
     is_content_editable: boolean;
 }
 
+export interface Symbol_data {
+    symbol: Symbol_database.Symbol;
+    html_tag: string;
+    is_content_editable: boolean;
+}
+
 export interface Node {
     data_type: Node_data_type;
-    data: Collapsible_data | List_data | String_data | undefined
+    data: Collapsible_data | List_data | String_data | Symbol_data | undefined
     parent: Node | undefined;
     index_in_parent: number | undefined;
     metadata: Metadata;
@@ -145,7 +153,7 @@ export function find_next_sibling_node(node: Node): Find_result {
 
 export function find_left_most_leaf_node(node: Node): Find_result {
 
-    if (node.data_type === Node_data_type.String) {
+    if (node.data_type === Node_data_type.String || node.data_type === Node_data_type.Symbol) {
         return {
             node: node,
             iteration_actions: []
@@ -174,7 +182,7 @@ export function find_left_most_leaf_node(node: Node): Find_result {
 
 export function find_right_most_leaf_node(node: Node): Find_result {
 
-    if (node.data_type === Node_data_type.String) {
+    if (node.data_type === Node_data_type.String || node.data_type === Node_data_type.Symbol) {
         return {
             node: node,
             iteration_actions: []
@@ -215,7 +223,7 @@ export function iterate_backward_and_skip(node: Node, skip: (element: Node) => b
         };
     }
 
-    if (skip(previous_sibling_node) || previous_sibling_node.data_type === Node_data_type.String) {
+    if (skip(previous_sibling_node) || previous_sibling_node.data_type === Node_data_type.String || previous_sibling_node.data_type === Node_data_type.Symbol) {
         return {
             node: previous_sibling_node,
             iteration_actions: previous_sibling_node_result.iteration_actions
@@ -256,7 +264,7 @@ export function iterate_backward(node: Node): Find_result {
 }
 
 export function iterate_forward_and_skip(node: Node, skip: (element: Node) => boolean): Find_result {
-
+    // TODO collapsible node?
     if (node.data_type === Node_data_type.List && !skip(node)) {
         const child_nodes = (node.data as List_data).elements;
         if (child_nodes.length > 0) {
@@ -355,6 +363,25 @@ export function create_string_node(parent: Node, index_in_parent: number, value:
         data_type: Node_data_type.String,
         data: {
             value: value,
+            html_tag: "span",
+            is_content_editable: is_content_editable
+        },
+        parent: parent,
+        index_in_parent: index_in_parent,
+        metadata: metadata
+    };
+}
+
+export function create_symbol_or_string_node(parent: Node, index_in_parent: number, symbol: Symbol_database.Symbol | undefined, string_value: string, html_tag: string, is_content_editable: boolean, metadata: Metadata): Node {
+
+    if (symbol === undefined) {
+        return create_string_node(parent, index_in_parent, string_value, html_tag, is_content_editable, metadata);
+    }
+
+    return {
+        data_type: Node_data_type.Symbol,
+        data: {
+            symbol: symbol,
             html_tag: "span",
             is_content_editable: is_content_editable
         },
@@ -500,7 +527,15 @@ export function create_function_parameters_node_tree(
     return root;
 }
 
-export function create_function_declaration_node_tree(parent: Node | undefined, index_in_parent: number | undefined, module: Core.Module, function_declaration: Core.Function_declaration, variadic_symbol: string, separator: string): Node {
+export function create_function_declaration_node_tree(
+    parent: Node | undefined,
+    index_in_parent: number | undefined,
+    module: Core.Module,
+    symbols: Symbol_database.Edit_module_database,
+    function_declaration: Core.Function_declaration,
+    variadic_symbol: string,
+    separator: string
+): Node {
 
     const root: Node = {
         data_type: Node_data_type.List,
@@ -512,11 +547,13 @@ export function create_function_declaration_node_tree(parent: Node | undefined, 
         }
     };
 
+    const function_name_symbol = Symbol_database.find_function_symbol(symbols, function_declaration.id);
+
     root.data = {
         elements: [
             create_string_node(root, 0, "function", "span", true, { type: Metadata_type.Function_keyword }),
             create_space_node_tree(root, 1),
-            create_string_node(root, 2, function_declaration.name, "span", true, { type: Metadata_type.Function_name }),
+            create_symbol_or_string_node(root, 2, function_name_symbol, function_declaration.name, "span", true, { type: Metadata_type.Function_name }),
             create_function_parameters_node_tree(root, 3, module, true, function_declaration.input_parameter_ids.elements, function_declaration.input_parameter_names.elements, function_declaration.type.input_parameter_types.elements, function_declaration.type.is_variadic, variadic_symbol, separator),
             create_string_node(root, 4, " -> ", "span", false, { type: Metadata_type.Separator }),
             create_function_parameters_node_tree(root, 5, module, false, function_declaration.output_parameter_ids.elements, function_declaration.output_parameter_names.elements, function_declaration.type.output_parameter_types.elements, false, variadic_symbol, separator),
@@ -561,6 +598,7 @@ export function create_function_node_tree(
     parent: Node | undefined,
     index_in_parent: number | undefined,
     module: Core.Module,
+    symbols: Symbol_database.Edit_module_database,
     function_declaration: Core.Function_declaration,
     function_definition: Core.Function_definition
 ): Node {
@@ -577,7 +615,7 @@ export function create_function_node_tree(
 
     root.data = {
         elements: [
-            create_function_declaration_node_tree(root, 0, module, function_declaration, "...", ", "),
+            create_function_declaration_node_tree(root, 0, module, symbols, function_declaration, "...", ", "),
             create_function_definition_node_tree(root, 1, module, function_declaration, function_definition)
         ],
         is_open: false
@@ -819,7 +857,8 @@ export function create_code_block_node_tree(
 }
 
 export function create_module_code_tree(
-    module: Core.Module
+    module: Core.Module,
+    symbols: Symbol_database.Edit_module_database
 ): Node {
 
     const root: Node = {
@@ -833,7 +872,7 @@ export function create_module_code_tree(
     };
 
     const export_function_definitions = module.export_declarations.function_declarations.elements.map(declaration => Core_helpers.find_function_definition(module, Core_helpers.create_function_reference(module, declaration.id)));
-    const export_functions = module.export_declarations.function_declarations.elements.map((declaration, index) => create_function_node_tree(root, 0, module, declaration, export_function_definitions[index]));
+    const export_functions = module.export_declarations.function_declarations.elements.map((declaration, index) => create_function_node_tree(root, 0, module, symbols, declaration, export_function_definitions[index]));
 
     // TODO add other declarations
 

@@ -57,6 +57,7 @@ function create_move_cursor_left_action(node: Abstract_syntax_tree_helpers.Node,
     }
     else if (selection.begin === 0) {
         const previous_editable_node = find_previous_editable_node(node);
+        // TODO handle collapsible node?
         if (previous_editable_node === undefined || previous_editable_node.data_type === Abstract_syntax_tree_helpers.Node_data_type.List) {
             return [];
         }
