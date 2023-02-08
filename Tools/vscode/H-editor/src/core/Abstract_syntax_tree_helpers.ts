@@ -60,6 +60,7 @@ export enum Metadata_type {
     Function_parameter,
     Function_input_parameter_list,
     Function_output_parameter_list,
+    Function_declaration_end,
     Module,
     Parenthesis_open,
     Parenthesis_close,
@@ -398,7 +399,7 @@ export function create_symbol_node(parent: Node, index_in_parent: number, symbol
 }
 
 export function create_empty_node_tree(parent: Node, index_in_parent: number, html_tag: string): Node {
-    return create_string_node(parent, index_in_parent, "\u200B", html_tag, true, { type: Metadata_type.Empty });
+    return create_string_node(parent, index_in_parent, "", html_tag, true, { type: Metadata_type.Empty });
 }
 
 export function create_separator_node_tree(parent: Node, index_in_parent: number, separator: string, is_content_editable: boolean): Node {
@@ -554,6 +555,7 @@ export function create_function_declaration_node_tree(
             create_function_parameters_node_tree(root, 3, module, true, function_declaration.input_parameter_ids.elements, function_declaration.input_parameter_names.elements, function_declaration.type.input_parameter_types.elements, function_declaration.type.is_variadic, variadic_symbol, separator),
             create_string_node(root, 4, " -> ", "span", false, { type: Metadata_type.Separator }),
             create_function_parameters_node_tree(root, 5, module, false, function_declaration.output_parameter_ids.elements, function_declaration.output_parameter_names.elements, function_declaration.type.output_parameter_types.elements, false, variadic_symbol, separator),
+            create_string_node(root, 6, "", "span", false, { type: Metadata_type.Function_declaration_end })
         ],
         html_tag: "span",
         html_class: ""
@@ -685,8 +687,10 @@ export function create_expression_node_tree(
         root.data = {
             elements: [
                 create_expression_node_tree(root, 0, module, function_declaration, statements, statement, binary_expression.left_hand_side.expression_index),
-                create_symbol_node(root, 1, binary_operation_symbol, "span", true, { type: Metadata_type.Binary_operation }),
-                create_expression_node_tree(root, 2, module, function_declaration, statements, statement, binary_expression.right_hand_side.expression_index),
+                create_space_node_tree(root, 1),
+                create_symbol_node(root, 2, binary_operation_symbol, "span", true, { type: Metadata_type.Binary_operation }),
+                create_space_node_tree(root, 3),
+                create_expression_node_tree(root, 4, module, function_declaration, statements, statement, binary_expression.right_hand_side.expression_index),
             ],
             html_tag: "span",
             html_class: "horizontal_container add_space_between_nodes"
@@ -728,7 +732,8 @@ export function create_expression_node_tree(
         root.data = {
             elements: [
                 create_string_node(root, 0, "return", "span", true, { type: Metadata_type.Expression_return }),
-                create_expression_node_tree(root, 1, module, function_declaration, statements, statement, return_expression.expression.expression_index)
+                create_space_node_tree(root, 1),
+                create_expression_node_tree(root, 2, module, function_declaration, statements, statement, return_expression.expression.expression_index)
             ],
             html_tag: "span",
             html_class: "horizontal_container add_space_between_nodes"
@@ -900,39 +905,60 @@ export function create_module_code_tree(
     return root;
 }
 
+function add_indentation(buffer: string[], indentation_width: number, indentation_count: number): void {
+    if (indentation_count > 0) {
+        buffer.push(" ".repeat(indentation_width * indentation_count));
+    }
+}
+
 export function to_string(node_tree: Node): string {
 
     const buffer: string[] = [];
 
+    let indentation_width = 4;
+    let indentation_count = 0;
+
     for_all(node_tree, (node: Node): void => {
+
+        if (node.metadata.type === Metadata_type.Curly_braces_open) {
+            add_indentation(buffer, indentation_width, indentation_count);
+            ++indentation_count;
+        }
+        else if (node.metadata.type === Metadata_type.Curly_braces_close) {
+            --indentation_count;
+        }
+        else if (node.metadata.type === Metadata_type.Function) {
+            buffer.push('\n'); 
+        }
+        else if (node.metadata.type === Metadata_type.Statement) {
+            add_indentation(buffer, indentation_width, indentation_count);
+        }
+
         if (node.data_type === Node_data_type.String) {
             const data = node.data as String_data;
-
-            if (data.html_tag === "div") {
-                buffer.push("\n");
-            }
-
             buffer.push(data.value);
-
         }
         else if (node.data_type === Node_data_type.Symbol) {
             const data = node.data as Symbol_data;
-
-            if (data.html_tag === "div") {
-                buffer.push("\n");
-            }
-
             buffer.push(data.symbol.name());
         }
         else if (node.data_type === Node_data_type.List) {
             const data = node.data as List_data;
-
-            if (data.html_tag === "div") {
-                buffer.push("\n");
-            }
         }
         else if (node.data_type === Node_data_type.Collapsible) {
-            buffer.push("\n");
+        }
+
+        if (node.metadata.type === Metadata_type.Curly_braces_open) {
+            buffer.push('\n');
+        }
+        else if (node.metadata.type === Metadata_type.Curly_braces_close) {
+            buffer.push('\n');
+        }
+        else if (node.metadata.type === Metadata_type.Function_declaration_end) {
+            buffer.push('\n');
+        }
+        else if (node.metadata.type === Metadata_type.Statement_end) {
+            buffer.push('\n');
         }
     });
 

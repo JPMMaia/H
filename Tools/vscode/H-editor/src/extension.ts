@@ -7,6 +7,7 @@ import { HDocumentManager } from "./HDocumentManager";
 import { HDocument } from "./HDocument";
 import { onThrowError } from "./utilities/errors";
 import { H_file_system_provider } from "./text_editor/H_file_system_provider";
+import { H_default_formatter } from "./text_editor/H_default_formatter";
 import { H_document_provider } from "./text_editor/H_document_provider";
 import * as Module_examples from "./core/Module_examples";
 
@@ -83,6 +84,11 @@ export function activate(context: ExtensionContext) {
         vscode.workspace.openTextDocument(hlp_uri);
       }
     });
+
+    {
+      const disposable = vscode.languages.registerDocumentFormattingEditProvider('hl', new H_default_formatter(h_document_provider));
+      context.subscriptions.push(disposable);
+    }
 
     {
       const example_0 = Module_examples.create_default();
