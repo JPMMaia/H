@@ -7,6 +7,7 @@ import { HDocumentManager } from "./HDocumentManager";
 import { HDocument } from "./HDocument";
 import { onThrowError } from "./utilities/errors";
 import { H_file_system_provider } from "./text_editor/H_file_system_provider";
+import { H_document_provider } from "./text_editor/H_document_provider";
 import * as Module_examples from "./core/Module_examples";
 
 import * as Change from "./utilities/Change";
@@ -68,7 +69,8 @@ export function activate(context: ExtensionContext) {
 
     const hDocumentManager = new HDocumentManager();
 
-    const file_system_provider = new H_file_system_provider();
+    const h_document_provider = new H_document_provider();
+    const file_system_provider = new H_file_system_provider(h_document_provider);
 
     {
       const disposable = vscode.workspace.registerFileSystemProvider("hlp", file_system_provider, { isCaseSensitive: true, isReadonly: false });

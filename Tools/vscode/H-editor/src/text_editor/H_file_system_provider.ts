@@ -2,11 +2,18 @@ import * as vscode from "vscode";
 
 import * as Abstract_syntax_tree from "../core/Abstract_syntax_tree_helpers";
 import * as Core from "../utilities/coreModelInterface";
+import { H_document_provider } from "./H_document_provider";
 
 export class H_file_system_provider implements vscode.FileSystemProvider {
 
     private onDidChangeFileEventEmitter: vscode.EventEmitter<vscode.FileChangeEvent[]> = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
     public onDidChangeFile: vscode.Event<vscode.FileChangeEvent[]> = this.onDidChangeFileEventEmitter.event;
+
+    private h_document_provider: H_document_provider;
+
+    constructor(H_document_provider: H_document_provider) {
+        this.h_document_provider = H_document_provider;
+    }
 
     public watch(uri: vscode.Uri, options: { recursive: boolean; excludes: string[]; }): vscode.Disposable {
         throw new Error("Method not implemented.");
@@ -37,6 +44,7 @@ export class H_file_system_provider implements vscode.FileSystemProvider {
 
         const module: Core.Module = json_data as Core.Module;
         const abstract_syntax_tree = Abstract_syntax_tree.create_module_code_tree(module);
+        this.h_document_provider.set_document(uri, { module: module, abstract_syntax_tree: abstract_syntax_tree });
 
         const text = Abstract_syntax_tree.to_string(abstract_syntax_tree);
         const encoded_text = Buffer.from(text, "utf8");
@@ -45,8 +53,18 @@ export class H_file_system_provider implements vscode.FileSystemProvider {
     }
 
     public writeFile(uri: vscode.Uri, content: Uint8Array, options: { create: boolean; overwrite: boolean; }): void | Thenable<void> {
+
+        const document_data = this.h_document_provider.get_document(uri);
+        if (document_data === undefined) {
+            throw vscode.FileSystemError.FileNotFound(uri);
+        }
+
         const file_uri = uri.with({ scheme: "file" });
-        return vscode.workspace.fs.writeFile(file_uri, content);
+
+        const json_data = JSON.stringify(document_data.module);
+        const file_data: Uint8Array = Buffer.from(json_data, "utf8");
+
+        return vscode.workspace.fs.writeFile(file_uri, file_data);
     }
 
     public delete(uri: vscode.Uri, options: { recursive: boolean; }): void | Thenable<void> {
