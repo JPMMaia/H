@@ -1,5 +1,5 @@
-import * as Core from "../../../src/utilities/coreModelInterface";
-import * as Core_helpers from "../../../src/utilities/coreModelInterfaceHelpers";
+import * as Core from "../utilities/coreModelInterface";
+import * as Core_helpers from "../utilities/coreModelInterfaceHelpers";
 import * as Symbol_database from "./Symbol_database";
 
 export enum Node_data_type {
@@ -120,7 +120,7 @@ export function find_previous_sibling_node(node: Node): Find_result {
         return create_undefined_find_result();
     }
 
-    const parent_child_nodes = (node.parent.data as List_data).elements;
+    const parent_child_nodes = (node.parent.data_type === Node_data_type.List) ? (node.parent.data as List_data).elements : (node.parent.data as Collapsible_data).elements;
 
     return {
         node: parent_child_nodes[node.index_in_parent - 1],
@@ -136,7 +136,7 @@ export function find_next_sibling_node(node: Node): Find_result {
         return create_undefined_find_result();
     }
 
-    const parent_child_nodes = (node.parent.data as List_data).elements;
+    const parent_child_nodes = (node.parent.data_type === Node_data_type.List) ? (node.parent.data as List_data).elements : (node.parent.data as Collapsible_data).elements;
 
     if ((node.index_in_parent + 1) >= parent_child_nodes.length) {
         return create_undefined_find_result();
@@ -160,7 +160,7 @@ export function find_left_most_leaf_node(node: Node): Find_result {
         };
     }
 
-    const child_nodes = (node.data as List_data).elements;
+    const child_nodes = (node.data_type === Node_data_type.List) ? (node.data as List_data).elements : (node.data as Collapsible_data).elements;
 
     if (child_nodes.length === 0) {
         return {
@@ -189,7 +189,7 @@ export function find_right_most_leaf_node(node: Node): Find_result {
         };
     }
 
-    const child_nodes = (node.data as List_data).elements;
+    const child_nodes = (node.data_type === Node_data_type.List) ? (node.data as List_data).elements : (node.data as Collapsible_data).elements;
 
     if (child_nodes.length === 0) {
         return {
@@ -264,9 +264,8 @@ export function iterate_backward(node: Node): Find_result {
 }
 
 export function iterate_forward_and_skip(node: Node, skip: (element: Node) => boolean): Find_result {
-    // TODO collapsible node?
-    if (node.data_type === Node_data_type.List && !skip(node)) {
-        const child_nodes = (node.data as List_data).elements;
+    if ((node.data_type === Node_data_type.List || node.data_type === Node_data_type.Collapsible) && !skip(node)) {
+        const child_nodes = (node.data_type === Node_data_type.List) ? (node.data as List_data).elements : (node.data as Collapsible_data).elements;
         if (child_nodes.length > 0) {
             return {
                 node: child_nodes[0],
@@ -330,6 +329,18 @@ export function iterate_forward_and_skip_until(node: Node, skip: (element: Node)
 
 export function iterate_forward(node: Node): Find_result {
     return iterate_forward_and_skip(node, _ => false);
+}
+
+export function for_all(node: Node, callback: (node: Node) => void): void {
+
+    let current_node: Node | undefined = node;
+
+    while (current_node !== undefined) {
+        callback(current_node);
+
+        const result = iterate_forward(current_node);
+        current_node = result.node;
+    }
 }
 
 function interleave(array: any[], elements: any[]): void {
@@ -887,4 +898,44 @@ export function create_module_code_tree(
     };
 
     return root;
+}
+
+export function to_string(node_tree: Node): string {
+
+    const buffer: string[] = [];
+
+    for_all(node_tree, (node: Node): void => {
+        if (node.data_type === Node_data_type.String) {
+            const data = node.data as String_data;
+
+            if (data.html_tag === "div") {
+                buffer.push("\n");
+            }
+
+            buffer.push(data.value);
+
+        }
+        else if (node.data_type === Node_data_type.Symbol) {
+            const data = node.data as Symbol_data;
+
+            if (data.html_tag === "div") {
+                buffer.push("\n");
+            }
+
+            buffer.push(data.symbol.name());
+        }
+        else if (node.data_type === Node_data_type.List) {
+            const data = node.data as List_data;
+
+            if (data.html_tag === "div") {
+                buffer.push("\n");
+            }
+        }
+        else if (node.data_type === Node_data_type.Collapsible) {
+            buffer.push("\n");
+        }
+    });
+
+    const output = buffer.join("");
+    return output;
 }

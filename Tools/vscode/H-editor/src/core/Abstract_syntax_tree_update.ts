@@ -1,6 +1,6 @@
 import * as Abstract_syntax_tree_helpers from "./Abstract_syntax_tree_helpers";
-import type * as Core from "../../../src/utilities/coreModelInterface";
-import * as Change from "../../../src/utilities/Change";
+import type * as Core from "../utilities/coreModelInterface";
+import * as Change from "../utilities/Change";
 import type * as Symbol_database from "./Symbol_database";
 
 function get_node_child_elements(node_tree: Abstract_syntax_tree_helpers.Node): Abstract_syntax_tree_helpers.Node[] {

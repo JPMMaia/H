@@ -1,7 +1,7 @@
 
-import type * as Core from "../../../src/utilities/coreModelInterface";
-import * as Change from "../../../src/utilities/Change";
-import { onThrowError } from "../../../src/utilities/errors";
+import type * as Core from "../utilities/coreModelInterface";
+import * as Change from "../utilities/Change";
+import { onThrowError } from "../utilities/errors";
 
 export enum Type {
     Alias_type,

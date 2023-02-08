@@ -2,8 +2,8 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 
 import * as Abstract_syntax_tree_helpers from "../utilities/Abstract_syntax_tree_helpers";
-import * as Module_examples from "../utilities/Module_examples";
-import * as Symbol_database from "../utilities/Symbol_database";
+import * as Module_examples from "../../../src/core/Module_examples";
+import * as Symbol_database from "../../../src/core/Symbol_database";
 
 export const use_main_store = defineStore('main', () => {
     const empty_module = Module_examples.create_empty();

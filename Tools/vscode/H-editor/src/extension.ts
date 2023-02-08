@@ -6,6 +6,8 @@ import type { HEditorExplorerTreeEntry } from "./treeView/HEditorExplorerTreeDat
 import { HDocumentManager } from "./HDocumentManager";
 import { HDocument } from "./HDocument";
 import { onThrowError } from "./utilities/errors";
+import { H_file_system_provider } from "./text_editor/H_file_system_provider";
+import * as Module_examples from "./core/Module_examples";
 
 import * as Change from "./utilities/Change";
 import * as Change_update_from_text from "./utilities/Change_update_from_text";
@@ -50,14 +52,51 @@ export function activate(context: ExtensionContext) {
 
   if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length) {
 
+    context.subscriptions.push(vscode.commands.registerCommand('HEditor.initialize_workspace', _ => {
+
+      if (vscode.workspace.workspaceFolders === undefined || vscode.workspace.workspaceFolders.length === 0) {
+        return;
+      }
+
+      for (const workspace_folder of vscode.workspace.workspaceFolders) {
+        const uri = workspace_folder.uri.with({ scheme: "hlp" });
+        const name = vscode.workspace.workspaceFolders[0].name + " (H File System)";
+
+        vscode.workspace.updateWorkspaceFolders(0, 0, { uri: uri, name: name });
+      }
+    }));
+
     const hDocumentManager = new HDocumentManager();
 
-    const hEditorProvider = new HEditorProvider(context, hDocumentManager);
+    const file_system_provider = new H_file_system_provider();
+
+    {
+      const disposable = vscode.workspace.registerFileSystemProvider("hlp", file_system_provider, { isCaseSensitive: true, isReadonly: false });
+      context.subscriptions.push(disposable);
+    }
+
+    vscode.workspace.onDidOpenTextDocument((text_document: vscode.TextDocument) => {
+      if (text_document.languageId === "hl") {
+        const hlp_uri = text_document.uri.with({ scheme: "hlp" });
+        vscode.workspace.openTextDocument(hlp_uri);
+      }
+    });
+
+    {
+      const example_0 = Module_examples.create_default();
+      const json = JSON.stringify(example_0);
+      const data: Uint8Array = Buffer.from(json, "utf8");
+
+      const destination_uri = vscode.Uri.joinPath(vscode.workspace.workspaceFolders[0].uri, "default.hl");
+      vscode.workspace.fs.writeFile(destination_uri, data);
+    }
+
+    /*const hEditorProvider = new HEditorProvider(context, hDocumentManager);
 
     {
       const hEditorProviderRegistration = vscode.window.registerCustomEditorProvider(HEditorProvider.viewType, hEditorProvider);
       context.subscriptions.push(hEditorProviderRegistration);
-    }
+    }*/
 
     const workspaceRootUri = vscode.workspace.workspaceFolders[0].uri;
     const treeDataProvider = new HEditorExplorerTreeDataProvider(workspaceRootUri, context.extensionUri, hDocumentManager);
@@ -392,7 +431,7 @@ export function activate(context: ExtensionContext) {
           const changes = Change_update_from_text.create_change_updates_from_text_changes(e.contentChanges, e.document, document);
 
           document.onDidChangeTextDocument(e, changes);
-          hEditorProvider.onDidChangeTextDocument(e, changes);
+          //hEditorProvider.onDidChangeTextDocument(e, changes);
           treeDataProvider.onDidChangeTextDocument(e, changes);
         }
       }

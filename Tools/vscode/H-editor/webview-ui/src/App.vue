@@ -5,7 +5,7 @@ import { vscode } from "./utilities/vscode";
 import { update_object_with_change } from "../../src/utilities/Change_update";
 import type * as core from "../../src/utilities/coreModelInterface";
 import type * as coreHelpers from "../../src/utilities/coreModelInterfaceHelpers";
-import * as Module_examples from "./utilities/Module_examples";
+import * as Module_examples from "../../src/core/Module_examples";
 
 import Function_declaration from "./components/text_view/Function_declaration.vue";
 import * as Structured_view from "./components/structured_view/components";
@@ -17,9 +17,9 @@ import * as Node_update from "./components/structured_view/nodes/Node_update";
 
 import type * as Change from "../../src/utilities/Change";
 import * as Change_Update from "../../src/utilities/Change_update";
-import * as Abstract_syntax_tree_helpers from "./utilities/Abstract_syntax_tree_helpers";
-import * as Abstract_syntax_tree_update from "./utilities/Abstract_syntax_tree_update";
-import * as Symbol_database from "./utilities/Symbol_database";
+import * as Abstract_syntax_tree_helpers from "../../src/core/Abstract_syntax_tree_helpers";
+import * as Abstract_syntax_tree_update from "../../src/core/Abstract_syntax_tree_update";
+import * as Symbol_database from "../../src/core/Symbol_database";
 import { get_type_name } from "./utilities/language";
 import * as hCoreReflectionInfo from "../../src/utilities/h_core_reflection.json";
 import { onThrowError } from "../../src/utilities/errors";

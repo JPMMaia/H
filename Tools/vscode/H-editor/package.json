@@ -17,13 +17,16 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onCustomEditor:heditor.textEditor",
-		"onCommand:hello-world.showHelloWorld",
-		"onView:HEditorExplorer"
+		"onFileSystem:heditor"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
 		"commands": [
+			{
+				"command": "HEditor.initialize_workspace",
+				"title": "Initialize Workspace",
+				"category": "HEditor"
+			},
 			{
 				"command": "hello-world.showHelloWorld",
 				"title": "Hello World (Vue): Show"
@@ -64,15 +67,18 @@
 				"icon": "$(edit)"
 			}
 		],
-		"customEditors": [
+		"languages": [
 			{
-				"viewType": "heditor.textEditor",
-				"displayName": "H Editor",
-				"selector": [
-					{
-						"filenamePattern": "*.hl"
-					}
-				]
+				"id": "hl",
+				"extensions": [
+					".hl"
+				],
+				"aliases": [
+					"H",
+					"hl",
+					"hlanguage"
+				],
+				"filenames": []
 			}
 		],
 		"menus": {

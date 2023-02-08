@@ -2,7 +2,6 @@ import "mocha"
 
 import * as assert from "assert";
 import * as AST_helpers from "./Abstract_syntax_tree_helpers";
-import * as AST_input_helpers from "./Abstract_syntax_tree_input_helpers";
 
 function create_node_tree_1(parent?: AST_helpers.Node, index_in_parent?: number): AST_helpers.Node {
     const root = AST_helpers.create_list_node(
