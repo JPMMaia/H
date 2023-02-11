@@ -149,8 +149,8 @@
 		"@vscode/codicons": "0.0.32",
 		"eslint": "^7.21.0",
 		"mocha": "^10.0.0",
-		"typescript": "^4.5.5",
-		"ts-node": "latest"
+		"ts-node": "latest",
+		"typescript": "^4.5.5"
 	},
 	"dependencies": {
 		"@types/mocha": "^9.1.1",
