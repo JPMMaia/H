@@ -32,12 +32,17 @@ export interface Symbol_data {
     is_content_editable: boolean;
 }
 
+interface Cache {
+    relative_start: number;
+}
+
 export interface Node {
     data_type: Node_data_type;
     data: Collapsible_data | List_data | String_data | Symbol_data | undefined
     parent: Node | undefined;
     index_in_parent: number | undefined;
     metadata: Metadata;
+    cache: Cache;
 }
 
 export enum Metadata_type {
@@ -366,7 +371,8 @@ export function create_list_node(parent: Node | undefined, index_in_parent: numb
         },
         parent: parent,
         index_in_parent: index_in_parent,
-        metadata: metadata
+        metadata: metadata,
+        cache: { relative_start: 0 }
     };
 }
 
@@ -380,7 +386,8 @@ export function create_string_node(parent: Node, index_in_parent: number, value:
         },
         parent: parent,
         index_in_parent: index_in_parent,
-        metadata: metadata
+        metadata: metadata,
+        cache: { relative_start: 0 }
     };
 }
 
@@ -394,7 +401,8 @@ export function create_symbol_node(parent: Node, index_in_parent: number, symbol
         },
         parent: parent,
         index_in_parent: index_in_parent,
-        metadata: metadata
+        metadata: metadata,
+        cache: { relative_start: 0 }
     };
 }
 
@@ -460,7 +468,8 @@ export function create_function_parameter_node_tree(
         index_in_parent: index_in_parent,
         metadata: {
             type: Metadata_type.Function_parameter
-        }
+        },
+        cache: { relative_start: 0 }
     };
 
     root.data = {
@@ -496,13 +505,14 @@ export function create_function_parameters_node_tree(
         parent: parent,
         metadata: {
             type: is_input_parameters_list ? Metadata_type.Function_input_parameter_list : Metadata_type.Function_output_parameter_list
-        }
+        },
+        cache: { relative_start: 0 }
     };
 
     const parameters = parameter_ids.map((id, index) => {
         const parameter_name_symbol = { id: () => id, type: Symbol_database.Type.Variable_declaration, name: () => parameter_names[index] };
         const parameter_type_symbol = { id: () => id, type: Symbol_database.Type.Type_reference, name: () => Core_helpers.getUnderlyingTypeName([module], parameter_types[index]) };
-        return create_function_parameter_node_tree(root, 0, parameter_name_symbol, parameter_type_symbol)
+        return create_function_parameter_node_tree(root, 0, parameter_name_symbol, parameter_type_symbol);
     });
 
     if (is_variadic) {
@@ -542,7 +552,8 @@ export function create_function_declaration_node_tree(
         parent: parent,
         metadata: {
             type: Metadata_type.Function_declaration
-        }
+        },
+        cache: { relative_start: 0 }
     };
 
     const function_name_symbol = { id: () => function_declaration.id, type: Symbol_database.Type.Function_declaration, name: () => function_declaration.name };
@@ -579,7 +590,8 @@ export function create_function_definition_node_tree(
         parent: parent,
         metadata: {
             type: Metadata_type.Function_definition
-        }
+        },
+        cache: { relative_start: 0 }
     };
 
     root.data = {
@@ -608,7 +620,8 @@ export function create_function_node_tree(
         parent: parent,
         metadata: {
             type: Metadata_type.Function
-        }
+        },
+        cache: { relative_start: 0 }
     };
 
     root.data = {
@@ -675,7 +688,8 @@ export function create_expression_node_tree(
         parent: parent,
         metadata: {
             type: Metadata_type.Expression
-        }
+        },
+        cache: { relative_start: 0 }
     };
 
     const expression = statement.expressions.elements[expression_index];
@@ -760,7 +774,8 @@ export function create_variable_declaration_node_tree(
         parent: parent,
         metadata: {
             type: Metadata_type.Variable_declaration
-        }
+        },
+        cache: { relative_start: 0 }
     };
 
     root.data = {
@@ -794,7 +809,8 @@ export function create_statement_node_tree(
         parent: parent,
         metadata: {
             type: Metadata_type.Statement
-        }
+        },
+        cache: { relative_start: 0 }
     };
 
     if (statement.expressions.elements.length === 0) {
@@ -851,7 +867,8 @@ export function create_code_block_node_tree(
         parent: parent,
         metadata: {
             type: Metadata_type.Code_block
-        }
+        },
+        cache: { relative_start: 0 }
     };
 
     const statements_node_tree = code_block_statements.map((statement, index) => create_statement_node_tree(root, index + 1, module, function_declaration, all_statements, statement));
@@ -880,7 +897,8 @@ export function create_module_code_tree(
         parent: undefined,
         metadata: {
             type: Metadata_type.Module
-        }
+        },
+        cache: { relative_start: 0 }
     };
 
     const export_function_definitions = module.export_declarations.function_declarations.elements.map(declaration => Core_helpers.find_function_definition(module, Core_helpers.create_function_reference(module, declaration.id)));
@@ -905,9 +923,26 @@ export function create_module_code_tree(
     return root;
 }
 
-function add_indentation(buffer: string[], indentation_width: number, indentation_count: number): void {
-    if (indentation_count > 0) {
-        buffer.push(" ".repeat(indentation_width * indentation_count));
+function create_indentation(indentation_width: number, indentation_count: number): string {
+    return " ".repeat(indentation_width * indentation_count);
+}
+
+function add_word(buffer: string[], word: string): number {
+    buffer.push(word);
+    return word.length;
+}
+
+function get_word(node_tree: Node): string {
+    if (node_tree.data_type === Node_data_type.String) {
+        const data = node_tree.data as String_data;
+        return data.value;
+    }
+    else if (node_tree.data_type === Node_data_type.Symbol) {
+        const data = node_tree.data as Symbol_data;
+        return data.symbol.name();
+    }
+    else {
+        return "";
     }
 }
 
@@ -915,52 +950,57 @@ export function to_string(node_tree: Node): string {
 
     const buffer: string[] = [];
 
-    let indentation_width = 4;
+    const indentation_width = 4;
     let indentation_count = 0;
 
-    for_all(node_tree, (node: Node): void => {
+    let total_size = 0;
+    const stack: number[] = [0];
 
-        if (node.metadata.type === Metadata_type.Curly_braces_open) {
-            add_indentation(buffer, indentation_width, indentation_count);
+    let current_node: Node | undefined = node_tree;
+
+    while (current_node !== undefined) {
+
+        if (current_node.metadata.type === Metadata_type.Curly_braces_open) {
+            total_size += add_word(buffer, create_indentation(indentation_width, indentation_count));
             ++indentation_count;
         }
-        else if (node.metadata.type === Metadata_type.Curly_braces_close) {
+        else if (current_node.metadata.type === Metadata_type.Curly_braces_close) {
             --indentation_count;
         }
-        else if (node.metadata.type === Metadata_type.Function) {
-            buffer.push('\n'); 
+        else if (current_node.metadata.type === Metadata_type.Function) {
+            total_size += add_word(buffer, '\n');
         }
-        else if (node.metadata.type === Metadata_type.Statement) {
-            add_indentation(buffer, indentation_width, indentation_count);
-        }
-
-        if (node.data_type === Node_data_type.String) {
-            const data = node.data as String_data;
-            buffer.push(data.value);
-        }
-        else if (node.data_type === Node_data_type.Symbol) {
-            const data = node.data as Symbol_data;
-            buffer.push(data.symbol.name());
-        }
-        else if (node.data_type === Node_data_type.List) {
-            const data = node.data as List_data;
-        }
-        else if (node.data_type === Node_data_type.Collapsible) {
+        else if (current_node.metadata.type === Metadata_type.Statement) {
+            total_size += add_word(buffer, create_indentation(indentation_width, indentation_count));
         }
 
-        if (node.metadata.type === Metadata_type.Curly_braces_open) {
-            buffer.push('\n');
+        current_node.cache.relative_start = total_size - stack[stack.length - 1];
+
+        const word = get_word(current_node);
+        total_size += add_word(buffer, word);
+
+        if (current_node.metadata.type === Metadata_type.Curly_braces_open) {
+            total_size += add_word(buffer, '\n');
         }
-        else if (node.metadata.type === Metadata_type.Curly_braces_close) {
-            buffer.push('\n');
+        else if (current_node.metadata.type === Metadata_type.Curly_braces_close) {
+            total_size += add_word(buffer, '\n');
         }
-        else if (node.metadata.type === Metadata_type.Function_declaration_end) {
-            buffer.push('\n');
+        else if (current_node.metadata.type === Metadata_type.Function_declaration_end) {
+            total_size += add_word(buffer, '\n');
         }
-        else if (node.metadata.type === Metadata_type.Statement_end) {
-            buffer.push('\n');
+        else if (current_node.metadata.type === Metadata_type.Statement_end) {
+            total_size += add_word(buffer, '\n');
         }
-    });
+
+        stack.push(total_size);
+        const result = iterate_forward(current_node);
+        for (const action of result.iteration_actions) {
+            if (action.type === Iteration_action_type.Go_to_parent) {
+                stack.pop();
+            }
+        }
+        current_node = result.node;
+    }
 
     const output = buffer.join("");
     return output;
