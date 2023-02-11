@@ -51,10 +51,50 @@ function create_node_tree_2(): AST_helpers.Node {
     return root;
 }
 
-function create_function_node_tree(): AST_helpers.Node {
+function create_root_node_tree(): AST_helpers.Node {
     const root = AST_helpers.create_list_node(
         undefined,
         -1,
+        [
+        ],
+        {
+            type: AST_helpers.Metadata_type.Module
+        }
+    );
+
+    root.data = {
+        elements: [],
+        html_tag: "span",
+        html_class: ""
+    };
+
+    return root;
+}
+
+function create_module_with_functions(function_count: number): AST_helpers.Node {
+    const root = create_root_node_tree();
+
+    const elements: AST_helpers.Node[] = [];
+
+    for (let index = 0; index < function_count; ++index) {
+        elements.push(
+            create_function_node_tree(root, index)
+        );
+    }
+
+    root.data = {
+        elements: elements,
+        html_tag: "span",
+        html_class: ""
+    };
+
+    return root;
+}
+
+function create_function_node_tree(parent: AST_helpers.Node, index_in_parent: number): AST_helpers.Node {
+    const root = AST_helpers.create_list_node(
+        parent,
+        index_in_parent,
         [
         ],
         {
@@ -405,16 +445,21 @@ describe("Iterate forward", () => {
 describe("to_string", () => {
     it("function tree", () => {
 
-        const node_tree = create_function_node_tree();
+        const node_tree = create_module_with_functions(1);
 
         const text = AST_helpers.to_string(node_tree);
 
         {
-            assert.equal(node_tree.cache.relative_start, 1);
+            assert.equal(node_tree.cache.relative_start, 0);
         }
 
-        const children = (node_tree.data as AST_helpers.List_data).elements;
+        const function_node_tree = (node_tree.data as AST_helpers.List_data).elements[0];
 
+        {
+            assert.equal(function_node_tree.cache.relative_start, 0);
+        }
+
+        const children = (function_node_tree.data as AST_helpers.List_data).elements;
         const function_declaration_node_tree = children[0];
         const function_definition_node_tree = children[1];
 
@@ -454,5 +499,39 @@ describe("to_string", () => {
 
             assert.equal(definition_children[2].cache.relative_start, text.indexOf("}") - parent_global_start); // }
         }
+    });
+});
+
+describe("get_node_position", () => {
+    it("returns position of '0'", () => {
+        const node_tree = create_module_with_functions(1);
+        const text = AST_helpers.to_string(node_tree);
+
+        const index_of_0 = text.indexOf("0");
+        const node_position = AST_helpers.get_node_position(node_tree, index_of_0);
+
+        assert.equal(node_position.indices.length, 4);
+        assert.equal(node_position.indices[0], 0);
+        assert.equal(node_position.indices[1], 1);
+        assert.equal(node_position.indices[2], 1);
+        assert.equal(node_position.indices[3], 2);
+
+        assert.equal(node_position.offset, 0);
+    });
+
+    it("returns position of 'turn'", () => {
+        const node_tree = create_module_with_functions(1);
+        const text = AST_helpers.to_string(node_tree);
+
+        const index_of_return = text.indexOf("return");
+        const node_position = AST_helpers.get_node_position(node_tree, index_of_return + 2);
+
+        assert.equal(node_position.indices.length, 4);
+        assert.equal(node_position.indices[0], 0);
+        assert.equal(node_position.indices[1], 1);
+        assert.equal(node_position.indices[2], 1);
+        assert.equal(node_position.indices[3], 0);
+
+        assert.equal(node_position.offset, 2);
     });
 });

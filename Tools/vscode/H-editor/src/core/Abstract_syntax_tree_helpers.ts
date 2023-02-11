@@ -121,6 +121,20 @@ function create_undefined_find_result(): Find_result {
     };
 }
 
+export function get_children(node: Node): Node[] {
+    if (node.data_type === Node_data_type.List) {
+        const data = node.data as List_data;
+        return data.elements;
+    }
+    else if (node.data_type === Node_data_type.Collapsible) {
+        const data = node.data as Collapsible_data;
+        return data.elements;
+    }
+    else {
+        return [];
+    }
+}
+
 export function find_previous_sibling_node(node: Node): Find_result {
     if (node.parent === undefined || node.index_in_parent === undefined || node.index_in_parent === 0) {
         return create_undefined_find_result();
@@ -968,7 +982,7 @@ export function to_string(node_tree: Node): string {
             --indentation_count;
         }
         else if (current_node.metadata.type === Metadata_type.Function) {
-            total_size += add_word(buffer, '\n');
+            //total_size += add_word(buffer, '\n');
         }
         else if (current_node.metadata.type === Metadata_type.Statement) {
             total_size += add_word(buffer, create_indentation(indentation_width, indentation_count));
@@ -1004,4 +1018,31 @@ export function to_string(node_tree: Node): string {
 
     const output = buffer.join("");
     return output;
+}
+
+export interface Node_position {
+    indices: number[];
+    offset: number;
+}
+
+function get_node_position_auxiliary(node_tree: Node, indices: number[], target_offset: number, current_offset: number): Node_position {
+
+    const children = get_children(node_tree);
+
+    if (children.length === 0) {
+        return {
+            indices: indices,
+            offset: target_offset - current_offset
+        };
+    }
+
+    const after_start_child_index = children.findIndex(child => (current_offset + child.cache.relative_start) > target_offset);
+    const before_start_child_index = (after_start_child_index !== -1) ? after_start_child_index - 1 : children.length - 1;
+    const before_start_child = children[before_start_child_index];
+
+    return get_node_position_auxiliary(before_start_child, indices.concat(before_start_child_index), target_offset, current_offset + before_start_child.cache.relative_start);
+}
+
+export function get_node_position(node_tree: Node, target_offset: number): Node_position {
+    return get_node_position_auxiliary(node_tree, [], target_offset, 0);
 }
