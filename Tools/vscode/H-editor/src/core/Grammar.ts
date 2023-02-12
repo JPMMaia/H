@@ -16,10 +16,23 @@ export enum Token {
 }
 
 export interface Grammar {
+    is_binary_operator(word: string): boolean;
 }
 
 export function create_grammar(keywords: string[], operators: string[]): Grammar {
     return {
+        is_binary_operator: (word: string): boolean => {
+            switch (word) {
+                case "+":
+                case "-":
+                case "*":
+                case "/":
+                case "%":
+                    return true;
+                default:
+                    return false;
+            }
+        }
     };
 }
 
