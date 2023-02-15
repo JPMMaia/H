@@ -28,6 +28,20 @@ function is_alphanumeric(character: string): boolean {
     return is_number(character) || is_letter(character);
 }
 
+function is_parenthesis(character: string): boolean {
+    switch (character) {
+        case '(':
+        case ')':
+        case '{':
+        case '}':
+        case '[':
+        case ']':
+            return true;
+        default:
+            return false;
+    }
+}
+
 function is_symbol(character: string): boolean {
     switch (character) {
         case '"':
@@ -36,12 +50,6 @@ function is_symbol(character: string): boolean {
         case '|':
         case '^':
         case '~':
-        case '(':
-        case ')':
-        case '{':
-        case '}':
-        case '[':
-        case ']':
         case '+':
         case '-':
         case '*':
@@ -111,6 +119,13 @@ function scan_alphanumeric(code: string, start_offset: number): { word: string, 
     return {
         word: code.substring(start_offset, current_offset),
         processed_characters: current_offset - start_offset
+    };
+}
+
+function scan_parenthesis(code: string, start_offset: number): { word: string, processed_characters: number } {
+    return {
+        word: code.substring(start_offset, start_offset + 1),
+        processed_characters: 1
     };
 }
 
@@ -189,6 +204,15 @@ function scan_word(code: string, current_offset: number): { word: string, type: 
         return {
             word: scan_result.word,
             type: Grammar.Word_type.String,
+            processed_characters: ignored_characters + scan_result.processed_characters
+        };
+    }
+    // If it starts by parenthesis, then it only read one character at a time
+    else if (is_parenthesis(first_character)) {
+        const scan_result = scan_parenthesis(code, current_offset);
+        return {
+            word: scan_result.word,
+            type: Grammar.Word_type.Symbol,
             processed_characters: ignored_characters + scan_result.processed_characters
         };
     }
