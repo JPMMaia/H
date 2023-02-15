@@ -1,4 +1,7 @@
 export enum Token {
+    Code_block,
+    Code_block_close_keyword,
+    Code_block_open_keyword,
     Expression_binary_operation,
     Expression_binary_operation_keyword,
     Expression_constant,
@@ -10,6 +13,7 @@ export enum Token {
     Expression_variable_declaration_assignment,
     Expression_variable_declaration_keyword,
     Expression_variable_declaration_name,
+    Expression_variable_reference,
     Statement,
     Statement_end,
 }

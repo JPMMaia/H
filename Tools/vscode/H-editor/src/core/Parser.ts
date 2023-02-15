@@ -157,7 +157,10 @@ function find_operand(words: Scanner.Scanned_word[], start_offset: number, gramm
     if (is_constant_expression(words, start_offset, grammar)) {
         return 1;
     }
-    // TODO check for parenthesis, call expression or variable expression
+    else if (is_variable_reference_expression(words, start_offset, grammar)) {
+        return 1;
+    }
+    // TODO check for parenthesis or call expression
     else {
         return 0;
     }
@@ -224,6 +227,30 @@ function parse_binary_expression(words: Scanner.Scanned_word[], start_offset: nu
     };
 }
 
+function is_variable_reference_expression(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): boolean {
+    const word = words[start_offset];
+    return word.type === Grammar.Word_type.Alphanumeric;
+}
+
+function parse_variable_reference_expression(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
+
+    const variable_reference = words[start_offset].value;
+
+    const variable_reference_expression_node: Abstract_syntax_tree.Node = {
+        value: variable_reference,
+        token: Abstract_syntax_tree.Token.Expression_variable_reference,
+        children: [],
+        cache: {
+            relative_start: 0
+        }
+    };
+
+    return {
+        node: variable_reference_expression_node,
+        processed_words: 1
+    };
+}
+
 function parse_expression(words: Scanner.Scanned_word[], start_offset: number, end_offset: number, grammar: Grammar.Grammar): Parse_result {
 
     if (is_binary_operation_expression(words, start_offset, end_offset, grammar)) {
@@ -235,6 +262,13 @@ function parse_expression(words: Scanner.Scanned_word[], start_offset: number, e
     }
     else if (is_constant_expression(words, start_offset, grammar)) {
         const parse_result = parse_constant_expression(words, start_offset, grammar);
+        return {
+            node: parse_result.node,
+            processed_words: parse_result.processed_words
+        };
+    }
+    else if (is_variable_reference_expression(words, start_offset, grammar)) {
+        const parse_result = parse_variable_reference_expression(words, start_offset, grammar);
         return {
             node: parse_result.node,
             processed_words: parse_result.processed_words
@@ -323,5 +357,66 @@ export function parse_statement(words: Scanner.Scanned_word[], start_offset: num
     return {
         node: statement_node,
         processed_words: statement_body_parse_result.processed_words + 1
+    };
+}
+
+export function parse_code_block(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
+
+    const open_code_block_keyword = "{";
+    const close_code_block_keyword = "}";
+
+    const first_word = words[start_offset].value;
+
+    if (first_word !== open_code_block_keyword) {
+        const message = "parse_code_block expects '{' as first word!";
+        onThrowError(message);
+        throw Error(message);
+    }
+
+    const statement_nodes: Abstract_syntax_tree.Node[] = [];
+
+    let current_offset = start_offset + 1;
+
+    while (words[current_offset].value !== close_code_block_keyword) {
+        const result = parse_statement(words, current_offset, grammar);
+        statement_nodes.push(result.node);
+
+        current_offset += result.processed_words;
+    }
+
+    const open_block_node: Abstract_syntax_tree.Node = {
+        value: open_code_block_keyword,
+        token: Abstract_syntax_tree.Token.Code_block_open_keyword,
+        children: [],
+        cache: {
+            relative_start: 0
+        }
+    };
+
+    const close_block_node: Abstract_syntax_tree.Node = {
+        value: close_code_block_keyword,
+        token: Abstract_syntax_tree.Token.Code_block_close_keyword,
+        children: [],
+        cache: {
+            relative_start: 0
+        }
+    };
+
+    const code_block_node: Abstract_syntax_tree.Node = {
+        value: "",
+        token: Abstract_syntax_tree.Token.Code_block,
+        children: [
+            open_block_node,
+            ...statement_nodes,
+            close_block_node
+        ],
+        cache: {
+            relative_start: 0
+        }
+    };
+
+    return {
+        node: code_block_node,
+        processed_words: (current_offset - start_offset) + 1
     };
 }
