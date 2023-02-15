@@ -616,3 +616,84 @@ export function parse_function_declaration(words: Scanner.Scanned_word[], start_
         processed_words: (current_offset - start_offset)
     };
 }
+
+export function parse_function(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
+
+    const function_declaration_keyword = "function";
+
+    const first_word = words[start_offset].value;
+
+    if (first_word !== function_declaration_keyword) {
+        const message = "parse_function_declaration expects 'function' as first word!";
+        onThrowError(message);
+        throw Error(message);
+    }
+
+    let current_offset = start_offset;
+
+    const declaration_parse_result = parse_function_declaration(words, current_offset, grammar);
+    current_offset += declaration_parse_result.processed_words;
+
+    const definition_parse_result = parse_code_block(words, current_offset, grammar);
+    current_offset += definition_parse_result.processed_words;
+
+    const function_node: Abstract_syntax_tree.Node = {
+        value: "",
+        token: Abstract_syntax_tree.Token.Function,
+        children: [
+            declaration_parse_result.node,
+            definition_parse_result.node
+        ],
+        cache: {
+            relative_start: 0
+        }
+    };
+
+    return {
+        node: function_node,
+        processed_words: (current_offset - start_offset)
+    };
+}
+
+export function parse_module_body(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
+
+    const content_nodes: Abstract_syntax_tree.Node[] = [];
+
+    let current_offset = start_offset;
+
+    while (current_offset < words.length) {
+
+        const word = words[current_offset];
+
+        if (word.value === "function") {
+            const result = parse_function(words, current_offset, grammar);
+            content_nodes.push(result.node);
+
+            current_offset += result.processed_words;
+        }
+        else if (word.type === Grammar.Word_type.Invalid) {
+            current_offset += 1;
+        }
+        else {
+            const message = "Not implemented!";
+            onThrowError(message);
+            throw Error(message);
+        }
+    }
+
+    const body_node: Abstract_syntax_tree.Node = {
+        value: "",
+        token: Abstract_syntax_tree.Token.Module_body,
+        children: [
+            ...content_nodes
+        ],
+        cache: {
+            relative_start: 0
+        }
+    };
+
+    return {
+        node: body_node,
+        processed_words: (current_offset - start_offset)
+    };
+}

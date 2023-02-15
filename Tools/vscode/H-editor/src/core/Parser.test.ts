@@ -389,4 +389,73 @@ describe("Parser.parse", () => {
             }
         }
     });
+
+    it("Parses several functions of a module", () => {
+
+        const text = `
+            function foo() -> ()
+            {
+                return 0;
+            }
+
+            function bar() -> ()
+            {
+                return 0;
+            }
+        `;
+
+        const words = Scanner.scan(text);
+        const grammar = Grammar.create_default_grammar();
+        const root = Parser.parse_module_body(words, 0, grammar).node;
+
+        const module_body_node = root;
+
+        {
+            assert.equal(module_body_node.value, "");
+            assert.equal(module_body_node.token, Abstract_syntax_tree.Token.Module_body);
+            assert.equal(module_body_node.children.length, 2);
+        }
+
+        {
+            const function_node = module_body_node.children[0];
+            assert.equal(function_node.value, "");
+            assert.equal(function_node.token, Abstract_syntax_tree.Token.Function);
+            assert.equal(function_node.children.length, 2);
+
+            {
+                const declaration_node = function_node.children[0];
+                assert.equal(declaration_node.value, "");
+                assert.equal(declaration_node.token, Abstract_syntax_tree.Token.Function_declaration);
+                assert.equal(declaration_node.children.length > 0, true);
+            }
+
+            {
+                const definition_node = function_node.children[1];
+                assert.equal(definition_node.value, "");
+                assert.equal(definition_node.token, Abstract_syntax_tree.Token.Code_block);
+                assert.equal(definition_node.children.length > 0, true);
+            }
+        }
+
+        {
+            const function_node = module_body_node.children[1];
+            assert.equal(function_node.value, "");
+            assert.equal(function_node.token, Abstract_syntax_tree.Token.Function);
+            assert.equal(function_node.children.length, 2);
+
+            {
+                const declaration_node = function_node.children[0];
+                assert.equal(declaration_node.value, "");
+                assert.equal(declaration_node.token, Abstract_syntax_tree.Token.Function_declaration);
+                assert.equal(declaration_node.children.length > 0, true);
+            }
+
+            {
+                const definition_node = function_node.children[1];
+                assert.equal(definition_node.value, "");
+                assert.equal(definition_node.token, Abstract_syntax_tree.Token.Code_block);
+                assert.equal(definition_node.children.length > 0, true);
+            }
+        }
+    });
 });

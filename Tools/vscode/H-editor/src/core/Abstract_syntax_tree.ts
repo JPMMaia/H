@@ -2,6 +2,7 @@ export enum Token {
     Code_block,
     Code_block_close_keyword,
     Code_block_open_keyword,
+    Function,
     Function_declaration,
     Function_declaration_keyword,
     Function_declaration_input_parameters,
@@ -27,6 +28,8 @@ export enum Token {
     Expression_variable_declaration_keyword,
     Expression_variable_declaration_name,
     Expression_variable_reference,
+    Module,
+    Module_body,
     Statement,
     Statement_end,
 }
