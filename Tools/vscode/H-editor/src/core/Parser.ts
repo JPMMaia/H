@@ -420,3 +420,199 @@ export function parse_code_block(words: Scanner.Scanned_word[], start_offset: nu
         processed_words: (current_offset - start_offset) + 1
     };
 }
+
+function parse_function_parameter(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
+
+    const name_word = words[start_offset];
+    const separator_word = words[start_offset + 1];
+    const type_word = words[start_offset + 2];
+
+    const name_node: Abstract_syntax_tree.Node = {
+        value: name_word.value,
+        token: Abstract_syntax_tree.Token.Function_parameter_name,
+        children: [],
+        cache: {
+            relative_start: 0
+        }
+    };
+
+    const separator_node: Abstract_syntax_tree.Node = {
+        value: separator_word.value,
+        token: Abstract_syntax_tree.Token.Function_parameter_separator,
+        children: [],
+        cache: {
+            relative_start: 0
+        }
+    };
+
+    const type_node: Abstract_syntax_tree.Node = {
+        value: type_word.value,
+        token: Abstract_syntax_tree.Token.Function_parameter_type,
+        children: [],
+        cache: {
+            relative_start: 0
+        }
+    };
+
+    const parameter_node: Abstract_syntax_tree.Node = {
+        value: "",
+        token: Abstract_syntax_tree.Token.Function_parameter,
+        children: [
+            name_node,
+            separator_node,
+            type_node
+        ],
+        cache: {
+            relative_start: 0
+        }
+    };
+
+    return {
+        node: parameter_node,
+        processed_words: 3
+    };
+}
+
+export function parse_function_declaration_parameters(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar, is_input_parameters: boolean): Parse_result {
+
+    const open_keyword = "(";
+    const close_keyword = ")";
+    const separator_keyword = ",";
+
+    const first_word = words[start_offset];
+
+    const parameter_nodes: Abstract_syntax_tree.Node[] = [];
+
+    let current_offset = start_offset + 1;
+
+    while (words[current_offset].value !== close_keyword) {
+        const result = parse_function_parameter(words, current_offset, grammar);
+        parameter_nodes.push(result.node);
+
+        current_offset += result.processed_words;
+
+        if (words[current_offset].value !== close_keyword) {
+            const separator_node: Abstract_syntax_tree.Node = {
+                value: words[current_offset].value,
+                token: Abstract_syntax_tree.Token.Function_parameters_separator,
+                children: [],
+                cache: {
+                    relative_start: 0
+                }
+            };
+
+            parameter_nodes.push(separator_node);
+
+            current_offset += 1;
+        }
+    }
+
+    const open_parameters_node: Abstract_syntax_tree.Node = {
+        value: first_word.value,
+        token: Abstract_syntax_tree.Token.Function_parameters_open_keyword,
+        children: [],
+        cache: {
+            relative_start: 0
+        }
+    };
+
+    const close_parameters_node: Abstract_syntax_tree.Node = {
+        value: words[current_offset].value,
+        token: Abstract_syntax_tree.Token.Function_parameters_close_keyword,
+        children: [],
+        cache: {
+            relative_start: 0
+        }
+    };
+
+    const function_parameters_node: Abstract_syntax_tree.Node = {
+        value: "",
+        token: is_input_parameters ? Abstract_syntax_tree.Token.Function_declaration_input_parameters : Abstract_syntax_tree.Token.Function_declaration_output_parameters,
+        children: [
+            open_parameters_node,
+            ...parameter_nodes,
+            close_parameters_node
+        ],
+        cache: {
+            relative_start: 0
+        }
+    };
+
+    return {
+        node: function_parameters_node,
+        processed_words: (current_offset - start_offset) + 1
+    };
+}
+
+export function parse_function_declaration(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
+
+    const function_declaration_keyword = "function";
+
+    const first_word = words[start_offset].value;
+
+    if (first_word !== function_declaration_keyword) {
+        const message = "parse_function_declaration expects 'function' as first word!";
+        onThrowError(message);
+        throw Error(message);
+    }
+
+    const function_name_word = words[start_offset + 1];
+
+    const input_parameters_start_offset = start_offset + 2;
+    const input_parameters_parse_result = parse_function_declaration_parameters(words, input_parameters_start_offset, grammar, true);
+
+    const parameters_separator_offset = input_parameters_start_offset + input_parameters_parse_result.processed_words;
+    const parameters_separator_word = words[parameters_separator_offset];
+
+    const output_parameters_start_offset = parameters_separator_offset + 1;
+    const output_parameters_parse_result = parse_function_declaration_parameters(words, output_parameters_start_offset, grammar, false);
+
+    const function_keyword_node: Abstract_syntax_tree.Node = {
+        value: first_word,
+        token: Abstract_syntax_tree.Token.Function_declaration_keyword,
+        children: [],
+        cache: {
+            relative_start: 0
+        }
+    };
+
+    const function_name_node: Abstract_syntax_tree.Node = {
+        value: function_name_word.value,
+        token: Abstract_syntax_tree.Token.Function_declaration_name,
+        children: [],
+        cache: {
+            relative_start: 0
+        }
+    };
+
+    const parameters_separator_node: Abstract_syntax_tree.Node = {
+        value: parameters_separator_word.value,
+        token: Abstract_syntax_tree.Token.Function_declaration_parameters_separator,
+        children: [],
+        cache: {
+            relative_start: 0
+        }
+    };
+
+    const function_declaration_node: Abstract_syntax_tree.Node = {
+        value: "",
+        token: Abstract_syntax_tree.Token.Function_declaration,
+        children: [
+            function_keyword_node,
+            function_name_node,
+            input_parameters_parse_result.node,
+            parameters_separator_node,
+            output_parameters_parse_result.node
+        ],
+        cache: {
+            relative_start: 0
+        }
+    };
+
+    const current_offset = output_parameters_start_offset + output_parameters_parse_result.processed_words;
+
+    return {
+        node: function_declaration_node,
+        processed_words: (current_offset - start_offset)
+    };
+}
