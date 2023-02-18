@@ -3,6 +3,7 @@ import * as vscode from "vscode";
 import * as Abstract_syntax_tree_from_module from "../core/Abstract_syntax_tree_from_module";
 import * as Abstract_syntax_tree_to_text from "../core/Abstract_syntax_tree_to_text";
 import * as Core from "../utilities/coreModelInterface";
+import * as Grammar from "../core/Grammar";
 import * as Symbol_database from "../core/Symbol_database";
 
 import { H_document_provider } from "./H_document_provider";
@@ -46,9 +47,10 @@ export class H_file_system_provider implements vscode.FileSystemProvider {
         const json_data = JSON.parse(utf8_data);
 
         const module: Core.Module = json_data as Core.Module;
-        const abstract_syntax_tree = Abstract_syntax_tree_from_module.create_module_node(module);
+        const grammar = Grammar.create_default_grammar();
+        const abstract_syntax_tree = Abstract_syntax_tree_from_module.create_module_node(module, grammar);
         const symbol_database = Symbol_database.create_edit_database(module);
-        this.h_document_provider.set_document(uri, { module: module, abstract_syntax_tree: abstract_syntax_tree, symbol_database: symbol_database });
+        this.h_document_provider.set_document(uri, { module: module, grammar: grammar, abstract_syntax_tree: abstract_syntax_tree, symbol_database: symbol_database });
 
         const text = Abstract_syntax_tree_to_text.to_string(abstract_syntax_tree);
         const encoded_text = Buffer.from(text, "utf8");

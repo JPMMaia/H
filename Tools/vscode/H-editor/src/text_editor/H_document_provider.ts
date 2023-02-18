@@ -2,10 +2,12 @@ import * as vscode from "vscode";
 
 import * as Abstract_syntax_tree from "../core/Abstract_syntax_tree";
 import * as Core from "../utilities/coreModelInterface";
+import * as Grammar from "../core/Grammar";
 import * as Symbol_database from "../core/Symbol_database";
 
 export interface H_document {
     module: Core.Module;
+    grammar: Grammar.Grammar;
     abstract_syntax_tree: Abstract_syntax_tree.Node;
     symbol_database: Symbol_database.Edit_module_database;
 }
