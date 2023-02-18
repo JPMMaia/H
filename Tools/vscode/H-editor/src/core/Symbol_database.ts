@@ -17,9 +17,9 @@ export enum Type {
 }
 
 export interface Symbol {
-    id: () => number;
+    id: number;
     type: Type;
-    name: () => string;
+    name: string;
 }
 
 export interface Block {
@@ -71,10 +71,10 @@ export interface Edit_module_database {
 }
 
 function create_declarations(declarations: Core.Module_declarations): Declarations {
-    const alias_symbols = declarations.alias_type_declarations.elements.map((declaration): Symbol => { return { id: () => declaration.id, type: Type.Alias_type, name: () => declaration.name }; });
-    const enum_symbols = declarations.enum_declarations.elements.map((declaration): Symbol => { return { id: () => declaration.id, type: Type.Enum_type, name: () => declaration.name }; });
-    const function_symbols = declarations.function_declarations.elements.map((declaration): Symbol => { return { id: () => declaration.id, type: Type.Function_declaration, name: () => declaration.name }; });
-    const struct_symbols = declarations.struct_declarations.elements.map((declaration): Symbol => { return { id: () => declaration.id, type: Type.Struct_type, name: () => declaration.name }; });
+    const alias_symbols = declarations.alias_type_declarations.elements.map((declaration): Symbol => { return { id: declaration.id, type: Type.Alias_type, name: declaration.name }; });
+    const enum_symbols = declarations.enum_declarations.elements.map((declaration): Symbol => { return { id: declaration.id, type: Type.Enum_type, name: declaration.name }; });
+    const function_symbols = declarations.function_declarations.elements.map((declaration): Symbol => { return { id: declaration.id, type: Type.Function_declaration, name: declaration.name }; });
+    const struct_symbols = declarations.struct_declarations.elements.map((declaration): Symbol => { return { id: declaration.id, type: Type.Struct_type, name: declaration.name }; });
 
     return {
         alias: alias_symbols,
@@ -101,12 +101,12 @@ function create_function_definition_symbols(function_declarations: Core.Function
                 };
             }
 
-            const input_parameter_symbols = declaration.input_parameter_names.elements.map((value, index): Symbol => { return { id: () => declaration.input_parameter_ids.elements[index], type: Type.Variable_declaration, name: () => value }; });
-            const output_parameter_symbols = declaration.output_parameter_names.elements.map((value, index): Symbol => { return { id: () => declaration.output_parameter_ids.elements[index], type: Type.Variable_declaration, name: () => value }; });
+            const input_parameter_symbols = declaration.input_parameter_names.elements.map((value, index): Symbol => { return { id: declaration.input_parameter_ids.elements[index], type: Type.Variable_declaration, name: value }; });
+            const output_parameter_symbols = declaration.output_parameter_names.elements.map((value, index): Symbol => { return { id: declaration.output_parameter_ids.elements[index], type: Type.Variable_declaration, name: value }; });
 
             const statements_that_declarare_variables = definition.statements.elements.filter(statement => statement.name !== "");
 
-            const main_block_symbols = statements_that_declarare_variables.map((statement): Symbol => { return { id: () => statement.id, type: Type.Variable_declaration, name: () => statement.name }; });
+            const main_block_symbols = statements_that_declarare_variables.map((statement): Symbol => { return { id: statement.id, type: Type.Variable_declaration, name: statement.name }; });
 
             return {
                 input_parameters: input_parameter_symbols,
@@ -167,18 +167,45 @@ export function update_edit_database(database: Edit_module_database, module: Cor
 
 export function find_function_symbol(database: Edit_module_database, id: number): Symbol | undefined {
     {
-        const location = database.export_declarations.functions.find(value => value.id() === id);
+        const location = database.export_declarations.functions.find(value => value.id === id);
         if (location !== undefined) {
             return location;
         }
     }
 
     {
-        const location = database.internal_declarations.functions.find(value => value.id() === id);
+        const location = database.internal_declarations.functions.find(value => value.id === id);
         if (location !== undefined) {
             return location;
         }
     }
 
     return undefined;
+}
+
+export function find_type_symbol(database: Edit_module_database, type_reference: Core.Type_reference[]): Symbol {
+    throw Error("Not implemented!");
+    return {
+        id: 0,
+        type: Type.Variable_reference,
+        name: ""
+    };
+}
+
+export function find_statement_symbol(database: Edit_module_database, function_declaration: Core.Function_declaration, statements: Core.Statement[], statement_index: number): Symbol | undefined {
+    throw Error("Not implemented!");
+    return {
+        id: 0,
+        type: Type.Variable_reference,
+        name: ""
+    };
+}
+
+export function find_variable_symbol(database: Edit_module_database, function_declaration: Core.Function_declaration, statements: Core.Statement[], statement_index: number, variable: Core.Variable_expression): Symbol {
+    throw Error("Not implemented!");
+    return {
+        id: 0,
+        type: Type.Variable_reference,
+        name: ""
+    };
 }
