@@ -81,8 +81,6 @@ export function activate(context: ExtensionContext) {
     const h_document_provider = new H_document_provider();
     const file_system_provider = new H_file_system_provider(h_document_provider);
 
-    const grammar = Grammar.create_default_grammar();
-
     {
       const disposable = vscode.workspace.registerFileSystemProvider("hlp", file_system_provider, { isCaseSensitive: true, isReadonly: false });
       context.subscriptions.push(disposable);
@@ -465,7 +463,7 @@ export function activate(context: ExtensionContext) {
 
               {
                 const scanned_words = Scanner.scan(text);
-                const new_node = Parser.parse(scanned_words, 0, grammar, top_level_node.token).node;
+                const new_node = Parser.parse(scanned_words, 0, document_data.grammar, top_level_node.token).node;
 
                 const abstract_syntax_tree_change = Abstract_syntax_tree_change.create_change(new_node);
                 Abstract_syntax_tree_change.update(document_data.abstract_syntax_tree, abstract_syntax_tree_change);
