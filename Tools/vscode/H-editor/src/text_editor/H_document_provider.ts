@@ -1,10 +1,13 @@
-import * as Abstract_syntax_tree from "../core/Abstract_syntax_tree_helpers";
-import * as Core from "../utilities/coreModelInterface";
 import * as vscode from "vscode";
+
+import * as Abstract_syntax_tree from "../core/Abstract_syntax_tree";
+import * as Core from "../utilities/coreModelInterface";
+import * as Symbol_database from "../core/Symbol_database";
 
 export interface H_document {
     module: Core.Module;
     abstract_syntax_tree: Abstract_syntax_tree.Node;
+    symbol_database: Symbol_database.Edit_module_database;
 }
 
 export class H_document_provider {

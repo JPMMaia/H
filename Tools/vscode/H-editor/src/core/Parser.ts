@@ -697,3 +697,8 @@ export function parse_module_body(words: Scanner.Scanned_word[], start_offset: n
         processed_words: (current_offset - start_offset)
     };
 }
+
+export function parse(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar, token: Abstract_syntax_tree.Token): Parse_result {
+    // TODO use token to decide
+    return parse_statement(words, start_offset, grammar);
+}

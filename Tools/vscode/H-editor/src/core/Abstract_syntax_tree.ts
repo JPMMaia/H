@@ -44,3 +44,32 @@ export interface Node {
     children: Node[];
     cache: Cache;
 }
+
+export function find_node_position(root: Node, offset: number): number[] {
+    throw Error("Not implemented!");
+    return [];
+}
+
+export function find_node_common_root(first_position: number[], second_position: number[]): number[] {
+    throw Error("Not implemented!");
+    return [];
+}
+
+export function get_node_at_position(root: Node, position: number[]): Node {
+    throw Error("Not implemented!");
+    return root;
+}
+
+export function find_node_range(root: Node, position: number[]): { start: number, end: number } {
+    throw Error("Not implemented!");
+    return {
+        start: 0,
+        end: 0
+    };
+}
+
+export function find_top_level_node_position(root: Node, position: number[]): number[] {
+    throw Error("Not implemented!");
+    // TODO find statement, code block, function declaration, function, module
+    return [];
+}

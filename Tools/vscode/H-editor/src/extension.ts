@@ -11,11 +11,19 @@ import { H_default_formatter } from "./text_editor/H_default_formatter";
 import { H_document_provider } from "./text_editor/H_document_provider";
 import * as Module_examples from "./core/Module_examples";
 
+import * as Abstract_syntax_tree from "./core/Abstract_syntax_tree";
+import * as Abstract_syntax_tree_change from "./core/Abstract_syntax_tree_change";
 import * as Change from "./utilities/Change";
 import * as Change_update_from_text from "./utilities/Change_update_from_text";
 import * as core from "./utilities/coreModelInterface";
 import * as core_helpers from "./utilities/coreModelInterfaceHelpers";
+import * as Grammar from "./core/Grammar";
+import * as Module_change from "./core/Module_change";
+import * as Parser from "./core/Parser";
 import * as type_utilities from "./utilities/Type_utilities";
+import * as Scanner from "./core/Scanner";
+import * as Symbol_database from "./core/Symbol_database";
+import * as Symbol_database_change from "./core/Symbol_database_change";
 
 function openDocumentIfRequired(hDocumentManager: HDocumentManager, documentUri: vscode.Uri): Thenable<HDocument> {
 
@@ -72,6 +80,8 @@ export function activate(context: ExtensionContext) {
 
     const h_document_provider = new H_document_provider();
     const file_system_provider = new H_file_system_provider(h_document_provider);
+
+    const grammar = Grammar.create_default_grammar();
 
     {
       const disposable = vscode.workspace.registerFileSystemProvider("hlp", file_system_provider, { isCaseSensitive: true, isReadonly: false });
@@ -432,6 +442,43 @@ export function activate(context: ExtensionContext) {
 
     vscode.workspace.onDidChangeTextDocument(
       e => {
+
+        if (e.contentChanges.length > 0 && !e.document.isClosed && e.document.uri.scheme === "hlp" && e.document.uri.path.endsWith(".hl")) {
+          const document_data = h_document_provider.get_document(e.document.uri);
+          if (document_data !== undefined) {
+
+            for (const content_change of e.contentChanges) {
+
+              const root: Abstract_syntax_tree.Node = document_data.abstract_syntax_tree;
+
+              const start_node_position = Abstract_syntax_tree.find_node_position(root, content_change.rangeOffset);
+              const end_node_position = Abstract_syntax_tree.find_node_position(root, content_change.rangeOffset + content_change.rangeLength);
+              const common_node_position = Abstract_syntax_tree.find_node_common_root(start_node_position, end_node_position);
+              const top_level_node_position = Abstract_syntax_tree.find_top_level_node_position(root, common_node_position);
+              const top_level_node = Abstract_syntax_tree.get_node_at_position(root, top_level_node_position);
+              const top_level_node_offset_range = Abstract_syntax_tree.find_node_range(root, common_node_position);
+
+              const text_adjusted_offset_range = { start: top_level_node_offset_range.start, end: top_level_node_offset_range.end - content_change.rangeLength + content_change.text.length };
+
+              const text_adjusted_range = new vscode.Range(e.document.positionAt(text_adjusted_offset_range.start), e.document.positionAt(text_adjusted_offset_range.end));
+              const text = e.document.getText(text_adjusted_range);
+
+              {
+                const scanned_words = Scanner.scan(text);
+                const new_node = Parser.parse(scanned_words, 0, grammar, top_level_node.token).node;
+
+                const abstract_syntax_tree_change = Abstract_syntax_tree_change.create_change(new_node);
+                Abstract_syntax_tree_change.update(document_data.abstract_syntax_tree, abstract_syntax_tree_change);
+
+                const symbol_database_change = Symbol_database_change.create_change(new_node);
+                Symbol_database_change.update(document_data.symbol_database, symbol_database_change);
+
+                const module_change = Module_change.create_change(new_node);
+                Module_change.update(document_data.module, module_change);
+              }
+            }
+          }
+        }
 
         if (e.contentChanges.length > 0 && !e.document.isClosed && e.document.uri.path.startsWith(workspaceRootUri.path) && e.document.uri.path.endsWith(".hl")) {
 
