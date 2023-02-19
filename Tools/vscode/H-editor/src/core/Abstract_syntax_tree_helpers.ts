@@ -524,8 +524,8 @@ export function create_function_parameters_node_tree(
     };
 
     const parameters = parameter_ids.map((id, index) => {
-        const parameter_name_symbol = { id: () => id, type: Symbol_database.Type.Variable_declaration, name: () => parameter_names[index] };
-        const parameter_type_symbol = { id: () => id, type: Symbol_database.Type.Type_reference, name: () => Core_helpers.getUnderlyingTypeName([module], parameter_types[index]) };
+        const parameter_name_symbol = { id: id, type: Symbol_database.Type.Variable_declaration, name: parameter_names[index] };
+        const parameter_type_symbol = { id: id, type: Symbol_database.Type.Type_reference, name: Core_helpers.getUnderlyingTypeName([module], parameter_types[index]) };
         return create_function_parameter_node_tree(root, 0, parameter_name_symbol, parameter_type_symbol);
     });
 
@@ -570,7 +570,7 @@ export function create_function_declaration_node_tree(
         cache: { relative_start: 0 }
     };
 
-    const function_name_symbol = { id: () => function_declaration.id, type: Symbol_database.Type.Function_declaration, name: () => function_declaration.name };
+    const function_name_symbol = { id: function_declaration.id, type: Symbol_database.Type.Function_declaration, name: function_declaration.name };
 
     root.data = {
         elements: [
@@ -659,14 +659,14 @@ export function create_variable_expression_node_tree(
     if (expression.type === Core.Variable_expression_type.Function_argument) {
         const parameter_index = function_declaration.input_parameter_ids.elements.findIndex(id => id === expression.id);
         if (parameter_index !== -1) {
-            const name_symbol = { id: () => parameter_index, type: Symbol_database.Type.Variable_declaration, name: () => function_declaration.input_parameter_names.elements[parameter_index] };
+            const name_symbol = { id: parameter_index, type: Symbol_database.Type.Variable_declaration, name: function_declaration.input_parameter_names.elements[parameter_index] };
             return create_symbol_node(parent, index_in_parent, name_symbol, "span", true, { type: Metadata_type.Expression_variable });
         }
     }
     else if (expression.type === Core.Variable_expression_type.Local_variable) {
         const statement = statements.find(statement => statement.id === expression.id);
         if (statement !== undefined) {
-            const name_symbol = { id: () => statement.id, type: Symbol_database.Type.Variable_reference, name: () => statement.name };
+            const name_symbol = { id: statement.id, type: Symbol_database.Type.Variable_reference, name: statement.name };
             return create_symbol_node(parent, index_in_parent, name_symbol, "span", true, { type: Metadata_type.Expression_variable });
         }
     }
@@ -710,7 +710,7 @@ export function create_expression_node_tree(
 
     if (expression.data.type === Core.Expression_enum.Binary_expression) {
         const binary_expression = expression.data.value as Core.Binary_expression;
-        const binary_operation_symbol = { id: () => expression_index, type: Symbol_database.Type.Operation, name: () => get_binary_operation_string(binary_expression.operation) };
+        const binary_operation_symbol = { id: expression_index, type: Symbol_database.Type.Operation, name: get_binary_operation_string(binary_expression.operation) };
 
         root.data = {
             elements: [
@@ -726,7 +726,7 @@ export function create_expression_node_tree(
     }
     else if (expression.data.type === Core.Expression_enum.Constant_expression) {
         const constant_expression = expression.data.value as Core.Constant_expression;
-        const constant_expression_symbol = { id: () => expression_index, type: Symbol_database.Type.Constant, name: () => constant_expression.data };
+        const constant_expression_symbol = { id: expression_index, type: Symbol_database.Type.Constant, name: constant_expression.data };
         root.data = {
             elements: [
                 create_symbol_node(root, 0, constant_expression_symbol, "span", true, { type: Metadata_type.Expression_constant })
@@ -737,7 +737,7 @@ export function create_expression_node_tree(
     }
     else if (expression.data.type === Core.Expression_enum.Invalid_expression) {
         const invalid_expression = expression.data.value as Core.Invalid_expression;
-        const invalid_expression_symbol = { id: () => expression_index, type: Symbol_database.Type.Other, name: () => invalid_expression.value };
+        const invalid_expression_symbol = { id: expression_index, type: Symbol_database.Type.Other, name: invalid_expression.value };
         root.data = {
             elements: [
                 create_symbol_node(root, 0, invalid_expression_symbol, "span", true, { type: Metadata_type.Expression_invalid })
@@ -836,8 +836,8 @@ export function create_statement_node_tree(
 
     if (has_variable_declaration) {
 
-        const variable_name_symbol = { id: () => statement.id, type: Symbol_database.Type.Variable_declaration, name: () => statement.name };
-        const variable_type_symbol = { id: () => statement.id, type: Symbol_database.Type.Type_reference, name: () => Core_helpers.getUnderlyingTypeName([module], type_reference[0]) };
+        const variable_name_symbol = { id: statement.id, type: Symbol_database.Type.Variable_declaration, name: statement.name };
+        const variable_type_symbol = { id: statement.id, type: Symbol_database.Type.Type_reference, name: Core_helpers.getUnderlyingTypeName([module], type_reference[0]) };
 
         root.data = {
             elements: [
@@ -953,7 +953,7 @@ function get_word(node_tree: Node): string {
     }
     else if (node_tree.data_type === Node_data_type.Symbol) {
         const data = node_tree.data as Symbol_data;
-        return data.symbol.name();
+        return data.symbol.name;
     }
     else {
         return "";

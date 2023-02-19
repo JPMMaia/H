@@ -36,5 +36,5 @@ export interface Grammar {
     create_binary_expression_node(expression: Core.Binary_expression, left_operand: Abstract_syntax_tree.Node, right_operand: Abstract_syntax_tree.Node): Abstract_syntax_tree.Node;
     create_constant_expression_node(expression: Core.Constant_expression): Abstract_syntax_tree.Node;
     create_return_expression_node(expression: Core.Return_expression, what: Abstract_syntax_tree.Node | undefined): Abstract_syntax_tree.Node;
-    create_variable_expression_node(expression: Core.Variable_expression, symbol: Symbol_database.Symbol): Abstract_syntax_tree.Node;
+    create_variable_expression_node(expression: Core.Variable_expression, symbol: Symbol_database.Symbol | undefined): Abstract_syntax_tree.Node;
 }

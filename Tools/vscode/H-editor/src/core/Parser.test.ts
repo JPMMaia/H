@@ -3,7 +3,7 @@ import "mocha";
 import * as assert from "assert";
 
 import * as Abstract_syntax_tree from "./Abstract_syntax_tree";
-import * as Grammar from "./Grammar";
+import * as Default_grammar from "./Default_grammar";
 import * as Parser from "./Parser";
 import * as Scanner from "./Scanner";
 
@@ -11,7 +11,7 @@ describe("Parser.parse", () => {
     it("Parses 'return 0;'", () => {
 
         const words = Scanner.scan("return 0;");
-        const grammar = Grammar.create_default_grammar();
+        const grammar = Default_grammar.create_grammar();
         const root = Parser.parse_statement(words, 0, grammar).node;
 
         const statement = root;
@@ -58,7 +58,7 @@ describe("Parser.parse", () => {
     it("Parses '1+2;'", () => {
 
         const words = Scanner.scan("1+2;");
-        const grammar = Grammar.create_default_grammar();
+        const grammar = Default_grammar.create_grammar();
         const root = Parser.parse_statement(words, 0, grammar).node;
 
         const statement = root;
@@ -110,7 +110,7 @@ describe("Parser.parse", () => {
     it("Parses 'foo+bar;'", () => {
 
         const words = Scanner.scan("foo+bar;");
-        const grammar = Grammar.create_default_grammar();
+        const grammar = Default_grammar.create_grammar();
         const root = Parser.parse_statement(words, 0, grammar).node;
 
         const statement = root;
@@ -169,7 +169,7 @@ describe("Parser.parse", () => {
             }`;
 
         const words = Scanner.scan(text);
-        const grammar = Grammar.create_default_grammar();
+        const grammar = Default_grammar.create_grammar();
         const root = Parser.parse_code_block(words, 0, grammar).node;
 
         const code_block = root;
@@ -221,7 +221,7 @@ describe("Parser.parse", () => {
         const text = "(foo: Foo_type, bar: Bar_type)";
 
         const words = Scanner.scan(text);
-        const grammar = Grammar.create_default_grammar();
+        const grammar = Default_grammar.create_grammar();
         const root = Parser.parse_function_declaration_parameters(words, 0, grammar, true).node;
 
         const function_parameters_node = root;
@@ -315,7 +315,7 @@ describe("Parser.parse", () => {
         const text = "function foo() -> ()";
 
         const words = Scanner.scan(text);
-        const grammar = Grammar.create_default_grammar();
+        const grammar = Default_grammar.create_grammar();
         const root = Parser.parse_function_declaration(words, 0, grammar).node;
 
         const function_declaration_node = root;
@@ -405,7 +405,7 @@ describe("Parser.parse", () => {
         `;
 
         const words = Scanner.scan(text);
-        const grammar = Grammar.create_default_grammar();
+        const grammar = Default_grammar.create_grammar();
         const root = Parser.parse_module_body(words, 0, grammar).node;
 
         const module_body_node = root;

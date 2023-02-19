@@ -21,6 +21,7 @@ export enum Token {
     Function_declaration_name,
     Function_declaration_output_parameters,
     Function_declaration_parameters_separator,
+    Function_declaration_end,
     Function_parameter,
     Function_parameter_name,
     Function_parameter_separator,
@@ -56,8 +57,14 @@ export function find_node_common_root(first_position: number[], second_position:
 }
 
 export function get_node_at_position(root: Node, position: number[]): Node {
-    throw Error("Not implemented!");
-    return root;
+
+    let current_node = root;
+
+    for (const child_index of position) {
+        current_node = current_node.children[child_index];
+    }
+
+    return current_node;
 }
 
 export function find_node_range(root: Node, position: number[]): { start: number, end: number } {
@@ -72,4 +79,44 @@ export function find_top_level_node_position(root: Node, position: number[]): nu
     throw Error("Not implemented!");
     // TODO find statement, code block, function declaration, function, module
     return [];
+}
+
+export enum Iterate_direction {
+    Down,
+    Up
+}
+
+export function iterate_forward_with_repetition(root: Node, current_node: Node, current_position: number[], direction: Iterate_direction): { next_node: Node, next_position: number[], direction: Iterate_direction } | undefined {
+
+    if (direction === Iterate_direction.Down && current_node.children.length > 0) {
+        return {
+            next_node: current_node.children[0],
+            next_position: [...current_position, 0],
+            direction: Iterate_direction.Down
+        };
+    }
+
+    if (current_position.length === 0) {
+        return undefined;
+    }
+
+    const current_node_index = current_position[current_position.length - 1];
+
+    const parent_position = current_position.slice(0, current_position.length - 1);
+    const parent_node = get_node_at_position(root, parent_position);
+
+    const next_sibling_node_index = current_node_index + 1;
+    if (next_sibling_node_index < parent_node.children.length) {
+        return {
+            next_node: parent_node.children[next_sibling_node_index],
+            next_position: [...parent_position, next_sibling_node_index],
+            direction: Iterate_direction.Down
+        };
+    }
+
+    return {
+        next_node: parent_node,
+        next_position: parent_position,
+        direction: Iterate_direction.Up
+    };
 }

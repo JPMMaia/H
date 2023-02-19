@@ -110,7 +110,7 @@ function create_function_declaration_node(declaration: Core.Function_declaration
         create_node(declaration.name, Abstract_syntax_tree.Token.Function_declaration_name, []),
         input_parameters_node,
         create_node("->", Abstract_syntax_tree.Token.Function_declaration_parameters_separator, []),
-        output_parameters_node,
+        output_parameters_node
     ];
 
     return create_node("", Abstract_syntax_tree.Token.Function_declaration, children);
@@ -136,7 +136,7 @@ function create_function_parameter_node(name: string, type: string): Abstract_sy
     const children: Abstract_syntax_tree.Node[] = [
         create_node(name, Abstract_syntax_tree.Token.Function_parameter_name, []),
         create_node(":", Abstract_syntax_tree.Token.Function_parameter_separator, []),
-        create_node(type, Abstract_syntax_tree.Token.Function_parameter_separator, []),
+        create_node(type, Abstract_syntax_tree.Token.Function_parameter_type, []),
     ];
 
     return create_node("", Abstract_syntax_tree.Token.Function_parameter, children);
@@ -219,8 +219,9 @@ function create_return_expression_node(expression: Core.Return_expression, what:
     return create_node("", Abstract_syntax_tree.Token.Expression_return, children);
 }
 
-function create_variable_expression_node(expression: Core.Variable_expression, symbol: Symbol_database.Symbol): Abstract_syntax_tree.Node {
-    return create_node(symbol.name, Abstract_syntax_tree.Token.Expression_variable_reference, []);
+function create_variable_expression_node(expression: Core.Variable_expression, symbol: Symbol_database.Symbol | undefined): Abstract_syntax_tree.Node {
+    const name = symbol !== undefined ? symbol.name : "_" + expression.id + "_not_found_";
+    return create_node(name, Abstract_syntax_tree.Token.Expression_variable_reference, []);
 }
 
 function interleave(array: any[], elements: any[]): void {

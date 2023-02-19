@@ -55,9 +55,9 @@ export function create_function_parameters_node(symbol_database: Symbol_database
         const name = parameter_names[index];
         const type = parameter_types[index];
 
-        const type_symbol = Symbol_database.find_type_symbol(symbol_database, [type]);
+        const type_name = Symbol_database.find_type_name(symbol_database, [type]);
 
-        return grammar.create_function_parameter_node(name, type_symbol.name);
+        return grammar.create_function_parameter_node(name, type_name !== undefined ? type_name : "");
     });
 
     return grammar.create_function_parameters_node(parameter_nodes, is_input_parameters);

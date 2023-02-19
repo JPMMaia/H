@@ -1,5 +1,5 @@
 
-import type * as Core from "../utilities/coreModelInterface";
+import * as Core from "../utilities/coreModelInterface";
 import * as Change from "../utilities/Change";
 import { onThrowError } from "../utilities/errors";
 
@@ -22,11 +22,22 @@ export interface Symbol {
     name: string;
 }
 
+export enum Symbol_or_block_type {
+    Block,
+    Symbol
+}
+
+export interface Symbol_or_block {
+    type: Symbol_or_block_type;
+    value: Symbol | Block;
+}
+
 export interface Block {
-    symbols: (Symbol | Block)[];
+    symbols: Symbol_or_block[];
 }
 
 export interface Function_definition {
+    id: number;
     input_parameters: Symbol[];
     output_parameters: Symbol[];
     main_block: Block;
@@ -93,6 +104,7 @@ function create_function_definition_symbols(function_declarations: Core.Function
                 const message = "Could not resolve function declaration with id: " + definition.id;
                 onThrowError(message);
                 return {
+                    id: -1,
                     input_parameters: [],
                     output_parameters: [],
                     main_block: {
@@ -106,9 +118,10 @@ function create_function_definition_symbols(function_declarations: Core.Function
 
             const statements_that_declarare_variables = definition.statements.elements.filter(statement => statement.name !== "");
 
-            const main_block_symbols = statements_that_declarare_variables.map((statement): Symbol => { return { id: statement.id, type: Type.Variable_declaration, name: statement.name }; });
+            const main_block_symbols = statements_that_declarare_variables.map((statement): Symbol_or_block => { return { type: Symbol_or_block_type.Symbol, value: { id: statement.id, type: Type.Variable_declaration, name: statement.name } }; });
 
             return {
+                id: declaration.id,
                 input_parameters: input_parameter_symbols,
                 output_parameters: output_parameter_symbols,
                 main_block: {
@@ -183,29 +196,200 @@ export function find_function_symbol(database: Edit_module_database, id: number)
     return undefined;
 }
 
-export function find_type_symbol(database: Edit_module_database, type_reference: Core.Type_reference[]): Symbol {
-    throw Error("Not implemented!");
-    return {
-        id: 0,
-        type: Type.Variable_reference,
-        name: ""
-    };
+function find_symbol(database: Edit_module_database, get_symbols_array: (declarations: Declarations) => Symbol[], predicate: (module_name: string, symbol: Symbol) => boolean): Symbol | undefined {
+
+    {
+        const module_symbols: Symbol[][] = [
+            get_symbols_array(database.internal_declarations),
+            get_symbols_array(database.export_declarations)
+        ];
+
+        for (const symbols of module_symbols) {
+            const found = symbols.find(symbol => predicate("", symbol));
+            if (found !== undefined) {
+                return found;
+            }
+        }
+    }
+
+    for (const import_module of database.import_modules.export_declarations) {
+        const imported_symbols = get_symbols_array(import_module.export_declarations);
+
+        const found = imported_symbols.find(symbol => predicate(import_module.module_name, symbol));
+        if (found !== undefined) {
+            return found;
+        }
+    }
+
+    for (const import_module of database.import_modules.export_modules) {
+        const imported_symbols = get_symbols_array(import_module.export_declarations);
+
+        const found = imported_symbols.find(symbol => predicate(import_module.alias_name, symbol));
+        if (found !== undefined) {
+            return {
+                id: found.id,
+                type: found.type,
+                name: import_module.alias_name + "." + found.name
+            };
+        }
+    }
+
+    return undefined;
+}
+
+function find_alias_symbol(database: Edit_module_database, predicate: (module_name: string, symbol: Symbol) => boolean): Symbol | undefined {
+    return find_symbol(database, declarations => declarations.alias, predicate);
+}
+
+function find_enum_type_symbol(database: Edit_module_database, predicate: (module_name: string, symbol: Symbol) => boolean): Symbol | undefined {
+    return find_symbol(database, declarations => declarations.enums, predicate);
+}
+
+function find_struct_type_symbol(database: Edit_module_database, predicate: (module_name: string, symbol: Symbol) => boolean): Symbol | undefined {
+    return find_symbol(database, declarations => declarations.structs, predicate);
+}
+
+function format_type_name(module_name: string, type_name: string): string {
+    return module_name !== "" ? `${module_name}.${type_name}` : type_name;
+}
+
+export function find_type_name(database: Edit_module_database, type_reference: Core.Type_reference[]): string | undefined {
+
+    if (type_reference.length === 0) {
+        return "void";
+    }
+
+    const type = type_reference[0];
+
+    switch (type.data.type) {
+        case Core.Type_reference_enum.Alias_type_reference:
+            {
+                // @ts-ignore
+                const value: Core.Alias_type_reference = type.data.value;
+
+                const symbol = find_alias_symbol(database, (module_name, symbol) => value.module_reference.name === module_name && symbol.id === value.id);
+                if (symbol !== undefined) {
+                    return format_type_name(value.module_reference.name, symbol.name);
+                }
+            }
+        case Core.Type_reference_enum.Builtin_type_reference:
+            {
+                // @ts-ignore
+                const value: Core.Builtin_type_reference = type.data.value;
+                return value.value;
+            }
+        case Core.Type_reference_enum.Constant_array_type:
+            {
+                // @ts-ignore
+                const value: Core.Constant_array_type = type.data.value;
+                const value_type_name = find_type_name(database, value.value_type.elements);
+                return `${value_type_name}[${value.size}]`;
+            }
+        case Core.Type_reference_enum.Enum_type_reference:
+            {
+                // @ts-ignore
+                const value: Core.Enum_type_reference = type.data.value;
+
+                const symbol = find_enum_type_symbol(database, (module_name, symbol) => value.module_reference.name === module_name && symbol.id === value.id);
+                if (symbol !== undefined) {
+                    return format_type_name(value.module_reference.name, symbol.name);
+                }
+            }
+        case Core.Type_reference_enum.Fundamental_type:
+            {
+                // @ts-ignore
+                const value: Core.Fundamental_type = type.data.value;
+                return value.toString();
+            }
+        case Core.Type_reference_enum.Function_type:
+            {
+                // @ts-ignore
+                const value: Core.Function_type = type.data.value;
+                const parameterNames = value.input_parameter_types.elements.map(value => find_type_name(database, [value]));
+                const parameterNamesPlusVariadic = value.is_variadic ? parameterNames.concat("...") : parameterNames;
+                const parametersString = "(" + parameterNamesPlusVariadic.join(", ") + ")";
+                const returnTypeNames = value.output_parameter_types.elements.map(value => find_type_name(database, [value]));
+                const returnTypesString = "(" + returnTypeNames.join(", ") + ")";
+                return `${parametersString} -> ${returnTypesString}`;
+            }
+        case Core.Type_reference_enum.Integer_type:
+            {
+                // @ts-ignore
+                const value: Core.Integer_type = type.data.value;
+                return (value.is_signed ? "Int" : "Uint") + value.number_of_bits.toString();
+            }
+        case Core.Type_reference_enum.Pointer_type:
+            {
+                // @ts-ignore
+                const value: Core.Pointer_type = type.data.value;
+
+                const value_type_name = find_type_name(database, value.element_type.elements);
+                const mutable_keyword = value.is_mutable ? " mutable" : "";
+                return `${value_type_name}${mutable_keyword}*`;
+            }
+        case Core.Type_reference_enum.Struct_type_reference:
+            {
+                // @ts-ignore
+                const value: Core.Struct_type_reference = type.data.value;
+
+                const symbol = find_struct_type_symbol(database, (module_name, symbol) => value.module_reference.name === module_name && symbol.id === value.id);
+                if (symbol !== undefined) {
+                    return format_type_name(value.module_reference.name, symbol.name);
+                }
+            }
+    }
+
+    const message = "find_type() not implemented for " + type;
+    onThrowError(message);
+    throw Error(message);
 }
 
 export function find_statement_symbol(database: Edit_module_database, function_declaration: Core.Function_declaration, statements: Core.Statement[], statement_index: number): Symbol | undefined {
-    throw Error("Not implemented!");
-    return {
-        id: 0,
-        type: Type.Variable_reference,
-        name: ""
-    };
+
+    const statement = statements[statement_index];
+
+    const definition_symbols = database.function_definitions.find(value => value.id === function_declaration.id);
+
+    if (definition_symbols !== undefined) {
+        return find_statement_symbol_in_block(statement.id, definition_symbols.main_block);
+    }
+
+    return undefined;
 }
 
-export function find_variable_symbol(database: Edit_module_database, function_declaration: Core.Function_declaration, statements: Core.Statement[], statement_index: number, variable: Core.Variable_expression): Symbol {
-    throw Error("Not implemented!");
-    return {
-        id: 0,
-        type: Type.Variable_reference,
-        name: ""
-    };
+function find_statement_symbol_in_block(statement_id: number, block: Block): Symbol | undefined {
+    for (const symbol_or_block of block.symbols) {
+
+        if (symbol_or_block.type === Symbol_or_block_type.Block) {
+            return find_statement_symbol_in_block(statement_id, symbol_or_block.value as Block);
+        }
+        else {
+            const symbol = symbol_or_block.value as Symbol;
+            if (symbol.id === statement_id) {
+                return symbol;
+            }
+        }
+    }
+
+    return undefined;
+}
+
+export function find_variable_symbol(database: Edit_module_database, function_declaration: Core.Function_declaration, statements: Core.Statement[], statement_index: number, variable: Core.Variable_expression): Symbol | undefined {
+
+    const definition_symbols = database.function_definitions.find(value => value.id === function_declaration.id);
+
+    if (definition_symbols !== undefined) {
+        if (variable.type === Core.Variable_expression_type.Function_argument) {
+            const parameter = definition_symbols.input_parameters.find(parameter => parameter.id === variable.id);
+            if (parameter !== undefined) {
+                return parameter;
+            }
+        }
+        else if (variable.type === Core.Variable_expression_type.Local_variable) {
+            const statement = statements[statement_index];
+            return find_statement_symbol_in_block(statement.id, definition_symbols.main_block);
+        }
+    }
+
+    return undefined;
 }
