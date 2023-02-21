@@ -3,13 +3,13 @@ import "mocha";
 import * as assert from "assert";
 import * as Abstract_syntax_tree from "./Abstract_syntax_tree";
 
-function create_node(value: string, token: Abstract_syntax_tree.Token, children: Abstract_syntax_tree.Node[]): Abstract_syntax_tree.Node {
+function create_node(value: string, token: Abstract_syntax_tree.Token, children: Abstract_syntax_tree.Node[], relative_start: number): Abstract_syntax_tree.Node {
     return {
         value: value,
         token: token,
         children: children,
         cache: {
-            relative_start: 0
+            relative_start: relative_start
         }
     };
 }
@@ -17,21 +17,59 @@ function create_node(value: string, token: Abstract_syntax_tree.Token, children:
 function create_example_0(): Abstract_syntax_tree.Node {
 
     const children_0_0: Abstract_syntax_tree.Node[] = [
-        create_node("r.0.0", Abstract_syntax_tree.Token.Expression_return, []),
-        create_node("r.0.1", Abstract_syntax_tree.Token.Expression_constant, []),
+        create_node("r.0.0", Abstract_syntax_tree.Token.Expression_return, [], 4),
+        create_node("r.0.1", Abstract_syntax_tree.Token.Expression_constant, [], 10),
     ];
 
     const children_0_1: Abstract_syntax_tree.Node[] = [
-        create_node("r.1.0", Abstract_syntax_tree.Token.Expression_constant, []),
+        create_node("r.1.0", Abstract_syntax_tree.Token.Expression_constant, [], 4),
     ];
 
     const children_0: Abstract_syntax_tree.Node[] = [
-        create_node("r.0", Abstract_syntax_tree.Token.Statement, children_0_0),
-        create_node("r.1", Abstract_syntax_tree.Token.Statement, children_0_1),
+        create_node("r.0", Abstract_syntax_tree.Token.Statement, children_0_0, 1),
+        create_node("r.1", Abstract_syntax_tree.Token.Statement, children_0_1, 17),
     ];
 
-    return create_node("r", Abstract_syntax_tree.Token.Code_block, children_0);
+    return create_node("r", Abstract_syntax_tree.Token.Code_block, children_0, 0);
 }
+
+
+describe("Abstract_syntax_tree.find_node_position", () => {
+
+    const root = create_example_0();
+
+    it("Finds r", () => {
+        const position = Abstract_syntax_tree.find_node_position(root, 0);
+        assert.deepEqual(position, []);
+    });
+
+    it("Finds r.0", () => {
+        const position = Abstract_syntax_tree.find_node_position(root, 4);
+        assert.deepEqual(position, [0]);
+    });
+
+    it("Finds r.0.0", () => {
+        const position = Abstract_syntax_tree.find_node_position(root, 5);
+        assert.deepEqual(position, [0, 0]);
+    });
+
+    it("Finds r.0.1", () => {
+        const position = Abstract_syntax_tree.find_node_position(root, 12);
+        assert.deepEqual(position, [0, 1]);
+    });
+
+    it("Finds r.1", () => {
+        const position = Abstract_syntax_tree.find_node_position(root, 18);
+        assert.deepEqual(position, [1]);
+    });
+
+    it("Finds r.1.0", () => {
+        const position = Abstract_syntax_tree.find_node_position(root, 21);
+        assert.deepEqual(position, [1, 0]);
+    });
+});
+
+
 
 describe("Abstract_syntax_tree.iterate_forward_with_repetition", () => {
     it("Visits example_0 nodes correctly", () => {

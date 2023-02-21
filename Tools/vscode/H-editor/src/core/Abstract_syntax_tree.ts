@@ -47,8 +47,29 @@ export interface Node {
 }
 
 export function find_node_position(root: Node, offset: number): number[] {
-    throw Error("Not implemented!");
-    return [];
+
+    const current_position: number[] = [];
+
+    let current_node = root;
+    let current_offset = 0;
+
+    while (current_node.children.length > 0) {
+
+        const overflow_child_index = current_node.children.findIndex(node => (current_offset + node.cache.relative_start) > offset);
+
+        if (overflow_child_index === 0) {
+            return current_position;
+        }
+
+        const child_index = overflow_child_index === -1 ? current_node.children.length - 1 : overflow_child_index - 1;
+        const child = current_node.children[child_index];
+
+        current_node = child;
+        current_position.push(child_index);
+        current_offset += child.cache.relative_start;
+    }
+
+    return current_position;
 }
 
 export function find_node_common_root(first_position: number[], second_position: number[]): number[] {
