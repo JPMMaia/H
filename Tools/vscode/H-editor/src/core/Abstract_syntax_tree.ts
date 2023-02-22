@@ -73,8 +73,16 @@ export function find_node_position(root: Node, offset: number): number[] {
 }
 
 export function find_node_common_root(first_position: number[], second_position: number[]): number[] {
-    throw Error("Not implemented!");
-    return [];
+
+    const smallest_length = Math.min(find_node_position.length, second_position.length);
+
+    for (let index = 0; index < smallest_length; ++index) {
+        if (first_position[index] !== second_position[index]) {
+            return first_position.slice(0, index);
+        }
+    }
+
+    return first_position.slice(0, smallest_length);
 }
 
 export function get_node_at_position(root: Node, position: number[]): Node {

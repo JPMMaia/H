@@ -69,7 +69,34 @@ describe("Abstract_syntax_tree.find_node_position", () => {
     });
 });
 
+describe("Abstract_syntax_tree.find_node_common_root", () => {
 
+    it("Finds common root of r.1 and r.0", () => {
+        const position = Abstract_syntax_tree.find_node_common_root([1], [0]);
+        assert.deepEqual(position, []);
+    });
+
+    it("Finds common root of r.0.0 and r.0.1", () => {
+        const position = Abstract_syntax_tree.find_node_common_root([0, 0], [0, 1]);
+        assert.deepEqual(position, [0]);
+    });
+
+    it("Finds common root of r.1.0 and r.0.0", () => {
+        const position = Abstract_syntax_tree.find_node_common_root([1, 0], [0, 0]);
+        assert.deepEqual(position, []);
+    });
+
+
+    it("Finds common root of r.1.0.2.3 and r.1.0.4.3", () => {
+        const position = Abstract_syntax_tree.find_node_common_root([1, 0, 2, 3], [1, 0, 4, 3]);
+        assert.deepEqual(position, [1, 0]);
+    });
+
+    it("Finds common root of r.1 and r.1.0.4.3", () => {
+        const position = Abstract_syntax_tree.find_node_common_root([1], [1, 0, 4, 3]);
+        assert.deepEqual(position, [1]);
+    });
+});
 
 describe("Abstract_syntax_tree.iterate_forward_with_repetition", () => {
     it("Visits example_0 nodes correctly", () => {
