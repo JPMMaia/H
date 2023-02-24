@@ -136,6 +136,90 @@ describe("Abstract_syntax_tree.find_node_range", () => {
     });
 });
 
+describe("Abstract_syntax_tree.find_nodes_of_range", () => {
+
+    it("Finds nodes of range [0, 1]", () => {
+        const root = create_example_0();
+        const result = Abstract_syntax_tree.find_nodes_of_range(root, 0, 1);
+
+        assert.equal(result.parent_position, undefined);
+        assert.equal(result.child_indices.start, 0);
+        assert.equal(result.child_indices.end, 1);
+    });
+
+    it("Finds nodes of range [1, 2]", () => {
+        const root = create_example_0();
+        const result = Abstract_syntax_tree.find_nodes_of_range(root, 1, 2);
+
+        assert.notEqual(result.parent_position, undefined);
+        if (result.parent_position !== undefined) {
+            assert.deepEqual(result.parent_position, []);
+            assert.equal(result.child_indices.start, 0);
+            assert.equal(result.child_indices.end, 1);
+        }
+    });
+
+    it("Finds nodes of range [6, 10]", () => {
+        const root = create_example_0();
+        const result = Abstract_syntax_tree.find_nodes_of_range(root, 6, 10);
+
+        assert.notEqual(result.parent_position, undefined);
+        if (result.parent_position !== undefined) {
+            assert.deepEqual(result.parent_position, []);
+            assert.equal(result.child_indices.start, 0);
+            assert.equal(result.child_indices.end, 1);
+        }
+    });
+
+    it("Finds nodes of range [5, 11]", () => {
+        const root = create_example_0();
+        const result = Abstract_syntax_tree.find_nodes_of_range(root, 5, 11);
+
+        assert.notEqual(result.parent_position, undefined);
+        if (result.parent_position !== undefined) {
+            assert.deepEqual(result.parent_position, []);
+            assert.equal(result.child_indices.start, 0);
+            assert.equal(result.child_indices.end, 1);
+        }
+    });
+
+    it("Finds nodes of range [10, 15]", () => {
+        const root = create_example_0();
+        const result = Abstract_syntax_tree.find_nodes_of_range(root, 10, 15);
+
+        assert.notEqual(result.parent_position, undefined);
+        if (result.parent_position !== undefined) {
+            assert.deepEqual(result.parent_position, []);
+            assert.equal(result.child_indices.start, 0);
+            assert.equal(result.child_indices.end, 1);
+        }
+    });
+
+    it("Finds nodes of range [10, 19]", () => {
+        const root = create_example_0();
+        const result = Abstract_syntax_tree.find_nodes_of_range(root, 10, 19);
+
+        assert.notEqual(result.parent_position, undefined);
+        if (result.parent_position !== undefined) {
+            assert.deepEqual(result.parent_position, []);
+            assert.equal(result.child_indices.start, 0);
+            assert.equal(result.child_indices.end, 2);
+        }
+    });
+
+    it("Finds nodes of range [17, 10]", () => {
+        const root = create_example_0();
+        const result = Abstract_syntax_tree.find_nodes_of_range(root, 17, 19);
+
+        assert.notEqual(result.parent_position, undefined);
+        if (result.parent_position !== undefined) {
+            assert.deepEqual(result.parent_position, []);
+            assert.equal(result.child_indices.start, 1);
+            assert.equal(result.child_indices.end, 2);
+        }
+    });
+});
+
 describe("Abstract_syntax_tree.find_top_level_node_position", () => {
 
     it("Finds statement r.0.0", () => {

@@ -194,3 +194,34 @@ export function iterate_forward_with_repetition(root: Node, current_node: Node, 
         direction: Iterate_direction.Up
     };
 }
+
+export function find_nodes_of_range(root: Node, start: number, end: number): { parent_position: number[] | undefined, child_indices: { start: number, end: number } } {
+
+    const start_position = find_node_position(root, start);
+    const start_top_position = find_top_level_node_position(root, start_position);
+
+    const end_position = find_node_position(root, end - 1);
+    const end_top_position = find_top_level_node_position(root, end_position);
+
+    if (start_top_position.length === 0 || end_top_position.length === 0) {
+        return {
+            parent_position: undefined,
+            child_indices: {
+                start: 0,
+                end: 1
+            }
+        };
+    }
+
+    const common_position = find_node_common_root(start_top_position, end_top_position);
+    const should_get_parent = (common_position.length === start_top_position.length || common_position.length === end_top_position.length) && common_position.length > 0;
+    const parent_position = should_get_parent ? common_position.slice(0, common_position.length - 1) : common_position;
+
+    return {
+        parent_position: parent_position,
+        child_indices: {
+            start: start_top_position[start_top_position.length - 1],
+            end: end_top_position[end_top_position.length - 1] + 1
+        }
+    };
+}
