@@ -8,10 +8,14 @@ export function create_empty(): core.Module {
 }
 
 export function create_default(): core.Module {
+    return create_0();
+}
+
+export function create_0(): core.Module {
 
     const module: core.Module =
     {
-        language_version: { major: 1, minor: 2, patch: 3 },
+        language_version: { major: 0, minor: 1, patch: 0 },
         name: "module_name",
         export_declarations: {
             alias_type_declarations: {
