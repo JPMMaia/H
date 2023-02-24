@@ -450,29 +450,43 @@ export function activate(context: ExtensionContext) {
               const root: Abstract_syntax_tree.Node = document_data.abstract_syntax_tree;
 
               const start_node_position = Abstract_syntax_tree.find_node_position(root, content_change.rangeOffset);
+              const start_main_node_position = Abstract_syntax_tree.find_top_level_node_position(root, start_node_position);
+
               const end_node_position = Abstract_syntax_tree.find_node_position(root, content_change.rangeOffset + content_change.rangeLength);
-              const common_node_position = Abstract_syntax_tree.find_node_common_root(start_node_position, end_node_position);
-              const top_level_node_position = Abstract_syntax_tree.find_top_level_node_position(root, common_node_position);
-              const top_level_node = Abstract_syntax_tree.get_node_at_position(root, top_level_node_position);
-              const top_level_node_offset_range = Abstract_syntax_tree.find_node_range(root, common_node_position);
+              const end_main_node_position = Abstract_syntax_tree.find_top_level_node_position(root, end_node_position);
 
-              const text_adjusted_offset_range = { start: top_level_node_offset_range.start, end: top_level_node_offset_range.end - content_change.rangeLength + content_change.text.length };
+              const common_node_position = Abstract_syntax_tree.find_node_common_root(start_main_node_position, end_main_node_position);
 
-              const text_adjusted_range = new vscode.Range(e.document.positionAt(text_adjusted_offset_range.start), e.document.positionAt(text_adjusted_offset_range.end));
-              const text = e.document.getText(text_adjusted_range);
+              const should_get_parent = ((common_node_position.length === start_main_node_position.length) || (common_node_position.length === end_main_node_position.length)) && common_node_position.length > 0;
+              const parent_node_position = should_get_parent ? common_node_position.slice(0, common_node_position.length - 1) : common_node_position;
 
-              {
-                const scanned_words = Scanner.scan(text);
-                const new_node = Parser.parse(scanned_words, 0, document_data.grammar, top_level_node.token).node;
+              const start_child_index = start_main_node_position[parent_node_position.length];
+              const end_child_index = end_main_node_position[parent_node_position.length] + 1;
 
-                const abstract_syntax_tree_change = Abstract_syntax_tree_change.create_change(new_node);
-                Abstract_syntax_tree_change.update(document_data.abstract_syntax_tree, abstract_syntax_tree_change);
+              for (let child_index = start_child_index; child_index < end_child_index; ++child_index) {
 
-                const symbol_database_change = Symbol_database_change.create_change(new_node);
-                Symbol_database_change.update(document_data.symbol_database, symbol_database_change);
+                const child_node_position = [...parent_node_position, child_index];
+                const child_node = Abstract_syntax_tree.get_node_at_position(root, child_node_position);
+                const child_node_offset_range = Abstract_syntax_tree.find_node_range(root, common_node_position);
 
-                const module_change = Module_change.create_change(new_node);
-                Module_change.update(document_data.module, module_change);
+                const text_adjusted_offset_range = { start: child_node_offset_range.start, end: child_node_offset_range.end - content_change.rangeLength + content_change.text.length };
+
+                const text_adjusted_range = new vscode.Range(e.document.positionAt(text_adjusted_offset_range.start), e.document.positionAt(text_adjusted_offset_range.end));
+                const text = e.document.getText(text_adjusted_range);
+
+                {
+                  const scanned_words = Scanner.scan(text);
+                  const new_node = Parser.parse(scanned_words, 0, document_data.grammar, child_node.token).node;
+
+                  const abstract_syntax_tree_change = Abstract_syntax_tree_change.create_change(new_node);
+                  Abstract_syntax_tree_change.update(document_data.abstract_syntax_tree, abstract_syntax_tree_change);
+
+                  const symbol_database_change = Symbol_database_change.create_change(new_node);
+                  Symbol_database_change.update(document_data.symbol_database, symbol_database_change);
+
+                  const module_change = Module_change.create_change(new_node);
+                  Module_change.update(document_data.module, module_change);
+                }
               }
             }
           }
