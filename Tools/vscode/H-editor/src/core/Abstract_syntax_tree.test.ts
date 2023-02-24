@@ -98,6 +98,27 @@ describe("Abstract_syntax_tree.find_node_common_root", () => {
     });
 });
 
+describe("Abstract_syntax_tree.find_top_level_node_position", () => {
+
+    it("Finds statement r.0", () => {
+        const root = create_example_0();
+        const position = Abstract_syntax_tree.find_top_level_node_position(root, [0, 0]);
+        assert.deepEqual(position, [0]);
+    });
+
+    it("Finds statement r.1", () => {
+        const root = create_example_0();
+        const position = Abstract_syntax_tree.find_top_level_node_position(root, [1]);
+        assert.deepEqual(position, [1]);
+    });
+
+    it("Finds code block r", () => {
+        const root = create_example_0();
+        const position = Abstract_syntax_tree.find_top_level_node_position(root, []);
+        assert.deepEqual(position, []);
+    });
+});
+
 describe("Abstract_syntax_tree.iterate_forward_with_repetition", () => {
     it("Visits example_0 nodes correctly", () => {
 
