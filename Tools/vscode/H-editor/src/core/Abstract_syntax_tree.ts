@@ -96,11 +96,34 @@ export function get_node_at_position(root: Node, position: number[]): Node {
     return current_node;
 }
 
-export function find_node_range(root: Node, position: number[]): { start: number, end: number } {
-    throw Error("Not implemented!");
+function get_node_and_offset_at_position(root: Node, position: number[]): { node: Node, offset: number } {
+
+    let current_node = root;
+    let offset = root.cache.relative_start;
+
+    for (const child_index of position) {
+        current_node = current_node.children[child_index];
+        offset += current_node.cache.relative_start;
+    }
+
     return {
-        start: 0,
-        end: 0
+        node: current_node,
+        offset: offset
+    };
+}
+
+export function find_node_range(root: Node, end: number, position: number[]): { start: number, end: number } {
+
+    const node_and_offset = get_node_and_offset_at_position(root, position);
+
+    let iteration_result = iterate_forward_with_repetition(root, node_and_offset.node, position, Iterate_direction.Up);
+    while (iteration_result !== undefined && iteration_result.direction === Iterate_direction.Up) {
+        iteration_result = iterate_forward_with_repetition(root, iteration_result.next_node, iteration_result.next_position, iteration_result.direction);
+    }
+
+    return {
+        start: node_and_offset.offset,
+        end: iteration_result !== undefined ? get_node_and_offset_at_position(root, iteration_result.next_position).offset : end
     };
 }
 

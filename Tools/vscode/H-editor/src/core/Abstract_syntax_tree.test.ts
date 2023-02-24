@@ -98,9 +98,47 @@ describe("Abstract_syntax_tree.find_node_common_root", () => {
     });
 });
 
+describe("Abstract_syntax_tree.find_node_range", () => {
+
+    it("Finds range of r.0", () => {
+        const root = create_example_0();
+        const range = Abstract_syntax_tree.find_node_range(root, -1, [0]);
+        assert.equal(range.start, 1);
+        assert.equal(range.end, 17);
+    });
+
+    it("Finds range of r.0.0", () => {
+        const root = create_example_0();
+        const range = Abstract_syntax_tree.find_node_range(root, -1, [0, 0]);
+        assert.equal(range.start, 5);
+        assert.equal(range.end, 11);
+    });
+
+    it("Finds range of r.0.1", () => {
+        const root = create_example_0();
+        const range = Abstract_syntax_tree.find_node_range(root, -1, [0, 1]);
+        assert.equal(range.start, 11);
+        assert.equal(range.end, 17);
+    });
+
+    it("Finds range of r.1", () => {
+        const root = create_example_0();
+        const range = Abstract_syntax_tree.find_node_range(root, -1, [1]);
+        assert.equal(range.start, 17);
+        assert.equal(range.end, -1);
+    });
+
+    it("Finds range of r.1.0", () => {
+        const root = create_example_0();
+        const range = Abstract_syntax_tree.find_node_range(root, -1, [1, 0]);
+        assert.equal(range.start, 21);
+        assert.equal(range.end, -1);
+    });
+});
+
 describe("Abstract_syntax_tree.find_top_level_node_position", () => {
 
-    it("Finds statement r.0", () => {
+    it("Finds statement r.0.0", () => {
         const root = create_example_0();
         const position = Abstract_syntax_tree.find_top_level_node_position(root, [0, 0]);
         assert.deepEqual(position, [0]);

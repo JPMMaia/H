@@ -467,7 +467,7 @@ export function activate(context: ExtensionContext) {
 
                 const child_node_position = [...parent_node_position, child_index];
                 const child_node = Abstract_syntax_tree.get_node_at_position(root, child_node_position);
-                const child_node_offset_range = Abstract_syntax_tree.find_node_range(root, common_node_position);
+                const child_node_offset_range = Abstract_syntax_tree.find_node_range(root, -1, common_node_position);
 
                 const text_adjusted_offset_range = { start: child_node_offset_range.start, end: child_node_offset_range.end - content_change.rangeLength + content_change.text.length };
 
