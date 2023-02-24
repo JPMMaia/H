@@ -225,3 +225,10 @@ export function find_nodes_of_range(root: Node, start: number, end: number): { p
         }
     };
 }
+
+export function shallow_copy(to: Node, from: Node): void {
+    to.value = from.value;
+    to.token = from.token;
+    to.children = [...from.children];
+    to.cache.relative_start = from.cache.relative_start;
+}
