@@ -7,7 +7,7 @@ import * as Scanner from "./Scanner";
 describe("Scanner.scan", () => {
     it("Scans integers", () => {
         const input = "1234";
-        const scanned_words = Scanner.scan(input);
+        const scanned_words = Scanner.scan(input, 0, input.length);
         assert.equal(scanned_words.length, 1);
         assert.equal(scanned_words[0].value, input);
         assert.equal(scanned_words[0].type, Grammar.Word_type.Number);
@@ -15,7 +15,7 @@ describe("Scanner.scan", () => {
 
     it("Scans floats", () => {
         const input = "12.34";
-        const scanned_words = Scanner.scan(input);
+        const scanned_words = Scanner.scan(input, 0, input.length);
         assert.equal(scanned_words.length, 1);
         assert.equal(scanned_words[0].value, input);
         assert.equal(scanned_words[0].type, Grammar.Word_type.Number);
@@ -23,7 +23,7 @@ describe("Scanner.scan", () => {
 
     it("Scans invalid numbers", () => {
         const input = "12.34.56";
-        const scanned_words = Scanner.scan(input);
+        const scanned_words = Scanner.scan(input, 0, input.length);
 
         assert.equal(scanned_words.length, 1);
 
@@ -33,7 +33,7 @@ describe("Scanner.scan", () => {
 
     it("Scans alphanumerics", () => {
         const input = "add_0_foo";
-        const scanned_words = Scanner.scan(input);
+        const scanned_words = Scanner.scan(input, 0, input.length);
         assert.equal(scanned_words.length, 1);
         assert.equal(scanned_words[0].value, input);
         assert.equal(scanned_words[0].type, Grammar.Word_type.Alphanumeric);
@@ -41,7 +41,7 @@ describe("Scanner.scan", () => {
 
     it("Scans strings", () => {
         const input = "\"Hello\" \"\\\"\"";
-        const scanned_words = Scanner.scan(input);
+        const scanned_words = Scanner.scan(input, 0, input.length);
 
         assert.equal(scanned_words.length, 2);
 
@@ -54,7 +54,7 @@ describe("Scanner.scan", () => {
 
     it("Scans symbols", () => {
         const input = ". != == /= %";
-        const scanned_words = Scanner.scan(input);
+        const scanned_words = Scanner.scan(input, 0, input.length);
 
         assert.equal(scanned_words.length, 5);
 
@@ -76,7 +76,7 @@ describe("Scanner.scan", () => {
 
     it("Scans parenthesis", () => {
         const input = "() {} []";
-        const scanned_words = Scanner.scan(input);
+        const scanned_words = Scanner.scan(input, 0, input.length);
 
         assert.equal(scanned_words.length, 6);
 

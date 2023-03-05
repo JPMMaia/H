@@ -1,6 +1,7 @@
+import { onThrowError } from "../utilities/errors";
 import * as Grammar from "./Grammar";
 
-function is_whitespace_or_new_line(character: string): boolean {
+export function is_whitespace_or_new_line(character: string): boolean {
     return character === " " || character === "\n" || character === "\t";
 }
 
@@ -240,19 +241,61 @@ export interface Scanned_word {
     type: Grammar.Word_type;
 }
 
-export function scan(code: string): Scanned_word[] {
+export function scan(code: string, start_offset: number, end_offset: number): Scanned_word[] {
 
     const scanned_words: Scanned_word[] = [];
 
-    let current_offset = 0;
+    let current_offset = start_offset;
 
-    while (current_offset < code.length) {
+    while (current_offset < end_offset) {
         const word_scan_result = scan_word(code, current_offset);
 
-        scanned_words.push({ value: word_scan_result.word, type: word_scan_result.type });
+        if (word_scan_result.word.length > 0) {
+            scanned_words.push({ value: word_scan_result.word, type: word_scan_result.type });
+        }
 
         current_offset += word_scan_result.processed_characters;
     }
 
     return scanned_words;
+}
+
+export function is_same_word(current_character: string, next_character: string): boolean {
+    if (is_whitespace_or_new_line(current_character) || is_whitespace_or_new_line(next_character)) {
+        return false;
+    }
+    if (is_alphanumeric(current_character) && is_alphanumeric(next_character)) {
+        return true;
+    }
+    if (is_symbol(current_character) && is_symbol(next_character)) {
+        return true;
+    }
+    if (is_symbol(current_character) && !is_symbol(next_character)) {
+        return false;
+    }
+    if (!is_symbol(current_character) && is_symbol(next_character)) {
+        return false;
+    }
+
+    const message = "is_same_word: case not handled!";
+    onThrowError(message);
+    throw Error(message);
+}
+
+export function count_words(text: string, start_offset: number, end_offset: number): number {
+    const scanned_words = scan(text, start_offset, end_offset);
+    return scanned_words.length;
+}
+
+export function get_next_word_range(text: string, offset: number): { start: number, end: number } {
+
+    const word_scan_result = scan_word(text, offset);
+
+    const end = offset + word_scan_result.processed_characters;
+    const start = end - word_scan_result.word.length;
+
+    return {
+        start: start,
+        end: end
+    };
 }

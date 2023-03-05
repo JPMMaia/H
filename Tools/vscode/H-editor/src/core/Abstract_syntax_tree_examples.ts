@@ -1,6 +1,6 @@
 import * as Abstract_syntax_tree from "./Abstract_syntax_tree";
 
-function create_node(value: string, token: Abstract_syntax_tree.Token, children: Abstract_syntax_tree.Node[], relative_start: number): Abstract_syntax_tree.Node {
+export function create_node(value: string, token: Abstract_syntax_tree.Token, children: Abstract_syntax_tree.Node[], relative_start: number): Abstract_syntax_tree.Node {
     return {
         value: value,
         token: token,
@@ -9,6 +9,16 @@ function create_node(value: string, token: Abstract_syntax_tree.Token, children:
             relative_start: relative_start
         }
     };
+}
+
+export function create_empty(): Abstract_syntax_tree.Node {
+
+    const module_children: Abstract_syntax_tree.Node[] = [
+        create_node("", Abstract_syntax_tree.Token.Module_head, [], 0),
+        create_node("", Abstract_syntax_tree.Token.Module_body, [], 0),
+    ];
+
+    return create_node("", Abstract_syntax_tree.Token.Module, module_children, 0);
 }
 
 export function create_0(): Abstract_syntax_tree.Node {

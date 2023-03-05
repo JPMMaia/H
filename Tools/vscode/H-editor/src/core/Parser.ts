@@ -655,6 +655,23 @@ export function parse_function(words: Scanner.Scanned_word[], start_offset: numb
     };
 }
 
+export function parse_invalid(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
+
+    const invalid_node: Abstract_syntax_tree.Node = {
+        value: words[start_offset].value,
+        token: Abstract_syntax_tree.Token.Invalid,
+        children: [],
+        cache: {
+            relative_start: 0
+        }
+    };
+
+    return {
+        node: invalid_node,
+        processed_words: 1
+    };
+}
+
 export function parse_module_body(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
 
     const content_nodes: Abstract_syntax_tree.Node[] = [];
@@ -671,13 +688,12 @@ export function parse_module_body(words: Scanner.Scanned_word[], start_offset: n
 
             current_offset += result.processed_words;
         }
-        else if (word.type === Grammar.Word_type.Invalid) {
-            current_offset += 1;
-        }
+        // TODO
         else {
-            const message = "Not implemented!";
-            onThrowError(message);
-            throw Error(message);
+            const result = parse_invalid(words, current_offset, grammar);
+            content_nodes.push(result.node);
+
+            current_offset += result.processed_words;
         }
     }
 
@@ -698,7 +714,100 @@ export function parse_module_body(words: Scanner.Scanned_word[], start_offset: n
     };
 }
 
+export function parse_module_head(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
+
+    const head_nodes: Abstract_syntax_tree.Node[] = [];
+
+    let current_offset = start_offset;
+
+    while (current_offset < words.length) {
+
+        const word = words[current_offset];
+
+        if (word.value === "module") {
+            // TODO
+            current_offset += 1;
+        }
+        else if (word.value === "import") {
+            // TODO
+            current_offset += 1;
+        }
+        else if (word.value === "enum" || word.value === "function" || word.value === "struct" || word.value === "using") {
+            break;
+        }
+        else {
+            const result = parse_invalid(words, current_offset, grammar);
+            head_nodes.push(result.node);
+
+            current_offset += result.processed_words;
+        }
+    }
+
+    const module_head: Abstract_syntax_tree.Node = {
+        value: "",
+        token: Abstract_syntax_tree.Token.Module_head,
+        children: [
+            ...head_nodes
+        ],
+        cache: {
+            relative_start: 0
+        }
+    };
+
+    return {
+        node: module_head,
+        processed_words: (current_offset - start_offset)
+    };
+}
+
+export function parse_module(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
+
+    let current_offset = start_offset;
+
+    const head_result = parse_module_head(words, start_offset, grammar);
+    current_offset += head_result.processed_words;
+
+    const body_result = parse_module_body(words, current_offset, grammar);
+    current_offset += body_result.processed_words;
+
+    const module_head = head_result.node;
+    const module_body = body_result.node;
+
+    const module_node: Abstract_syntax_tree.Node = {
+        value: "",
+        token: Abstract_syntax_tree.Token.Module,
+        children: [
+            module_head,
+            module_body
+        ],
+        cache: {
+            relative_start: 0
+        }
+    };
+
+    return {
+        node: module_node,
+        processed_words: (current_offset - start_offset)
+    };
+}
+
 export function parse(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar, token: Abstract_syntax_tree.Token): Parse_result {
-    // TODO use token to decide
-    return parse_statement(words, start_offset, grammar);
+
+    if (token === Abstract_syntax_tree.Token.Module) {
+        return parse_module(words, start_offset, grammar);
+    }
+    else if (token === Abstract_syntax_tree.Token.Module_head) {
+        return parse_module_head(words, start_offset, grammar);
+    }
+    else if (token === Abstract_syntax_tree.Token.Module_body) {
+        return parse_module_body(words, start_offset, grammar);
+    }
+    else if (token === Abstract_syntax_tree.Token.Statement) {
+        return parse_statement(words, start_offset, grammar);
+    }
+    else {
+        const message = "Not implemented!";
+        onThrowError(message);
+        throw Error(message);
+    }
 }

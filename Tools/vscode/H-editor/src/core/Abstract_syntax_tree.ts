@@ -29,8 +29,10 @@ export enum Token {
     Function_parameters_close_keyword,
     Function_parameters_open_keyword,
     Function_parameters_separator,
+    Invalid,
     Module,
     Module_body,
+    Module_head,
     Statement,
     Statement_end,
 }
@@ -96,7 +98,7 @@ export function get_node_at_position(root: Node, position: number[]): Node {
     return current_node;
 }
 
-function get_node_and_offset_at_position(root: Node, position: number[]): { node: Node, offset: number } {
+export function get_node_and_offset_at_position(root: Node, position: number[]): { node: Node, offset: number } {
 
     let current_node = root;
     let offset = root.cache.relative_start;
@@ -195,6 +197,24 @@ export function iterate_forward_with_repetition(root: Node, current_node: Node, 
     };
 }
 
+export function iterate_forward(root: Node, current_node: Node, current_position: number[]): { next_node: Node, next_position: number[] } | undefined {
+
+    let result = iterate_forward_with_repetition(root, current_node, current_position, Iterate_direction.Down);
+
+    while (result !== undefined && result.direction === Iterate_direction.Up) {
+        result = iterate_forward_with_repetition(root, result.next_node, result.next_position, result.direction);
+    }
+
+    if (result === undefined) {
+        return result;
+    }
+
+    return {
+        next_node: result.next_node,
+        next_position: result.next_position
+    };
+}
+
 export function find_nodes_of_range(root: Node, start: number, end: number): { parent_position: number[] | undefined, child_indices: { start: number, end: number } } {
 
     const start_position = find_node_position(root, start);
@@ -231,4 +251,16 @@ export function shallow_copy(to: Node, from: Node): void {
     to.token = from.token;
     to.children = [...from.children];
     to.cache.relative_start = from.cache.relative_start;
+}
+
+export function find_child_index_with_token(node: Node, token: Token): number {
+    return node.children.findIndex(child => child.token === token);
+}
+
+export function find_child_with_token(node: Node, token: Token): Node | undefined {
+    return node.children.find(child => child.token === token);
+}
+
+export function is_shallow_equal(first: Node, second: Node): boolean {
+    return first.value === second.value && first.token === second.token;
 }
