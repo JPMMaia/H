@@ -617,6 +617,25 @@ export function parse_function_declaration(words: Scanner.Scanned_word[], start_
     };
 }
 
+function count_next_function_words(words: Scanner.Scanned_word[]): number {
+
+    const total_words = 9;
+
+    for (let index = 1; index < total_words; ++index) {
+
+        if (index >= words.length) {
+            return index;
+        }
+
+        const word = words[index];
+        if (word.value === "enum" || word.value === "function" || word.value === "struct" || word.value === "using") {
+            return index;
+        }
+    }
+
+    return total_words;
+}
+
 export function parse_function(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
 
     const function_declaration_keyword = "function";
@@ -627,6 +646,29 @@ export function parse_function(words: Scanner.Scanned_word[], start_offset: numb
         const message = "parse_function_declaration expects 'function' as first word!";
         onThrowError(message);
         throw Error(message);
+    }
+
+    {
+        const count = count_next_function_words(words);
+        if (count < 9) {
+            const invalid_nodes = parse_n_invalid(words, start_offset, count, grammar);
+
+            const function_node: Abstract_syntax_tree.Node = {
+                value: "",
+                token: Abstract_syntax_tree.Token.Function,
+                children: [
+                    ...invalid_nodes
+                ],
+                cache: {
+                    relative_start: 0
+                }
+            };
+
+            return {
+                node: function_node,
+                processed_words: count
+            };
+        }
     }
 
     let current_offset = start_offset;
@@ -670,6 +712,28 @@ export function parse_invalid(words: Scanner.Scanned_word[], start_offset: numbe
         node: invalid_node,
         processed_words: 1
     };
+}
+
+export function parse_n_invalid(words: Scanner.Scanned_word[], start_offset: number, count: number, grammar: Grammar.Grammar): Abstract_syntax_tree.Node[] {
+
+    const nodes: Abstract_syntax_tree.Node[] = [];
+
+    for (let index = 0; index < count; ++index) {
+        const offset = start_offset + index;
+
+        const invalid_node: Abstract_syntax_tree.Node = {
+            value: words[offset].value,
+            token: Abstract_syntax_tree.Token.Invalid,
+            children: [],
+            cache: {
+                relative_start: 0
+            }
+        };
+
+        nodes.push(invalid_node);
+    }
+
+    return nodes;
 }
 
 export function parse_module_body(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
@@ -801,6 +865,9 @@ export function parse(words: Scanner.Scanned_word[], start_offset: number, gramm
     }
     else if (token === Abstract_syntax_tree.Token.Module_body) {
         return parse_module_body(words, start_offset, grammar);
+    }
+    else if (token === Abstract_syntax_tree.Token.Function) {
+        return parse_function(words, start_offset, grammar);
     }
     else if (token === Abstract_syntax_tree.Token.Statement) {
         return parse_statement(words, start_offset, grammar);

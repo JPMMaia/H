@@ -193,7 +193,7 @@ function is_modifying_previous_node(root: Abstract_syntax_tree.Node, text_after_
     const word_count_before = Scanner.count_words(text_before, 0, text_before.length);
     const word_count_after = Scanner.count_words(text_after, 0, text_after.length);
 
-    return word_count_before === word_count_after;
+    return word_count_before === word_count_after && text_before !== text_after;
 }
 
 function create_add_changes_from_parsed_nodes(parent_position: number[], start_child_index: number, parsed_nodes: Abstract_syntax_tree.Node[]): Change[] {
@@ -210,13 +210,50 @@ function create_add_changes_from_parsed_nodes(parent_position: number[], start_c
     return changes;
 }
 
+function find_start_of_parsing_child_index(top_level_node_position: number[], start_node_position: number[]): number {
+
+    if (top_level_node_position.length >= start_node_position.length) {
+        return 0;
+    }
+
+    const child_index = start_node_position[top_level_node_position.length];
+    return child_index;
+}
+
+function find_start_of_parsing(root: Abstract_syntax_tree.Node, start_node_position: number[]): { context_token: Abstract_syntax_tree.Token, parent_position: number[], child_index: number } {
+
+    if (start_node_position.length === 0 || (start_node_position.length === 1 && (start_node_position[0] === 0 || start_node_position[0] === 1))) {
+        return {
+            context_token: Abstract_syntax_tree.Token.Module_head,
+            parent_position: [0],
+            child_index: 0
+        };
+    }
+
+    const top_level_node_position = Abstract_syntax_tree.find_top_level_node_position(root, start_node_position);
+
+    const parent_position = top_level_node_position.slice(0, top_level_node_position.length - 1);
+    const parent_node = Abstract_syntax_tree.get_node_at_position(root, parent_position);
+    const child_index = find_start_of_parsing_child_index(parent_position, top_level_node_position);
+
+    return {
+        context_token: parent_node.token,
+        parent_position: parent_position,
+        child_index: child_index
+    };
+}
+
 function create_add_changes(root: Abstract_syntax_tree.Node, text_after_change: string, text_change: Text_change, grammar: Grammar.Grammar): Change[] {
 
     const modify_previous_node = text_change.range_offset > 0 && is_modifying_previous_node(root, text_after_change, text_change);
 
     const first_character_index = modify_previous_node ? text_change.range_offset - 1 : text_change.range_offset;
 
-    const start_node_position = Abstract_syntax_tree.find_node_position(root, first_character_index);
+    const first_character_node_position = Abstract_syntax_tree.find_node_position(root, first_character_index);
+    const start_parsing_state = find_start_of_parsing(root, first_character_node_position);
+
+    const parent_node = Abstract_syntax_tree.get_node_at_position(root, start_parsing_state.parent_position);
+    const start_node_position = start_parsing_state.child_index < parent_node.children.length ? [...start_parsing_state.parent_position, start_parsing_state.child_index] : [...start_parsing_state.parent_position];
     const start_node_and_offset = Abstract_syntax_tree.get_node_and_offset_at_position(root, start_node_position);
 
     const first_added_character = text_after_change.charAt(text_change.range_offset);
@@ -229,22 +266,22 @@ function create_add_changes(root: Abstract_syntax_tree.Node, text_after_change: 
     const scanned_words = Scanner.scan(text_after_change, text_start_offset, text_end_offset);
 
     const changes: Change[] = [];
-    let context_token = Abstract_syntax_tree.Token.Module_head;
-    let current_position: number[] = [0];
-    let current_child_index = 0;
+    let current_parsing_state = start_parsing_state;
     let current_word_index = 0;
 
     while (current_word_index < scanned_words.length) {
-        const parse_result = Parser.parse(scanned_words, current_word_index, grammar, context_token);
+        const parse_result = Parser.parse(scanned_words, current_word_index, grammar, current_parsing_state.context_token);
 
-        const add_changes = create_add_changes_from_parsed_nodes(current_position, current_child_index, parse_result.node.children);
+        const add_changes = create_add_changes_from_parsed_nodes(current_parsing_state.parent_position, current_parsing_state.child_index, parse_result.node.children);
         changes.push(...add_changes);
 
-        switch (context_token) {
+        switch (current_parsing_state.context_token) {
             case Abstract_syntax_tree.Token.Module_head:
-                context_token = Abstract_syntax_tree.Token.Module_body;
-                current_position = [1];
-                current_child_index = 0;
+                current_parsing_state = {
+                    context_token: Abstract_syntax_tree.Token.Module_body,
+                    parent_position: [1],
+                    child_index: 0
+                };
                 break;
             default:
                 break;

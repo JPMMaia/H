@@ -260,5 +260,94 @@ describe("Abstract_syntax_tree_change.create_changes", () => {
             assert.deepEqual(remove_change.position, [0, 1]);
         }
     });
+
+    it("Creates changes from completing keyword function", () => {
+
+        const root = Abstract_syntax_tree_examples.create_empty();
+        root.children[0].children = [
+            Abstract_syntax_tree_examples.create_node("functio", Abstract_syntax_tree.Token.Invalid, [], 0)
+        ];
+        root.children[1].cache.relative_start = 7;
+
+        const text_after_change = "function";
+        const text_change: Abstract_syntax_tree_change.Text_change = {
+            range_offset: 7,
+            range_length: 0,
+            new_text: "n"
+        };
+
+        const changes = Abstract_syntax_tree_change.create_changes(root, text_after_change, text_change, grammar);
+
+        assert.equal(changes.length, 2);
+
+        {
+            const change = changes[0];
+            assert.equal(change.type, Abstract_syntax_tree_change.Type.Remove);
+
+            const remove_change = change.value as Abstract_syntax_tree_change.Remove_change;
+            assert.deepEqual(remove_change.position, [0, 0]);
+        }
+
+        {
+            const change = changes[1];
+            assert.equal(change.type, Abstract_syntax_tree_change.Type.Add);
+
+            const add_change = change.value as Abstract_syntax_tree_change.Add_change;
+            assert.deepEqual(add_change.position, [1, 0]);
+            assert.equal(add_change.new_node.value, "");
+            assert.equal(add_change.new_node.token, Abstract_syntax_tree.Token.Function);
+            assert.equal(add_change.new_node.children.length, 1);
+
+            {
+                const node = add_change.new_node.children[0];
+                assert.equal(node.value, "function");
+                assert.equal(node.token, Abstract_syntax_tree.Token.Invalid);
+            }
+        }
+    });
+
+    it("Creates changes from adding function name", () => {
+
+        const root = Abstract_syntax_tree_examples.create_empty();
+        root.children[1].children = [
+            Abstract_syntax_tree_examples.create_node("", Abstract_syntax_tree.Token.Function, [
+                Abstract_syntax_tree_examples.create_node("function", Abstract_syntax_tree.Token.Invalid, [], 0)
+            ], 0)
+        ];
+
+        const text_after_change = "function foo";
+        const text_change: Abstract_syntax_tree_change.Text_change = {
+            range_offset: 8,
+            range_length: 0,
+            new_text: " foo"
+        };
+
+        const changes = Abstract_syntax_tree_change.create_changes(root, text_after_change, text_change, grammar);
+
+        assert.equal(changes.length, 1);
+
+        {
+            const change = changes[0];
+            assert.equal(change.type, Abstract_syntax_tree_change.Type.Add);
+
+            const add_change = change.value as Abstract_syntax_tree_change.Add_change;
+            assert.deepEqual(add_change.position, [1, 0]);
+            assert.equal(add_change.new_node.value, "");
+            assert.equal(add_change.new_node.token, Abstract_syntax_tree.Token.Function);
+            assert.equal(add_change.new_node.children.length, 2);
+
+            {
+                const node = add_change.new_node.children[0];
+                assert.equal(node.value, "function");
+                assert.equal(node.token, Abstract_syntax_tree.Token.Invalid);
+            }
+
+            {
+                const node = add_change.new_node.children[1];
+                assert.equal(node.value, "foo");
+                assert.equal(node.token, Abstract_syntax_tree.Token.Invalid);
+            }
+        }
+    });
 });
 

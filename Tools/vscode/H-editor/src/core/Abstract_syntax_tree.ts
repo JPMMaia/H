@@ -135,6 +135,7 @@ export function is_top_level_token(token: Token): boolean {
         case Token.Function:
         case Token.Function_declaration:
         case Token.Module:
+        case Token.Module_head:
         case Token.Module_body:
         case Token.Statement:
             return true;
@@ -148,7 +149,7 @@ export function find_top_level_node_position(root: Node, position: number[]): nu
     const current_position = [...position];
     let current_node = get_node_at_position(root, current_position);
 
-    while (!is_top_level_token(current_node.token) && current_position.length > 0) {
+    while (!is_top_level_token(current_node.token) && current_position.length > 2) {
 
         current_position.pop();
         current_node = get_node_at_position(root, current_position);
