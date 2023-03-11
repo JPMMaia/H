@@ -1182,3 +1182,510 @@ describe("Parser.parse_function_parameter", () => {
         }
     });
 });
+
+
+describe("Parser.parse_code_block", () => {
+
+    it("Parses incomplete code block 0", () => {
+
+        const text = ``;
+
+        const words = Scanner.scan(text, 0, text.length);
+        const grammar = Default_grammar.create_grammar();
+        const result = Parser.parse_code_block(words, 0, grammar);
+
+        assert.equal(result.processed_words, 0);
+
+        const code_block_node = result.node;
+
+        {
+            assert.equal(code_block_node.value, "");
+            assert.equal(code_block_node.token, Abstract_syntax_tree.Token.Code_block);
+            assert.equal(code_block_node.children.length, 0);
+        }
+    });
+
+    it("Parses incomplete code block 1", () => {
+
+        const text = `
+            {
+        `;
+
+        const words = Scanner.scan(text, 0, text.length);
+        const grammar = Default_grammar.create_grammar();
+        const result = Parser.parse_code_block(words, 0, grammar);
+
+        assert.equal(result.processed_words, 1);
+
+        const code_block_node = result.node;
+
+        {
+            assert.equal(code_block_node.value, "");
+            assert.equal(code_block_node.token, Abstract_syntax_tree.Token.Code_block);
+            assert.equal(code_block_node.children.length, 1);
+        }
+
+        {
+            const open_code_block_node = code_block_node.children[0];
+            assert.equal(open_code_block_node.value, "{");
+            assert.equal(open_code_block_node.token, Abstract_syntax_tree.Token.Code_block_open_keyword);
+            assert.equal(open_code_block_node.children.length, 0);
+        }
+    });
+
+    it("Parses complete code block 0", () => {
+
+        const text = `
+            {}
+        `;
+
+        const words = Scanner.scan(text, 0, text.length);
+        const grammar = Default_grammar.create_grammar();
+        const result = Parser.parse_code_block(words, 0, grammar);
+
+        assert.equal(result.processed_words, 2);
+
+        const code_block_node = result.node;
+
+        {
+            assert.equal(code_block_node.value, "");
+            assert.equal(code_block_node.token, Abstract_syntax_tree.Token.Code_block);
+            assert.equal(code_block_node.children.length, 2);
+        }
+
+        {
+            const open_code_block_node = code_block_node.children[0];
+            assert.equal(open_code_block_node.value, "{");
+            assert.equal(open_code_block_node.token, Abstract_syntax_tree.Token.Code_block_open_keyword);
+            assert.equal(open_code_block_node.children.length, 0);
+        }
+
+        {
+            const close_code_block_node = code_block_node.children[1];
+            assert.equal(close_code_block_node.value, "}");
+            assert.equal(close_code_block_node.token, Abstract_syntax_tree.Token.Code_block_close_keyword);
+            assert.equal(close_code_block_node.children.length, 0);
+        }
+    });
+});
+
+describe("Parser.parse_statement", () => {
+
+    it("Parses incomplete statement 0", () => {
+
+        const text = ``;
+
+        const words = Scanner.scan(text, 0, text.length);
+        const grammar = Default_grammar.create_grammar();
+        const result = Parser.parse_statement(words, 0, grammar);
+
+        assert.equal(result.processed_words, 0);
+
+        const statement_node = result.node;
+
+        {
+            assert.equal(statement_node.value, "");
+            assert.equal(statement_node.token, Abstract_syntax_tree.Token.Statement);
+            assert.equal(statement_node.children.length, 0);
+        }
+    });
+
+    it("Parses incomplete statement 1", () => {
+
+        const text = `
+            var
+        `;
+
+        const words = Scanner.scan(text, 0, text.length);
+        const grammar = Default_grammar.create_grammar();
+        const result = Parser.parse_statement(words, 0, grammar);
+
+        assert.equal(result.processed_words, 1);
+
+        const statement_node = result.node;
+
+        {
+            assert.equal(statement_node.value, "");
+            assert.equal(statement_node.token, Abstract_syntax_tree.Token.Statement);
+            assert.equal(statement_node.children.length, 1);
+        }
+
+        {
+            const root_expression_node = statement_node.children[0];
+            assert.equal(root_expression_node.value, "");
+            assert.equal(root_expression_node.token, Abstract_syntax_tree.Token.Expression_variable_declaration);
+            assert.equal(root_expression_node.children.length, 1);
+
+            {
+                const node = root_expression_node.children[0];
+                assert.equal(node.value, "var");
+                assert.equal(node.token, Abstract_syntax_tree.Token.Expression_variable_declaration_keyword);
+                assert.equal(node.children.length, 0);
+            }
+        }
+    });
+
+    it("Parses incomplete statement 2", () => {
+
+        const text = `
+            var foo
+        `;
+
+        const words = Scanner.scan(text, 0, text.length);
+        const grammar = Default_grammar.create_grammar();
+        const result = Parser.parse_statement(words, 0, grammar);
+
+        assert.equal(result.processed_words, 2);
+
+        const statement_node = result.node;
+
+        {
+            assert.equal(statement_node.value, "");
+            assert.equal(statement_node.token, Abstract_syntax_tree.Token.Statement);
+            assert.equal(statement_node.children.length, 1);
+        }
+
+        {
+            const root_expression_node = statement_node.children[0];
+            assert.equal(root_expression_node.value, "");
+            assert.equal(root_expression_node.token, Abstract_syntax_tree.Token.Expression_variable_declaration);
+            assert.equal(root_expression_node.children.length, 2);
+
+            {
+                const node = root_expression_node.children[0];
+                assert.equal(node.value, "var");
+                assert.equal(node.token, Abstract_syntax_tree.Token.Expression_variable_declaration_keyword);
+                assert.equal(node.children.length, 0);
+            }
+
+            {
+                const node = root_expression_node.children[1];
+                assert.equal(node.value, "foo");
+                assert.equal(node.token, Abstract_syntax_tree.Token.Expression_variable_declaration_name);
+                assert.equal(node.children.length, 0);
+            }
+        }
+    });
+
+    it("Parses incomplete statement 3", () => {
+
+        const text = `
+            var foo =
+        `;
+
+        const words = Scanner.scan(text, 0, text.length);
+        const grammar = Default_grammar.create_grammar();
+        const result = Parser.parse_statement(words, 0, grammar);
+
+        assert.equal(result.processed_words, 3);
+
+        const statement_node = result.node;
+
+        {
+            assert.equal(statement_node.value, "");
+            assert.equal(statement_node.token, Abstract_syntax_tree.Token.Statement);
+            assert.equal(statement_node.children.length, 1);
+        }
+
+        {
+            const root_expression_node = statement_node.children[0];
+            assert.equal(root_expression_node.value, "");
+            assert.equal(root_expression_node.token, Abstract_syntax_tree.Token.Expression_variable_declaration);
+            assert.equal(root_expression_node.children.length, 3);
+
+            {
+                const node = root_expression_node.children[0];
+                assert.equal(node.value, "var");
+                assert.equal(node.token, Abstract_syntax_tree.Token.Expression_variable_declaration_keyword);
+                assert.equal(node.children.length, 0);
+            }
+
+            {
+                const node = root_expression_node.children[1];
+                assert.equal(node.value, "foo");
+                assert.equal(node.token, Abstract_syntax_tree.Token.Expression_variable_declaration_name);
+                assert.equal(node.children.length, 0);
+            }
+
+            {
+                const node = root_expression_node.children[2];
+                assert.equal(node.value, "=");
+                assert.equal(node.token, Abstract_syntax_tree.Token.Expression_variable_declaration_assignment);
+                assert.equal(node.children.length, 0);
+            }
+        }
+    });
+
+    it("Parses incomplete statement 4", () => {
+
+        const text = `
+            var foo = 3
+        `;
+
+        const words = Scanner.scan(text, 0, text.length);
+        const grammar = Default_grammar.create_grammar();
+        const result = Parser.parse_statement(words, 0, grammar);
+
+        assert.equal(result.processed_words, 4);
+
+        const statement_node = result.node;
+
+        {
+            assert.equal(statement_node.value, "");
+            assert.equal(statement_node.token, Abstract_syntax_tree.Token.Statement);
+            assert.equal(statement_node.children.length, 1);
+        }
+
+        {
+            const root_expression_node = statement_node.children[0];
+            assert.equal(root_expression_node.value, "");
+            assert.equal(root_expression_node.token, Abstract_syntax_tree.Token.Expression_variable_declaration);
+            assert.equal(root_expression_node.children.length, 4);
+
+            {
+                const node = root_expression_node.children[0];
+                assert.equal(node.value, "var");
+                assert.equal(node.token, Abstract_syntax_tree.Token.Expression_variable_declaration_keyword);
+                assert.equal(node.children.length, 0);
+            }
+
+            {
+                const node = root_expression_node.children[1];
+                assert.equal(node.value, "foo");
+                assert.equal(node.token, Abstract_syntax_tree.Token.Expression_variable_declaration_name);
+                assert.equal(node.children.length, 0);
+            }
+
+            {
+                const node = root_expression_node.children[2];
+                assert.equal(node.value, "=");
+                assert.equal(node.token, Abstract_syntax_tree.Token.Expression_variable_declaration_assignment);
+                assert.equal(node.children.length, 0);
+            }
+
+            {
+                const right_side_expression_node = root_expression_node.children[3];
+                assert.equal(right_side_expression_node.value, "3");
+                assert.equal(right_side_expression_node.token, Abstract_syntax_tree.Token.Expression_constant);
+                assert.equal(right_side_expression_node.children.length, 0);
+            }
+        }
+    });
+
+    it("Parses incomplete statement 5", () => {
+
+        const text = `
+            var foo = 3+
+        `;
+
+        const words = Scanner.scan(text, 0, text.length);
+        const grammar = Default_grammar.create_grammar();
+        const result = Parser.parse_statement(words, 0, grammar);
+
+        assert.equal(result.processed_words, 4);
+
+        const statement_node = result.node;
+
+        {
+            assert.equal(statement_node.value, "");
+            assert.equal(statement_node.token, Abstract_syntax_tree.Token.Statement);
+            assert.equal(statement_node.children.length, 1);
+        }
+
+        {
+            const root_expression_node = statement_node.children[0];
+            assert.equal(root_expression_node.value, "");
+            assert.equal(root_expression_node.token, Abstract_syntax_tree.Token.Expression_variable_declaration);
+            assert.equal(root_expression_node.children.length, 4);
+
+            {
+                const node = root_expression_node.children[0];
+                assert.equal(node.value, "var");
+                assert.equal(node.token, Abstract_syntax_tree.Token.Expression_variable_declaration_keyword);
+                assert.equal(node.children.length, 0);
+            }
+
+            {
+                const node = root_expression_node.children[1];
+                assert.equal(node.value, "foo");
+                assert.equal(node.token, Abstract_syntax_tree.Token.Expression_variable_declaration_name);
+                assert.equal(node.children.length, 0);
+            }
+
+            {
+                const node = root_expression_node.children[2];
+                assert.equal(node.value, "=");
+                assert.equal(node.token, Abstract_syntax_tree.Token.Expression_variable_declaration_assignment);
+                assert.equal(node.children.length, 0);
+            }
+
+            {
+                const right_side_expression_node = root_expression_node.children[3];
+                assert.equal(right_side_expression_node.value, "3");
+                assert.equal(right_side_expression_node.token, Abstract_syntax_tree.Token.Expression_constant);
+                assert.equal(right_side_expression_node.children.length, 0);
+            }
+        }
+    });
+
+    it("Parses incomplete statement 6", () => {
+
+        const text = `
+            var foo = 3+5
+        `;
+
+        const words = Scanner.scan(text, 0, text.length);
+        const grammar = Default_grammar.create_grammar();
+        const result = Parser.parse_statement(words, 0, grammar);
+
+        assert.equal(result.processed_words, 6);
+
+        const statement_node = result.node;
+
+        {
+            assert.equal(statement_node.value, "");
+            assert.equal(statement_node.token, Abstract_syntax_tree.Token.Statement);
+            assert.equal(statement_node.children.length, 1);
+        }
+
+        {
+            const root_expression_node = statement_node.children[0];
+            assert.equal(root_expression_node.value, "");
+            assert.equal(root_expression_node.token, Abstract_syntax_tree.Token.Expression_variable_declaration);
+            assert.equal(root_expression_node.children.length, 4);
+
+            {
+                const node = root_expression_node.children[0];
+                assert.equal(node.value, "var");
+                assert.equal(node.token, Abstract_syntax_tree.Token.Expression_variable_declaration_keyword);
+                assert.equal(node.children.length, 0);
+            }
+
+            {
+                const node = root_expression_node.children[1];
+                assert.equal(node.value, "foo");
+                assert.equal(node.token, Abstract_syntax_tree.Token.Expression_variable_declaration_name);
+                assert.equal(node.children.length, 0);
+            }
+
+            {
+                const node = root_expression_node.children[2];
+                assert.equal(node.value, "=");
+                assert.equal(node.token, Abstract_syntax_tree.Token.Expression_variable_declaration_assignment);
+                assert.equal(node.children.length, 0);
+            }
+
+            {
+                const right_side_expression_node = root_expression_node.children[3];
+                assert.equal(right_side_expression_node.value, "");
+                assert.equal(right_side_expression_node.token, Abstract_syntax_tree.Token.Expression_binary_operation);
+                assert.equal(right_side_expression_node.children.length, 3);
+
+                {
+                    const node = right_side_expression_node.children[0];
+                    assert.equal(node.value, "3");
+                    assert.equal(node.token, Abstract_syntax_tree.Token.Expression_constant);
+                    assert.equal(node.children.length, 0);
+                }
+
+                {
+                    const node = right_side_expression_node.children[1];
+                    assert.equal(node.value, "+");
+                    assert.equal(node.token, Abstract_syntax_tree.Token.Expression_binary_operation_keyword);
+                    assert.equal(node.children.length, 0);
+                }
+
+                {
+                    const node = right_side_expression_node.children[2];
+                    assert.equal(node.value, "5");
+                    assert.equal(node.token, Abstract_syntax_tree.Token.Expression_constant);
+                    assert.equal(node.children.length, 0);
+                }
+            }
+        }
+    });
+
+    it("Parses complete statement 0", () => {
+
+        const text = `
+            var foo = 3+5;
+        `;
+
+        const words = Scanner.scan(text, 0, text.length);
+        const grammar = Default_grammar.create_grammar();
+        const result = Parser.parse_statement(words, 0, grammar);
+
+        assert.equal(result.processed_words, 7);
+
+        const statement_node = result.node;
+
+        {
+            assert.equal(statement_node.value, "");
+            assert.equal(statement_node.token, Abstract_syntax_tree.Token.Statement);
+            assert.equal(statement_node.children.length, 2);
+        }
+
+        {
+            const root_expression_node = statement_node.children[0];
+            assert.equal(root_expression_node.value, "");
+            assert.equal(root_expression_node.token, Abstract_syntax_tree.Token.Expression_variable_declaration);
+            assert.equal(root_expression_node.children.length, 4);
+
+            {
+                const node = root_expression_node.children[0];
+                assert.equal(node.value, "var");
+                assert.equal(node.token, Abstract_syntax_tree.Token.Expression_variable_declaration_keyword);
+                assert.equal(node.children.length, 0);
+            }
+
+            {
+                const node = root_expression_node.children[1];
+                assert.equal(node.value, "foo");
+                assert.equal(node.token, Abstract_syntax_tree.Token.Expression_variable_declaration_name);
+                assert.equal(node.children.length, 0);
+            }
+
+            {
+                const node = root_expression_node.children[2];
+                assert.equal(node.value, "=");
+                assert.equal(node.token, Abstract_syntax_tree.Token.Expression_variable_declaration_assignment);
+                assert.equal(node.children.length, 0);
+            }
+
+            {
+                const right_side_expression_node = root_expression_node.children[3];
+                assert.equal(right_side_expression_node.value, "");
+                assert.equal(right_side_expression_node.token, Abstract_syntax_tree.Token.Expression_binary_operation);
+                assert.equal(right_side_expression_node.children.length, 3);
+
+                {
+                    const node = right_side_expression_node.children[0];
+                    assert.equal(node.value, "3");
+                    assert.equal(node.token, Abstract_syntax_tree.Token.Expression_constant);
+                    assert.equal(node.children.length, 0);
+                }
+
+                {
+                    const node = right_side_expression_node.children[1];
+                    assert.equal(node.value, "+");
+                    assert.equal(node.token, Abstract_syntax_tree.Token.Expression_binary_operation_keyword);
+                    assert.equal(node.children.length, 0);
+                }
+
+                {
+                    const node = right_side_expression_node.children[2];
+                    assert.equal(node.value, "5");
+                    assert.equal(node.token, Abstract_syntax_tree.Token.Expression_constant);
+                    assert.equal(node.children.length, 0);
+                }
+            }
+        }
+
+        {
+            const statement_end_node = statement_node.children[1];
+            assert.equal(statement_end_node.value, ";");
+            assert.equal(statement_end_node.token, Abstract_syntax_tree.Token.Statement_end);
+            assert.equal(statement_end_node.children.length, 0);
+        }
+    });
+});

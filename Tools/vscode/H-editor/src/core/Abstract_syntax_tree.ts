@@ -7,6 +7,7 @@ export enum Token {
     Expression_constant,
     Expression_defer,
     Expression_defer_keyword,
+    Expression_empty,
     Expression_return,
     Expression_return_keyword,
     Expression_variable_declaration,

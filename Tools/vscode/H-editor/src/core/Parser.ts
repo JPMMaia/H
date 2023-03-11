@@ -10,14 +10,19 @@ export interface Parse_result {
 
 function parse_variable_declaration_expression(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
 
-    const variable_keyword_value = words[start_offset].value;
-    const name_value = words[start_offset + 1].value;
-    const assigment_operator_value = words[start_offset + 2].value;
+    const variable_declaration_token = Abstract_syntax_tree.Token.Expression_variable_declaration;
 
-    const expression_parse_result = parse_expression(words, start_offset + 3, words.length, grammar);
+    const variable_keyword_word = words[start_offset];
+
+    if (variable_keyword_word === undefined || variable_keyword_word.value !== "var") {
+        return {
+            node: create_list_node(variable_declaration_token, []),
+            processed_words: 0
+        };
+    }
 
     const variable_keyword_node: Abstract_syntax_tree.Node = {
-        value: variable_keyword_value,
+        value: variable_keyword_word.value,
         token: Abstract_syntax_tree.Token.Expression_variable_declaration_keyword,
         children: [],
         cache: {
@@ -25,8 +30,17 @@ function parse_variable_declaration_expression(words: Scanner.Scanned_word[], st
         }
     };
 
+    const name_word = words[start_offset + 1];
+
+    if (name_word === undefined || name_word.type !== Grammar.Word_type.Alphanumeric) {
+        return {
+            node: create_list_node(variable_declaration_token, [variable_keyword_node]),
+            processed_words: 1
+        };
+    }
+
     const name_node: Abstract_syntax_tree.Node = {
-        value: name_value,
+        value: name_word.value,
         token: Abstract_syntax_tree.Token.Expression_variable_declaration_name,
         children: [],
         cache: {
@@ -34,8 +48,17 @@ function parse_variable_declaration_expression(words: Scanner.Scanned_word[], st
         }
     };
 
+    const assigment_operator_word = words[start_offset + 2];
+
+    if (assigment_operator_word === undefined || assigment_operator_word.value !== "=") {
+        return {
+            node: create_list_node(variable_declaration_token, [variable_keyword_node, name_node]),
+            processed_words: 2
+        };
+    }
+
     const assignment_operator_node: Abstract_syntax_tree.Node = {
-        value: assigment_operator_value,
+        value: assigment_operator_word.value,
         token: Abstract_syntax_tree.Token.Expression_variable_declaration_assignment,
         children: [],
         cache: {
@@ -43,19 +66,16 @@ function parse_variable_declaration_expression(words: Scanner.Scanned_word[], st
         }
     };
 
-    const variable_declaration_node: Abstract_syntax_tree.Node = {
-        value: "",
-        token: Abstract_syntax_tree.Token.Expression_variable_declaration,
-        children: [
-            variable_keyword_node,
-            name_node,
-            assignment_operator_node,
-            expression_parse_result.node
-        ],
-        cache: {
-            relative_start: 0
-        }
-    };
+    const expression_parse_result = parse_expression(words, start_offset + 3, words.length, grammar);
+
+    if (expression_parse_result.processed_words === 0) {
+        return {
+            node: create_list_node(variable_declaration_token, [variable_keyword_node, name_node, assignment_operator_node]),
+            processed_words: 3
+        };
+    }
+
+    const variable_declaration_node = create_list_node(variable_declaration_token, [variable_keyword_node, name_node, assignment_operator_node, expression_parse_result.node]);
 
     return {
         node: variable_declaration_node,
@@ -131,7 +151,7 @@ function parse_defer_expression(words: Scanner.Scanned_word[], start_offset: num
 
 function is_constant_expression(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): boolean {
     const word = words[start_offset];
-    return word.type === Grammar.Word_type.Number;
+    return word !== undefined && word.type === Grammar.Word_type.Number;
 }
 
 function parse_constant_expression(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
@@ -179,7 +199,7 @@ function is_binary_operation_expression(words: Scanner.Scanned_word[], start_off
     }
 
     const right_operand_processed_words = find_operand(words, start_offset + left_operand_processed_words + 1, grammar);
-    if (right_operand_processed_words === 0 || (start_offset + left_operand_processed_words + 1 + right_operand_processed_words) >= end_offset) {
+    if (right_operand_processed_words === 0) {
         return false;
     }
 
@@ -229,7 +249,7 @@ function parse_binary_expression(words: Scanner.Scanned_word[], start_offset: nu
 
 function is_variable_reference_expression(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): boolean {
     const word = words[start_offset];
-    return word.type === Grammar.Word_type.Alphanumeric;
+    return word !== undefined && word.type === Grammar.Word_type.Alphanumeric;
 }
 
 function parse_variable_reference_expression(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
@@ -274,6 +294,12 @@ function parse_expression(words: Scanner.Scanned_word[], start_offset: number, e
             processed_words: parse_result.processed_words
         };
     }
+    else if (start_offset >= words.length) {
+        return {
+            node: create_list_node(Abstract_syntax_tree.Token.Expression_empty, []),
+            processed_words: 0
+        };
+    }
     else {
         const message = "Not implemented!";
         onThrowError(message);
@@ -284,6 +310,13 @@ function parse_expression(words: Scanner.Scanned_word[], start_offset: number, e
 function parse_statement_body(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
 
     const first_word = words[start_offset];
+
+    if (first_word === undefined) {
+        return {
+            node: create_list_node(Abstract_syntax_tree.Token.Expression_empty, []),
+            processed_words: 0
+        };
+    }
 
     if (first_word.value === "var") {
         return parse_variable_declaration_expression(words, start_offset, grammar);
@@ -301,7 +334,11 @@ function parse_statement_body(words: Scanner.Scanned_word[], start_offset: numbe
 
 export function parse_statement(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
 
-    if (words[start_offset].value === ";") {
+    const statement_token = Abstract_syntax_tree.Token.Statement;
+
+    const first_word = words[start_offset];
+
+    if (first_word !== undefined && first_word.value === ";") {
         const semicolon = {
             value: ";",
             token: Abstract_syntax_tree.Token.Statement_end,
@@ -330,11 +367,25 @@ export function parse_statement(words: Scanner.Scanned_word[], start_offset: num
 
     const statement_body_parse_result = parse_statement_body(words, start_offset, grammar);
 
+    if (statement_body_parse_result.processed_words === 0) {
+        return {
+            node: create_list_node(statement_token, []),
+            processed_words: 0
+        };
+    }
+
     const semicolon_offset = start_offset + statement_body_parse_result.processed_words;
-    const semicolon_value = words[semicolon_offset].value;
+    const semicolon_word = words[semicolon_offset];
+
+    if (semicolon_word === undefined || semicolon_word.value !== ";") {
+        return {
+            node: create_list_node(statement_token, [statement_body_parse_result.node]),
+            processed_words: statement_body_parse_result.processed_words
+        };
+    }
 
     const semicolon_node: Abstract_syntax_tree.Node = {
-        value: semicolon_value,
+        value: semicolon_word.value,
         token: Abstract_syntax_tree.Token.Statement_end,
         children: [],
         cache: {
@@ -342,17 +393,7 @@ export function parse_statement(words: Scanner.Scanned_word[], start_offset: num
         }
     };
 
-    const statement_node: Abstract_syntax_tree.Node = {
-        value: "",
-        token: Abstract_syntax_tree.Token.Statement,
-        children: [
-            statement_body_parse_result.node,
-            semicolon_node
-        ],
-        cache: {
-            relative_start: 0
-        }
-    };
+    const statement_node = create_list_node(statement_token, [statement_body_parse_result.node, semicolon_node]);
 
     return {
         node: statement_node,
