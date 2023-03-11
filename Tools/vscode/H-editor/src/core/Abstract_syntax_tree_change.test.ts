@@ -299,9 +299,16 @@ describe("Abstract_syntax_tree_change.create_changes", () => {
             assert.equal(add_change.new_node.children.length, 1);
 
             {
-                const node = add_change.new_node.children[0];
-                assert.equal(node.value, "function");
-                assert.equal(node.token, Abstract_syntax_tree.Token.Invalid);
+                const declaration_node = add_change.new_node.children[0];
+                assert.equal(declaration_node.value, "");
+                assert.equal(declaration_node.token, Abstract_syntax_tree.Token.Function_declaration);
+                assert.equal(declaration_node.children.length, 1);
+
+                {
+                    const node = declaration_node.children[0];
+                    assert.equal(node.value, "function");
+                    assert.equal(node.token, Abstract_syntax_tree.Token.Function_declaration_keyword);
+                }
             }
         }
     });
@@ -334,18 +341,25 @@ describe("Abstract_syntax_tree_change.create_changes", () => {
             assert.deepEqual(add_change.position, [1, 0]);
             assert.equal(add_change.new_node.value, "");
             assert.equal(add_change.new_node.token, Abstract_syntax_tree.Token.Function);
-            assert.equal(add_change.new_node.children.length, 2);
+            assert.equal(add_change.new_node.children.length, 1);
 
             {
-                const node = add_change.new_node.children[0];
-                assert.equal(node.value, "function");
-                assert.equal(node.token, Abstract_syntax_tree.Token.Invalid);
-            }
+                const declaration_node = add_change.new_node.children[0];
+                assert.equal(declaration_node.value, "");
+                assert.equal(declaration_node.token, Abstract_syntax_tree.Token.Function_declaration);
+                assert.equal(declaration_node.children.length, 2);
 
-            {
-                const node = add_change.new_node.children[1];
-                assert.equal(node.value, "foo");
-                assert.equal(node.token, Abstract_syntax_tree.Token.Invalid);
+                {
+                    const node = declaration_node.children[0];
+                    assert.equal(node.value, "function");
+                    assert.equal(node.token, Abstract_syntax_tree.Token.Function_declaration_keyword);
+                }
+
+                {
+                    const node = declaration_node.children[1];
+                    assert.equal(node.value, "foo");
+                    assert.equal(node.token, Abstract_syntax_tree.Token.Function_declaration_name);
+                }
             }
         }
     });

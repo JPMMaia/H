@@ -462,3 +462,723 @@ describe("Parser.parse", () => {
         }
     });
 });
+
+describe("Parser.parse_function", () => {
+
+    it("Parses incomplete function 0", () => {
+
+        const text = `
+            function
+        `;
+
+        const words = Scanner.scan(text, 0, text.length);
+        const grammar = Default_grammar.create_grammar();
+        const result = Parser.parse_function(words, 0, grammar);
+
+        assert.equal(result.processed_words, 1);
+
+        const function_node = result.node;
+
+        {
+            assert.equal(function_node.value, "");
+            assert.equal(function_node.token, Abstract_syntax_tree.Token.Function);
+            assert.equal(function_node.children.length, 1);
+        }
+
+        {
+            const declaration_node = function_node.children[0];
+            assert.equal(declaration_node.value, "");
+            assert.equal(declaration_node.token, Abstract_syntax_tree.Token.Function_declaration);
+            assert.equal(declaration_node.children.length, 1);
+
+            {
+                const keyword_node = declaration_node.children[0];
+                assert.equal(keyword_node.value, "function");
+                assert.equal(keyword_node.token, Abstract_syntax_tree.Token.Function_declaration_keyword);
+                assert.equal(keyword_node.children.length, 0);
+            }
+        }
+    });
+
+    it("Parses incomplete function 1", () => {
+
+        const text = `
+            function foo() -> ()
+            {
+        `;
+
+        const words = Scanner.scan(text, 0, text.length);
+        const grammar = Default_grammar.create_grammar();
+        const result = Parser.parse_function(words, 0, grammar);
+
+        assert.equal(result.processed_words, 8);
+
+        const function_node = result.node;
+
+        {
+            assert.equal(function_node.value, "");
+            assert.equal(function_node.token, Abstract_syntax_tree.Token.Function);
+            assert.equal(function_node.children.length, 2);
+        }
+
+        {
+            const declaration_node = function_node.children[0];
+            assert.equal(declaration_node.value, "");
+            assert.equal(declaration_node.token, Abstract_syntax_tree.Token.Function_declaration);
+            assert.equal(declaration_node.children.length, 5);
+
+            {
+                const keyword_node = declaration_node.children[0];
+                assert.equal(keyword_node.value, "function");
+                assert.equal(keyword_node.token, Abstract_syntax_tree.Token.Function_declaration_keyword);
+            }
+        }
+
+        {
+            const definition_node = function_node.children[1];
+            assert.equal(definition_node.value, "");
+            assert.equal(definition_node.token, Abstract_syntax_tree.Token.Code_block);
+            assert.equal(definition_node.children.length, 1);
+
+            {
+                const open_block_node = definition_node.children[0];
+                assert.equal(open_block_node.value, "{");
+                assert.equal(open_block_node.token, Abstract_syntax_tree.Token.Code_block_open_keyword);
+                assert.equal(open_block_node.children.length, 0);
+            }
+        }
+    });
+});
+
+
+describe("Parser.parse_function_declaration", () => {
+
+    it("Parses incomplete function declaration 0", () => {
+
+        const text = `
+            function
+        `;
+
+        const words = Scanner.scan(text, 0, text.length);
+        const grammar = Default_grammar.create_grammar();
+        const result = Parser.parse_function_declaration(words, 0, grammar);
+
+        assert.equal(result.processed_words, 1);
+
+        const declaration_node = result.node;
+
+        {
+            assert.equal(declaration_node.value, "");
+            assert.equal(declaration_node.token, Abstract_syntax_tree.Token.Function_declaration);
+            assert.equal(declaration_node.children.length, 1);
+        }
+
+        {
+            const keyword_node = declaration_node.children[0];
+            assert.equal(keyword_node.value, "function");
+            assert.equal(keyword_node.token, Abstract_syntax_tree.Token.Function_declaration_keyword);
+            assert.equal(keyword_node.children.length, 0);
+        }
+    });
+
+    it("Parses incomplete function declaration 1", () => {
+
+        const text = `
+            function foo
+        `;
+
+        const words = Scanner.scan(text, 0, text.length);
+        const grammar = Default_grammar.create_grammar();
+        const result = Parser.parse_function_declaration(words, 0, grammar);
+
+        assert.equal(result.processed_words, 2);
+
+        const declaration_node = result.node;
+
+        {
+            assert.equal(declaration_node.value, "");
+            assert.equal(declaration_node.token, Abstract_syntax_tree.Token.Function_declaration);
+            assert.equal(declaration_node.children.length, 2);
+        }
+
+        {
+            const keyword_node = declaration_node.children[0];
+            assert.equal(keyword_node.value, "function");
+            assert.equal(keyword_node.token, Abstract_syntax_tree.Token.Function_declaration_keyword);
+            assert.equal(keyword_node.children.length, 0);
+        }
+
+        {
+            const name_node = declaration_node.children[1];
+            assert.equal(name_node.value, "foo");
+            assert.equal(name_node.token, Abstract_syntax_tree.Token.Function_declaration_name);
+            assert.equal(name_node.children.length, 0);
+        }
+    });
+
+    it("Parses incomplete function declaration 2", () => {
+
+        const text = `
+            function foo(
+        `;
+
+        const words = Scanner.scan(text, 0, text.length);
+        const grammar = Default_grammar.create_grammar();
+        const result = Parser.parse_function_declaration(words, 0, grammar);
+
+        assert.equal(result.processed_words, 3);
+
+        const declaration_node = result.node;
+
+        {
+            assert.equal(declaration_node.value, "");
+            assert.equal(declaration_node.token, Abstract_syntax_tree.Token.Function_declaration);
+            assert.equal(declaration_node.children.length, 3);
+        }
+
+        {
+            const keyword_node = declaration_node.children[0];
+            assert.equal(keyword_node.value, "function");
+            assert.equal(keyword_node.token, Abstract_syntax_tree.Token.Function_declaration_keyword);
+            assert.equal(keyword_node.children.length, 0);
+        }
+
+        {
+            const name_node = declaration_node.children[1];
+            assert.equal(name_node.value, "foo");
+            assert.equal(name_node.token, Abstract_syntax_tree.Token.Function_declaration_name);
+            assert.equal(name_node.children.length, 0);
+        }
+
+        {
+            const input_parameters_node = declaration_node.children[2];
+            assert.equal(input_parameters_node.value, "");
+            assert.equal(input_parameters_node.token, Abstract_syntax_tree.Token.Function_declaration_input_parameters);
+            assert.equal(input_parameters_node.children.length, 1);
+
+            {
+                const open_node = input_parameters_node.children[0];
+                assert.equal(open_node.value, "(");
+                assert.equal(open_node.token, Abstract_syntax_tree.Token.Function_parameters_open_keyword);
+                assert.equal(open_node.children.length, 0);
+            }
+        }
+    });
+
+    it("Parses incomplete function declaration 3", () => {
+
+        const text = `
+            function foo() -
+        `;
+
+        const words = Scanner.scan(text, 0, text.length);
+        const grammar = Default_grammar.create_grammar();
+        const result = Parser.parse_function_declaration(words, 0, grammar);
+
+        assert.equal(result.processed_words, 4);
+
+        const declaration_node = result.node;
+
+        {
+            assert.equal(declaration_node.value, "");
+            assert.equal(declaration_node.token, Abstract_syntax_tree.Token.Function_declaration);
+            assert.equal(declaration_node.children.length, 3);
+        }
+
+        {
+            const keyword_node = declaration_node.children[0];
+            assert.equal(keyword_node.value, "function");
+            assert.equal(keyword_node.token, Abstract_syntax_tree.Token.Function_declaration_keyword);
+            assert.equal(keyword_node.children.length, 0);
+        }
+
+        {
+            const name_node = declaration_node.children[1];
+            assert.equal(name_node.value, "foo");
+            assert.equal(name_node.token, Abstract_syntax_tree.Token.Function_declaration_name);
+            assert.equal(name_node.children.length, 0);
+        }
+
+        {
+            const input_parameters_node = declaration_node.children[2];
+            assert.equal(input_parameters_node.value, "");
+            assert.equal(input_parameters_node.token, Abstract_syntax_tree.Token.Function_declaration_input_parameters);
+            assert.equal(input_parameters_node.children.length, 2);
+        }
+    });
+
+    it("Parses incomplete function declaration 4", () => {
+
+        const text = `
+            function foo() ->
+        `;
+
+        const words = Scanner.scan(text, 0, text.length);
+        const grammar = Default_grammar.create_grammar();
+        const result = Parser.parse_function_declaration(words, 0, grammar);
+
+        assert.equal(result.processed_words, 5);
+
+        const declaration_node = result.node;
+
+        {
+            assert.equal(declaration_node.value, "");
+            assert.equal(declaration_node.token, Abstract_syntax_tree.Token.Function_declaration);
+            assert.equal(declaration_node.children.length, 4);
+        }
+
+        {
+            const keyword_node = declaration_node.children[0];
+            assert.equal(keyword_node.value, "function");
+            assert.equal(keyword_node.token, Abstract_syntax_tree.Token.Function_declaration_keyword);
+            assert.equal(keyword_node.children.length, 0);
+        }
+
+        {
+            const name_node = declaration_node.children[1];
+            assert.equal(name_node.value, "foo");
+            assert.equal(name_node.token, Abstract_syntax_tree.Token.Function_declaration_name);
+            assert.equal(name_node.children.length, 0);
+        }
+
+        {
+            const input_parameters_node = declaration_node.children[2];
+            assert.equal(input_parameters_node.value, "");
+            assert.equal(input_parameters_node.token, Abstract_syntax_tree.Token.Function_declaration_input_parameters);
+            assert.equal(input_parameters_node.children.length, 2);
+        }
+
+        {
+            const separator_node = declaration_node.children[3];
+            assert.equal(separator_node.value, "->");
+            assert.equal(separator_node.token, Abstract_syntax_tree.Token.Function_declaration_parameters_separator);
+            assert.equal(separator_node.children.length, 0);
+        }
+    });
+
+    it("Parses incomplete function declaration 5", () => {
+
+        const text = `
+            function foo() -> (
+        `;
+
+        const words = Scanner.scan(text, 0, text.length);
+        const grammar = Default_grammar.create_grammar();
+        const result = Parser.parse_function_declaration(words, 0, grammar);
+
+        assert.equal(result.processed_words, 6);
+
+        const declaration_node = result.node;
+
+        {
+            assert.equal(declaration_node.value, "");
+            assert.equal(declaration_node.token, Abstract_syntax_tree.Token.Function_declaration);
+            assert.equal(declaration_node.children.length, 5);
+        }
+
+        {
+            const keyword_node = declaration_node.children[0];
+            assert.equal(keyword_node.value, "function");
+            assert.equal(keyword_node.token, Abstract_syntax_tree.Token.Function_declaration_keyword);
+            assert.equal(keyword_node.children.length, 0);
+        }
+
+        {
+            const name_node = declaration_node.children[1];
+            assert.equal(name_node.value, "foo");
+            assert.equal(name_node.token, Abstract_syntax_tree.Token.Function_declaration_name);
+            assert.equal(name_node.children.length, 0);
+        }
+
+        {
+            const input_parameters_node = declaration_node.children[2];
+            assert.equal(input_parameters_node.value, "");
+            assert.equal(input_parameters_node.token, Abstract_syntax_tree.Token.Function_declaration_input_parameters);
+            assert.equal(input_parameters_node.children.length, 2);
+        }
+
+        {
+            const separator_node = declaration_node.children[3];
+            assert.equal(separator_node.value, "->");
+            assert.equal(separator_node.token, Abstract_syntax_tree.Token.Function_declaration_parameters_separator);
+            assert.equal(separator_node.children.length, 0);
+        }
+
+        {
+            const output_parameters_node = declaration_node.children[4];
+            assert.equal(output_parameters_node.value, "");
+            assert.equal(output_parameters_node.token, Abstract_syntax_tree.Token.Function_declaration_output_parameters);
+            assert.equal(output_parameters_node.children.length, 1);
+        }
+    });
+
+    it("Parses complete function declaration 0", () => {
+
+        const text = `
+            function foo() -> ()
+        `;
+
+        const words = Scanner.scan(text, 0, text.length);
+        const grammar = Default_grammar.create_grammar();
+        const result = Parser.parse_function_declaration(words, 0, grammar);
+
+        assert.equal(result.processed_words, 7);
+
+        const declaration_node = result.node;
+
+        {
+            assert.equal(declaration_node.value, "");
+            assert.equal(declaration_node.token, Abstract_syntax_tree.Token.Function_declaration);
+            assert.equal(declaration_node.children.length, 5);
+        }
+
+        {
+            const keyword_node = declaration_node.children[0];
+            assert.equal(keyword_node.value, "function");
+            assert.equal(keyword_node.token, Abstract_syntax_tree.Token.Function_declaration_keyword);
+            assert.equal(keyword_node.children.length, 0);
+        }
+
+        {
+            const name_node = declaration_node.children[1];
+            assert.equal(name_node.value, "foo");
+            assert.equal(name_node.token, Abstract_syntax_tree.Token.Function_declaration_name);
+            assert.equal(name_node.children.length, 0);
+        }
+
+        {
+            const input_parameters_node = declaration_node.children[2];
+            assert.equal(input_parameters_node.value, "");
+            assert.equal(input_parameters_node.token, Abstract_syntax_tree.Token.Function_declaration_input_parameters);
+            assert.equal(input_parameters_node.children.length, 2);
+        }
+
+        {
+            const separator_node = declaration_node.children[3];
+            assert.equal(separator_node.value, "->");
+            assert.equal(separator_node.token, Abstract_syntax_tree.Token.Function_declaration_parameters_separator);
+            assert.equal(separator_node.children.length, 0);
+        }
+
+        {
+            const output_parameters_node = declaration_node.children[4];
+            assert.equal(output_parameters_node.value, "");
+            assert.equal(output_parameters_node.token, Abstract_syntax_tree.Token.Function_declaration_output_parameters);
+            assert.equal(output_parameters_node.children.length, 2);
+        }
+    });
+});
+
+describe("Parser.parse_function_declaration_parameters", () => {
+
+    it("Parses incomplete parameters 0", () => {
+
+        const text = `
+            
+        `;
+
+        const words = Scanner.scan(text, 0, text.length);
+        const grammar = Default_grammar.create_grammar();
+        const result = Parser.parse_function_declaration_parameters(words, 0, grammar, true);
+
+        assert.equal(result.processed_words, 0);
+
+        const parameters_node = result.node;
+
+        {
+            assert.equal(parameters_node.value, "");
+            assert.equal(parameters_node.token, Abstract_syntax_tree.Token.Function_declaration_input_parameters);
+            assert.equal(parameters_node.children.length, 0);
+        }
+    });
+
+    it("Parses incomplete parameters 1", () => {
+
+        const text = `
+            function
+        `;
+
+        const words = Scanner.scan(text, 0, text.length);
+        const grammar = Default_grammar.create_grammar();
+        const result = Parser.parse_function_declaration_parameters(words, 0, grammar, true);
+
+        assert.equal(result.processed_words, 0);
+
+        const parameters_node = result.node;
+
+        {
+            assert.equal(parameters_node.value, "");
+            assert.equal(parameters_node.token, Abstract_syntax_tree.Token.Function_declaration_input_parameters);
+            assert.equal(parameters_node.children.length, 0);
+        }
+    });
+
+    it("Parses incomplete parameters 2", () => {
+
+        const text = `
+            (
+        `;
+
+        const words = Scanner.scan(text, 0, text.length);
+        const grammar = Default_grammar.create_grammar();
+        const result = Parser.parse_function_declaration_parameters(words, 0, grammar, true);
+
+        assert.equal(result.processed_words, 1);
+
+        const parameters_node = result.node;
+
+        {
+            assert.equal(parameters_node.value, "");
+            assert.equal(parameters_node.token, Abstract_syntax_tree.Token.Function_declaration_input_parameters);
+            assert.equal(parameters_node.children.length, 1);
+        }
+
+        {
+            const open_node = parameters_node.children[0];
+            assert.equal(open_node.value, "(");
+            assert.equal(open_node.token, Abstract_syntax_tree.Token.Function_parameters_open_keyword);
+            assert.equal(open_node.children.length, 0);
+        }
+    });
+
+    it("Parses incomplete parameters 3", () => {
+
+        const text = `
+            (foo
+        `;
+
+        const words = Scanner.scan(text, 0, text.length);
+        const grammar = Default_grammar.create_grammar();
+        const result = Parser.parse_function_declaration_parameters(words, 0, grammar, true);
+
+        assert.equal(result.processed_words, 2);
+
+        const parameters_node = result.node;
+
+        {
+            assert.equal(parameters_node.value, "");
+            assert.equal(parameters_node.token, Abstract_syntax_tree.Token.Function_declaration_input_parameters);
+            assert.equal(parameters_node.children.length, 2);
+        }
+
+        {
+            const open_node = parameters_node.children[0];
+            assert.equal(open_node.value, "(");
+            assert.equal(open_node.token, Abstract_syntax_tree.Token.Function_parameters_open_keyword);
+            assert.equal(open_node.children.length, 0);
+        }
+
+        {
+            const parameter_node = parameters_node.children[1];
+            assert.equal(parameter_node.value, "");
+            assert.equal(parameter_node.token, Abstract_syntax_tree.Token.Function_parameter);
+            assert.equal(parameter_node.children.length, 1);
+        }
+    });
+
+    it("Parses incomplete parameters 4", () => {
+
+        const text = `
+            (foo: int,
+        `;
+
+        const words = Scanner.scan(text, 0, text.length);
+        const grammar = Default_grammar.create_grammar();
+        const result = Parser.parse_function_declaration_parameters(words, 0, grammar, true);
+
+        assert.equal(result.processed_words, 5);
+
+        const parameters_node = result.node;
+
+        {
+            assert.equal(parameters_node.value, "");
+            assert.equal(parameters_node.token, Abstract_syntax_tree.Token.Function_declaration_input_parameters);
+            assert.equal(parameters_node.children.length, 3);
+        }
+
+        {
+            const open_node = parameters_node.children[0];
+            assert.equal(open_node.value, "(");
+            assert.equal(open_node.token, Abstract_syntax_tree.Token.Function_parameters_open_keyword);
+            assert.equal(open_node.children.length, 0);
+        }
+
+        {
+            const parameter_node = parameters_node.children[1];
+            assert.equal(parameter_node.value, "");
+            assert.equal(parameter_node.token, Abstract_syntax_tree.Token.Function_parameter);
+            assert.equal(parameter_node.children.length, 3);
+        }
+
+        {
+            const separator_node = parameters_node.children[2];
+            assert.equal(separator_node.value, ",");
+            assert.equal(separator_node.token, Abstract_syntax_tree.Token.Function_parameters_separator);
+            assert.equal(separator_node.children.length, 0);
+        }
+    });
+
+    it("Parses complete parameters 0", () => {
+
+        const text = `
+            ()
+        `;
+
+        const words = Scanner.scan(text, 0, text.length);
+        const grammar = Default_grammar.create_grammar();
+        const result = Parser.parse_function_declaration_parameters(words, 0, grammar, true);
+
+        assert.equal(result.processed_words, 2);
+
+        const parameters_node = result.node;
+
+        {
+            assert.equal(parameters_node.value, "");
+            assert.equal(parameters_node.token, Abstract_syntax_tree.Token.Function_declaration_input_parameters);
+            assert.equal(parameters_node.children.length, 2);
+        }
+
+        {
+            const open_node = parameters_node.children[0];
+            assert.equal(open_node.value, "(");
+            assert.equal(open_node.token, Abstract_syntax_tree.Token.Function_parameters_open_keyword);
+            assert.equal(open_node.children.length, 0);
+        }
+
+        {
+            const open_node = parameters_node.children[1];
+            assert.equal(open_node.value, ")");
+            assert.equal(open_node.token, Abstract_syntax_tree.Token.Function_parameters_close_keyword);
+            assert.equal(open_node.children.length, 0);
+        }
+    });
+});
+
+describe("Parser.parse_function_parameter", () => {
+
+    it("Parses incomplete parameter 0", () => {
+
+        const text = `
+        `;
+
+        const words = Scanner.scan(text, 0, text.length);
+        const grammar = Default_grammar.create_grammar();
+        const result = Parser.parse_function_parameter(words, 0, grammar);
+
+        assert.equal(result.processed_words, 0);
+
+        const parameter_node = result.node;
+
+        {
+            assert.equal(parameter_node.value, "");
+            assert.equal(parameter_node.token, Abstract_syntax_tree.Token.Function_parameter);
+            assert.equal(parameter_node.children.length, 0);
+        }
+    });
+
+    it("Parses incomplete parameter 1", () => {
+
+        const text = `
+            foo
+        `;
+
+        const words = Scanner.scan(text, 0, text.length);
+        const grammar = Default_grammar.create_grammar();
+        const result = Parser.parse_function_parameter(words, 0, grammar);
+
+        assert.equal(result.processed_words, 1);
+
+        const parameter_node = result.node;
+
+        {
+            assert.equal(parameter_node.value, "");
+            assert.equal(parameter_node.token, Abstract_syntax_tree.Token.Function_parameter);
+            assert.equal(parameter_node.children.length, 1);
+        }
+
+        {
+            const name_node = parameter_node.children[0];
+            assert.equal(name_node.value, "foo");
+            assert.equal(name_node.token, Abstract_syntax_tree.Token.Function_parameter_name);
+            assert.equal(name_node.children.length, 0);
+        }
+    });
+
+    it("Parses incomplete parameter 2", () => {
+
+        const text = `
+            foo:
+        `;
+
+        const words = Scanner.scan(text, 0, text.length);
+        const grammar = Default_grammar.create_grammar();
+        const result = Parser.parse_function_parameter(words, 0, grammar);
+
+        assert.equal(result.processed_words, 2);
+
+        const parameter_node = result.node;
+
+        {
+            assert.equal(parameter_node.value, "");
+            assert.equal(parameter_node.token, Abstract_syntax_tree.Token.Function_parameter);
+            assert.equal(parameter_node.children.length, 2);
+        }
+
+        {
+            const name_node = parameter_node.children[0];
+            assert.equal(name_node.value, "foo");
+            assert.equal(name_node.token, Abstract_syntax_tree.Token.Function_parameter_name);
+            assert.equal(name_node.children.length, 0);
+        }
+
+
+        {
+            const separator_node = parameter_node.children[1];
+            assert.equal(separator_node.value, ":");
+            assert.equal(separator_node.token, Abstract_syntax_tree.Token.Function_parameter_separator);
+            assert.equal(separator_node.children.length, 0);
+        }
+    });
+
+    it("Parses complete parameter 0", () => {
+
+        const text = `
+            foo: Int32
+        `;
+
+        const words = Scanner.scan(text, 0, text.length);
+        const grammar = Default_grammar.create_grammar();
+        const result = Parser.parse_function_parameter(words, 0, grammar);
+
+        assert.equal(result.processed_words, 3);
+
+        const parameter_node = result.node;
+
+        {
+            assert.equal(parameter_node.value, "");
+            assert.equal(parameter_node.token, Abstract_syntax_tree.Token.Function_parameter);
+            assert.equal(parameter_node.children.length, 3);
+        }
+
+        {
+            const name_node = parameter_node.children[0];
+            assert.equal(name_node.value, "foo");
+            assert.equal(name_node.token, Abstract_syntax_tree.Token.Function_parameter_name);
+            assert.equal(name_node.children.length, 0);
+        }
+
+        {
+            const separator_node = parameter_node.children[1];
+            assert.equal(separator_node.value, ":");
+            assert.equal(separator_node.token, Abstract_syntax_tree.Token.Function_parameter_separator);
+            assert.equal(separator_node.children.length, 0);
+        }
+
+        {
+            const type_node = parameter_node.children[2];
+            assert.equal(type_node.value, "Int32");
+            assert.equal(type_node.token, Abstract_syntax_tree.Token.Function_parameter_type);
+            assert.equal(type_node.children.length, 0);
+        }
+    });
+});
