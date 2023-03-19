@@ -41,8 +41,8 @@ export interface Grammar {
 }
 
 export interface Production_rule {
-    non_terminal: string;
-    rule: string[][]
+    lhs: string;
+    rhs: string[]
 }
 
 export function create_production_rules(grammar_description: string[]): Production_rule[] {
@@ -50,83 +50,86 @@ export function create_production_rules(grammar_description: string[]): Producti
     const production_rules: Production_rule[] = [];
 
     for (const rule_description of grammar_description) {
-        const words = get_words(rule_description);
+        const words = get_labels(rule_description);
 
-        const non_terminal = words[0];
-
-        const rules: string[][] = [];
-        rules.push([]);
+        const lhs = words[0];
 
         let word_index = 2;
+
+        const rhs: string[] = [];
 
         while (word_index < words.length) {
 
             const word = words[word_index];
 
             if (word === "|") {
-                rules.push([]);
+                production_rules.push({
+                    lhs: lhs,
+                    rhs: [...rhs]
+                });
+                rhs.splice(0, rhs.length);
             }
             else {
-                rules[rules.length - 1].push(word);
+                rhs.push(word);
             }
 
             word_index += 1;
         }
 
-
         production_rules.push({
-            non_terminal: non_terminal,
-            rule: rules
+            lhs: lhs,
+            rhs: rhs
         });
-    }
-
-    // Augment grammar:
-    for (const rule of production_rules[0].rule) {
-        rule.push("$");
     }
 
     return production_rules;
 }
 
 export function get_non_terminals(production_rules: Production_rule[]): string[] {
-    return production_rules.map(production_rule => production_rule.non_terminal);
+
+    const non_terminals: string[] = [];
+
+    for (const production_rule of production_rules) {
+        if ((non_terminals.length > 0 && production_rule.lhs !== non_terminals[non_terminals.length - 1]) || non_terminals.length === 0) {
+            non_terminals.push(production_rule.lhs);
+        }
+    }
+
+    return non_terminals;
 }
 
-export function get_terminals(production_rules: Production_rule[]): string[] {
+export function get_terminals(production_rules: Production_rule[], non_terminals: string[]): string[] {
 
     const terminals: string[] = [];
 
     for (const production_rule of production_rules) {
-        for (const rule of production_rule.rule) {
-            for (const word of rule) {
-                const production_rule_index = find_production_rule(production_rules, 0, word);
-                if (production_rule_index === -1) {
-                    const terminal_index = terminals.findIndex(terminal => terminal === word);
-                    if (terminal_index === -1) {
-                        terminals.push(word);
-                    }
+        for (const label of production_rule.rhs) {
+
+            const non_terminal_index = non_terminals.findIndex(non_terminal => non_terminal === label);
+            if (non_terminal_index === -1) {
+                const terminal_index = terminals.findIndex(terminal => terminal === label);
+                if (terminal_index === -1) {
+                    terminals.push(label);
                 }
             }
         }
     }
 
     const output = [
-        ...terminals
+        ...terminals, "$"
     ];
     output.sort();
     return output;
 }
 
-export function first(production_rules: Production_rule[], terminals: string[]): Map<string, string[]> {
+export function first(production_rules: Production_rule[], non_terminals: string[], terminals: string[]): Map<string, string[]> {
 
     const output = new Map<string, string[]>();
 
-    for (let production_rule_index = 0; production_rule_index < production_rules.length; ++production_rule_index) {
+    for (const non_terminal of non_terminals) {
         const visited_non_terminals: string[] = [];
-        const first_terminals = first_auxiliary(production_rules, production_rule_index, visited_non_terminals);
-
-        const production_rule = production_rules[production_rule_index];
-        output.set(production_rule.non_terminal, first_terminals);
+        const first_terminals = first_auxiliary(production_rules, non_terminal, terminals, visited_non_terminals);
+        output.set(non_terminal, first_terminals);
     }
 
     for (const terminal of terminals) {
@@ -136,126 +139,57 @@ export function first(production_rules: Production_rule[], terminals: string[]):
     return output;
 }
 
-function first_auxiliary(production_rules: Production_rule[], production_rule_index: number, visited_non_terminals: string[]): string[] {
+function first_auxiliary(production_rules: Production_rule[], production_rule_lhs: string, terminals: string[], visited_non_terminals: string[]): string[] {
 
-    const terminals = new Set<string>();
+    const first_terminals = new Set<string>();
 
-    const production_rule = production_rules[production_rule_index];
+    const production_rules_indices = find_production_rules(production_rules, production_rule_lhs);
 
-    for (const rule of production_rule.rule) {
-        const word = rule[0];
+    for (const production_rule_index of production_rules_indices) {
 
-        const index = visited_non_terminals.findIndex(non_terminal => non_terminal === word);
+        const production_rule = production_rules[production_rule_index];
+
+        const first_label = production_rule.rhs[0];
+
+        const visited_index = visited_non_terminals.findIndex(non_terminal => non_terminal === first_label);
 
         // If word corresponds to a non-terminal and it was already visited:
-        if (index !== -1) {
+        if (visited_index !== -1) {
             continue;
         }
 
-        const word_production_rule_index = find_production_rule(production_rules, 0, word);
+        if (is_terminal(first_label, terminals)) {
+            first_terminals.add(first_label);
+        }
+        else {
+            visited_non_terminals.push(first_label);
 
-        // If is non-terminal:
-        if (word_production_rule_index !== -1) {
-            visited_non_terminals.push(word);
-
-            const new_terminals = first_auxiliary(production_rules, word_production_rule_index, visited_non_terminals);
+            const new_terminals = first_auxiliary(production_rules, first_label, terminals, visited_non_terminals);
 
             for (const new_terminal of new_terminals) {
-                terminals.add(new_terminal);
-            }
-        }
-        // If it is terminal:
-        else {
-            terminals.add(word);
-        }
-    }
-
-    return [...terminals];
-}
-
-export function follow(production_rules: Production_rule[], terminals: string[], first_terminals: Map<string, string[]>): Map<string, string[]> {
-
-    const follow_map = new Map<string, string[]>();
-
-    for (let production_rule_index = 0; production_rule_index < production_rules.length; ++production_rule_index) {
-        const production_rule = production_rules[production_rule_index];
-        const follow_terminals = follow_auxiliary(production_rules, first_terminals, production_rule.non_terminal, production_rule_index === 0);
-        follow_map.set(production_rule.non_terminal, follow_terminals);
-    }
-
-    for (const terminal of terminals) {
-        const follow_terminals = follow_auxiliary(production_rules, first_terminals, terminal, false);
-        follow_map.set(terminal, follow_terminals);
-    }
-
-    return follow_map;
-}
-
-function follow_auxiliary(production_rules: Production_rule[], first_terminals_map: Map<string, string[]>, word: string, is_first_production_rule: boolean): string[] {
-
-    if (is_first_production_rule) {
-        return ["$"];
-    }
-
-    const terminals = new Set<string>();
-
-    for (let current_production_rule_index = 0; current_production_rule_index < production_rules.length; ++current_production_rule_index) {
-        const current_production_rule = production_rules[current_production_rule_index];
-        for (const rule of current_production_rule.rule) {
-
-            const word_index = rule.findIndex(word_in_rule => word_in_rule === word);
-
-            // If the next word is in the rule and it's not the last:
-            if (word_index !== -1 && (word_index + 1) < rule.length) {
-                const next_word = rule[word_index + 1];
-
-                const first_terminals = first_terminals_map.get(next_word);
-                if (first_terminals !== undefined) {
-                    for (const terminal of first_terminals) {
-                        terminals.add(terminal);
-                    }
-                }
-            }
-            // If next word is the last word in the rule:
-            else if (word_index + 1 === rule.length) {
-                const current_production_rule_non_terminal = current_production_rule.non_terminal;
-                const first_terminals = follow_auxiliary(production_rules, first_terminals_map, current_production_rule_non_terminal, current_production_rule_index === 0);
-                for (const terminal of first_terminals) {
-                    terminals.add(terminal);
-                }
+                first_terminals.add(new_terminal);
             }
         }
     }
 
-    const output = [...terminals];
-    output.sort();
-    return output;
+    return [...first_terminals];
 }
 
 export interface LR0_item {
     production_rule_index: number;
-    rule_index: number;
-    word_index: number;
+    label_index: number;
 }
 
-export interface LR1_item {
-    production_rule_index: number;
-    rule_index: number;
-    word_index: number;
-    follow_terminals: string[];
+function are_lr0_items_equal(lhs: LR0_item, rhs: LR0_item): boolean {
+    return lhs.production_rule_index === rhs.production_rule_index && lhs.label_index === rhs.label_index;
 }
 
-function are_lr0_item_equal(lhs: LR0_item, rhs: LR0_item): boolean {
-    return lhs.production_rule_index === rhs.production_rule_index && lhs.rule_index === rhs.rule_index && lhs.word_index === rhs.word_index;
-}
-
-export function create_lr0_items(production_rules: Production_rule[], production_rule_index: number, rule_index: number, word_index: number): LR0_item[] {
+export function create_lr0_item_set(production_rules: Production_rule[], production_rule_index: number, label_index: number): LR0_item[] {
 
     const items: LR0_item[] = [
         {
             production_rule_index: production_rule_index,
-            rule_index: rule_index,
-            word_index: word_index
+            label_index: label_index
         }
     ];
 
@@ -264,29 +198,19 @@ export function create_lr0_items(production_rules: Production_rule[], production
     while (item_index < items.length) {
         const item = items[item_index];
         const production_rule = production_rules[item.production_rule_index];
-        const rule = production_rule.rule[item.rule_index];
-        const word = rule[word_index];
+        const label = production_rule.rhs[item.label_index];
 
-        const next_production_rule_index = find_production_rule(production_rules, item.production_rule_index, word);
+        const new_production_rule_indices = find_production_rules(production_rules, label);
 
-        if (next_production_rule_index === -1) {
-            item_index += 1;
-            continue;
-        }
-
-        const next_production_rule = production_rules[next_production_rule_index];
-
-        for (let rule_index = 0; rule_index < next_production_rule.rule.length; ++rule_index) {
+        for (const new_production_rule_index of new_production_rule_indices) {
 
             const new_item: LR0_item = {
-                production_rule_index: next_production_rule_index,
-                rule_index: rule_index,
-                word_index: 0
+                production_rule_index: new_production_rule_index,
+                label_index: 0
             };
 
-            const item_index = items.findIndex(item => are_lr0_item_equal(item, new_item));
-
-            if (item_index === -1) {
+            const new_item_index = items.findIndex(item => are_lr0_items_equal(item, new_item));
+            if (new_item_index === -1) {
                 items.push(new_item);
             }
         }
@@ -297,53 +221,295 @@ export function create_lr0_items(production_rules: Production_rule[], production
     return items;
 }
 
-export function create_lr1_items(production_rules: Production_rule[], follow_terminals_map: Map<string, string[]>, production_rule_index: number, rule_index: number, word_index: number): LR1_item[] {
+export function follow_of_non_terminals(production_rules: Production_rule[], non_terminals: string[], first_terminals_map: Map<string, string[]>): Map<string, string[]> {
+    const follow_map = new Map<string, string[]>();
 
-    const lr0_items = create_lr0_items(production_rules, production_rule_index, rule_index, word_index);
+    {
+        const non_terminal = non_terminals[0];
+        follow_map.set(non_terminal, ["$"]);
+    }
 
-    const lr1_items = lr0_items.map(
-        lr0_item => {
+    for (let index = 1; index < non_terminals.length; ++index) {
+        const non_terminal = non_terminals[index];
 
-            const current_word = get_word(production_rules, lr0_item);
-            const follow_terminals = follow_terminals_map.get(current_word);
-            if (follow_terminals === undefined) {
-                const message = "Failed to find follow terminals! follow_terminals_map must contain current_word!";
+        const visited_non_terminals: string[] = [];
+        const follow_terminals = follow_of_non_terminal(production_rules, non_terminal, first_terminals_map, visited_non_terminals);
+        follow_map.set(non_terminal, follow_terminals);
+    }
+
+    return follow_map;
+}
+
+function follow_of_non_terminal(production_rules: Production_rule[], non_terminal: string, first_terminals_map: Map<string, string[]>, visited_non_terminals: string[]): string[] {
+
+    if (non_terminal === production_rules[0].lhs) {
+        return ["$"];
+    }
+
+    const follow_terminals = new Set<string>();
+
+    visited_non_terminals.push(non_terminal);
+
+    for (let production_rule_index = 0; production_rule_index < production_rules.length; ++production_rule_index) {
+        const production_rule = production_rules[production_rule_index];
+
+        for (let label_index = 0; label_index < production_rule.rhs.length; ++label_index) {
+            const label = production_rule.rhs[label_index];
+
+            if (label === non_terminal) {
+
+                const next_label_index = label_index + 1;
+
+                // If there is a next label, add first of next label:
+                if (next_label_index < production_rule.rhs.length) {
+                    const next_label = production_rule.rhs[next_label_index];
+                    const first_terminals = first_terminals_map.get(next_label);
+                    if (first_terminals === undefined) {
+                        const message = "Failed to find first terminals! first_terminals_map must contain label!";
+                        onThrowError(message);
+                        throw Error(message);
+                    }
+
+                    for (const first_terminal of first_terminals) {
+                        follow_terminals.add(first_terminal);
+                    }
+                }
+                // If label is at the end of rhs, then add all terminals of follow(lhs):
+                else if (next_label_index === production_rule.rhs.length && production_rule.lhs !== label) {
+
+                    const visited_index = visited_non_terminals.findIndex(visited => visited === production_rule.lhs);
+                    if (visited_index === -1) {
+                        const new_follow_terminals = follow_of_non_terminal(production_rules, production_rule.lhs, first_terminals_map, visited_non_terminals);
+                        for (const terminal of new_follow_terminals) {
+                            follow_terminals.add(terminal);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    const output = [...follow_terminals];
+    output.sort();
+    return output;
+}
+
+export function follow_of_item_set(production_rules: Production_rule[], items: LR0_item[], non_terminals: string[], non_terminals_follow: Map<string, string[]>): Map<string, string[]> {
+
+    const follow_map = new Map<string, string[]>();
+
+    {
+        const non_terminal = non_terminals[0];
+        follow_map.set(non_terminal, ["$"]);
+    }
+
+    for (let index = 1; index < non_terminals.length; ++index) {
+        const non_terminal = non_terminals[index];
+
+        const follow_terminals = follow_union_of_items(production_rules, items, non_terminal, non_terminals_follow);
+        follow_map.set(non_terminal, follow_terminals);
+    }
+
+    return follow_map;
+}
+
+function follow_union_of_items(production_rules: Production_rule[], items: LR0_item[], label: string, non_terminals_follow: Map<string, string[]>): string[] {
+
+    const follow_terminals = new Set<string>();
+
+    for (const item of items) {
+
+        const item_production_rule = production_rules[item.production_rule_index];
+        const item_label = item_production_rule.rhs[item.label_index];
+
+        if (item_label === label) {
+            const new_follow_terminals = non_terminals_follow.get(item_label);
+
+            if (new_follow_terminals === undefined) {
+                const message = "Failed to find new follow terminals! non_terminals_follow must contain label!";
                 onThrowError(message);
                 throw Error(message);
             }
 
-            const lr1_item: LR1_item = {
-                production_rule_index: lr0_item.production_rule_index,
-                rule_index: lr0_item.rule_index,
-                word_index: lr0_item.word_index,
-                follow_terminals: [...follow_terminals]
-            };
-
-            return lr1_item;
-        }
-    );
-
-    return lr1_items;
-}
-
-function get_words(description: string): string[] {
-    return description.split(" ");
-}
-
-function find_production_rule(production_rules: Production_rule[], start_index: number, non_terminal: string): number {
-
-    for (let index = start_index; index < production_rules.length; ++index) {
-        if (production_rules[index].non_terminal === non_terminal) {
-            return index;
+            for (const terminal of new_follow_terminals) {
+                follow_terminals.add(terminal);
+            }
         }
     }
 
-    return -1;
+    const output = [...follow_terminals];
+    output.sort();
+    return output;
 }
 
-function get_word(production_rules: Production_rule[], item: LR0_item): string {
-    const production_rule = production_rules[item.production_rule_index];
-    const rule = production_rule.rule[item.rule_index];
-    const word = item.word_index < rule.length ? rule[item.word_index] : "$";
-    return word;
+export interface LR1_item {
+    production_rule_index: number;
+    label_index: number;
+    follow_terminal: string;
+}
+
+function are_lr1_items_equal(lhs: LR1_item, rhs: LR1_item): boolean {
+    return lhs.production_rule_index === rhs.production_rule_index && lhs.label_index === rhs.label_index && lhs.follow_terminal === rhs.follow_terminal;
+}
+
+function compare_lr1_items(lhs: LR1_item, rhs: LR1_item): number {
+
+    if (lhs.label_index > rhs.label_index) {
+        return -1;
+    }
+    else if (lhs.label_index < rhs.label_index) {
+        return 1;
+    }
+
+    if (lhs.production_rule_index < rhs.production_rule_index) {
+        return -1;
+    }
+    else if (lhs.production_rule_index > rhs.production_rule_index) {
+        return 1;
+    }
+
+    if (lhs.follow_terminal < rhs.follow_terminal) {
+        return -1;
+    }
+    else if (lhs.follow_terminal > rhs.follow_terminal) {
+        return 1;
+    }
+
+    return 0;
+}
+
+export function create_lr1_item_set(production_rules: Production_rule[], lr0_item_set: LR0_item[], non_terminals_follow: Map<string, string[]>): LR1_item[] {
+
+    const lr1_item_set: LR1_item[] = [];
+
+    for (const lr0_item of lr0_item_set) {
+        const production_rule = production_rules[lr0_item.production_rule_index];
+        const lhs = production_rule.lhs;
+        const lhs_follow = non_terminals_follow.get(lhs);
+
+        if (lhs_follow === undefined) {
+            const message = "Failed to find new follow terminals! non_terminals_follow must contain label!";
+            onThrowError(message);
+            throw Error(message);
+        }
+
+        for (const follow_terminal of lhs_follow) {
+            lr1_item_set.push({
+                production_rule_index: lr0_item.production_rule_index,
+                label_index: lr0_item.label_index,
+                follow_terminal: follow_terminal
+            });
+        }
+    }
+
+    return lr1_item_set;
+}
+
+function compute_lr1_closure(production_rules: Production_rule[], all_lr1_items: LR1_item[], lr1_item_set: LR1_item[]): LR1_item[] {
+
+    const closure_item_set: LR1_item[] = [...lr1_item_set];
+
+    for (let index = 0; index < closure_item_set.length; ++index) {
+
+        const item = closure_item_set[index];
+
+        const production_rule = production_rules[item.production_rule_index];
+        const label = production_rule.rhs[item.label_index];
+
+        const new_item_indices = find_lr1_items(production_rules, all_lr1_items, label);
+
+        for (const new_item_index of new_item_indices) {
+
+            const new_item = all_lr1_items[new_item_index];
+
+            const existing_item_index = closure_item_set.findIndex(closure_item => are_lr1_items_equal(closure_item, new_item));
+
+            if (existing_item_index === -1) {
+                closure_item_set.push(new_item);
+            }
+        }
+    }
+
+    closure_item_set.sort(compare_lr1_items);
+
+    return closure_item_set;
+}
+
+export function create_next_lr1_item_set(production_rules: Production_rule[], all_lr1_items: LR1_item[], lr1_item_set: LR1_item[], label: string, non_terminals_follow: Map<string, string[]>): LR1_item[] {
+
+    // Get items that contain label at label_index:
+    const items_at_label = lr1_item_set.filter(item => {
+        const production_rule = production_rules[item.production_rule_index];
+
+        if (item.label_index >= production_rule.rhs.length) {
+            return false;
+        }
+
+        const label_at_index = production_rule.rhs[item.label_index];
+        return label_at_index === label;
+    });
+
+    // Increment label index:
+    const new_item_set = items_at_label.map(item => {
+        const new_item: LR1_item = {
+            production_rule_index: item.production_rule_index,
+            label_index: item.label_index + 1,
+            follow_terminal: item.follow_terminal
+        };
+
+        return new_item;
+    });
+
+    // Compute closure:
+    const new_item_set_closure = compute_lr1_closure(production_rules, all_lr1_items, new_item_set);
+
+    return new_item_set_closure;
+}
+
+function get_labels(description: string): string[] {
+    return description.split(" ");
+}
+
+function find_production_rules(production_rules: Production_rule[], lhs: string): number[] {
+
+    for (let index = 0; index < production_rules.length; ++index) {
+        if (production_rules[index].lhs === lhs) {
+
+            const indices: number[] = [index];
+
+            for (let same_rule_index = index + 1; same_rule_index < production_rules.length; ++same_rule_index) {
+                if (production_rules[same_rule_index].lhs === lhs) {
+                    indices.push(same_rule_index);
+                }
+                else {
+                    break;
+                }
+            }
+
+            return indices;
+        }
+    }
+
+    return [];
+}
+
+function find_lr1_items(production_rules: Production_rule[], lr1_items: LR1_item[], lhs: string): number[] {
+
+    const indices: number[] = [];
+
+    for (let index = 0; index < lr1_items.length; ++index) {
+
+        const item = lr1_items[index];
+        const production_rule = production_rules[item.production_rule_index];
+        if (production_rule.lhs === lhs) {
+            indices.push(index);
+        }
+    }
+
+    return indices;
+}
+
+function is_terminal(label: string, terminals: string[]): boolean {
+    const index = terminals.findIndex(terminal => terminal === label);
+    return index !== -1;
 }

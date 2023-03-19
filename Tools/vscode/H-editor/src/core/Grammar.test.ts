@@ -4,219 +4,313 @@ import * as assert from "assert";
 
 import * as Grammar from "./Grammar";
 
-function create_numeric_expressions_grammar_description(): string[] {
+function create_test_grammar_0_description(): string[] {
+    return [
+        "S -> E",
+        "E -> T",
+        "E -> ( E )",
+        "T -> n",
+        "T -> + T",
+        "T -> T + n"
+    ];
+}
+
+function create_test_grammar_1_description(): string[] {
 
     return [
         "Statement -> Expression",
         "Expression -> Sum | Multiplication | number",
-        "Sum -> Expression '+' Expression",
-        "Multiplication -> Expression '*' Expression",
+        "Sum -> Expression + Expression",
+        "Multiplication -> Expression * Expression",
     ];
 }
 
 describe("Grammar.create_production_rules", () => {
+
+
     it("Creates production rules for description 0", () => {
-        const grammar_description = create_numeric_expressions_grammar_description();
+
+        const grammar_description = create_test_grammar_0_description();
         const production_rules = Grammar.create_production_rules(grammar_description);
 
-        assert.equal(production_rules.length, 4);
+        assert.equal(production_rules.length, 6);
 
         {
             const production_rule = production_rules[0];
-            assert.equal(production_rule.non_terminal, "Statement");
-            assert.equal(production_rule.rule.length, 1);
-
-            {
-                const rule = production_rule.rule[0];
-                assert.equal(rule.length, 2);
-                assert.equal(rule[0], "Expression");
-                assert.equal(rule[1], "$");
-            }
+            assert.equal(production_rule.lhs, "S");
+            assert.deepEqual(production_rule.rhs, ["E"]);
         }
 
         {
             const production_rule = production_rules[1];
-            assert.equal(production_rule.non_terminal, "Expression");
-            assert.equal(production_rule.rule.length, 3);
-
-            {
-                const rule = production_rule.rule[0];
-                assert.equal(rule.length, 1);
-                assert.equal(rule[0], "Sum");
-            }
-
-            {
-                const rule = production_rule.rule[1];
-                assert.equal(rule.length, 1);
-                assert.equal(rule[0], "Multiplication");
-            }
-
-            {
-                const rule = production_rule.rule[2];
-                assert.equal(rule.length, 1);
-                assert.equal(rule[0], "number");
-            }
+            assert.equal(production_rule.lhs, "E");
+            assert.deepEqual(production_rule.rhs, ["T"]);
         }
 
         {
             const production_rule = production_rules[2];
-            assert.equal(production_rule.non_terminal, "Sum");
-            assert.equal(production_rule.rule.length, 1);
-
-            {
-                const rule = production_rule.rule[0];
-                assert.equal(rule.length, 3);
-                assert.equal(rule[0], "Expression");
-                assert.equal(rule[1], "'+'");
-                assert.equal(rule[2], "Expression");
-            }
+            assert.equal(production_rule.lhs, "E");
+            assert.deepEqual(production_rule.rhs, ["(", "E", ")"]);
         }
 
         {
             const production_rule = production_rules[3];
-            assert.equal(production_rule.non_terminal, "Multiplication");
-            assert.equal(production_rule.rule.length, 1);
+            assert.equal(production_rule.lhs, "T");
+            assert.deepEqual(production_rule.rhs, ["n"]);
+        }
 
-            {
-                const rule = production_rule.rule[0];
-                assert.equal(rule.length, 3);
-                assert.equal(rule[0], "Expression");
-                assert.equal(rule[1], "'*'");
-                assert.equal(rule[2], "Expression");
-            }
+
+        {
+            const production_rule = production_rules[4];
+            assert.equal(production_rule.lhs, "T");
+            assert.deepEqual(production_rule.rhs, ["+", "T"]);
+        }
+
+        {
+            const production_rule = production_rules[5];
+            assert.equal(production_rule.lhs, "T");
+            assert.deepEqual(production_rule.rhs, ["T", "+", "n"]);
+        }
+    });
+
+    it("Creates production rules for description 1", () => {
+        const grammar_description = create_test_grammar_1_description();
+        const production_rules = Grammar.create_production_rules(grammar_description);
+
+        assert.equal(production_rules.length, 6);
+
+        {
+            const production_rule = production_rules[0];
+            assert.equal(production_rule.lhs, "Statement");
+            assert.deepEqual(production_rule.rhs, ["Expression"]);
+        }
+
+        {
+            const production_rule = production_rules[1];
+            assert.equal(production_rule.lhs, "Expression");
+            assert.deepEqual(production_rule.rhs, ["Sum"]);
+        }
+
+        {
+            const production_rule = production_rules[2];
+            assert.equal(production_rule.lhs, "Expression");
+            assert.deepEqual(production_rule.rhs, ["Multiplication"]);
+        }
+
+        {
+            const production_rule = production_rules[3];
+            assert.equal(production_rule.lhs, "Expression");
+            assert.deepEqual(production_rule.rhs, ["number"]);
+        }
+
+        {
+            const production_rule = production_rules[4];
+            assert.equal(production_rule.lhs, "Sum");
+            assert.deepEqual(production_rule.rhs, ["Expression", "+", "Expression"]);
+        }
+
+        {
+            const production_rule = production_rules[5];
+            assert.equal(production_rule.lhs, "Multiplication");
+            assert.deepEqual(production_rule.rhs, ["Expression", "*", "Expression"]);
         }
     });
 });
 
 describe("Grammar.get_non_terminals", () => {
     it("Returns non-terminals for grammar 0", () => {
-        const grammar_description = create_numeric_expressions_grammar_description();
+        const grammar_description = create_test_grammar_0_description();
         const production_rules = Grammar.create_production_rules(grammar_description);
         const non_terminals = Grammar.get_non_terminals(production_rules);
 
-        assert.equal(non_terminals.length, 4);
-        assert.equal(non_terminals[0], "Statement");
-        assert.equal(non_terminals[1], "Expression");
-        assert.equal(non_terminals[2], "Sum");
-        assert.equal(non_terminals[3], "Multiplication");
+        assert.deepEqual(non_terminals, ["S", "E", "T"]);
+    });
+
+    it("Returns non-terminals for grammar 1", () => {
+        const grammar_description = create_test_grammar_1_description();
+        const production_rules = Grammar.create_production_rules(grammar_description);
+        const non_terminals = Grammar.get_non_terminals(production_rules);
+
+        assert.deepEqual(non_terminals, ["Statement", "Expression", "Sum", "Multiplication"]);
     });
 });
 
 describe("Grammar.get_terminals", () => {
     it("Returns terminals for grammar 0", () => {
-        const grammar_description = create_numeric_expressions_grammar_description();
+        const grammar_description = create_test_grammar_0_description();
         const production_rules = Grammar.create_production_rules(grammar_description);
-        const terminals = Grammar.get_terminals(production_rules);
+        const non_terminals = Grammar.get_non_terminals(production_rules);
+        const terminals = Grammar.get_terminals(production_rules, non_terminals);
 
-        assert.equal(terminals.length, 4);
-        assert.equal(terminals[0], "$");
-        assert.equal(terminals[1], "'*'");
-        assert.equal(terminals[2], "'+'");
-        assert.equal(terminals[3], "number");
+        assert.deepEqual(terminals, ["$", "(", ")", "+", "n"]);
+    });
+
+    it("Returns terminals for grammar 1", () => {
+        const grammar_description = create_test_grammar_1_description();
+        const production_rules = Grammar.create_production_rules(grammar_description);
+        const non_terminals = Grammar.get_non_terminals(production_rules);
+        const terminals = Grammar.get_terminals(production_rules, non_terminals);
+
+        assert.deepEqual(terminals, ["$", "*", "+", "number"]);
     });
 });
 
 describe("Grammar.first", () => {
+
     it("Returns first terminals for each production rule of grammar 0", () => {
-        const grammar_description = create_numeric_expressions_grammar_description();
+        const grammar_description = create_test_grammar_0_description();
         const production_rules = Grammar.create_production_rules(grammar_description);
-        const terminals = Grammar.get_terminals(production_rules);
-        const first_terminals = Grammar.first(production_rules, terminals);
+        const non_terminals = Grammar.get_non_terminals(production_rules);
+        const terminals = Grammar.get_terminals(production_rules, non_terminals);
+        const rules_first_terminals = Grammar.first(production_rules, non_terminals, terminals);
 
         {
-            const statement_first_terminals = first_terminals.get("Statement");
-            assert.notEqual(statement_first_terminals, undefined);
-            assert.deepEqual(statement_first_terminals, ["number"]);
+            const first_terminals = rules_first_terminals.get("S");
+            assert.deepEqual(first_terminals, ["n", "+", "("]);
         }
 
         {
-            const expression_first_terminals = first_terminals.get("Expression");
-            assert.notEqual(expression_first_terminals, undefined);
-            assert.deepEqual(expression_first_terminals, ["number"]);
+            const first_terminals = rules_first_terminals.get("E");
+            assert.deepEqual(first_terminals, ["n", "+", "("]);
         }
 
         {
-            const sum_first_terminals = first_terminals.get("Sum");
-            assert.notEqual(sum_first_terminals, undefined);
-            assert.deepEqual(sum_first_terminals, ["number"]);
+            const first_terminals = rules_first_terminals.get("T");
+            assert.deepEqual(first_terminals, ["n", "+"]);
         }
 
         {
-            const multiplication_first_terminals = first_terminals.get("Multiplication");
-            assert.notEqual(multiplication_first_terminals, undefined);
-            assert.deepEqual(multiplication_first_terminals, ["number"]);
+            const first_terminals = rules_first_terminals.get("$");
+            assert.deepEqual(first_terminals, ["$"]);
         }
 
         {
-            const plus_first_terminals = first_terminals.get("'+'");
-            assert.notEqual(plus_first_terminals, undefined);
-            assert.deepEqual(plus_first_terminals, ["'+'"]);
+            const first_terminals = rules_first_terminals.get("(");
+            assert.deepEqual(first_terminals, ["("]);
         }
 
         {
-            const times_first_terminals = first_terminals.get("'*'");
-            assert.notEqual(times_first_terminals, undefined);
-            assert.deepEqual(times_first_terminals, ["'*'"]);
+            const first_terminals = rules_first_terminals.get(")");
+            assert.deepEqual(first_terminals, [")"]);
         }
 
         {
-            const number_first_terminals = first_terminals.get("number");
-            assert.notEqual(number_first_terminals, undefined);
-            assert.deepEqual(number_first_terminals, ["number"]);
+            const first_terminals = rules_first_terminals.get("+");
+            assert.deepEqual(first_terminals, ["+"]);
+        }
+
+        {
+            const first_terminals = rules_first_terminals.get("n");
+            assert.deepEqual(first_terminals, ["n"]);
+        }
+    });
+
+    it("Returns first terminals for each production rule of grammar 1", () => {
+        const grammar_description = create_test_grammar_1_description();
+        const production_rules = Grammar.create_production_rules(grammar_description);
+        const non_terminals = Grammar.get_non_terminals(production_rules);
+        const terminals = Grammar.get_terminals(production_rules, non_terminals);
+        const rules_first_terminals = Grammar.first(production_rules, non_terminals, terminals);
+
+        {
+            const first_terminals = rules_first_terminals.get("Statement");
+            assert.deepEqual(first_terminals, ["number"]);
+        }
+
+        {
+            const first_terminals = rules_first_terminals.get("Expression");
+            assert.deepEqual(first_terminals, ["number"]);
+        }
+
+        {
+            const first_terminals = rules_first_terminals.get("Sum");
+            assert.deepEqual(first_terminals, ["number"]);
+        }
+
+        {
+            const first_terminals = rules_first_terminals.get("Multiplication");
+            assert.deepEqual(first_terminals, ["number"]);
+        }
+
+        {
+            const first_terminals = rules_first_terminals.get("$");
+            assert.deepEqual(first_terminals, ["$"]);
+        }
+
+        {
+            const first_terminals = rules_first_terminals.get("*");
+            assert.deepEqual(first_terminals, ["*"]);
+        }
+
+        {
+            const first_terminals = rules_first_terminals.get("+");
+            assert.deepEqual(first_terminals, ["+"]);
+        }
+
+        {
+            const first_terminals = rules_first_terminals.get("number");
+            assert.deepEqual(first_terminals, ["number"]);
         }
     });
 });
 
-describe("Grammar.follow", () => {
-    it("Returns follow terminals for each production rule of grammar 0", () => {
-        const grammar_description = create_numeric_expressions_grammar_description();
+describe("Grammar.create_lr0_item_set", () => {
+    it("Creates LR0 item set for grammar 0 starting at production rule 0 label index 0", () => {
+
+        const grammar_description = create_test_grammar_0_description();
         const production_rules = Grammar.create_production_rules(grammar_description);
-        const terminals = Grammar.get_terminals(production_rules);
-        const first_terminals = Grammar.first(production_rules, terminals);
-        const follow_terminals = Grammar.follow(production_rules, terminals, first_terminals);
+        const lr0_items = Grammar.create_lr0_item_set(production_rules, 0, 0);
+
+        assert.equal(lr0_items.length, 6);
 
         {
-            const statement_follow_terminals = follow_terminals.get("Statement");
-            assert.deepEqual(statement_follow_terminals, ["$"]);
+            // S -> .E
+            const item = lr0_items[0];
+            assert.equal(item.production_rule_index, 0);
+            assert.equal(item.label_index, 0);
         }
 
         {
-            const expression_follow_terminals = follow_terminals.get("Expression");
-            assert.deepEqual(expression_follow_terminals, ["$", "'*'", "'+'"]);
+            // E -> .T
+            const item = lr0_items[1];
+            assert.equal(item.production_rule_index, 1);
+            assert.equal(item.label_index, 0);
         }
 
         {
-            const sum_follow_terminals = follow_terminals.get("Sum");
-            assert.deepEqual(sum_follow_terminals, ["$", "'*'", "'+'"]);
+            // E -> .( E )
+            const item = lr0_items[2];
+            assert.equal(item.production_rule_index, 2);
+            assert.equal(item.label_index, 0);
         }
 
         {
-            const multiplication_follow_terminals = follow_terminals.get("Multiplication");
-            assert.deepEqual(multiplication_follow_terminals, ["$", "'*'", "'+'"]);
+            // T -> .n
+            const item = lr0_items[3];
+            assert.equal(item.production_rule_index, 3);
+            assert.equal(item.label_index, 0);
         }
 
         {
-            const plus_follow_terminals = follow_terminals.get("'+'");
-            assert.deepEqual(plus_follow_terminals, ["number"]);
+            // T -> .+ T
+            const item = lr0_items[4];
+            assert.equal(item.production_rule_index, 4);
+            assert.equal(item.label_index, 0);
         }
 
         {
-            const multiply_follow_terminals = follow_terminals.get("'*'");
-            assert.deepEqual(multiply_follow_terminals, ["number"]);
-        }
-
-        {
-            const number_follow_terminals = follow_terminals.get("number");
-            assert.deepEqual(number_follow_terminals, ["$", "'*'", "'+'"]);
+            // T -> .T + n
+            const item = lr0_items[5];
+            assert.equal(item.production_rule_index, 5);
+            assert.equal(item.label_index, 0);
         }
     });
-});
 
-describe("Grammar.create_lr0_items", () => {
-    it("Creates LR0 items for grammar 0 production rules 0,0,0", () => {
-        const grammar_description = create_numeric_expressions_grammar_description();
+    it("Creates LR0 item set for grammar 1 starting at production rule 0 label index 0", () => {
+
+        const grammar_description = create_test_grammar_1_description();
         const production_rules = Grammar.create_production_rules(grammar_description);
-        const lr0_items = Grammar.create_lr0_items(production_rules, 0, 0, 0);
+        const lr0_items = Grammar.create_lr0_item_set(production_rules, 0, 0);
 
         assert.equal(lr0_items.length, 6);
 
@@ -224,131 +318,812 @@ describe("Grammar.create_lr0_items", () => {
             // Statement -> .Expression
             const item = lr0_items[0];
             assert.equal(item.production_rule_index, 0);
-            assert.equal(item.rule_index, 0);
-            assert.equal(item.word_index, 0);
+            assert.equal(item.label_index, 0);
         }
 
         {
             // Expression -> .Sum
             const item = lr0_items[1];
             assert.equal(item.production_rule_index, 1);
-            assert.equal(item.rule_index, 0);
-            assert.equal(item.word_index, 0);
+            assert.equal(item.label_index, 0);
         }
 
         {
             // Expression -> .Multiplication
             const item = lr0_items[2];
-            assert.equal(item.production_rule_index, 1);
-            assert.equal(item.rule_index, 1);
-            assert.equal(item.word_index, 0);
+            assert.equal(item.production_rule_index, 2);
+            assert.equal(item.label_index, 0);
         }
 
         {
             // Expression -> .number
             const item = lr0_items[3];
-            assert.equal(item.production_rule_index, 1);
-            assert.equal(item.rule_index, 2);
-            assert.equal(item.word_index, 0);
+            assert.equal(item.production_rule_index, 3);
+            assert.equal(item.label_index, 0);
         }
 
         {
-            // Sum -> .Expression '+' Expression
+            // Sum -> .Expression + Expression
             const item = lr0_items[4];
-            assert.equal(item.production_rule_index, 2);
-            assert.equal(item.rule_index, 0);
-            assert.equal(item.word_index, 0);
+            assert.equal(item.production_rule_index, 4);
+            assert.equal(item.label_index, 0);
         }
 
         {
-            // Multiplication -> .Expression '*' Expression
-            const item = lr0_items[4];
-            assert.equal(item.production_rule_index, 2);
-            assert.equal(item.rule_index, 0);
-            assert.equal(item.word_index, 0);
+            // Multiplication -> .Expression * Expression
+            const item = lr0_items[5];
+            assert.equal(item.production_rule_index, 5);
+            assert.equal(item.label_index, 0);
         }
     });
 });
 
-describe("Grammar.create_lr1_items", () => {
-    it("Creates LR0 items for grammar 0 production rules 0,0,0", () => {
-        const grammar_description = create_numeric_expressions_grammar_description();
-        const production_rules = Grammar.create_production_rules(grammar_description);
-        const terminals = Grammar.get_terminals(production_rules);
-        const first_terminals = Grammar.first(production_rules, terminals);
-        const follow_terminals = Grammar.follow(production_rules, terminals, first_terminals);
-        const lr1_items = Grammar.create_lr1_items(production_rules, follow_terminals, 0, 0, 0);
+describe("Grammar.follow_of_non_terminals", () => {
+    it("Returns follow terminals for each non-terminal of grammar 0", () => {
 
-        assert.equal(lr1_items.length, 6);
+        const grammar_description = create_test_grammar_0_description();
+        const production_rules = Grammar.create_production_rules(grammar_description);
+        const non_terminals = Grammar.get_non_terminals(production_rules);
+        const terminals = Grammar.get_terminals(production_rules, non_terminals);
+        const rules_first_terminals = Grammar.first(production_rules, non_terminals, terminals);
+        const non_terminals_follow = Grammar.follow_of_non_terminals(production_rules, non_terminals, rules_first_terminals);
 
         {
-            // Statement -> .Expression, 
-            const item = lr1_items[0];
-            assert.deepEqual(item.follow_terminals, ["$", "'*'", "'+'"]);
+            const follow_terminals = non_terminals_follow.get("S");
+            assert.deepEqual(follow_terminals, ["$"]);
         }
 
         {
-            // Expression -> .Sum
+            const follow_terminals = non_terminals_follow.get("E");
+            assert.deepEqual(follow_terminals, ["$", ")"]);
+        }
+
+        {
+            const follow_terminals = non_terminals_follow.get("T");
+            assert.deepEqual(follow_terminals, ["$", ")", "+"]);
+        }
+    });
+
+    it("Returns follow terminals for each non-terminal of grammar 1", () => {
+
+        const grammar_description = create_test_grammar_1_description();
+        const production_rules = Grammar.create_production_rules(grammar_description);
+        const non_terminals = Grammar.get_non_terminals(production_rules);
+        const terminals = Grammar.get_terminals(production_rules, non_terminals);
+        const rules_first_terminals = Grammar.first(production_rules, non_terminals, terminals);
+        const non_terminals_follow = Grammar.follow_of_non_terminals(production_rules, non_terminals, rules_first_terminals);
+
+        {
+            const follow_terminals = non_terminals_follow.get("Statement");
+            assert.deepEqual(follow_terminals, ["$"]);
+        }
+
+        {
+            const follow_terminals = non_terminals_follow.get("Expression");
+            assert.deepEqual(follow_terminals, ["$", "*", "+"]);
+        }
+
+        {
+            const follow_terminals = non_terminals_follow.get("Sum");
+            assert.deepEqual(follow_terminals, ["$", "*", "+"]);
+        }
+
+        {
+            const follow_terminals = non_terminals_follow.get("Multiplication");
+            assert.deepEqual(follow_terminals, ["$", "*", "+"]);
+        }
+    });
+});
+
+describe("Grammar.follow_of_item_set", () => {
+    it("Returns follow terminals for item set 0.0 of grammar 0", () => {
+
+        const grammar_description = create_test_grammar_0_description();
+        const production_rules = Grammar.create_production_rules(grammar_description);
+        const non_terminals = Grammar.get_non_terminals(production_rules);
+        const terminals = Grammar.get_terminals(production_rules, non_terminals);
+        const rules_first_terminals = Grammar.first(production_rules, non_terminals, terminals);
+        const lr0_items = Grammar.create_lr0_item_set(production_rules, 0, 0);
+        const non_terminals_follow = Grammar.follow_of_non_terminals(production_rules, non_terminals, rules_first_terminals);
+        const item_set_follow = Grammar.follow_of_item_set(production_rules, lr0_items, non_terminals, non_terminals_follow);
+
+        {
+            const follow_terminals = item_set_follow.get("S");
+            assert.deepEqual(follow_terminals, ["$"]);
+        }
+
+        {
+            const follow_terminals = item_set_follow.get("E");
+            assert.deepEqual(follow_terminals, ["$", ")"]);
+        }
+
+        {
+            const follow_terminals = item_set_follow.get("T");
+            assert.deepEqual(follow_terminals, ["$", ")", "+"]);
+        }
+    });
+
+    it("Returns follow terminals for item set 0.0 of grammar 1", () => {
+
+        const grammar_description = create_test_grammar_1_description();
+        const production_rules = Grammar.create_production_rules(grammar_description);
+        const non_terminals = Grammar.get_non_terminals(production_rules);
+        const terminals = Grammar.get_terminals(production_rules, non_terminals);
+        const rules_first_terminals = Grammar.first(production_rules, non_terminals, terminals);
+        const lr0_items = Grammar.create_lr0_item_set(production_rules, 0, 0);
+        const non_terminals_follow = Grammar.follow_of_non_terminals(production_rules, non_terminals, rules_first_terminals);
+        const item_set_follow = Grammar.follow_of_item_set(production_rules, lr0_items, non_terminals, non_terminals_follow);
+
+        {
+            const follow_terminals = item_set_follow.get("Statement");
+            assert.deepEqual(follow_terminals, ["$"]);
+        }
+
+        {
+            const follow_terminals = item_set_follow.get("Expression");
+            assert.deepEqual(follow_terminals, ["$", "*", "+"]);
+        }
+
+        {
+            const follow_terminals = item_set_follow.get("Sum");
+            assert.deepEqual(follow_terminals, ["$", "*", "+"]);
+        }
+
+        {
+            const follow_terminals = item_set_follow.get("Multiplication");
+            assert.deepEqual(follow_terminals, ["$", "*", "+"]);
+        }
+    });
+});
+
+describe("Grammar.create_lr1_item_set", () => {
+    it("Creates LR0 item set for grammar 0 starting at production rule 0 label index 0", () => {
+
+        const grammar_description = create_test_grammar_0_description();
+        const production_rules = Grammar.create_production_rules(grammar_description);
+        const non_terminals = Grammar.get_non_terminals(production_rules);
+        const terminals = Grammar.get_terminals(production_rules, non_terminals);
+        const rules_first_terminals = Grammar.first(production_rules, non_terminals, terminals);
+        const lr0_items = Grammar.create_lr0_item_set(production_rules, 0, 0);
+        const non_terminals_follow = Grammar.follow_of_non_terminals(production_rules, non_terminals, rules_first_terminals);
+        const lr1_items = Grammar.create_lr1_item_set(production_rules, lr0_items, non_terminals_follow);
+
+        // S -> .E, $
+        // E -> .T, $
+        // E -> .T, )
+        // E -> .( E ), $
+        // E -> .( E ), )
+        // T -> .n, $
+        // T -> .n, )
+        // T -> .n, +
+        // T -> .+ T, $
+        // T -> .+ T, )
+        // T -> .+ T, +
+        // T -> .T + n, $
+        // T -> .T + n, )
+        // T -> .T + n, +
+        assert.equal(lr1_items.length, 14);
+
+        {
+            // S -> .E, $
+            const item = lr1_items[0];
+            assert.equal(item.production_rule_index, 0);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, "$");
+        }
+
+        {
+            // E -> .T, $
             const item = lr1_items[1];
-            assert.deepEqual(item.follow_terminals, ["$", "'*'", "'+'"]);
+            assert.equal(item.production_rule_index, 1);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, "$");
         }
 
         {
-            // Expression -> .Multiplication
+            // E -> .T, )
             const item = lr1_items[2];
-            assert.deepEqual(item.follow_terminals, ["$", "'*'", "'+'"]);
+            assert.equal(item.production_rule_index, 1);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, ")");
         }
 
         {
-            // Expression -> .number
+            // E -> .( E ), $
             const item = lr1_items[3];
-            assert.deepEqual(item.follow_terminals, ["$", "'*'", "'+'"]);
+            assert.equal(item.production_rule_index, 2);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, "$");
         }
 
         {
-            // Sum -> .Expression '+' Expression
+            // E -> .( E ), )
             const item = lr1_items[4];
-            assert.deepEqual(item.follow_terminals, ["$", "'*'", "'+'"]);
+            assert.equal(item.production_rule_index, 2);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, ")");
         }
 
         {
-            // Multiplication -> .Expression '*' Expression
+            // T -> .n, $
             const item = lr1_items[5];
-            assert.deepEqual(item.follow_terminals, ["$", "'*'", "'+'"]);
+            assert.equal(item.production_rule_index, 3);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, "$");
+        }
+
+        {
+            // T -> .n, )
+            const item = lr1_items[6];
+            assert.equal(item.production_rule_index, 3);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, ")");
+        }
+
+        {
+            // T -> .n, +
+            const item = lr1_items[7];
+            assert.equal(item.production_rule_index, 3);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, "+");
+        }
+
+        {
+            // T -> .+ T, $
+            const item = lr1_items[8];
+            assert.equal(item.production_rule_index, 4);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, "$");
+        }
+
+        {
+            // T -> .+ T, )
+            const item = lr1_items[9];
+            assert.equal(item.production_rule_index, 4);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, ")");
+        }
+
+        {
+            // T -> .+ T, +
+            const item = lr1_items[10];
+            assert.equal(item.production_rule_index, 4);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, "+");
+        }
+
+        {
+            // T -> .T + n, $
+            const item = lr1_items[11];
+            assert.equal(item.production_rule_index, 5);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, "$");
+        }
+
+        {
+            // T -> .T + n, )
+            const item = lr1_items[12];
+            assert.equal(item.production_rule_index, 5);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, ")");
+        }
+
+        {
+            // T -> .T + n, +
+            const item = lr1_items[13];
+            assert.equal(item.production_rule_index, 5);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, "+");
         }
     });
 
-    it("Creates LR0 items for grammar 0 production rules 2,0,1", () => {
-        const grammar_description = create_numeric_expressions_grammar_description();
-        const production_rules = Grammar.create_production_rules(grammar_description);
-        const terminals = Grammar.get_terminals(production_rules);
-        const first_terminals = Grammar.first(production_rules, terminals);
-        const follow_terminals = Grammar.follow(production_rules, terminals, first_terminals);
-        const lr1_items = Grammar.create_lr1_items(production_rules, follow_terminals, 2, 0, 1);
+    it("Creates LR0 item set for grammar 1 starting at production rule 0 label index 0", () => {
 
-        assert.equal(lr1_items.length, 1);
+        const grammar_description = create_test_grammar_1_description();
+        const production_rules = Grammar.create_production_rules(grammar_description);
+        const non_terminals = Grammar.get_non_terminals(production_rules);
+        const terminals = Grammar.get_terminals(production_rules, non_terminals);
+        const rules_first_terminals = Grammar.first(production_rules, non_terminals, terminals);
+        const lr0_items = Grammar.create_lr0_item_set(production_rules, 0, 0);
+        const non_terminals_follow = Grammar.follow_of_non_terminals(production_rules, non_terminals, rules_first_terminals);
+        const lr1_items = Grammar.create_lr1_item_set(production_rules, lr0_items, non_terminals_follow);
+
+        assert.equal(lr1_items.length, 16);
 
         {
-            // Sum -> Expression .'+' Expression
+            // Statement -> .Expression, $
             const item = lr1_items[0];
-            assert.deepEqual(item.follow_terminals, ["number"]);
+            assert.equal(item.production_rule_index, 0);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, "$");
+        }
+
+        {
+            // Expression -> .Sum, $
+            const item = lr1_items[1];
+            assert.equal(item.production_rule_index, 1);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, "$");
+        }
+
+        {
+            // Expression -> .Sum, *
+            const item = lr1_items[2];
+            assert.equal(item.production_rule_index, 1);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, "*");
+        }
+
+        {
+            // Expression -> .Sum, +
+            const item = lr1_items[3];
+            assert.equal(item.production_rule_index, 1);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, "+");
+        }
+
+        {
+            // Expression -> .Multiplication, $
+            const item = lr1_items[4];
+            assert.equal(item.production_rule_index, 2);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, "$");
+        }
+
+        {
+            // Expression -> .Multiplication, *
+            const item = lr1_items[5];
+            assert.equal(item.production_rule_index, 2);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, "*");
+        }
+
+        {
+            // Expression -> .Multiplication, +
+            const item = lr1_items[6];
+            assert.equal(item.production_rule_index, 2);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, "+");
+        }
+
+        {
+            // Expression -> .number, $
+            const item = lr1_items[7];
+            assert.equal(item.production_rule_index, 3);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, "$");
+        }
+
+        {
+            // Expression -> .number, *
+            const item = lr1_items[8];
+            assert.equal(item.production_rule_index, 3);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, "*");
+        }
+
+        {
+            // Expression -> .number, +
+            const item = lr1_items[9];
+            assert.equal(item.production_rule_index, 3);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, "+");
+        }
+
+        {
+            // Sum -> .Expression + Expression, $
+            const item = lr1_items[10];
+            assert.equal(item.production_rule_index, 4);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, "$");
+        }
+
+        {
+            // Sum -> .Expression + Expression, *
+            const item = lr1_items[11];
+            assert.equal(item.production_rule_index, 4);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, "*");
+        }
+
+        {
+            // Sum -> .Expression + Expression, +
+            const item = lr1_items[12];
+            assert.equal(item.production_rule_index, 4);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, "+");
+        }
+
+        {
+            // Multiplication -> .Expression * Expression, $
+            const item = lr1_items[13];
+            assert.equal(item.production_rule_index, 5);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, "$");
+        }
+
+        {
+            // Multiplication -> .Expression * Expression, *
+            const item = lr1_items[14];
+            assert.equal(item.production_rule_index, 5);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, "*");
+        }
+
+        {
+            // Multiplication -> .Expression * Expression, +
+            const item = lr1_items[15];
+            assert.equal(item.production_rule_index, 5);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, "+");
         }
     });
+});
 
-    it("Creates LR0 items for grammar 0 production rules 3,0,1", () => {
-        const grammar_description = create_numeric_expressions_grammar_description();
+describe("Grammar.create_next_lr1_item_set", () => {
+    it("Creates LR1 item set after set 0 for grammar 0 starting at production rule 0 label index 0", () => {
+
+        const grammar_description = create_test_grammar_0_description();
         const production_rules = Grammar.create_production_rules(grammar_description);
-        const terminals = Grammar.get_terminals(production_rules);
-        const first_terminals = Grammar.first(production_rules, terminals);
-        const follow_terminals = Grammar.follow(production_rules, terminals, first_terminals);
-        const lr1_items = Grammar.create_lr1_items(production_rules, follow_terminals, 3, 0, 1);
-
-        assert.equal(lr1_items.length, 1);
+        const non_terminals = Grammar.get_non_terminals(production_rules);
+        const terminals = Grammar.get_terminals(production_rules, non_terminals);
+        const rules_first_terminals = Grammar.first(production_rules, non_terminals, terminals);
+        const lr0_items = Grammar.create_lr0_item_set(production_rules, 0, 0);
+        const non_terminals_follow = Grammar.follow_of_non_terminals(production_rules, non_terminals, rules_first_terminals);
+        const lr1_item_set_0 = Grammar.create_lr1_item_set(production_rules, lr0_items, non_terminals_follow);
 
         {
-            // Multiplication -> Expression '*' Expression
-            const item = lr1_items[0];
-            assert.deepEqual(item.follow_terminals, ["number"]);
+            const lr1_item_set_1 = Grammar.create_next_lr1_item_set(production_rules, lr1_item_set_0, lr1_item_set_0, "E", non_terminals_follow);
+
+            // S -> E., $
+            assert.equal(lr1_item_set_1.length, 1);
+
+            {
+                // S -> E., $
+                const item = lr1_item_set_1[0];
+                assert.equal(item.production_rule_index, 0);
+                assert.equal(item.label_index, 1);
+                assert.equal(item.follow_terminal, "$");
+            }
+        }
+
+        {
+            const lr1_item_set_2 = Grammar.create_next_lr1_item_set(production_rules, lr1_item_set_0, lr1_item_set_0, "T", non_terminals_follow);
+
+            // E -> T., $
+            // E -> T., )
+            // T -> T .+ n, $
+            // T -> T .+ n, )
+            // T -> T .+ n, +
+            assert.equal(lr1_item_set_2.length, 5);
+
+            {
+                // E -> T., $
+                const item = lr1_item_set_2[0];
+                assert.equal(item.production_rule_index, 1);
+                assert.equal(item.label_index, 1);
+                assert.equal(item.follow_terminal, "$");
+            }
+
+            {
+                // E -> T., )
+                const item = lr1_item_set_2[1];
+                assert.equal(item.production_rule_index, 1);
+                assert.equal(item.label_index, 1);
+                assert.equal(item.follow_terminal, ")");
+            }
+
+            {
+                // T -> T. + n, $
+                const item = lr1_item_set_2[2];
+                assert.equal(item.production_rule_index, 5);
+                assert.equal(item.label_index, 1);
+                assert.equal(item.follow_terminal, "$");
+            }
+
+            {
+                // T -> T. + n, )
+                const item = lr1_item_set_2[3];
+                assert.equal(item.production_rule_index, 5);
+                assert.equal(item.label_index, 1);
+                assert.equal(item.follow_terminal, ")");
+            }
+
+            {
+                // T -> T. + n, +
+                const item = lr1_item_set_2[4];
+                assert.equal(item.production_rule_index, 5);
+                assert.equal(item.label_index, 1);
+                assert.equal(item.follow_terminal, "+");
+            }
+        }
+
+        {
+            const lr1_item_set_3 = Grammar.create_next_lr1_item_set(production_rules, lr1_item_set_0, lr1_item_set_0, "n", non_terminals_follow);
+
+            // T -> n., $
+            // T -> n., )
+            // T -> n., +
+            assert.equal(lr1_item_set_3.length, 3);
+
+            {
+                // T -> n., $
+                const item = lr1_item_set_3[0];
+                assert.equal(item.production_rule_index, 3);
+                assert.equal(item.label_index, 1);
+                assert.equal(item.follow_terminal, "$");
+            }
+
+            {
+                // T -> n., )
+                const item = lr1_item_set_3[1];
+                assert.equal(item.production_rule_index, 3);
+                assert.equal(item.label_index, 1);
+                assert.equal(item.follow_terminal, ")");
+            }
+
+            {
+                // T -> n., +
+                const item = lr1_item_set_3[2];
+                assert.equal(item.production_rule_index, 3);
+                assert.equal(item.label_index, 1);
+                assert.equal(item.follow_terminal, "+");
+            }
+        }
+
+        {
+            const lr1_item_set_4 = Grammar.create_next_lr1_item_set(production_rules, lr1_item_set_0, lr1_item_set_0, "+", non_terminals_follow);
+
+            // T -> + .T, $
+            // T -> + .T, )
+            // T -> + .T, +
+            // T -> .n, $
+            // T -> .n, )
+            // T -> .n, +
+            // T -> .+ T, $
+            // T -> .+ T, )
+            // T -> .+ T, +
+            // T -> .T + n, $
+            // T -> .T + n, )
+            // T -> .T + n, +
+            assert.equal(lr1_item_set_4.length, 12);
+
+            {
+                // T -> + .T, $
+                const item = lr1_item_set_4[0];
+                assert.equal(item.production_rule_index, 4);
+                assert.equal(item.label_index, 1);
+                assert.equal(item.follow_terminal, "$");
+            }
+
+            {
+                // T -> + .T, )
+                const item = lr1_item_set_4[1];
+                assert.equal(item.production_rule_index, 4);
+                assert.equal(item.label_index, 1);
+                assert.equal(item.follow_terminal, ")");
+            }
+
+            {
+                // T -> + .T, +
+                const item = lr1_item_set_4[2];
+                assert.equal(item.production_rule_index, 4);
+                assert.equal(item.label_index, 1);
+                assert.equal(item.follow_terminal, "+");
+            }
+
+            {
+                // T -> .n, $
+                const item = lr1_item_set_4[3];
+                assert.equal(item.production_rule_index, 3);
+                assert.equal(item.label_index, 0);
+                assert.equal(item.follow_terminal, "$");
+            }
+
+            {
+                // T -> .n, )
+                const item = lr1_item_set_4[4];
+                assert.equal(item.production_rule_index, 3);
+                assert.equal(item.label_index, 0);
+                assert.equal(item.follow_terminal, ")");
+            }
+
+            {
+                // T -> .n, +
+                const item = lr1_item_set_4[5];
+                assert.equal(item.production_rule_index, 3);
+                assert.equal(item.label_index, 0);
+                assert.equal(item.follow_terminal, "+");
+            }
+
+            {
+                // T -> .+ T, $
+                const item = lr1_item_set_4[6];
+                assert.equal(item.production_rule_index, 4);
+                assert.equal(item.label_index, 0);
+                assert.equal(item.follow_terminal, "$");
+            }
+
+            {
+                // T -> .+ T, )
+                const item = lr1_item_set_4[7];
+                assert.equal(item.production_rule_index, 4);
+                assert.equal(item.label_index, 0);
+                assert.equal(item.follow_terminal, ")");
+            }
+
+            {
+                // T -> .+ T, +
+                const item = lr1_item_set_4[8];
+                assert.equal(item.production_rule_index, 4);
+                assert.equal(item.label_index, 0);
+                assert.equal(item.follow_terminal, "+");
+            }
+
+            {
+                // T -> .T + n, $
+                const item = lr1_item_set_4[9];
+                assert.equal(item.production_rule_index, 5);
+                assert.equal(item.label_index, 0);
+                assert.equal(item.follow_terminal, "$");
+            }
+
+            {
+                // T -> .T + n, )
+                const item = lr1_item_set_4[10];
+                assert.equal(item.production_rule_index, 5);
+                assert.equal(item.label_index, 0);
+                assert.equal(item.follow_terminal, ")");
+            }
+
+            {
+                // T -> .T + n, +
+                const item = lr1_item_set_4[11];
+                assert.equal(item.production_rule_index, 5);
+                assert.equal(item.label_index, 0);
+                assert.equal(item.follow_terminal, "+");
+            }
+        }
+
+        {
+            const lr1_item_set_5 = Grammar.create_next_lr1_item_set(production_rules, lr1_item_set_0, lr1_item_set_0, "(", non_terminals_follow);
+
+            // E -> ( .E ), $
+            // E -> ( .E ), )
+            // E -> .T, $
+            // E -> .T, )
+            // E -> .( E ), $
+            // E -> .( E ), )
+            // T -> .n, $
+            // T -> .n, )
+            // T -> .n, +
+            // T -> .+ T, $
+            // T -> .+ T, )
+            // T -> .+ T, +
+            // T -> .T + n, $
+            // T -> .T + n, )
+            // T -> .T + n, +
+            assert.equal(lr1_item_set_5.length, 15);
+
+            {
+                // E -> ( .E ), $
+                const item = lr1_item_set_5[0];
+                assert.equal(item.production_rule_index, 2);
+                assert.equal(item.label_index, 1);
+                assert.equal(item.follow_terminal, "$");
+            }
+
+            {
+                // E -> ( .E ), )
+                const item = lr1_item_set_5[1];
+                assert.equal(item.production_rule_index, 2);
+                assert.equal(item.label_index, 1);
+                assert.equal(item.follow_terminal, ")");
+            }
+
+            {
+                // E -> .T, $
+                const item = lr1_item_set_5[2];
+                assert.equal(item.production_rule_index, 1);
+                assert.equal(item.label_index, 0);
+                assert.equal(item.follow_terminal, "$");
+            }
+
+            {
+                // E -> .T, )
+                const item = lr1_item_set_5[3];
+                assert.equal(item.production_rule_index, 1);
+                assert.equal(item.label_index, 0);
+                assert.equal(item.follow_terminal, ")");
+            }
+
+            {
+                // E -> .( E ), $
+                const item = lr1_item_set_5[4];
+                assert.equal(item.production_rule_index, 2);
+                assert.equal(item.label_index, 0);
+                assert.equal(item.follow_terminal, "$");
+            }
+
+            {
+                // E -> .( E ), )
+                const item = lr1_item_set_5[5];
+                assert.equal(item.production_rule_index, 2);
+                assert.equal(item.label_index, 0);
+                assert.equal(item.follow_terminal, ")");
+            }
+
+            {
+                // T -> .n, $
+                const item = lr1_item_set_5[6];
+                assert.equal(item.production_rule_index, 3);
+                assert.equal(item.label_index, 0);
+                assert.equal(item.follow_terminal, "$");
+            }
+
+            {
+                // T -> .n, )
+                const item = lr1_item_set_5[7];
+                assert.equal(item.production_rule_index, 3);
+                assert.equal(item.label_index, 0);
+                assert.equal(item.follow_terminal, ")");
+            }
+
+            {
+                // T -> .n, +
+                const item = lr1_item_set_5[8];
+                assert.equal(item.production_rule_index, 3);
+                assert.equal(item.label_index, 0);
+                assert.equal(item.follow_terminal, "+");
+            }
+
+            {
+                // T -> .+ T, $
+                const item = lr1_item_set_5[9];
+                assert.equal(item.production_rule_index, 4);
+                assert.equal(item.label_index, 0);
+                assert.equal(item.follow_terminal, "$");
+            }
+
+            {
+                // T -> .+ T, )
+                const item = lr1_item_set_5[10];
+                assert.equal(item.production_rule_index, 4);
+                assert.equal(item.label_index, 0);
+                assert.equal(item.follow_terminal, ")");
+            }
+
+            {
+                // T -> .+ T, +
+                const item = lr1_item_set_5[11];
+                assert.equal(item.production_rule_index, 4);
+                assert.equal(item.label_index, 0);
+                assert.equal(item.follow_terminal, "+");
+            }
+
+            {
+                // T -> .T + n, $
+                const item = lr1_item_set_5[12];
+                assert.equal(item.production_rule_index, 5);
+                assert.equal(item.label_index, 0);
+                assert.equal(item.follow_terminal, "$");
+            }
+
+            {
+                // T -> .T + n, )
+                const item = lr1_item_set_5[13];
+                assert.equal(item.production_rule_index, 5);
+                assert.equal(item.label_index, 0);
+                assert.equal(item.follow_terminal, ")");
+            }
+
+            {
+                // T -> .T + n, +
+                const item = lr1_item_set_5[14];
+                assert.equal(item.production_rule_index, 5);
+                assert.equal(item.label_index, 0);
+                assert.equal(item.follow_terminal, "+");
+            }
         }
     });
 });
