@@ -2,6 +2,7 @@ import * as Abstract_syntax_tree from "./Abstract_syntax_tree";
 import * as Core from "../utilities/coreModelInterface";
 import * as Symbol_database from "./Symbol_database";
 import { onThrowError } from "../utilities/errors";
+import * as Scanner from "./Scanner";
 
 export enum Word_type {
     Alphanumeric,
@@ -466,6 +467,142 @@ export function create_next_lr1_item_set(production_rules: Production_rule[], al
     return new_item_set_closure;
 }
 
+export enum Action_type {
+    Accept,
+    Go_to,
+    Reduce,
+    Shift,
+}
+
+export interface Go_to_column {
+    label: string;
+    next_state: number;
+}
+
+export interface Reduce_action {
+    lhs: string;
+    rhs_count: number;
+    rhs_non_terminal_count: number;
+}
+
+export interface Shift_action {
+    next_state: number;
+}
+
+export interface Action {
+    type: Action_type;
+    value: Reduce_action | Shift_action | undefined;
+}
+
+export interface Action_column {
+    label: string;
+    action: Action;
+}
+
+export interface Node {
+    value: string;
+    children: Node[]
+}
+
+const g_debug = true;
+
+export function parse(input: Scanner.Scanned_word[], parsing_table: Action_column[][], go_to_table: Go_to_column[][]): Node | undefined {
+
+    const state_stack: number[] = [];
+    state_stack.push(0);
+
+    const nodes_stack: Node[] = [];
+
+    let current_word_index = 0;
+
+    while (current_word_index <= input.length) {
+
+        const current_word = current_word_index < input.length ? input[current_word_index] : { value: "$", type: Word_type.Symbol };
+
+        const current_state = state_stack[state_stack.length - 1];
+        const row = parsing_table[current_state];
+        const column = row.find(column => column.label === current_word.value);
+
+        if (column !== undefined) {
+            const action = column.action;
+
+            switch (action.type) {
+                case Action_type.Accept:
+                    {
+                        if (g_debug) {
+                            console.log(`accept`);
+                        }
+
+                        return nodes_stack[0];
+                    }
+                case Action_type.Shift:
+                    {
+                        const shift_action = action.value as Shift_action;
+                        state_stack.push(shift_action.next_state);
+
+                        if (g_debug) {
+                            console.log(`shift ${shift_action.next_state}`);
+                        }
+
+                        const new_node: Node = {
+                            value: current_word.value,
+                            children: []
+                        };
+                        nodes_stack.push(new_node);
+
+                        current_word_index += 1;
+                        break;
+                    }
+                case Action_type.Reduce:
+                    {
+                        const reduce_action = action.value as Reduce_action;
+
+                        if (reduce_action.rhs_count > nodes_stack.length) {
+                            // TODO error
+                            const message = "Syntax error!";
+                            onThrowError(message);
+                            throw Error(message);
+                        }
+
+                        const new_node_children = nodes_stack.splice(nodes_stack.length - reduce_action.rhs_count, reduce_action.rhs_count);
+
+                        if (g_debug) {
+                            const rhs = new_node_children.map(node => node.value).join(" ");
+                            console.log(`reduce ${reduce_action.lhs} -> ${rhs}`);
+                        }
+
+                        const new_node: Node = {
+                            value: reduce_action.lhs,
+                            children: new_node_children
+                        };
+                        nodes_stack.push(new_node);
+
+                        state_stack.splice(state_stack.length - reduce_action.rhs_count, reduce_action.rhs_count);
+                        const previous_state = state_stack[state_stack.length - 1];
+
+                        const go_to_row = go_to_table[previous_state];
+                        const go_to_column = go_to_row.find(column => column.label === reduce_action.lhs);
+                        if (go_to_column !== undefined) {
+                            state_stack.push(go_to_column.next_state);
+                        }
+                        else {
+                            // TODO error
+                            const message = "Syntax error!";
+                            onThrowError(message);
+                            throw Error(message);
+                        }
+
+                        break;
+                    }
+                default:
+                    break;
+            }
+        }
+    }
+
+    return undefined;
+}
+
 function get_labels(description: string): string[] {
     return description.split(" ");
 }
@@ -512,4 +649,30 @@ function find_lr1_items(production_rules: Production_rule[], lr1_items: LR1_item
 function is_terminal(label: string, terminals: string[]): boolean {
     const index = terminals.findIndex(terminal => terminal === label);
     return index !== -1;
+}
+
+export function lr1_items_to_string(production_rules: Production_rule[], lr1_items: LR1_item[]): string[] {
+
+    const output: string[] = [];
+
+    for (const item of lr1_items) {
+        const production_rule = production_rules[item.production_rule_index];
+
+        const rhs = [...production_rule.rhs];
+
+        if ((item.label_index + 1) === rhs.length) {
+            rhs.push(".");
+        }
+        else {
+            rhs[item.label_index] = "." + rhs[item.label_index];
+        }
+
+        const formatted_rhs = rhs.join(" ");
+
+        output.push(
+            `${production_rule.lhs} -> ${formatted_rhs}, ${item.follow_terminal}`
+        );
+    }
+
+    return output;
 }

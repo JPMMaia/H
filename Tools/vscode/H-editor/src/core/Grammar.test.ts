@@ -3,6 +3,7 @@ import "mocha";
 import * as assert from "assert";
 
 import * as Grammar from "./Grammar";
+import * as Scanner from "./Scanner";
 
 function create_test_grammar_0_description(): string[] {
     return [
@@ -772,6 +773,21 @@ describe("Grammar.create_next_lr1_item_set", () => {
         const non_terminals_follow = Grammar.follow_of_non_terminals(production_rules, non_terminals, rules_first_terminals);
         const lr1_item_set_0 = Grammar.create_lr1_item_set(production_rules, lr0_items, non_terminals_follow);
 
+        // S -> .E, $
+        // E -> .T, $
+        // E -> .T, )
+        // E -> .( E ), $
+        // E -> .( E ), )
+        // T -> .n, $
+        // T -> .n, )
+        // T -> .n, +
+        // T -> .+ T, $
+        // T -> .+ T, )
+        // T -> .+ T, +
+        // T -> .T + n, $
+        // T -> .T + n, )
+        // T -> .T + n, +
+
         {
             const lr1_item_set_1 = Grammar.create_next_lr1_item_set(production_rules, lr1_item_set_0, lr1_item_set_0, "E", non_terminals_follow);
 
@@ -1125,5 +1141,141 @@ describe("Grammar.create_next_lr1_item_set", () => {
                 assert.equal(item.follow_terminal, "+");
             }
         }
+    });
+});
+
+describe("Grammar.parse", () => {
+    it("Creates LR1 item set after set 0 for grammar 0 starting at production rule 0 label index 0", () => {
+
+        const action_table: Grammar.Action_column[][] = [
+            [ // 0
+                { label: "0", action: { type: Grammar.Action_type.Shift, value: { next_state: 1 } } },
+                { label: "1", action: { type: Grammar.Action_type.Shift, value: { next_state: 2 } } }
+            ],
+            [ // 1
+                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "B", rhs_count: 1, rhs_non_terminal_count: 1 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "B", rhs_count: 1, rhs_non_terminal_count: 1 } } },
+                { label: "0", action: { type: Grammar.Action_type.Reduce, value: { lhs: "B", rhs_count: 1, rhs_non_terminal_count: 1 } } },
+                { label: "1", action: { type: Grammar.Action_type.Reduce, value: { lhs: "B", rhs_count: 1, rhs_non_terminal_count: 1 } } },
+                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { lhs: "B", rhs_count: 1, rhs_non_terminal_count: 1 } } }
+            ],
+            [ // 2
+                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "B", rhs_count: 1, rhs_non_terminal_count: 1 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "B", rhs_count: 1, rhs_non_terminal_count: 1 } } },
+                { label: "0", action: { type: Grammar.Action_type.Reduce, value: { lhs: "B", rhs_count: 1, rhs_non_terminal_count: 1 } } },
+                { label: "1", action: { type: Grammar.Action_type.Reduce, value: { lhs: "B", rhs_count: 1, rhs_non_terminal_count: 1 } } },
+                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { lhs: "B", rhs_count: 1, rhs_non_terminal_count: 1 } } }
+            ],
+            [ // 3
+                { label: "*", action: { type: Grammar.Action_type.Shift, value: { next_state: 5 } } },
+                { label: "+", action: { type: Grammar.Action_type.Shift, value: { next_state: 6 } } },
+                { label: "$", action: { type: Grammar.Action_type.Accept, value: undefined } },
+            ],
+            [ // 4
+                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 1, rhs_non_terminal_count: 1 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 1, rhs_non_terminal_count: 1 } } },
+                { label: "0", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 1, rhs_non_terminal_count: 1 } } },
+                { label: "1", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 1, rhs_non_terminal_count: 1 } } },
+                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 1, rhs_non_terminal_count: 1 } } }
+            ],
+            [ // 5
+                { label: "0", action: { type: Grammar.Action_type.Shift, value: { next_state: 1 } } },
+                { label: "1", action: { type: Grammar.Action_type.Shift, value: { next_state: 2 } } }
+            ],
+            [ // 6
+                { label: "0", action: { type: Grammar.Action_type.Shift, value: { next_state: 1 } } },
+                { label: "1", action: { type: Grammar.Action_type.Shift, value: { next_state: 2 } } }
+            ],
+            [ // 7
+                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 3, rhs_non_terminal_count: 2 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 3, rhs_non_terminal_count: 2 } } },
+                { label: "0", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 3, rhs_non_terminal_count: 2 } } },
+                { label: "1", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 3, rhs_non_terminal_count: 2 } } },
+                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 3, rhs_non_terminal_count: 2 } } }
+            ],
+            [ // 8
+                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 3, rhs_non_terminal_count: 2 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 3, rhs_non_terminal_count: 2 } } },
+                { label: "0", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 3, rhs_non_terminal_count: 2 } } },
+                { label: "1", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 3, rhs_non_terminal_count: 2 } } },
+                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 3, rhs_non_terminal_count: 2 } } }
+            ],
+        ];
+
+        const go_to_table: Grammar.Go_to_column[][] = [
+            [ // 0
+                { label: "E", next_state: 3 },
+                { label: "B", next_state: 4 }
+            ],
+            [ // 1
+            ],
+            [ // 2
+            ],
+            [ // 3
+            ],
+            [ // 4
+            ],
+            [ // 5
+                { label: "B", next_state: 7 }
+            ],
+            [ // 6
+                { label: "B", next_state: 8 }
+            ],
+            [ // 7
+            ],
+            [ // 8
+            ],
+        ];
+
+        const input = "1 + 1";
+        const scanned_words = Scanner.scan(input, 0, input.length);
+
+        const output_node = Grammar.parse(scanned_words, action_table, go_to_table);
+
+        assert.notEqual(output_node, undefined);
+
+        if (output_node !== undefined) {
+
+            assert.equal(output_node.value, "E");
+
+            assert.equal(output_node.children.length, 3);
+
+            {
+                const node_0 = output_node.children[0];
+                assert.equal(node_0.value, "E");
+                assert.equal(node_0.children.length, 1);
+
+                {
+                    const node_1 = node_0.children[0];
+                    assert.equal(node_1.value, "B");
+                    assert.equal(node_1.children.length, 1);
+
+                    {
+                        const node_2 = node_1.children[0];
+                        assert.equal(node_2.value, "1");
+                        assert.equal(node_2.children.length, 0);
+                    }
+                }
+            }
+
+            {
+                const node_0 = output_node.children[1];
+                assert.equal(node_0.value, "+");
+                assert.equal(node_0.children.length, 0);
+            }
+
+            {
+                const node_0 = output_node.children[2];
+                assert.equal(node_0.value, "B");
+                assert.equal(node_0.children.length, 1);
+
+                {
+                    const node_1 = node_0.children[0];
+                    assert.equal(node_1.value, "1");
+                    assert.equal(node_1.children.length, 0);
+                }
+            }
+        }
+
     });
 });
