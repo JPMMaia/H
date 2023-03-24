@@ -26,6 +26,15 @@ function create_test_grammar_1_description(): string[] {
     ];
 }
 
+function create_test_grammar_2_description(): string[] {
+    return [
+        "Start -> S",
+        "S -> A A",
+        "A -> a A",
+        "A -> b"
+    ];
+}
+
 describe("Grammar.create_production_rules", () => {
 
 
@@ -477,33 +486,26 @@ describe("Grammar.follow_of_item_set", () => {
     });
 });
 
-describe("Grammar.create_lr1_item_set", () => {
-    it("Creates LR0 item set for grammar 0 starting at production rule 0 label index 0", () => {
+describe("Grammar.create_start_lr1_item_set", () => {
+    it("Creates starter item set for grammar 0", () => {
 
         const grammar_description = create_test_grammar_0_description();
         const production_rules = Grammar.create_production_rules(grammar_description);
         const non_terminals = Grammar.get_non_terminals(production_rules);
         const terminals = Grammar.get_terminals(production_rules, non_terminals);
         const rules_first_terminals = Grammar.first(production_rules, non_terminals, terminals);
-        const lr0_items = Grammar.create_lr0_item_set(production_rules, 0, 0);
-        const non_terminals_follow = Grammar.follow_of_non_terminals(production_rules, non_terminals, rules_first_terminals);
-        const lr1_items = Grammar.create_lr1_item_set(production_rules, lr0_items, non_terminals_follow);
+        const lr1_items = Grammar.create_start_lr1_item_set(production_rules, rules_first_terminals);
 
         // S -> .E, $
         // E -> .T, $
-        // E -> .T, )
         // E -> .( E ), $
-        // E -> .( E ), )
         // T -> .n, $
-        // T -> .n, )
         // T -> .n, +
         // T -> .+ T, $
-        // T -> .+ T, )
         // T -> .+ T, +
         // T -> .T + n, $
-        // T -> .T + n, )
         // T -> .T + n, +
-        assert.equal(lr1_items.length, 14);
+        assert.equal(lr1_items.length, 9);
 
         {
             // S -> .E, $
@@ -522,48 +524,24 @@ describe("Grammar.create_lr1_item_set", () => {
         }
 
         {
-            // E -> .T, )
-            const item = lr1_items[2];
-            assert.equal(item.production_rule_index, 1);
-            assert.equal(item.label_index, 0);
-            assert.equal(item.follow_terminal, ")");
-        }
-
-        {
             // E -> .( E ), $
-            const item = lr1_items[3];
+            const item = lr1_items[2];
             assert.equal(item.production_rule_index, 2);
             assert.equal(item.label_index, 0);
             assert.equal(item.follow_terminal, "$");
-        }
-
-        {
-            // E -> .( E ), )
-            const item = lr1_items[4];
-            assert.equal(item.production_rule_index, 2);
-            assert.equal(item.label_index, 0);
-            assert.equal(item.follow_terminal, ")");
         }
 
         {
             // T -> .n, $
-            const item = lr1_items[5];
+            const item = lr1_items[3];
             assert.equal(item.production_rule_index, 3);
             assert.equal(item.label_index, 0);
             assert.equal(item.follow_terminal, "$");
         }
 
         {
-            // T -> .n, )
-            const item = lr1_items[6];
-            assert.equal(item.production_rule_index, 3);
-            assert.equal(item.label_index, 0);
-            assert.equal(item.follow_terminal, ")");
-        }
-
-        {
             // T -> .n, +
-            const item = lr1_items[7];
+            const item = lr1_items[4];
             assert.equal(item.production_rule_index, 3);
             assert.equal(item.label_index, 0);
             assert.equal(item.follow_terminal, "+");
@@ -571,23 +549,15 @@ describe("Grammar.create_lr1_item_set", () => {
 
         {
             // T -> .+ T, $
-            const item = lr1_items[8];
+            const item = lr1_items[5];
             assert.equal(item.production_rule_index, 4);
             assert.equal(item.label_index, 0);
             assert.equal(item.follow_terminal, "$");
         }
 
         {
-            // T -> .+ T, )
-            const item = lr1_items[9];
-            assert.equal(item.production_rule_index, 4);
-            assert.equal(item.label_index, 0);
-            assert.equal(item.follow_terminal, ")");
-        }
-
-        {
             // T -> .+ T, +
-            const item = lr1_items[10];
+            const item = lr1_items[6];
             assert.equal(item.production_rule_index, 4);
             assert.equal(item.label_index, 0);
             assert.equal(item.follow_terminal, "+");
@@ -595,39 +565,29 @@ describe("Grammar.create_lr1_item_set", () => {
 
         {
             // T -> .T + n, $
-            const item = lr1_items[11];
+            const item = lr1_items[7];
             assert.equal(item.production_rule_index, 5);
             assert.equal(item.label_index, 0);
             assert.equal(item.follow_terminal, "$");
         }
 
         {
-            // T -> .T + n, )
-            const item = lr1_items[12];
-            assert.equal(item.production_rule_index, 5);
-            assert.equal(item.label_index, 0);
-            assert.equal(item.follow_terminal, ")");
-        }
-
-        {
             // T -> .T + n, +
-            const item = lr1_items[13];
+            const item = lr1_items[8];
             assert.equal(item.production_rule_index, 5);
             assert.equal(item.label_index, 0);
             assert.equal(item.follow_terminal, "+");
         }
     });
 
-    it("Creates LR0 item set for grammar 1 starting at production rule 0 label index 0", () => {
+    it("Creates starter item set for grammar 1", () => {
 
         const grammar_description = create_test_grammar_1_description();
         const production_rules = Grammar.create_production_rules(grammar_description);
         const non_terminals = Grammar.get_non_terminals(production_rules);
         const terminals = Grammar.get_terminals(production_rules, non_terminals);
         const rules_first_terminals = Grammar.first(production_rules, non_terminals, terminals);
-        const lr0_items = Grammar.create_lr0_item_set(production_rules, 0, 0);
-        const non_terminals_follow = Grammar.follow_of_non_terminals(production_rules, non_terminals, rules_first_terminals);
-        const lr1_items = Grammar.create_lr1_item_set(production_rules, lr0_items, non_terminals_follow);
+        const lr1_items = Grammar.create_start_lr1_item_set(production_rules, rules_first_terminals);
 
         assert.equal(lr1_items.length, 16);
 
@@ -762,34 +722,31 @@ describe("Grammar.create_lr1_item_set", () => {
 });
 
 describe("Grammar.create_next_lr1_item_set", () => {
-    it("Creates LR1 item set after set 0 for grammar 0 starting at production rule 0 label index 0", () => {
+    it("Creates LR1 item sets from grammar 0", () => {
 
         const grammar_description = create_test_grammar_0_description();
         const production_rules = Grammar.create_production_rules(grammar_description);
         const non_terminals = Grammar.get_non_terminals(production_rules);
         const terminals = Grammar.get_terminals(production_rules, non_terminals);
         const rules_first_terminals = Grammar.first(production_rules, non_terminals, terminals);
-        const lr0_items = Grammar.create_lr0_item_set(production_rules, 0, 0);
-        const non_terminals_follow = Grammar.follow_of_non_terminals(production_rules, non_terminals, rules_first_terminals);
-        const lr1_item_set_0 = Grammar.create_lr1_item_set(production_rules, lr0_items, non_terminals_follow);
+        const lr1_item_set_0 = Grammar.create_start_lr1_item_set(production_rules, rules_first_terminals);
 
         // S -> .E, $
         // E -> .T, $
-        // E -> .T, )
         // E -> .( E ), $
-        // E -> .( E ), )
         // T -> .n, $
-        // T -> .n, )
         // T -> .n, +
         // T -> .+ T, $
-        // T -> .+ T, )
         // T -> .+ T, +
         // T -> .T + n, $
-        // T -> .T + n, )
         // T -> .T + n, +
 
+        for (const item of lr1_item_set_0) {
+            console.log(Grammar.lr1_item_to_string(production_rules, item));
+        }
+
         {
-            const lr1_item_set_1 = Grammar.create_next_lr1_item_set(production_rules, lr1_item_set_0, lr1_item_set_0, "E", non_terminals_follow);
+            const lr1_item_set_1 = Grammar.create_next_lr1_item_set(production_rules, rules_first_terminals, lr1_item_set_0, "E");
 
             // S -> E., $
             assert.equal(lr1_item_set_1.length, 1);
@@ -804,14 +761,12 @@ describe("Grammar.create_next_lr1_item_set", () => {
         }
 
         {
-            const lr1_item_set_2 = Grammar.create_next_lr1_item_set(production_rules, lr1_item_set_0, lr1_item_set_0, "T", non_terminals_follow);
+            const lr1_item_set_2 = Grammar.create_next_lr1_item_set(production_rules, rules_first_terminals, lr1_item_set_0, "T");
 
             // E -> T., $
-            // E -> T., )
             // T -> T .+ n, $
-            // T -> T .+ n, )
             // T -> T .+ n, +
-            assert.equal(lr1_item_set_2.length, 5);
+            assert.equal(lr1_item_set_2.length, 3);
 
             {
                 // E -> T., $
@@ -822,32 +777,16 @@ describe("Grammar.create_next_lr1_item_set", () => {
             }
 
             {
-                // E -> T., )
-                const item = lr1_item_set_2[1];
-                assert.equal(item.production_rule_index, 1);
-                assert.equal(item.label_index, 1);
-                assert.equal(item.follow_terminal, ")");
-            }
-
-            {
                 // T -> T. + n, $
-                const item = lr1_item_set_2[2];
+                const item = lr1_item_set_2[1];
                 assert.equal(item.production_rule_index, 5);
                 assert.equal(item.label_index, 1);
                 assert.equal(item.follow_terminal, "$");
             }
 
             {
-                // T -> T. + n, )
-                const item = lr1_item_set_2[3];
-                assert.equal(item.production_rule_index, 5);
-                assert.equal(item.label_index, 1);
-                assert.equal(item.follow_terminal, ")");
-            }
-
-            {
                 // T -> T. + n, +
-                const item = lr1_item_set_2[4];
+                const item = lr1_item_set_2[2];
                 assert.equal(item.production_rule_index, 5);
                 assert.equal(item.label_index, 1);
                 assert.equal(item.follow_terminal, "+");
@@ -855,12 +794,11 @@ describe("Grammar.create_next_lr1_item_set", () => {
         }
 
         {
-            const lr1_item_set_3 = Grammar.create_next_lr1_item_set(production_rules, lr1_item_set_0, lr1_item_set_0, "n", non_terminals_follow);
+            const lr1_item_set_3 = Grammar.create_next_lr1_item_set(production_rules, rules_first_terminals, lr1_item_set_0, "n");
 
             // T -> n., $
-            // T -> n., )
             // T -> n., +
-            assert.equal(lr1_item_set_3.length, 3);
+            assert.equal(lr1_item_set_3.length, 2);
 
             {
                 // T -> n., $
@@ -871,16 +809,8 @@ describe("Grammar.create_next_lr1_item_set", () => {
             }
 
             {
-                // T -> n., )
-                const item = lr1_item_set_3[1];
-                assert.equal(item.production_rule_index, 3);
-                assert.equal(item.label_index, 1);
-                assert.equal(item.follow_terminal, ")");
-            }
-
-            {
                 // T -> n., +
-                const item = lr1_item_set_3[2];
+                const item = lr1_item_set_3[1];
                 assert.equal(item.production_rule_index, 3);
                 assert.equal(item.label_index, 1);
                 assert.equal(item.follow_terminal, "+");
@@ -888,21 +818,17 @@ describe("Grammar.create_next_lr1_item_set", () => {
         }
 
         {
-            const lr1_item_set_4 = Grammar.create_next_lr1_item_set(production_rules, lr1_item_set_0, lr1_item_set_0, "+", non_terminals_follow);
+            const lr1_item_set_4 = Grammar.create_next_lr1_item_set(production_rules, rules_first_terminals, lr1_item_set_0, "+");
 
             // T -> + .T, $
-            // T -> + .T, )
             // T -> + .T, +
             // T -> .n, $
-            // T -> .n, )
             // T -> .n, +
             // T -> .+ T, $
-            // T -> .+ T, )
             // T -> .+ T, +
             // T -> .T + n, $
-            // T -> .T + n, )
             // T -> .T + n, +
-            assert.equal(lr1_item_set_4.length, 12);
+            assert.equal(lr1_item_set_4.length, 8);
 
             {
                 // T -> + .T, $
@@ -913,16 +839,8 @@ describe("Grammar.create_next_lr1_item_set", () => {
             }
 
             {
-                // T -> + .T, )
-                const item = lr1_item_set_4[1];
-                assert.equal(item.production_rule_index, 4);
-                assert.equal(item.label_index, 1);
-                assert.equal(item.follow_terminal, ")");
-            }
-
-            {
                 // T -> + .T, +
-                const item = lr1_item_set_4[2];
+                const item = lr1_item_set_4[1];
                 assert.equal(item.production_rule_index, 4);
                 assert.equal(item.label_index, 1);
                 assert.equal(item.follow_terminal, "+");
@@ -930,23 +848,15 @@ describe("Grammar.create_next_lr1_item_set", () => {
 
             {
                 // T -> .n, $
-                const item = lr1_item_set_4[3];
+                const item = lr1_item_set_4[2];
                 assert.equal(item.production_rule_index, 3);
                 assert.equal(item.label_index, 0);
                 assert.equal(item.follow_terminal, "$");
             }
 
             {
-                // T -> .n, )
-                const item = lr1_item_set_4[4];
-                assert.equal(item.production_rule_index, 3);
-                assert.equal(item.label_index, 0);
-                assert.equal(item.follow_terminal, ")");
-            }
-
-            {
                 // T -> .n, +
-                const item = lr1_item_set_4[5];
+                const item = lr1_item_set_4[3];
                 assert.equal(item.production_rule_index, 3);
                 assert.equal(item.label_index, 0);
                 assert.equal(item.follow_terminal, "+");
@@ -954,23 +864,15 @@ describe("Grammar.create_next_lr1_item_set", () => {
 
             {
                 // T -> .+ T, $
-                const item = lr1_item_set_4[6];
+                const item = lr1_item_set_4[4];
                 assert.equal(item.production_rule_index, 4);
                 assert.equal(item.label_index, 0);
                 assert.equal(item.follow_terminal, "$");
             }
 
             {
-                // T -> .+ T, )
-                const item = lr1_item_set_4[7];
-                assert.equal(item.production_rule_index, 4);
-                assert.equal(item.label_index, 0);
-                assert.equal(item.follow_terminal, ")");
-            }
-
-            {
                 // T -> .+ T, +
-                const item = lr1_item_set_4[8];
+                const item = lr1_item_set_4[5];
                 assert.equal(item.production_rule_index, 4);
                 assert.equal(item.label_index, 0);
                 assert.equal(item.follow_terminal, "+");
@@ -978,23 +880,15 @@ describe("Grammar.create_next_lr1_item_set", () => {
 
             {
                 // T -> .T + n, $
-                const item = lr1_item_set_4[9];
+                const item = lr1_item_set_4[6];
                 assert.equal(item.production_rule_index, 5);
                 assert.equal(item.label_index, 0);
                 assert.equal(item.follow_terminal, "$");
             }
 
             {
-                // T -> .T + n, )
-                const item = lr1_item_set_4[10];
-                assert.equal(item.production_rule_index, 5);
-                assert.equal(item.label_index, 0);
-                assert.equal(item.follow_terminal, ")");
-            }
-
-            {
                 // T -> .T + n, +
-                const item = lr1_item_set_4[11];
+                const item = lr1_item_set_4[7];
                 assert.equal(item.production_rule_index, 5);
                 assert.equal(item.label_index, 0);
                 assert.equal(item.follow_terminal, "+");
@@ -1002,24 +896,18 @@ describe("Grammar.create_next_lr1_item_set", () => {
         }
 
         {
-            const lr1_item_set_5 = Grammar.create_next_lr1_item_set(production_rules, lr1_item_set_0, lr1_item_set_0, "(", non_terminals_follow);
+            const lr1_item_set_5 = Grammar.create_next_lr1_item_set(production_rules, rules_first_terminals, lr1_item_set_0, "(");
 
             // E -> ( .E ), $
-            // E -> ( .E ), )
-            // E -> .T, $
             // E -> .T, )
-            // E -> .( E ), $
             // E -> .( E ), )
-            // T -> .n, $
             // T -> .n, )
             // T -> .n, +
-            // T -> .+ T, $
             // T -> .+ T, )
             // T -> .+ T, +
-            // T -> .T + n, $
             // T -> .T + n, )
             // T -> .T + n, +
-            assert.equal(lr1_item_set_5.length, 15);
+            assert.equal(lr1_item_set_5.length, 9);
 
             {
                 // E -> ( .E ), $
@@ -1030,56 +918,24 @@ describe("Grammar.create_next_lr1_item_set", () => {
             }
 
             {
-                // E -> ( .E ), )
-                const item = lr1_item_set_5[1];
-                assert.equal(item.production_rule_index, 2);
-                assert.equal(item.label_index, 1);
-                assert.equal(item.follow_terminal, ")");
-            }
-
-            {
-                // E -> .T, $
-                const item = lr1_item_set_5[2];
-                assert.equal(item.production_rule_index, 1);
-                assert.equal(item.label_index, 0);
-                assert.equal(item.follow_terminal, "$");
-            }
-
-            {
                 // E -> .T, )
-                const item = lr1_item_set_5[3];
+                const item = lr1_item_set_5[1];
                 assert.equal(item.production_rule_index, 1);
                 assert.equal(item.label_index, 0);
                 assert.equal(item.follow_terminal, ")");
-            }
-
-            {
-                // E -> .( E ), $
-                const item = lr1_item_set_5[4];
-                assert.equal(item.production_rule_index, 2);
-                assert.equal(item.label_index, 0);
-                assert.equal(item.follow_terminal, "$");
             }
 
             {
                 // E -> .( E ), )
-                const item = lr1_item_set_5[5];
+                const item = lr1_item_set_5[2];
                 assert.equal(item.production_rule_index, 2);
                 assert.equal(item.label_index, 0);
                 assert.equal(item.follow_terminal, ")");
             }
 
             {
-                // T -> .n, $
-                const item = lr1_item_set_5[6];
-                assert.equal(item.production_rule_index, 3);
-                assert.equal(item.label_index, 0);
-                assert.equal(item.follow_terminal, "$");
-            }
-
-            {
                 // T -> .n, )
-                const item = lr1_item_set_5[7];
+                const item = lr1_item_set_5[3];
                 assert.equal(item.production_rule_index, 3);
                 assert.equal(item.label_index, 0);
                 assert.equal(item.follow_terminal, ")");
@@ -1087,23 +943,15 @@ describe("Grammar.create_next_lr1_item_set", () => {
 
             {
                 // T -> .n, +
-                const item = lr1_item_set_5[8];
+                const item = lr1_item_set_5[4];
                 assert.equal(item.production_rule_index, 3);
                 assert.equal(item.label_index, 0);
                 assert.equal(item.follow_terminal, "+");
             }
 
             {
-                // T -> .+ T, $
-                const item = lr1_item_set_5[9];
-                assert.equal(item.production_rule_index, 4);
-                assert.equal(item.label_index, 0);
-                assert.equal(item.follow_terminal, "$");
-            }
-
-            {
                 // T -> .+ T, )
-                const item = lr1_item_set_5[10];
+                const item = lr1_item_set_5[5];
                 assert.equal(item.production_rule_index, 4);
                 assert.equal(item.label_index, 0);
                 assert.equal(item.follow_terminal, ")");
@@ -1111,23 +959,15 @@ describe("Grammar.create_next_lr1_item_set", () => {
 
             {
                 // T -> .+ T, +
-                const item = lr1_item_set_5[11];
+                const item = lr1_item_set_5[6];
                 assert.equal(item.production_rule_index, 4);
                 assert.equal(item.label_index, 0);
                 assert.equal(item.follow_terminal, "+");
             }
 
             {
-                // T -> .T + n, $
-                const item = lr1_item_set_5[12];
-                assert.equal(item.production_rule_index, 5);
-                assert.equal(item.label_index, 0);
-                assert.equal(item.follow_terminal, "$");
-            }
-
-            {
                 // T -> .T + n, )
-                const item = lr1_item_set_5[13];
+                const item = lr1_item_set_5[7];
                 assert.equal(item.production_rule_index, 5);
                 assert.equal(item.label_index, 0);
                 assert.equal(item.follow_terminal, ")");
@@ -1135,17 +975,160 @@ describe("Grammar.create_next_lr1_item_set", () => {
 
             {
                 // T -> .T + n, +
-                const item = lr1_item_set_5[14];
+                const item = lr1_item_set_5[8];
                 assert.equal(item.production_rule_index, 5);
                 assert.equal(item.label_index, 0);
                 assert.equal(item.follow_terminal, "+");
             }
         }
     });
+
+    it("Creates LR1 item sets from grammar 2", () => {
+
+        const grammar_description = create_test_grammar_2_description();
+        const production_rules = Grammar.create_production_rules(grammar_description);
+        const non_terminals = Grammar.get_non_terminals(production_rules);
+        const terminals = Grammar.get_terminals(production_rules, non_terminals);
+        const rules_first_terminals = Grammar.first(production_rules, non_terminals, terminals);
+        const lr1_item_set_0 = Grammar.create_start_lr1_item_set(production_rules, rules_first_terminals);
+
+        // 0 Start -> S
+        // 1 S -> A A
+        // 2 A -> a A
+        // 3 A -> b
+
+        // Start -> .S , $
+        // S -> .A A, $
+        // A -> .a A, a
+        // A -> .a A, b
+        // A -> .b, a
+        // A -> .b, b
+
+        {
+            const lr1_item_set_1 = Grammar.create_next_lr1_item_set(production_rules, rules_first_terminals, lr1_item_set_0, "S");
+
+            // Start -> S., $
+            assert.equal(lr1_item_set_1.length, 1);
+
+            {
+                const item = lr1_item_set_1[0];
+                assert.equal(item.production_rule_index, 0);
+                assert.equal(item.label_index, 1);
+                assert.equal(item.follow_terminal, "$");
+            }
+        }
+
+        {
+            const lr1_item_set_2 = Grammar.create_next_lr1_item_set(production_rules, rules_first_terminals, lr1_item_set_0, "A");
+
+            // S -> A .A, $
+            // A -> .a A, $
+            // A -> .b, $
+            assert.equal(lr1_item_set_2.length, 3);
+
+            {
+                const item = lr1_item_set_2[0];
+                assert.equal(item.production_rule_index, 1);
+                assert.equal(item.label_index, 1);
+                assert.equal(item.follow_terminal, "$");
+            }
+
+            {
+                const item = lr1_item_set_2[1];
+                assert.equal(item.production_rule_index, 2);
+                assert.equal(item.label_index, 0);
+                assert.equal(item.follow_terminal, "$");
+            }
+
+            {
+                const item = lr1_item_set_2[2];
+                assert.equal(item.production_rule_index, 3);
+                assert.equal(item.label_index, 0);
+                assert.equal(item.follow_terminal, "$");
+            }
+        }
+
+        {
+            const lr1_item_set_3 = Grammar.create_next_lr1_item_set(production_rules, rules_first_terminals, lr1_item_set_0, "a");
+
+            // A -> a .A, a
+            // A -> a .A, b
+            // A -> .a A, a
+            // A -> .a A, b
+            // A -> .b, a
+            // A -> .b, b
+
+            assert.equal(lr1_item_set_3.length, 6);
+
+            {
+                const item = lr1_item_set_3[0];
+                assert.equal(item.production_rule_index, 2);
+                assert.equal(item.label_index, 1);
+                assert.equal(item.follow_terminal, "a");
+            }
+
+            {
+                const item = lr1_item_set_3[1];
+                assert.equal(item.production_rule_index, 2);
+                assert.equal(item.label_index, 1);
+                assert.equal(item.follow_terminal, "b");
+            }
+
+            {
+                const item = lr1_item_set_3[2];
+                assert.equal(item.production_rule_index, 2);
+                assert.equal(item.label_index, 0);
+                assert.equal(item.follow_terminal, "a");
+            }
+
+            {
+                const item = lr1_item_set_3[3];
+                assert.equal(item.production_rule_index, 2);
+                assert.equal(item.label_index, 0);
+                assert.equal(item.follow_terminal, "b");
+            }
+
+            {
+                const item = lr1_item_set_3[4];
+                assert.equal(item.production_rule_index, 3);
+                assert.equal(item.label_index, 0);
+                assert.equal(item.follow_terminal, "a");
+            }
+
+            {
+                const item = lr1_item_set_3[5];
+                assert.equal(item.production_rule_index, 3);
+                assert.equal(item.label_index, 0);
+                assert.equal(item.follow_terminal, "b");
+            }
+        }
+
+        {
+            const lr1_item_set_4 = Grammar.create_next_lr1_item_set(production_rules, rules_first_terminals, lr1_item_set_0, "b");
+
+            // A -> b., a
+            // A -> b., b
+            assert.equal(lr1_item_set_4.length, 2);
+
+            {
+                const item = lr1_item_set_4[0];
+                assert.equal(item.production_rule_index, 3);
+                assert.equal(item.label_index, 1);
+                assert.equal(item.follow_terminal, "a");
+            }
+
+            {
+                const item = lr1_item_set_4[1];
+                assert.equal(item.production_rule_index, 3);
+                assert.equal(item.label_index, 1);
+                assert.equal(item.follow_terminal, "b");
+            }
+        }
+    });
 });
 
 describe("Grammar.parse", () => {
-    it("Creates LR1 item set after set 0 for grammar 0 starting at production rule 0 label index 0", () => {
+    it("Parse '1 + 1' with a parsing table", () => {
 
         const action_table: Grammar.Action_column[][] = [
             [ // 0

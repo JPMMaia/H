@@ -41,6 +41,8 @@ export interface Grammar {
     create_variable_expression_node(expression: Core.Variable_expression, symbol: Symbol_database.Symbol | undefined): Abstract_syntax_tree.Node;
 }
 
+const g_debug = false;
+
 export interface Production_rule {
     lhs: string;
     rhs: string[]
@@ -379,34 +381,26 @@ function compare_lr1_items(lhs: LR1_item, rhs: LR1_item): number {
     return 0;
 }
 
-export function create_lr1_item_set(production_rules: Production_rule[], lr0_item_set: LR0_item[], non_terminals_follow: Map<string, string[]>): LR1_item[] {
+export function create_start_lr1_item_set(production_rules: Production_rule[], first_terminals: Map<string, string[]>): LR1_item[] {
 
-    const lr1_item_set: LR1_item[] = [];
+    const first_lr1_item: LR1_item = {
+        production_rule_index: 0,
+        label_index: 0,
+        follow_terminal: "$"
+    };
 
-    for (const lr0_item of lr0_item_set) {
-        const production_rule = production_rules[lr0_item.production_rule_index];
-        const lhs = production_rule.lhs;
-        const lhs_follow = non_terminals_follow.get(lhs);
-
-        if (lhs_follow === undefined) {
-            const message = "Failed to find new follow terminals! non_terminals_follow must contain label!";
-            onThrowError(message);
-            throw Error(message);
-        }
-
-        for (const follow_terminal of lhs_follow) {
-            lr1_item_set.push({
-                production_rule_index: lr0_item.production_rule_index,
-                label_index: lr0_item.label_index,
-                follow_terminal: follow_terminal
-            });
-        }
-    }
+    const lr1_item_set = compute_lr1_closure(production_rules, first_terminals, [first_lr1_item]);
 
     return lr1_item_set;
 }
 
-function compute_lr1_closure(production_rules: Production_rule[], all_lr1_items: LR1_item[], lr1_item_set: LR1_item[]): LR1_item[] {
+function compute_lr1_closure(production_rules: Production_rule[], first_terminals_map: Map<string, string[]>, lr1_item_set: LR1_item[]): LR1_item[] {
+
+    const debug = false;
+
+    if (debug) {
+        console.log("------");
+    }
 
     const closure_item_set: LR1_item[] = [...lr1_item_set];
 
@@ -414,19 +408,35 @@ function compute_lr1_closure(production_rules: Production_rule[], all_lr1_items:
 
         const item = closure_item_set[index];
 
+        if (debug) {
+            console.log(lr1_item_to_string(production_rules, item));
+        }
+
         const production_rule = production_rules[item.production_rule_index];
+        if (item.label_index >= production_rule.rhs.length) {
+            break;
+        }
+
         const label = production_rule.rhs[item.label_index];
 
-        const new_item_indices = find_lr1_items(production_rules, all_lr1_items, label);
+        const next_label = (item.label_index + 1) < production_rule.rhs.length ? production_rule.rhs[item.label_index + 1] : item.follow_terminal;
+        const next_label_first = first_terminals_map.get(next_label);
+        const look_aheads = next_label_first !== undefined ? next_label_first : [];
 
-        for (const new_item_index of new_item_indices) {
+        const production_rule_indices = find_production_rules(production_rules, label);
 
-            const new_item = all_lr1_items[new_item_index];
+        for (const new_production_rule_index of production_rule_indices) {
+            for (const look_ahead of look_aheads) {
+                const new_item: LR1_item = {
+                    production_rule_index: new_production_rule_index,
+                    label_index: 0,
+                    follow_terminal: look_ahead
+                };
 
-            const existing_item_index = closure_item_set.findIndex(closure_item => are_lr1_items_equal(closure_item, new_item));
-
-            if (existing_item_index === -1) {
-                closure_item_set.push(new_item);
+                const existing_item_index = closure_item_set.findIndex(closure_item => are_lr1_items_equal(closure_item, new_item));
+                if (existing_item_index === -1) {
+                    closure_item_set.push(new_item);
+                }
             }
         }
     }
@@ -436,7 +446,7 @@ function compute_lr1_closure(production_rules: Production_rule[], all_lr1_items:
     return closure_item_set;
 }
 
-export function create_next_lr1_item_set(production_rules: Production_rule[], all_lr1_items: LR1_item[], lr1_item_set: LR1_item[], label: string, non_terminals_follow: Map<string, string[]>): LR1_item[] {
+export function create_next_lr1_item_set(production_rules: Production_rule[], first_terminals_map: Map<string, string[]>, lr1_item_set: LR1_item[], label: string): LR1_item[] {
 
     // Get items that contain label at label_index:
     const items_at_label = lr1_item_set.filter(item => {
@@ -462,7 +472,16 @@ export function create_next_lr1_item_set(production_rules: Production_rule[], al
     });
 
     // Compute closure:
-    const new_item_set_closure = compute_lr1_closure(production_rules, all_lr1_items, new_item_set);
+    const new_item_set_closure = compute_lr1_closure(production_rules, first_terminals_map, new_item_set);
+
+    const debug = false;
+
+    if (debug) {
+        console.log("------ LR1 Item Set ------");
+        for (const item of new_item_set_closure) {
+            console.log(lr1_item_to_string(production_rules, item));
+        }
+    }
 
     return new_item_set_closure;
 }
@@ -503,8 +522,6 @@ export interface Node {
     value: string;
     children: Node[]
 }
-
-const g_debug = true;
 
 export function parse(input: Scanner.Scanned_word[], parsing_table: Action_column[][], go_to_table: Go_to_column[][]): Node | undefined {
 
@@ -651,28 +668,20 @@ function is_terminal(label: string, terminals: string[]): boolean {
     return index !== -1;
 }
 
-export function lr1_items_to_string(production_rules: Production_rule[], lr1_items: LR1_item[]): string[] {
+export function lr1_item_to_string(production_rules: Production_rule[], item: LR1_item): string {
 
-    const output: string[] = [];
+    const production_rule = production_rules[item.production_rule_index];
 
-    for (const item of lr1_items) {
-        const production_rule = production_rules[item.production_rule_index];
+    const rhs = [...production_rule.rhs];
 
-        const rhs = [...production_rule.rhs];
-
-        if ((item.label_index + 1) === rhs.length) {
-            rhs.push(".");
-        }
-        else {
-            rhs[item.label_index] = "." + rhs[item.label_index];
-        }
-
-        const formatted_rhs = rhs.join(" ");
-
-        output.push(
-            `${production_rule.lhs} -> ${formatted_rhs}, ${item.follow_terminal}`
-        );
+    if (item.label_index < rhs.length) {
+        rhs[item.label_index] = "." + rhs[item.label_index];
+    }
+    else {
+        rhs.push(".");
     }
 
-    return output;
+    const formatted_rhs = rhs.join(" ");
+
+    return `${production_rule.lhs} -> ${formatted_rhs}, ${item.follow_terminal}`;
 }
