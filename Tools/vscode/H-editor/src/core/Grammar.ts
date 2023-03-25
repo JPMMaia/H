@@ -381,6 +381,20 @@ function compare_lr1_items(lhs: LR1_item, rhs: LR1_item): number {
     return 0;
 }
 
+function are_lr1_states_equal(lhs: LR1_item[], rhs: LR1_item[]): boolean {
+    if (lhs.length !== rhs.length) {
+        return false;
+    }
+
+    for (let index = 0; index < lhs.length; ++index) {
+        if (!are_lr1_items_equal(lhs[index], rhs[index])) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 export function create_start_lr1_item_set(production_rules: Production_rule[], first_terminals: Map<string, string[]>): LR1_item[] {
 
     const first_lr1_item: LR1_item = {
@@ -486,6 +500,67 @@ export function create_next_lr1_item_set(production_rules: Production_rule[], fi
     return new_item_set_closure;
 }
 
+export interface Edge {
+    from_state: number;
+    to_state: number;
+    label: string;
+}
+
+export function create_lr1_graph(production_rules: Production_rule[], first_terminals_map: Map<string, string[]>, lr1_item_set_0: LR1_item[]): { states: LR1_item[][], edges: Edge[] } {
+
+    const states: LR1_item[][] = [lr1_item_set_0];
+    const edges: Edge[] = [];
+
+    for (let current_state_index = 0; current_state_index < states.length; ++current_state_index) {
+        const current_state = states[current_state_index];
+
+        const current_labels = current_state.map(item => {
+            const production_rule = production_rules[item.production_rule_index];
+            return item.label_index < production_rule.rhs.length ? production_rule.rhs[item.label_index] : "";
+        }).filter(label => label.length > 0);
+        current_labels.sort();
+
+        const unique_current_labels = current_labels.filter((label, index) => index > 0 ? label !== current_labels[index - 1] : true);
+
+        const next_states = unique_current_labels.map(label => create_next_lr1_item_set(production_rules, first_terminals_map, current_state, label));
+
+        for (let index = 0; index < next_states.length; ++index) {
+            const next_state = next_states[index];
+            const label = unique_current_labels[index];
+
+            const next_state_index = states.findIndex(state => are_lr1_states_equal(next_state, state));
+            if (next_state_index === -1) {
+                states.push(next_state);
+            }
+
+            const valid_next_state_index = next_state_index === -1 ? states.length - 1 : next_state_index;
+            edges.push({
+                from_state: current_state_index,
+                to_state: valid_next_state_index,
+                label: label
+            });
+        }
+    }
+
+    for (let state_index = 0; state_index < states.length; ++state_index) {
+        console.log(`State ${state_index}`);
+        for (const item of states[state_index]) {
+            console.log(lr1_item_to_string(production_rules, item));
+        }
+        console.log("");
+    }
+
+    for (let edge_index = 0; edge_index < edges.length; ++edge_index) {
+        const edge = edges[edge_index];
+        console.log(`Edge ${edge_index}: ${edge.from_state} -> ${edge.to_state} (${edge.label})`);
+    }
+
+    return {
+        states: states,
+        edges: edges
+    };
+}
+
 export enum Action_type {
     Accept,
     Go_to,
@@ -501,7 +576,6 @@ export interface Go_to_column {
 export interface Reduce_action {
     lhs: string;
     rhs_count: number;
-    rhs_non_terminal_count: number;
 }
 
 export interface Shift_action {
@@ -521,6 +595,94 @@ export interface Action_column {
 export interface Node {
     value: string;
     children: Node[]
+}
+
+export function create_parsing_tables(production_rules: Production_rule[], terminals: string[], states: LR1_item[][], edges: Edge[]): { action_table: Action_column[][], go_to_table: Go_to_column[][] } {
+
+    const action_table: Action_column[][] = [];
+    const go_to_table: Go_to_column[][] = [];
+
+    for (const _ of states) {
+        action_table.push([]);
+        go_to_table.push([]);
+    }
+
+    for (let state_index = 0; state_index < states.length; ++state_index) {
+        const state = states[state_index];
+
+        const items_to_reduce = state.filter(item => {
+            const production_rule = production_rules[item.production_rule_index];
+            return production_rule.rhs.length === item.label_index;
+        });
+
+        const action_row = action_table[state_index];
+        for (const item of items_to_reduce) {
+
+            if (item.production_rule_index > 0) {
+                const production_rule = production_rules[item.production_rule_index];
+                action_row.push({
+                    label: item.follow_terminal,
+                    action: {
+                        type: Action_type.Reduce,
+                        value: {
+                            lhs: production_rule.lhs,
+                            rhs_count: production_rule.rhs.length
+                        }
+                    }
+                });
+            }
+            else {
+                action_row.push({
+                    label: item.follow_terminal,
+                    action: {
+                        type: Action_type.Accept,
+                        value: undefined
+                    }
+                });
+            }
+        }
+    }
+
+    for (const edge of edges) {
+        if (is_terminal(edge.label, terminals)) {
+            const action_row = action_table[edge.from_state];
+            action_row.push({
+                label: edge.label,
+                action: {
+                    type: Action_type.Shift,
+                    value: {
+                        next_state: edge.to_state
+                    }
+                }
+            });
+        }
+        else {
+            const go_to_row = go_to_table[edge.from_state];
+            go_to_row.push({
+                label: edge.label,
+                next_state: edge.to_state
+            });
+        }
+    }
+
+    for (const action_row of action_table) {
+        action_row.sort((lhs: Action_column, rhs: Action_column) => {
+            if (lhs.label < rhs.label) {
+                return -1;
+            }
+            else if (lhs.label > rhs.label) {
+                return 1;
+            }
+            else {
+                return 0;
+            }
+        });
+    }
+
+    return {
+        action_table: action_table,
+        go_to_table: go_to_table
+    };
 }
 
 export function parse(input: Scanner.Scanned_word[], parsing_table: Action_column[][], go_to_table: Go_to_column[][]): Node | undefined {
