@@ -1195,21 +1195,46 @@ describe("Grammar.create_lr1_graph", () => {
         const graph = Grammar.create_lr1_graph(production_rules, rules_first_terminals, lr1_item_set_0);
         const edges = graph.edges;
 
-        assert.equal(edges.length, 13);
+        assert.equal(edges.length, 38);
 
-        assert.deepEqual(edges[0], { from_state: 0, to_state: 1, label: "A" });
-        assert.deepEqual(edges[1], { from_state: 0, to_state: 2, label: "S" });
-        assert.deepEqual(edges[2], { from_state: 0, to_state: 3, label: "a" });
-        assert.deepEqual(edges[3], { from_state: 0, to_state: 4, label: "b" });
-        assert.deepEqual(edges[4], { from_state: 1, to_state: 5, label: "A" });
-        assert.deepEqual(edges[5], { from_state: 1, to_state: 6, label: "a" });
-        assert.deepEqual(edges[6], { from_state: 1, to_state: 7, label: "b" });
-        assert.deepEqual(edges[7], { from_state: 3, to_state: 8, label: "A" });
-        assert.deepEqual(edges[8], { from_state: 3, to_state: 3, label: "a" });
-        assert.deepEqual(edges[9], { from_state: 3, to_state: 4, label: "b" });
-        assert.deepEqual(edges[10], { from_state: 6, to_state: 9, label: "A" });
-        assert.deepEqual(edges[11], { from_state: 6, to_state: 6, label: "a" });
-        assert.deepEqual(edges[12], { from_state: 6, to_state: 7, label: "b" });
+        assert.deepEqual(edges[0], { from_state: 0, to_state: 1, label: "(" });
+        assert.deepEqual(edges[1], { from_state: 0, to_state: 2, label: "Addition" });
+        assert.deepEqual(edges[2], { from_state: 0, to_state: 3, label: "Basic" });
+        assert.deepEqual(edges[3], { from_state: 0, to_state: 4, label: "Multiplication" });
+        assert.deepEqual(edges[4], { from_state: 0, to_state: 5, label: "number" });
+        assert.deepEqual(edges[5], { from_state: 1, to_state: 6, label: "(" });
+        assert.deepEqual(edges[6], { from_state: 1, to_state: 7, label: "Addition" });
+        assert.deepEqual(edges[7], { from_state: 1, to_state: 8, label: "Basic" });
+        assert.deepEqual(edges[8], { from_state: 1, to_state: 9, label: "Multiplication" });
+        assert.deepEqual(edges[9], { from_state: 1, to_state: 10, label: "number" });
+        assert.deepEqual(edges[10], { from_state: 2, to_state: 11, label: "+" });
+        assert.deepEqual(edges[11], { from_state: 4, to_state: 12, label: "*" });
+        assert.deepEqual(edges[12], { from_state: 6, to_state: 6, label: "(" });
+        assert.deepEqual(edges[13], { from_state: 6, to_state: 13, label: "Addition" });
+        assert.deepEqual(edges[14], { from_state: 6, to_state: 8, label: "Basic" });
+        assert.deepEqual(edges[15], { from_state: 6, to_state: 9, label: "Multiplication" });
+        assert.deepEqual(edges[16], { from_state: 6, to_state: 10, label: "number" });
+        assert.deepEqual(edges[17], { from_state: 7, to_state: 14, label: ")" });
+        assert.deepEqual(edges[18], { from_state: 7, to_state: 15, label: "+" });
+        assert.deepEqual(edges[19], { from_state: 9, to_state: 16, label: "*" });
+        assert.deepEqual(edges[20], { from_state: 11, to_state: 1, label: "(" });
+        assert.deepEqual(edges[21], { from_state: 11, to_state: 3, label: "Basic" });
+        assert.deepEqual(edges[22], { from_state: 11, to_state: 17, label: "Multiplication" });
+        assert.deepEqual(edges[23], { from_state: 11, to_state: 5, label: "number" });
+        assert.deepEqual(edges[24], { from_state: 12, to_state: 1, label: "(" });
+        assert.deepEqual(edges[25], { from_state: 12, to_state: 18, label: "Basic" });
+        assert.deepEqual(edges[26], { from_state: 12, to_state: 5, label: "number" });
+        assert.deepEqual(edges[27], { from_state: 13, to_state: 19, label: ")" });
+        assert.deepEqual(edges[28], { from_state: 13, to_state: 15, label: "+" });
+        assert.deepEqual(edges[29], { from_state: 15, to_state: 6, label: "(" });
+        assert.deepEqual(edges[30], { from_state: 15, to_state: 8, label: "Basic" });
+        assert.deepEqual(edges[31], { from_state: 15, to_state: 20, label: "Multiplication" });
+        assert.deepEqual(edges[32], { from_state: 15, to_state: 10, label: "number" });
+        assert.deepEqual(edges[33], { from_state: 16, to_state: 6, label: "(" });
+        assert.deepEqual(edges[34], { from_state: 16, to_state: 21, label: "Basic" });
+        assert.deepEqual(edges[35], { from_state: 16, to_state: 10, label: "number" });
+        assert.deepEqual(edges[36], { from_state: 17, to_state: 12, label: "*" });
+        assert.deepEqual(edges[37], { from_state: 20, to_state: 16, label: "*" });
     });
 });
 
@@ -1238,7 +1263,7 @@ describe("Grammar.create_parsing_tables", () => {
                 { label: "number", action: { type: Grammar.Action_type.Shift, value: { next_state: 10 } } },
             ],
             [ // 2
-                { label: "$", action: { type: Grammar.Action_type.Accept, value: undefined } },
+                { label: "$", action: { type: Grammar.Action_type.Accept, value: { lhs: "Start" } } },
                 { label: "+", action: { type: Grammar.Action_type.Shift, value: { next_state: 11 } } },
             ],
             [ // 3
@@ -1457,7 +1482,7 @@ describe("Grammar.parse", () => {
             [ // 3
                 { label: "*", action: { type: Grammar.Action_type.Shift, value: { next_state: 5 } } },
                 { label: "+", action: { type: Grammar.Action_type.Shift, value: { next_state: 6 } } },
-                { label: "$", action: { type: Grammar.Action_type.Accept, value: undefined } },
+                { label: "$", action: { type: Grammar.Action_type.Accept, value: { lhs: "S" } } },
             ],
             [ // 4
                 { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 1 } } },
@@ -1518,49 +1543,170 @@ describe("Grammar.parse", () => {
         const input = "1 + 1";
         const scanned_words = Scanner.scan(input, 0, input.length);
 
-        const output_node = Grammar.parse(scanned_words, action_table, go_to_table);
+        const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
+            return word.value;
+        };
+
+        const output_node = Grammar.parse(scanned_words, action_table, go_to_table, map_word_to_terminal);
 
         assert.notEqual(output_node, undefined);
 
         if (output_node !== undefined) {
 
-            assert.equal(output_node.value, "E");
+            assert.equal(output_node.value, "S");
+            assert.equal(output_node.children.length, 1);
 
-            assert.equal(output_node.children.length, 3);
+            const node_0 = output_node.children[0];
+            assert.equal(node_0.value, "E");
+            assert.equal(node_0.children.length, 3);
 
             {
-                const node_0 = output_node.children[0];
-                assert.equal(node_0.value, "E");
-                assert.equal(node_0.children.length, 1);
+                const node_1 = node_0.children[0];
+                assert.equal(node_1.value, "E");
+                assert.equal(node_1.children.length, 1);
 
                 {
-                    const node_1 = node_0.children[0];
-                    assert.equal(node_1.value, "B");
-                    assert.equal(node_1.children.length, 1);
+                    const node_2 = node_1.children[0];
+                    assert.equal(node_2.value, "B");
+                    assert.equal(node_2.children.length, 1);
 
                     {
-                        const node_2 = node_1.children[0];
-                        assert.equal(node_2.value, "1");
-                        assert.equal(node_2.children.length, 0);
+                        const node_3 = node_2.children[0];
+                        assert.equal(node_3.value, "1");
+                        assert.equal(node_3.children.length, 0);
                     }
                 }
             }
 
             {
-                const node_0 = output_node.children[1];
-                assert.equal(node_0.value, "+");
-                assert.equal(node_0.children.length, 0);
+                const node_1 = node_0.children[1];
+                assert.equal(node_1.value, "+");
+                assert.equal(node_1.children.length, 0);
             }
 
             {
-                const node_0 = output_node.children[2];
-                assert.equal(node_0.value, "B");
-                assert.equal(node_0.children.length, 1);
+                const node_1 = node_0.children[2];
+                assert.equal(node_1.value, "B");
+                assert.equal(node_1.children.length, 1);
+
+                {
+                    const node_2 = node_1.children[0];
+                    assert.equal(node_2.value, "1");
+                    assert.equal(node_2.children.length, 0);
+                }
+            }
+        }
+
+    });
+
+    it("Parses '1 + 2 * 3'", () => {
+
+        const grammar_description = create_test_grammar_3_description();
+        const production_rules = Grammar.create_production_rules(grammar_description);
+        const non_terminals = Grammar.get_non_terminals(production_rules);
+        const terminals = Grammar.get_terminals(production_rules, non_terminals);
+        const rules_first_terminals = Grammar.first(production_rules, non_terminals, terminals);
+        const lr1_item_set_0 = Grammar.create_start_lr1_item_set(production_rules, rules_first_terminals);
+        const graph = Grammar.create_lr1_graph(production_rules, rules_first_terminals, lr1_item_set_0);
+        const parsing_tables = Grammar.create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
+
+        const input = "1 + 2 * 3";
+        const scanned_words = Scanner.scan(input, 0, input.length);
+
+        const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
+
+            if (word.type === Grammar.Word_type.Number) {
+                return "number";
+            }
+
+            return word.value;
+        };
+
+        const output_node = Grammar.parse(scanned_words, parsing_tables.action_table, parsing_tables.go_to_table, map_word_to_terminal);
+
+        assert.notEqual(output_node, undefined);
+
+        if (output_node !== undefined) {
+
+            assert.equal(output_node.value, "Start");
+
+            assert.equal(output_node.children.length, 1);
+
+            {
+                const node_0 = output_node.children[0];
+                assert.equal(node_0.value, "Addition");
+                assert.equal(node_0.children.length, 3);
 
                 {
                     const node_1 = node_0.children[0];
-                    assert.equal(node_1.value, "1");
-                    assert.equal(node_1.children.length, 0);
+                    assert.equal(node_1.value, "Addition");
+                    assert.equal(node_1.children.length, 1);
+
+                    {
+                        const node_2 = node_1.children[0];
+                        assert.equal(node_2.value, "Multiplication");
+                        assert.equal(node_2.children.length, 1);
+
+                        {
+                            const node_3 = node_2.children[0];
+                            assert.equal(node_3.value, "Basic");
+                            assert.equal(node_3.children.length, 1);
+
+                            {
+                                const node_4 = node_3.children[0];
+                                assert.equal(node_4.value, "1");
+                                assert.equal(node_4.children.length, 0);
+                            }
+                        }
+                    }
+                }
+
+                {
+                    const node_5 = node_0.children[1];
+                    assert.equal(node_5.value, "+");
+                    assert.equal(node_5.children.length, 0);
+                }
+
+                {
+                    const node_6 = node_0.children[2];
+                    assert.equal(node_6.value, "Multiplication");
+                    assert.equal(node_6.children.length, 3);
+
+                    {
+                        const node_7 = node_6.children[0];
+                        assert.equal(node_7.value, "Multiplication");
+                        assert.equal(node_7.children.length, 1);
+
+                        {
+                            const node_8 = node_7.children[0];
+                            assert.equal(node_8.value, "Basic");
+                            assert.equal(node_8.children.length, 1);
+
+                            {
+                                const node_9 = node_8.children[0];
+                                assert.equal(node_9.value, "2");
+                                assert.equal(node_9.children.length, 0);
+                            }
+                        }
+                    }
+
+                    {
+                        const node_10 = node_6.children[1];
+                        assert.equal(node_10.value, "*");
+                        assert.equal(node_10.children.length, 0);
+                    }
+
+                    {
+                        const node_11 = node_6.children[2];
+                        assert.equal(node_11.value, "Basic");
+                        assert.equal(node_11.children.length, 1);
+
+                        {
+                            const node_12 = node_11.children[0];
+                            assert.equal(node_12.value, "3");
+                            assert.equal(node_12.children.length, 0);
+                        }
+                    }
                 }
             }
         }

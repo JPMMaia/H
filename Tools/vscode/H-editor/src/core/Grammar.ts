@@ -573,6 +573,10 @@ export interface Go_to_column {
     next_state: number;
 }
 
+export interface Accept_action {
+    lhs: string;
+}
+
 export interface Reduce_action {
     lhs: string;
     rhs_count: number;
@@ -584,7 +588,7 @@ export interface Shift_action {
 
 export interface Action {
     type: Action_type;
-    value: Reduce_action | Shift_action | undefined;
+    value: Accept_action | Reduce_action | Shift_action;
 }
 
 export interface Action_column {
@@ -618,8 +622,9 @@ export function create_parsing_tables(production_rules: Production_rule[], termi
         const action_row = action_table[state_index];
         for (const item of items_to_reduce) {
 
+            const production_rule = production_rules[item.production_rule_index];
+
             if (item.production_rule_index > 0) {
-                const production_rule = production_rules[item.production_rule_index];
                 action_row.push({
                     label: item.follow_terminal,
                     action: {
@@ -636,7 +641,9 @@ export function create_parsing_tables(production_rules: Production_rule[], termi
                     label: item.follow_terminal,
                     action: {
                         type: Action_type.Accept,
-                        value: undefined
+                        value: {
+                            lhs: production_rule.lhs
+                        }
                     }
                 });
             }
@@ -685,7 +692,7 @@ export function create_parsing_tables(production_rules: Production_rule[], termi
     };
 }
 
-export function parse(input: Scanner.Scanned_word[], parsing_table: Action_column[][], go_to_table: Go_to_column[][]): Node | undefined {
+export function parse(input: Scanner.Scanned_word[], parsing_table: Action_column[][], go_to_table: Go_to_column[][], map_word_to_terminal: (word: Scanner.Scanned_word) => string): Node | undefined {
 
     const state_stack: number[] = [];
     state_stack.push(0);
@@ -700,7 +707,7 @@ export function parse(input: Scanner.Scanned_word[], parsing_table: Action_colum
 
         const current_state = state_stack[state_stack.length - 1];
         const row = parsing_table[current_state];
-        const column = row.find(column => column.label === current_word.value);
+        const column = row.find(column => column.label === map_word_to_terminal(current_word));
 
         if (column !== undefined) {
             const action = column.action;
@@ -708,11 +715,18 @@ export function parse(input: Scanner.Scanned_word[], parsing_table: Action_colum
             switch (action.type) {
                 case Action_type.Accept:
                     {
+                        const accept_action = action.value as Accept_action;
+
                         if (g_debug) {
                             console.log(`accept`);
                         }
 
-                        return nodes_stack[0];
+                        const new_node: Node = {
+                            value: accept_action.lhs,
+                            children: [nodes_stack[0]]
+                        };
+
+                        return new_node;
                     }
                 case Action_type.Shift:
                     {
