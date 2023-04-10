@@ -1,970 +1,932 @@
-import { onThrowError } from "../utilities/errors";
-import * as Abstract_syntax_tree from "./Abstract_syntax_tree";
 import * as Grammar from "./Grammar";
 import * as Scanner from "./Scanner";
 
-export interface Parse_result {
-    node: Abstract_syntax_tree.Node;
-    processed_words: number;
+const g_debug = false;
+
+export interface Node {
+    word: Scanner.Scanned_word;
+    state: number;
+    previous_node_on_stack: Node | undefined;
+    father_node: Node | undefined;
+    index_in_father: number;
+    children: Node[];
 }
 
-function parse_variable_declaration_expression(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
+function get_node_at_position(root: Node, position: number[]): Node {
 
-    const variable_declaration_token = Abstract_syntax_tree.Token.Expression_variable_declaration;
+    let current_node = root;
 
-    const variable_keyword_word = words[start_offset];
+    for (const child_index of position) {
+        current_node = current_node.children[child_index];
+    }
 
-    if (variable_keyword_word === undefined || variable_keyword_word.value !== "var") {
+    return current_node;
+}
+
+function get_node_stack(node: Node): Node[] {
+
+    const nodes: Node[] = [];
+
+    let current_node: Node | undefined = node;
+
+    while (current_node !== undefined) {
+        nodes.push(current_node);
+        current_node = current_node.previous_node_on_stack;
+    }
+
+    return nodes.reverse();
+}
+
+function node_stack_to_string(node: Node): string {
+    const stack = get_node_stack(node);
+    const strings = stack.map(element => `[${element.state}, ${element.word.value}]`).join(",");
+    return `[${strings}]`;
+}
+
+function clone_node(node: Node): Node {
+    return {
+        word: { value: node.word.value, type: node.word.type },
+        state: node.state,
+        previous_node_on_stack: node.previous_node_on_stack,
+        father_node: node.father_node,
+        index_in_father: node.index_in_father,
+        children: node.children
+    };
+}
+
+function get_node_position(node: Node): number[] {
+
+    const position: number[] = [];
+
+    let current_node = node;
+
+    while (current_node.father_node !== undefined) {
+        position.push(current_node.index_in_father);
+        current_node = current_node.father_node;
+    }
+
+    return position.reverse();
+}
+
+function get_next_leaf_node(root: Node, current_node: Node, current_input_node_position: number[]): { node: Node, position: number[] } | undefined {
+    let result = iterate_forward(root, current_node, current_input_node_position);
+
+    while (result !== undefined) {
+        if (result.next_node.children.length === 0) {
+            return {
+                node: result.next_node,
+                position: result.next_position
+            };
+        }
+
+        result = iterate_forward(root, result.next_node, result.next_position);
+    }
+
+    return undefined;
+}
+
+function get_node_from_stack(top_of_stack: Node, index: number): Node | undefined {
+    if (index === 0) {
+        return top_of_stack;
+    }
+
+    if (top_of_stack.previous_node_on_stack === undefined) {
+        return undefined;
+    }
+
+    return get_node_from_stack(top_of_stack.previous_node_on_stack, index - 1);
+}
+
+function get_top_nodes_from_stack(top_of_stack: Node, count: number): Node[] | undefined {
+
+    const nodes: Node[] = [];
+
+    let current_node = top_of_stack;
+
+    for (let index = 0; index < count; ++index) {
+        nodes.push(current_node);
+
+        if (current_node.previous_node_on_stack === undefined) {
+            return undefined;
+        }
+
+        current_node = current_node.previous_node_on_stack;
+    }
+
+    return nodes;
+}
+
+function get_rightmost_brother(node: Node): Node | undefined {
+
+    if (node.father_node === undefined) {
+        return undefined;
+    }
+
+    return node.father_node.children[node.father_node.children.length - 1];
+}
+
+function get_rightmost_terminal_descendant(node: Node): Scanner.Scanned_word {
+
+    if (node.children.length === 0) {
+        return node.word;
+    }
+
+    return get_rightmost_terminal_descendant(node.children[node.children.length - 1]);
+}
+
+function have_same_father(nodes: Node[]): boolean {
+
+    if (nodes.length <= 1) {
+        return true;
+    }
+
+    const father = nodes[0].father_node;
+
+    for (let index = 1; index < nodes.length; ++index) {
+        if (nodes[index].father_node !== father) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+export enum Iterate_direction {
+    Down,
+    Up
+}
+
+export function iterate_forward_with_repetition(root: Node, current_node: Node, current_position: number[], direction: Iterate_direction): { next_node: Node, next_position: number[], direction: Iterate_direction } | undefined {
+
+    if (direction === Iterate_direction.Down && current_node.children.length > 0) {
         return {
-            node: create_list_node(variable_declaration_token, []),
-            processed_words: 0
+            next_node: current_node.children[0],
+            next_position: [...current_position, 0],
+            direction: Iterate_direction.Down
         };
     }
 
-    const variable_keyword_node: Abstract_syntax_tree.Node = {
-        value: variable_keyword_word.value,
-        token: Abstract_syntax_tree.Token.Expression_variable_declaration_keyword,
-        children: [],
-        cache: {
-            relative_start: 0
-        }
-    };
+    if (current_position.length === 0) {
+        return undefined;
+    }
 
-    const name_word = words[start_offset + 1];
+    const current_node_index = current_position[current_position.length - 1];
 
-    if (name_word === undefined || name_word.type !== Grammar.Word_type.Alphanumeric) {
+    const parent_position = current_position.slice(0, current_position.length - 1);
+    const parent_node = get_node_at_position(root, parent_position);
+
+    const next_sibling_node_index = current_node_index + 1;
+    if (next_sibling_node_index < parent_node.children.length) {
         return {
-            node: create_list_node(variable_declaration_token, [variable_keyword_node]),
-            processed_words: 1
+            next_node: parent_node.children[next_sibling_node_index],
+            next_position: [...parent_position, next_sibling_node_index],
+            direction: Iterate_direction.Down
         };
     }
 
-    const name_node: Abstract_syntax_tree.Node = {
-        value: name_word.value,
-        token: Abstract_syntax_tree.Token.Expression_variable_declaration_name,
-        children: [],
-        cache: {
-            relative_start: 0
+    return {
+        next_node: parent_node,
+        next_position: parent_position,
+        direction: Iterate_direction.Up
+    };
+}
+
+export function iterate_forward(root: Node, current_node: Node, current_position: number[]): { next_node: Node, next_position: number[] } | undefined {
+
+    let result = iterate_forward_with_repetition(root, current_node, current_position, Iterate_direction.Down);
+
+    while (result !== undefined && result.direction === Iterate_direction.Up) {
+        result = iterate_forward_with_repetition(root, result.next_node, result.next_position, result.direction);
+    }
+
+    if (result === undefined) {
+        return result;
+    }
+
+    return {
+        next_node: result.next_node,
+        next_position: result.next_position
+    };
+}
+
+export function parse(input: Scanner.Scanned_word[], parsing_table: Grammar.Action_column[][], go_to_table: Grammar.Go_to_column[][], map_word_to_terminal: (word: Scanner.Scanned_word) => string): Node | undefined {
+
+    const result = parse_incrementally(
+        undefined,
+        [],
+        input,
+        [],
+        parsing_table,
+        go_to_table,
+        map_word_to_terminal
+    );
+
+    if (result.status !== Parse_status.Accept) {
+        return undefined;
+    }
+
+    const change = result.changes[0].value as Modify_change;
+    return change.new_node;
+}
+
+export enum Parse_status {
+    Accept,
+    Failed,
+    Continue
+}
+
+export enum Change_type {
+    Add,
+    Remove,
+    Modify
+}
+
+export interface Change {
+    type: Change_type,
+    value: Add_change | Remove_change
+}
+
+export interface Add_change {
+    position: number[];
+    new_node: Node;
+}
+
+function create_add_change(position: number[], new_node: Node): Change {
+    return {
+        type: Change_type.Add,
+        value: {
+            position: position,
+            new_node: new_node
         }
     };
+}
 
-    const assigment_operator_word = words[start_offset + 2];
+export interface Remove_change {
+    position: number[];
+}
 
-    if (assigment_operator_word === undefined || assigment_operator_word.value !== "=") {
+function create_remove_change(position: number[]): Change {
+    return {
+        type: Change_type.Remove,
+        value: {
+            position: position
+        }
+    };
+}
+
+export interface Modify_change {
+    position: number[];
+    new_node: Node;
+}
+
+function create_modify_change(position: number[], new_node: Node): Change {
+    return {
+        type: Change_type.Modify,
+        value: {
+            position: position,
+            new_node: new_node
+        }
+    };
+}
+
+export interface Words_change {
+    range_offset: number;
+    range_length: number;
+    new_words: Scanner.Scanned_word[];
+}
+
+function create_bottom_of_stack_node(): Node {
+    return {
+        word: { value: "$", type: Grammar.Word_type.Symbol },
+        state: 0,
+        previous_node_on_stack: undefined,
+        father_node: undefined,
+        index_in_father: -1,
+        children: []
+    };
+}
+
+function get_next_word(
+    new_words: Scanner.Scanned_word[],
+    current_word_index: number,
+    original_node_tree: Node | undefined,
+    after_change_node_position: number[]
+): Scanner.Scanned_word {
+
+    if (current_word_index < new_words.length) {
+        return new_words[current_word_index];
+    }
+
+    if (original_node_tree !== undefined) {
+        const node = get_node_at_position(original_node_tree, after_change_node_position);
+        return node.word;
+    }
+
+    return { value: "$", type: Grammar.Word_type.Symbol };
+}
+
+export function parse_incrementally(
+    original_node_tree: Node | undefined,
+    start_change_node_position: number[],
+    new_words: Scanner.Scanned_word[],
+    after_change_node_position: number[],
+    parsing_table: Grammar.Action_column[][],
+    go_to_table: Grammar.Go_to_column[][],
+    map_word_to_terminal: (word: Scanner.Scanned_word) => string
+): { status: Parse_status, processed_words: number, changes: Change[] } {
+
+    let top_of_stack: Node = original_node_tree === undefined ? create_bottom_of_stack_node() : get_node_from_stack(get_node_at_position(original_node_tree, start_change_node_position), 1) as Node;
+    let mark = top_of_stack;
+
+    let current_word_index = 0;
+
+    while (current_word_index <= new_words.length) {
+
+        const current_word = get_next_word(new_words, current_word_index, original_node_tree, after_change_node_position);
+
+        const row = parsing_table[top_of_stack.state];
+        const column = row.find(column => column.label === map_word_to_terminal(current_word));
+
+        if (column === undefined) {
+            return {
+                status: Parse_status.Failed,
+                processed_words: current_word_index,
+                changes: []
+            };
+        }
+
+        const action = column.action;
+
+        switch (action.type) {
+            case Grammar.Action_type.Accept:
+                {
+                    const accept_action = action.value as Grammar.Accept_action;
+
+                    if (g_debug) {
+                        console.log(`accept`);
+                    }
+
+                    const children = get_top_nodes_from_stack(top_of_stack, accept_action.rhs_count) as Node[];
+                    children.reverse();
+
+                    const new_node: Node = {
+                        word: { value: accept_action.lhs, type: Grammar.Word_type.Symbol },
+                        state: -1,
+                        previous_node_on_stack: top_of_stack,
+                        father_node: undefined,
+                        index_in_father: -1,
+                        children: children
+                    };
+
+                    for (let index = 0; index < children.length; ++index) {
+                        const child = children[index];
+                        child.father_node = new_node;
+                        child.index_in_father = index;
+                    }
+
+                    return {
+                        status: Parse_status.Accept,
+                        processed_words: current_word_index,
+                        changes: [
+                            create_modify_change([], new_node)
+                        ]
+                    };
+                }
+            case Grammar.Action_type.Shift:
+                {
+                    if (current_word_index === new_words.length && original_node_tree !== undefined && after_change_node_position.length > 0) {
+
+                        const result = parse_incrementally_after_change(
+                            original_node_tree,
+                            after_change_node_position,
+                            top_of_stack,
+                            mark,
+                            parsing_table,
+                            go_to_table,
+                            map_word_to_terminal
+                        );
+
+                        if (result.status === Parse_status.Accept) {
+                            return {
+                                status: Parse_status.Accept,
+                                processed_words: new_words.length + result.processed_words,
+                                changes: result.changes
+                            };
+                        }
+                        else {
+                            return {
+                                status: Parse_status.Failed,
+                                processed_words: 1,
+                                changes: []
+                            };
+                        }
+                    }
+
+                    const shift_action = action.value as Grammar.Shift_action;
+
+                    const node_to_shift = create_bottom_of_stack_node();
+                    node_to_shift.word = current_word;
+                    const result = apply_shift(node_to_shift, shift_action.next_state, top_of_stack);
+                    top_of_stack = result;
+                    current_word_index += 1;
+
+                    break;
+                }
+            case Grammar.Action_type.Reduce:
+                {
+                    const reduce_action = action.value as Grammar.Reduce_action;
+
+                    const nodes_to_reduce = get_top_nodes_from_stack(top_of_stack, reduce_action.rhs_count);
+                    if (nodes_to_reduce === undefined) {
+                        return {
+                            status: Parse_status.Failed,
+                            processed_words: 1,
+                            changes: []
+                        };
+                    }
+
+                    const found = nodes_to_reduce.find(node => node === mark);
+                    if (found !== undefined) {
+                        const new_mark = get_node_from_stack(top_of_stack, reduce_action.rhs_count);
+                        if (new_mark === undefined) {
+                            return {
+                                status: Parse_status.Failed,
+                                processed_words: 1,
+                                changes: []
+                            };
+                        }
+                        mark = new_mark;
+                    }
+
+                    const new_node = create_bottom_of_stack_node();
+
+                    const result = apply_reduction(
+                        new_node,
+                        reduce_action.lhs,
+                        reduce_action.rhs_count,
+                        top_of_stack,
+                        go_to_table,
+                        current_word
+                    );
+
+                    if (!result.success) {
+                        return {
+                            status: Parse_status.Failed,
+                            processed_words: 1,
+                            changes: []
+                        };
+                    }
+
+                    top_of_stack = result.new_top_of_stack;
+                    break;
+                }
+            default:
+                break;
+        }
+    }
+
+    return {
+        status: Parse_status.Failed,
+        processed_words: current_word_index,
+        changes: []
+    };
+}
+
+function apply_shift(
+    node_to_shift: Node,
+    state: number,
+    top_of_stack: Node
+): Node {
+    node_to_shift.previous_node_on_stack = top_of_stack;
+    node_to_shift.state = state;
+
+    if (g_debug) {
+        const node_description = node_stack_to_string(node_to_shift);
+        console.log(`shift ${node_description}`);
+    }
+
+    return node_to_shift;
+}
+
+function apply_reduction(
+    node: Node,
+    production_lhs: string,
+    production_rhs_count: number,
+    top_of_stack: Node,
+    go_to_table: Grammar.Go_to_column[][],
+    current_word: Scanner.Scanned_word
+): { success: boolean, new_top_of_stack: Node } {
+
+    const children = get_top_nodes_from_stack(top_of_stack, production_rhs_count);
+    if (children === undefined) {
         return {
-            node: create_list_node(variable_declaration_token, [variable_keyword_node, name_node]),
-            processed_words: 2
+            success: false,
+            new_top_of_stack: top_of_stack
+        };
+    }
+    children.reverse();
+
+    const previous_node_after_reduction = get_node_from_stack(top_of_stack, production_rhs_count);
+    if (previous_node_after_reduction === undefined) {
+        return {
+            success: false,
+            new_top_of_stack: top_of_stack
         };
     }
 
-    const assignment_operator_node: Abstract_syntax_tree.Node = {
-        value: assigment_operator_word.value,
-        token: Abstract_syntax_tree.Token.Expression_variable_declaration_assignment,
-        children: [],
-        cache: {
-            relative_start: 0
-        }
-    };
-
-    const expression_parse_result = parse_expression(words, start_offset + 3, words.length, grammar);
-
-    if (expression_parse_result.processed_words === 0) {
+    const go_to_row = go_to_table[previous_node_after_reduction.state];
+    const go_to_column = go_to_row.find(column => column.label === production_lhs);
+    if (go_to_column === undefined) {
         return {
-            node: create_list_node(variable_declaration_token, [variable_keyword_node, name_node, assignment_operator_node]),
-            processed_words: 3
+            success: false,
+            new_top_of_stack: top_of_stack
         };
     }
 
-    const variable_declaration_node = create_list_node(variable_declaration_token, [variable_keyword_node, name_node, assignment_operator_node, expression_parse_result.node]);
-
-    return {
-        node: variable_declaration_node,
-        processed_words: 3 + expression_parse_result.processed_words
-    };
-}
-
-function parse_return_expression(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
-
-    const return_keyword_value = words[start_offset].value;
-
-    const expression_parse_result = parse_expression(words, start_offset + 1, words.length, grammar);
-
-    const return_keyword_node: Abstract_syntax_tree.Node = {
-        value: return_keyword_value,
-        token: Abstract_syntax_tree.Token.Expression_return_keyword,
-        children: [],
-        cache: {
-            relative_start: 0
-        }
-    };
-
-    const return_expression_node: Abstract_syntax_tree.Node = {
-        value: "",
-        token: Abstract_syntax_tree.Token.Expression_return,
-        children: [
-            return_keyword_node,
-            expression_parse_result.node
-        ],
-        cache: {
-            relative_start: 0
-        }
-    };
-
-    return {
-        node: return_expression_node,
-        processed_words: 1 + expression_parse_result.processed_words
-    };
-}
-
-function parse_defer_expression(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
-
-    const defer_keyword_value = words[start_offset].value;
-
-    const expression_parse_result = parse_expression(words, start_offset + 1, words.length, grammar);
-
-    const defer_keyword_node: Abstract_syntax_tree.Node = {
-        value: defer_keyword_value,
-        token: Abstract_syntax_tree.Token.Expression_defer_keyword,
-        children: [],
-        cache: {
-            relative_start: 0
-        }
-    };
-
-    const defer_expression_node: Abstract_syntax_tree.Node = {
-        value: "",
-        token: Abstract_syntax_tree.Token.Expression_defer,
-        children: [
-            defer_keyword_node,
-            expression_parse_result.node
-        ],
-        cache: {
-            relative_start: 0
-        }
-    };
-
-    return {
-        node: defer_expression_node,
-        processed_words: 1 + expression_parse_result.processed_words
-    };
-}
-
-function is_constant_expression(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): boolean {
-    const word = words[start_offset];
-    return word !== undefined && word.type === Grammar.Word_type.Number;
-}
-
-function parse_constant_expression(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
-
-    const constant_value = words[start_offset].value;
-
-    const constant_expression_node: Abstract_syntax_tree.Node = {
-        value: constant_value,
-        token: Abstract_syntax_tree.Token.Expression_constant,
-        children: [],
-        cache: {
-            relative_start: 0
-        }
-    };
-
-    return {
-        node: constant_expression_node,
-        processed_words: 1
-    };
-}
-
-function find_operand(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): number {
-    if (is_constant_expression(words, start_offset, grammar)) {
-        return 1;
+    node.children = children;
+    for (let index = 0; index < children.length; ++index) {
+        const child = children[index];
+        child.father_node = node;
+        child.index_in_father = index;
     }
-    else if (is_variable_reference_expression(words, start_offset, grammar)) {
-        return 1;
+
+    node.previous_node_on_stack = previous_node_after_reduction;
+    node.word = { value: production_lhs, type: Grammar.Word_type.Symbol };
+    node.state = go_to_column.next_state;
+
+    if (g_debug) {
+        const node_description = node_stack_to_string(node);
+        const rhs = children.map(node => node.word.value).join(" ");
+        console.log(`reduce ${production_lhs} -> ${rhs} ${node_description} ${current_word.value}`);
     }
-    // TODO check for parenthesis or call expression
-    else {
-        return 0;
-    }
+
+    return {
+        success: true,
+        new_top_of_stack: node
+    };
 }
 
-function is_binary_operation_expression(words: Scanner.Scanned_word[], start_offset: number, end_offset: number, grammar: Grammar.Grammar): boolean {
+function matching_condition_holds(
+    top_of_stack: Node,
+    mark: Node,
+    production_lhs: string,
+    production_rhs_count: number
+): boolean {
 
-    const left_operand_processed_words = find_operand(words, start_offset, grammar);
-    if (left_operand_processed_words === 0 || (start_offset + left_operand_processed_words) >= end_offset) {
+    const nodes_to_reduce = get_top_nodes_from_stack(top_of_stack, production_rhs_count);
+    if (nodes_to_reduce === undefined) {
         return false;
     }
 
-    const operator_word = words[start_offset + left_operand_processed_words];
-    if (!grammar.is_binary_operator(operator_word.value) || (start_offset + left_operand_processed_words + 1) >= end_offset) {
+    const mark_index = nodes_to_reduce.findIndex(node => node === mark);
+    if (mark_index === -1) {
         return false;
     }
 
-    const right_operand_processed_words = find_operand(words, start_offset + left_operand_processed_words + 1, grammar);
-    if (right_operand_processed_words === 0) {
+    const nodes_to_reduce_before_mark = get_top_nodes_from_stack(mark, production_rhs_count - mark_index);
+    if (nodes_to_reduce_before_mark === undefined) {
+        return false;
+    }
+
+    for (const node of nodes_to_reduce_before_mark) {
+        if (node.father_node !== mark.father_node) {
+            return false;
+        }
+    }
+
+    // TODO check this
+    const node_before_mark = get_node_from_stack(mark, production_rhs_count - mark_index);
+    if (node_before_mark === undefined || mark.father_node === node_before_mark) {
+        return false;
+    }
+
+    if (mark.father_node === undefined || (mark.father_node.word.value !== production_lhs)) {
+        return false;
+    }
+
+    const top_rightmost_descendant = get_rightmost_terminal_descendant(top_of_stack);
+    const mark_father_rightmost_descendant = get_rightmost_terminal_descendant(mark.father_node);
+
+    if (top_rightmost_descendant.value !== mark_father_rightmost_descendant.value || top_rightmost_descendant.type !== mark_father_rightmost_descendant.type) {
         return false;
     }
 
     return true;
 }
 
-function parse_binary_expression(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
+function create_apply_matching_changes(
+    top_of_stack: Node,
+    mark: Node,
+    mark_node_position: number[],
+    production_rhs_count: number
+): Change[] {
 
-    const left_operand_start = start_offset;
-    const left_operand_processed_words = find_operand(words, left_operand_start, grammar);
-    const left_operand_expression = parse_expression(words, left_operand_start, left_operand_start + left_operand_processed_words, grammar);
+    const mark_father = mark.father_node as Node;
 
-    const operator_start = start_offset + left_operand_processed_words;
-    const operator_word = words[operator_start];
+    const top_nodes = get_top_nodes_from_stack(top_of_stack, production_rhs_count) as Node[];
+    top_nodes.reverse();
 
-    const right_operand_start = start_offset + left_operand_expression.processed_words + 1;
-    const right_operand_processed_words = find_operand(words, right_operand_start, grammar);
-    const right_operand_expression = parse_expression(words, right_operand_start, right_operand_start + right_operand_processed_words, grammar);
+    const cloned_top_nodes = top_nodes.map(node => clone_node(node));
 
-    const binary_operation_keyword_node: Abstract_syntax_tree.Node = {
-        value: operator_word.value,
-        token: Abstract_syntax_tree.Token.Expression_binary_operation_keyword,
-        children: [],
-        cache: {
-            relative_start: 0
+    const mark_father_clone: Node = {
+        word: { value: mark_father.word.value, type: mark_father.word.type },
+        state: mark_father.state,
+        previous_node_on_stack: mark_father.previous_node_on_stack,
+        father_node: mark_father.father_node,
+        index_in_father: mark_father.index_in_father,
+        children: cloned_top_nodes
+    };
+
+    for (let index = 0; index < cloned_top_nodes.length; ++index) {
+        const node = cloned_top_nodes[index];
+        node.father_node = mark_father_clone;
+        node.index_in_father = index;
+    }
+
+    const modify_change = create_modify_change(mark_node_position.slice(0, mark_node_position.length - 1), mark_father_clone);
+    return [modify_change];
+}
+
+function parse_incrementally_after_change(
+    original_node_tree: Node,
+    after_change_node_position: number[],
+    top_of_stack: Node,
+    mark: Node,
+    parsing_table: Grammar.Action_column[][],
+    go_to_table: Grammar.Go_to_column[][],
+    map_word_to_terminal: (word: Scanner.Scanned_word) => string
+): { status: Parse_status, processed_words: number, changes: Change[] } {
+
+    let next_word_node = clone_node(get_node_at_position(original_node_tree, after_change_node_position));
+    let next_word_node_position = after_change_node_position;
+    let current_word_index = 0;
+
+    let old_table = next_word_node.state;
+
+    {
+        const row = parsing_table[top_of_stack.state];
+        const column = row.find(column => column.label === map_word_to_terminal(next_word_node.word)) as Grammar.Action_column;
+        const shift_action = column.action.value as Grammar.Shift_action;
+
+        top_of_stack = apply_shift(next_word_node, shift_action.next_state, top_of_stack);
+
+        {
+            const iterate_result = get_next_leaf_node(original_node_tree, next_word_node, next_word_node_position);
+            next_word_node = iterate_result !== undefined ? clone_node(iterate_result.node) : create_bottom_of_stack_node();
+            next_word_node_position = iterate_result !== undefined ? iterate_result.position : [];
+            current_word_index += 1;
         }
-    };
-
-    const binary_operation_expression_node: Abstract_syntax_tree.Node = {
-        value: "",
-        token: Abstract_syntax_tree.Token.Expression_binary_operation,
-        children: [
-            left_operand_expression.node,
-            binary_operation_keyword_node,
-            right_operand_expression.node
-        ],
-        cache: {
-            relative_start: 0
-        }
-    };
-
-    return {
-        node: binary_operation_expression_node,
-        processed_words: left_operand_expression.processed_words + right_operand_expression.processed_words + 1
-    };
-}
-
-function is_variable_reference_expression(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): boolean {
-    const word = words[start_offset];
-    return word !== undefined && word.type === Grammar.Word_type.Alphanumeric;
-}
-
-function parse_variable_reference_expression(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
-
-    const variable_reference = words[start_offset].value;
-
-    const variable_reference_expression_node: Abstract_syntax_tree.Node = {
-        value: variable_reference,
-        token: Abstract_syntax_tree.Token.Expression_variable_reference,
-        children: [],
-        cache: {
-            relative_start: 0
-        }
-    };
-
-    return {
-        node: variable_reference_expression_node,
-        processed_words: 1
-    };
-}
-
-function parse_expression(words: Scanner.Scanned_word[], start_offset: number, end_offset: number, grammar: Grammar.Grammar): Parse_result {
-
-    if (is_binary_operation_expression(words, start_offset, end_offset, grammar)) {
-        const parse_result = parse_binary_expression(words, start_offset, grammar);
-        return {
-            node: parse_result.node,
-            processed_words: parse_result.processed_words
-        };
-    }
-    else if (is_constant_expression(words, start_offset, grammar)) {
-        const parse_result = parse_constant_expression(words, start_offset, grammar);
-        return {
-            node: parse_result.node,
-            processed_words: parse_result.processed_words
-        };
-    }
-    else if (is_variable_reference_expression(words, start_offset, grammar)) {
-        const parse_result = parse_variable_reference_expression(words, start_offset, grammar);
-        return {
-            node: parse_result.node,
-            processed_words: parse_result.processed_words
-        };
-    }
-    else if (start_offset >= words.length) {
-        return {
-            node: create_list_node(Abstract_syntax_tree.Token.Expression_empty, []),
-            processed_words: 0
-        };
-    }
-    else {
-        const message = "Not implemented!";
-        onThrowError(message);
-        throw Error(message);
-    }
-}
-
-function parse_statement_body(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
-
-    const first_word = words[start_offset];
-
-    if (first_word === undefined) {
-        return {
-            node: create_list_node(Abstract_syntax_tree.Token.Expression_empty, []),
-            processed_words: 0
-        };
     }
 
-    if (first_word.value === "var") {
-        return parse_variable_declaration_expression(words, start_offset, grammar);
-    }
-    else if (first_word.value === "return") {
-        return parse_return_expression(words, start_offset, grammar);
-    }
-    else if (first_word.value === "defer") {
-        return parse_defer_expression(words, start_offset, grammar);
-    }
-    else {
-        return parse_expression(words, start_offset, words.length, grammar);
-    }
-}
+    while (true) {
 
-export function parse_statement(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
+        if (old_table === top_of_stack.state) {
 
-    const statement_token = Abstract_syntax_tree.Token.Statement;
-
-    const first_word = words[start_offset];
-
-    if (first_word !== undefined && first_word.value === ";") {
-        const semicolon = {
-            value: ";",
-            token: Abstract_syntax_tree.Token.Statement_end,
-            children: [],
-            cache: {
-                relative_start: 0
+            const rightmost_brother = get_rightmost_brother(top_of_stack);
+            if (rightmost_brother === undefined) {
+                return {
+                    status: Parse_status.Failed,
+                    processed_words: 1,
+                    changes: []
+                };
             }
-        };
+            top_of_stack = rightmost_brother;
 
-        const statement_node: Abstract_syntax_tree.Node = {
-            value: "",
-            token: Abstract_syntax_tree.Token.Statement,
-            children: [
-                semicolon
-            ],
-            cache: {
-                relative_start: 0
+            const next_word = next_word_node.word;
+            const row = parsing_table[top_of_stack.state];
+            const column = row.find(column => column.label === map_word_to_terminal(next_word));
+
+            if (column === undefined || column.action.type !== Grammar.Action_type.Reduce) {
+                return {
+                    status: Parse_status.Failed,
+                    processed_words: 1,
+                    changes: []
+                };
             }
-        };
 
-        return {
-            node: statement_node,
-            processed_words: 1
-        };
-    }
+            const reduce_action = column.action.value as Grammar.Reduce_action;
 
-    const statement_body_parse_result = parse_statement_body(words, start_offset, grammar);
+            const matching_condition = matching_condition_holds(top_of_stack, mark, reduce_action.lhs, reduce_action.rhs_count);
 
-    if (statement_body_parse_result.processed_words === 0) {
-        return {
-            node: create_list_node(statement_token, []),
-            processed_words: 0
-        };
-    }
+            if (matching_condition) {
+                const mark_node_position = get_node_position(mark);
+                const changes = create_apply_matching_changes(top_of_stack, mark, mark_node_position, reduce_action.rhs_count);
 
-    const semicolon_offset = start_offset + statement_body_parse_result.processed_words;
-    const semicolon_word = words[semicolon_offset];
-
-    if (semicolon_word === undefined || semicolon_word.value !== ";") {
-        return {
-            node: create_list_node(statement_token, [statement_body_parse_result.node]),
-            processed_words: statement_body_parse_result.processed_words
-        };
-    }
-
-    const semicolon_node: Abstract_syntax_tree.Node = {
-        value: semicolon_word.value,
-        token: Abstract_syntax_tree.Token.Statement_end,
-        children: [],
-        cache: {
-            relative_start: 0
-        }
-    };
-
-    const statement_node = create_list_node(statement_token, [statement_body_parse_result.node, semicolon_node]);
-
-    return {
-        node: statement_node,
-        processed_words: statement_body_parse_result.processed_words + 1
-    };
-}
-
-export function parse_code_block(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
-
-    const code_block_token = Abstract_syntax_tree.Token.Code_block;
-    const open_code_block_keyword = "{";
-    const close_code_block_keyword = "}";
-
-    const first_word = words[start_offset];
-
-    if (first_word === undefined || first_word.value !== open_code_block_keyword) {
-        return {
-            node: create_list_node(code_block_token, []),
-            processed_words: 0
-        };
-    }
-
-    const open_block_node: Abstract_syntax_tree.Node = {
-        value: open_code_block_keyword,
-        token: Abstract_syntax_tree.Token.Code_block_open_keyword,
-        children: [],
-        cache: {
-            relative_start: 0
-        }
-    };
-
-    const statement_nodes: Abstract_syntax_tree.Node[] = [];
-
-    let current_offset = start_offset + 1;
-
-    while (current_offset < words.length && words[current_offset].value !== close_code_block_keyword) {
-        const result = parse_statement(words, current_offset, grammar);
-        statement_nodes.push(result.node);
-
-        current_offset += result.processed_words;
-    }
-
-    const close_word = words[current_offset];
-
-    if (close_word === undefined || close_word.value !== close_code_block_keyword) {
-        return {
-            node: create_list_node(code_block_token, [open_block_node, ...statement_nodes]),
-            processed_words: (current_offset - start_offset)
-        };
-    }
-
-    const close_block_node: Abstract_syntax_tree.Node = {
-        value: close_code_block_keyword,
-        token: Abstract_syntax_tree.Token.Code_block_close_keyword,
-        children: [],
-        cache: {
-            relative_start: 0
-        }
-    };
-
-    const code_block_node = create_list_node(code_block_token, [open_block_node, ...statement_nodes, close_block_node]);
-
-    return {
-        node: code_block_node,
-        processed_words: (current_offset - start_offset) + 1
-    };
-}
-
-export function parse_function_parameter(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
-
-    const function_parameter_token = Abstract_syntax_tree.Token.Function_parameter;
-
-    const name_word = words[start_offset];
-
-    if (name_word === undefined) {
-        return {
-            node: create_list_node(Abstract_syntax_tree.Token.Function_parameter, []),
-            processed_words: 0
-        };
-    }
-
-    const name_node: Abstract_syntax_tree.Node = {
-        value: name_word.value,
-        token: Abstract_syntax_tree.Token.Function_parameter_name,
-        children: [],
-        cache: {
-            relative_start: 0
-        }
-    };
-
-    const separator_word = words[start_offset + 1];
-
-    if (separator_word === undefined) {
-        return {
-            node: create_list_node(function_parameter_token, [name_node]),
-            processed_words: 1
-        };
-    }
-
-    const separator_node: Abstract_syntax_tree.Node = {
-        value: separator_word.value,
-        token: Abstract_syntax_tree.Token.Function_parameter_separator,
-        children: [],
-        cache: {
-            relative_start: 0
-        }
-    };
-
-    const type_word = words[start_offset + 2];
-
-    if (type_word === undefined) {
-        return {
-            node: create_list_node(function_parameter_token, [name_node, separator_node]),
-            processed_words: 2
-        };
-    }
-
-    const type_node: Abstract_syntax_tree.Node = {
-        value: type_word.value,
-        token: Abstract_syntax_tree.Token.Function_parameter_type,
-        children: [],
-        cache: {
-            relative_start: 0
-        }
-    };
-
-    return {
-        node: create_list_node(function_parameter_token, [name_node, separator_node, type_node]),
-        processed_words: 3
-    };
-}
-
-export function parse_function_declaration_parameters(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar, is_input_parameters: boolean): Parse_result {
-
-    const function_parameter_token = is_input_parameters ? Abstract_syntax_tree.Token.Function_declaration_input_parameters : Abstract_syntax_tree.Token.Function_declaration_output_parameters;
-
-    const open_keyword = "(";
-    const close_keyword = ")";
-    const separator_keyword = ",";
-
-    const open_parameter_word = words[start_offset];
-
-    if (open_parameter_word === undefined || open_parameter_word.value !== open_keyword) {
-        return {
-            node: create_list_node(function_parameter_token, []),
-            processed_words: 0
-        };
-    }
-
-    const open_parameters_node: Abstract_syntax_tree.Node = {
-        value: open_parameter_word.value,
-        token: Abstract_syntax_tree.Token.Function_parameters_open_keyword,
-        children: [],
-        cache: {
-            relative_start: 0
-        }
-    };
-
-    const parameter_nodes: Abstract_syntax_tree.Node[] = [];
-
-    let current_offset = start_offset + 1;
-
-    while (current_offset < words.length && words[current_offset].value !== close_keyword) {
-        const result = parse_function_parameter(words, current_offset, grammar);
-        parameter_nodes.push(result.node);
-
-        current_offset += result.processed_words;
-
-        if (current_offset < words.length && words[current_offset].value === separator_keyword) {
-            const separator_node: Abstract_syntax_tree.Node = {
-                value: words[current_offset].value,
-                token: Abstract_syntax_tree.Token.Function_parameters_separator,
-                children: [],
-                cache: {
-                    relative_start: 0
+                return {
+                    status: Parse_status.Accept,
+                    processed_words: current_word_index,
+                    changes: changes
+                };
+            }
+            else {
+                const nodes_to_reduce = get_top_nodes_from_stack(top_of_stack, reduce_action.rhs_count);
+                if (nodes_to_reduce === undefined) {
+                    return {
+                        status: Parse_status.Failed,
+                        processed_words: 1,
+                        changes: []
+                    };
                 }
-            };
 
-            parameter_nodes.push(separator_node);
+                const mark_index = nodes_to_reduce.findIndex(node => node === mark);
+                if (mark_index !== -1) {
+                    const next_mark = get_node_from_stack(top_of_stack, reduce_action.rhs_count);
+                    if (next_mark === undefined) {
+                        return {
+                            status: Parse_status.Failed,
+                            processed_words: 1,
+                            changes: []
+                        };
+                    }
 
-            current_offset += 1;
-        }
-    }
+                    mark = next_mark;
+                }
 
-    const close_parameter_word = words[current_offset];
+                const father_node = top_of_stack.father_node as Node;
+                old_table = father_node.state;
 
-    if (close_parameter_word === undefined || close_parameter_word.value !== close_keyword) {
-        return {
-            node: create_list_node(function_parameter_token, [open_parameters_node, ...parameter_nodes]),
-            processed_words: (current_offset - start_offset)
-        };
-    }
+                if (have_same_father(nodes_to_reduce)) {
+                    next_word_node = clone_node(top_of_stack.father_node as Node);
+                    next_word_node_position = get_node_position(next_word_node);
 
-    const close_parameters_node: Abstract_syntax_tree.Node = {
-        value: words[current_offset].value,
-        token: Abstract_syntax_tree.Token.Function_parameters_close_keyword,
-        children: [],
-        cache: {
-            relative_start: 0
-        }
-    };
+                    const previous_node_on_stack = get_node_from_stack(top_of_stack, reduce_action.rhs_count) as Node;
+                    next_word_node.previous_node_on_stack = previous_node_on_stack;
 
-    const function_parameters_node: Abstract_syntax_tree.Node = {
-        value: "",
-        token: is_input_parameters ? Abstract_syntax_tree.Token.Function_declaration_input_parameters : Abstract_syntax_tree.Token.Function_declaration_output_parameters,
-        children: [
-            open_parameters_node,
-            ...parameter_nodes,
-            close_parameters_node
-        ],
-        cache: {
-            relative_start: 0
-        }
-    };
+                    const go_to_row = go_to_table[previous_node_on_stack.state];
+                    const go_to_column = go_to_row.find(column => column.label === reduce_action.lhs);
+                    if (go_to_column === undefined) {
+                        return {
+                            status: Parse_status.Failed,
+                            processed_words: 1,
+                            changes: []
+                        };
+                    }
 
-    return {
-        node: function_parameters_node,
-        processed_words: (current_offset - start_offset) + 1
-    };
-}
+                    next_word_node.state = go_to_column.next_state;
+                }
+                else {
+                    const new_node = create_bottom_of_stack_node();
+                    const result = apply_reduction(new_node, reduce_action.lhs, reduce_action.rhs_count, top_of_stack, go_to_table, next_word);
 
-function create_list_node(token: Abstract_syntax_tree.Token, children: Abstract_syntax_tree.Node[]): Abstract_syntax_tree.Node {
-    const node: Abstract_syntax_tree.Node = {
-        value: "",
-        token: token,
-        children: children,
-        cache: {
-            relative_start: 0
-        }
-    };
+                    if (!result.success) {
+                        return {
+                            status: Parse_status.Failed,
+                            processed_words: 1,
+                            changes: []
+                        };
+                    }
 
-    return node;
-}
-
-export function parse_function_declaration(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
-
-    const function_declaration_token = Abstract_syntax_tree.Token.Function_declaration;
-
-    const function_declaration_keyword = "function";
-    const separator_keyword = "->";
-
-    const first_word = words[start_offset].value;
-
-    if (first_word !== function_declaration_keyword) {
-        const message = "parse_function_declaration expects 'function' as first word!";
-        onThrowError(message);
-        throw Error(message);
-    }
-
-    const function_keyword_node: Abstract_syntax_tree.Node = {
-        value: first_word,
-        token: Abstract_syntax_tree.Token.Function_declaration_keyword,
-        children: [],
-        cache: {
-            relative_start: 0
-        }
-    };
-
-    const function_name_word = words[start_offset + 1];
-    if (function_name_word === undefined) {
-        return {
-            node: create_list_node(function_declaration_token, [function_keyword_node]),
-            processed_words: 1
-        };
-    }
-
-    const function_name_node: Abstract_syntax_tree.Node = {
-        value: function_name_word.value,
-        token: Abstract_syntax_tree.Token.Function_declaration_name,
-        children: [],
-        cache: {
-            relative_start: 0
-        }
-    };
-
-    const input_parameters_start_offset = start_offset + 2;
-    const input_parameters_parse_result = parse_function_declaration_parameters(words, input_parameters_start_offset, grammar, true);
-
-    if (input_parameters_parse_result.processed_words === 0) {
-        return {
-            node: create_list_node(function_declaration_token, [function_keyword_node, function_name_node]),
-            processed_words: 2
-        };
-    }
-
-    const parameters_separator_offset = input_parameters_start_offset + input_parameters_parse_result.processed_words;
-    const parameters_separator_word = words[parameters_separator_offset];
-
-    if (parameters_separator_word === undefined || parameters_separator_word.value !== separator_keyword) {
-        return {
-            node: create_list_node(function_declaration_token, [function_keyword_node, function_name_node, input_parameters_parse_result.node]),
-            processed_words: 2 + input_parameters_parse_result.processed_words
-        };
-    }
-
-    const parameters_separator_node: Abstract_syntax_tree.Node = {
-        value: parameters_separator_word.value,
-        token: Abstract_syntax_tree.Token.Function_declaration_parameters_separator,
-        children: [],
-        cache: {
-            relative_start: 0
-        }
-    };
-
-    const output_parameters_start_offset = parameters_separator_offset + 1;
-    const output_parameters_parse_result = parse_function_declaration_parameters(words, output_parameters_start_offset, grammar, false);
-
-    if (output_parameters_parse_result.processed_words === 0) {
-        return {
-            node: create_list_node(function_declaration_token, [function_keyword_node, function_name_node, input_parameters_parse_result.node, parameters_separator_node]),
-            processed_words: 2 + input_parameters_parse_result.processed_words + 1
-        };
-    }
-
-    const function_declaration_node: Abstract_syntax_tree.Node = {
-        value: "",
-        token: Abstract_syntax_tree.Token.Function_declaration,
-        children: [
-            function_keyword_node,
-            function_name_node,
-            input_parameters_parse_result.node,
-            parameters_separator_node,
-            output_parameters_parse_result.node
-        ],
-        cache: {
-            relative_start: 0
-        }
-    };
-
-    const current_offset = output_parameters_start_offset + output_parameters_parse_result.processed_words;
-
-    return {
-        node: function_declaration_node,
-        processed_words: (current_offset - start_offset)
-    };
-}
-
-function count_next_function_words(words: Scanner.Scanned_word[]): number {
-
-    const total_words = 9;
-
-    for (let index = 1; index < total_words; ++index) {
-
-        if (index >= words.length) {
-            return index;
-        }
-
-        const word = words[index];
-        if (word.value === "enum" || word.value === "function" || word.value === "struct" || word.value === "using") {
-            return index;
-        }
-    }
-
-    return total_words;
-}
-
-export function parse_function(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
-
-    const function_token = Abstract_syntax_tree.Token.Function;
-
-    const function_declaration_keyword = "function";
-
-    const first_word = words[start_offset];
-
-    if (first_word === undefined || first_word.value !== function_declaration_keyword) {
-        const message = "parse_function_declaration expects 'function' as first word!";
-        onThrowError(message);
-        throw Error(message);
-    }
-
-    let current_offset = start_offset;
-
-    const declaration_parse_result = parse_function_declaration(words, current_offset, grammar);
-    current_offset += declaration_parse_result.processed_words;
-
-    const definition_parse_result = parse_code_block(words, current_offset, grammar);
-    current_offset += definition_parse_result.processed_words;
-
-    if (definition_parse_result.processed_words === 0) {
-        return {
-            node: create_list_node(function_token, [declaration_parse_result.node]),
-            processed_words: declaration_parse_result.processed_words
-        };
-    }
-
-    const function_node = create_list_node(function_token, [declaration_parse_result.node, definition_parse_result.node]);
-
-    return {
-        node: function_node,
-        processed_words: (current_offset - start_offset)
-    };
-}
-
-export function parse_invalid(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
-
-    const invalid_node: Abstract_syntax_tree.Node = {
-        value: words[start_offset].value,
-        token: Abstract_syntax_tree.Token.Invalid,
-        children: [],
-        cache: {
-            relative_start: 0
-        }
-    };
-
-    return {
-        node: invalid_node,
-        processed_words: 1
-    };
-}
-
-export function parse_n_invalid(words: Scanner.Scanned_word[], start_offset: number, count: number, grammar: Grammar.Grammar): Abstract_syntax_tree.Node[] {
-
-    const nodes: Abstract_syntax_tree.Node[] = [];
-
-    for (let index = 0; index < count; ++index) {
-        const offset = start_offset + index;
-
-        const invalid_node: Abstract_syntax_tree.Node = {
-            value: words[offset].value,
-            token: Abstract_syntax_tree.Token.Invalid,
-            children: [],
-            cache: {
-                relative_start: 0
+                    top_of_stack = result.new_top_of_stack;
+                }
             }
-        };
-
-        nodes.push(invalid_node);
-    }
-
-    return nodes;
-}
-
-export function parse_module_body(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
-
-    const content_nodes: Abstract_syntax_tree.Node[] = [];
-
-    let current_offset = start_offset;
-
-    while (current_offset < words.length) {
-
-        const word = words[current_offset];
-
-        if (word.value === "function") {
-            const result = parse_function(words, current_offset, grammar);
-            content_nodes.push(result.node);
-
-            current_offset += result.processed_words;
-        }
-        // TODO
-        else {
-            const result = parse_invalid(words, current_offset, grammar);
-            content_nodes.push(result.node);
-
-            current_offset += result.processed_words;
-        }
-    }
-
-    const body_node: Abstract_syntax_tree.Node = {
-        value: "",
-        token: Abstract_syntax_tree.Token.Module_body,
-        children: [
-            ...content_nodes
-        ],
-        cache: {
-            relative_start: 0
-        }
-    };
-
-    return {
-        node: body_node,
-        processed_words: (current_offset - start_offset)
-    };
-}
-
-export function parse_module_head(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
-
-    const head_nodes: Abstract_syntax_tree.Node[] = [];
-
-    let current_offset = start_offset;
-
-    while (current_offset < words.length) {
-
-        const word = words[current_offset];
-
-        if (word.value === "module") {
-            // TODO
-            current_offset += 1;
-        }
-        else if (word.value === "import") {
-            // TODO
-            current_offset += 1;
-        }
-        else if (word.value === "enum" || word.value === "function" || word.value === "struct" || word.value === "using") {
-            break;
         }
         else {
-            const result = parse_invalid(words, current_offset, grammar);
-            head_nodes.push(result.node);
+            const result = perform_actions(
+                next_word_node,
+                top_of_stack,
+                mark,
+                old_table,
+                parsing_table,
+                go_to_table,
+                map_word_to_terminal
+            );
 
-            current_offset += result.processed_words;
+            if (result.status === Parse_status.Continue) {
+
+                const iterate_result = get_next_leaf_node(original_node_tree, next_word_node, next_word_node_position);
+                next_word_node = iterate_result !== undefined ? clone_node(iterate_result.node) : create_bottom_of_stack_node();
+                next_word_node_position = iterate_result !== undefined ? iterate_result.position : [];
+                current_word_index += 1;
+
+                top_of_stack = result.top_of_stack;
+                mark = result.mark;
+                old_table = result.old_table;
+            }
+            else if (result.status === Parse_status.Accept) {
+                return {
+                    status: Parse_status.Accept,
+                    processed_words: current_word_index,
+                    changes: result.changes
+                };
+            }
+            else {
+                return {
+                    status: Parse_status.Failed,
+                    processed_words: 1,
+                    changes: []
+                };
+            }
         }
     }
-
-    const module_head: Abstract_syntax_tree.Node = {
-        value: "",
-        token: Abstract_syntax_tree.Token.Module_head,
-        children: [
-            ...head_nodes
-        ],
-        cache: {
-            relative_start: 0
-        }
-    };
-
-    return {
-        node: module_head,
-        processed_words: (current_offset - start_offset)
-    };
 }
 
-export function parse_module(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar): Parse_result {
+function perform_actions(
+    next_word_node: Node,
+    top_of_stack: Node,
+    mark: Node,
+    old_table: number,
+    parsing_table: Grammar.Action_column[][],
+    go_to_table: Grammar.Go_to_column[][],
+    map_word_to_terminal: (word: Scanner.Scanned_word) => string
+): { status: Parse_status, top_of_stack: Node, mark: Node, old_table: number, changes: Change[] } {
 
-    let current_offset = start_offset;
+    while (true) {
 
-    const head_result = parse_module_head(words, start_offset, grammar);
-    current_offset += head_result.processed_words;
+        const row = parsing_table[top_of_stack.state];
+        const column = row.find(column => column.label === map_word_to_terminal(next_word_node.word));
 
-    const body_result = parse_module_body(words, current_offset, grammar);
-    current_offset += body_result.processed_words;
-
-    const module_head = head_result.node;
-    const module_body = body_result.node;
-
-    const module_node: Abstract_syntax_tree.Node = {
-        value: "",
-        token: Abstract_syntax_tree.Token.Module,
-        children: [
-            module_head,
-            module_body
-        ],
-        cache: {
-            relative_start: 0
+        if (column === undefined) {
+            return {
+                status: Parse_status.Failed,
+                top_of_stack: top_of_stack,
+                mark: mark,
+                old_table: old_table,
+                changes: []
+            };
         }
-    };
 
-    return {
-        node: module_node,
-        processed_words: (current_offset - start_offset)
-    };
-}
+        const action = column.action;
 
-export function parse(words: Scanner.Scanned_word[], start_offset: number, grammar: Grammar.Grammar, token: Abstract_syntax_tree.Token): Parse_result {
+        switch (action.type) {
+            case Grammar.Action_type.Accept:
+                {
+                    return {
+                        status: Parse_status.Accept,
+                        top_of_stack: top_of_stack,
+                        mark: mark,
+                        old_table: old_table,
+                        changes: []
+                    };
+                }
+            case Grammar.Action_type.Shift:
+                {
+                    old_table = next_word_node.state;
 
-    if (token === Abstract_syntax_tree.Token.Module) {
-        return parse_module(words, start_offset, grammar);
-    }
-    else if (token === Abstract_syntax_tree.Token.Module_head) {
-        return parse_module_head(words, start_offset, grammar);
-    }
-    else if (token === Abstract_syntax_tree.Token.Module_body) {
-        return parse_module_body(words, start_offset, grammar);
-    }
-    else if (token === Abstract_syntax_tree.Token.Function) {
-        return parse_function(words, start_offset, grammar);
-    }
-    else if (token === Abstract_syntax_tree.Token.Statement) {
-        return parse_statement(words, start_offset, grammar);
-    }
-    else {
-        const message = "Not implemented!";
-        onThrowError(message);
-        throw Error(message);
+                    const shift_action = action.value as Grammar.Shift_action;
+                    top_of_stack = apply_shift(next_word_node, shift_action.next_state, top_of_stack);
+
+                    return {
+                        status: Parse_status.Continue,
+                        top_of_stack: top_of_stack,
+                        mark: mark,
+                        old_table: old_table,
+                        changes: []
+                    };
+                }
+            case Grammar.Action_type.Reduce:
+                {
+                    const reduce_action = action.value as Grammar.Reduce_action;
+
+                    const matching_condition = matching_condition_holds(top_of_stack, mark, reduce_action.lhs, reduce_action.rhs_count);
+
+                    if (matching_condition) {
+                        const mark_node_position = get_node_position(mark);
+                        const changes = create_apply_matching_changes(top_of_stack, mark, mark_node_position, reduce_action.rhs_count);
+
+                        return {
+                            status: Parse_status.Accept,
+                            top_of_stack: top_of_stack,
+                            mark: mark,
+                            old_table: old_table,
+                            changes: changes
+                        };
+                    }
+                    else {
+
+                        const nodes_to_reduce = get_top_nodes_from_stack(top_of_stack, reduce_action.rhs_count);
+
+                        if (nodes_to_reduce === undefined) {
+                            return {
+                                status: Parse_status.Failed,
+                                top_of_stack: top_of_stack,
+                                mark: mark,
+                                old_table: old_table,
+                                changes: []
+                            };
+                        }
+
+                        const mark_index = nodes_to_reduce.findIndex(node => node === mark);
+                        if (mark_index !== -1) {
+                            mark = get_node_from_stack(top_of_stack, reduce_action.rhs_count) as Node;
+                        }
+
+                        const new_node = create_bottom_of_stack_node();
+                        const result = apply_reduction(new_node, reduce_action.lhs, reduce_action.rhs_count, top_of_stack, go_to_table, next_word_node.word);
+
+                        if (!result.success) {
+                            return {
+                                status: Parse_status.Failed,
+                                top_of_stack: top_of_stack,
+                                mark: mark,
+                                old_table: old_table,
+                                changes: []
+                            };
+                        }
+
+                        top_of_stack = result.new_top_of_stack;
+                    }
+                    break;
+                }
+        }
     }
 }
