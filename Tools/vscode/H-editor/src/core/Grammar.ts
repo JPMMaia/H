@@ -69,7 +69,7 @@ export function create_production_rules(grammar_description: string[]): Producti
                 });
                 rhs.splice(0, rhs.length);
             }
-            else {
+            else if (word !== "") {
                 rhs.push(word);
             }
 
@@ -126,133 +126,7 @@ export function get_terminals(production_rules: Production_rule[], non_terminals
     return output;
 }
 
-export function first(production_rules: Production_rule[], non_terminals: string[], terminals: string[]): Map<string, string[]> {
-
-    const output = new Map<string, string[]>();
-
-    for (const non_terminal of non_terminals) {
-        const visited_non_terminals: string[] = [];
-        const first_terminals = first_auxiliary(production_rules, non_terminal, terminals, visited_non_terminals);
-        output.set(non_terminal, first_terminals);
-    }
-
-    for (const terminal of terminals) {
-        output.set(terminal, [terminal]);
-    }
-
-    return output;
-}
-
-function first_auxiliary(production_rules: Production_rule[], production_rule_lhs: string, terminals: string[], visited_non_terminals: string[]): string[] {
-
-    const first_terminals = new Set<string>();
-
-    const production_rules_indices = find_production_rules(production_rules, production_rule_lhs);
-
-    for (const production_rule_index of production_rules_indices) {
-
-        const production_rule = production_rules[production_rule_index];
-
-        const first_label = production_rule.rhs[0];
-
-        const visited_index = visited_non_terminals.findIndex(non_terminal => non_terminal === first_label);
-
-        // If word corresponds to a non-terminal and it was already visited:
-        if (visited_index !== -1) {
-            continue;
-        }
-
-        if (is_terminal(first_label, terminals)) {
-            first_terminals.add(first_label);
-        }
-        else {
-            visited_non_terminals.push(first_label);
-
-            const new_terminals = first_auxiliary(production_rules, first_label, terminals, visited_non_terminals);
-
-            for (const new_terminal of new_terminals) {
-                first_terminals.add(new_terminal);
-            }
-        }
-    }
-
-    return [...first_terminals];
-}
-
-export function follow_of_non_terminals(production_rules: Production_rule[], non_terminals: string[], first_terminals_map: Map<string, string[]>): Map<string, string[]> {
-    const follow_map = new Map<string, string[]>();
-
-    {
-        const non_terminal = non_terminals[0];
-        follow_map.set(non_terminal, ["$"]);
-    }
-
-    for (let index = 1; index < non_terminals.length; ++index) {
-        const non_terminal = non_terminals[index];
-
-        const visited_non_terminals: string[] = [];
-        const follow_terminals = follow_of_non_terminal(production_rules, non_terminal, first_terminals_map, visited_non_terminals);
-        follow_map.set(non_terminal, follow_terminals);
-    }
-
-    return follow_map;
-}
-
-function follow_of_non_terminal(production_rules: Production_rule[], non_terminal: string, first_terminals_map: Map<string, string[]>, visited_non_terminals: string[]): string[] {
-
-    if (non_terminal === production_rules[0].lhs) {
-        return ["$"];
-    }
-
-    const follow_terminals = new Set<string>();
-
-    visited_non_terminals.push(non_terminal);
-
-    for (let production_rule_index = 0; production_rule_index < production_rules.length; ++production_rule_index) {
-        const production_rule = production_rules[production_rule_index];
-
-        for (let label_index = 0; label_index < production_rule.rhs.length; ++label_index) {
-            const label = production_rule.rhs[label_index];
-
-            if (label === non_terminal) {
-
-                const next_label_index = label_index + 1;
-
-                // If there is a next label, add first of next label:
-                if (next_label_index < production_rule.rhs.length) {
-                    const next_label = production_rule.rhs[next_label_index];
-                    const first_terminals = first_terminals_map.get(next_label);
-                    if (first_terminals === undefined) {
-                        const message = "Failed to find first terminals! first_terminals_map must contain label!";
-                        onThrowError(message);
-                        throw Error(message);
-                    }
-
-                    for (const first_terminal of first_terminals) {
-                        follow_terminals.add(first_terminal);
-                    }
-                }
-                // If label is at the end of rhs, then add all terminals of follow(lhs):
-                else if (next_label_index === production_rule.rhs.length && production_rule.lhs !== label) {
-
-                    const visited_index = visited_non_terminals.findIndex(visited => visited === production_rule.lhs);
-                    if (visited_index === -1) {
-                        const new_follow_terminals = follow_of_non_terminal(production_rules, production_rule.lhs, first_terminals_map, visited_non_terminals);
-                        for (const terminal of new_follow_terminals) {
-                            follow_terminals.add(terminal);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    const output = [...follow_terminals];
-    output.sort();
-    return output;
-}
-
-function find_production_rules(production_rules: Production_rule[], lhs: string): number[] {
+export function find_production_rules(production_rules: Production_rule[], lhs: string): number[] {
 
     for (let index = 0; index < production_rules.length; ++index) {
         if (production_rules[index].lhs === lhs) {
@@ -278,6 +152,30 @@ function find_production_rules(production_rules: Production_rule[], lhs: string)
 function is_terminal(label: string, terminals: string[]): boolean {
     const index = terminals.findIndex(terminal => terminal === label);
     return index !== -1;
+}
+
+function add_unique(array: any, element: any, predicate: any): void {
+    const index = array.findIndex((current: any) => predicate(current, element));
+    if (index === -1) {
+        array.push(element);
+    }
+}
+
+interface LR0_item {
+    production_rule_index: number;
+    label_index: number;
+}
+
+function are_lr0_items_equal(lhs: LR0_item, rhs: LR0_item): boolean {
+    return lhs.production_rule_index === rhs.production_rule_index && lhs.label_index === rhs.label_index;
+}
+
+function find_item_sets_at_label(production_rules: Production_rule[], item_set: LR0_item[], label: string): LR0_item[] {
+    return item_set.filter(item => {
+        const production_rule = production_rules[item.production_rule_index];
+        const item_label = production_rule.rhs[item.label_index];
+        return item_label === label;
+    });
 }
 
 export interface LR1_item {
@@ -348,7 +246,56 @@ function are_lr1_states_equal(lhs: LR1_item[], rhs: LR1_item[]): boolean {
     return true;
 }
 
-export function create_start_lr1_item_set(production_rules: Production_rule[], first_terminals: Map<string, string[]>): LR1_item[] {
+function first_terminals_of_lr1_item(production_rules: Production_rule[], start_item: LR1_item, terminals: string[]): string[] {
+
+    const item_set: LR0_item[] = [start_item];
+
+    for (let item_index = 0; item_index < item_set.length; ++item_index) {
+        const item = item_set[item_index];
+
+        const production_rule = production_rules[item.production_rule_index];
+        if (item.label_index === production_rule.rhs.length) {
+
+            const previous_items = find_item_sets_at_label(production_rules, item_set, production_rule.lhs);
+            const next_items = previous_items.map((current: LR0_item): LR0_item => { return { production_rule_index: current.production_rule_index, label_index: current.label_index + 1 }; });
+
+            for (const next_item of next_items) {
+                add_unique(item_set, next_item, are_lr0_items_equal);
+            }
+
+            continue;
+        }
+
+        const label = production_rule.rhs[item.label_index];
+
+        const production_rule_indices = find_production_rules(production_rules, label);
+
+        for (const new_production_rule_index of production_rule_indices) {
+            const new_item: LR0_item = { production_rule_index: new_production_rule_index, label_index: 0 };
+            add_unique(item_set, new_item, are_lr0_items_equal);
+        }
+    }
+
+    const output: string[] = [];
+
+    for (const item of item_set) {
+        const production_rule = production_rules[item.production_rule_index];
+        const label = production_rule.rhs[item.label_index];
+        if (is_terminal(label, terminals)) {
+            add_unique(output, label, (current: string) => current === label);
+        }
+        else if (item.production_rule_index === start_item.production_rule_index && item.label_index === production_rule.rhs.length) {
+            add_unique(output, start_item.follow_terminal, (current: string) => current === label);
+        }
+    }
+
+    output.sort();
+
+    return output;
+
+}
+
+export function create_start_lr1_item_set(production_rules: Production_rule[], terminals: string[]): LR1_item[] {
 
     const first_lr1_item: LR1_item = {
         production_rule_index: 0,
@@ -356,12 +303,12 @@ export function create_start_lr1_item_set(production_rules: Production_rule[], f
         follow_terminal: "$"
     };
 
-    const lr1_item_set = compute_lr1_closure(production_rules, first_terminals, [first_lr1_item]);
+    const lr1_item_set = compute_lr1_closure(production_rules, terminals, [first_lr1_item]);
 
     return lr1_item_set;
 }
 
-function compute_lr1_closure(production_rules: Production_rule[], first_terminals_map: Map<string, string[]>, lr1_item_set: LR1_item[]): LR1_item[] {
+function compute_lr1_closure(production_rules: Production_rule[], terminals: string[], lr1_item_set: LR1_item[]): LR1_item[] {
 
     const debug = false;
 
@@ -381,14 +328,13 @@ function compute_lr1_closure(production_rules: Production_rule[], first_terminal
 
         const production_rule = production_rules[item.production_rule_index];
         if (item.label_index >= production_rule.rhs.length) {
-            break;
+            continue;
         }
 
         const label = production_rule.rhs[item.label_index];
 
-        const next_label = (item.label_index + 1) < production_rule.rhs.length ? production_rule.rhs[item.label_index + 1] : item.follow_terminal;
-        const next_label_first = first_terminals_map.get(next_label);
-        const look_aheads = next_label_first !== undefined ? next_label_first : [];
+        const next_label_item: LR1_item = { production_rule_index: item.production_rule_index, label_index: item.label_index + 1, follow_terminal: item.follow_terminal };
+        const look_aheads = first_terminals_of_lr1_item(production_rules, next_label_item, terminals);
 
         const production_rule_indices = find_production_rules(production_rules, label);
 
@@ -413,7 +359,7 @@ function compute_lr1_closure(production_rules: Production_rule[], first_terminal
     return closure_item_set;
 }
 
-export function create_next_lr1_item_set(production_rules: Production_rule[], first_terminals_map: Map<string, string[]>, lr1_item_set: LR1_item[], label: string): LR1_item[] {
+export function create_next_lr1_item_set(production_rules: Production_rule[], terminals: string[], lr1_item_set: LR1_item[], label: string): LR1_item[] {
 
     // Get items that contain label at label_index:
     const items_at_label = lr1_item_set.filter(item => {
@@ -439,9 +385,9 @@ export function create_next_lr1_item_set(production_rules: Production_rule[], fi
     });
 
     // Compute closure:
-    const new_item_set_closure = compute_lr1_closure(production_rules, first_terminals_map, new_item_set);
+    const new_item_set_closure = compute_lr1_closure(production_rules, terminals, new_item_set);
 
-    const debug = false;
+    const debug = true;
 
     if (debug) {
         console.log("------ LR1 Item Set ------");
@@ -459,7 +405,7 @@ export interface Edge {
     label: string;
 }
 
-export function create_lr1_graph(production_rules: Production_rule[], first_terminals_map: Map<string, string[]>, lr1_item_set_0: LR1_item[]): { states: LR1_item[][], edges: Edge[] } {
+export function create_lr1_graph(production_rules: Production_rule[], terminals: string[], lr1_item_set_0: LR1_item[]): { states: LR1_item[][], edges: Edge[] } {
 
     const states: LR1_item[][] = [lr1_item_set_0];
     const edges: Edge[] = [];
@@ -475,7 +421,7 @@ export function create_lr1_graph(production_rules: Production_rule[], first_term
 
         const unique_current_labels = current_labels.filter((label, index) => index > 0 ? label !== current_labels[index - 1] : true);
 
-        const next_states = unique_current_labels.map(label => create_next_lr1_item_set(production_rules, first_terminals_map, current_state, label));
+        const next_states = unique_current_labels.map(label => create_next_lr1_item_set(production_rules, terminals, current_state, label));
 
         for (let index = 0; index < next_states.length; ++index) {
             const next_state = next_states[index];

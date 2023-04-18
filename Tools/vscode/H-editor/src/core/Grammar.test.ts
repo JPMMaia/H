@@ -7,7 +7,6 @@ import * as Grammar_examples from "./Grammar_examples";
 
 describe("Grammar.create_production_rules", () => {
 
-
     it("Creates production rules for description 0", () => {
 
         const grammar_description = Grammar_examples.create_test_grammar_0_description();
@@ -95,6 +94,73 @@ describe("Grammar.create_production_rules", () => {
             assert.deepEqual(production_rule.rhs, ["Expression", "*", "Expression"]);
         }
     });
+
+    it("Creates production rules for description 6", () => {
+        const grammar_description = Grammar_examples.create_test_grammar_6_description();
+        const production_rules = Grammar.create_production_rules(grammar_description);
+
+        assert.equal(production_rules.length, 10);
+
+        {
+            const production_rule = production_rules[0];
+            assert.equal(production_rule.lhs, "S");
+            assert.deepEqual(production_rule.rhs, ["Function"]);
+        }
+
+        {
+            const production_rule = production_rules[1];
+            assert.equal(production_rule.lhs, "Function");
+            assert.deepEqual(production_rule.rhs, ["Export", "Inline", "function", "(", "Arguments", ")"]);
+        }
+
+        {
+            const production_rule = production_rules[2];
+            assert.equal(production_rule.lhs, "Export");
+            assert.deepEqual(production_rule.rhs, ["export"]);
+        }
+
+        {
+            const production_rule = production_rules[3];
+            assert.equal(production_rule.lhs, "Export");
+            assert.deepEqual(production_rule.rhs, []);
+        }
+
+        {
+            const production_rule = production_rules[4];
+            assert.equal(production_rule.lhs, "Inline");
+            assert.deepEqual(production_rule.rhs, ["inline"]);
+        }
+
+        {
+            const production_rule = production_rules[5];
+            assert.equal(production_rule.lhs, "Inline");
+            assert.deepEqual(production_rule.rhs, []);
+        }
+
+        {
+            const production_rule = production_rules[6];
+            assert.equal(production_rule.lhs, "Arguments");
+            assert.deepEqual(production_rule.rhs, []);
+        }
+
+        {
+            const production_rule = production_rules[7];
+            assert.equal(production_rule.lhs, "Arguments");
+            assert.deepEqual(production_rule.rhs, ["Argument"]);
+        }
+
+        {
+            const production_rule = production_rules[8];
+            assert.equal(production_rule.lhs, "Argument");
+            assert.deepEqual(production_rule.rhs, ["name", ":", "type"]);
+        }
+
+        {
+            const production_rule = production_rules[9];
+            assert.equal(production_rule.lhs, "Argument");
+            assert.deepEqual(production_rule.rhs, ["name", ":", "type", ",", "Argument"]);
+        }
+    });
 });
 
 describe("Grammar.get_non_terminals", () => {
@@ -112,6 +178,14 @@ describe("Grammar.get_non_terminals", () => {
         const non_terminals = Grammar.get_non_terminals(production_rules);
 
         assert.deepEqual(non_terminals, ["Statement", "Expression", "Sum", "Multiplication"]);
+    });
+
+    it("Returns non-terminals for grammar 6", () => {
+        const grammar_description = Grammar_examples.create_test_grammar_6_description();
+        const production_rules = Grammar.create_production_rules(grammar_description);
+        const non_terminals = Grammar.get_non_terminals(production_rules);
+
+        assert.deepEqual(non_terminals, ["S", "Function", "Export", "Inline", "Arguments", "Argument"]);
     });
 });
 
@@ -133,161 +207,14 @@ describe("Grammar.get_terminals", () => {
 
         assert.deepEqual(terminals, ["$", "*", "+", "number"]);
     });
-});
 
-describe("Grammar.first", () => {
-
-    it("Returns first terminals for each production rule of grammar 0", () => {
-        const grammar_description = Grammar_examples.create_test_grammar_0_description();
+    it("Returns terminals for grammar 6", () => {
+        const grammar_description = Grammar_examples.create_test_grammar_6_description();
         const production_rules = Grammar.create_production_rules(grammar_description);
         const non_terminals = Grammar.get_non_terminals(production_rules);
         const terminals = Grammar.get_terminals(production_rules, non_terminals);
-        const rules_first_terminals = Grammar.first(production_rules, non_terminals, terminals);
 
-        {
-            const first_terminals = rules_first_terminals.get("S");
-            assert.deepEqual(first_terminals, ["n", "+", "("]);
-        }
-
-        {
-            const first_terminals = rules_first_terminals.get("E");
-            assert.deepEqual(first_terminals, ["n", "+", "("]);
-        }
-
-        {
-            const first_terminals = rules_first_terminals.get("T");
-            assert.deepEqual(first_terminals, ["n", "+"]);
-        }
-
-        {
-            const first_terminals = rules_first_terminals.get("$");
-            assert.deepEqual(first_terminals, ["$"]);
-        }
-
-        {
-            const first_terminals = rules_first_terminals.get("(");
-            assert.deepEqual(first_terminals, ["("]);
-        }
-
-        {
-            const first_terminals = rules_first_terminals.get(")");
-            assert.deepEqual(first_terminals, [")"]);
-        }
-
-        {
-            const first_terminals = rules_first_terminals.get("+");
-            assert.deepEqual(first_terminals, ["+"]);
-        }
-
-        {
-            const first_terminals = rules_first_terminals.get("n");
-            assert.deepEqual(first_terminals, ["n"]);
-        }
-    });
-
-    it("Returns first terminals for each production rule of grammar 1", () => {
-        const grammar_description = Grammar_examples.create_test_grammar_1_description();
-        const production_rules = Grammar.create_production_rules(grammar_description);
-        const non_terminals = Grammar.get_non_terminals(production_rules);
-        const terminals = Grammar.get_terminals(production_rules, non_terminals);
-        const rules_first_terminals = Grammar.first(production_rules, non_terminals, terminals);
-
-        {
-            const first_terminals = rules_first_terminals.get("Statement");
-            assert.deepEqual(first_terminals, ["number"]);
-        }
-
-        {
-            const first_terminals = rules_first_terminals.get("Expression");
-            assert.deepEqual(first_terminals, ["number"]);
-        }
-
-        {
-            const first_terminals = rules_first_terminals.get("Sum");
-            assert.deepEqual(first_terminals, ["number"]);
-        }
-
-        {
-            const first_terminals = rules_first_terminals.get("Multiplication");
-            assert.deepEqual(first_terminals, ["number"]);
-        }
-
-        {
-            const first_terminals = rules_first_terminals.get("$");
-            assert.deepEqual(first_terminals, ["$"]);
-        }
-
-        {
-            const first_terminals = rules_first_terminals.get("*");
-            assert.deepEqual(first_terminals, ["*"]);
-        }
-
-        {
-            const first_terminals = rules_first_terminals.get("+");
-            assert.deepEqual(first_terminals, ["+"]);
-        }
-
-        {
-            const first_terminals = rules_first_terminals.get("number");
-            assert.deepEqual(first_terminals, ["number"]);
-        }
-    });
-});
-
-describe("Grammar.follow_of_non_terminals", () => {
-    it("Returns follow terminals for each non-terminal of grammar 0", () => {
-
-        const grammar_description = Grammar_examples.create_test_grammar_0_description();
-        const production_rules = Grammar.create_production_rules(grammar_description);
-        const non_terminals = Grammar.get_non_terminals(production_rules);
-        const terminals = Grammar.get_terminals(production_rules, non_terminals);
-        const rules_first_terminals = Grammar.first(production_rules, non_terminals, terminals);
-        const non_terminals_follow = Grammar.follow_of_non_terminals(production_rules, non_terminals, rules_first_terminals);
-
-        {
-            const follow_terminals = non_terminals_follow.get("S");
-            assert.deepEqual(follow_terminals, ["$"]);
-        }
-
-        {
-            const follow_terminals = non_terminals_follow.get("E");
-            assert.deepEqual(follow_terminals, ["$", ")"]);
-        }
-
-        {
-            const follow_terminals = non_terminals_follow.get("T");
-            assert.deepEqual(follow_terminals, ["$", ")", "+"]);
-        }
-    });
-
-    it("Returns follow terminals for each non-terminal of grammar 1", () => {
-
-        const grammar_description = Grammar_examples.create_test_grammar_1_description();
-        const production_rules = Grammar.create_production_rules(grammar_description);
-        const non_terminals = Grammar.get_non_terminals(production_rules);
-        const terminals = Grammar.get_terminals(production_rules, non_terminals);
-        const rules_first_terminals = Grammar.first(production_rules, non_terminals, terminals);
-        const non_terminals_follow = Grammar.follow_of_non_terminals(production_rules, non_terminals, rules_first_terminals);
-
-        {
-            const follow_terminals = non_terminals_follow.get("Statement");
-            assert.deepEqual(follow_terminals, ["$"]);
-        }
-
-        {
-            const follow_terminals = non_terminals_follow.get("Expression");
-            assert.deepEqual(follow_terminals, ["$", "*", "+"]);
-        }
-
-        {
-            const follow_terminals = non_terminals_follow.get("Sum");
-            assert.deepEqual(follow_terminals, ["$", "*", "+"]);
-        }
-
-        {
-            const follow_terminals = non_terminals_follow.get("Multiplication");
-            assert.deepEqual(follow_terminals, ["$", "*", "+"]);
-        }
+        assert.deepEqual(terminals, ["$", "(", ")", ",", ":", "export", "function", "inline", "name", "type"]);
     });
 });
 
@@ -298,8 +225,7 @@ describe("Grammar.create_start_lr1_item_set", () => {
         const production_rules = Grammar.create_production_rules(grammar_description);
         const non_terminals = Grammar.get_non_terminals(production_rules);
         const terminals = Grammar.get_terminals(production_rules, non_terminals);
-        const rules_first_terminals = Grammar.first(production_rules, non_terminals, terminals);
-        const lr1_items = Grammar.create_start_lr1_item_set(production_rules, rules_first_terminals);
+        const lr1_items = Grammar.create_start_lr1_item_set(production_rules, terminals);
 
         // S -> .E, $
         // E -> .T, $
@@ -391,8 +317,7 @@ describe("Grammar.create_start_lr1_item_set", () => {
         const production_rules = Grammar.create_production_rules(grammar_description);
         const non_terminals = Grammar.get_non_terminals(production_rules);
         const terminals = Grammar.get_terminals(production_rules, non_terminals);
-        const rules_first_terminals = Grammar.first(production_rules, non_terminals, terminals);
-        const lr1_items = Grammar.create_start_lr1_item_set(production_rules, rules_first_terminals);
+        const lr1_items = Grammar.create_start_lr1_item_set(production_rules, terminals);
 
         assert.equal(lr1_items.length, 16);
 
@@ -533,8 +458,7 @@ describe("Grammar.create_next_lr1_item_set", () => {
         const production_rules = Grammar.create_production_rules(grammar_description);
         const non_terminals = Grammar.get_non_terminals(production_rules);
         const terminals = Grammar.get_terminals(production_rules, non_terminals);
-        const rules_first_terminals = Grammar.first(production_rules, non_terminals, terminals);
-        const lr1_item_set_0 = Grammar.create_start_lr1_item_set(production_rules, rules_first_terminals);
+        const lr1_item_set_0 = Grammar.create_start_lr1_item_set(production_rules, terminals);
 
         // S -> .E, $
         // E -> .T, $
@@ -551,7 +475,7 @@ describe("Grammar.create_next_lr1_item_set", () => {
         }
 
         {
-            const lr1_item_set_1 = Grammar.create_next_lr1_item_set(production_rules, rules_first_terminals, lr1_item_set_0, "E");
+            const lr1_item_set_1 = Grammar.create_next_lr1_item_set(production_rules, terminals, lr1_item_set_0, "E");
 
             // S -> E., $
             assert.equal(lr1_item_set_1.length, 1);
@@ -566,7 +490,7 @@ describe("Grammar.create_next_lr1_item_set", () => {
         }
 
         {
-            const lr1_item_set_2 = Grammar.create_next_lr1_item_set(production_rules, rules_first_terminals, lr1_item_set_0, "T");
+            const lr1_item_set_2 = Grammar.create_next_lr1_item_set(production_rules, terminals, lr1_item_set_0, "T");
 
             // E -> T., $
             // T -> T .+ n, $
@@ -599,7 +523,7 @@ describe("Grammar.create_next_lr1_item_set", () => {
         }
 
         {
-            const lr1_item_set_3 = Grammar.create_next_lr1_item_set(production_rules, rules_first_terminals, lr1_item_set_0, "n");
+            const lr1_item_set_3 = Grammar.create_next_lr1_item_set(production_rules, terminals, lr1_item_set_0, "n");
 
             // T -> n., $
             // T -> n., +
@@ -623,7 +547,7 @@ describe("Grammar.create_next_lr1_item_set", () => {
         }
 
         {
-            const lr1_item_set_4 = Grammar.create_next_lr1_item_set(production_rules, rules_first_terminals, lr1_item_set_0, "+");
+            const lr1_item_set_4 = Grammar.create_next_lr1_item_set(production_rules, terminals, lr1_item_set_0, "+");
 
             // T -> + .T, $
             // T -> + .T, +
@@ -701,7 +625,7 @@ describe("Grammar.create_next_lr1_item_set", () => {
         }
 
         {
-            const lr1_item_set_5 = Grammar.create_next_lr1_item_set(production_rules, rules_first_terminals, lr1_item_set_0, "(");
+            const lr1_item_set_5 = Grammar.create_next_lr1_item_set(production_rules, terminals, lr1_item_set_0, "(");
 
             // E -> ( .E ), $
             // E -> .T, )
@@ -794,8 +718,7 @@ describe("Grammar.create_next_lr1_item_set", () => {
         const production_rules = Grammar.create_production_rules(grammar_description);
         const non_terminals = Grammar.get_non_terminals(production_rules);
         const terminals = Grammar.get_terminals(production_rules, non_terminals);
-        const rules_first_terminals = Grammar.first(production_rules, non_terminals, terminals);
-        const lr1_item_set_0 = Grammar.create_start_lr1_item_set(production_rules, rules_first_terminals);
+        const lr1_item_set_0 = Grammar.create_start_lr1_item_set(production_rules, terminals);
 
         // 0 Start -> S
         // 1 S -> A A
@@ -810,7 +733,7 @@ describe("Grammar.create_next_lr1_item_set", () => {
         // A -> .b, b
 
         {
-            const lr1_item_set_1 = Grammar.create_next_lr1_item_set(production_rules, rules_first_terminals, lr1_item_set_0, "S");
+            const lr1_item_set_1 = Grammar.create_next_lr1_item_set(production_rules, terminals, lr1_item_set_0, "S");
 
             // Start -> S., $
             assert.equal(lr1_item_set_1.length, 1);
@@ -824,7 +747,7 @@ describe("Grammar.create_next_lr1_item_set", () => {
         }
 
         {
-            const lr1_item_set_2 = Grammar.create_next_lr1_item_set(production_rules, rules_first_terminals, lr1_item_set_0, "A");
+            const lr1_item_set_2 = Grammar.create_next_lr1_item_set(production_rules, terminals, lr1_item_set_0, "A");
 
             // S -> A .A, $
             // A -> .a A, $
@@ -854,7 +777,7 @@ describe("Grammar.create_next_lr1_item_set", () => {
         }
 
         {
-            const lr1_item_set_3 = Grammar.create_next_lr1_item_set(production_rules, rules_first_terminals, lr1_item_set_0, "a");
+            const lr1_item_set_3 = Grammar.create_next_lr1_item_set(production_rules, terminals, lr1_item_set_0, "a");
 
             // A -> a .A, a
             // A -> a .A, b
@@ -909,7 +832,7 @@ describe("Grammar.create_next_lr1_item_set", () => {
         }
 
         {
-            const lr1_item_set_4 = Grammar.create_next_lr1_item_set(production_rules, rules_first_terminals, lr1_item_set_0, "b");
+            const lr1_item_set_4 = Grammar.create_next_lr1_item_set(production_rules, terminals, lr1_item_set_0, "b");
 
             // A -> b., a
             // A -> b., b
@@ -939,9 +862,8 @@ describe("Grammar.create_lr1_graph", () => {
         const production_rules = Grammar.create_production_rules(grammar_description);
         const non_terminals = Grammar.get_non_terminals(production_rules);
         const terminals = Grammar.get_terminals(production_rules, non_terminals);
-        const rules_first_terminals = Grammar.first(production_rules, non_terminals, terminals);
-        const lr1_item_set_0 = Grammar.create_start_lr1_item_set(production_rules, rules_first_terminals);
-        const graph = Grammar.create_lr1_graph(production_rules, rules_first_terminals, lr1_item_set_0);
+        const lr1_item_set_0 = Grammar.create_start_lr1_item_set(production_rules, terminals);
+        const graph = Grammar.create_lr1_graph(production_rules, terminals, lr1_item_set_0);
         const edges = graph.edges;
 
         assert.equal(edges.length, 13);
@@ -967,9 +889,8 @@ describe("Grammar.create_lr1_graph", () => {
         const production_rules = Grammar.create_production_rules(grammar_description);
         const non_terminals = Grammar.get_non_terminals(production_rules);
         const terminals = Grammar.get_terminals(production_rules, non_terminals);
-        const rules_first_terminals = Grammar.first(production_rules, non_terminals, terminals);
-        const lr1_item_set_0 = Grammar.create_start_lr1_item_set(production_rules, rules_first_terminals);
-        const graph = Grammar.create_lr1_graph(production_rules, rules_first_terminals, lr1_item_set_0);
+        const lr1_item_set_0 = Grammar.create_start_lr1_item_set(production_rules, terminals);
+        const graph = Grammar.create_lr1_graph(production_rules, terminals, lr1_item_set_0);
         const edges = graph.edges;
 
         assert.equal(edges.length, 38);
@@ -1022,9 +943,224 @@ describe("Grammar.create_parsing_tables", () => {
         const production_rules = Grammar.create_production_rules(grammar_description);
         const non_terminals = Grammar.get_non_terminals(production_rules);
         const terminals = Grammar.get_terminals(production_rules, non_terminals);
-        const rules_first_terminals = Grammar.first(production_rules, non_terminals, terminals);
-        const lr1_item_set_0 = Grammar.create_start_lr1_item_set(production_rules, rules_first_terminals);
-        const graph = Grammar.create_lr1_graph(production_rules, rules_first_terminals, lr1_item_set_0);
+        const lr1_item_set_0 = Grammar.create_start_lr1_item_set(production_rules, terminals);
+        const graph = Grammar.create_lr1_graph(production_rules, terminals, lr1_item_set_0);
+
+        const parsing_tables = Grammar.create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
+        const actual_action_table = parsing_tables.action_table;
+        const actual_go_to_table = parsing_tables.go_to_table;
+
+        const expected_action_table: Grammar.Action_column[][] = [
+            [ // 0
+                { label: "(", action: { type: Grammar.Action_type.Shift, value: { next_state: 1 } } },
+                { label: "number", action: { type: Grammar.Action_type.Shift, value: { next_state: 5 } } },
+            ],
+            [ // 1
+                { label: "(", action: { type: Grammar.Action_type.Shift, value: { next_state: 6 } } },
+                { label: "number", action: { type: Grammar.Action_type.Shift, value: { next_state: 10 } } },
+            ],
+            [ // 2
+                { label: "$", action: { type: Grammar.Action_type.Accept, value: { lhs: "Start", rhs_count: 1 } } },
+                { label: "+", action: { type: Grammar.Action_type.Shift, value: { next_state: 11 } } },
+            ],
+            [ // 3
+                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 1 } } },
+                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 1 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 1 } } },
+            ],
+            [ // 4
+                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Addition", rhs_count: 1 } } },
+                { label: "*", action: { type: Grammar.Action_type.Shift, value: { next_state: 12 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Addition", rhs_count: 1 } } },
+            ],
+            [ // 5
+                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 1 } } },
+                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 1 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 1 } } },
+            ],
+            [ // 6
+                { label: "(", action: { type: Grammar.Action_type.Shift, value: { next_state: 6 } } },
+                { label: "number", action: { type: Grammar.Action_type.Shift, value: { next_state: 10 } } },
+            ],
+            [ // 7
+                { label: ")", action: { type: Grammar.Action_type.Shift, value: { next_state: 14 } } },
+                { label: "+", action: { type: Grammar.Action_type.Shift, value: { next_state: 15 } } },
+            ],
+            [ // 8
+                { label: ")", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 1 } } },
+                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 1 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 1 } } },
+            ],
+            [ // 9
+
+                { label: ")", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Addition", rhs_count: 1 } } },
+                { label: "*", action: { type: Grammar.Action_type.Shift, value: { next_state: 16 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Addition", rhs_count: 1 } } },
+            ],
+            [ // 10
+                { label: ")", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 1 } } },
+                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 1 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 1 } } },
+            ],
+            [ // 11
+                { label: "(", action: { type: Grammar.Action_type.Shift, value: { next_state: 1 } } },
+                { label: "number", action: { type: Grammar.Action_type.Shift, value: { next_state: 5 } } },
+            ],
+            [ // 12
+                { label: "(", action: { type: Grammar.Action_type.Shift, value: { next_state: 1 } } },
+                { label: "number", action: { type: Grammar.Action_type.Shift, value: { next_state: 5 } } },
+            ],
+            [ // 13
+                { label: ")", action: { type: Grammar.Action_type.Shift, value: { next_state: 19 } } },
+                { label: "+", action: { type: Grammar.Action_type.Shift, value: { next_state: 15 } } },
+            ],
+            [ // 14
+                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 3 } } },
+                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 3 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 3 } } },
+            ],
+            [ // 15
+                { label: "(", action: { type: Grammar.Action_type.Shift, value: { next_state: 6 } } },
+                { label: "number", action: { type: Grammar.Action_type.Shift, value: { next_state: 10 } } },
+            ],
+            [ // 16
+                { label: "(", action: { type: Grammar.Action_type.Shift, value: { next_state: 6 } } },
+                { label: "number", action: { type: Grammar.Action_type.Shift, value: { next_state: 10 } } },
+            ],
+            [ // 17
+                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Addition", rhs_count: 3 } } },
+                { label: "*", action: { type: Grammar.Action_type.Shift, value: { next_state: 12 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Addition", rhs_count: 3 } } },
+            ],
+            [ // 18
+                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 3 } } },
+                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 3 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 3 } } },
+            ],
+            [ // 19
+                { label: ")", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 3 } } },
+                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 3 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 3 } } },
+            ],
+            [ // 20
+                { label: ")", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Addition", rhs_count: 3 } } },
+                { label: "*", action: { type: Grammar.Action_type.Shift, value: { next_state: 16 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Addition", rhs_count: 3 } } },
+            ],
+            [ // 21
+                { label: ")", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 3 } } },
+                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 3 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 3 } } },
+            ],
+        ];
+
+        const expected_go_to_table: Grammar.Go_to_column[][] = [
+            [ // 0
+                { label: "Addition", next_state: 2 },
+                { label: "Basic", next_state: 3 },
+                { label: "Multiplication", next_state: 4 },
+            ],
+            [ // 1
+                { label: "Addition", next_state: 7 },
+                { label: "Basic", next_state: 8 },
+                { label: "Multiplication", next_state: 9 },
+            ],
+            [ // 2
+            ],
+            [ // 3
+            ],
+            [ // 4
+            ],
+            [ // 5
+            ],
+            [ // 6
+                { label: "Addition", next_state: 13 },
+                { label: "Basic", next_state: 8 },
+                { label: "Multiplication", next_state: 9 },
+            ],
+            [ // 7
+            ],
+            [ // 8
+            ],
+            [ // 9
+            ],
+            [ // 10
+            ],
+            [ // 11
+                { label: "Basic", next_state: 3 },
+                { label: "Multiplication", next_state: 17 },
+            ],
+            [ // 12
+                { label: "Basic", next_state: 18 },
+            ],
+            [ // 13
+            ],
+            [ // 14
+            ],
+            [ // 15
+                { label: "Basic", next_state: 8 },
+                { label: "Multiplication", next_state: 20 },
+            ],
+            [ // 16
+                { label: "Basic", next_state: 21 },
+            ],
+            [ // 17
+            ],
+            [ // 18
+            ],
+            [ // 19
+            ],
+            [ // 20
+            ],
+            [ // 21
+            ],
+        ];
+
+        assert.equal(actual_action_table.length, expected_action_table.length);
+
+        for (let state_index = 0; state_index < actual_action_table.length; state_index++) {
+
+            const actual_row = actual_action_table[state_index];
+            const expected_row = expected_action_table[state_index];
+            assert.equal(actual_row.length, expected_row.length);
+
+            for (let action_index = 0; action_index < actual_row.length; ++action_index) {
+
+                //console.log(`${state_index} ${action_index}`);
+
+                const actual = actual_row[action_index];
+                const expected = expected_row[action_index];
+                assert.deepEqual(actual, expected);
+            }
+        }
+
+        assert.equal(actual_go_to_table.length, expected_go_to_table.length);
+
+        for (let state_index = 0; state_index < actual_go_to_table.length; state_index++) {
+
+            const actual_row = actual_go_to_table[state_index];
+            const expected_row = expected_go_to_table[state_index];
+            assert.equal(actual_row.length, expected_row.length);
+
+            for (let action_index = 0; action_index < actual_row.length; ++action_index) {
+
+                //console.log(`${state_index} ${action_index}`);
+
+                const actual = actual_row[action_index];
+                const expected = expected_row[action_index];
+                assert.deepEqual(actual, expected);
+            }
+        }
+    });
+
+    it("Creates parsing tables for grammar 6", () => {
+
+        const grammar_description = Grammar_examples.create_test_grammar_6_description();
+        const production_rules = Grammar.create_production_rules(grammar_description);
+        const non_terminals = Grammar.get_non_terminals(production_rules);
+        const terminals = Grammar.get_terminals(production_rules, non_terminals);
+        const lr1_item_set_0 = Grammar.create_start_lr1_item_set(production_rules, terminals);
+        const graph = Grammar.create_lr1_graph(production_rules, terminals, lr1_item_set_0);
 
         const parsing_tables = Grammar.create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
         const actual_action_table = parsing_tables.action_table;
