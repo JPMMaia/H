@@ -587,3 +587,12 @@ export function create_parsing_tables(production_rules: Production_rule[], termi
         go_to_table: go_to_table
     };
 }
+
+export function create_parsing_tables_from_production_rules(production_rules: Production_rule[]): { action_table: Action_column[][], go_to_table: Go_to_column[][] } {
+    const non_terminals = get_non_terminals(production_rules);
+    const terminals = get_terminals(production_rules, non_terminals);
+    const lr1_item_set_0 = create_start_lr1_item_set(production_rules, terminals);
+    const graph = create_lr1_graph(production_rules, terminals, lr1_item_set_0);
+    const parsing_tables = create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
+    return parsing_tables;
+}

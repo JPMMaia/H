@@ -35,12 +35,17 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
 
                 {
                     const node_3 = node_1.children[1];
-                    assert.equal(node_3.word.value, "module_name");
+                    assert.equal(node_3.word.value, "Module_name");
+
+                    {
+                        const node_4 = node_3.children[0];
+                        assert.equal(node_4.word.value, "module_name");
+                    }
                 }
 
                 {
-                    const node_4 = node_1.children[2];
-                    assert.equal(node_4.word.value, ";");
+                    const node_5 = node_1.children[2];
+                    assert.equal(node_5.word.value, ";");
                 }
             }
         }

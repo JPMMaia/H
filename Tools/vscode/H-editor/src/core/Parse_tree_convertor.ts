@@ -77,7 +77,7 @@ export function module_to_parse_tree(module: Core.Module, symbol_database: Symbo
     return module_to_parse_tree_auxiliary(module, symbol_database, declarations, production_rules, 0, start_state);
 }
 
-export function module_to_parse_tree_auxiliary(module: Core.Module, symbol_database: Symbol_database.Edit_module_database, declarations: Declaration[], production_rules: Grammar.Production_rule[], production_rule_index: number, current_state: State): Parser.Node {
+function module_to_parse_tree_auxiliary(module: Core.Module, symbol_database: Symbol_database.Edit_module_database, declarations: Declaration[], production_rules: Grammar.Production_rule[], production_rule_index: number, current_state: State): Parser.Node {
 
     let current_production_rule = production_rules[production_rule_index];
 
@@ -100,7 +100,7 @@ export function module_to_parse_tree_auxiliary(module: Core.Module, symbol_datab
 
         if (is_terminal) {
 
-            const word = map_terminal_to_word(module, symbol_database, current_state, label);
+            const word = map_terminal_to_word(module, symbol_database, current_state, parent_node.word.value, label);
 
             const child_node: Parser.Node = {
                 word: word,
@@ -110,8 +110,6 @@ export function module_to_parse_tree_auxiliary(module: Core.Module, symbol_datab
                 index_in_father: label_index,
                 children: []
             };
-
-            console.log(word.value);
 
             parent_node.children.push(child_node);
         }
@@ -291,29 +289,29 @@ function get_underlying_declaration_production_rule_lhs(type: Declaration_type):
     }
 }
 
-function map_terminal_to_word(module: Core.Module, symbol_database: Symbol_database.Edit_module_database, current_state: State, terminal: string): Scanner.Scanned_word {
+function map_terminal_to_word(module: Core.Module, symbol_database: Symbol_database.Edit_module_database, current_state: State, parent_label: string, terminal: string): Scanner.Scanned_word {
 
-    if (terminal === "Module_name") {
+    if (parent_label === "Module_name") {
         return { value: module.name, type: Grammar.Word_type.Alphanumeric };
     }
-    else if (terminal === "Alias_name") {
+    else if (parent_label === "Alias_name") {
         const state = current_state.value as Alias_state;
         return { value: state.declaration.name, type: Grammar.Word_type.Alphanumeric };
     }
-    else if (terminal === "Alias_type") {
+    else if (parent_label === "Alias_type") {
         const state = current_state.value as Alias_state;
         const name = Symbol_database.find_type_name(symbol_database, state.declaration.type.elements);
         return { value: name !== undefined ? name : "<error>", type: Grammar.Word_type.Alphanumeric };
     }
-    else if (terminal === "Enum_name") {
+    else if (parent_label === "Enum_name") {
         const state = current_state.value as Enum_state;
         return { value: state.declaration.name, type: Grammar.Word_type.Alphanumeric };
     }
-    else if (terminal === "Function_name") {
+    else if (parent_label === "Function_name") {
         const state = current_state.value as Function_state;
         return { value: state.declaration.name, type: Grammar.Word_type.Alphanumeric };
     }
-    else if (terminal === "Enum_name") {
+    else if (parent_label === "Enum_name") {
         const state = current_state.value as Struct_state;
         return { value: state.declaration.name, type: Grammar.Word_type.Alphanumeric };
     }

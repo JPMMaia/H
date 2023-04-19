@@ -1,5 +1,5 @@
-import * as Abstract_syntax_tree_to_text from "../core/Abstract_syntax_tree_to_text";
 import { H_document_provider } from "./H_document_provider";
+import * as Text_formatter from "../core/Text_formatter";
 import * as vscode from "vscode";
 
 export class H_default_formatter implements vscode.DocumentFormattingEditProvider {
@@ -17,8 +17,8 @@ export class H_default_formatter implements vscode.DocumentFormattingEditProvide
             return [];
         }
 
-        const abstract_syntax_tree = document_data.abstract_syntax_tree;
-        const new_text = Abstract_syntax_tree_to_text.to_string(abstract_syntax_tree);
+        const parse_tree = document_data.parse_tree;
+        const new_text = Text_formatter.to_string(parse_tree);
 
         const whole_document_range = new vscode.Range(document.lineAt(0).range.start, document.lineAt(document.lineCount - 1).range.end);
 
