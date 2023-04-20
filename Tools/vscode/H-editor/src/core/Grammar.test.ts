@@ -964,19 +964,19 @@ describe("Grammar.create_parsing_tables", () => {
                 { label: "+", action: { type: Grammar.Action_type.Shift, value: { next_state: 11 } } },
             ],
             [ // 3
-                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 1 } } },
-                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 1 } } },
-                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 1 } } },
+                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 4, lhs: "Multiplication", rhs_count: 1 } } },
+                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 4, lhs: "Multiplication", rhs_count: 1 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 4, lhs: "Multiplication", rhs_count: 1 } } },
             ],
             [ // 4
-                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Addition", rhs_count: 1 } } },
+                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 2, lhs: "Addition", rhs_count: 1 } } },
                 { label: "*", action: { type: Grammar.Action_type.Shift, value: { next_state: 12 } } },
-                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Addition", rhs_count: 1 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 2, lhs: "Addition", rhs_count: 1 } } },
             ],
             [ // 5
-                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 1 } } },
-                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 1 } } },
-                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 1 } } },
+                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 5, lhs: "Basic", rhs_count: 1 } } },
+                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 5, lhs: "Basic", rhs_count: 1 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 5, lhs: "Basic", rhs_count: 1 } } },
             ],
             [ // 6
                 { label: "(", action: { type: Grammar.Action_type.Shift, value: { next_state: 6 } } },
@@ -987,20 +987,20 @@ describe("Grammar.create_parsing_tables", () => {
                 { label: "+", action: { type: Grammar.Action_type.Shift, value: { next_state: 15 } } },
             ],
             [ // 8
-                { label: ")", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 1 } } },
-                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 1 } } },
-                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 1 } } },
+                { label: ")", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 4, lhs: "Multiplication", rhs_count: 1 } } },
+                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 4, lhs: "Multiplication", rhs_count: 1 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 4, lhs: "Multiplication", rhs_count: 1 } } },
             ],
             [ // 9
 
-                { label: ")", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Addition", rhs_count: 1 } } },
+                { label: ")", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 2, lhs: "Addition", rhs_count: 1 } } },
                 { label: "*", action: { type: Grammar.Action_type.Shift, value: { next_state: 16 } } },
-                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Addition", rhs_count: 1 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 2, lhs: "Addition", rhs_count: 1 } } },
             ],
             [ // 10
-                { label: ")", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 1 } } },
-                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 1 } } },
-                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 1 } } },
+                { label: ")", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 5, lhs: "Basic", rhs_count: 1 } } },
+                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 5, lhs: "Basic", rhs_count: 1 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 5, lhs: "Basic", rhs_count: 1 } } },
             ],
             [ // 11
                 { label: "(", action: { type: Grammar.Action_type.Shift, value: { next_state: 1 } } },
@@ -1015,9 +1015,9 @@ describe("Grammar.create_parsing_tables", () => {
                 { label: "+", action: { type: Grammar.Action_type.Shift, value: { next_state: 15 } } },
             ],
             [ // 14
-                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 3 } } },
-                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 3 } } },
-                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 3 } } },
+                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 6, lhs: "Basic", rhs_count: 3 } } },
+                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 6, lhs: "Basic", rhs_count: 3 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 6, lhs: "Basic", rhs_count: 3 } } },
             ],
             [ // 15
                 { label: "(", action: { type: Grammar.Action_type.Shift, value: { next_state: 6 } } },
@@ -1028,245 +1028,29 @@ describe("Grammar.create_parsing_tables", () => {
                 { label: "number", action: { type: Grammar.Action_type.Shift, value: { next_state: 10 } } },
             ],
             [ // 17
-                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Addition", rhs_count: 3 } } },
+                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 1, lhs: "Addition", rhs_count: 3 } } },
                 { label: "*", action: { type: Grammar.Action_type.Shift, value: { next_state: 12 } } },
-                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Addition", rhs_count: 3 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 1, lhs: "Addition", rhs_count: 3 } } },
             ],
             [ // 18
-                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 3 } } },
-                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 3 } } },
-                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 3 } } },
+                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 3, lhs: "Multiplication", rhs_count: 3 } } },
+                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 3, lhs: "Multiplication", rhs_count: 3 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 3, lhs: "Multiplication", rhs_count: 3 } } },
             ],
             [ // 19
-                { label: ")", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 3 } } },
-                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 3 } } },
-                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 3 } } },
+                { label: ")", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 6, lhs: "Basic", rhs_count: 3 } } },
+                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 6, lhs: "Basic", rhs_count: 3 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 6, lhs: "Basic", rhs_count: 3 } } },
             ],
             [ // 20
-                { label: ")", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Addition", rhs_count: 3 } } },
+                { label: ")", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 1, lhs: "Addition", rhs_count: 3 } } },
                 { label: "*", action: { type: Grammar.Action_type.Shift, value: { next_state: 16 } } },
-                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Addition", rhs_count: 3 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 1, lhs: "Addition", rhs_count: 3 } } },
             ],
             [ // 21
-                { label: ")", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 3 } } },
-                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 3 } } },
-                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 3 } } },
-            ],
-        ];
-
-        const expected_go_to_table: Grammar.Go_to_column[][] = [
-            [ // 0
-                { label: "Addition", next_state: 2 },
-                { label: "Basic", next_state: 3 },
-                { label: "Multiplication", next_state: 4 },
-            ],
-            [ // 1
-                { label: "Addition", next_state: 7 },
-                { label: "Basic", next_state: 8 },
-                { label: "Multiplication", next_state: 9 },
-            ],
-            [ // 2
-            ],
-            [ // 3
-            ],
-            [ // 4
-            ],
-            [ // 5
-            ],
-            [ // 6
-                { label: "Addition", next_state: 13 },
-                { label: "Basic", next_state: 8 },
-                { label: "Multiplication", next_state: 9 },
-            ],
-            [ // 7
-            ],
-            [ // 8
-            ],
-            [ // 9
-            ],
-            [ // 10
-            ],
-            [ // 11
-                { label: "Basic", next_state: 3 },
-                { label: "Multiplication", next_state: 17 },
-            ],
-            [ // 12
-                { label: "Basic", next_state: 18 },
-            ],
-            [ // 13
-            ],
-            [ // 14
-            ],
-            [ // 15
-                { label: "Basic", next_state: 8 },
-                { label: "Multiplication", next_state: 20 },
-            ],
-            [ // 16
-                { label: "Basic", next_state: 21 },
-            ],
-            [ // 17
-            ],
-            [ // 18
-            ],
-            [ // 19
-            ],
-            [ // 20
-            ],
-            [ // 21
-            ],
-        ];
-
-        assert.equal(actual_action_table.length, expected_action_table.length);
-
-        for (let state_index = 0; state_index < actual_action_table.length; state_index++) {
-
-            const actual_row = actual_action_table[state_index];
-            const expected_row = expected_action_table[state_index];
-            assert.equal(actual_row.length, expected_row.length);
-
-            for (let action_index = 0; action_index < actual_row.length; ++action_index) {
-
-                //console.log(`${state_index} ${action_index}`);
-
-                const actual = actual_row[action_index];
-                const expected = expected_row[action_index];
-                assert.deepEqual(actual, expected);
-            }
-        }
-
-        assert.equal(actual_go_to_table.length, expected_go_to_table.length);
-
-        for (let state_index = 0; state_index < actual_go_to_table.length; state_index++) {
-
-            const actual_row = actual_go_to_table[state_index];
-            const expected_row = expected_go_to_table[state_index];
-            assert.equal(actual_row.length, expected_row.length);
-
-            for (let action_index = 0; action_index < actual_row.length; ++action_index) {
-
-                //console.log(`${state_index} ${action_index}`);
-
-                const actual = actual_row[action_index];
-                const expected = expected_row[action_index];
-                assert.deepEqual(actual, expected);
-            }
-        }
-    });
-
-    it("Creates parsing tables for grammar 6", () => {
-
-        const grammar_description = Grammar_examples.create_test_grammar_6_description();
-        const production_rules = Grammar.create_production_rules(grammar_description);
-        const non_terminals = Grammar.get_non_terminals(production_rules);
-        const terminals = Grammar.get_terminals(production_rules, non_terminals);
-        const lr1_item_set_0 = Grammar.create_start_lr1_item_set(production_rules, terminals);
-        const graph = Grammar.create_lr1_graph(production_rules, terminals, lr1_item_set_0);
-
-        const parsing_tables = Grammar.create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
-        const actual_action_table = parsing_tables.action_table;
-        const actual_go_to_table = parsing_tables.go_to_table;
-
-        const expected_action_table: Grammar.Action_column[][] = [
-            [ // 0
-                { label: "(", action: { type: Grammar.Action_type.Shift, value: { next_state: 1 } } },
-                { label: "number", action: { type: Grammar.Action_type.Shift, value: { next_state: 5 } } },
-            ],
-            [ // 1
-                { label: "(", action: { type: Grammar.Action_type.Shift, value: { next_state: 6 } } },
-                { label: "number", action: { type: Grammar.Action_type.Shift, value: { next_state: 10 } } },
-            ],
-            [ // 2
-                { label: "$", action: { type: Grammar.Action_type.Accept, value: { lhs: "Start", rhs_count: 1 } } },
-                { label: "+", action: { type: Grammar.Action_type.Shift, value: { next_state: 11 } } },
-            ],
-            [ // 3
-                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 1 } } },
-                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 1 } } },
-                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 1 } } },
-            ],
-            [ // 4
-                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Addition", rhs_count: 1 } } },
-                { label: "*", action: { type: Grammar.Action_type.Shift, value: { next_state: 12 } } },
-                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Addition", rhs_count: 1 } } },
-            ],
-            [ // 5
-                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 1 } } },
-                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 1 } } },
-                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 1 } } },
-            ],
-            [ // 6
-                { label: "(", action: { type: Grammar.Action_type.Shift, value: { next_state: 6 } } },
-                { label: "number", action: { type: Grammar.Action_type.Shift, value: { next_state: 10 } } },
-            ],
-            [ // 7
-                { label: ")", action: { type: Grammar.Action_type.Shift, value: { next_state: 14 } } },
-                { label: "+", action: { type: Grammar.Action_type.Shift, value: { next_state: 15 } } },
-            ],
-            [ // 8
-                { label: ")", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 1 } } },
-                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 1 } } },
-                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 1 } } },
-            ],
-            [ // 9
-
-                { label: ")", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Addition", rhs_count: 1 } } },
-                { label: "*", action: { type: Grammar.Action_type.Shift, value: { next_state: 16 } } },
-                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Addition", rhs_count: 1 } } },
-            ],
-            [ // 10
-                { label: ")", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 1 } } },
-                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 1 } } },
-                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 1 } } },
-            ],
-            [ // 11
-                { label: "(", action: { type: Grammar.Action_type.Shift, value: { next_state: 1 } } },
-                { label: "number", action: { type: Grammar.Action_type.Shift, value: { next_state: 5 } } },
-            ],
-            [ // 12
-                { label: "(", action: { type: Grammar.Action_type.Shift, value: { next_state: 1 } } },
-                { label: "number", action: { type: Grammar.Action_type.Shift, value: { next_state: 5 } } },
-            ],
-            [ // 13
-                { label: ")", action: { type: Grammar.Action_type.Shift, value: { next_state: 19 } } },
-                { label: "+", action: { type: Grammar.Action_type.Shift, value: { next_state: 15 } } },
-            ],
-            [ // 14
-                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 3 } } },
-                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 3 } } },
-                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 3 } } },
-            ],
-            [ // 15
-                { label: "(", action: { type: Grammar.Action_type.Shift, value: { next_state: 6 } } },
-                { label: "number", action: { type: Grammar.Action_type.Shift, value: { next_state: 10 } } },
-            ],
-            [ // 16
-                { label: "(", action: { type: Grammar.Action_type.Shift, value: { next_state: 6 } } },
-                { label: "number", action: { type: Grammar.Action_type.Shift, value: { next_state: 10 } } },
-            ],
-            [ // 17
-                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Addition", rhs_count: 3 } } },
-                { label: "*", action: { type: Grammar.Action_type.Shift, value: { next_state: 12 } } },
-                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Addition", rhs_count: 3 } } },
-            ],
-            [ // 18
-                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 3 } } },
-                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 3 } } },
-                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 3 } } },
-            ],
-            [ // 19
-                { label: ")", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 3 } } },
-                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 3 } } },
-                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Basic", rhs_count: 3 } } },
-            ],
-            [ // 20
-                { label: ")", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Addition", rhs_count: 3 } } },
-                { label: "*", action: { type: Grammar.Action_type.Shift, value: { next_state: 16 } } },
-                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Addition", rhs_count: 3 } } },
-            ],
-            [ // 21
-                { label: ")", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 3 } } },
-                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 3 } } },
-                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "Multiplication", rhs_count: 3 } } },
+                { label: ")", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 3, lhs: "Multiplication", rhs_count: 3 } } },
+                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 3, lhs: "Multiplication", rhs_count: 3 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 3, lhs: "Multiplication", rhs_count: 3 } } },
             ],
         ];
 

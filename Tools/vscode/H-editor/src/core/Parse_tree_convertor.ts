@@ -84,6 +84,7 @@ function module_to_parse_tree_auxiliary(module: Core.Module, symbol_database: Sy
     const parent_node: Parser.Node = {
         word: { value: current_production_rule.lhs, type: Grammar.Word_type.Symbol },
         state: -1,
+        production_rule_index: production_rule_index,
         previous_node_on_stack: undefined,
         father_node: undefined,
         index_in_father: -1,
@@ -105,6 +106,7 @@ function module_to_parse_tree_auxiliary(module: Core.Module, symbol_database: Sy
             const child_node: Parser.Node = {
                 word: word,
                 state: -1,
+                production_rule_index: undefined,
                 previous_node_on_stack: undefined,
                 father_node: parent_node,
                 index_in_father: label_index,

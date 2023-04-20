@@ -19,33 +19,40 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
         const parse_tree = Parse_tree_convertor.module_to_parse_tree(module, symbol_database, declarations, production_rules);
 
         assert.equal(parse_tree.word.value, "Module");
+        assert.equal(parse_tree.production_rule_index, 0);
 
         {
             const node_0 = parse_tree.children[0];
             assert.equal(node_0.word.value, "Module_head");
+            assert.equal(node_0.production_rule_index, 1);
 
             {
                 const node_1 = node_0.children[0];
                 assert.equal(node_1.word.value, "Module_declaration");
+                assert.equal(node_1.production_rule_index, 2);
 
                 {
                     const node_2 = node_1.children[0];
                     assert.equal(node_2.word.value, "module");
+                    assert.equal(node_2.production_rule_index, undefined);
                 }
 
                 {
                     const node_3 = node_1.children[1];
                     assert.equal(node_3.word.value, "Module_name");
+                    assert.equal(node_3.production_rule_index, 3);
 
                     {
                         const node_4 = node_3.children[0];
                         assert.equal(node_4.word.value, "module_name");
+                        assert.equal(node_4.production_rule_index, undefined);
                     }
                 }
 
                 {
                     const node_5 = node_1.children[2];
                     assert.equal(node_5.word.value, ";");
+                    assert.equal(node_5.production_rule_index, undefined);
                 }
             }
         }

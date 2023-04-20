@@ -17,18 +17,18 @@ describe("Parser.parse", () => {
                 { label: "1", action: { type: Grammar.Action_type.Shift, value: { next_state: 2 } } }
             ],
             [ // 1
-                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "B", rhs_count: 1 } } },
-                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "B", rhs_count: 1 } } },
-                { label: "0", action: { type: Grammar.Action_type.Reduce, value: { lhs: "B", rhs_count: 1 } } },
-                { label: "1", action: { type: Grammar.Action_type.Reduce, value: { lhs: "B", rhs_count: 1 } } },
-                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { lhs: "B", rhs_count: 1 } } }
+                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 1, lhs: "B", rhs_count: 1 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 1, lhs: "B", rhs_count: 1 } } },
+                { label: "0", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 1, lhs: "B", rhs_count: 1 } } },
+                { label: "1", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 1, lhs: "B", rhs_count: 1 } } },
+                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 1, lhs: "B", rhs_count: 1 } } }
             ],
             [ // 2
-                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "B", rhs_count: 1 } } },
-                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "B", rhs_count: 1 } } },
-                { label: "0", action: { type: Grammar.Action_type.Reduce, value: { lhs: "B", rhs_count: 1 } } },
-                { label: "1", action: { type: Grammar.Action_type.Reduce, value: { lhs: "B", rhs_count: 1 } } },
-                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { lhs: "B", rhs_count: 1 } } }
+                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 1, lhs: "B", rhs_count: 1 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 1, lhs: "B", rhs_count: 1 } } },
+                { label: "0", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 1, lhs: "B", rhs_count: 1 } } },
+                { label: "1", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 1, lhs: "B", rhs_count: 1 } } },
+                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 1, lhs: "B", rhs_count: 1 } } }
             ],
             [ // 3
                 { label: "*", action: { type: Grammar.Action_type.Shift, value: { next_state: 5 } } },
@@ -36,11 +36,11 @@ describe("Parser.parse", () => {
                 { label: "$", action: { type: Grammar.Action_type.Accept, value: { lhs: "S", rhs_count: 1 } } },
             ],
             [ // 4
-                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 1 } } },
-                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 1 } } },
-                { label: "0", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 1 } } },
-                { label: "1", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 1 } } },
-                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 1 } } }
+                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 2, lhs: "E", rhs_count: 1 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 2, lhs: "E", rhs_count: 1 } } },
+                { label: "0", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 2, lhs: "E", rhs_count: 1 } } },
+                { label: "1", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 2, lhs: "E", rhs_count: 1 } } },
+                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 2, lhs: "E", rhs_count: 1 } } }
             ],
             [ // 5
                 { label: "0", action: { type: Grammar.Action_type.Shift, value: { next_state: 1 } } },
@@ -51,18 +51,18 @@ describe("Parser.parse", () => {
                 { label: "1", action: { type: Grammar.Action_type.Shift, value: { next_state: 2 } } }
             ],
             [ // 7
-                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 3 } } },
-                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 3 } } },
-                { label: "0", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 3 } } },
-                { label: "1", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 3 } } },
-                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 3 } } }
+                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 3, lhs: "E", rhs_count: 3 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 3, lhs: "E", rhs_count: 3 } } },
+                { label: "0", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 3, lhs: "E", rhs_count: 3 } } },
+                { label: "1", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 3, lhs: "E", rhs_count: 3 } } },
+                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 3, lhs: "E", rhs_count: 3 } } }
             ],
             [ // 8
-                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 3 } } },
-                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 3 } } },
-                { label: "0", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 3 } } },
-                { label: "1", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 3 } } },
-                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { lhs: "E", rhs_count: 3 } } }
+                { label: "*", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 3, lhs: "E", rhs_count: 3 } } },
+                { label: "+", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 3, lhs: "E", rhs_count: 3 } } },
+                { label: "0", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 3, lhs: "E", rhs_count: 3 } } },
+                { label: "1", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 3, lhs: "E", rhs_count: 3 } } },
+                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 3, lhs: "E", rhs_count: 3 } } }
             ],
         ];
 
@@ -105,25 +105,30 @@ describe("Parser.parse", () => {
         if (output_node !== undefined) {
 
             assert.equal(output_node.word.value, "S");
+            assert.equal(output_node.production_rule_index, 0);
             assert.equal(output_node.children.length, 1);
 
             const node_0 = output_node.children[0];
             assert.equal(node_0.word.value, "E");
+            assert.equal(node_0.production_rule_index, 3);
             assert.equal(node_0.children.length, 3);
 
             {
                 const node_1 = node_0.children[0];
                 assert.equal(node_1.word.value, "E");
+                assert.equal(node_1.production_rule_index, 2);
                 assert.equal(node_1.children.length, 1);
 
                 {
                     const node_2 = node_1.children[0];
                     assert.equal(node_2.word.value, "B");
+                    assert.equal(node_2.production_rule_index, 1);
                     assert.equal(node_2.children.length, 1);
 
                     {
                         const node_3 = node_2.children[0];
                         assert.equal(node_3.word.value, "1");
+                        assert.equal(node_3.production_rule_index, undefined);
                         assert.equal(node_3.children.length, 0);
                     }
                 }
@@ -132,17 +137,20 @@ describe("Parser.parse", () => {
             {
                 const node_1 = node_0.children[1];
                 assert.equal(node_1.word.value, "+");
+                assert.equal(node_1.production_rule_index, undefined);
                 assert.equal(node_1.children.length, 0);
             }
 
             {
                 const node_1 = node_0.children[2];
                 assert.equal(node_1.word.value, "B");
+                assert.equal(node_1.production_rule_index, 1);
                 assert.equal(node_1.children.length, 1);
 
                 {
                     const node_2 = node_1.children[0];
                     assert.equal(node_2.word.value, "1");
+                    assert.equal(node_2.production_rule_index, undefined);
                     assert.equal(node_2.children.length, 0);
                 }
             }

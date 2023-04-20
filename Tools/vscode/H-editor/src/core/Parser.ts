@@ -6,6 +6,7 @@ const g_debug = false;
 export interface Node {
     word: Scanner.Scanned_word;
     state: number;
+    production_rule_index: number | undefined;
     previous_node_on_stack: Node | undefined;
     father_node: Node | undefined;
     index_in_father: number;
@@ -47,6 +48,7 @@ function clone_node(node: Node): Node {
     return {
         word: { value: node.word.value, type: node.word.type },
         state: node.state,
+        production_rule_index: node.production_rule_index,
         previous_node_on_stack: node.previous_node_on_stack,
         father_node: node.father_node,
         index_in_father: node.index_in_father,
@@ -299,6 +301,7 @@ function create_bottom_of_stack_node(): Node {
     return {
         word: { value: "$", type: Grammar.Word_type.Symbol },
         state: 0,
+        production_rule_index: undefined,
         previous_node_on_stack: undefined,
         father_node: undefined,
         index_in_father: -1,
@@ -372,6 +375,7 @@ export function parse_incrementally(
                     const new_node: Node = {
                         word: { value: accept_action.lhs, type: Grammar.Word_type.Symbol },
                         state: -1,
+                        production_rule_index: 0,
                         previous_node_on_stack: top_of_stack,
                         father_node: undefined,
                         index_in_father: -1,
@@ -462,6 +466,7 @@ export function parse_incrementally(
 
                     const result = apply_reduction(
                         new_node,
+                        reduce_action.production_rule_index,
                         reduce_action.lhs,
                         reduce_action.rhs_count,
                         top_of_stack,
@@ -510,6 +515,7 @@ function apply_shift(
 
 function apply_reduction(
     node: Node,
+    production_rule_index: number,
     production_lhs: string,
     production_rhs_count: number,
     top_of_stack: Node,
@@ -553,6 +559,7 @@ function apply_reduction(
     node.previous_node_on_stack = previous_node_after_reduction;
     node.word = { value: production_lhs, type: Grammar.Word_type.Symbol };
     node.state = go_to_column.next_state;
+    node.production_rule_index = production_rule_index;
 
     if (g_debug) {
         const node_description = node_stack_to_string(node);
@@ -631,6 +638,7 @@ function create_apply_matching_changes(
     const mark_father_clone: Node = {
         word: { value: mark_father.word.value, type: mark_father.word.type },
         state: mark_father.state,
+        production_rule_index: mark_father.production_rule_index,
         previous_node_on_stack: mark_father.previous_node_on_stack,
         father_node: mark_father.father_node,
         index_in_father: mark_father.index_in_father,
@@ -766,7 +774,7 @@ function parse_incrementally_after_change(
                 }
                 else {
                     const new_node = create_bottom_of_stack_node();
-                    const result = apply_reduction(new_node, reduce_action.lhs, reduce_action.rhs_count, top_of_stack, go_to_table, next_word);
+                    const result = apply_reduction(new_node, reduce_action.production_rule_index, reduce_action.lhs, reduce_action.rhs_count, top_of_stack, go_to_table, next_word);
 
                     if (!result.success) {
                         return {
@@ -911,7 +919,7 @@ function perform_actions(
                         }
 
                         const new_node = create_bottom_of_stack_node();
-                        const result = apply_reduction(new_node, reduce_action.lhs, reduce_action.rhs_count, top_of_stack, go_to_table, next_word_node.word);
+                        const result = apply_reduction(new_node, reduce_action.production_rule_index, reduce_action.lhs, reduce_action.rhs_count, top_of_stack, go_to_table, next_word_node.word);
 
                         if (!result.success) {
                             return {

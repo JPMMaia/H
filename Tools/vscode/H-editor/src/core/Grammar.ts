@@ -478,6 +478,7 @@ export interface Accept_action {
 }
 
 export interface Reduce_action {
+    production_rule_index: number;
     lhs: string;
     rhs_count: number;
 }
@@ -525,6 +526,7 @@ export function create_parsing_tables(production_rules: Production_rule[], termi
                     action: {
                         type: Action_type.Reduce,
                         value: {
+                            production_rule_index: item.production_rule_index,
                             lhs: production_rule.lhs,
                             rhs_count: production_rule.rhs.length
                         }
