@@ -318,5 +318,5 @@ function map_terminal_to_word(module: Core.Module, symbol_database: Symbol_datab
         return { value: state.declaration.name, type: Grammar.Word_type.Alphanumeric };
     }
 
-    return { value: terminal, type: Grammar.Word_type.Alphanumeric }; // TODO
+    return { value: terminal, type: Scanner.get_word_type(terminal) };
 }

@@ -236,6 +236,30 @@ function scan_word(code: string, current_offset: number): { word: string, type: 
     }
 }
 
+export function get_word_type(value: string): Grammar.Word_type {
+
+    const first_character = value[0];
+
+    if (is_number(first_character)) {
+        return Grammar.Word_type.Number;
+    }
+    else if (is_letter(first_character)) {
+        return Grammar.Word_type.Alphanumeric;
+    }
+    else if (is_quote(first_character)) {
+        return Grammar.Word_type.String;
+    }
+    else if (is_parenthesis(first_character)) {
+        return Grammar.Word_type.Symbol;
+    }
+    else if (is_symbol(first_character)) {
+        return Grammar.Word_type.Symbol;
+    }
+    else {
+        return Grammar.Word_type.Invalid;
+    }
+}
+
 export interface Scanned_word {
     value: string;
     type: Grammar.Word_type;

@@ -1,3 +1,4 @@
+import * as Grammar from "./Grammar";
 import * as Parser from "./Parser";
 
 export function to_string(root: Parser.Node): string {
@@ -13,22 +14,19 @@ export function to_string(root: Parser.Node): string {
     let current_node: Parser.Node | undefined = root;
     let current_position: number[] = [];
     let current_direction = Parser.Iterate_direction.Down;
+    let is_symbol = true;
 
     while (current_node !== undefined) {
 
         if (current_direction === Parser.Iterate_direction.Down) {
 
             if (current_node.children.length === 0) {
-                if (current_node.word.value === "{") {
-                    total_size += add_word(buffer, create_indentation(indentation_width, indentation_count));
-                    ++indentation_count;
-                }
-                else if (current_node.word.value === "}") {
-                    --indentation_count;
-                }
+                const word = current_node.word;
 
-                const word = current_node.word.value;
-                total_size += add_word(buffer, word);
+                const add_space = !is_symbol && word.type !== Grammar.Word_type.Symbol;
+                is_symbol = word.type === Grammar.Word_type.Symbol;
+
+                total_size += add_word(buffer, add_space ? ` ${word.value}` : word.value);
             }
         }
         else if (current_direction === Parser.Iterate_direction.Up) {
