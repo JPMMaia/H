@@ -88,7 +88,8 @@ function module_to_parse_tree_auxiliary(module: Core.Module, symbol_database: Sy
         previous_node_on_stack: undefined,
         father_node: undefined,
         index_in_father: -1,
-        children: []
+        children: [],
+        text_position: undefined
     };
 
     for (let label_index = 0; label_index < current_production_rule.rhs.length; ++label_index) {
@@ -110,7 +111,8 @@ function module_to_parse_tree_auxiliary(module: Core.Module, symbol_database: Sy
                 previous_node_on_stack: undefined,
                 father_node: parent_node,
                 index_in_father: label_index,
-                children: []
+                children: [],
+                text_position: undefined
             };
 
             parent_node.children.push(child_node);
@@ -123,6 +125,8 @@ function module_to_parse_tree_auxiliary(module: Core.Module, symbol_database: Sy
 
             const child_node = module_to_parse_tree_auxiliary(module, symbol_database, declarations, production_rules, next_production_rule_index, next_state);
 
+            child_node.index_in_father = label_index;
+            child_node.father_node = parent_node;
             parent_node.children.push(child_node);
         }
     }

@@ -3,6 +3,11 @@ import * as Scanner from "./Scanner";
 
 const g_debug = false;
 
+export interface Text_position {
+    line: number;
+    column: number;
+}
+
 export interface Node {
     word: Scanner.Scanned_word;
     state: number;
@@ -11,6 +16,7 @@ export interface Node {
     father_node: Node | undefined;
     index_in_father: number;
     children: Node[];
+    text_position: Text_position | undefined;
 }
 
 function get_node_at_position(root: Node, position: number[]): Node {
@@ -52,7 +58,8 @@ function clone_node(node: Node): Node {
         previous_node_on_stack: node.previous_node_on_stack,
         father_node: node.father_node,
         index_in_father: node.index_in_father,
-        children: node.children
+        children: node.children,
+        text_position: node.text_position
     };
 }
 
@@ -305,7 +312,8 @@ function create_bottom_of_stack_node(): Node {
         previous_node_on_stack: undefined,
         father_node: undefined,
         index_in_father: -1,
-        children: []
+        children: [],
+        text_position: undefined
     };
 }
 
@@ -379,7 +387,8 @@ export function parse_incrementally(
                         previous_node_on_stack: top_of_stack,
                         father_node: undefined,
                         index_in_father: -1,
-                        children: children
+                        children: children,
+                        text_position: undefined
                     };
 
                     for (let index = 0; index < children.length; ++index) {
@@ -642,7 +651,8 @@ function create_apply_matching_changes(
         previous_node_on_stack: mark_father.previous_node_on_stack,
         father_node: mark_father.father_node,
         index_in_father: mark_father.index_in_father,
-        children: cloned_top_nodes
+        children: cloned_top_nodes,
+        text_position: mark_father.text_position
     };
 
     for (let index = 0; index < cloned_top_nodes.length; ++index) {
