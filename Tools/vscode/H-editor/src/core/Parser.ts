@@ -30,6 +30,85 @@ function get_node_at_position(root: Node, position: number[]): Node {
     return current_node;
 }
 
+function find_child_at_text_position(children: Node[], text_position: Text_position): number {
+
+    for (let child_index = 0; child_index < children.length; ++child_index) {
+        const child_node = children[child_index];
+
+        const child_text_position = child_node.text_position as Text_position;
+        if (child_text_position.line > text_position.line) {
+            return child_index - 1;
+        }
+
+        if (child_text_position.line === text_position.line && child_text_position.column > text_position.column) {
+            return child_index - 1;
+        }
+
+        if (child_text_position.line === text_position.line && child_text_position.column === text_position.column) {
+            return child_index;
+        }
+    }
+
+    return children.length - 1;
+}
+
+function get_closest_node_position_to_text_position(root: Node, text_position: Text_position): number[] {
+
+    const current_node_position: number[] = [];
+    let current_node = root;
+
+    while (current_node.children.length > 0) {
+        const child_index = find_child_at_text_position(current_node.children, text_position);
+        current_node_position.push(child_index);
+        current_node = current_node.children[child_index];
+    }
+
+    return current_node_position;
+}
+
+function get_next_node_position(root: Node, current_node: Node, current_node_position: number[]): number[] {
+    const result = iterate_forward(root, current_node, current_node_position);
+    return result !== undefined ? result.next_position : [];
+}
+
+export function scan_new_change(
+    root: Node,
+    start_text_position: Text_position,
+    end_text_position: Text_position,
+    new_text: string
+): { start_change_node_position: number[], after_change_node_position: number[], new_words: Scanner.Scanned_word[] } {
+
+    const start_node_position = get_closest_node_position_to_text_position(root, start_text_position);
+    const start_node = get_node_at_position(root, start_node_position);
+
+    const end_node_position = get_closest_node_position_to_text_position(root, end_text_position);
+    const end_node = get_node_at_position(root, end_node_position);
+
+    const start_node_text_column = (start_node.text_position as Text_position).column;
+    const begin_text_end = start_text_position.column - start_node_text_column;
+    const begin_text = start_node.word.value.substring(0, begin_text_end);
+
+    const end_node_text_column = (end_node.text_position as Text_position).column;
+    const end_text_begin = end_text_position.column - end_node_text_column;
+    const end_text = end_node.word.value.substring(end_text_begin, end_node.word.value.length);
+
+    const whole_new_text = begin_text + new_text + end_text;
+
+    const new_words = Scanner.scan(whole_new_text, 0, whole_new_text.length);
+
+    const is_same_first_word = new_words.length > 0 && new_words[0].value === start_node.word.value && new_words[0].type === start_node.word.type;
+    const start_change_node_position = is_same_first_word ? get_next_node_position(root, start_node, start_node_position) : start_node_position;
+
+    const after_end_node_result = iterate_forward(root, end_node, end_node_position);
+    const after_change_node_position = after_end_node_result !== undefined ? after_end_node_result.next_position : [];
+
+    return {
+        start_change_node_position: start_change_node_position,
+        after_change_node_position: after_change_node_position,
+        new_words: is_same_first_word ? new_words.slice(1, new_words.length) : new_words
+    };
+}
+
 function get_node_stack(node: Node): Node[] {
 
     const nodes: Node[] = [];
