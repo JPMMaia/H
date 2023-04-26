@@ -8,6 +8,8 @@ import * as Symbol_database from "../core/Symbol_database";
 export interface H_document {
     module: Core.Module;
     production_rules: Grammar.Production_rule[];
+    actions_table: Grammar.Action_column[][];
+    go_to_table: Grammar.Go_to_column[][];
     map_word_to_terminal: (word: Grammar.Word) => string;
     parse_tree: Parser.Node;
     symbol_database: Symbol_database.Edit_module_database;
