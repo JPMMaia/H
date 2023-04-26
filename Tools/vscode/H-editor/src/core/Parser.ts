@@ -43,10 +43,6 @@ function find_child_at_text_position(children: Node[], text_position: Text_posit
         if (child_text_position.line === text_position.line && child_text_position.column > text_position.column) {
             return child_index - 1;
         }
-
-        if (child_text_position.line === text_position.line && child_text_position.column === text_position.column) {
-            return child_index;
-        }
     }
 
     return children.length - 1;
