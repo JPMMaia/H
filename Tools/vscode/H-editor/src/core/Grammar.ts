@@ -387,7 +387,7 @@ export function create_next_lr1_item_set(production_rules: Production_rule[], te
     // Compute closure:
     const new_item_set_closure = compute_lr1_closure(production_rules, terminals, new_item_set);
 
-    const debug = true;
+    const debug = false;
 
     if (debug) {
         console.log("------ LR1 Item Set ------");
