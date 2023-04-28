@@ -32,20 +32,34 @@ function get_node_at_position(root: Node, position: number[]): Node {
 
 function find_child_at_text_position(children: Node[], text_position: Text_position): number {
 
+    const get_child_index = (child_index: number): number => {
+
+        // Return previous child if text position is at the end of the word:
+        if (child_index - 1 > 0) {
+            const sibling = children[child_index - 1];
+            const sibling_text_position = sibling.text_position as Text_position;
+            if (sibling_text_position.line === text_position.line && sibling_text_position.column + sibling.word.value.length === text_position.column) {
+                return child_index - 1;
+            }
+        }
+
+        return child_index;
+    };
+
     for (let child_index = 0; child_index < children.length; ++child_index) {
         const child_node = children[child_index];
 
         const child_text_position = child_node.text_position as Text_position;
         if (child_text_position.line > text_position.line) {
-            return child_index - 1;
+            return get_child_index(child_index - 1);
         }
 
         if (child_text_position.line === text_position.line && child_text_position.column > text_position.column) {
-            return child_index - 1;
+            return get_child_index(child_index - 1);
         }
     }
 
-    return children.length - 1;
+    return get_child_index(children.length - 1);
 }
 
 function get_closest_node_position_to_text_position(root: Node, text_position: Text_position): number[] {
