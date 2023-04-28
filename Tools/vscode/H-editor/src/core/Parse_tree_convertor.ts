@@ -317,7 +317,7 @@ function map_terminal_to_word(module: Core.Module, symbol_database: Symbol_datab
         const state = current_state.value as Function_state;
         return { value: state.declaration.name, type: Grammar.Word_type.Alphanumeric };
     }
-    else if (parent_label === "Enum_name") {
+    else if (parent_label === "Struct_name") {
         const state = current_state.value as Struct_state;
         return { value: state.declaration.name, type: Grammar.Word_type.Alphanumeric };
     }
