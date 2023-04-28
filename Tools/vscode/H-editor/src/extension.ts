@@ -20,6 +20,7 @@ import * as core_helpers from "./utilities/coreModelInterfaceHelpers";
 import * as Grammar from "./core/Grammar";
 import * as Module_change from "./core/Module_change";
 import * as Parser from "./core/Parser";
+import * as Scanner from "./core/Scanner";
 import * as type_utilities from "./utilities/Type_utilities";
 import * as Scanner from "./core/Scanner";
 import * as Symbol_database from "./core/Symbol_database";
@@ -447,47 +448,76 @@ export function activate(context: ExtensionContext) {
 
             for (const content_change of e.contentChanges) {
 
-              const root: Abstract_syntax_tree.Node = document_data.abstract_syntax_tree;
+              const scanned_input_change = Parser.scan_new_change(
+                document_data.parse_tree,
+                { line: content_change.range.start.line, column: content_change.range.start.character },
+                { line: content_change.range.end.line, column: content_change.range.end.character },
+                content_change.text
+              );
 
-              const start_node_position = Abstract_syntax_tree.find_node_position(root, content_change.rangeOffset);
-              const start_main_node_position = Abstract_syntax_tree.find_top_level_node_position(root, start_node_position);
+              if (scanned_input_change.new_words.length > 0) {
 
-              const end_node_position = Abstract_syntax_tree.find_node_position(root, content_change.rangeOffset + content_change.rangeLength);
-              const end_main_node_position = Abstract_syntax_tree.find_top_level_node_position(root, end_node_position);
+                const parse_result = Parser.parse_incrementally(
+                  document_data.parse_tree,
+                  scanned_input_change.start_change_node_position,
+                  scanned_input_change.new_words,
+                  scanned_input_change.after_change_node_position,
+                  document_data.actions_table,
+                  document_data.go_to_table,
+                  document_data.map_word_to_terminal
+                );
 
-              const common_node_position = Abstract_syntax_tree.find_node_common_root(start_main_node_position, end_main_node_position);
+                // TODO figure out errors...
 
-              const should_get_parent = ((common_node_position.length === start_main_node_position.length) || (common_node_position.length === end_main_node_position.length)) && common_node_position.length > 0;
-              const parent_node_position = should_get_parent ? common_node_position.slice(0, common_node_position.length - 1) : common_node_position;
+                // Create symbol changes
+                // Create module changes
 
-              const start_child_index = start_main_node_position[parent_node_position.length];
-              const end_child_index = end_main_node_position[parent_node_position.length] + 1;
+                // Apply parse tree changes
+                // Apply symbol changes
+                // Apply module changes
+              }
 
-              for (let child_index = start_child_index; child_index < end_child_index; ++child_index) {
+              // Update parse tree text position
 
-                const child_node_position = [...parent_node_position, child_index];
-                const child_node = Abstract_syntax_tree.get_node_at_position(root, child_node_position);
-                const child_node_offset_range = Abstract_syntax_tree.find_node_range(root, -1, common_node_position);
+              /*const root: Abstract_syntax_tree.Node = document_data.abstract_syntax_tree;
 
-                const text_adjusted_offset_range = { start: child_node_offset_range.start, end: child_node_offset_range.end - content_change.rangeLength + content_change.text.length };
+              const nodes_range = Abstract_syntax_tree.find_nodes_of_range(root, content_change.rangeOffset, content_change.rangeOffset + content_change.rangeLength);
 
-                const text_adjusted_range = new vscode.Range(e.document.positionAt(text_adjusted_offset_range.start), e.document.positionAt(text_adjusted_offset_range.end));
-                const text = e.document.getText(text_adjusted_range);
+              if (nodes_range.parent_position !== undefined) {
 
-                {
-                  const scanned_words = Scanner.scan(text);
-                  const new_node = Parser.parse(scanned_words, 0, document_data.grammar, child_node.token).node;
+                const parent_position = nodes_range.parent_position;
+                const start_child_index = nodes_range.child_indices.start;
+                const end_child_index = nodes_range.child_indices.end;
 
-                  const abstract_syntax_tree_change = Abstract_syntax_tree_change.create_change(new_node);
-                  Abstract_syntax_tree_change.update(document_data.abstract_syntax_tree, abstract_syntax_tree_change);
+                for (let child_index = start_child_index; child_index < end_child_index; ++child_index) {
 
-                  const symbol_database_change = Symbol_database_change.create_change(new_node);
-                  Symbol_database_change.update(document_data.symbol_database, symbol_database_change);
+                  const child_node_position = [...parent_position, child_index];
+                  const child_node = Abstract_syntax_tree.get_node_at_position(root, child_node_position);
+                  const child_node_offset_range = Abstract_syntax_tree.find_node_range(root, -1, child_node_position);
 
-                  const module_change = Module_change.create_change(new_node);
-                  Module_change.update(document_data.module, module_change);
+                  const text_adjusted_offset_range = { start: child_node_offset_range.start, end: child_node_offset_range.end - content_change.rangeLength + content_change.text.length };
+
+                  const text_adjusted_range = new vscode.Range(e.document.positionAt(text_adjusted_offset_range.start), e.document.positionAt(text_adjusted_offset_range.end));
+                  const text = e.document.getText(text_adjusted_range);
+
+                  {
+                    const scanned_words = Scanner.scan(text);
+                    const new_node = Parser.parse(scanned_words, 0, document_data.grammar, child_node.token).node;
+
+                    const abstract_syntax_tree_change = Abstract_syntax_tree_change.create_replace_change(child_node_position, new_node);
+                    Abstract_syntax_tree_change.update(document_data.abstract_syntax_tree, abstract_syntax_tree_change);
+
+                    const symbol_database_change = Symbol_database_change.create_change(new_node);
+                    Symbol_database_change.update(document_data.symbol_database, symbol_database_change);
+
+                    const module_change = Module_change.create_change(new_node);
+                    Module_change.update(document_data.module, module_change);
+                  }
                 }
               }
+              else {
+                throw Error("Not implemented!");
+              }*/
             }
           }
         }
