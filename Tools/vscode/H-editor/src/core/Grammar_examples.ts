@@ -131,6 +131,7 @@ export function create_test_grammar_9_description(): string[] {
         "Export -> ",
         "Alias -> Export using Alias_name = Alias_type ;",
         "Alias_name -> identifier",
+        "Alias_type -> identifier",
         "Enum -> Export enum Enum_name { }",
         "Enum_name -> identifier",
         "Struct -> Export struct Struct_name { }",
