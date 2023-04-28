@@ -1,6 +1,7 @@
 import * as Core from "../utilities/coreModelInterface";
 import { onThrowError } from "../utilities/errors";
 import * as Grammar from "./Grammar";
+import * as Module_change from "../utilities/Change";
 import * as Parser from "./Parser";
 import * as Scanner from "./Scanner";
 import * as Symbol_database from "./Symbol_database";
@@ -323,4 +324,18 @@ function map_terminal_to_word(module: Core.Module, symbol_database: Symbol_datab
     }
 
     return { value: terminal, type: Scanner.get_word_type(terminal) };
+}
+
+
+export function create_module_changes(
+    module: Core.Module,
+    symbol_database: Symbol_database.Edit_module_database,
+    declarations: Declaration[],
+    production_rules: Grammar.Production_rule[],
+    parse_tree: Parser.Node,
+    parse_tree_change: Parser.Modify_change
+): Module_change.Change[] {
+
+
+    return [];
 }
