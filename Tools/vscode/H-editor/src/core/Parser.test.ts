@@ -262,6 +262,117 @@ describe("Parser.scan_new_change", () => {
         assert.deepEqual(result.new_words, [{ value: "modulename", type: Grammar.Word_type.Alphanumeric }]);
         assert.deepEqual(result.after_change_node_position, [2]);
     });
+
+    it("Scans change 7", () => {
+
+        const parse_tree = create_parse_node(
+            "S",
+            { line: 0, column: 0 },
+            [
+                create_parse_node("module", { line: 0, column: 0 }, []),
+                create_parse_node("name", { line: 0, column: 7 }, []),
+                create_parse_node(";", { line: 0, column: 11 }, []),
+            ]
+        );
+
+        const start_text_position: Parser.Text_position = {
+            line: 0,
+            column: 11
+        };
+
+        const end_text_position: Parser.Text_position = {
+            line: 0,
+            column: 11
+        };
+
+        const new_text = "_";
+
+        const result = Parser.scan_new_change(
+            parse_tree,
+            start_text_position,
+            end_text_position,
+            new_text
+        );
+
+        assert.deepEqual(result.start_change_node_position, [1]);
+        assert.deepEqual(result.new_words, [{ value: "name_", type: Grammar.Word_type.Alphanumeric }]);
+        assert.deepEqual(result.after_change_node_position, [2]);
+    });
+
+    it("Scans change 8", () => {
+
+        const parse_tree = create_parse_node(
+            "S",
+            { line: 0, column: 0 },
+            [
+                create_parse_node("Export", { line: 0, column: 0 }, [
+                    create_parse_node("export", { line: 0, column: 0 }, [])
+                ]),
+                create_parse_node("struct", { line: 0, column: 7 }, [])
+            ]
+        );
+
+        const start_text_position: Parser.Text_position = {
+            line: 0,
+            column: 0
+        };
+
+        const end_text_position: Parser.Text_position = {
+            line: 0,
+            column: 0
+        };
+
+        const new_text = "_";
+
+        const result = Parser.scan_new_change(
+            parse_tree,
+            start_text_position,
+            end_text_position,
+            new_text
+        );
+
+        assert.deepEqual(result.start_change_node_position, [0, 0]);
+        assert.deepEqual(result.new_words, [{ value: "_export", type: Grammar.Word_type.Alphanumeric }]);
+        assert.deepEqual(result.after_change_node_position, [1]);
+    });
+
+    it("Scans change 9", () => {
+
+        const parse_tree = create_parse_node(
+            "S",
+            { line: 0, column: 0 },
+            [
+                create_parse_node("Export", { line: 0, column: 0 }, []),
+                create_parse_node("struct", { line: 0, column: 0 }, []),
+                create_parse_node("Struct_name", { line: 0, column: 7 }, [
+                    create_parse_node("name", { line: 0, column: 7 }, []),
+                ]),
+            ]
+        );
+
+        const start_text_position: Parser.Text_position = {
+            line: 0,
+            column: 0
+        };
+
+        const end_text_position: Parser.Text_position = {
+            line: 0,
+            column: 0
+        };
+
+        const new_text = "_";
+
+        const result = Parser.scan_new_change(
+            parse_tree,
+            start_text_position,
+            end_text_position,
+            new_text
+        );
+
+        assert.deepEqual(result.start_change_node_position, [1]);
+        assert.deepEqual(result.new_words, [{ value: "_struct", type: Grammar.Word_type.Alphanumeric }]);
+        assert.deepEqual(result.after_change_node_position, [2, 0]);
+    });
 });
 
 describe("Parser.parse", () => {

@@ -109,8 +109,8 @@ export function scan_new_change(
     const is_same_first_word = new_words.length > 0 && new_words[0].value === start_node.word.value && new_words[0].type === start_node.word.type;
     const start_change_node_position = is_same_first_word ? get_next_node_position(root, start_node, start_node_position) : start_node_position;
 
-    const after_end_node_result = iterate_forward(root, end_node, end_node_position);
-    const after_change_node_position = after_end_node_result !== undefined ? after_end_node_result.next_position : [];
+    const after_end_node_result = get_next_leaf_node(root, end_node, end_node_position);
+    const after_change_node_position = after_end_node_result !== undefined ? after_end_node_result.position : [];
 
     return {
         start_change_node_position: start_change_node_position,
