@@ -341,7 +341,7 @@ export enum Change_type {
 
 export interface Change {
     type: Change_type,
-    value: Add_change | Remove_change
+    value: Add_change | Remove_change | Modify_change
 }
 
 export interface Add_change {
