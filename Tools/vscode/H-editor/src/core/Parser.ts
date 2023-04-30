@@ -797,6 +797,7 @@ function parse_incrementally_after_change(
                     changes: []
                 };
             }
+            rightmost_brother.previous_node_on_stack = top_of_stack.previous_node_on_stack;
             top_of_stack = rightmost_brother;
 
             const next_word = next_word_node.word;
