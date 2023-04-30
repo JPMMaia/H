@@ -326,7 +326,6 @@ function map_terminal_to_word(module: Core.Module, symbol_database: Symbol_datab
     return { value: terminal, type: Scanner.get_word_type(terminal) };
 }
 
-
 export function create_module_changes(
     module: Core.Module,
     symbol_database: Symbol_database.Edit_module_database,
@@ -334,8 +333,26 @@ export function create_module_changes(
     production_rules: Grammar.Production_rule[],
     parse_tree: Parser.Node,
     parse_tree_change: Parser.Modify_change
-): Module_change.Change[] {
+): { position: any[], change: Module_change.Change }[] {
 
+    const changes: { position: any[], change: Module_change.Change }[] = [];
 
-    return [];
+    const node_stack: Parser.Node[] = [];
+    node_stack.push(parse_tree_change.new_node);
+
+    while (node_stack.length > 0) {
+        const current_node = node_stack.pop() as Parser.Node;
+
+        if (current_node.production_rule_index === 3) {
+            const position: any[] = [];
+            const change = Module_change.create_update("name", current_node.children[0].word.value);
+            changes.push({ position: position, change: change });
+        }
+
+        for (let index_plus_one = current_node.children.length; index_plus_one > 0; --index_plus_one) {
+            node_stack.push(current_node.children[index_plus_one - 1]);
+        }
+    }
+
+    return changes;
 }

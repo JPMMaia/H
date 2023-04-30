@@ -4,6 +4,7 @@ import * as assert from "assert";
 
 import * as Grammar from "./Grammar";
 import * as Grammar_examples from "./Grammar_examples";
+import * as Module_change from "../utilities/Change";
 import * as Module_examples from "./Module_examples";
 import * as Parse_tree_convertor from "./Parse_tree_convertor";
 import * as Parser from "./Parser";
@@ -133,6 +134,17 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         const module_changes = Parse_tree_convertor.create_module_changes(module, symbol_database, declarations, production_rules, parse_tree, parse_result.changes[0].value as Parser.Modify_change);
 
+        assert.equal(module_changes.length, 1);
 
+        {
+            const change = module_changes[0];
+            assert.deepEqual(change.position, []);
+
+            assert.equal(change.change.type, Module_change.Type.Update);
+
+            const update_change = change.change.value as Module_change.Update;
+            assert.equal(update_change.key, "name");
+            assert.equal(update_change.value, "module_name_2");
+        }
     });
 });
