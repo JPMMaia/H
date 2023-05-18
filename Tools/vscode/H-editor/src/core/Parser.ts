@@ -482,6 +482,16 @@ function get_next_word(
     return { value: "$", type: Grammar.Word_type.Symbol };
 }
 
+function get_end_position(root: Node): Node {
+    let current_node = root;
+
+    while (current_node.children.length > 0) {
+        current_node = current_node.children[current_node.children.length - 1];
+    }
+
+    return current_node;
+}
+
 function get_start_top_of_stack_node(original_node_tree: Node | undefined, start_change_node_position: number[]): Node {
 
     if (original_node_tree === undefined) {
@@ -491,13 +501,7 @@ function get_start_top_of_stack_node(original_node_tree: Node | undefined, start
     const start_at_end_position = !is_valid_position(original_node_tree, start_change_node_position);
 
     if (start_at_end_position) {
-        let current_node = original_node_tree;
-
-        while (current_node.children.length > 0) {
-            current_node = current_node.children[current_node.children.length - 1];
-        }
-
-        return current_node;
+        return get_end_position(original_node_tree);
     }
     else {
         return get_node_from_stack(get_node_at_position(original_node_tree, start_change_node_position), 1) as Node;
@@ -549,31 +553,60 @@ export function parse_incrementally(
                     // Handle add/delete elements at the end of an array:
                     {
                         const array_info = array_infos.get(top_of_stack.word.value);
-                        if (array_info !== undefined) {
+                        if (array_info !== undefined && original_node_tree !== undefined) {
 
-                            // TODO handle separator...
                             const before_start_node = get_start_top_of_stack_node(original_node_tree, start_change_node_position);
                             const before_start_element = get_parent_node_with_label(before_start_node, array_info.element_label, map_word_to_terminal);
 
+                            // TODO handle separator...
+                            const is_start_node_end_of_tree = !is_valid_position(original_node_tree, start_change_node_position);
+                            const start_node = !is_start_node_end_of_tree ? get_node_at_position(original_node_tree, start_change_node_position) : undefined;
+                            const start_element = start_node !== undefined ? get_parent_node_with_label(start_node, array_info.element_label, map_word_to_terminal) : undefined;
+
+                            const is_after_change_end_of_tree = !is_valid_position(original_node_tree, after_change_node_position);
+                            const after_change_node = !is_after_change_end_of_tree ? get_node_at_position(original_node_tree, after_change_node_position) : undefined;
+                            const after_change_element = after_change_node !== undefined ? get_parent_node_with_label(after_change_node, array_info.element_label, map_word_to_terminal) : undefined;
+
+                            if (before_start_element !== undefined && (after_change_element !== undefined || is_after_change_end_of_tree)) {
+
+                                const before_start_element_position = get_node_position(before_start_element);
+                                const parent_position = before_start_element_position.slice(0, before_start_element_position.length - 1);
+
                             const changes: Change[] = [];
 
-                            if (before_start_element !== undefined) { // TODO if undefined, fallback
+                                // Handle deletes:
+                                {
+                                    const parent_node = (before_start_element.father_node as Node);
+                                    const start_index = (start_element === undefined) ? parent_node.children.length : start_element.index_in_father;
+                                    const end_index = (after_change_element === undefined) ? parent_node.children.length : after_change_element.index_in_father;
+                                    const count = end_index - start_index;
+
+                                    if (count > 0) {
+                                        const delete_change = create_remove_change(parent_position, start_index, end_index - start_index);
+                                        changes.push(delete_change);
+                                    }
+                                }
+
+                                // Handle additions:
+                                {
                                 const start_index = before_start_element.index_in_father + 1;
                                 const end_index = top_of_stack.children.length;
 
                                 const new_nodes = top_of_stack.children.slice(start_index, end_index);
 
-                                const before_start_element_position = get_node_position(before_start_element);
-                                const parent_position = before_start_element_position.slice(0, before_start_element_position.length - 1);
+                                    if (new_nodes.length > 0) {
                                 const add_change = create_add_change(parent_position, start_index, new_nodes);
-
                                 changes.push(add_change);
+                                    }
+                                }
 
+                                if (changes.length > 0) {
                                 return {
                                     status: Parse_status.Accept,
                                     processed_words: current_word_index,
                                     changes: changes
                                 };
+                                }
                             }
                         }
                     }

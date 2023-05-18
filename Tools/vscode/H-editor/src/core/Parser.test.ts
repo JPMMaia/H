@@ -1215,8 +1215,8 @@ describe("Parser.parse_incrementally", () => {
 
         const second_input = "id id";
         const second_scanned_words = Scanner.scan(second_input, 0, second_input.length);
-        const start_change_node_position: number[] = [0, 0, 10];
-        const after_change_node_position: number[] = [0, 0, 10];
+        const start_change_node_position: number[] = [0, 10, 0];
+        const after_change_node_position: number[] = [0, 10, 0];
 
         const second_parse_result = Parser.parse_incrementally(
             (first_parse_result.changes[0].value as Parser.Modify_change).new_node,
@@ -1262,7 +1262,67 @@ describe("Parser.parse_incrementally", () => {
         }
     });
 
-    // TODO add test that adds first, second and last element
+    it("Parses removing element at the end of an array", () => {
+
+        const grammar_description = Grammar_examples.create_test_grammar_10_description();
+        const production_rules = Grammar.create_production_rules(grammar_description);
+        const non_terminals = Grammar.get_non_terminals(production_rules);
+        const terminals = Grammar.get_terminals(production_rules, non_terminals);
+        const lr1_item_set_0 = Grammar.create_start_lr1_item_set(production_rules, terminals);
+        const graph = Grammar.create_lr1_graph(production_rules, terminals, lr1_item_set_0);
+        const parsing_tables = Grammar.create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
+        const array_infos = Grammar.create_array_infos(production_rules);
+
+        const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
+            return word.value;
+        };
+
+        const first_input = "id id id id";
+        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length);
+        const first_parse_result = Parser.parse_incrementally(
+            undefined,
+            [],
+            first_scanned_words,
+            [],
+            parsing_tables.action_table,
+            parsing_tables.go_to_table,
+            array_infos,
+            map_word_to_terminal
+        );
+
+        const second_input = "";
+        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length);
+        const start_change_node_position: number[] = [0, 3, 0];
+        const after_change_node_position: number[] = [0, 4, 0];
+
+        const second_parse_result = Parser.parse_incrementally(
+            (first_parse_result.changes[0].value as Parser.Modify_change).new_node,
+            start_change_node_position,
+            second_scanned_words,
+            after_change_node_position,
+            parsing_tables.action_table,
+            parsing_tables.go_to_table,
+            array_infos,
+            map_word_to_terminal
+        );
+
+        assert.notEqual(second_parse_result, undefined);
+
+        assert.equal(second_parse_result.status, Parser.Parse_status.Accept);
+
+        assert.equal(second_parse_result.changes.length, 1);
+
+        const change = second_parse_result.changes[0];
+
+        assert.equal(change.type, Parser.Change_type.Remove);
+
+        const remove_change = change.value as Parser.Remove_change;
+
+        assert.deepEqual(remove_change.parent_position, [0]);
+        assert.equal(remove_change.index, 3);
+        assert.equal(remove_change.count, 1);
+    });
+
     // TODO add test that removes first, second and last element
 
     // TODO add tests for separators
