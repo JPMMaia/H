@@ -30,6 +30,20 @@ function get_node_at_position(root: Node, position: number[]): Node {
     return current_node;
 }
 
+function is_valid_position(root: Node, position: number[]): boolean {
+    let current_node = root;
+
+    for (const child_index of position) {
+        if (child_index >= current_node.children.length) {
+            return false;
+        }
+
+        current_node = current_node.children[child_index];
+    }
+
+    return true;
+}
+
 function find_child_at_text_position(children: Node[], text_position: Text_position): number {
 
     const get_child_index = (child_index: number): number => {
@@ -195,23 +209,59 @@ function get_node_from_stack(top_of_stack: Node, index: number): Node | undefine
     return get_node_from_stack(top_of_stack.previous_node_on_stack, index - 1);
 }
 
-function get_top_nodes_from_stack(top_of_stack: Node, count: number): Node[] | undefined {
+function get_top_nodes_from_stack(top_of_stack: Node, count: number, array_info: Grammar.Array_info | undefined): Node[] | undefined {
 
     const nodes: Node[] = [];
 
     let current_node = top_of_stack;
 
-    for (let index = 0; index < count; ++index) {
-        nodes.push(current_node);
+    if (array_info !== undefined) {
 
-        if (current_node.previous_node_on_stack === undefined) {
-            return undefined;
+        const has_separator = array_info.separator_label.length > 0;
+
+        while (true) {
+
+            if (has_separator) {
+                if ((nodes.length % 2) === 0) {
+                    const is_element = current_node.word.value === array_info.element_label;
+                    if (!is_element) {
+                        return nodes;
+                    }
+                }
+                else {
+                    const is_separator = current_node.word.value === array_info.separator_label;
+                    if (!is_separator) {
+                        return nodes;
+                    }
+                }
+            }
+
+            nodes.push(current_node);
+
+            if (current_node.previous_node_on_stack === undefined) {
+                return nodes;
+            }
+
+            current_node = current_node.previous_node_on_stack;
+
+            if (current_node.word.value !== top_of_stack.word.value) {
+                return nodes;
+            }
+        }
+    }
+    else {
+        for (let index = 0; index < count; ++index) {
+            nodes.push(current_node);
+
+            if (current_node.previous_node_on_stack === undefined) {
+                return undefined;
+            }
+
+            current_node = current_node.previous_node_on_stack;
         }
 
-        current_node = current_node.previous_node_on_stack;
+        return nodes;
     }
-
-    return nodes;
 }
 
 function get_rightmost_brother(node: Node): Node | undefined {
@@ -307,7 +357,7 @@ export function iterate_forward(root: Node, current_node: Node, current_position
     };
 }
 
-export function parse(input: Scanner.Scanned_word[], parsing_table: Grammar.Action_column[][], go_to_table: Grammar.Go_to_column[][], map_word_to_terminal: (word: Scanner.Scanned_word) => string): Node | undefined {
+export function parse(input: Scanner.Scanned_word[], parsing_table: Grammar.Action_column[][], go_to_table: Grammar.Go_to_column[][], array_infos: Map<string, Grammar.Array_info>, map_word_to_terminal: (word: Scanner.Scanned_word) => string): Node | undefined {
 
     const result = parse_incrementally(
         undefined,
@@ -316,6 +366,7 @@ export function parse(input: Scanner.Scanned_word[], parsing_table: Grammar.Acti
         [],
         parsing_table,
         go_to_table,
+        array_infos,
         map_word_to_terminal
     );
 
@@ -345,29 +396,35 @@ export interface Change {
 }
 
 export interface Add_change {
-    position: number[];
-    new_node: Node;
+    parent_position: number[];
+    index: number;
+    new_nodes: Node[];
 }
 
-function create_add_change(position: number[], new_node: Node): Change {
+function create_add_change(parent_position: number[], child_index: number, new_nodes: Node[]): Change {
     return {
         type: Change_type.Add,
         value: {
-            position: position,
-            new_node: new_node
+            parent_position: parent_position,
+            index: child_index,
+            new_nodes: new_nodes
         }
     };
 }
 
 export interface Remove_change {
-    position: number[];
+    parent_position: number[];
+    index: number;
+    count: number;
 }
 
-function create_remove_change(position: number[]): Change {
+function create_remove_change(parent_position: number[], child_index: number, count: number): Change {
     return {
         type: Change_type.Remove,
         value: {
-            position: position
+            parent_position: parent_position,
+            index: child_index,
+            count: count
         }
     };
 }
@@ -417,12 +474,34 @@ function get_next_word(
         return new_words[current_word_index];
     }
 
-    if (original_node_tree !== undefined) {
+    if (original_node_tree !== undefined && is_valid_position(original_node_tree, after_change_node_position)) {
         const node = get_node_at_position(original_node_tree, after_change_node_position);
         return node.word;
     }
 
     return { value: "$", type: Grammar.Word_type.Symbol };
+}
+
+function get_start_top_of_stack_node(original_node_tree: Node | undefined, start_change_node_position: number[]): Node {
+
+    if (original_node_tree === undefined) {
+        return create_bottom_of_stack_node();
+    }
+
+    const start_at_end_position = !is_valid_position(original_node_tree, start_change_node_position);
+
+    if (start_at_end_position) {
+        let current_node = original_node_tree;
+
+        while (current_node.children.length > 0) {
+            current_node = current_node.children[current_node.children.length - 1];
+        }
+
+        return current_node;
+    }
+    else {
+        return get_node_from_stack(get_node_at_position(original_node_tree, start_change_node_position), 1) as Node;
+    }
 }
 
 export function parse_incrementally(
@@ -432,10 +511,11 @@ export function parse_incrementally(
     after_change_node_position: number[],
     parsing_table: Grammar.Action_column[][],
     go_to_table: Grammar.Go_to_column[][],
+    array_infos: Map<string, Grammar.Array_info>,
     map_word_to_terminal: (word: Scanner.Scanned_word) => string
 ): { status: Parse_status, processed_words: number, changes: Change[] } {
 
-    let top_of_stack: Node = original_node_tree === undefined ? create_bottom_of_stack_node() : get_node_from_stack(get_node_at_position(original_node_tree, start_change_node_position), 1) as Node;
+    let top_of_stack = get_start_top_of_stack_node(original_node_tree, start_change_node_position);
     let mark = top_of_stack;
 
     let current_word_index = 0;
@@ -466,7 +546,39 @@ export function parse_incrementally(
                         console.log(`accept`);
                     }
 
-                    const children = get_top_nodes_from_stack(top_of_stack, accept_action.rhs_count) as Node[];
+                    // Handle add/delete elements at the end of an array:
+                    {
+                        const array_info = array_infos.get(top_of_stack.word.value);
+                        if (array_info !== undefined) {
+
+                            // TODO handle separator...
+                            const before_start_node = get_start_top_of_stack_node(original_node_tree, start_change_node_position);
+                            const before_start_element = get_parent_node_with_label(before_start_node, array_info.element_label, map_word_to_terminal);
+
+                            const changes: Change[] = [];
+
+                            if (before_start_element !== undefined) { // TODO if undefined, fallback
+                                const start_index = before_start_element.index_in_father + 1;
+                                const end_index = top_of_stack.children.length;
+
+                                const new_nodes = top_of_stack.children.slice(start_index, end_index);
+
+                                const before_start_element_position = get_node_position(before_start_element);
+                                const parent_position = before_start_element_position.slice(0, before_start_element_position.length - 1);
+                                const add_change = create_add_change(parent_position, start_index, new_nodes);
+
+                                changes.push(add_change);
+
+                                return {
+                                    status: Parse_status.Accept,
+                                    processed_words: current_word_index,
+                                    changes: changes
+                                };
+                            }
+                        }
+                    }
+
+                    const children = get_top_nodes_from_stack(top_of_stack, accept_action.rhs_count, array_infos.get(accept_action.lhs)) as Node[];
                     children.reverse();
 
                     const new_node: Node = {
@@ -505,6 +617,7 @@ export function parse_incrementally(
                             mark,
                             parsing_table,
                             go_to_table,
+                            array_infos,
                             map_word_to_terminal
                         );
 
@@ -538,7 +651,7 @@ export function parse_incrementally(
                 {
                     const reduce_action = action.value as Grammar.Reduce_action;
 
-                    const nodes_to_reduce = get_top_nodes_from_stack(top_of_stack, reduce_action.rhs_count);
+                    const nodes_to_reduce = get_top_nodes_from_stack(top_of_stack, reduce_action.rhs_count, array_infos.get(reduce_action.lhs));
                     if (nodes_to_reduce === undefined) {
                         return {
                             status: Parse_status.Failed,
@@ -547,8 +660,8 @@ export function parse_incrementally(
                         };
                     }
 
-                    const found = nodes_to_reduce.find(node => node === mark);
-                    if (found !== undefined) {
+                    const mark_index = nodes_to_reduce.findIndex(node => node === mark);
+                    if (mark_index !== -1) {
                         const new_mark = get_node_from_stack(top_of_stack, reduce_action.rhs_count);
                         if (new_mark === undefined) {
                             return {
@@ -567,7 +680,9 @@ export function parse_incrementally(
                         reduce_action.production_rule_index,
                         reduce_action.lhs,
                         reduce_action.rhs_count,
+                        array_infos.get(reduce_action.lhs),
                         top_of_stack,
+                        mark_index,
                         go_to_table,
                         current_word
                     );
@@ -616,21 +731,31 @@ function apply_reduction(
     production_rule_index: number,
     production_lhs: string,
     production_rhs_count: number,
+    production_array_info: Grammar.Array_info | undefined,
     top_of_stack: Node,
+    mark_index: number,
     go_to_table: Grammar.Go_to_column[][],
     current_word: Scanner.Scanned_word
 ): { success: boolean, new_top_of_stack: Node } {
 
-    const children = get_top_nodes_from_stack(top_of_stack, production_rhs_count);
+    const children = get_top_nodes_from_stack(top_of_stack, production_rhs_count, production_array_info);
     if (children === undefined) {
         return {
             success: false,
             new_top_of_stack: top_of_stack
         };
     }
+
+    // Clone nodes that belong to the original tree:
+    if (mark_index !== -1) {
+        for (let index = mark_index; mark_index < children.length; ++mark_index) {
+            children[index] = clone_node(children[index]);
+        }
+    }
+
     children.reverse();
 
-    const previous_node_after_reduction = get_node_from_stack(top_of_stack, production_rhs_count);
+    const previous_node_after_reduction = get_node_from_stack(top_of_stack, children.length);
     if (previous_node_after_reduction === undefined) {
         return {
             success: false,
@@ -647,13 +772,13 @@ function apply_reduction(
         };
     }
 
-    node.children = children;
     for (let index = 0; index < children.length; ++index) {
         const child = children[index];
         child.father_node = node;
         child.index_in_father = index;
     }
 
+    node.children = children;
     node.previous_node_on_stack = previous_node_after_reduction;
     node.word = { value: production_lhs, type: Grammar.Word_type.Symbol };
     node.state = go_to_column.next_state;
@@ -661,7 +786,7 @@ function apply_reduction(
 
     if (g_debug) {
         const node_description = node_stack_to_string(node);
-        const rhs = children.map(node => node.word.value).join(" ");
+        const rhs = node.children.map(node => node.word.value).join(" ");
         console.log(`reduce ${production_lhs} -> ${rhs} ${node_description} ${current_word.value}`);
     }
 
@@ -675,10 +800,11 @@ function matching_condition_holds(
     top_of_stack: Node,
     mark: Node,
     production_lhs: string,
-    production_rhs_count: number
+    production_rhs_count: number,
+    production_array_info: Grammar.Array_info | undefined
 ): boolean {
 
-    const nodes_to_reduce = get_top_nodes_from_stack(top_of_stack, production_rhs_count);
+    const nodes_to_reduce = get_top_nodes_from_stack(top_of_stack, production_rhs_count, production_array_info);
     if (nodes_to_reduce === undefined) {
         return false;
     }
@@ -688,7 +814,7 @@ function matching_condition_holds(
         return false;
     }
 
-    const nodes_to_reduce_before_mark = get_top_nodes_from_stack(mark, production_rhs_count - mark_index);
+    const nodes_to_reduce_before_mark = get_top_nodes_from_stack(mark, production_rhs_count - mark_index, undefined);
     if (nodes_to_reduce_before_mark === undefined) {
         return false;
     }
@@ -723,12 +849,13 @@ function create_apply_matching_changes(
     top_of_stack: Node,
     mark: Node,
     mark_node_position: number[],
-    production_rhs_count: number
+    production_rhs_count: number,
+    production_array_info: Grammar.Array_info | undefined
 ): Change[] {
 
     const mark_father = mark.father_node as Node;
 
-    const top_nodes = get_top_nodes_from_stack(top_of_stack, production_rhs_count) as Node[];
+    const top_nodes = get_top_nodes_from_stack(top_of_stack, production_rhs_count, production_array_info) as Node[];
     top_nodes.reverse();
 
     const cloned_top_nodes = top_nodes.map(node => clone_node(node));
@@ -754,6 +881,128 @@ function create_apply_matching_changes(
     return [modify_change];
 }
 
+function get_parent_node_array_info(node: Node, array_infos: Map<string, Grammar.Array_info>): Grammar.Array_info | undefined {
+    if (node.father_node === undefined) {
+        return undefined;
+    }
+
+    const array_info = array_infos.get(node.father_node.word.value);
+    return array_info;
+}
+
+function get_array_from_stack_until_mark(top_of_stack: Node, mark: Node | undefined, array_info: Grammar.Array_info, map_word_to_terminal: (word: Scanner.Scanned_word) => string): Node[] {
+    const nodes: Node[] = [];
+
+    let current_node = top_of_stack;
+
+    const has_separator = array_info.separator_label.length > 0;
+    let expect_separator = has_separator ? map_word_to_terminal(current_node.word) === array_info.element_label : false;
+
+    while (true) {
+
+        const terminal = map_word_to_terminal(current_node.word);
+
+        if (has_separator) {
+            if (expect_separator) {
+                if (terminal !== array_info.separator_label) {
+                    break;
+                }
+            }
+            else {
+                if (terminal !== array_info.element_label) {
+                    break;
+                }
+            }
+
+            expect_separator = !expect_separator;
+        }
+        else {
+            if (terminal !== array_info.element_label) {
+                break;
+            }
+        }
+
+        nodes.push(current_node);
+
+        if (current_node === mark) {
+            break;
+        }
+
+        if (current_node.previous_node_on_stack === undefined) {
+            break;
+        }
+
+        current_node = current_node.previous_node_on_stack;
+    }
+
+    nodes.reverse();
+
+    return nodes;
+}
+
+function get_parent_node_with_label(node: Node, label: string, map_word_to_terminal: (word: Scanner.Scanned_word) => string): Node | undefined {
+
+    let current_node = node;
+
+    while (true) {
+        const current_node_label = current_node.production_rule_index !== -1 ? map_word_to_terminal(current_node.word) : current_node.word.value;
+
+        if (current_node_label === label) {
+            return current_node;
+        }
+
+        if (current_node.father_node === undefined) {
+            return undefined;
+        }
+
+        current_node = current_node.father_node;
+    }
+}
+
+function array_matching_condition_holds(mark: Node, top_of_stack: Node, after_change_node: Node, array_infos: Map<string, Grammar.Array_info>, map_word_to_terminal: (word: Scanner.Scanned_word) => string): Change[] | undefined {
+
+    // TODO handle separator...
+    const mark_element = get_parent_node_with_label(mark, top_of_stack.word.value, map_word_to_terminal);
+    const after_change_element = get_parent_node_with_label(after_change_node, top_of_stack.word.value, map_word_to_terminal);
+
+    const mark_array_info = mark_element !== undefined ? get_parent_node_array_info(mark_element, array_infos) : undefined;
+    const after_change_array_info = after_change_element !== undefined ? get_parent_node_array_info(after_change_element, array_infos) : undefined;
+
+    if (mark_array_info === undefined && after_change_array_info === undefined) {
+        return undefined;
+    }
+
+    const array_info = mark_array_info !== undefined ? mark_array_info : after_change_array_info as Grammar.Array_info;
+
+    const array_nodes = get_array_from_stack_until_mark(top_of_stack, mark_element, array_info, map_word_to_terminal);
+
+    const is_mark_included = array_nodes[0] === mark_element;
+    const after_change_node_index = array_nodes.findIndex(node => node === after_change_node);
+
+    const start_index = is_mark_included ? 1 : 0;
+    const end_index = after_change_node_index !== -1 ? after_change_node_index : array_nodes.length;
+
+    const new_nodes = array_nodes.slice(start_index, end_index);
+    const insert_index_in_parent = is_mark_included ? mark.index_in_father + 1 : 0;
+
+    const parent_node = is_mark_included ? mark_element.father_node as Node : (after_change_element as Node).father_node as Node;
+    const parent_node_position = get_node_position(parent_node);
+    const add_change = create_add_change(parent_node_position, insert_index_in_parent, new_nodes);
+
+    return [add_change];
+}
+
+export function apply_changes(node_tree: Node, changes: Change[]): void {
+
+    for (const change of changes) {
+        if (change.type === Change_type.Add) {
+            const add_change = change.value as Add_change;
+            // TODO
+        }
+    }
+
+}
+
 function parse_incrementally_after_change(
     original_node_tree: Node,
     after_change_node_position: number[],
@@ -761,12 +1010,27 @@ function parse_incrementally_after_change(
     mark: Node,
     parsing_table: Grammar.Action_column[][],
     go_to_table: Grammar.Go_to_column[][],
+    array_infos: Map<string, Grammar.Array_info>,
     map_word_to_terminal: (word: Scanner.Scanned_word) => string
 ): { status: Parse_status, processed_words: number, changes: Change[] } {
 
-    let next_word_node = clone_node(get_node_at_position(original_node_tree, after_change_node_position));
+    const after_change_node = get_node_at_position(original_node_tree, after_change_node_position);
+
+    let next_word_node = clone_node(after_change_node);
     let next_word_node_position = after_change_node_position;
     let current_word_index = 0;
+
+    // Check if adding an element to an array:
+    {
+        const changes = array_matching_condition_holds(mark, top_of_stack, after_change_node, array_infos, map_word_to_terminal);
+        if (changes !== undefined) {
+            return {
+                status: Parse_status.Accept,
+                processed_words: 0,
+                changes: changes
+            };
+        }
+    }
 
     let old_table = next_word_node.state;
 
@@ -797,8 +1061,17 @@ function parse_incrementally_after_change(
                     changes: []
                 };
             }
-            rightmost_brother.previous_node_on_stack = top_of_stack.previous_node_on_stack;
+            //rightmost_brother.previous_node_on_stack = top_of_stack.previous_node_on_stack;
             top_of_stack = rightmost_brother;
+
+            // Get node after rightmost brother:
+            {
+                const rightmost_brother_position = get_node_position(rightmost_brother);
+                const iterate_result = get_next_leaf_node(original_node_tree, rightmost_brother, rightmost_brother_position);
+                next_word_node = iterate_result !== undefined ? clone_node(iterate_result.node) : create_bottom_of_stack_node();
+                next_word_node_position = iterate_result !== undefined ? iterate_result.position : [];
+                current_word_index += 1; // TODO
+            }
 
             const next_word = next_word_node.word;
             const row = parsing_table[top_of_stack.state];
@@ -814,11 +1087,11 @@ function parse_incrementally_after_change(
 
             const reduce_action = column.action.value as Grammar.Reduce_action;
 
-            const matching_condition = matching_condition_holds(top_of_stack, mark, reduce_action.lhs, reduce_action.rhs_count);
+            const matching_condition = matching_condition_holds(top_of_stack, mark, reduce_action.lhs, reduce_action.rhs_count, array_infos.get(reduce_action.lhs));
 
             if (matching_condition) {
                 const mark_node_position = get_node_position(mark);
-                const changes = create_apply_matching_changes(top_of_stack, mark, mark_node_position, reduce_action.rhs_count);
+                const changes = create_apply_matching_changes(top_of_stack, mark, mark_node_position, reduce_action.rhs_count, array_infos.get(reduce_action.lhs));
 
                 return {
                     status: Parse_status.Accept,
@@ -827,7 +1100,7 @@ function parse_incrementally_after_change(
                 };
             }
             else {
-                const nodes_to_reduce = get_top_nodes_from_stack(top_of_stack, reduce_action.rhs_count);
+                const nodes_to_reduce = get_top_nodes_from_stack(top_of_stack, reduce_action.rhs_count, array_infos.get(reduce_action.lhs));
                 if (nodes_to_reduce === undefined) {
                     return {
                         status: Parse_status.Failed,
@@ -854,11 +1127,10 @@ function parse_incrementally_after_change(
                 old_table = father_node.state;
 
                 if (have_same_father(nodes_to_reduce)) {
-                    next_word_node = clone_node(top_of_stack.father_node as Node);
-                    next_word_node_position = get_node_position(next_word_node);
+                    const new_father_node = clone_node(top_of_stack.father_node as Node);
 
                     const previous_node_on_stack = get_node_from_stack(top_of_stack, reduce_action.rhs_count) as Node;
-                    next_word_node.previous_node_on_stack = previous_node_on_stack;
+                    new_father_node.previous_node_on_stack = previous_node_on_stack;
 
                     const go_to_row = go_to_table[previous_node_on_stack.state];
                     const go_to_column = go_to_row.find(column => column.label === reduce_action.lhs);
@@ -870,11 +1142,15 @@ function parse_incrementally_after_change(
                         };
                     }
 
-                    next_word_node.state = go_to_column.next_state;
+                    new_father_node.state = go_to_column.next_state;
+
+                    for (const child of new_father_node.children) {
+                        child.father_node = new_father_node;
+                    }
                 }
                 else {
                     const new_node = create_bottom_of_stack_node();
-                    const result = apply_reduction(new_node, reduce_action.production_rule_index, reduce_action.lhs, reduce_action.rhs_count, top_of_stack, go_to_table, next_word);
+                    const result = apply_reduction(new_node, reduce_action.production_rule_index, reduce_action.lhs, reduce_action.rhs_count, array_infos.get(reduce_action.lhs), top_of_stack, mark_index, go_to_table, next_word);
 
                     if (!result.success) {
                         return {
@@ -893,9 +1169,11 @@ function parse_incrementally_after_change(
                 next_word_node,
                 top_of_stack,
                 mark,
+                after_change_node,
                 old_table,
                 parsing_table,
                 go_to_table,
+                array_infos,
                 map_word_to_terminal
             );
 
@@ -932,9 +1210,11 @@ function perform_actions(
     next_word_node: Node,
     top_of_stack: Node,
     mark: Node,
+    after_change_node: Node,
     old_table: number,
     parsing_table: Grammar.Action_column[][],
     go_to_table: Grammar.Go_to_column[][],
+    array_infos: Map<string, Grammar.Array_info>,
     map_word_to_terminal: (word: Scanner.Scanned_word) => string
 ): { status: Parse_status, top_of_stack: Node, mark: Node, old_table: number, changes: Change[] } {
 
@@ -985,11 +1265,11 @@ function perform_actions(
                 {
                     const reduce_action = action.value as Grammar.Reduce_action;
 
-                    const matching_condition = matching_condition_holds(top_of_stack, mark, reduce_action.lhs, reduce_action.rhs_count);
+                    const matching_condition = matching_condition_holds(top_of_stack, mark, reduce_action.lhs, reduce_action.rhs_count, array_infos.get(reduce_action.lhs));
 
                     if (matching_condition) {
                         const mark_node_position = get_node_position(mark);
-                        const changes = create_apply_matching_changes(top_of_stack, mark, mark_node_position, reduce_action.rhs_count);
+                        const changes = create_apply_matching_changes(top_of_stack, mark, mark_node_position, reduce_action.rhs_count, array_infos.get(reduce_action.lhs));
 
                         return {
                             status: Parse_status.Accept,
@@ -1001,7 +1281,7 @@ function perform_actions(
                     }
                     else {
 
-                        const nodes_to_reduce = get_top_nodes_from_stack(top_of_stack, reduce_action.rhs_count);
+                        const nodes_to_reduce = get_top_nodes_from_stack(top_of_stack, reduce_action.rhs_count, array_infos.get(reduce_action.lhs));
 
                         if (nodes_to_reduce === undefined) {
                             return {
@@ -1019,7 +1299,7 @@ function perform_actions(
                         }
 
                         const new_node = create_bottom_of_stack_node();
-                        const result = apply_reduction(new_node, reduce_action.production_rule_index, reduce_action.lhs, reduce_action.rhs_count, top_of_stack, go_to_table, next_word_node.word);
+                        const result = apply_reduction(new_node, reduce_action.production_rule_index, reduce_action.lhs, reduce_action.rhs_count, array_infos.get(reduce_action.lhs), top_of_stack, mark_index, go_to_table, next_word_node.word);
 
                         if (!result.success) {
                             return {
@@ -1032,6 +1312,20 @@ function perform_actions(
                         }
 
                         top_of_stack = result.new_top_of_stack;
+
+                        // Check if adding an element to an array:
+                        {
+                            const changes = array_matching_condition_holds(mark, top_of_stack, after_change_node, array_infos, map_word_to_terminal);
+                            if (changes !== undefined) {
+                                return {
+                                    status: Parse_status.Accept,
+                                    top_of_stack: top_of_stack,
+                                    mark: mark,
+                                    old_table: old_table,
+                                    changes: changes
+                                };
+                            }
+                        }
                     }
                     break;
                 }

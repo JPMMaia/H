@@ -136,7 +136,26 @@ export function create_test_grammar_9_description(): string[] {
         "Enum_name -> identifier",
         "Struct -> Export struct Struct_name { }",
         "Struct_name -> identifier",
-        "Function -> Export function Function_name { }",
+        "Function -> Function_declaration Function_definition",
+        "Function_declaration -> Export function Function_name ( Function_input_parameters ) -> ( Function_output_parameters )",
+        "Function_input_parameters -> ",
+        "Function_input_parameters -> Function_parameters",
+        "Function_output_parameters -> ",
+        "Function_output_parameters -> Function_parameters",
+        "Function_parameters -> Function_parameter",
+        "Function_parameters -> Function_parameter , Function_parameters",
+        "Function_parameter -> Function_parameter_name : Function_parameter_type",
+        "Function_parameter_name -> identifier",
+        "Function_parameter_type -> identifier",
+        "Function_definition -> { }",
         "Function_name -> identifier",
+    ];
+}
+
+export function create_test_grammar_10_description(): string[] {
+    return [
+        "S -> List",
+        "List -> Element $0_or_more",
+        "Element -> id"
     ];
 }

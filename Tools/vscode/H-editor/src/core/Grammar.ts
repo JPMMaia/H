@@ -40,9 +40,39 @@ export interface Grammar {
     create_variable_expression_node(expression: Core.Variable_expression, symbol: Symbol_database.Symbol | undefined): Abstract_syntax_tree.Node;
 }
 
+export enum Production_rule_flags {
+    None = 0,
+    Is_array = 1,
+    Is_array_set = 2
+}
+
 export interface Production_rule {
     lhs: string;
-    rhs: string[]
+    rhs: string[];
+    flags: Production_rule_flags
+}
+
+function create_0_or_more_production_rule(lhs: string, rhs: string[]): Production_rule[] {
+
+    const array_element = rhs[0];
+
+    return [
+        {
+            lhs: lhs,
+            rhs: [],
+            flags: Production_rule_flags.Is_array_set
+        },
+        {
+            lhs: lhs,
+            rhs: [array_element],
+            flags: Production_rule_flags.Is_array_set
+        },
+        {
+            lhs: lhs,
+            rhs: [array_element, array_element],
+            flags: Production_rule_flags.Is_array | Production_rule_flags.Is_array_set
+        }
+    ];
 }
 
 export function create_production_rules(grammar_description: string[]): Production_rule[] {
@@ -63,23 +93,38 @@ export function create_production_rules(grammar_description: string[]): Producti
             const word = words[word_index];
 
             if (word === "|") {
-                production_rules.push({
-                    lhs: lhs,
-                    rhs: [...rhs]
-                });
+
+                if (word_index - 1 > 0 && words[word_index - 1] === "$0_or_more") {
+                    const new_production_rules = create_0_or_more_production_rule(lhs, rhs);
+                    production_rules.push(...new_production_rules);
+                }
+                else {
+                    production_rules.push({
+                        lhs: lhs,
+                        rhs: [...rhs],
+                        flags: Production_rule_flags.None
+                    });
+                }
                 rhs.splice(0, rhs.length);
             }
-            else if (word !== "") {
+            else if (word !== "" && word !== "$0_or_more") {
                 rhs.push(word);
             }
 
             word_index += 1;
         }
 
-        production_rules.push({
-            lhs: lhs,
-            rhs: rhs
-        });
+        if (words.length > 0 && words[words.length - 1] === "$0_or_more") {
+            const new_production_rules = create_0_or_more_production_rule(lhs, rhs);
+            production_rules.push(...new_production_rules);
+        }
+        else {
+            production_rules.push({
+                lhs: lhs,
+                rhs: rhs,
+                flags: Production_rule_flags.None
+            });
+        }
     }
 
     return production_rules;
@@ -184,8 +229,22 @@ export interface LR1_item {
     follow_terminal: string;
 }
 
-function are_lr1_items_equal(lhs: LR1_item, rhs: LR1_item): boolean {
+export function are_lr1_items_equal(lhs: LR1_item, rhs: LR1_item): boolean {
     return lhs.production_rule_index === rhs.production_rule_index && lhs.label_index === rhs.label_index && lhs.follow_terminal === rhs.follow_terminal;
+}
+
+export function are_lr1_item_sets_equal(lhs: LR1_item[], rhs: LR1_item[]): boolean {
+    if (lhs.length !== rhs.length) {
+        return false;
+    }
+
+    for (let index = 0; index < lhs.length; ++index) {
+        if (!are_lr1_items_equal(lhs[index], rhs[index])) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 export function lr1_item_to_string(production_rules: Production_rule[], item: LR1_item): string {
@@ -310,7 +369,7 @@ export function create_start_lr1_item_set(production_rules: Production_rule[], t
 
 function compute_lr1_closure(production_rules: Production_rule[], terminals: string[], lr1_item_set: LR1_item[]): LR1_item[] {
 
-    const debug = false;
+    const debug = true;
 
     if (debug) {
         console.log("------");
@@ -333,22 +392,29 @@ function compute_lr1_closure(production_rules: Production_rule[], terminals: str
 
         const label = production_rule.rhs[item.label_index];
 
-        const next_label_item: LR1_item = { production_rule_index: item.production_rule_index, label_index: item.label_index + 1, follow_terminal: item.follow_terminal };
-        const look_aheads = first_terminals_of_lr1_item(production_rules, next_label_item, terminals);
+        {
+            const next_label_item: LR1_item = { production_rule_index: item.production_rule_index, label_index: item.label_index + 1, follow_terminal: item.follow_terminal };
+            const look_aheads = first_terminals_of_lr1_item(production_rules, next_label_item, terminals);
 
-        const production_rule_indices = find_production_rules(production_rules, label);
+            if (production_rule.flags & Production_rule_flags.Is_array) {
+                const array_look_aheads = first_terminals_of_lr1_item(production_rules, item, terminals);
+                look_aheads.push(...array_look_aheads);
+            }
 
-        for (const new_production_rule_index of production_rule_indices) {
-            for (const look_ahead of look_aheads) {
-                const new_item: LR1_item = {
-                    production_rule_index: new_production_rule_index,
-                    label_index: 0,
-                    follow_terminal: look_ahead
-                };
+            const production_rule_indices = find_production_rules(production_rules, label);
 
-                const existing_item_index = closure_item_set.findIndex(closure_item => are_lr1_items_equal(closure_item, new_item));
-                if (existing_item_index === -1) {
-                    closure_item_set.push(new_item);
+            for (const new_production_rule_index of production_rule_indices) {
+                for (const look_ahead of look_aheads) {
+                    const new_item: LR1_item = {
+                        production_rule_index: new_production_rule_index,
+                        label_index: 0,
+                        follow_terminal: look_ahead
+                    };
+
+                    const existing_item_index = closure_item_set.findIndex(closure_item => are_lr1_items_equal(closure_item, new_item));
+                    if (existing_item_index === -1) {
+                        closure_item_set.push(new_item);
+                    }
                 }
             }
         }
@@ -383,6 +449,14 @@ export function create_next_lr1_item_set(production_rules: Production_rule[], te
 
         return new_item;
     });
+
+    // Add array items:
+    for (const item of items_at_label) {
+        const production_rule = production_rules[item.production_rule_index];
+        if ((production_rule.flags & Production_rule_flags.Is_array) && item.label_index === production_rule.rhs.length - 1) {
+            add_unique(new_item_set, item, are_lr1_items_equal);
+        }
+    }
 
     // Compute closure:
     const new_item_set_closure = compute_lr1_closure(production_rules, terminals, new_item_set);
@@ -475,12 +549,14 @@ export interface Go_to_column {
 export interface Accept_action {
     lhs: string;
     rhs_count: number;
+    production_rule_flags: Production_rule_flags;
 }
 
 export interface Reduce_action {
     production_rule_index: number;
     lhs: string;
     rhs_count: number;
+    production_rule_flags: Production_rule_flags;
 }
 
 export interface Shift_action {
@@ -528,7 +604,8 @@ export function create_parsing_tables(production_rules: Production_rule[], termi
                         value: {
                             production_rule_index: item.production_rule_index,
                             lhs: production_rule.lhs,
-                            rhs_count: production_rule.rhs.length
+                            rhs_count: production_rule.rhs.length,
+                            production_rule_flags: production_rule.flags
                         }
                     }
                 });
@@ -540,7 +617,8 @@ export function create_parsing_tables(production_rules: Production_rule[], termi
                         type: Action_type.Accept,
                         value: {
                             lhs: production_rule.lhs,
-                            rhs_count: production_rule.rhs.length
+                            rhs_count: production_rule.rhs.length,
+                            production_rule_flags: production_rule.flags
                         }
                     }
                 });
@@ -597,4 +675,26 @@ export function create_parsing_tables_from_production_rules(production_rules: Pr
     const graph = create_lr1_graph(production_rules, terminals, lr1_item_set_0);
     const parsing_tables = create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
     return parsing_tables;
+}
+
+export interface Array_info {
+    element_label: string;
+    separator_label: string;
+}
+
+export function create_array_infos(production_rules: Production_rule[]): Map<string, Array_info> {
+    const map = new Map<string, Array_info>();
+
+    for (const production_rule of production_rules) {
+        if (production_rule.flags & Production_rule_flags.Is_array) {
+            const array_info: Array_info = {
+                element_label: production_rule.rhs[0],
+                separator_label: production_rule.rhs.length >= 3 ? production_rule.rhs[2] : ""
+            };
+
+            map.set(production_rule.lhs, array_info);
+        }
+    }
+
+    return map;
 }
