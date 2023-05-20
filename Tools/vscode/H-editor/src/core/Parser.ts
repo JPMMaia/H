@@ -30,6 +30,19 @@ function get_node_at_position(root: Node, position: number[]): Node {
     return current_node;
 }
 
+function find_node_common_root(first_position: number[], second_position: number[]): number[] {
+
+    const smallest_length = Math.min(first_position.length, second_position.length);
+
+    for (let index = 0; index < smallest_length; ++index) {
+        if (first_position[index] !== second_position[index]) {
+            return first_position.slice(0, index);
+        }
+    }
+
+    return first_position.slice(0, smallest_length);
+}
+
 function is_valid_position(root: Node, position: number[]): boolean {
     let current_node = root;
 
@@ -180,8 +193,8 @@ function get_node_position(node: Node): number[] {
     return position.reverse();
 }
 
-function get_next_leaf_node(root: Node, current_node: Node, current_input_node_position: number[]): { node: Node, position: number[] } | undefined {
-    let result = iterate_forward(root, current_node, current_input_node_position);
+function get_next_leaf_node(root: Node, current_node: Node, current_node_position: number[]): { node: Node, position: number[] } | undefined {
+    let result = iterate_forward(root, current_node, current_node_position);
 
     while (result !== undefined) {
         if (result.next_node.children.length === 0) {
@@ -645,6 +658,7 @@ export function parse_incrementally(
 
                         const result = parse_incrementally_after_change(
                             original_node_tree,
+                            start_change_node_position,
                             after_change_node_position,
                             top_of_stack,
                             mark,
@@ -992,37 +1006,85 @@ function get_parent_node_with_label(node: Node, label: string, map_word_to_termi
     }
 }
 
-function array_matching_condition_holds(mark: Node, top_of_stack: Node, after_change_node: Node, array_infos: Map<string, Grammar.Array_info>, map_word_to_terminal: (word: Scanner.Scanned_word) => string): Change[] | undefined {
+function handle_array_changes(
+    original_node_tree: Node,
+    mark: Node,
+    start_change_original_node: Node | undefined,
+    top_of_stack: Node,
+    after_change_original_node: Node,
+    array_infos: Map<string, Grammar.Array_info>,
+    map_word_to_terminal: (word: Scanner.Scanned_word) => string
+): Change[] | undefined {
 
-    // TODO handle separator...
-    const mark_element = get_parent_node_with_label(mark, top_of_stack.word.value, map_word_to_terminal);
-    const after_change_element = get_parent_node_with_label(after_change_node, top_of_stack.word.value, map_word_to_terminal);
+    const changes: Change[] = [];
 
-    const mark_array_info = mark_element !== undefined ? get_parent_node_array_info(mark_element, array_infos) : undefined;
-    const after_change_array_info = after_change_element !== undefined ? get_parent_node_array_info(after_change_element, array_infos) : undefined;
+    // Handle deletes:
+    if (start_change_original_node !== undefined && start_change_original_node !== after_change_original_node) {
 
-    if (mark_array_info === undefined && after_change_array_info === undefined) {
-        return undefined;
+        const start_change_original_node_position = get_node_position(start_change_original_node);
+        const after_change_original_node_position = get_node_position(after_change_original_node);
+        const parent_node_position = find_node_common_root(start_change_original_node_position, after_change_original_node_position);
+        const parent_node = get_node_at_position(original_node_tree, parent_node_position);
+
+        const array_info = array_infos.get(parent_node.word.value);
+        if (array_info !== undefined) {
+
+            const start_change_original_node_element = get_parent_node_with_label(start_change_original_node, array_info.element_label, map_word_to_terminal);
+            const after_change_element = get_parent_node_with_label(after_change_original_node, array_info.element_label, map_word_to_terminal);
+
+            if (start_change_original_node_element !== undefined && after_change_element !== undefined) {
+
+                const start_index = start_change_original_node_element.index_in_father;
+                const end_index = after_change_element.index_in_father;
+                const count = end_index - start_index;
+
+                if (count > 0) {
+
+                    const parent_node = start_change_original_node_element.father_node as Node;
+                    const parent_node_position = get_node_position(parent_node);
+
+                    const remove_change = create_remove_change(parent_node_position, start_index, count);
+                    changes.push(remove_change);
+                }
+            }
+        }
     }
 
-    const array_info = mark_array_info !== undefined ? mark_array_info : after_change_array_info as Grammar.Array_info;
+    // Handle additions:
+    {
+        const top_of_stack_label = map_word_to_terminal(top_of_stack.word);
 
+        const child_node_at_add_location = start_change_original_node !== undefined ? start_change_original_node : mark;
+        const node_at_add_location = get_parent_node_with_label(child_node_at_add_location, top_of_stack_label, map_word_to_terminal);
+
+        if (node_at_add_location !== undefined && node_at_add_location.father_node !== undefined) {
+            const parent_node = node_at_add_location.father_node;
+
+            const array_info = array_infos.get(parent_node.word.value);
+            if (array_info !== undefined && array_info.element_label === top_of_stack_label) {
+
+                const mark_element = get_parent_node_with_label(mark, top_of_stack.word.value, map_word_to_terminal);
     const array_nodes = get_array_from_stack_until_mark(top_of_stack, mark_element, array_info, map_word_to_terminal);
 
     const is_mark_included = array_nodes[0] === mark_element;
-    const after_change_node_index = array_nodes.findIndex(node => node === after_change_node);
+                const after_change_original_node_index = array_nodes.findIndex(node => node === after_change_original_node);
 
     const start_index = is_mark_included ? 1 : 0;
-    const end_index = after_change_node_index !== -1 ? after_change_node_index : array_nodes.length;
+                const end_index = after_change_original_node_index !== -1 ? after_change_original_node_index : array_nodes.length;
 
     const new_nodes = array_nodes.slice(start_index, end_index);
     const insert_index_in_parent = is_mark_included ? mark.index_in_father + 1 : 0;
 
-    const parent_node = is_mark_included ? mark_element.father_node as Node : (after_change_element as Node).father_node as Node;
+                if (new_nodes.length > 0) {
     const parent_node_position = get_node_position(parent_node);
     const add_change = create_add_change(parent_node_position, insert_index_in_parent, new_nodes);
+                    changes.push(add_change);
+                }
+            }
+        }
+    }
 
-    return [add_change];
+    return changes.length > 0 ? changes : undefined;
 }
 
 export function apply_changes(node_tree: Node, changes: Change[]): void {
@@ -1038,6 +1100,7 @@ export function apply_changes(node_tree: Node, changes: Change[]): void {
 
 function parse_incrementally_after_change(
     original_node_tree: Node,
+    start_change_node_position: number[],
     after_change_node_position: number[],
     top_of_stack: Node,
     mark: Node,
@@ -1055,7 +1118,10 @@ function parse_incrementally_after_change(
 
     // Check if adding an element to an array:
     {
-        const changes = array_matching_condition_holds(mark, top_of_stack, after_change_node, array_infos, map_word_to_terminal);
+        const is_start_change_end_of_tree = !is_valid_position(original_node_tree, start_change_node_position);
+        const start_change_original_node = !is_start_change_end_of_tree ? get_node_at_position(original_node_tree, start_change_node_position) : undefined;
+
+        const changes = handle_array_changes(original_node_tree, mark, start_change_original_node, top_of_stack, after_change_node, array_infos, map_word_to_terminal);
         if (changes !== undefined) {
             return {
                 status: Parse_status.Accept,
@@ -1345,20 +1411,6 @@ function perform_actions(
                         }
 
                         top_of_stack = result.new_top_of_stack;
-
-                        // Check if adding an element to an array:
-                        {
-                            const changes = array_matching_condition_holds(mark, top_of_stack, after_change_node, array_infos, map_word_to_terminal);
-                            if (changes !== undefined) {
-                                return {
-                                    status: Parse_status.Accept,
-                                    top_of_stack: top_of_stack,
-                                    mark: mark,
-                                    old_table: old_table,
-                                    changes: changes
-                                };
-                            }
-                        }
                     }
                     break;
                 }
