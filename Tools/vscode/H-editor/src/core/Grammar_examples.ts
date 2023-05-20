@@ -159,3 +159,11 @@ export function create_test_grammar_10_description(): string[] {
         "Element -> id"
     ];
 }
+
+export function create_test_grammar_11_description(): string[] {
+    return [
+        "S -> List",
+        "List -> Element , $0_or_more",
+        "Element -> id"
+    ];
+}

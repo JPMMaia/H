@@ -55,6 +55,7 @@ export interface Production_rule {
 function create_0_or_more_production_rule(lhs: string, rhs: string[]): Production_rule[] {
 
     const array_element = rhs[0];
+    const has_separator = rhs.length === 2;
 
     return [
         {
@@ -69,7 +70,7 @@ function create_0_or_more_production_rule(lhs: string, rhs: string[]): Productio
         },
         {
             lhs: lhs,
-            rhs: [array_element, array_element],
+            rhs: has_separator ? [array_element, rhs[1], array_element] : [array_element, array_element],
             flags: Production_rule_flags.Is_array | Production_rule_flags.Is_array_set
         }
     ];
@@ -396,8 +397,13 @@ function compute_lr1_closure(production_rules: Production_rule[], terminals: str
             const next_label_item: LR1_item = { production_rule_index: item.production_rule_index, label_index: item.label_index + 1, follow_terminal: item.follow_terminal };
             const look_aheads = first_terminals_of_lr1_item(production_rules, next_label_item, terminals);
 
-            if (production_rule.flags & Production_rule_flags.Is_array) {
-                const array_look_aheads = first_terminals_of_lr1_item(production_rules, item, terminals);
+            if ((production_rule.flags & Production_rule_flags.Is_array) && item.label_index === production_rule.rhs.length - 1) {
+                const reset_item: LR1_item = {
+                    production_rule_index: item.production_rule_index,
+                    label_index: 1,
+                    follow_terminal: item.follow_terminal
+                };
+                const array_look_aheads = first_terminals_of_lr1_item(production_rules, reset_item, terminals);
                 look_aheads.push(...array_look_aheads);
             }
 
@@ -451,10 +457,35 @@ export function create_next_lr1_item_set(production_rules: Production_rule[], te
     });
 
     // Add array items:
-    for (const item of items_at_label) {
+    /*for (const item of items_at_label) {
         const production_rule = production_rules[item.production_rule_index];
         if ((production_rule.flags & Production_rule_flags.Is_array) && item.label_index === production_rule.rhs.length - 1) {
-            add_unique(new_item_set, item, are_lr1_items_equal);
+
+            const has_separator = production_rule.rhs.length === 3;
+            if (has_separator) {
+                const reset_item: LR1_item = {
+                    production_rule_index: item.production_rule_index,
+                    label_index: 0,
+                    follow_terminal: item.follow_terminal
+                };
+                add_unique(new_item_set, reset_item, are_lr1_items_equal);
+            }
+            else {
+                add_unique(new_item_set, item, are_lr1_items_equal);
+            }
+        }
+    }*/
+    for (const item of new_item_set) {
+        const production_rule = production_rules[item.production_rule_index];
+        if ((production_rule.flags & Production_rule_flags.Is_array) && item.label_index === 2) {
+            const has_separator = production_rule.rhs.length === 3;
+
+            const reset_item: LR1_item = {
+                production_rule_index: item.production_rule_index,
+                label_index: has_separator ? 0 : 1,
+                follow_terminal: item.follow_terminal
+            };
+            add_unique(new_item_set, reset_item, are_lr1_items_equal);
         }
     }
 
@@ -689,7 +720,7 @@ export function create_array_infos(production_rules: Production_rule[]): Map<str
         if (production_rule.flags & Production_rule_flags.Is_array) {
             const array_info: Array_info = {
                 element_label: production_rule.rhs[0],
-                separator_label: production_rule.rhs.length >= 3 ? production_rule.rhs[2] : ""
+                separator_label: production_rule.rhs.length >= 3 ? production_rule.rhs[1] : ""
             };
 
             map.set(production_rule.lhs, array_info);

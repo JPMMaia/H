@@ -202,6 +202,47 @@ describe("Grammar.create_production_rules", () => {
             assert.deepEqual(production_rule.rhs, ["id"]);
         }
     });
+
+    it("Creates production rules for description 11", () => {
+        const grammar_description = Grammar_examples.create_test_grammar_11_description();
+        const production_rules = Grammar.create_production_rules(grammar_description);
+
+        assert.equal(production_rules.length, 5);
+
+        {
+            const production_rule = production_rules[0];
+            assert.equal(production_rule.lhs, "S");
+            assert.deepEqual(production_rule.rhs, ["List"]);
+            assert.equal(production_rule.flags, Grammar.Production_rule_flags.None);
+        }
+
+        {
+            const production_rule = production_rules[1];
+            assert.equal(production_rule.lhs, "List");
+            assert.deepEqual(production_rule.rhs, []);
+            assert.equal(production_rule.flags, Grammar.Production_rule_flags.Is_array_set);
+        }
+
+        {
+            const production_rule = production_rules[2];
+            assert.equal(production_rule.lhs, "List");
+            assert.deepEqual(production_rule.rhs, ["Element"]);
+            assert.equal(production_rule.flags, Grammar.Production_rule_flags.Is_array_set);
+        }
+
+        {
+            const production_rule = production_rules[3];
+            assert.equal(production_rule.lhs, "List");
+            assert.deepEqual(production_rule.rhs, ["Element", ",", "Element"]);
+            assert.equal(production_rule.flags, Grammar.Production_rule_flags.Is_array | Grammar.Production_rule_flags.Is_array_set);
+        }
+
+        {
+            const production_rule = production_rules[4];
+            assert.equal(production_rule.lhs, "Element");
+            assert.deepEqual(production_rule.rhs, ["id"]);
+        }
+    });
 });
 
 describe("Grammar.get_non_terminals", () => {
@@ -231,6 +272,14 @@ describe("Grammar.get_non_terminals", () => {
 
     it("Returns non-terminals for grammar 10", () => {
         const grammar_description = Grammar_examples.create_test_grammar_10_description();
+        const production_rules = Grammar.create_production_rules(grammar_description);
+        const non_terminals = Grammar.get_non_terminals(production_rules);
+
+        assert.deepEqual(non_terminals, ["S", "List", "Element"]);
+    });
+
+    it("Returns non-terminals for grammar 11", () => {
+        const grammar_description = Grammar_examples.create_test_grammar_11_description();
         const production_rules = Grammar.create_production_rules(grammar_description);
         const non_terminals = Grammar.get_non_terminals(production_rules);
 
@@ -273,6 +322,15 @@ describe("Grammar.get_terminals", () => {
         const terminals = Grammar.get_terminals(production_rules, non_terminals);
 
         assert.deepEqual(terminals, ["$", "id"]);
+    });
+
+    it("Returns terminals for grammar 11", () => {
+        const grammar_description = Grammar_examples.create_test_grammar_11_description();
+        const production_rules = Grammar.create_production_rules(grammar_description);
+        const non_terminals = Grammar.get_non_terminals(production_rules);
+        const terminals = Grammar.get_terminals(production_rules, non_terminals);
+
+        assert.deepEqual(terminals, ["$", ",", "id"]);
     });
 });
 
@@ -572,6 +630,73 @@ describe("Grammar.create_start_lr1_item_set", () => {
             assert.equal(item.production_rule_index, 4);
             assert.equal(item.label_index, 0);
             assert.equal(item.follow_terminal, "id");
+        }
+    });
+
+    it("Creates starter item set for grammar 11", () => {
+
+        const grammar_description = Grammar_examples.create_test_grammar_11_description();
+        const production_rules = Grammar.create_production_rules(grammar_description);
+        const non_terminals = Grammar.get_non_terminals(production_rules);
+        const terminals = Grammar.get_terminals(production_rules, non_terminals);
+        const lr1_items = Grammar.create_start_lr1_item_set(production_rules, terminals);
+
+        // Production rules:
+        // 0: S -> List
+        // 1: List ->
+        // 2: List -> Element
+        // 3: List -> Element , Element (continues)
+        // 4: Element -> id
+
+        // S -> .List, $
+        // List -> ., $
+        // List -> .Element, $
+        // List -> .Element , Element (continues), $
+        // Element -> .id, $
+        // Element -> .id, ,
+        assert.equal(lr1_items.length, 6);
+
+        {
+            // S -> .List, $
+            const item = lr1_items[0];
+            assert.equal(item.production_rule_index, 0);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, "$");
+        }
+        {
+            // List -> ., $
+            const item = lr1_items[1];
+            assert.equal(item.production_rule_index, 1);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, "$");
+        }
+        {
+            // List -> .Element, $
+            const item = lr1_items[2];
+            assert.equal(item.production_rule_index, 2);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, "$");
+        }
+        {
+            // List -> .Element , Element (continues), $
+            const item = lr1_items[3];
+            assert.equal(item.production_rule_index, 3);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, "$");
+        }
+        {
+            // Element -> .id, $
+            const item = lr1_items[4];
+            assert.equal(item.production_rule_index, 4);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, "$");
+        }
+        {
+            // Element -> .id, ,
+            const item = lr1_items[5];
+            assert.equal(item.production_rule_index, 4);
+            assert.equal(item.label_index, 0);
+            assert.equal(item.follow_terminal, ",");
         }
     });
 });
@@ -1163,6 +1288,125 @@ describe("Grammar.create_next_lr1_item_set", () => {
             }
         }
     });
+
+    it("Creates LR1 item sets from grammar 11", () => {
+
+        const grammar_description = Grammar_examples.create_test_grammar_11_description();
+        const production_rules = Grammar.create_production_rules(grammar_description);
+        const non_terminals = Grammar.get_non_terminals(production_rules);
+        const terminals = Grammar.get_terminals(production_rules, non_terminals);
+        const lr1_item_set_0 = Grammar.create_start_lr1_item_set(production_rules, terminals);
+
+        // Production rules:
+        // 0: S -> List
+        // 1: List ->
+        // 2: List -> Element
+        // 3: List -> Element , Element (continues)
+        // 4: Element -> id
+
+        // S0
+        // S -> .List, $
+        // List -> ., $
+        // List -> .Element, $
+        // List -> .Element , Element (continues), $
+        // Element -> .id, $
+        // Element -> .id, ,
+
+        // S1 (S0 List)
+        // S -> List., $
+
+        // S2 (S0 Element)
+        // List -> Element., $
+        // List -> Element . , Element (continues), $
+
+        // S3 (S2 ,) (S4 ,)
+        // List -> Element , . Element (continues), $
+        // List -> . Element , Element (continues), $
+        // Element -> .id, $
+        // Element -> .id, ,
+
+        // S4 (S3 Element)
+        // List -> Element , Element . (continues), $
+        // List -> Element . , Element (continues), $
+
+        // S5 (S0 id) (S3 id)
+        // Element -> id., $
+        // Element -> id., ,
+
+        // S1 (S0 List)
+        // S -> List., $
+        const lr1_item_set_1 = Grammar.create_next_lr1_item_set(production_rules, terminals, lr1_item_set_0, "List");
+        {
+            const expected: Grammar.LR1_item[] = [
+                { production_rule_index: 0, label_index: 1, follow_terminal: "$" }
+            ];
+            assert.deepEqual(lr1_item_set_1, expected);
+        }
+
+        // S2 (S0 Element)
+        // List -> Element., $
+        // List -> Element . , Element (continues), $
+        const lr1_item_set_2 = Grammar.create_next_lr1_item_set(production_rules, terminals, lr1_item_set_0, "Element");
+        {
+            const expected: Grammar.LR1_item[] = [
+                { production_rule_index: 2, label_index: 1, follow_terminal: "$" },
+                { production_rule_index: 3, label_index: 1, follow_terminal: "$" }
+            ];
+            assert.deepEqual(lr1_item_set_2, expected);
+        }
+
+        // S3 (S2 ,) (S4 ,)
+        // List -> Element , . Element (continues), $
+        // List -> . Element , Element (continues), $
+        // Element -> .id, $
+        // Element -> .id, ,
+        const lr1_item_set_3 = Grammar.create_next_lr1_item_set(production_rules, terminals, lr1_item_set_2, ",");
+        {
+            const expected: Grammar.LR1_item[] = [
+                { production_rule_index: 3, label_index: 2, follow_terminal: "$" },
+                { production_rule_index: 3, label_index: 0, follow_terminal: "$" },
+                { production_rule_index: 4, label_index: 0, follow_terminal: "$" },
+                { production_rule_index: 4, label_index: 0, follow_terminal: "," }
+            ];
+            assert.deepEqual(lr1_item_set_3, expected);
+        }
+
+        // S4 (S3 Element)
+        // List -> Element , Element . (continues), $
+        // List -> Element . , Element (continues), $
+        const lr1_item_set_4 = Grammar.create_next_lr1_item_set(production_rules, terminals, lr1_item_set_3, "Element");
+        {
+            const expected: Grammar.LR1_item[] = [
+                { production_rule_index: 3, label_index: 3, follow_terminal: "$" },
+                { production_rule_index: 3, label_index: 1, follow_terminal: "$" },
+            ];
+            assert.deepEqual(lr1_item_set_4, expected);
+        }
+
+        // S4 , -> S3
+        {
+            const actual = Grammar.create_next_lr1_item_set(production_rules, terminals, lr1_item_set_4, ",");
+            assert.deepEqual(actual, lr1_item_set_3);
+        }
+
+        // S5 (S0 id) (S3 id) (S4 id)
+        // Element -> id., $
+        // Element -> id., ,
+        const lr1_item_set_5 = Grammar.create_next_lr1_item_set(production_rules, terminals, lr1_item_set_0, "id");
+        {
+            const expected: Grammar.LR1_item[] = [
+                { production_rule_index: 4, label_index: 1, follow_terminal: "$" },
+                { production_rule_index: 4, label_index: 1, follow_terminal: "," },
+            ];
+            assert.deepEqual(lr1_item_set_5, expected);
+        }
+
+        // S3 id -> S5
+        {
+            const actual = Grammar.create_next_lr1_item_set(production_rules, terminals, lr1_item_set_3, "id");
+            assert.deepEqual(actual, lr1_item_set_5);
+        }
+    });
 });
 
 describe("Grammar.create_lr1_graph", () => {
@@ -1553,6 +1797,143 @@ describe("Grammar.create_parsing_tables", () => {
             ],
             [ // 4
                 { label: "Element", next_state: 4 },
+            ],
+        ];
+
+        assert.equal(actual_action_table.length, expected_action_table.length);
+
+        for (let state_index = 0; state_index < actual_action_table.length; state_index++) {
+
+            const actual_row = actual_action_table[state_index];
+            const expected_row = expected_action_table[state_index];
+            assert.equal(actual_row.length, expected_row.length);
+
+            for (let action_index = 0; action_index < actual_row.length; ++action_index) {
+
+                console.log(`${state_index} ${action_index}`);
+
+                const actual = actual_row[action_index];
+                const expected = expected_row[action_index];
+                assert.deepEqual(actual, expected);
+            }
+        }
+
+        assert.equal(actual_go_to_table.length, expected_go_to_table.length);
+
+        for (let state_index = 0; state_index < actual_go_to_table.length; state_index++) {
+
+            const actual_row = actual_go_to_table[state_index];
+            const expected_row = expected_go_to_table[state_index];
+            assert.equal(actual_row.length, expected_row.length);
+
+            for (let action_index = 0; action_index < actual_row.length; ++action_index) {
+
+                console.log(`${state_index} ${action_index}`);
+
+                const actual = actual_row[action_index];
+                const expected = expected_row[action_index];
+                assert.deepEqual(actual, expected);
+            }
+        }
+    });
+
+    it("Creates parsing tables for grammar 11", () => {
+
+        const grammar_description = Grammar_examples.create_test_grammar_11_description();
+        const production_rules = Grammar.create_production_rules(grammar_description);
+        const non_terminals = Grammar.get_non_terminals(production_rules);
+        const terminals = Grammar.get_terminals(production_rules, non_terminals);
+        const lr1_item_set_0 = Grammar.create_start_lr1_item_set(production_rules, terminals);
+        const graph = Grammar.create_lr1_graph(production_rules, terminals, lr1_item_set_0);
+
+        const parsing_tables = Grammar.create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
+        const actual_action_table = parsing_tables.action_table;
+        const actual_go_to_table = parsing_tables.go_to_table;
+
+        // Production rules:
+        // 0: S -> List
+        // 1: List ->
+        // 2: List -> Element
+        // 3: List -> Element , Element (continues)
+        // 4: Element -> id
+
+        // S0
+        // S -> .List, $
+        // List -> ., $
+        // List -> .Element, $
+        // List -> .Element , Element (continues), $
+        // Element -> .id, $
+        // Element -> .id, ,
+
+        // S1 (S0 List)
+        // S -> List., $
+
+        // S2 (S0 Element)
+        // List -> Element., $
+        // List -> Element . , Element (continues), $
+
+        // S3 (S2 ,) (S4 ,)
+        // List -> Element , . Element (continues), $
+        // List -> . Element , Element (continues), $
+        // Element -> .id, $
+        // Element -> .id, ,
+
+        // S4 (S3 Element)
+        // List -> Element , Element . (continues), $
+        // List -> Element . , Element (continues), $
+
+        // S5 (S0 id) (S3 id)
+        // Element -> id., $
+        // Element -> id., ,
+
+        // State  List   Element  $    ,   id  
+        // 0      g2     g1       r1       s3
+        // 1                      r2   s4
+        // 2                      acc
+        // 3                      r4   r4
+        // 4             g5                s3
+        // 5                      r3   s4   
+
+        const expected_action_table: Grammar.Action_column[][] = [
+            [ // 0
+                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 1, lhs: "List", rhs_count: 0, production_rule_flags: Grammar.Production_rule_flags.Is_array_set } } },
+                { label: "id", action: { type: Grammar.Action_type.Shift, value: { next_state: 3 } } },
+            ],
+            [ // 1
+                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 2, lhs: "List", rhs_count: 1, production_rule_flags: Grammar.Production_rule_flags.Is_array_set } } },
+                { label: ",", action: { type: Grammar.Action_type.Shift, value: { next_state: 4 } } },
+            ],
+            [ // 2
+                { label: "$", action: { type: Grammar.Action_type.Accept, value: { lhs: "S", rhs_count: 1, production_rule_flags: Grammar.Production_rule_flags.None } } },
+            ],
+            [ // 3
+                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 4, lhs: "Element", rhs_count: 1, production_rule_flags: Grammar.Production_rule_flags.None } } },
+                { label: ",", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 4, lhs: "Element", rhs_count: 1, production_rule_flags: Grammar.Production_rule_flags.None } } },
+            ],
+            [ // 4
+                { label: "id", action: { type: Grammar.Action_type.Shift, value: { next_state: 3 } } },
+            ],
+            [ // 5
+                { label: "$", action: { type: Grammar.Action_type.Reduce, value: { production_rule_index: 3, lhs: "List", rhs_count: 3, production_rule_flags: Grammar.Production_rule_flags.Is_array | Grammar.Production_rule_flags.Is_array_set } } },
+                { label: ",", action: { type: Grammar.Action_type.Shift, value: { next_state: 4 } } },
+            ]
+        ];
+
+        const expected_go_to_table: Grammar.Go_to_column[][] = [
+            [ // 0
+                { label: "Element", next_state: 1 },
+                { label: "List", next_state: 2 },
+            ],
+            [ // 1
+            ],
+            [ // 2
+            ],
+            [ // 3
+            ],
+            [ // 4
+                { label: "Element", next_state: 5 },
+            ],
+            [ // 5
             ],
         ];
 

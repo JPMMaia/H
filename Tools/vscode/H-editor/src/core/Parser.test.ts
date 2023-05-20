@@ -682,6 +682,58 @@ describe("Parser.parse", () => {
             }
         }
     });
+
+    it("Parses a list of elements with separator", () => {
+
+        const grammar_description = Grammar_examples.create_test_grammar_11_description();
+        const production_rules = Grammar.create_production_rules(grammar_description);
+        const non_terminals = Grammar.get_non_terminals(production_rules);
+        const terminals = Grammar.get_terminals(production_rules, non_terminals);
+        const lr1_item_set_0 = Grammar.create_start_lr1_item_set(production_rules, terminals);
+        const graph = Grammar.create_lr1_graph(production_rules, terminals, lr1_item_set_0);
+        const parsing_tables = Grammar.create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
+        const array_infos = Grammar.create_array_infos(production_rules);
+
+        const input = "id, id, id";
+        const scanned_words = Scanner.scan(input, 0, input.length);
+
+        const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
+            return word.value;
+        };
+
+        const output_node = Parser.parse(scanned_words, parsing_tables.action_table, parsing_tables.go_to_table, array_infos, map_word_to_terminal);
+
+        assert.notEqual(output_node, undefined);
+
+        if (output_node !== undefined) {
+
+            assert.equal(output_node.word.value, "S");
+
+            assert.equal(output_node.children.length, 1);
+
+            {
+                const list_node = output_node.children[0];
+                assert.equal(list_node.word.value, "List");
+                assert.equal(list_node.children.length, 5);
+
+                for (let index = 0; index < list_node.children.length; ++index) {
+                    const child = list_node.children[index];
+
+                    const is_element = (index % 2) === 0;
+
+                    if (is_element) {
+                        assert.equal(child.word.value, "Element");
+                        assert.equal(child.children.length, 1);
+                        assert.equal(child.children[0].word.value, "id");
+                    }
+                    else {
+                        assert.equal(child.word.value, ",");
+                        assert.equal(child.children.length, 0);
+                    }
+                }
+            }
+        }
+    });
 });
 
 describe("Parser.parse_incrementally", () => {
@@ -1533,6 +1585,95 @@ describe("Parser.parse_incrementally", () => {
                 const child_node = new_node.children[0];
                 assert.equal(child_node.word.value, "id");
             }
+        }
+    });
+
+    it("Parses adding element in the middle of an array with separator", () => {
+
+        const grammar_description = Grammar_examples.create_test_grammar_11_description();
+        const production_rules = Grammar.create_production_rules(grammar_description);
+        const non_terminals = Grammar.get_non_terminals(production_rules);
+        const terminals = Grammar.get_terminals(production_rules, non_terminals);
+        const lr1_item_set_0 = Grammar.create_start_lr1_item_set(production_rules, terminals);
+        const graph = Grammar.create_lr1_graph(production_rules, terminals, lr1_item_set_0);
+        const parsing_tables = Grammar.create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
+        const array_infos = Grammar.create_array_infos(production_rules);
+
+        const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
+            return word.value;
+        };
+
+        const first_input = "id, id, id, id, id, id, id, id, id, id";
+        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length);
+        const first_parse_result = Parser.parse_incrementally(
+            undefined,
+            [],
+            first_scanned_words,
+            [],
+            parsing_tables.action_table,
+            parsing_tables.go_to_table,
+            array_infos,
+            map_word_to_terminal
+        );
+
+        const second_input = "id, id,";
+        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length);
+        const start_change_node_position: number[] = [0, 2, 0];
+        const after_change_node_position: number[] = [0, 2, 0];
+
+        const second_parse_result = Parser.parse_incrementally(
+            (first_parse_result.changes[0].value as Parser.Modify_change).new_node,
+            start_change_node_position,
+            second_scanned_words,
+            after_change_node_position,
+            parsing_tables.action_table,
+            parsing_tables.go_to_table,
+            array_infos,
+            map_word_to_terminal
+        );
+
+        assert.notEqual(second_parse_result, undefined);
+
+        assert.equal(second_parse_result.status, Parser.Parse_status.Accept);
+
+        assert.equal(second_parse_result.changes.length, 1);
+
+        const change = second_parse_result.changes[0];
+
+        assert.equal(change.type, Parser.Change_type.Add);
+
+        const add_change = change.value as Parser.Add_change;
+
+        assert.deepEqual(add_change.parent_position, [0]);
+        assert.equal(add_change.index, 2);
+        assert.equal(add_change.new_nodes.length, 4);
+
+        {
+            const new_node = add_change.new_nodes[0];
+            assert.equal(new_node.word.value, "Element");
+
+            const child_node = new_node.children[0];
+            assert.equal(child_node.word.value, "id");
+        }
+
+        {
+            const new_node = add_change.new_nodes[1];
+            assert.equal(new_node.word.value, ",");
+            assert.equal(new_node.children.length, 0);
+        }
+
+        {
+            const new_node = add_change.new_nodes[2];
+            assert.equal(new_node.word.value, "Element");
+
+            const child_node = new_node.children[0];
+            assert.equal(child_node.word.value, "id");
+        }
+
+        {
+            const new_node = add_change.new_nodes[3];
+            assert.equal(new_node.word.value, ",");
+            assert.equal(new_node.children.length, 0);
         }
     });
 
