@@ -569,17 +569,19 @@ export function parse_incrementally(
                         const array_info = array_infos.get(top_of_stack.word.value);
                         if (array_info !== undefined && original_node_tree !== undefined) {
 
-                            const before_start_node = get_start_top_of_stack_node(original_node_tree, start_change_node_position);
-                            const before_start_element = get_parent_node_with_label(before_start_node, array_info.element_label, map_word_to_terminal);
+                            const has_separator = array_info.separator_label.length > 0;
+                            const element_labels = has_separator ? [array_info.element_label, array_info.separator_label] : [array_info.element_label];
 
-                            // TODO handle separator...
+                            const before_start_node = get_start_top_of_stack_node(original_node_tree, start_change_node_position);
+                            const before_start_element = get_parent_node_with_labels(before_start_node, element_labels, map_word_to_terminal);
+
                             const is_start_node_end_of_tree = !is_valid_position(original_node_tree, start_change_node_position);
                             const start_node = !is_start_node_end_of_tree ? get_node_at_position(original_node_tree, start_change_node_position) : undefined;
-                            const start_element = start_node !== undefined ? get_parent_node_with_label(start_node, array_info.element_label, map_word_to_terminal) : undefined;
+                            const start_element = start_node !== undefined ? get_parent_node_with_labels(start_node, element_labels, map_word_to_terminal) : undefined;
 
                             const is_after_change_end_of_tree = !is_valid_position(original_node_tree, after_change_node_position);
                             const after_change_node = !is_after_change_end_of_tree ? get_node_at_position(original_node_tree, after_change_node_position) : undefined;
-                            const after_change_element = after_change_node !== undefined ? get_parent_node_with_label(after_change_node, array_info.element_label, map_word_to_terminal) : undefined;
+                            const after_change_element = after_change_node !== undefined ? get_parent_node_with_labels(after_change_node, element_labels, map_word_to_terminal) : undefined;
 
                             if (before_start_element !== undefined && (after_change_element !== undefined || is_after_change_end_of_tree)) {
 
@@ -992,14 +994,15 @@ function get_array_from_stack_until_mark(top_of_stack: Node, mark: Node | undefi
     return nodes;
 }
 
-function get_parent_node_with_label(node: Node, label: string, map_word_to_terminal: (word: Scanner.Scanned_word) => string): Node | undefined {
+function get_parent_node_with_labels(node: Node, labels: string[], map_word_to_terminal: (word: Scanner.Scanned_word) => string): Node | undefined {
 
     let current_node = node;
 
     while (true) {
         const current_node_label = current_node.production_rule_index !== -1 ? map_word_to_terminal(current_node.word) : current_node.word.value;
 
-        if (current_node_label === label) {
+        const found = labels.findIndex(label => current_node_label === label);
+        if (found !== -1) {
             return current_node;
         }
 
@@ -1023,13 +1026,13 @@ function get_parent_array_element(
 ): { parent: Node, array_info: Grammar.Array_info } | undefined {
 
     const child_node_at_add_location = start_change_original_node !== undefined ? start_change_original_node : mark;
-    const node_at_add_location = get_parent_node_with_label(child_node_at_add_location, target_label, map_word_to_terminal);
+    const node_at_add_location = get_parent_node_with_labels(child_node_at_add_location, [target_label], map_word_to_terminal);
 
     if (node_at_add_location !== undefined && node_at_add_location.father_node !== undefined) {
         const parent_node = node_at_add_location.father_node;
 
         const array_info = array_infos.get(parent_node.word.value);
-        if (array_info !== undefined && array_info.element_label === target_label) {
+        if (array_info !== undefined && (array_info.element_label === target_label || (array_info.separator_label === target_label))) {
             return {
                 parent: parent_node,
                 array_info: array_info
@@ -1041,11 +1044,16 @@ function get_parent_array_element(
         if (previous_node_on_stack !== undefined) {
             const previous_node_label = map_word_to_terminal(previous_node_on_stack.word);
 
-            const next_node = get_parent_node_with_label(after_change_original_node, previous_node_label, map_word_to_terminal);
+            const next_node = get_parent_node_with_labels(after_change_original_node, [previous_node_label], map_word_to_terminal);
             if (next_node !== undefined) {
                 const result = get_parent_array_element(previous_node_label, original_node_tree, mark, start_change_original_node, next_node, after_change_original_node, array_infos, map_word_to_terminal);
-                if (result !== undefined && result.array_info.element_label === previous_node_label && result.array_info.separator_label === target_label) {
-                    return result;
+                if (result !== undefined) {
+                    if (result.array_info.element_label === target_label && result.array_info.separator_label === previous_node_label) {
+                        return result;
+                    }
+                    else if (result.array_info.element_label === previous_node_label && result.array_info.separator_label === target_label) {
+                        return result;
+                    }
                 }
             }
         }
@@ -1091,8 +1099,10 @@ function handle_array_changes(
         const array_info = array_infos.get(parent_node.word.value);
         if (array_info !== undefined) {
 
-            const start_change_original_node_element = get_parent_node_with_label(start_change_original_node, array_info.element_label, map_word_to_terminal);
-            const after_change_element = get_parent_node_with_label(after_change_original_node, array_info.element_label, map_word_to_terminal);
+            const element_labels = array_info.separator_label.length > 0 ? [array_info.element_label, array_info.separator_label] : [array_info.element_label];
+
+            const start_change_original_node_element = get_parent_node_with_labels(start_change_original_node, element_labels, map_word_to_terminal);
+            const after_change_element = get_parent_node_with_labels(after_change_original_node, element_labels, map_word_to_terminal);
 
             if (start_change_original_node_element !== undefined && after_change_element !== undefined) {
 
