@@ -26,6 +26,24 @@ function create_parse_node(value: string, text_position: Parser.Text_position, c
     };
 }
 
+function assert_function_parameters(parameters_node: Parser.Node, parameter_names: string[]): void {
+
+    assert.equal(parameters_node.children.length, parameter_names.length === 0 ? 0 : parameter_names.length * 2 - 1);
+
+    for (let parameter_index = 0; parameter_index < parameter_names.length; ++parameter_index) {
+
+        const parameter_node = parameters_node.children[parameter_index * 2];
+        const parameter_name = parameter_names[parameter_index];
+
+        assert.equal(parameter_node.children.length, 3);
+
+        {
+            const parameter_name_node = parameter_node.children[0];
+            assert.equal(parameter_name_node.children[0].word.value, parameter_name);
+        }
+    }
+}
+
 describe("Parse_tree_convertor.module_to_parse_tree", () => {
 
     it("Creates module parse tree from grammar 9", () => {
@@ -40,37 +58,179 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
         assert.equal(parse_tree.production_rule_index, 0);
 
         {
-            const node_0 = parse_tree.children[0];
-            assert.equal(node_0.word.value, "Module_head");
-            assert.equal(node_0.production_rule_index, 1);
+            const module_head = parse_tree.children[0];
+            assert.equal(module_head.word.value, "Module_head");
+            assert.equal(module_head.production_rule_index, 1);
 
             {
-                const node_1 = node_0.children[0];
-                assert.equal(node_1.word.value, "Module_declaration");
-                assert.equal(node_1.production_rule_index, 2);
+                const module_declaration = module_head.children[0];
+                assert.equal(module_declaration.word.value, "Module_declaration");
+                assert.equal(module_declaration.production_rule_index, 2);
 
                 {
-                    const node_2 = node_1.children[0];
-                    assert.equal(node_2.word.value, "module");
-                    assert.equal(node_2.production_rule_index, undefined);
+                    const module_keyword = module_declaration.children[0];
+                    assert.equal(module_keyword.word.value, "module");
+                    assert.equal(module_keyword.production_rule_index, undefined);
                 }
 
                 {
-                    const node_3 = node_1.children[1];
-                    assert.equal(node_3.word.value, "Module_name");
-                    assert.equal(node_3.production_rule_index, 3);
+                    const module_name = module_declaration.children[1];
+                    assert.equal(module_name.word.value, "Module_name");
+                    assert.equal(module_name.production_rule_index, 3);
 
                     {
-                        const node_4 = node_3.children[0];
-                        assert.equal(node_4.word.value, "module_name");
-                        assert.equal(node_4.production_rule_index, undefined);
+                        const identifier = module_name.children[0];
+                        assert.equal(identifier.word.value, "module_name");
+                        assert.equal(identifier.production_rule_index, undefined);
                     }
                 }
 
                 {
-                    const node_5 = node_1.children[2];
-                    assert.equal(node_5.word.value, ";");
-                    assert.equal(node_5.production_rule_index, undefined);
+                    const semicolon = module_declaration.children[2];
+                    assert.equal(semicolon.word.value, ";");
+                    assert.equal(semicolon.production_rule_index, undefined);
+                }
+            }
+        }
+
+        {
+            const module_body = parse_tree.children[1];
+            assert.equal(module_body.children.length, declarations.length);
+
+            for (let declaration_index = 0; declaration_index < declarations.length; ++declaration_index) {
+                const declaration = declarations[declaration_index];
+                const declaration_node = module_body.children[declaration_index];
+                const module_declarations = declaration.is_export ? module.export_declarations : module.internal_declarations;
+
+                assert.equal(declaration_node.word.value, "Declaration");
+
+
+                if (declaration.type === Parse_tree_convertor.Declaration_type.Alias) {
+
+                    const alias_declaration = module_declarations.alias_type_declarations.elements[declaration.index];
+
+                    assert.equal(declaration_node.children.length, 1);
+
+                    const alias_node = declaration_node.children[0];
+                    assert.equal(alias_node.word.value, "Alias");
+
+                    assert.equal(alias_node.children.length, 6);
+
+                    {
+                        const export_node = alias_node.children[0];
+                        assert.equal(export_node.children.length, declaration.is_export ? 1 : 0);
+
+                        if (declaration.is_export) {
+                            assert.equal(export_node.children[0].word.value, "export");
+                        }
+                    }
+
+                    {
+                        const name_node = alias_node.children[2];
+                        assert.equal(name_node.children[0].word.value, alias_declaration.name);
+                    }
+
+                    {
+                        // TODO type
+                        //const type_node = alias_node.children[4];
+                        //assert.equal(type_node.children[0].word.value, alias_declaration.name);
+                    }
+                }
+                else if (declaration.type === Parse_tree_convertor.Declaration_type.Enum) {
+
+                    const enum_declaration = module_declarations.enum_declarations.elements[declaration.index];
+
+                    assert.equal(declaration_node.children.length, 1);
+
+                    const enum_node = declaration_node.children[0];
+                    assert.equal(enum_node.word.value, "Enum");
+
+                    assert.equal(enum_node.children.length > 3, true);
+
+                    {
+                        const export_node = enum_node.children[0];
+                        assert.equal(export_node.children.length, declaration.is_export ? 1 : 0);
+
+                        if (declaration.is_export) {
+                            assert.equal(export_node.children[0].word.value, "export");
+                        }
+                    }
+
+                    {
+                        const name_node = enum_node.children[2];
+                        assert.equal(name_node.children[0].word.value, enum_declaration.name);
+                    }
+                }
+                else if (declaration.type === Parse_tree_convertor.Declaration_type.Function) {
+
+                    const function_declaration = module_declarations.function_declarations.elements[declaration.index];
+
+                    assert.equal(declaration_node.children.length, 1);
+
+                    const function_node = declaration_node.children[0];
+                    assert.equal(function_node.word.value, "Function");
+
+                    assert.equal(function_node.children.length, 2);
+
+                    {
+                        const function_declaration_node = function_node.children[0];
+                        assert.equal(function_declaration_node.word.value, "Function_declaration");
+
+                        assert.equal(function_declaration_node.children.length > 3, true);
+
+                        {
+                            const export_node = function_declaration_node.children[0];
+                            assert.equal(export_node.children.length, declaration.is_export ? 1 : 0);
+
+                            if (declaration.is_export) {
+                                assert.equal(export_node.children[0].word.value, "export");
+                            }
+                        }
+
+                        {
+                            const name_node = function_declaration_node.children[2];
+                            assert.equal(name_node.children[0].word.value, function_declaration.name);
+                        }
+
+                        {
+                            const input_parameters_node = function_declaration_node.children[4];
+                            assert.equal(input_parameters_node.word.value, "Function_input_parameters");
+
+                            assert_function_parameters(input_parameters_node, function_declaration.input_parameter_names.elements);
+                        }
+
+                        {
+                            const output_parameters_node = function_declaration_node.children[8];
+                            assert.equal(output_parameters_node.word.value, "Function_output_parameters");
+
+                            assert_function_parameters(output_parameters_node, function_declaration.output_parameter_names.elements);
+                        }
+                    }
+                }
+                else if (declaration.type === Parse_tree_convertor.Declaration_type.Struct) {
+
+                    const struct_declaration = module_declarations.struct_declarations.elements[declaration.index];
+
+                    assert.equal(declaration_node.children.length, 1);
+
+                    const struct_node = declaration_node.children[0];
+                    assert.equal(struct_node.word.value, "Struct");
+
+                    assert.equal(struct_node.children.length > 3, true);
+
+                    {
+                        const export_node = struct_node.children[0];
+                        assert.equal(export_node.children.length, declaration.is_export ? 1 : 0);
+
+                        if (declaration.is_export) {
+                            assert.equal(export_node.children[0].word.value, "export");
+                        }
+                    }
+
+                    {
+                        const name_node = struct_node.children[2];
+                        assert.equal(name_node.children[0].word.value, struct_declaration.name);
+                    }
                 }
             }
         }
