@@ -136,7 +136,7 @@ export function scan_new_change(
     const is_same_first_word = new_words.length > 0 && new_words[0].value === start_node.word.value && new_words[0].type === start_node.word.type;
     const start_change_node_position = is_same_first_word ? get_next_node_position(root, start_node, start_node_position) : start_node_position;
 
-    const after_end_node_result = get_next_leaf_node(root, end_node, end_node_position);
+    const after_end_node_result = get_next_terminal_node(root, end_node, end_node_position);
     const after_change_node_position = after_end_node_result !== undefined ? after_end_node_result.position : [];
 
     return {
@@ -198,6 +198,23 @@ function get_next_leaf_node(root: Node, current_node: Node, current_node_positio
 
     while (result !== undefined) {
         if (result.next_node.children.length === 0) {
+            return {
+                node: result.next_node,
+                position: result.next_position
+            };
+        }
+
+        result = iterate_forward(root, result.next_node, result.next_position);
+    }
+
+    return undefined;
+}
+
+function get_next_terminal_node(root: Node, current_node: Node, current_node_position: number[]): { node: Node, position: number[] } | undefined {
+    let result = iterate_forward(root, current_node, current_node_position);
+
+    while (result !== undefined) {
+        if (result.next_node.children.length === 0 && result.next_node.production_rule_index === undefined) {
             return {
                 node: result.next_node,
                 position: result.next_position
@@ -1179,10 +1196,6 @@ function parse_incrementally_after_change(
 
     const after_change_node = get_node_at_position(original_node_tree, after_change_node_position);
 
-    let next_word_node = clone_node(after_change_node);
-    let next_word_node_position = after_change_node_position;
-    let current_word_index = 0;
-
     // Check if adding an element to an array:
     {
         const is_start_change_end_of_tree = !is_valid_position(original_node_tree, start_change_node_position);
@@ -1198,6 +1211,10 @@ function parse_incrementally_after_change(
         }
     }
 
+    let next_word_node = clone_node(after_change_node);
+    let next_word_node_position = after_change_node_position;
+    let current_word_index = 0;
+
     let old_table = next_word_node.state;
 
     {
@@ -1208,7 +1225,7 @@ function parse_incrementally_after_change(
         top_of_stack = apply_shift(next_word_node, shift_action.next_state, top_of_stack);
 
         {
-            const iterate_result = get_next_leaf_node(original_node_tree, next_word_node, next_word_node_position);
+            const iterate_result = get_next_terminal_node(original_node_tree, next_word_node, next_word_node_position);
             next_word_node = iterate_result !== undefined ? clone_node(iterate_result.node) : create_bottom_of_stack_node();
             next_word_node_position = iterate_result !== undefined ? iterate_result.position : [];
             current_word_index += 1;
@@ -1219,21 +1236,37 @@ function parse_incrementally_after_change(
 
         if (old_table === top_of_stack.state) {
 
-            const rightmost_brother = get_rightmost_brother(top_of_stack);
-            if (rightmost_brother === undefined) {
-                return {
-                    status: Parse_status.Failed,
-                    processed_words: 1,
-                    changes: []
-                };
+            // Skip parsing and go to rightmost brother.
+            // We need to clone the nodes between top of stack and rightmost brother because they are part of the original node tree.
+            {
+                const rightmost_brother = get_rightmost_brother(top_of_stack);
+                if (rightmost_brother === undefined) {
+                    return {
+                        status: Parse_status.Failed,
+                        processed_words: 1,
+                        changes: []
+                    };
+                }
+
+                const count = rightmost_brother.index_in_father - top_of_stack.index_in_father;
+                if (count > 0) {
+                    const nodes_after_top_of_stack = get_top_nodes_from_stack(rightmost_brother, count, undefined, map_word_to_terminal);
+                    if (nodes_after_top_of_stack !== undefined && nodes_after_top_of_stack.length > 0) {
+                        const clones = nodes_after_top_of_stack.map(node => clone_node(node));
+                        clones[clones.length - 1].previous_node_on_stack = top_of_stack;
+                        for (let index = 0; (index + 1) < clones.length; ++index) {
+                            clones[index].previous_node_on_stack = clones[index + 1];
+                        }
+                        top_of_stack = clones[0];
+                    }
+                }
             }
-            //rightmost_brother.previous_node_on_stack = top_of_stack.previous_node_on_stack;
-            top_of_stack = rightmost_brother;
 
             // Get node after rightmost brother:
             {
+                const rightmost_brother = top_of_stack;
                 const rightmost_brother_position = get_node_position(rightmost_brother);
-                const iterate_result = get_next_leaf_node(original_node_tree, rightmost_brother, rightmost_brother_position);
+                const iterate_result = get_next_terminal_node(original_node_tree, rightmost_brother, rightmost_brother_position);
                 next_word_node = iterate_result !== undefined ? clone_node(iterate_result.node) : create_bottom_of_stack_node();
                 next_word_node_position = iterate_result !== undefined ? iterate_result.position : [];
                 current_word_index += 1; // TODO
@@ -1345,7 +1378,7 @@ function parse_incrementally_after_change(
 
             if (result.status === Parse_status.Continue) {
 
-                const iterate_result = get_next_leaf_node(original_node_tree, next_word_node, next_word_node_position);
+                const iterate_result = get_next_terminal_node(original_node_tree, next_word_node, next_word_node_position);
                 next_word_node = iterate_result !== undefined ? clone_node(iterate_result.node) : create_bottom_of_stack_node();
                 next_word_node_position = iterate_result !== undefined ? iterate_result.position : [];
                 current_word_index += 1;

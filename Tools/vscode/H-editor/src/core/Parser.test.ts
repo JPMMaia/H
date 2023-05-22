@@ -1090,6 +1090,177 @@ describe("Parser.parse_incrementally", () => {
             }
         }
     });
+
+    it("Parses 'module module_name;' and subsequent change", () => {
+
+        const grammar_description = Grammar_examples.create_test_grammar_9_description();
+        const production_rules = Grammar.create_production_rules(grammar_description);
+        const non_terminals = Grammar.get_non_terminals(production_rules);
+        const terminals = Grammar.get_terminals(production_rules, non_terminals);
+        const lr1_item_set_0 = Grammar.create_start_lr1_item_set(production_rules, terminals);
+        const graph = Grammar.create_lr1_graph(production_rules, terminals, lr1_item_set_0);
+        const parsing_tables = Grammar.create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
+        const array_infos = Grammar.create_array_infos(production_rules);
+
+        const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
+
+            if (word.value === "enum" || word.value === "export" || word.value === "function" || word.value === "module" || word.value === "struct" || word.value === "using") {
+                return word.value;
+            }
+
+            if (word.type === Grammar.Word_type.Alphanumeric) {
+                return "identifier";
+            }
+
+            return word.value;
+        };
+
+        const first_input = "module module_name;";
+        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length);
+        const first_parse_result = Parser.parse_incrementally(
+            undefined,
+            [],
+            first_scanned_words,
+            [],
+            parsing_tables.action_table,
+            parsing_tables.go_to_table,
+            array_infos,
+            map_word_to_terminal
+        );
+
+        assert.equal(first_parse_result.status, Parser.Parse_status.Accept);
+
+        const second_input = "module_name_2";
+        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length);
+        const start_change_node_position: number[] = [0, 0, 1, 0];
+        const after_change_node_position: number[] = [0, 0, 2];
+
+        const second_parse_result = Parser.parse_incrementally(
+            (first_parse_result.changes[0].value as Parser.Modify_change).new_node,
+            start_change_node_position,
+            second_scanned_words,
+            after_change_node_position,
+            parsing_tables.action_table,
+            parsing_tables.go_to_table,
+            array_infos,
+            map_word_to_terminal
+        );
+
+        assert.equal(second_parse_result.status, Parser.Parse_status.Accept);
+        assert.equal(second_parse_result.changes.length, 1);
+
+        const change = second_parse_result.changes[0];
+        assert.equal(change.type, Parser.Change_type.Modify);
+
+        const modify_change = change.value as Parser.Modify_change;
+
+        assert.deepEqual(modify_change.position, [0, 0]);
+
+        const module_declaration_node = modify_change.new_node;
+        assert.equal(module_declaration_node.word.value, "Module_declaration");
+        assert.equal(module_declaration_node.children.length, 3);
+
+        {
+            const module_keyword_node = module_declaration_node.children[0];
+            assert.equal(module_keyword_node.word.value, "module");
+            assert.equal(module_keyword_node.children.length, 0);
+        }
+
+        {
+            const module_name_node = module_declaration_node.children[1];
+            assert.equal(module_name_node.word.value, "Module_name");
+            assert.equal(module_name_node.children.length, 1);
+
+            {
+                const identifier_node = module_name_node.children[0];
+                assert.equal(identifier_node.word.value, "module_name_2");
+                assert.equal(identifier_node.children.length, 0);
+            }
+        }
+
+        {
+            const semicolon_node = module_declaration_node.children[2];
+            assert.equal(semicolon_node.word.value, ";");
+            assert.equal(semicolon_node.children.length, 0);
+        }
+    });
+
+    it("Parses long list and subsequent change", () => {
+
+        const grammar_description = Grammar_examples.create_test_grammar_12_description();
+        const production_rules = Grammar.create_production_rules(grammar_description);
+        const non_terminals = Grammar.get_non_terminals(production_rules);
+        const terminals = Grammar.get_terminals(production_rules, non_terminals);
+        const lr1_item_set_0 = Grammar.create_start_lr1_item_set(production_rules, terminals);
+        const graph = Grammar.create_lr1_graph(production_rules, terminals, lr1_item_set_0);
+        const parsing_tables = Grammar.create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
+        const array_infos = Grammar.create_array_infos(production_rules);
+
+        const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
+
+            if (word.type === Grammar.Word_type.Number) {
+                return "number";
+            }
+
+            return word.value;
+        };
+
+        const first_input = "0 1 2 3 4 5";
+        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length);
+        const first_parse_result = Parser.parse_incrementally(
+            undefined,
+            [],
+            first_scanned_words,
+            [],
+            parsing_tables.action_table,
+            parsing_tables.go_to_table,
+            array_infos,
+            map_word_to_terminal
+        );
+
+        assert.equal(first_parse_result.status, Parser.Parse_status.Accept);
+
+        // This is important to test the skip to rightmost brother incremental parser part.
+        const second_input = "10";
+        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length);
+        const start_change_node_position: number[] = [0, 1];
+        const after_change_node_position: number[] = [0, 2];
+
+        const second_parse_result = Parser.parse_incrementally(
+            (first_parse_result.changes[0].value as Parser.Modify_change).new_node,
+            start_change_node_position,
+            second_scanned_words,
+            after_change_node_position,
+            parsing_tables.action_table,
+            parsing_tables.go_to_table,
+            array_infos,
+            map_word_to_terminal
+        );
+
+        assert.equal(second_parse_result.status, Parser.Parse_status.Accept);
+        assert.equal(second_parse_result.changes.length, 1);
+
+        const change = second_parse_result.changes[0];
+        assert.equal(change.type, Parser.Change_type.Modify);
+
+        const modify_change = change.value as Parser.Modify_change;
+
+        assert.deepEqual(modify_change.position, [0]);
+
+        const list_node = modify_change.new_node;
+        assert.equal(list_node.word.value, "List");
+
+        const expected_values = ["0", "10", "2", "3", "4", "5"];
+        assert.equal(list_node.children.length, expected_values.length);
+
+        for (let index = 0; index < list_node.children.length; ++index) {
+            const node = list_node.children[index];
+            const expected_value = expected_values[index];
+
+            assert.equal(node.word.value, expected_value);
+            assert.equal(node.children.length, 0);
+        }
+    });
 });
 
 describe("Parser.parse_incrementally array without separator", () => {
