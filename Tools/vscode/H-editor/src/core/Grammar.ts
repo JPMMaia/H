@@ -1,7 +1,8 @@
 import * as Abstract_syntax_tree from "./Abstract_syntax_tree";
 import * as Core from "../utilities/coreModelInterface";
 import * as Symbol_database from "./Symbol_database";
-import { onThrowError } from "../utilities/errors";
+
+const g_debug = false;
 
 export enum Word_type {
     Alphanumeric,
@@ -370,9 +371,7 @@ export function create_start_lr1_item_set(production_rules: Production_rule[], t
 
 function compute_lr1_closure(production_rules: Production_rule[], terminals: string[], lr1_item_set: LR1_item[]): LR1_item[] {
 
-    const debug = true;
-
-    if (debug) {
+    if (g_debug) {
         console.log("------");
     }
 
@@ -382,7 +381,7 @@ function compute_lr1_closure(production_rules: Production_rule[], terminals: str
 
         const item = closure_item_set[index];
 
-        if (debug) {
+        if (g_debug) {
             console.log(lr1_item_to_string(production_rules, item));
         }
 
@@ -492,9 +491,7 @@ export function create_next_lr1_item_set(production_rules: Production_rule[], te
     // Compute closure:
     const new_item_set_closure = compute_lr1_closure(production_rules, terminals, new_item_set);
 
-    const debug = false;
-
-    if (debug) {
+    if (g_debug) {
         console.log("------ LR1 Item Set ------");
         for (const item of new_item_set_closure) {
             console.log(lr1_item_to_string(production_rules, item));
