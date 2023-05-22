@@ -119,10 +119,7 @@ export function create_test_grammar_9_description(): string[] {
         "Module_head -> Module_declaration",
         "Module_declaration -> module Module_name ;",
         "Module_name -> identifier",
-        "Module_body -> ",
-        "Module_body -> Declarations",
-        "Declarations -> Declaration",
-        "Declarations -> Declaration Declarations",
+        "Module_body -> Declaration $0_or_more",
         "Declaration -> Alias",
         "Declaration -> Enum",
         "Declaration -> Struct",
@@ -138,12 +135,8 @@ export function create_test_grammar_9_description(): string[] {
         "Struct_name -> identifier",
         "Function -> Function_declaration Function_definition",
         "Function_declaration -> Export function Function_name ( Function_input_parameters ) -> ( Function_output_parameters )",
-        "Function_input_parameters -> ",
-        "Function_input_parameters -> Function_parameters",
-        "Function_output_parameters -> ",
-        "Function_output_parameters -> Function_parameters",
-        "Function_parameters -> Function_parameter",
-        "Function_parameters -> Function_parameter , Function_parameters",
+        "Function_input_parameters -> Function_parameter , $0_or_more",
+        "Function_output_parameters -> Function_parameter $0_or_more",
         "Function_parameter -> Function_parameter_name : Function_parameter_type",
         "Function_parameter_name -> identifier",
         "Function_parameter_type -> identifier",
@@ -165,5 +158,12 @@ export function create_test_grammar_11_description(): string[] {
         "S -> List",
         "List -> Element , $0_or_more",
         "Element -> id"
+    ];
+}
+
+export function create_test_grammar_12_description(): string[] {
+    return [
+        "S -> List",
+        "List -> number number number number number number"
     ];
 }
