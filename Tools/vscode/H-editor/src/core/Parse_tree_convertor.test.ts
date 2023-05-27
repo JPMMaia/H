@@ -13,19 +13,6 @@ import * as Scanner from "./Scanner";
 import * as Symbol_database from "./Symbol_database";
 import * as Text_formatter from "./Text_formatter";
 
-function create_parse_node(value: string, text_position: Parser.Text_position, children: Parser.Node[]): Parser.Node {
-    return {
-        word: { value: value, type: Grammar.Word_type.Alphanumeric },
-        state: -1,
-        production_rule_index: undefined,
-        previous_node_on_stack: undefined,
-        father_node: undefined,
-        index_in_father: -1,
-        children: children,
-        text_position: text_position
-    };
-}
-
 function assert_function_parameters(parameters_node: Parser.Node, parameter_names: string[]): void {
 
     assert.equal(parameters_node.children.length, parameter_names.length === 0 ? 0 : parameter_names.length * 2 - 1);

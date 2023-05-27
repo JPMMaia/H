@@ -300,9 +300,6 @@ export function module_to_parse_tree(
                 word: { value: production_rules[0].lhs, type: Grammar.Word_type.Symbol },
                 state: -1,
                 production_rule_index: 0,
-                previous_node_on_stack: undefined,
-                father_node: undefined,
-                index_in_father: -1,
                 children: [],
                 text_position: undefined
             },
@@ -347,9 +344,6 @@ export function module_to_parse_tree(
                 word: word,
                 state: -1,
                 production_rule_index: undefined,
-                previous_node_on_stack: undefined,
-                father_node: parent_node,
-                index_in_father: label_index,
                 children: [],
                 text_position: undefined
             };
@@ -374,9 +368,6 @@ export function module_to_parse_tree(
                     word: { value: next_production_rule.lhs, type: Grammar.Word_type.Symbol },
                     state: -1,
                     production_rule_index: next_production_rule_index,
-                    previous_node_on_stack: undefined,
-                    father_node: parent_node,
-                    index_in_father: parent_node.children.length,
                     children: [],
                     text_position: undefined
                 },

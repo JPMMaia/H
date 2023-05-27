@@ -12,9 +12,6 @@ function create_parse_node(value: string, text_position: Parser.Text_position, c
         word: { value: value, type: Grammar.Word_type.Alphanumeric },
         state: -1,
         production_rule_index: undefined,
-        previous_node_on_stack: undefined,
-        father_node: undefined,
-        index_in_father: -1,
         children: children,
         text_position: text_position
     };
@@ -950,6 +947,14 @@ describe("Parser.parse_incrementally", () => {
         const start_change_node_position: number[] = [0, 1, 2, 1, 0];
         const after_change_node_position: number[] = [0, 1, 2, 1, 1, 0];
 
+        // Expected steps:
+        // shift [[0,$], [2,a], [2,a], [8,A], [17,b] | [26,g]] 
+        // shift [[0,$], [2,a], [2,a], [8,A], [17,b] | [26,g], [33,g]] 
+        // reduce E -> g g [[0,$], [2,a], [2,a], [8,A], [17,b] | [24,E]] c 
+        // reduce D -> b E [[0,$], [2,a], [2,a], [8,A] | [16,D]] c 
+        // shift [[0,$], [2,a], [2,a], [8,A] | [16,D], [22,c]] 
+        // reduce C -> D c [[0,$], [2,a], [2,a], [8,A] | [15,C]] b 
+        // accept matching condition at position [0,1]: A -> a A C [[0,$], [2,a], [2,a], [8,A] | [15,C]]
         const second_parse_result = Parser.parse_incrementally(
             (first_parse_result.changes[0].value as Parser.Modify_change).new_node,
             start_change_node_position,
@@ -1135,6 +1140,11 @@ describe("Parser.parse_incrementally", () => {
         const start_change_node_position: number[] = [0, 0, 1, 0];
         const after_change_node_position: number[] = [0, 0, 2];
 
+        // Expected steps:
+        // shift [[0,$], [3,module] | [14,module_name_2]] 
+        // reduce Module_name -> module_name_2 [[0,$], [3,module] | [13,Module_name]] ; 
+        // shift [[0,$], [3,module] | [13,Module_name], [22,;]] 
+        // accept matching condition at position [0,0]: Module_declaration -> module Module_name ; [[0,$], [3,module] | [13,Module_name], [22,;]]
         const second_parse_result = Parser.parse_incrementally(
             (first_parse_result.changes[0].value as Parser.Modify_change).new_node,
             start_change_node_position,
@@ -1226,6 +1236,11 @@ describe("Parser.parse_incrementally", () => {
         const start_change_node_position: number[] = [0, 1];
         const after_change_node_position: number[] = [0, 2];
 
+        // Expected steps:
+        // shift [[0,$], [2,0] | [3,10]] 
+        // shift [[0,$], [2,0] | [3,10], [4,2]] 
+        // skip 3 nodes to rightmost brother: [[0,$], [2,0] | [3,10], [4,2], [5,3], [6,4], [7,5]]
+        // accept matching condition at position [0]: List -> 0 10 2 3 4 5 [[0,$], [2,0] | [3,10], [4,2], [5,3], [6,4], [7,5]]
         const second_parse_result = Parser.parse_incrementally(
             (first_parse_result.changes[0].value as Parser.Modify_change).new_node,
             start_change_node_position,

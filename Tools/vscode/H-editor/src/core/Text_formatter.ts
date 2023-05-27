@@ -44,7 +44,7 @@ export function to_string(root: Parser.Node): string {
                     line: current_text_position.line,
                     column: add_space ? current_text_position.column + 1 : current_text_position.column
                 };
-                add_text_position_to_parent_nodes(current_node, current_node.text_position);
+                // TODO update parent positions ?
 
                 current_text_position.column += add_word(buffer, add_space ? ` ${word.value}` : word.value);
 
@@ -89,17 +89,4 @@ function add_new_line(buffer: string[], current_text_position: Parser.Text_posit
         line: current_text_position.line + 1,
         column: 0
     };
-}
-
-function add_text_position_to_parent_nodes(node: Parser.Node, text_position: Parser.Text_position): void {
-
-    let current_node = node;
-
-    while (current_node.father_node !== undefined && current_node.index_in_father === 0) {
-        current_node.father_node.text_position = {
-            line: text_position.line,
-            column: text_position.column
-        };
-        current_node = current_node.father_node;
-    }
 }
