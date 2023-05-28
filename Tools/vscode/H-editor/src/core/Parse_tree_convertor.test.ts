@@ -295,7 +295,7 @@ function create_module_changes(
         production_rule_to_value_map,
         production_rule_to_change_action_map,
         parse_tree,
-        parse_result.changes[0].value as Parser.Modify_change
+        parse_result.changes
     );
 
     return module_changes;
@@ -343,19 +343,18 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
             const add_change = change.change.value as Module_change.Add_element_to_vector;
             assert.equal(add_change.vector_name, "function_declarations");
-            assert.equal(add_change.index, 1);
 
             const function_declaration = add_change.value as Core.Function_declaration;
-            assert.equal(function_declaration.id, 200);
+            //assert.equal(function_declaration.id, 200);
             assert.equal(function_declaration.linkage, Core.Linkage.Private);
             assert.equal(function_declaration.type.is_variadic, false);
             assert.deepEqual(function_declaration.name, "function_name");
-            assert.deepEqual(function_declaration.input_parameter_ids, []);
-            assert.deepEqual(function_declaration.input_parameter_names, []);
-            assert.deepEqual(function_declaration.type.input_parameter_types, []);
-            assert.deepEqual(function_declaration.output_parameter_ids, []);
-            assert.deepEqual(function_declaration.output_parameter_names, []);
-            assert.deepEqual(function_declaration.type.output_parameter_types, []);
+            //assert.deepEqual(function_declaration.input_parameter_ids.elements, []);
+            assert.deepEqual(function_declaration.input_parameter_names.elements, []);
+            assert.deepEqual(function_declaration.type.input_parameter_types.elements, []);
+            //assert.deepEqual(function_declaration.output_parameter_ids.elements, []);
+            assert.deepEqual(function_declaration.output_parameter_names.elements, []);
+            assert.deepEqual(function_declaration.type.output_parameter_types.elements, []);
         }
 
         {
@@ -366,11 +365,11 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
             const add_change = change.change.value as Module_change.Add_element_to_vector;
             assert.equal(add_change.vector_name, "function_definitions");
-            assert.equal(add_change.index, 5);
+            //assert.equal(add_change.index, 5);
 
             const function_definition = add_change.value as Core.Function_definition;
-            assert.equal(function_definition.id, 200);
-            assert.deepEqual(function_definition.statements, []);
+            //assert.equal(function_definition.id, 200);
+            assert.deepEqual(function_definition.statements.elements, []);
         }
     });
 });

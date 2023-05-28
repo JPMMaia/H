@@ -668,7 +668,14 @@ function get_array_elements(node: Parser.Node, array_name: string, element_name:
 
     const has_separator = separator_name.length > 0;
 
-    const child_nodes = has_separator ? node.children.filter(child => child.word.value !== separator_name) : node.children;
+    const array_node = node.children.find(child => child.word.value === array_name);
+    if (array_node === undefined) {
+        const message = `Could not find array node: ${array_node} in ${node.word.value}`;
+        onThrowError(message);
+        throw Error(message);
+    }
+
+    const child_nodes = has_separator ? array_node.children.filter(child => child.word.value !== separator_name) : array_node.children;
 
     const elements = child_nodes.map(child => map_node_to_value(child, production_rules, production_rule_to_value_map));
 
@@ -705,7 +712,7 @@ function map_node_to_value(node: Parser.Node, production_rules: Grammar.Producti
     }
     else if (info.type === Production_rule_info_type.Array) {
         const array_info = info.value as Array_info;
-        const value = get_array_elements(node, array_info.array_name, array_info.separator_type, array_info.element_type, production_rules, production_rule_to_value_map);
+        const value = get_array_elements(node, array_info.array_name, array_info.element_type, array_info.separator_type, production_rules, production_rule_to_value_map);
         return value;
     }
     else if (info.type === Production_rule_info_type.Object) {
@@ -715,7 +722,7 @@ function map_node_to_value(node: Parser.Node, production_rules: Grammar.Producti
         const arrays: any[][] = [];
 
         for (const array_info of object_info.arrays) {
-            const array = get_array_elements(node, array_info.array_name, array_info.separator_type, array_info.element_type, production_rules, production_rule_to_value_map);
+            const array = get_array_elements(node, array_info.array_name, array_info.element_type, array_info.separator_type, production_rules, production_rule_to_value_map);
             arrays.push(array);
         }
 
@@ -774,70 +781,88 @@ export function create_module_changes(
     production_rule_to_value_map: Production_rule_info[],
     production_rule_to_change_action_map: Change_action[],
     parse_tree: Parser.Node,
-    parse_tree_change: Parser.Modify_change,
+    parse_tree_changes: Parser.Change[],
 ): { position: any[], change: Module_change.Change }[] {
 
     const changes: { position: any[], change: Module_change.Change }[] = [];
 
-    const node_stack: Parser.Node[] = [];
-    node_stack.push(parse_tree_change.new_node);
+    for (const parse_tree_change of parse_tree_changes) {
 
-    while (node_stack.length > 0) {
-        const current_node = node_stack.pop() as Parser.Node;
+        if (parse_tree_change.type === Parser.Change_type.Modify) {
+            const modify_change = parse_tree_change.value as Parser.Modify_change;
 
-        if (current_node.production_rule_index === undefined) {
-            continue;
-        }
+            const node_stack: Parser.Node[] = [];
+            node_stack.push(modify_change.new_node);
 
-        const change_info = production_rule_to_change_action_map[current_node.production_rule_index];
+            while (node_stack.length > 0) {
+                const current_node = node_stack.pop() as Parser.Node;
 
-        if (change_info.type === Change_action_type.Update) {
-            const update_info = change_info.value as Update_action;
+                if (current_node.production_rule_index === undefined) {
+                    continue;
+                }
 
-            const position = update_info.position;
-            const key = update_info.key;
-            const current_value = map_node_to_value(current_node, production_rules, production_rule_to_value_map);
+                const change_info = production_rule_to_change_action_map[current_node.production_rule_index];
 
-            const change = Module_change.create_update(key, current_value);
-            changes.push({ position: position, change: change });
-        }
-        else {
-            for (let index_plus_one = current_node.children.length; index_plus_one > 0; --index_plus_one) {
-                node_stack.push(current_node.children[index_plus_one - 1]);
+                if (change_info.type === Change_action_type.Update) {
+                    const update_info = change_info.value as Update_action;
+
+                    const position = update_info.position;
+                    const key = update_info.key;
+                    const current_value = map_node_to_value(current_node, production_rules, production_rule_to_value_map);
+
+                    const change = Module_change.create_update(key, current_value);
+                    changes.push({ position: position, change: change });
+                }
+                else {
+                    for (let index_plus_one = current_node.children.length; index_plus_one > 0; --index_plus_one) {
+                        node_stack.push(current_node.children[index_plus_one - 1]);
+                    }
+                }
             }
         }
+        else if (parse_tree_change.type === Parser.Change_type.Add) {
+            const add_change = parse_tree_change.value as Parser.Add_change;
 
-        /*
-        if (current_node.production_rule_index === 3) {
-            const position: any[] = [];
-            const change = Module_change.create_update("name", current_node.children[0].word.value);
-            changes.push({ position: position, change: change });
+            // Figure out the context from parent position and index:
+            const parent_node = Parser.get_node_at_position(parse_tree, add_change.parent_position);
+
+            if (parent_node.word.value === "Module_body") {
+
+                // We are going to add alias, enums, functions and structs:
+                for (const new_node of add_change.new_nodes) {
+                    const declaration_type = new_node.children[0].word.value;
+
+                    if (declaration_type === "Function") {
+
+                        const function_declaration_node = new_node.children[0].children[0];
+
+                        const function_declaration = map_node_to_value(function_declaration_node, production_rules, production_rule_to_value_map) as Core.Function_declaration;
+
+                        {
+                            // TODO change index
+                            const change = Module_change.create_add_element_to_vector("function_declarations", 0, function_declaration);
+
+                            const is_export = function_declaration.linkage === Core.Linkage.External;
+                            changes.push({ position: [is_export ? "export_declarations" : "internal_declarations"], change: change });
+                        }
+
+                        const function_definition: Core.Function_definition = {
+                            id: 0, // TODO
+                            statements: {
+                                size: 0,
+                                elements: []
+                            }
+                        };
+
+                        {
+                            // TODO change index
+                            const change = Module_change.create_add_element_to_vector("function_definitions", 0, function_definition);
+                            changes.push({ position: ["definitions"], change: change });
+                        }
+                    }
+                }
+            }
         }
-        else if (current_node.production_rule_index === 21) {
-
-            const function_declaration = map_node_to_value(current_node);
-            function_declaration.id = module.next_unique_id;
-
-            const position: any[] = [function_declaration.linkage === Core.Linkage.External ? "export_declarations" : "internal_declarations"];
-            const index = function_declaration.linkage === Core.Linkage.External ? module.export_declarations.function_declarations.elements.length : module.internal_declarations.function_declarations.elements.length;
-            // TODO decide if we add, or if we set
-            const change = Module_change.create_add_element_to_vector("function_declarations", index, function_declaration);
-            changes.push({ position: position, change: change });
-        }
-        else if (current_node.production_rule_index === 22) {
-
-            const function_definition = map_node_to_value(current_node);
-            function_definition.id = module.next_unique_id;
-
-            const position: any[] = ["definitions"];
-            // TODO decide if we add, or if we set
-            const change = Module_change.create_add_element_to_vector("function_definitions", module.definitions.function_definitions.elements.length, function_definition);
-            changes.push({ position: position, change: change });
-        }
-
-        for (let index_plus_one = current_node.children.length; index_plus_one > 0; --index_plus_one) {
-            node_stack.push(current_node.children[index_plus_one - 1]);
-        }*/
     }
 
     return changes;
