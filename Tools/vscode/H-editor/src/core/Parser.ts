@@ -16,7 +16,7 @@ export interface Node {
     text_position: Text_position | undefined;
 }
 
-function get_node_at_position(root: Node, position: number[]): Node {
+export function get_node_at_position(root: Node, position: number[]): Node {
 
     let current_node = root;
 
@@ -1052,6 +1052,7 @@ export function parse_incrementally(
                         mark,
                         go_to_table,
                         current_word,
+                        undefined,
                         map_word_to_terminal
                     );
 
@@ -1099,6 +1100,38 @@ function apply_shift(
     }
 }
 
+function find_original_node_position_of_reduced_node(
+    original_node_tree: Node | undefined,
+    next_word_position: number[] | undefined,
+    production_rule_index: number,
+    children_elements: Parsing_stack_element[]
+): number[] | undefined {
+
+    if (children_elements.length === 0) {
+        if (original_node_tree !== undefined && next_word_position !== undefined) {
+            const previous = get_previous_node_on_stack(original_node_tree, next_word_position);
+            if (previous !== undefined) {
+                if (previous.node.production_rule_index === production_rule_index) {
+                    return previous.position;
+                }
+            }
+        }
+    }
+    else if (children_elements.length === 1) {
+        const position = children_elements[0].original_tree_position;
+        if (position !== undefined) {
+            const parent_position = get_parent_position(position);
+            return parent_position;
+        }
+    }
+    else if (elements_have_same_parent(children_elements)) {
+        const parent_position = get_parent_position(children_elements[0].original_tree_position as number[]);
+        return parent_position;
+    }
+
+    return undefined;
+}
+
 function apply_reduction(
     node: Node,
     production_rule_index: number,
@@ -1109,7 +1142,8 @@ function apply_reduction(
     stack: Parsing_stack_element[],
     mark: Parsing_stack_element,
     go_to_table: Grammar.Go_to_column[][],
-    current_word: Scanner.Scanned_word,
+    next_word: Scanner.Scanned_word,
+    next_word_position: number[] | undefined,
     map_word_to_terminal: (word: Scanner.Scanned_word) => string
 ): { success: boolean } {
 
@@ -1147,15 +1181,17 @@ function apply_reduction(
         stack.splice(remove_index, children.length);
     }
 
+    const original_tree_position = find_original_node_position_of_reduced_node(original_node_tree, next_word_position, production_rule_index, children);
+
     stack.push({
-        original_tree_position: undefined,
+        original_tree_position: original_tree_position,
         node: node
     });
 
     if (g_debug) {
         const stack_description = node_stack_to_string(original_node_tree, mark.original_tree_position, mark.node, stack);
         const rhs = node.children.map(node => node.word.value).join(" ");
-        console.log(`reduce ${production_lhs} -> ${rhs} ${stack_description} ${current_word.value} `);
+        console.log(`reduce ${production_lhs} -> ${rhs} ${stack_description} ${next_word.value} `);
     }
 
     return {
@@ -1652,7 +1688,7 @@ function parse_incrementally_after_change(
                 }
                 else {
                     const new_node = create_bottom_of_stack_node();
-                    const result = apply_reduction(new_node, reduce_action.production_rule_index, reduce_action.lhs, reduce_action.rhs_count, array_infos.get(reduce_action.lhs), original_node_tree, stack, mark, go_to_table, next_word, map_word_to_terminal);
+                    const result = apply_reduction(new_node, reduce_action.production_rule_index, reduce_action.lhs, reduce_action.rhs_count, array_infos.get(reduce_action.lhs), original_node_tree, stack, mark, go_to_table, next_word, next_word_node_position, map_word_to_terminal);
 
                     if (!result.success) {
                         return {
@@ -1739,15 +1775,32 @@ function perform_actions(
         switch (action.type) {
             case Grammar.Action_type.Accept:
                 {
+                    const accept_action = action.value as Grammar.Accept_action;
+
+                    const children = get_top_elements_from_stack(original_node_tree, stack, mark, accept_action.rhs_count, array_infos.get(accept_action.lhs), map_word_to_terminal) as Parsing_stack_element[];
+                    children.reverse();
+
+                    const new_node: Node = {
+                        word: { value: accept_action.lhs, type: Grammar.Word_type.Symbol },
+                        state: -1,
+                        production_rule_index: 0,
+                        children: children.map(element => element.node),
+                        text_position: undefined
+                    };
+
                     if (g_debug) {
-                        console.log("accept incremental change");
+                        const stack_description = node_stack_to_string(original_node_tree, mark.original_tree_position, mark.node, stack);
+                        const rhs_string = new_node.children.map(node => node.word.value).join(" ");
+                        console.log(`accept incremental change ${accept_action.lhs} -> ${rhs_string} ${stack_description}`);
                     }
+
+                    const change = create_modify_change([], new_node);
 
                     return {
                         status: Parse_status.Accept,
                         mark: mark,
                         old_table: old_table,
-                        changes: []
+                        changes: [change]
                     };
                 }
             case Grammar.Action_type.Shift:
@@ -1807,7 +1860,7 @@ function perform_actions(
                         }
 
                         const new_node = create_bottom_of_stack_node();
-                        const result = apply_reduction(new_node, reduce_action.production_rule_index, reduce_action.lhs, reduce_action.rhs_count, array_infos.get(reduce_action.lhs), original_node_tree, stack, mark, go_to_table, next_word_node.word, map_word_to_terminal);
+                        const result = apply_reduction(new_node, reduce_action.production_rule_index, reduce_action.lhs, reduce_action.rhs_count, array_infos.get(reduce_action.lhs), original_node_tree, stack, mark, go_to_table, next_word_node.word, next_word_position, map_word_to_terminal);
 
                         if (!result.success) {
                             return {
