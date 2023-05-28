@@ -115,11 +115,6 @@ function get_closest_node_position_to_text_position(root: Node, text_position: T
     return current_node_position;
 }
 
-function get_next_node_position(root: Node, current_node: Node, current_node_position: number[]): number[] {
-    const result = iterate_forward(root, current_node, current_node_position);
-    return result !== undefined ? result.next_position : [];
-}
-
 export function scan_new_change(
     root: Node,
     start_text_position: Text_position,
@@ -146,7 +141,8 @@ export function scan_new_change(
     const new_words = Scanner.scan(whole_new_text, 0, whole_new_text.length);
 
     const is_same_first_word = new_words.length > 0 && new_words[0].value === start_node.word.value && new_words[0].type === start_node.word.type;
-    const start_change_node_position = is_same_first_word ? get_next_node_position(root, start_node, start_node_position) : start_node_position;
+    const start_change_result = get_next_terminal_node(root, start_node, start_node_position);
+    const start_change_node_position = (is_same_first_word && start_change_result !== undefined) ? start_change_result.position : start_node_position;
 
     const after_end_node_result = get_next_terminal_node(root, end_node, end_node_position);
     const after_change_node_position = after_end_node_result !== undefined ? after_end_node_result.position : [];
@@ -830,6 +826,21 @@ function get_initial_mark_node(original_node_tree: Node | undefined, start_chang
     }
 }
 
+function print_array_changes(changes: Change[]): void {
+    const has_delete_changes = changes[0].type === Change_type.Remove;
+    if (has_delete_changes) {
+        const delete_change = changes[0].value as Remove_change;
+        console.log(`- delete ${delete_change.count} nodes at position [${delete_change.parent_position},${delete_change.index}]`);
+    }
+
+    const has_add_changes = changes[0].type === Change_type.Add || (changes.length === 2 && changes[1].type === Change_type.Add);
+    if (has_add_changes) {
+        const add_change = changes[0].value as Add_change;
+        const nodes_string = add_change.new_nodes.map(node => node.word.value).join(" ");
+        console.log(`- add ${add_change.new_nodes.length} nodes at position [${add_change.parent_position},${add_change.index}]: ${nodes_string}`);
+    }
+}
+
 export function parse_incrementally(
     original_node_tree: Node | undefined,
     start_change_node_position: number[],
@@ -921,21 +932,8 @@ export function parse_incrementally(
                                 if (changes.length > 0) {
 
                                     if (g_debug) {
-
                                         console.log(`accept array changes:`);
-
-                                        const has_delete_changes = changes[0].type === Change_type.Remove;
-                                        if (has_delete_changes) {
-                                            const delete_change = changes[0].value as Remove_change;
-                                            console.log(`- delete ${delete_change.count} nodes at position [${delete_change.parent_position},${delete_change.index}]`);
-                                        }
-
-                                        const has_add_changes = changes[0].type === Change_type.Add || (changes.length === 2 && changes[1].type === Change_type.Add);
-                                        if (has_add_changes) {
-                                            const add_change = changes[0].value as Add_change;
-                                            const nodes_string = add_change.new_nodes.map(node => node.word.value).join(" ");
-                                            console.log(`- add ${add_change.new_nodes.length} nodes at position [${add_change.parent_position},${add_change.index}]: ${nodes_string}`);
-                                        }
+                                        print_array_changes(changes);
                                     }
 
                                     return {
@@ -1544,7 +1542,8 @@ function parse_incrementally_after_change(
         if (changes !== undefined) {
 
             if (g_debug) {
-                console.log("accept array change");
+                console.log(`accept incremental array changes:`);
+                print_array_changes(changes);
             }
 
             return {
