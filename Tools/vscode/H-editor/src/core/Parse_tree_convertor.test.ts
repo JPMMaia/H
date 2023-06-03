@@ -303,7 +303,7 @@ function create_module_changes(
 
 describe("Parse_tree_convertor.create_module_changes", () => {
 
-    it("Creates module changes from parse tree of grammar 9 test 0", () => {
+    it("Sets name of module", () => {
 
         const module_changes = create_module_changes(
             { line: 0, column: 18 },
@@ -325,7 +325,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
         }
     });
 
-    it("Creates module changes from parse tree of grammar 9 test 1", () => {
+    it("Adds new function", () => {
 
         const module_changes = create_module_changes(
             { line: 0, column: 19 },
@@ -370,6 +370,385 @@ describe("Parse_tree_convertor.create_module_changes", () => {
             const function_definition = add_change.value as Core.Function_definition;
             //assert.equal(function_definition.id, 200);
             assert.deepEqual(function_definition.statements.elements, []);
+        }
+    });
+
+    it("Removes a function", () => {
+
+        const module_changes = create_module_changes(
+            { line: 6, column: 0 },
+            { line: 10, column: 0 },
+            ""
+        );
+
+        assert.equal(module_changes.length, 2);
+
+        {
+            const change = module_changes[0];
+            assert.deepEqual(change.position, ["export_declarations"]);
+
+            assert.equal(change.change.type, Module_change.Type.Remove_element_of_vector);
+
+            const remove_change = change.change.value as Module_change.Remove_element_of_vector;
+            assert.equal(remove_change.vector_name, "function_declarations");
+            assert.equal(remove_change.index, 0);
+        }
+
+        {
+            const change = module_changes[1];
+            assert.deepEqual(change.position, ["definitions"]);
+
+            assert.equal(change.change.type, Module_change.Type.Remove_element_of_vector);
+
+            const remove_change = change.change.value as Module_change.Remove_element_of_vector;
+            assert.equal(remove_change.vector_name, "function_definitions");
+            assert.equal(remove_change.index, 0);
+        }
+    });
+
+    it("Sets function name", () => {
+
+        const module_changes = create_module_changes(
+            { line: 10, column: 16 },
+            { line: 10, column: 29 },
+            "Another_name"
+        );
+
+        assert.equal(module_changes.length, 1);
+
+        {
+            const change = module_changes[0];
+            assert.deepEqual(change.position, ["export_declarations", "function_declarations", 1]);
+
+            assert.equal(change.change.type, Module_change.Type.Update);
+
+            const update_change = change.change.value as Module_change.Update;
+            assert.equal(update_change.key, "name");
+            assert.equal(update_change.value, "Another_name");
+        }
+    });
+
+    it("Adds new function input parameter", () => {
+
+        const module_changes = create_module_changes(
+            { line: 14, column: 30 },
+            { line: 14, column: 30 },
+            "foo: Bar, "
+        );
+
+        assert.equal(module_changes.length, 2);
+
+        {
+            const change = module_changes[0];
+            assert.deepEqual(change.position, ["export_declarations", "function_declarations", 2]);
+
+            assert.equal(change.change.type, Module_change.Type.Add_element_to_vector);
+
+            const add_change = change.change.value as Module_change.Add_element_to_vector;
+            assert.equal(add_change.vector_name, "parameter_names");
+            assert.equal(add_change.index, 0);
+            assert.equal(add_change.value, "foo");
+        }
+
+        {
+            const change = module_changes[1];
+            assert.deepEqual(change.position, ["export_declarations", "function_declarations", 2, "type"]);
+
+            assert.equal(change.change.type, Module_change.Type.Add_element_to_vector);
+
+            const add_change = change.change.value as Module_change.Add_element_to_vector;
+            assert.equal(add_change.vector_name, "input_parameters");
+            assert.equal(add_change.index, 0);
+            assert.equal(add_change.value, "Bar");
+        }
+    });
+
+    it("Removes function input parameter", () => {
+
+        const module_changes = create_module_changes(
+            { line: 14, column: 40 },
+            { line: 14, column: 51 },
+            ""
+        );
+
+        assert.equal(module_changes.length, 2);
+
+        {
+            const change = module_changes[0];
+            assert.deepEqual(change.position, ["export_declarations", "function_declarations", 2]);
+
+            assert.equal(change.change.type, Module_change.Type.Remove_element_of_vector);
+
+            const remove_change = change.change.value as Module_change.Remove_element_of_vector;
+            assert.equal(remove_change.vector_name, "parameter_names");
+            assert.equal(remove_change.index, 1);
+        }
+
+        {
+            const change = module_changes[1];
+            assert.deepEqual(change.position, ["export_declarations", "function_declarations", 2, "type"]);
+
+            assert.equal(change.change.type, Module_change.Type.Remove_element_of_vector);
+
+            const remove_change = change.change.value as Module_change.Remove_element_of_vector;
+            assert.equal(remove_change.vector_name, "input_parameters");
+            assert.equal(remove_change.index, 1);
+        }
+    });
+
+    it("Sets function input parameter name", () => {
+
+        const module_changes = create_module_changes(
+            { line: 14, column: 41 },
+            { line: 14, column: 44 },
+            "beep"
+        );
+
+        assert.equal(module_changes.length, 1);
+
+        {
+            const change = module_changes[0];
+            assert.deepEqual(change.position, ["export_declarations", "function_declarations", 2]);
+
+            assert.equal(change.change.type, Module_change.Type.Set_element_of_vector);
+
+            const update_change = change.change.value as Module_change.Set_element_of_vector;
+            assert.equal(update_change.vector_name, "parameter_names");
+            assert.equal(update_change.index, 1);
+            assert.equal(update_change.value, "beep");
+        }
+    });
+
+    it("Sets function input parameter type", () => {
+
+        const module_changes = create_module_changes(
+            { line: 14, column: 47 },
+            { line: 14, column: 51 },
+            "beep"
+        );
+
+        assert.equal(module_changes.length, 1);
+
+        {
+            const change = module_changes[0];
+            assert.deepEqual(change.position, ["export_declarations", "function_declarations", 2, "type"]);
+
+            assert.equal(change.change.type, Module_change.Type.Set_element_of_vector);
+
+            const update_change = change.change.value as Module_change.Set_element_of_vector;
+            assert.equal(update_change.vector_name, "input_parameters");
+            assert.equal(update_change.index, 1);
+            assert.equal(update_change.value, "beep");
+        }
+    });
+
+    it("Adds new struct", () => {
+
+        const module_changes = create_module_changes(
+            { line: 0, column: 19 },
+            { line: 0, column: 19 },
+            "\nstruct Struct_name {}\n"
+        );
+
+        assert.equal(module_changes.length, 1);
+
+        {
+            const change = module_changes[0];
+            assert.deepEqual(change.position, ["internal_declarations"]);
+
+            assert.equal(change.change.type, Module_change.Type.Add_element_to_vector);
+
+            const add_change = change.change.value as Module_change.Add_element_to_vector;
+            assert.equal(add_change.vector_name, "struct_declarations");
+
+            const struct_declaration = add_change.value as Core.Struct_declaration;
+            assert.equal(struct_declaration.name, "Struct_name");
+            assert.deepEqual(struct_declaration.member_names, []);
+            assert.deepEqual(struct_declaration.member_types, []);
+            assert.equal(struct_declaration.is_literal, false);
+            assert.equal(struct_declaration.is_packed, false);
+        }
+    });
+
+    it("Removes a struct", () => {
+
+        const module_changes = create_module_changes(
+            { line: 22, column: 0 },
+            { line: 26, column: 0 },
+            ""
+        );
+
+        assert.equal(module_changes.length, 1);
+
+        {
+            const change = module_changes[0];
+            assert.deepEqual(change.position, ["export_declarations"]);
+
+            assert.equal(change.change.type, Module_change.Type.Remove_element_of_vector);
+
+            const remove_change = change.change.value as Module_change.Remove_element_of_vector;
+            assert.equal(remove_change.vector_name, "struct_declarations");
+            assert.equal(remove_change.index, 0);
+        }
+    });
+
+    it("Sets struct name", () => {
+
+        const module_changes = create_module_changes(
+            { line: 22, column: 14 },
+            { line: 22, column: 25 },
+            "Another_name"
+        );
+
+        assert.equal(module_changes.length, 1);
+
+        {
+            const change = module_changes[0];
+            assert.deepEqual(change.position, ["export_declarations", "struct_declarations", 0]);
+
+            assert.equal(change.change.type, Module_change.Type.Update);
+
+            const update_change = change.change.value as Module_change.Update;
+            assert.equal(update_change.key, "name");
+            assert.equal(update_change.value, "Another_name");
+        }
+    });
+
+    it("Adds new enum", () => {
+
+        const module_changes = create_module_changes(
+            { line: 0, column: 19 },
+            { line: 0, column: 19 },
+            "\nenum My_enum {}\n"
+        );
+
+        assert.equal(module_changes.length, 1);
+
+        {
+            const change = module_changes[0];
+            assert.deepEqual(change.position, ["internal_declarations"]);
+
+            assert.equal(change.change.type, Module_change.Type.Add_element_to_vector);
+
+            const add_change = change.change.value as Module_change.Add_element_to_vector;
+            assert.equal(add_change.vector_name, "enum_declarations");
+
+            const enum_declaration = add_change.value as Core.Enum_declaration;
+            assert.equal(enum_declaration.name, "My_enum");
+            assert.deepEqual(enum_declaration.values, []);
+        }
+    });
+
+    it("Removes an enum", () => {
+
+        const module_changes = create_module_changes(
+            { line: 2, column: 0 },
+            { line: 6, column: 0 },
+            ""
+        );
+
+        assert.equal(module_changes.length, 1);
+
+        {
+            const change = module_changes[0];
+            assert.deepEqual(change.position, ["export_declarations"]);
+
+            assert.equal(change.change.type, Module_change.Type.Remove_element_of_vector);
+
+            const remove_change = change.change.value as Module_change.Remove_element_of_vector;
+            assert.equal(remove_change.vector_name, "enum_declarations");
+            assert.equal(remove_change.index, 0);
+        }
+    });
+
+    it("Sets enum name", () => {
+
+        const module_changes = create_module_changes(
+            { line: 22, column: 14 },
+            { line: 22, column: 25 },
+            "Another_name"
+        );
+
+        assert.equal(module_changes.length, 1);
+
+        {
+            const change = module_changes[0];
+            assert.deepEqual(change.position, ["export_declarations", "enum_declarations", 0]);
+
+            assert.equal(change.change.type, Module_change.Type.Update);
+
+            const update_change = change.change.value as Module_change.Update;
+            assert.equal(update_change.key, "name");
+            assert.equal(update_change.value, "Another_name");
+        }
+    });
+
+    it("Adds new alias", () => {
+
+        const module_changes = create_module_changes(
+            { line: 0, column: 19 },
+            { line: 0, column: 19 },
+            "\nusing My_alias = Float32\n"
+        );
+
+        assert.equal(module_changes.length, 1);
+
+        {
+            const change = module_changes[0];
+            assert.deepEqual(change.position, ["internal_declarations"]);
+
+            assert.equal(change.change.type, Module_change.Type.Add_element_to_vector);
+
+            const add_change = change.change.value as Module_change.Add_element_to_vector;
+            assert.equal(add_change.vector_name, "alias_type_declarations");
+
+            const alias_declaration = add_change.value as Core.Alias_type_declaration;
+            assert.equal(alias_declaration.name, "My_alias");
+            // TODO type
+        }
+    });
+
+    it("Removes an alias", () => {
+
+        const module_changes = create_module_changes(
+            { line: 1, column: 0 },
+            { line: 2, column: 0 },
+            ""
+        );
+
+        assert.equal(module_changes.length, 1);
+
+        {
+            const change = module_changes[0];
+            assert.deepEqual(change.position, ["export_declarations"]);
+
+            assert.equal(change.change.type, Module_change.Type.Remove_element_of_vector);
+
+            const remove_change = change.change.value as Module_change.Remove_element_of_vector;
+            assert.equal(remove_change.vector_name, "alias_type_declarations");
+            assert.equal(remove_change.index, 0);
+        }
+    });
+
+    it("Sets alias name", () => {
+
+        const module_changes = create_module_changes(
+            { line: 22, column: 14 },
+            { line: 22, column: 25 },
+            "Another_name"
+        );
+
+        assert.equal(module_changes.length, 1);
+
+        {
+            const change = module_changes[0];
+            assert.deepEqual(change.position, ["export_declarations", "alias_type_declarations", 0]);
+
+            assert.equal(change.change.type, Module_change.Type.Update);
+
+            const update_change = change.change.value as Module_change.Update;
+            assert.equal(update_change.key, "name");
+            assert.equal(update_change.value, "Another_name");
         }
     });
 });
