@@ -1,6 +1,45 @@
 import * as Grammar from "./Grammar";
 import * as Parser from "./Parser";
 
+function should_add_space(current_word: Grammar.Word, previous_word: Grammar.Word): boolean {
+
+    if (previous_word.type === Grammar.Word_type.Invalid && current_word.value === "module") {
+        return false;
+    }
+
+    switch (previous_word.value) {
+        case "->":
+            return true;
+    }
+
+    switch (current_word.value) {
+        case "(":
+        case ")":
+        case "{":
+        case "}":
+        case "[":
+        case "]":
+        case ";":
+        case ":":
+        case ",":
+            return false;
+        case "->":
+            return true;
+    }
+
+    switch (previous_word.value) {
+        case "(":
+        case ")":
+        case "{":
+        case "}":
+        case "[":
+        case "]":
+            return false;
+    }
+
+    return true;
+}
+
 export function to_string(root: Parser.Node): string {
 
     const buffer: string[] = [];
@@ -20,7 +59,7 @@ export function to_string(root: Parser.Node): string {
     let current_node: Parser.Node | undefined = root;
     let current_position: number[] = [];
     let current_direction = Parser.Iterate_direction.Down;
-    let is_symbol = true;
+    let previous_word: Grammar.Word = { value: "", type: Grammar.Word_type.Invalid };
 
     while (current_node !== undefined) {
 
@@ -30,24 +69,23 @@ export function to_string(root: Parser.Node): string {
             if (current_node.production_rule_index === undefined) {
                 const word = current_node.word;
 
-                if (current_node.word.value === "{") {
-                    current_text_position = add_new_line(buffer, current_text_position);
-                }
-                else if (current_node.word.value === "}") {
+                const adding_new_line = current_node.word.value === "{" || (current_node.word.value === "}" && previous_word.value !== "{");
+
+                if (adding_new_line) {
                     current_text_position = add_new_line(buffer, current_text_position);
                 }
 
-                const add_space = !is_symbol && word.type !== Grammar.Word_type.Symbol;
-                is_symbol = word.type === Grammar.Word_type.Symbol;
+                const added_new_line = buffer[buffer.length - 1] === "\n";
+                const adding_space = added_new_line ? false : should_add_space(word, previous_word);
 
                 current_node.text_position = {
                     line: current_text_position.line,
-                    column: add_space ? current_text_position.column + 1 : current_text_position.column
+                    column: adding_space ? current_text_position.column + 1 : current_text_position.column
                 };
 
                 add_text_position_to_parent_nodes(root, current_position, current_node.text_position);
 
-                current_text_position.column += add_word(buffer, add_space ? ` ${word.value}` : word.value);
+                current_text_position.column += add_word(buffer, adding_space ? ` ${word.value}` : word.value);
 
                 if (current_node.word.value === "{") {
                     current_text_position = add_new_line(buffer, current_text_position);
@@ -56,6 +94,13 @@ export function to_string(root: Parser.Node): string {
                     current_text_position = add_new_line(buffer, current_text_position);
                 }
                 else if (current_node.word.value === ";") {
+                    current_text_position = add_new_line(buffer, current_text_position);
+                }
+
+                previous_word = current_node.word;
+            }
+            else {
+                if (current_node.word.value === "Declaration") {
                     current_text_position = add_new_line(buffer, current_text_position);
                 }
             }
