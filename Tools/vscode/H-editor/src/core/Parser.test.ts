@@ -115,7 +115,7 @@ describe("Parser.scan_new_change", () => {
             new_text
         );
 
-        assert.deepEqual(result.start_change_node_position, []);
+        assert.deepEqual(result.start_change_node_position, [0]);
         assert.deepEqual(result.new_words, []);
         assert.deepEqual(result.after_change_node_position, []);
     });
