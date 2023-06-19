@@ -827,6 +827,11 @@ function get_initial_mark_node(original_node_tree: Node | undefined, start_chang
 }
 
 function print_array_changes(changes: Change[]): void {
+
+    if (changes.length === 0) {
+        return;
+    }
+
     const has_delete_changes = changes[0].type === Change_type.Remove;
     if (has_delete_changes) {
         const delete_change = changes[0].value as Remove_change;
@@ -835,7 +840,7 @@ function print_array_changes(changes: Change[]): void {
 
     const has_add_changes = changes[0].type === Change_type.Add || (changes.length === 2 && changes[1].type === Change_type.Add);
     if (has_add_changes) {
-        const add_change = changes[0].value as Add_change;
+        const add_change = changes[changes.length - 1].value as Add_change;
         const nodes_string = add_change.new_nodes.map(node => node.word.value).join(" ");
         console.log(`- add ${add_change.new_nodes.length} nodes at position [${add_change.parent_position},${add_change.index}]: ${nodes_string}`);
     }
