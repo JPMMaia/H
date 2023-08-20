@@ -9,11 +9,13 @@ import * as Module_change from "../utilities/Change";
 import * as Module_examples from "./Module_examples";
 import * as Parse_tree_convertor from "./Parse_tree_convertor";
 import * as Parser from "./Parser";
+import { Node, Text_position } from "./Parser_node";
 import * as Scanner from "./Scanner";
+import { scan_new_change } from "./Scan_new_changes";
 import * as Symbol_database from "./Symbol_database";
 import * as Text_formatter from "./Text_formatter";
 
-function assert_function_parameters(parameters_node: Parser.Node, parameter_names: string[]): void {
+function assert_function_parameters(parameters_node: Node, parameter_names: string[]): void {
 
     assert.equal(parameters_node.children.length, parameter_names.length === 0 ? 0 : parameter_names.length * 2 - 1);
 
@@ -225,8 +227,8 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
 });
 
 function create_module_changes(
-    start_text_position: Parser.Text_position,
-    end_text_position: Parser.Text_position,
+    start_text_position: Text_position,
+    end_text_position: Text_position,
     new_text: string
 ): { position: any[], change: Module_change.Change }[] {
     const grammar_description = Grammar_examples.create_test_grammar_9_description();
@@ -264,18 +266,21 @@ function create_module_changes(
     const text = Text_formatter.to_string(parse_tree);
     console.log(text);
 
-    const scanned_input_change = Parser.scan_new_change(
+    const scanned_input_change = scan_new_change(
         parse_tree,
         start_text_position,
         end_text_position,
         new_text
     );
 
+    const start_change_position = scanned_input_change.start_change !== undefined ? scanned_input_change.start_change.position : [];
+    const after_change_position = scanned_input_change.after_change !== undefined ? scanned_input_change.after_change.position : [];
+
     const parse_result = Parser.parse_incrementally(
         parse_tree,
-        scanned_input_change.start_change_node_position,
+        start_change_position,
         scanned_input_change.new_words,
-        scanned_input_change.after_change_node_position,
+        after_change_position,
         parsing_tables.action_table,
         parsing_tables.go_to_table,
         array_infos,
@@ -686,9 +691,9 @@ describe("Parse_tree_convertor.create_module_changes", () => {
     it("Adds new alias", () => {
 
         const module_changes = create_module_changes(
-            { line: 0, column: 19 },
-            { line: 0, column: 19 },
-            "\nusing My_alias = Float32\n"
+            { line: 1, column: 0 },
+            { line: 1, column: 0 },
+            "using My_alias = Float32;\n"
         );
 
         assert.equal(module_changes.length, 1);

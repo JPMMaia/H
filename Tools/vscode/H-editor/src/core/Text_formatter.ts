@@ -1,5 +1,6 @@
 import * as Grammar from "./Grammar";
 import * as Parser from "./Parser";
+import { get_node_at_position, iterate_forward_with_repetition, Iterate_direction, Node, Text_position } from "./Parser_node";
 
 function should_add_space(current_word: Grammar.Word, previous_word: Grammar.Word): boolean {
 
@@ -40,14 +41,14 @@ function should_add_space(current_word: Grammar.Word, previous_word: Grammar.Wor
     return true;
 }
 
-export function to_string(root: Parser.Node): string {
+export function to_string(root: Node): string {
 
     const buffer: string[] = [];
 
     const indentation_width = 4;
     let indentation_count = 0;
 
-    let current_text_position: Parser.Text_position = {
+    let current_text_position: Text_position = {
         line: 0,
         column: 0
     };
@@ -56,14 +57,14 @@ export function to_string(root: Parser.Node): string {
         column: 0
     };
 
-    let current_node: Parser.Node | undefined = root;
+    let current_node: Node | undefined = root;
     let current_position: number[] = [];
-    let current_direction = Parser.Iterate_direction.Down;
+    let current_direction = Iterate_direction.Down;
     let previous_word: Grammar.Word = { value: "", type: Grammar.Word_type.Invalid };
 
     while (current_node !== undefined) {
 
-        if (current_direction === Parser.Iterate_direction.Down) {
+        if (current_direction === Iterate_direction.Down) {
 
             // If node corresponds to terminal:
             if (current_node.production_rule_index === undefined) {
@@ -106,7 +107,7 @@ export function to_string(root: Parser.Node): string {
             }
         }
 
-        const result = Parser.iterate_forward_with_repetition(root, current_node, current_position, current_direction);
+        const result = iterate_forward_with_repetition(root, current_node, current_position, current_direction);
         if (result === undefined) {
             break;
         }
@@ -129,7 +130,7 @@ function add_word(buffer: string[], word: string): number {
     return word.length;
 }
 
-function add_new_line(buffer: string[], current_text_position: Parser.Text_position): Parser.Text_position {
+function add_new_line(buffer: string[], current_text_position: Text_position): Text_position {
     buffer.push("\n");
     return {
         line: current_text_position.line + 1,
@@ -137,7 +138,7 @@ function add_new_line(buffer: string[], current_text_position: Parser.Text_posit
     };
 }
 
-function add_text_position_to_parent_nodes(root: Parser.Node, position: number[], text_position: Parser.Text_position): void {
+function add_text_position_to_parent_nodes(root: Node, position: number[], text_position: Text_position): void {
 
     let current_position = position;
 
@@ -149,7 +150,7 @@ function add_text_position_to_parent_nodes(root: Parser.Node, position: number[]
         }
 
         const parent_position = current_position.slice(0, current_position.length - 1);
-        const parent_node = Parser.get_node_at_position(root, parent_position);
+        const parent_node = get_node_at_position(root, parent_position);
 
         parent_node.text_position = {
             line: text_position.line,

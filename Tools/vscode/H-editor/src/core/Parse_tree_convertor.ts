@@ -5,6 +5,7 @@ import * as Module_change from "../utilities/Change";
 import * as Parser from "./Parser";
 import * as Scanner from "./Scanner";
 import * as Symbol_database from "./Symbol_database";
+import { get_node_at_position, Node } from "./Parser_node";
 
 const g_debug = false;
 
@@ -275,7 +276,7 @@ interface State {
 interface Module_to_parse_tree_stack_element {
     production_rule_index: number;
     state: State;
-    node: Parser.Node;
+    node: Node;
     rhs_length: number;
     current_child_index: number;
     is_array_production_rule: boolean;
@@ -286,7 +287,7 @@ export function module_to_parse_tree(
     symbol_database: Symbol_database.Edit_module_database,
     declarations: Declaration[],
     production_rules: Grammar.Production_rule[]
-): Parser.Node {
+): Node {
 
     const stack: Module_to_parse_tree_stack_element[] = [
         {
@@ -340,7 +341,7 @@ export function module_to_parse_tree(
 
             const word = map_terminal_to_word(module, symbol_database, top.state, parent_node.word.value, label);
 
-            const child_node: Parser.Node = {
+            const child_node: Node = {
                 word: word,
                 state: -1,
                 production_rule_index: undefined,
@@ -664,7 +665,7 @@ function map_terminal_to_word(
     return { value: terminal, type: Scanner.get_word_type(terminal) };
 }
 
-function get_array_elements(node: Parser.Node, array_name: string, element_name: string, separator_name: string, production_rules: Grammar.Production_rule[], production_rule_to_value_map: Production_rule_info[]): any[] {
+function get_array_elements(node: Node, array_name: string, element_name: string, separator_name: string, production_rules: Grammar.Production_rule[], production_rule_to_value_map: Production_rule_info[]): any[] {
 
     const has_separator = separator_name.length > 0;
 
@@ -693,7 +694,7 @@ function set_nested_property(object: any, keys: string[], value: any): void {
     current_object[keys[keys.length - 1]] = value;
 }
 
-function map_node_to_value(node: Parser.Node, production_rules: Grammar.Production_rule[], production_rule_to_value_map: Production_rule_info[]): any {
+function map_node_to_value(node: Node, production_rules: Grammar.Production_rule[], production_rule_to_value_map: Production_rule_info[]): any {
 
     if (node.production_rule_index === undefined) {
         return node.word.value;
@@ -773,6 +774,22 @@ function map_node_to_value(node: Parser.Node, production_rules: Grammar.Producti
     }
 }
 
+function is_export_declaration(declaration: Node): boolean {
+
+    if (declaration.children.length === 0) {
+        return false;
+    }
+
+    const child = declaration.children[0];
+    const export_node_index = child.children.findIndex(value => value.word.value === "Export");
+    if (export_node_index === -1) {
+        return false;
+    }
+
+    const export_node = child.children[export_node_index];
+    return export_node.children.length > 0;
+}
+
 export function create_module_changes(
     module: Core.Module,
     symbol_database: Symbol_database.Edit_module_database,
@@ -780,7 +797,7 @@ export function create_module_changes(
     production_rules: Grammar.Production_rule[],
     production_rule_to_value_map: Production_rule_info[],
     production_rule_to_change_action_map: Change_action[],
-    parse_tree: Parser.Node,
+    parse_tree: Node,
     parse_tree_changes: Parser.Change[],
 ): { position: any[], change: Module_change.Change }[] {
 
@@ -791,11 +808,11 @@ export function create_module_changes(
         if (parse_tree_change.type === Parser.Change_type.Modify) {
             const modify_change = parse_tree_change.value as Parser.Modify_change;
 
-            const node_stack: Parser.Node[] = [];
+            const node_stack: Node[] = [];
             node_stack.push(modify_change.new_node);
 
             while (node_stack.length > 0) {
-                const current_node = node_stack.pop() as Parser.Node;
+                const current_node = node_stack.pop() as Node;
 
                 if (current_node.production_rule_index === undefined) {
                     continue;
@@ -824,7 +841,7 @@ export function create_module_changes(
             const add_change = parse_tree_change.value as Parser.Add_change;
 
             // Figure out the context from parent position and index:
-            const parent_node = Parser.get_node_at_position(parse_tree, add_change.parent_position);
+            const parent_node = get_node_at_position(parse_tree, add_change.parent_position);
 
             if (parent_node.word.value === "Module_body") {
 
@@ -832,18 +849,32 @@ export function create_module_changes(
                 for (const new_node of add_change.new_nodes) {
                     const declaration_type = new_node.children[0].word.value;
 
-                    if (declaration_type === "Function") {
+                    const is_export = is_export_declaration(new_node);
+                    const declarations_member_name = is_export ? "export_declarations" : "internal_declarations";
 
-                        const function_declaration_node = new_node.children[0].children[0];
+                    const underlying_declaration_node = new_node.children[0].children[0];
+                    const node_value = map_node_to_value(underlying_declaration_node, production_rules, production_rule_to_value_map);
 
-                        const function_declaration = map_node_to_value(function_declaration_node, production_rules, production_rule_to_value_map) as Core.Function_declaration;
+                    if (declaration_type === "Alias") {
+                        const change = Module_change.create_add_element_to_vector("alias_type_declarations", 0, node_value);
+                        changes.push({ position: [declarations_member_name], change: change });
+                    }
+                    else if (declaration_type === "Enum") {
+                        const change = Module_change.create_add_element_to_vector("enum_declarations", 0, node_value);
+                        changes.push({ position: [declarations_member_name], change: change });
+                    }
+                    else if (declaration_type === "Struct") {
+                        const change = Module_change.create_add_element_to_vector("struct_declarations", 0, node_value);
+                        changes.push({ position: [declarations_member_name], change: change });
+                    }
+                    else if (declaration_type === "Function") {
+
+                        // TODO
 
                         {
                             // TODO change index
-                            const change = Module_change.create_add_element_to_vector("function_declarations", 0, function_declaration);
-
-                            const is_export = function_declaration.linkage === Core.Linkage.External;
-                            changes.push({ position: [is_export ? "export_declarations" : "internal_declarations"], change: change });
+                            const change = Module_change.create_add_element_to_vector("function_declarations", 0, node_value);
+                            changes.push({ position: [declarations_member_name], change: change });
                         }
 
                         const function_definition: Core.Function_definition = {
