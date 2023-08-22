@@ -73,17 +73,38 @@ export function get_node_after_text_position(root: Node, text_position: Text_pos
     let current_node = root;
 
     while (current_node.children.length > 0) {
-        const child_index = find_child_at_text_position(current_node.children, text_position, false);
+        const child_index = find_child_at_text_position(current_node.children, text_position, true);
         if (child_index === undefined) {
-            return undefined;
+            current_node_position.splice(0, current_node_position.length);
+            current_node = root;
+            break;
         }
 
         current_node_position.push(child_index);
         current_node = current_node.children[child_index];
     }
 
-    if (!is_terminal_node_with_text(current_node, current_node_position)) {
-        return get_next_node_with_condition(root, current_node, current_node_position, is_terminal_node_with_text);
+    const is_terminal_node_with_text_after = (node: Node, position: number[]): boolean => {
+
+        if (!is_terminal_node_with_text(node, position)) {
+            return false;
+        }
+
+        const node_text_position = node.text_position as Text_position;
+
+        if (text_position.line < node_text_position.line) {
+            return true;
+        }
+
+        if (text_position.line === node_text_position.line && text_position.column < node_text_position.column + node.word.value.length) {
+            return true;
+        }
+
+        return false;
+    };
+
+    if (!is_terminal_node_with_text_after(current_node, current_node_position)) {
+        return get_next_node_with_condition(root, current_node, current_node_position, is_terminal_node_with_text_after);
     }
 
     return {

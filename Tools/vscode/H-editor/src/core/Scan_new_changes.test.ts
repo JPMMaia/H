@@ -109,6 +109,123 @@ describe("Scan_new_changes.get_node_before_text_position", () => {
     });
 });
 
+describe("Scan_new_changes.get_node_after_text_position", () => {
+    it("Returns undefined if after last word", () => {
+
+        const root = create_parse_node(
+            "S",
+            { line: 0, column: 0 },
+            [
+                create_parse_node("module", { line: 0, column: 0 }, [])
+            ]
+        );
+
+        const result = get_node_after_text_position(root, { line: 0, column: 6 });
+        assert.equal(result, undefined);
+    });
+
+    it("Returns the node itself if in the middle of word", () => {
+
+        const root = create_parse_node(
+            "S",
+            { line: 0, column: 0 },
+            [
+                create_parse_node("module", { line: 0, column: 0 }, [])
+            ]
+        );
+
+        const result = get_node_after_text_position(root, { line: 0, column: 1 });
+        assert.notEqual(result, undefined);
+
+        if (result !== undefined) {
+            assert.equal(result.node, root.children[0]);
+            assert.deepEqual(result.position, [0]);
+        }
+    });
+
+    it("Returns the node itself if at the start of word", () => {
+
+        const root = create_parse_node(
+            "S",
+            { line: 0, column: 0 },
+            [
+                create_parse_node("module", { line: 0, column: 0 }, [])
+            ]
+        );
+
+        const result = get_node_after_text_position(root, { line: 0, column: 0 });
+        assert.notEqual(result, undefined);
+
+        if (result !== undefined) {
+            assert.equal(result.node, root.children[0]);
+            assert.deepEqual(result.position, [0]);
+        }
+    });
+
+    it("Returns the node after if in the middle of words", () => {
+
+        const root = create_parse_node(
+            "S",
+            { line: 0, column: 0 },
+            [
+                create_parse_node("module", { line: 0, column: 0 }, []),
+                create_parse_node("Foo", { line: 0, column: 9 }, [])
+            ]
+        );
+
+        const result = get_node_after_text_position(root, { line: 0, column: 8 });
+        assert.notEqual(result, undefined);
+
+        if (result !== undefined) {
+            assert.equal(result.node, root.children[1]);
+            assert.deepEqual(result.position, [1]);
+        }
+    });
+
+    it("Returns the first node if before first word", () => {
+
+        const root = create_parse_node(
+            "S",
+            { line: 0, column: 0 },
+            [
+                create_parse_node("module", { line: 0, column: 5 }, [])
+            ]
+        );
+
+        const result = get_node_after_text_position(root, { line: 0, column: 2 });
+        assert.notEqual(result, undefined);
+
+        if (result !== undefined) {
+            assert.equal(result.node, root.children[0]);
+            assert.deepEqual(result.position, [0]);
+        }
+    });
+
+    it("Returns the correct node in a deep hierarchy", () => {
+
+        const root = create_parse_node(
+            "S",
+            { line: 0, column: 0 },
+            [
+                create_parse_node("Head", { line: 0, column: 0 }, [
+                    create_parse_node("module", { line: 0, column: 0 }, []),
+                    create_parse_node("name", { line: 0, column: 7 }, []),
+                    create_parse_node(";", { line: 0, column: 11 }, []),
+                ]),
+                create_parse_node("Body", { line: 1, column: 0 }, [])
+            ]
+        );
+
+        const result = get_node_after_text_position(root, { line: 0, column: 11 });
+        assert.notEqual(result, undefined);
+
+        if (result !== undefined) {
+            assert.equal(result.node, root.children[0].children[2]);
+            assert.deepEqual(result.position, [0, 2]);
+        }
+    });
+});
+
 describe("Scan_new_changes.get_text_before_start", () => {
     it("Cuts the word", () => {
         const node = create_parse_node("module", { line: 0, column: 0 }, []);
