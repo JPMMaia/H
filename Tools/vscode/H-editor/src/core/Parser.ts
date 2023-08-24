@@ -1,6 +1,6 @@
 import * as Grammar from "./Grammar";
 import * as Scanner from "./Scanner";
-import { clone_node, find_node_common_root, get_next_terminal_node, get_node_at_position, get_parent_position, get_rightmost_brother, get_rightmost_terminal_descendant, have_same_parent, is_same_position, is_valid_position, Node,  } from "./Parser_node";
+import { clone_node, find_node_common_root, get_next_terminal_node, get_node_at_position, get_parent_position, get_rightmost_brother, get_rightmost_terminal_descendant, have_same_parent, is_same_position, is_valid_position, Node, } from "./Parser_node";
 
 const g_debug = true;
 
@@ -404,14 +404,14 @@ function get_next_word(
     new_words: Scanner.Scanned_word[],
     current_word_index: number,
     original_node_tree: Node | undefined,
-    after_change_node_position: number[]
+    after_change_node_position: number[] | undefined
 ): Scanner.Scanned_word {
 
     if (current_word_index < new_words.length) {
         return new_words[current_word_index];
     }
 
-    if (original_node_tree !== undefined && is_valid_position(original_node_tree, after_change_node_position)) {
+    if (original_node_tree !== undefined && after_change_node_position !== undefined && is_valid_position(original_node_tree, after_change_node_position)) {
         const node = get_node_at_position(original_node_tree, after_change_node_position);
         return node.word;
     }
@@ -468,9 +468,9 @@ function adjust_mark_and_stack(original_node_tree: Node | undefined, stack: Pars
     };
 }
 
-function get_initial_mark_node(original_node_tree: Node | undefined, start_change_node_position: number[]): Parsing_stack_element {
+function get_initial_mark_node(original_node_tree: Node | undefined, start_change_node_position: number[] | undefined): Parsing_stack_element {
 
-    if (original_node_tree === undefined) {
+    if (original_node_tree === undefined || start_change_node_position === undefined) {
         return {
             original_tree_position: undefined,
             node: create_bottom_of_stack_node()
@@ -517,9 +517,9 @@ function print_array_changes(changes: Change[]): void {
 
 export function parse_incrementally(
     original_node_tree: Node | undefined,
-    start_change_node_position: number[],
+    start_change_node_position: number[] | undefined,
     new_words: Scanner.Scanned_word[],
-    after_change_node_position: number[],
+    after_change_node_position: number[] | undefined,
     parsing_table: Grammar.Action_column[][],
     go_to_table: Grammar.Go_to_column[][],
     array_infos: Map<string, Grammar.Array_info>,
@@ -566,9 +566,9 @@ export function parse_incrementally(
 
                             const initial_mark_node = get_initial_mark_node(original_node_tree, start_change_node_position);
                             const before_start_element = initial_mark_node.original_tree_position !== undefined ? get_parent_node_with_labels_in_original_tree(original_node_tree, initial_mark_node.original_tree_position, element_labels, map_word_to_terminal) : undefined;
-                            const start_element = is_valid_position(original_node_tree, start_change_node_position) ? get_parent_node_with_labels_in_original_tree(original_node_tree, start_change_node_position, element_labels, map_word_to_terminal) : undefined;
+                            const start_element = (start_change_node_position !== undefined && is_valid_position(original_node_tree, start_change_node_position)) ? get_parent_node_with_labels_in_original_tree(original_node_tree, start_change_node_position, element_labels, map_word_to_terminal) : undefined;
 
-                            const is_after_change_end_of_tree = !is_valid_position(original_node_tree, after_change_node_position);
+                            const is_after_change_end_of_tree = after_change_node_position === undefined || !is_valid_position(original_node_tree, after_change_node_position);
                             const after_change_element = !is_after_change_end_of_tree ? get_parent_node_with_labels_in_original_tree(original_node_tree, after_change_node_position, element_labels, map_word_to_terminal) : undefined;
 
                             if (before_start_element !== undefined && (after_change_element !== undefined || is_after_change_end_of_tree)) {
@@ -647,7 +647,7 @@ export function parse_incrementally(
                 }
             case Grammar.Action_type.Shift:
                 {
-                    if (current_word_index === new_words.length && original_node_tree !== undefined && after_change_node_position.length > 0) {
+                    if (current_word_index === new_words.length && original_node_tree !== undefined && start_change_node_position !== undefined && after_change_node_position !== undefined && after_change_node_position.length > 0) {
 
                         const result = parse_incrementally_after_change(
                             original_node_tree,

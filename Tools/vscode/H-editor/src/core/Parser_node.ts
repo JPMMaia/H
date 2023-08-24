@@ -48,6 +48,11 @@ export function find_node_common_root(first_position: number[], second_position:
 }
 
 export function is_valid_position(root: Node, position: number[]): boolean {
+
+    if (position === undefined) {
+        return false;
+    }
+
     let current_node = root;
 
     for (const child_index of position) {

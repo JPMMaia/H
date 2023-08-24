@@ -45,4 +45,31 @@ describe("Text_change.update", () => {
             text_changes
         );
     });
+
+    it("Handles adding module declaration", () => {
+
+        const document_state: Text_change.Document_state = {
+            text: "",
+            parse_tree: initial_parse_tree,
+            module: module,
+            symbol_database: symbol_database,
+            declarations: declarations
+        };
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: { line: 0, character: 0 },
+                    end: { line: 0, character: 0 },
+                },
+                text: "module Foo;"
+            }
+        ];
+
+        Text_change.update(
+            language_description,
+            document_state,
+            text_changes
+        );
+    });
 });

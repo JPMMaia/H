@@ -50,8 +50,8 @@ export function update(
 
     if (scanned_input_change.new_words.length > 0) {
 
-        const start_change_node_position = scanned_input_change.start_change !== undefined ? scanned_input_change.start_change.position : [];
-        const after_change_node_position = scanned_input_change.after_change !== undefined ? scanned_input_change.after_change.position : [];
+        const start_change_node_position = scanned_input_change.start_change !== undefined ? scanned_input_change.start_change.position : undefined;
+        const after_change_node_position = scanned_input_change.after_change !== undefined ? scanned_input_change.after_change.position : undefined;
 
         const parse_result = Parser.parse_incrementally(
             parse_tree_root,
