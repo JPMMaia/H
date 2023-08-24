@@ -6,7 +6,11 @@ function find_child_at_text_position(children: Node[], text_position: Text_posit
     for (let child_index = 0; child_index < children.length; ++child_index) {
         const child_node = children[child_index];
 
-        const child_text_position = child_node.text_position as Text_position;
+        if (child_node.text_position === undefined) {
+            return undefined;
+        }
+
+        const child_text_position = child_node.text_position;
         if (text_position.line < child_text_position.line) {
             if (prefer_before_node) {
                 return child_index > 0 ? child_index - 1 : undefined;
@@ -75,6 +79,10 @@ export function get_node_after_text_position(root: Node, text_position: Text_pos
     while (current_node.children.length > 0) {
         const child_index = find_child_at_text_position(current_node.children, text_position, true);
         if (child_index === undefined) {
+            if (current_node.text_position === undefined) {
+                return undefined;
+            }
+
             current_node_position.splice(0, current_node_position.length);
             current_node = root;
             break;
