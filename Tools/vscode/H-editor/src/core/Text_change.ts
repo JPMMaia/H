@@ -1,5 +1,5 @@
 import * as Core from "../utilities/coreModelInterface";
-import * as Module_change_update from "../utilities/Change_update";
+import * as Module_change from "./Module_change";
 import * as Language from "./Language";
 import * as Parser from "./Parser";
 import * as Parser_node from "./Parser_node";
@@ -85,6 +85,8 @@ export function update(
             // TODO Create symbol changes ?
 
             Parser.apply_changes(parse_tree_root, parse_result.changes);
+
+            Module_change.update_module(state.module, module_changes);
 
             // TODO Apply module changes
             /*const module_pointer = {

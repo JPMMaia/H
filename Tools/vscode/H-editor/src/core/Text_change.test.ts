@@ -71,5 +71,7 @@ describe("Text_change.update", () => {
             document_state,
             text_changes
         );
+
+        assert.equal(document_state.module.name, "Foo");
     });
 });

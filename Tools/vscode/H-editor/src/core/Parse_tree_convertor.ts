@@ -1,7 +1,7 @@
 import * as Core from "../utilities/coreModelInterface";
 import { onThrowError } from "../utilities/errors";
 import * as Grammar from "./Grammar";
-import * as Module_change from "../utilities/Change";
+import * as Module_change from "./Module_change";
 import * as Parser from "./Parser";
 import * as Scanner from "./Scanner";
 import * as Symbol_database from "./Symbol_database";
