@@ -301,9 +301,9 @@ export function parse(input: Scanner.Scanned_word[], parsing_table: Grammar.Acti
 
     const result = parse_incrementally(
         undefined,
-        [],
+        undefined,
         input,
-        [],
+        undefined,
         parsing_table,
         go_to_table,
         array_infos,
