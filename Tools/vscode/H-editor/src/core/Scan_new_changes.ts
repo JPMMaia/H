@@ -202,11 +202,20 @@ function try_to_skip_last_word_and_calculate_after_change_node(root: Node, befor
 }
 
 export function scan_new_change(
-    root: Node,
+    root: Node | undefined,
     start_text_position: Text_position,
     end_text_position: Text_position,
     new_text: string
 ): { start_change: { node: Node, position: number[] } | undefined, after_change: { node: Node, position: number[] } | undefined, new_words: Scanner.Scanned_word[] } {
+
+    if (root === undefined) {
+        const new_words = Scanner.scan(new_text, 0, new_text.length);
+        return {
+            start_change: undefined,
+            after_change: undefined,
+            new_words: new_words
+        };
+    }
 
     // Find node before start text position:
     const before = get_node_before_text_position(root, start_text_position);
