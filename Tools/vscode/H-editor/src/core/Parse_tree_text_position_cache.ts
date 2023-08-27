@@ -110,7 +110,16 @@ export function has_node(cache: Cache, node: Parser_node.Node): boolean {
 
 export function update_offsets(cache: Cache, start_offset: number, delta_offset: number): void {
 
-    // TODO idea, cache in terms of line&column instead of offset to avoid updating everything if there are no new lines in the changes
+    const start_element_index = cache.elements.findIndex(element => element.offset >= start_offset);
+
+    if (start_element_index === -1) {
+        return;
+    }
+
+    for (let index = start_element_index; index < cache.elements.length; ++index) {
+        const element = cache.elements[index];
+        element.offset += delta_offset;
+    }
 }
 
 function is_terminal_node_with_text(node: Parser_node.Node, position: number[]): boolean {
