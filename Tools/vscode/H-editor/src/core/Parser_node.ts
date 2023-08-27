@@ -47,6 +47,21 @@ export function find_node_common_root(first_position: number[], second_position:
     return first_position.slice(0, smallest_length);
 }
 
+export function is_node_ancestor_of(ancestor_position: number[], node_position: number[]): boolean {
+
+    if (ancestor_position.length >= node_position.length) {
+        return false;
+    }
+
+    for (let index = 0; index < ancestor_position.length; ++index) {
+        if (ancestor_position[index] !== node_position[index]) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 export function is_valid_position(root: Node, position: number[]): boolean {
 
     if (position === undefined) {
@@ -196,6 +211,28 @@ export function get_rightmost_descendant(node: Node, position: number[]): { node
     while (current_node.children.length > 0) {
         current_position.push(current_node.children.length - 1);
         current_node = current_node.children[current_node.children.length - 1];
+    }
+
+    return {
+        node: current_node,
+        position: current_position
+    };
+}
+
+export function get_leftmost_descendant(node: Node, position: number[]): { node: Node, position: number[] } {
+    if (node.children.length === 0) {
+        return {
+            node: node,
+            position: position
+        };
+    }
+
+    const current_position = [...position];
+    let current_node = node;
+
+    while (current_node.children.length > 0) {
+        current_position.push(0);
+        current_node = current_node.children[0];
     }
 
     return {
