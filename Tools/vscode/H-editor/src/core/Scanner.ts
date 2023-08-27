@@ -5,7 +5,7 @@ export function is_whitespace_or_new_line(character: string): boolean {
     return character === " " || character === "\n" || character === "\t";
 }
 
-function ignore_whitespace_or_new_lines(code: string, current_offset: number): number {
+export function ignore_whitespace_or_new_lines(code: string, current_offset: number): number {
 
     for (let index = current_offset; index < code.length; ++index) {
         const character = code[index];
