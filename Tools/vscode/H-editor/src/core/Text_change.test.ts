@@ -19,8 +19,8 @@ describe("Text_change.update", () => {
         const text_changes: Text_change.Text_change[] = [
             {
                 range: {
-                    start: { line: 0, character: 0 },
-                    end: { line: 0, character: 0 },
+                    start: 0,
+                    end: 0,
                 },
                 text: "m"
             }
@@ -43,8 +43,8 @@ describe("Text_change.update", () => {
         const text_changes: Text_change.Text_change[] = [
             {
                 range: {
-                    start: { line: 0, character: 0 },
-                    end: { line: 0, character: 0 },
+                    start: 0,
+                    end: 0,
                 },
                 text: "module Foo;"
             }
@@ -69,15 +69,15 @@ describe("Text_change.update", () => {
         const text_changes: Text_change.Text_change[] = [
             {
                 range: {
-                    start: { line: 0, character: 0 },
-                    end: { line: 0, character: 0 },
+                    start: 0,
+                    end: 0,
                 },
                 text: "module Foo;"
             },
             {
                 range: {
-                    start: { line: 0, character: 7 },
-                    end: { line: 0, character: 10 },
+                    start: 7,
+                    end: 10,
                 },
                 text: "Bar"
             },
@@ -103,8 +103,8 @@ describe("Text_change.update", () => {
             const text_changes: Text_change.Text_change[] = [
                 {
                     range: {
-                        start: { line: 0, character: 0 },
-                        end: { line: 0, character: 0 },
+                        start: 0,
+                        end: 0,
                     },
                     text: "module Foo;"
                 }
@@ -126,8 +126,8 @@ describe("Text_change.update", () => {
             const text_changes: Text_change.Text_change[] = [
                 {
                     range: {
-                        start: { line: 0, character: 7 },
-                        end: { line: 0, character: 10 },
+                        start: 7,
+                        end: 10,
                     },
                     text: "Bar"
                 },

@@ -10,11 +10,7 @@ function create_parse_node(value: string, production_rule_index: number | undefi
         word: { value: value, type: Grammar.Word_type.Alphanumeric },
         state: -1,
         production_rule_index: production_rule_index,
-        children: children,
-        text_position: {
-            line: 0,
-            column: 0
-        }
+        children: children
     };
 }
 

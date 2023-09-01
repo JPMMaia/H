@@ -8,8 +8,9 @@ import * as Grammar_examples from "./Grammar_examples";
 import * as Module_change from "../utilities/Change";
 import * as Module_examples from "./Module_examples";
 import * as Parse_tree_convertor from "./Parse_tree_convertor";
+import * as Parse_tree_text_position_cache from "./Parse_tree_text_position_cache";
 import * as Parser from "./Parser";
-import { Node, Text_position } from "./Parser_node";
+import { Node } from "./Parser_node";
 import * as Scanner from "./Scanner";
 import { scan_new_change } from "./Scan_new_changes";
 import * as Symbol_database from "./Symbol_database";
@@ -226,6 +227,26 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
     });
 });
 
+interface Text_position {
+    line: number;
+    column: number;
+}
+
+function text_position_to_offset(text: string, position: Text_position): number {
+
+    let current_offset = 0;
+
+    let current_line = 0;
+
+    while (current_line < position.line) {
+        const next_new_line = text.indexOf("\n", current_offset);
+        current_offset = next_new_line;
+        current_line += 1;
+    }
+
+    return current_offset + position.column;
+}
+
 function create_module_changes(
     start_text_position: Text_position,
     end_text_position: Text_position,
@@ -237,6 +258,7 @@ function create_module_changes(
     const symbol_database = Symbol_database.create_edit_database(module);
     const declarations = Parse_tree_convertor.create_declarations(module);
     const initial_parse_tree = Parse_tree_convertor.module_to_parse_tree(module, symbol_database, declarations, production_rules);
+    const text_cache = Parse_tree_text_position_cache.create_cache();
 
     const map_word_to_terminal = (word: Grammar.Word): string => {
         if (word.value === "enum" || word.value === "export" || word.value === "function" || word.value === "module" || word.value === "struct" || word.value === "using") {
@@ -250,7 +272,7 @@ function create_module_changes(
         return word.value;
     };
 
-    const initial_parse_tree_text = Text_formatter.to_string(initial_parse_tree);
+    const initial_parse_tree_text = Text_formatter.to_string(initial_parse_tree, text_cache, []);
     const scanned_words = Scanner.scan(initial_parse_tree_text, 0, initial_parse_tree_text.length);
 
     const parsing_tables = Grammar.create_parsing_tables_from_production_rules(production_rules);
@@ -263,18 +285,22 @@ function create_module_changes(
     }
 
     // Also sets parse_tree Text_position:
-    const text = Text_formatter.to_string(parse_tree);
+    const text = Text_formatter.to_string(parse_tree, text_cache, []);
     console.log(text);
+
+    const start_text_offset = text_position_to_offset(text, start_text_position);
+    const end_text_offset = text_position_to_offset(text, end_text_position);
 
     const scanned_input_change = scan_new_change(
         parse_tree,
-        start_text_position,
-        end_text_position,
+        text,
+        start_text_offset,
+        end_text_offset,
         new_text
     );
 
-    const start_change_position = scanned_input_change.start_change !== undefined ? scanned_input_change.start_change.position : [];
-    const after_change_position = scanned_input_change.after_change !== undefined ? scanned_input_change.after_change.position : [];
+    const start_change_position = scanned_input_change.start_change !== undefined ? scanned_input_change.start_change.node_position : [];
+    const after_change_position = scanned_input_change.after_change !== undefined ? scanned_input_change.after_change.node_position : [];
 
     const parse_result = Parser.parse_incrementally(
         parse_tree,

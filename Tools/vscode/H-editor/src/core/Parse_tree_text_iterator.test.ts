@@ -10,11 +10,7 @@ function create_parse_node(value: string, production_rule_index: number | undefi
         word: { value: value, type: Grammar.Word_type.Alphanumeric },
         state: -1,
         production_rule_index: production_rule_index,
-        children: children,
-        text_position: {
-            line: 0,
-            column: 0
-        }
+        children: children
     };
 }
 
@@ -114,19 +110,26 @@ describe("Parse_tree_text_iterator", () => {
 
     it("Can iterate back", () => {
 
-        let iterator = Parse_tree_text_iterator.end(root, text);
+        let iterator: Parse_tree_text_iterator.Iterator | undefined = Parse_tree_text_iterator.end(root, text);
 
-        assert.equal(iterator.node, undefined);
-        assert.equal(iterator.offset, text.length);
+        assert.notEqual(iterator, undefined);
+        if (iterator !== undefined) {
+            assert.equal(iterator.node, undefined);
+            assert.equal(iterator.offset, text.length);
 
-        for (let index = expected_offset.length - 1; index >= 0; --index) {
+            for (let index = expected_offset.length - 1; index >= 0; --index) {
+                if (iterator !== undefined) {
+                    iterator = Parse_tree_text_iterator.previous(iterator);
 
-            iterator = Parse_tree_text_iterator.previous(iterator);
-
-            assert.notEqual(iterator.node, undefined);
-            if (iterator.node !== undefined) {
-                assert.equal(iterator.node.word.value, expected_word[index]);
-                assert.equal(iterator.offset, expected_offset[index]);
+                    assert.notEqual(iterator, undefined);
+                    if (iterator !== undefined) {
+                        assert.notEqual(iterator.node, undefined);
+                        if (iterator.node !== undefined) {
+                            assert.equal(iterator.node.word.value, expected_word[index]);
+                            assert.equal(iterator.offset, expected_offset[index]);
+                        }
+                    }
+                }
             }
         }
     });

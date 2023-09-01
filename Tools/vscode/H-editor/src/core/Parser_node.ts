@@ -1,16 +1,10 @@
 import * as Scanner from "./Scanner";
 
-export interface Text_position {
-    line: number;
-    column: number;
-}
-
 export interface Node {
     word: Scanner.Scanned_word;
     state: number;
     production_rule_index: number | undefined;
     children: Node[];
-    text_position: Text_position | undefined;
 }
 
 export function clone_node(node: Node): Node {
@@ -19,7 +13,6 @@ export function clone_node(node: Node): Node {
         state: node.state,
         production_rule_index: node.production_rule_index,
         children: node.children,
-        text_position: node.text_position
     };
 }
 

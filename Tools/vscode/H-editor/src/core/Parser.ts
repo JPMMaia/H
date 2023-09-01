@@ -395,8 +395,7 @@ function create_bottom_of_stack_node(): Node {
         word: { value: "$", type: Grammar.Word_type.Symbol },
         state: 0,
         production_rule_index: undefined,
-        children: [],
-        text_position: undefined
+        children: []
     };
 }
 
@@ -627,8 +626,7 @@ export function parse_incrementally(
                         word: { value: accept_action.lhs, type: Grammar.Word_type.Symbol },
                         state: -1,
                         production_rule_index: 0,
-                        children: children.map(element => element.node),
-                        text_position: undefined
+                        children: children.map(element => element.node)
                     };
 
                     if (g_debug) {
@@ -946,8 +944,7 @@ function create_apply_matching_changes(
         word: { value: mark_parent_node.word.value, type: mark_parent_node.word.type },
         state: mark_parent_node.state,
         production_rule_index: mark_parent_node.production_rule_index,
-        children: top_nodes.map(value => value.node),
-        text_position: mark_parent_node.text_position
+        children: top_nodes.map(value => value.node)
     };
 
     if (g_debug) {
@@ -1457,8 +1454,7 @@ function perform_actions(
                         word: { value: accept_action.lhs, type: Grammar.Word_type.Symbol },
                         state: -1,
                         production_rule_index: 0,
-                        children: children.map(element => element.node),
-                        text_position: undefined
+                        children: children.map(element => element.node)
                     };
 
                     if (g_debug) {

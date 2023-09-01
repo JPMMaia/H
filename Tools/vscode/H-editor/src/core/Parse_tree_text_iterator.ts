@@ -14,6 +14,20 @@ function is_terminal_node_with_text(node: Parser_node.Node, position: number[]):
 }
 
 export function begin(root: Parser_node.Node, text: string): Iterator {
+
+    if (is_terminal_node_with_text(root, [])) {
+
+        const offset = Scanner.ignore_whitespace_or_new_lines(text, 0);
+
+        return {
+            root: root,
+            text: text,
+            node: root,
+            node_position: [],
+            offset: offset
+        };
+    }
+
     const next = Parser_node.get_next_node_with_condition(root, root, [], is_terminal_node_with_text);
 
     if (next === undefined) {
@@ -83,7 +97,7 @@ function go_to_previous_word(text: string, current_offset: number, previous_node
     return 0;
 }
 
-export function previous(iterator: Iterator): Iterator {
+export function previous(iterator: Iterator): Iterator | undefined {
 
     if (iterator.node === undefined) {
         const rightmost_descendant = Parser_node.get_rightmost_descendant(iterator.root, []);
@@ -104,7 +118,7 @@ export function previous(iterator: Iterator): Iterator {
         const previous = Parser_node.get_previous_node_with_condition(iterator.root, rightmost_descendant.node, rightmost_descendant.position, is_terminal_node_with_text);
 
         if (previous === undefined) {
-            return end(iterator.root, iterator.text);
+            return undefined;
         }
 
         const previous_offset = go_to_previous_word(iterator.text, iterator.offset, previous.node.word.value.length);
@@ -120,7 +134,7 @@ export function previous(iterator: Iterator): Iterator {
 
     const previous = Parser_node.get_previous_node_with_condition(iterator.root, iterator.node, iterator.node_position, is_terminal_node_with_text);
     if (previous === undefined) {
-        return end(iterator.root, iterator.text);
+        return undefined;
     }
 
     const previous_offset = go_to_previous_word(iterator.text, iterator.offset, previous.node.word.value.length);

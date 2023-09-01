@@ -208,7 +208,7 @@ interface Update_action {
 
 interface Change_action {
     type: Change_action_type;
-    value: any;
+    value: Update_action | undefined;
 }
 
 export function create_production_rule_to_change_action_map(production_rules: Grammar.Production_rule[]): Change_action[] {
@@ -301,8 +301,7 @@ export function module_to_parse_tree(
                 word: { value: production_rules[0].lhs, type: Grammar.Word_type.Symbol },
                 state: -1,
                 production_rule_index: 0,
-                children: [],
-                text_position: undefined
+                children: []
             },
             rhs_length: production_rules[0].rhs.length,
             current_child_index: 0,
@@ -345,8 +344,7 @@ export function module_to_parse_tree(
                 word: word,
                 state: -1,
                 production_rule_index: undefined,
-                children: [],
-                text_position: undefined
+                children: []
             };
 
             parent_node.children.push(child_node);
@@ -369,8 +367,7 @@ export function module_to_parse_tree(
                     word: { value: next_production_rule.lhs, type: Grammar.Word_type.Symbol },
                     state: -1,
                     production_rule_index: next_production_rule_index,
-                    children: [],
-                    text_position: undefined
+                    children: []
                 },
                 rhs_length: rhs_length,
                 current_child_index: 0,
@@ -897,4 +894,127 @@ export function create_module_changes(
     }
 
     return changes;
+}
+
+export function create_key_to_production_rule_index_map(production_rules: Grammar.Production_rule[]): Map<string, number> {
+
+    const keys: string[] = [
+        "Module_name"
+    ];
+
+    const map = new Map<string, number>();
+
+    for (const key of keys) {
+        const index = production_rules.findIndex(element => element.lhs === "Module_name");
+        if (index === -1) {
+            throw Error(`Could not find ${key} in production_rules`);
+        }
+        map.set(key, index);
+    }
+
+    return map;
+}
+
+function find_node_with_production_rule_index(node: Node, production_rule_index: number): Node | undefined {
+
+    if (node.production_rule_index === production_rule_index) {
+        return node;
+    }
+
+    {
+        const child = node.children.find(child => child.production_rule_index === production_rule_index);
+        if (child !== undefined) {
+            return child;
+        }
+    }
+
+    for (const child of node.children) {
+        const found = find_node_with_production_rule_index(child, production_rule_index);
+        if (found !== undefined) {
+            return found;
+        }
+    }
+
+    return undefined;
+}
+
+function get_terminal_value(node: Node): string {
+    if (node.production_rule_index === undefined && node.children.length === 0) {
+        return node.word.value;
+    }
+
+    return get_terminal_value(node.children[0]);
+}
+
+function find_module_name(node: Node, key_to_production_rule_index: Map<string, number>): string {
+    const production_rule_index = key_to_production_rule_index.get("Module_name") as number;
+    const module_name_node = find_node_with_production_rule_index(node, production_rule_index) as Node;
+    return get_terminal_value(module_name_node);
+}
+
+export function parse_tree_to_module(root: Node, key_to_production_rule_index: Map<string, number>): Core.Module {
+
+    const language_version: Core.Language_version = {
+        major: 0,
+        minor: 1,
+        patch: 0
+    };
+
+    const name = find_module_name(root, key_to_production_rule_index);
+
+    const export_declarations: Core.Module_declarations = {
+        alias_type_declarations: {
+            size: 0,
+            elements: []
+        },
+        enum_declarations: {
+            size: 0,
+            elements: []
+        },
+        struct_declarations: {
+            size: 0,
+            elements: []
+        },
+        function_declarations: {
+            size: 0,
+            elements: []
+        },
+    };
+
+    const internal_declarations: Core.Module_declarations = {
+        alias_type_declarations: {
+            size: 0,
+            elements: []
+        },
+        enum_declarations: {
+            size: 0,
+            elements: []
+        },
+        struct_declarations: {
+            size: 0,
+            elements: []
+        },
+        function_declarations: {
+            size: 0,
+            elements: []
+        },
+    };
+
+    const next_unique_id = 0;
+
+    const definitions: Core.Module_definitions = {
+        function_definitions: {
+            size: 0,
+            elements: []
+        },
+    };
+
+    return {
+        language_version: language_version,
+        name: name,
+        export_declarations: export_declarations,
+        internal_declarations: internal_declarations,
+        next_unique_id: next_unique_id,
+        definitions: definitions
+    };
 }
