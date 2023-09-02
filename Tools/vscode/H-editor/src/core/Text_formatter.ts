@@ -41,7 +41,7 @@ function should_add_space(current_word: Grammar.Word, previous_word: Grammar.Wor
     return true;
 }
 
-export function to_string(root: Node, cache: Parse_tree_text_position_cache.Cache, production_rules_to_cache: number[]): string {
+export function to_string(root: Node, cache: Parse_tree_text_position_cache.Cache | undefined, production_rules_to_cache: number[]): string {
 
     const buffer: string[] = [];
 
@@ -79,7 +79,7 @@ export function to_string(root: Node, cache: Parse_tree_text_position_cache.Cach
 
                 const new_word = adding_space ? ` ${word.value}` : word.value;
 
-                if (should_cache_node(current_node, production_rules_to_cache)) {
+                if (cache !== undefined && should_cache_node(current_node, production_rules_to_cache)) {
                     const new_word_offset = adding_space ? current_text_offset + 1 : current_text_offset;
                     Parse_tree_text_position_cache.set_entry(cache, new_word_offset, current_node, current_position);
                 }
