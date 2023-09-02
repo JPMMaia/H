@@ -13,7 +13,6 @@ import * as Parser from "./Parser";
 import { Node } from "./Parser_node";
 import * as Scanner from "./Scanner";
 import { scan_new_change } from "./Scan_new_changes";
-import * as Symbol_database from "./Symbol_database";
 import * as Text_formatter from "./Text_formatter";
 
 function assert_function_parameters(parameters_node: Node, parameter_names: string[]): void {
@@ -40,9 +39,8 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
         const production_rules = Grammar.create_production_rules(grammar_description);
         const module = Module_examples.create_0();
-        const symbol_database = Symbol_database.create_edit_database(module);
         const declarations = Parse_tree_convertor.create_declarations(module);
-        const parse_tree = Parse_tree_convertor.module_to_parse_tree(module, symbol_database, declarations, production_rules);
+        const parse_tree = Parse_tree_convertor.module_to_parse_tree(module, declarations, production_rules);
 
         assert.equal(parse_tree.word.value, "Module");
         assert.equal(parse_tree.production_rule_index, 0);
@@ -255,9 +253,8 @@ function create_module_changes(
     const grammar_description = Grammar_examples.create_test_grammar_9_description();
     const production_rules = Grammar.create_production_rules(grammar_description);
     const module = Module_examples.create_0();
-    const symbol_database = Symbol_database.create_edit_database(module);
     const declarations = Parse_tree_convertor.create_declarations(module);
-    const initial_parse_tree = Parse_tree_convertor.module_to_parse_tree(module, symbol_database, declarations, production_rules);
+    const initial_parse_tree = Parse_tree_convertor.module_to_parse_tree(module, declarations, production_rules);
     const text_cache = Parse_tree_text_position_cache.create_cache();
 
     const map_word_to_terminal = (word: Grammar.Word): string => {
@@ -320,7 +317,6 @@ function create_module_changes(
 
     const module_changes = Parse_tree_convertor.create_module_changes(
         module,
-        symbol_database,
         declarations,
         production_rules,
         production_rule_to_value_map,
@@ -809,9 +805,8 @@ describe("Parse_tree_convertor.parse_tree_to_module", () => {
     const grammar_description = Grammar_examples.create_test_grammar_9_description();
     const production_rules = Grammar.create_production_rules(grammar_description);
     const expected_module = Module_examples.create_0();
-    const symbol_database = Symbol_database.create_edit_database(expected_module);
     const declarations = Parse_tree_convertor.create_declarations(expected_module);
-    const parse_tree = Parse_tree_convertor.module_to_parse_tree(expected_module, symbol_database, declarations, production_rules);
+    const parse_tree = Parse_tree_convertor.module_to_parse_tree(expected_module, declarations, production_rules);
 
     const production_rule_to_value_map = Parse_tree_convertor.create_production_rule_to_value_map(production_rules);
     const key_to_production_rule_indices = Parse_tree_convertor.create_key_to_production_rule_indices_map(production_rules);

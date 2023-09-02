@@ -4,7 +4,6 @@ import * as Grammar from "./Grammar";
 import * as Module_change from "./Module_change";
 import * as Parser from "./Parser";
 import * as Scanner from "./Scanner";
-import * as Symbol_database from "./Symbol_database";
 import { get_node_at_position, Node } from "./Parser_node";
 
 const g_debug = false;
@@ -284,7 +283,6 @@ interface Module_to_parse_tree_stack_element {
 
 export function module_to_parse_tree(
     module: Core.Module,
-    symbol_database: Symbol_database.Edit_module_database,
     declarations: Declaration[],
     production_rules: Grammar.Production_rule[]
 ): Node {
@@ -338,7 +336,7 @@ export function module_to_parse_tree(
 
         if (is_terminal) {
 
-            const word = map_terminal_to_word(module, symbol_database, top.state, parent_node.word.value, label);
+            const word = map_terminal_to_word(module, top.state, parent_node.word.value, label);
 
             const child_node: Node = {
                 word: word,
@@ -612,9 +610,12 @@ function get_underlying_declaration_production_rule_lhs(type: Declaration_type):
     }
 }
 
+function find_type_name(type: Core.Type_reference[]): string {
+    return "type"; // TODO
+}
+
 function map_terminal_to_word(
     module: Core.Module,
-    symbol_database: Symbol_database.Edit_module_database,
     current_state: State,
     parent_label: string,
     terminal: string
@@ -629,7 +630,7 @@ function map_terminal_to_word(
     }
     else if (parent_label === "Alias_type") {
         const state = current_state.value as Alias_state;
-        const name = Symbol_database.find_type_name(symbol_database, state.declaration.type.elements);
+        const name = find_type_name(state.declaration.type.elements);
         return { value: name !== undefined ? name : "<error>", type: Grammar.Word_type.Alphanumeric };
     }
     else if (parent_label === "Enum_name") {
@@ -789,7 +790,6 @@ function is_export_declaration(declaration: Node): boolean {
 
 export function create_module_changes(
     module: Core.Module,
-    symbol_database: Symbol_database.Edit_module_database,
     declarations: Declaration[],
     production_rules: Grammar.Production_rule[],
     production_rule_to_value_map: Production_rule_info[],

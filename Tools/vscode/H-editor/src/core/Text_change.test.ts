@@ -2,10 +2,7 @@ import "mocha";
 
 import * as assert from "assert";
 import * as Document from "./Document";
-import * as Module_examples from "./Module_examples";
-import * as Parse_tree_convertor from "./Parse_tree_convertor";
 import * as Language from "./Language";
-import * as Symbol_database from "./Symbol_database";
 import * as Text_change from "./Text_change";
 
 describe("Text_change.update", () => {

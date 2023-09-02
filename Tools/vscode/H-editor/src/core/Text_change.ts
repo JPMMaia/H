@@ -70,7 +70,6 @@ export function update(
 
                 const module_changes = Parse_tree_convertor.create_module_changes(
                     state.module,
-                    state.symbol_database,
                     state.declarations,
                     language_description.production_rules,
                     production_rule_to_value_map,
@@ -79,10 +78,7 @@ export function update(
                     parse_result.changes
                 );
 
-                // TODO Create symbol changes
-
                 Parser.apply_changes(state.parse_tree, parse_result.changes);
-                // TODO Apply symbol changes
                 Module_change.update_module(state.module, module_changes);
             }
 

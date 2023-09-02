@@ -6,7 +6,6 @@ import * as Grammar from "../core/Grammar";
 import * as Parse_tree_convertor from "../core/Parse_tree_convertor";
 import * as Parser from "../core/Parser";
 import * as Scanner from "../core/Scanner";
-import * as Symbol_database from "../core/Symbol_database";
 import * as Text_formatter from "../core/Text_formatter";
 
 import * as H_document_provider from "./H_document_provider";
@@ -51,13 +50,12 @@ export class H_file_system_provider implements vscode.FileSystemProvider {
         const json_data = JSON.parse(utf8_data);
 
         const module: Core.Module = json_data as Core.Module;
-        const symbol_database = Symbol_database.create_edit_database(module);
 
         const grammar_description = Default_grammar.create_description();
         const production_rules = Grammar.create_production_rules(grammar_description);
 
         const declarations = Parse_tree_convertor.create_declarations(module);
-        const initial_parse_tree = Parse_tree_convertor.module_to_parse_tree(module, symbol_database, declarations, production_rules);
+        const initial_parse_tree = Parse_tree_convertor.module_to_parse_tree(module, declarations, production_rules);
         const text = Text_formatter.to_string(initial_parse_tree);
         const encoded_text = Buffer.from(text, "utf8");
 
