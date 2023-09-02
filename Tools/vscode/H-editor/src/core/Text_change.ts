@@ -24,7 +24,7 @@ export function update(
     text_after_changes: string
 ): Document.State {
 
-    const text_change = aggregate_text_changes(text_after_changes, text_changes);
+    const text_change = aggregate_text_changes(text_after_changes, [...state.pending_text_changes, ...text_changes]);
 
     const scanned_input_change = scan_new_change(
         state.parse_tree,
@@ -49,8 +49,6 @@ export function update(
             language_description.array_infos,
             language_description.map_word_to_terminal
         );
-
-        // TODO figure out errors
 
         if (parse_result.status === Parser.Parse_status.Accept) {
 
@@ -88,10 +86,14 @@ export function update(
             }
 
             state.text = text_after_changes;
+            state.pending_text_changes = [];
+        }
+        else {
+            state.pending_text_changes = [text_change];
         }
     }
 
-    return state; // TODO also return changes that were not applied?
+    return state;
 }
 
 function is_replacing_root(changes: Parser.Change[]): boolean {

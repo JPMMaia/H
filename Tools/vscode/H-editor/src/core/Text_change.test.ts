@@ -145,4 +145,53 @@ describe("Text_change.update", () => {
             assert.equal(document_state.module.name, "Bar");
         }
     });
+
+    it("Handles compilation errors", () => {
+
+        const document_state = Document.create_empty_state(language_description.production_rules);
+
+        {
+            const text_changes: Text_change.Text_change[] = [
+                {
+                    range: {
+                        start: 0,
+                        end: 0,
+                    },
+                    text: "module"
+                }
+            ];
+
+            const text_after_changes = "module";
+
+            Text_change.update(
+                language_description,
+                document_state,
+                text_changes,
+                text_after_changes
+            );
+        }
+
+        {
+            const text_changes: Text_change.Text_change[] = [
+                {
+                    range: {
+                        start: 6,
+                        end: 6,
+                    },
+                    text: " Foo;"
+                },
+            ];
+
+            const text_after_changes = "module Foo;";
+
+            Text_change.update(
+                language_description,
+                document_state,
+                text_changes,
+                text_after_changes
+            );
+
+            assert.equal(document_state.module.name, "Foo");
+        }
+    });
 });

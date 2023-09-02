@@ -7,6 +7,16 @@ import * as Parser_node from "./Parser_node";
 import * as Symbol_database from "./Symbol_database";
 import * as Text_formatter from "./Text_formatter";
 
+export interface Text_range {
+    start: number;
+    end: number;
+}
+
+export interface Text_change {
+    range: Text_range;
+    text: string;
+}
+
 export interface State {
     module: Core.Module;
     symbol_database: Symbol_database.Edit_module_database;
@@ -14,6 +24,7 @@ export interface State {
     declarations: Parse_tree_convertor.Declaration[];
     parse_tree_text_position_cache: Parse_tree_text_position_cache.Cache | undefined;
     text: string;
+    pending_text_changes: Text_change[];
 }
 
 export function create_empty_state(production_rules: Grammar.Production_rule[]): State {
@@ -32,6 +43,7 @@ export function create_empty_state(production_rules: Grammar.Production_rule[]):
         declarations: declarations,
         parse_tree_text_position_cache: parse_tree_text_position_cache,
         text: text,
+        pending_text_changes: []
     };
 }
 
@@ -50,5 +62,6 @@ export function create_state_from_module(module: Core.Module, production_rules: 
         declarations: declarations,
         parse_tree_text_position_cache: parse_tree_text_position_cache,
         text: text,
+        pending_text_changes: []
     };
 }
