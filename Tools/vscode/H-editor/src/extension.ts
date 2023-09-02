@@ -1,30 +1,22 @@
-import { commands, ExtensionContext } from "vscode";
-import { HEditorProvider } from './HEditorProvider';
 import * as vscode from "vscode";
+import { ExtensionContext } from "vscode";
+
 import { HEditorExplorerTreeDataProvider } from "./treeView/HEditorExplorerTreeDataProvider";
 import type { HEditorExplorerTreeEntry } from "./treeView/HEditorExplorerTreeDataProvider";
 import { HDocumentManager } from "./HDocumentManager";
 import { HDocument } from "./HDocument";
-import { onThrowError } from "./utilities/errors";
 import { H_file_system_provider } from "./text_editor/H_file_system_provider";
 import { H_default_formatter } from "./text_editor/H_default_formatter";
 import { H_document_provider } from "./text_editor/H_document_provider";
-import * as Module_examples from "./core/Module_examples";
 
-import * as Abstract_syntax_tree from "./core/Abstract_syntax_tree";
-import * as Abstract_syntax_tree_change from "./core/Abstract_syntax_tree_change";
 import * as Change from "./utilities/Change";
 import * as Change_update_from_text from "./utilities/Change_update_from_text";
 import * as core from "./utilities/coreModelInterface";
 import * as core_helpers from "./utilities/coreModelInterfaceHelpers";
-import * as Grammar from "./core/Grammar";
-import * as Module_change from "./core/Module_change";
-import * as Parser from "./core/Parser";
-import * as Scanner from "./core/Scanner";
+import * as Module_examples from "./core/Module_examples";
+import * as Text_change from "./core/Text_change";
 import * as type_utilities from "./utilities/Type_utilities";
-import * as Scanner from "./core/Scanner";
-import * as Symbol_database from "./core/Symbol_database";
-import * as Symbol_database_change from "./core/Symbol_database_change";
+import { onThrowError } from "./utilities/errors";
 
 function openDocumentIfRequired(hDocumentManager: HDocumentManager, documentUri: vscode.Uri): Thenable<HDocument> {
 
@@ -446,79 +438,25 @@ export function activate(context: ExtensionContext) {
           const document_data = h_document_provider.get_document(e.document.uri);
           if (document_data !== undefined) {
 
-            for (const content_change of e.contentChanges) {
+            const text_changes: Text_change.Text_change[] = e.contentChanges.map(
+              (change: vscode.TextDocumentContentChangeEvent): Text_change.Text_change => {
+                return {
+                  range: {
+                    start: change.rangeOffset,
+                    end: change.rangeOffset + change.rangeLength
+                  },
+                  text: change.text
+                };
+              });
 
-              const scanned_input_change = Parser.scan_new_change(
-                document_data.parse_tree,
-                { line: content_change.range.start.line, column: content_change.range.start.character },
-                { line: content_change.range.end.line, column: content_change.range.end.character },
-                content_change.text
-              );
+            const text_after_changes = e.document.getText();
 
-              if (scanned_input_change.new_words.length > 0) {
-
-                const parse_result = Parser.parse_incrementally(
-                  document_data.parse_tree,
-                  scanned_input_change.start_change_node_position,
-                  scanned_input_change.new_words,
-                  scanned_input_change.after_change_node_position,
-                  document_data.actions_table,
-                  document_data.go_to_table,
-                  document_data.map_word_to_terminal
-                );
-
-                // TODO figure out errors...
-
-                // Create symbol changes
-                // Create module changes
-
-                // Apply parse tree changes
-                // Apply symbol changes
-                // Apply module changes
-              }
-
-              // Update parse tree text position
-
-              /*const root: Abstract_syntax_tree.Node = document_data.abstract_syntax_tree;
-
-              const nodes_range = Abstract_syntax_tree.find_nodes_of_range(root, content_change.rangeOffset, content_change.rangeOffset + content_change.rangeLength);
-
-              if (nodes_range.parent_position !== undefined) {
-
-                const parent_position = nodes_range.parent_position;
-                const start_child_index = nodes_range.child_indices.start;
-                const end_child_index = nodes_range.child_indices.end;
-
-                for (let child_index = start_child_index; child_index < end_child_index; ++child_index) {
-
-                  const child_node_position = [...parent_position, child_index];
-                  const child_node = Abstract_syntax_tree.get_node_at_position(root, child_node_position);
-                  const child_node_offset_range = Abstract_syntax_tree.find_node_range(root, -1, child_node_position);
-
-                  const text_adjusted_offset_range = { start: child_node_offset_range.start, end: child_node_offset_range.end - content_change.rangeLength + content_change.text.length };
-
-                  const text_adjusted_range = new vscode.Range(e.document.positionAt(text_adjusted_offset_range.start), e.document.positionAt(text_adjusted_offset_range.end));
-                  const text = e.document.getText(text_adjusted_range);
-
-                  {
-                    const scanned_words = Scanner.scan(text);
-                    const new_node = Parser.parse(scanned_words, 0, document_data.grammar, child_node.token).node;
-
-                    const abstract_syntax_tree_change = Abstract_syntax_tree_change.create_replace_change(child_node_position, new_node);
-                    Abstract_syntax_tree_change.update(document_data.abstract_syntax_tree, abstract_syntax_tree_change);
-
-                    const symbol_database_change = Symbol_database_change.create_change(new_node);
-                    Symbol_database_change.update(document_data.symbol_database, symbol_database_change);
-
-                    const module_change = Module_change.create_change(new_node);
-                    Module_change.update(document_data.module, module_change);
-                  }
-                }
-              }
-              else {
-                throw Error("Not implemented!");
-              }*/
-            }
+            document_data.state = Text_change.update(
+              document_data.language_description,
+              document_data.state,
+              text_changes,
+              text_after_changes
+            );
           }
         }
 

@@ -1,18 +1,11 @@
 import * as vscode from "vscode";
 
-import * as Core from "../utilities/coreModelInterface";
-import * as Grammar from "../core/Grammar";
-import * as Parser from "../core/Parser";
-import * as Symbol_database from "../core/Symbol_database";
+import * as Document from "../core/Document";
+import * as Language from "../core/Language";
 
 export interface H_document {
-    module: Core.Module;
-    production_rules: Grammar.Production_rule[];
-    actions_table: Grammar.Action_column[][];
-    go_to_table: Grammar.Go_to_column[][];
-    map_word_to_terminal: (word: Grammar.Word) => string;
-    parse_tree: Parser.Node;
-    symbol_database: Symbol_database.Edit_module_database;
+    language_description: Language.Description;
+    state: Document.State;
 }
 
 export class H_document_provider {
