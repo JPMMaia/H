@@ -855,8 +855,6 @@ void write_object(
     write_object(writer, output.export_declarations);
     writer.Key("internal_declarations");
     write_object(writer, output.internal_declarations);
-    writer.Key("next_unique_id");
-    writer.Uint64(output.next_unique_id);
     writer.Key("definitions");
     write_object(writer, output.definitions);
     writer.EndObject();
