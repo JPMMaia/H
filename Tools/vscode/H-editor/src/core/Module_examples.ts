@@ -22,7 +22,6 @@ export function create_0(): core.Module {
                 size: 1,
                 elements: [
                     {
-                        id: 0,
                         name: "My_float",
                         type: {
                             size: 1,
@@ -42,7 +41,6 @@ export function create_0(): core.Module {
                 size: 1,
                 elements: [
                     {
-                        id: 10,
                         name: "My_enum_0",
                         values: {
                             size: 3,
@@ -68,7 +66,6 @@ export function create_0(): core.Module {
                 size: 1,
                 elements: [
                     {
-                        id: 20,
                         name: "My_struct_0",
                         member_types: {
                             size: 3,
@@ -110,7 +107,6 @@ export function create_0(): core.Module {
                 size: 4,
                 elements: [
                     {
-                        id: 30,
                         name: "My_function_0",
                         type: {
                             input_parameter_types: {
@@ -126,14 +122,11 @@ export function create_0(): core.Module {
                             },
                             is_variadic: false,
                         },
-                        input_parameter_ids: { size: 2, elements: [0, 1] },
                         input_parameter_names: { size: 2, elements: ["lhs", "rhs"] },
-                        output_parameter_ids: { size: 1, elements: [0] },
                         output_parameter_names: { size: 1, elements: ["result"] },
                         linkage: core.Linkage.External,
                     },
                     {
-                        id: 31,
                         name: "My_function_1",
                         type: {
                             input_parameter_types: {
@@ -149,14 +142,11 @@ export function create_0(): core.Module {
                             },
                             is_variadic: false,
                         },
-                        input_parameter_ids: { size: 2, elements: [0, 1] },
                         input_parameter_names: { size: 2, elements: ["lhs", "rhs"] },
-                        output_parameter_ids: { size: 1, elements: [0] },
                         output_parameter_names: { size: 1, elements: ["result"] },
                         linkage: core.Linkage.External,
                     },
                     {
-                        id: 32,
                         name: "My_function_2",
                         type: {
                             input_parameter_types: {
@@ -172,14 +162,11 @@ export function create_0(): core.Module {
                             },
                             is_variadic: false,
                         },
-                        input_parameter_ids: { size: 2, elements: [0, 1] },
                         input_parameter_names: { size: 2, elements: ["lhs", "rhs"] },
-                        output_parameter_ids: { size: 1, elements: [0] },
                         output_parameter_names: { size: 1, elements: ["result"] },
                         linkage: core.Linkage.External,
                     },
                     {
-                        id: 33,
                         name: "Empty_function",
                         type: {
                             input_parameter_types: {
@@ -195,9 +182,7 @@ export function create_0(): core.Module {
                             },
                             is_variadic: false,
                         },
-                        input_parameter_ids: { size: 2, elements: [0, 1] },
                         input_parameter_names: { size: 2, elements: ["lhs", "rhs"] },
-                        output_parameter_ids: { size: 1, elements: [0] },
                         output_parameter_names: { size: 1, elements: ["result"] },
                         linkage: core.Linkage.External,
                     },
@@ -209,7 +194,6 @@ export function create_0(): core.Module {
                 size: 1,
                 elements: [
                     {
-                        id: 100,
                         name: "My_int",
                         type: {
                             size: 1,
@@ -232,7 +216,6 @@ export function create_0(): core.Module {
                 size: 1,
                 elements: [
                     {
-                        id: 110,
                         name: "My_enum_1",
                         values: {
                             size: 3,
@@ -258,7 +241,6 @@ export function create_0(): core.Module {
                 size: 1,
                 elements: [
                     {
-                        id: 120,
                         name: "My_struct_1",
                         member_types: {
                             size: 3,
@@ -300,7 +282,6 @@ export function create_0(): core.Module {
                 size: 1,
                 elements: [
                     {
-                        id: 130,
                         name: "My_function_4",
                         type: {
                             input_parameter_types: {
@@ -316,27 +297,23 @@ export function create_0(): core.Module {
                             },
                             is_variadic: false,
                         },
-                        input_parameter_ids: { size: 2, elements: [0, 1] },
                         input_parameter_names: { size: 2, elements: ["lhs", "rhs"] },
-                        output_parameter_ids: { size: 1, elements: [0] },
                         output_parameter_names: { size: 1, elements: ["result"] },
                         linkage: core.Linkage.External,
                     },
                 ]
             }
         },
-        next_unique_id: 200,
         definitions: {
             function_definitions: {
                 size: 4,
                 elements: [
                     {
-                        id: 30,
+                        name: "My_function_0",
                         statements: {
                             size: 1,
                             elements: [
                                 {
-                                    id: 0,
                                     name: "var_0",
                                     expressions: {
                                         size: 4,
@@ -361,8 +338,7 @@ export function create_0(): core.Module {
                                                 data: {
                                                     type: core.Expression_enum.Variable_expression,
                                                     value: {
-                                                        type: core.Variable_expression_type.Function_argument,
-                                                        id: 0
+                                                        name: "lhs"
                                                     }
                                                 }
                                             },
@@ -370,8 +346,7 @@ export function create_0(): core.Module {
                                                 data: {
                                                     type: core.Expression_enum.Variable_expression,
                                                     value: {
-                                                        type: core.Variable_expression_type.Function_argument,
-                                                        id: 1
+                                                        name: "rhs"
                                                     }
                                                 }
                                             }
@@ -382,12 +357,11 @@ export function create_0(): core.Module {
                         },
                     },
                     {
-                        id: 31,
+                        name: "My_function_1",
                         statements: {
                             size: 1,
                             elements: [
                                 {
-                                    id: 0,
                                     name: "var_0",
                                     expressions: {
                                         size: 4,
@@ -412,8 +386,7 @@ export function create_0(): core.Module {
                                                 data: {
                                                     type: core.Expression_enum.Variable_expression,
                                                     value: {
-                                                        type: core.Variable_expression_type.Function_argument,
-                                                        id: 0
+                                                        name: "lhs"
                                                     }
                                                 }
                                             },
@@ -421,8 +394,7 @@ export function create_0(): core.Module {
                                                 data: {
                                                     type: core.Expression_enum.Variable_expression,
                                                     value: {
-                                                        type: core.Variable_expression_type.Function_argument,
-                                                        id: 1
+                                                        name: "rhs"
                                                     }
                                                 }
                                             }
@@ -433,12 +405,11 @@ export function create_0(): core.Module {
                         },
                     },
                     {
-                        id: 32,
+                        name: "My_function_2",
                         statements: {
                             size: 1,
                             elements: [
                                 {
-                                    id: 0,
                                     name: "var_0",
                                     expressions: {
                                         size: 4,
@@ -463,8 +434,7 @@ export function create_0(): core.Module {
                                                 data: {
                                                     type: core.Expression_enum.Variable_expression,
                                                     value: {
-                                                        type: core.Variable_expression_type.Function_argument,
-                                                        id: 0
+                                                        name: "lhs"
                                                     }
                                                 }
                                             },
@@ -472,8 +442,7 @@ export function create_0(): core.Module {
                                                 data: {
                                                     type: core.Expression_enum.Variable_expression,
                                                     value: {
-                                                        type: core.Variable_expression_type.Function_argument,
-                                                        id: 1
+                                                        name: "rhs"
                                                     }
                                                 }
                                             }
@@ -484,19 +453,18 @@ export function create_0(): core.Module {
                         },
                     },
                     {
-                        id: 33,
+                        name: "Empty_function",
                         statements: {
                             size: 0,
                             elements: [],
                         },
                     },
                     {
-                        id: 130,
+                        name: "My_function_4",
                         statements: {
                             size: 1,
                             elements: [
                                 {
-                                    id: 0,
                                     name: "var_0",
                                     expressions: {
                                         size: 4,
@@ -521,8 +489,7 @@ export function create_0(): core.Module {
                                                 data: {
                                                     type: core.Expression_enum.Variable_expression,
                                                     value: {
-                                                        type: core.Variable_expression_type.Function_argument,
-                                                        id: 0
+                                                        name: "lhs"
                                                     }
                                                 }
                                             },
@@ -530,8 +497,7 @@ export function create_0(): core.Module {
                                                 data: {
                                                     type: core.Expression_enum.Variable_expression,
                                                     value: {
-                                                        type: core.Variable_expression_type.Function_argument,
-                                                        id: 1
+                                                        name: "rhs"
                                                     }
                                                 }
                                             }

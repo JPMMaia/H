@@ -470,7 +470,7 @@ function get_next_state(module: Core.Module, declarations: Declaration[], produc
         const declaration = declarations[current_state.index];
         const module_declarations = declaration.is_export ? module.export_declarations : module.internal_declarations;
         const function_declaration = module_declarations.function_declarations.elements[declaration.index];
-        const function_definition_index = module.definitions.function_definitions.elements.findIndex(value => value.id === function_declaration.id);
+        const function_definition_index = module.definitions.function_definitions.elements.findIndex(value => value.name === function_declaration.name);
         const function_definition = module.definitions.function_definitions.elements[function_definition_index];
 
         const value: Function_state = {
@@ -875,7 +875,7 @@ export function create_module_changes(
                         }
 
                         const function_definition: Core.Function_definition = {
-                            id: 0, // TODO
+                            name: node_value.name,
                             statements: {
                                 size: 0,
                                 elements: []
@@ -1041,7 +1041,7 @@ export function parse_tree_to_module(
 
     const all_declarations = underlying_declaration_nodes.map(node => map_node_to_value(node, production_rules, production_rule_to_value_map));
 
-    const external_function_declarations = all_declarations.filter(value => value)
+    const external_function_declarations = all_declarations.filter(value => value);
 
     const export_declarations: Core.Module_declarations = {
         alias_type_declarations: {
@@ -1081,8 +1081,6 @@ export function parse_tree_to_module(
         },
     };
 
-    const next_unique_id = 0;
-
     const definitions: Core.Module_definitions = {
         function_definitions: {
             size: 0,
@@ -1095,7 +1093,6 @@ export function parse_tree_to_module(
         name: name,
         export_declarations: export_declarations,
         internal_declarations: internal_declarations,
-        next_unique_id: next_unique_id,
         definitions: definitions
     };
 }
