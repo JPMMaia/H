@@ -252,6 +252,7 @@ namespace h
 
     export struct Function_definition
     {
+        std::pmr::string name;
         std::pmr::vector<Statement> statements;
 
         friend auto operator<=>(Function_definition const&, Function_definition const&) = default;

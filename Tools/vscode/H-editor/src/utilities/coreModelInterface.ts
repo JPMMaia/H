@@ -173,6 +173,7 @@ export interface Function_declaration {
 }
 
 export interface Function_definition {
+    name: string;
     statements: Vector<Statement>;
 }
 
