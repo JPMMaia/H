@@ -783,3 +783,64 @@ describe("Parse_tree_convertor.create_module_changes", () => {
         }
     });
 });
+
+function assert_function_declarations(actual_function_declarations: Core.Vector<Core.Function_declaration>, expected_function_declarations: Core.Vector<Core.Function_declaration>) {
+    assert.equal(actual_function_declarations.size, expected_function_declarations.size);
+    assert.equal(actual_function_declarations.elements.length, expected_function_declarations.elements.length);
+
+    for (let function_index = 0; function_index < actual_function_declarations.elements.length; ++function_index) {
+        const actual_function_declaration = actual_function_declarations.elements[function_index];
+        const expected_function_declaration = expected_function_declarations.elements[function_index];
+
+        assert.equal(actual_function_declaration.name, expected_function_declaration.name);
+        assert.equal(actual_function_declaration.linkage, expected_function_declaration.linkage);
+
+        assert.deepEqual(actual_function_declaration.type.input_parameter_types, expected_function_declaration.type.input_parameter_types);
+        assert.deepEqual(actual_function_declaration.type.output_parameter_types, expected_function_declaration.type.output_parameter_types);
+        assert.equal(actual_function_declaration.type.is_variadic, expected_function_declaration.type.is_variadic);
+
+        assert.deepEqual(actual_function_declaration.input_parameter_names, expected_function_declaration.input_parameter_names);
+        assert.deepEqual(actual_function_declaration.output_parameter_names, expected_function_declaration.output_parameter_names);
+    }
+}
+
+describe("Parse_tree_convertor.parse_tree_to_module", () => {
+
+    const grammar_description = Grammar_examples.create_test_grammar_9_description();
+    const production_rules = Grammar.create_production_rules(grammar_description);
+    const expected_module = Module_examples.create_0();
+    const symbol_database = Symbol_database.create_edit_database(expected_module);
+    const declarations = Parse_tree_convertor.create_declarations(expected_module);
+    const parse_tree = Parse_tree_convertor.module_to_parse_tree(expected_module, symbol_database, declarations, production_rules);
+
+    const production_rule_to_value_map = Parse_tree_convertor.create_production_rule_to_value_map(production_rules);
+    const key_to_production_rule_indices = Parse_tree_convertor.create_key_to_production_rule_indices_map(production_rules);
+    const actual_module = Parse_tree_convertor.parse_tree_to_module(parse_tree, production_rules, production_rule_to_value_map, key_to_production_rule_indices);
+
+    it("Handles the module name", () => {
+        assert.equal(actual_module.name, expected_module.name);
+    });
+
+    it("Handles functions", () => {
+        assert_function_declarations(actual_module.export_declarations.function_declarations, expected_module.export_declarations.function_declarations);
+        assert_function_declarations(actual_module.internal_declarations.function_declarations, expected_module.internal_declarations.function_declarations);
+
+        assert.equal(actual_module.definitions.function_definitions.size, expected_module.definitions.function_definitions.size);
+        assert.equal(actual_module.definitions.function_definitions.elements.length, expected_module.definitions.function_definitions.elements.length);
+
+        for (let definition_index = 0; definition_index < actual_module.definitions.function_definitions.elements.length; ++definition_index) {
+            const actual_definition = actual_module.definitions.function_definitions.elements[definition_index];
+            const expected_definition = expected_module.definitions.function_definitions.elements[definition_index];
+
+            assert.equal(actual_definition.statements.size, expected_definition.statements.size);
+            assert.equal(actual_definition.statements.elements.length, expected_definition.statements.elements.length);
+
+            for (let statement_index = 0; statement_index < actual_definition.statements.elements.length; ++statement_index) {
+                const actual_statement = actual_definition.statements.elements[statement_index];
+                const expected_statement = expected_definition.statements.elements[statement_index];
+
+                assert.deepEqual(actual_statement, expected_statement);
+            }
+        }
+    });
+});

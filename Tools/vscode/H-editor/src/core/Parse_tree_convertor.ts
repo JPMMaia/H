@@ -896,46 +896,88 @@ export function create_module_changes(
     return changes;
 }
 
-export function create_key_to_production_rule_index_map(production_rules: Grammar.Production_rule[]): Map<string, number> {
+export function create_key_to_production_rule_indices_map(production_rules: Grammar.Production_rule[]): Map<string, number[]> {
 
     const keys: string[] = [
-        "Module_name"
+        "Module_body",
+        "Module_name",
+        "Declaration"
     ];
 
-    const map = new Map<string, number>();
+    const map = new Map<string, number[]>();
 
     for (const key of keys) {
-        const index = production_rules.findIndex(element => element.lhs === "Module_name");
-        if (index === -1) {
-            throw Error(`Could not find ${key} in production_rules`);
+
+        const indices: number[] = [];
+
+        for (let index = 0; index < production_rules.length; ++index) {
+            const production_rule = production_rules[index];
+            if (production_rule.lhs === key) {
+                indices.push(index);
+            }
         }
-        map.set(key, index);
+
+        map.set(key, indices);
     }
 
     return map;
 }
 
-function find_node_with_production_rule_index(node: Node, production_rule_index: number): Node | undefined {
+function find_node_with_production_rule_indices(node: Node, production_rule_indices: number[]): Node | undefined {
 
-    if (node.production_rule_index === production_rule_index) {
+    const has_production_rule = (element: Node): boolean => {
+        return element.production_rule_index !== undefined && production_rule_indices.indexOf(element.production_rule_index) !== -1;
+    };
+
+    if (has_production_rule(node)) {
         return node;
     }
 
     {
-        const child = node.children.find(child => child.production_rule_index === production_rule_index);
+        const child = node.children.find(child => has_production_rule(child));
         if (child !== undefined) {
             return child;
         }
     }
 
     for (const child of node.children) {
-        const found = find_node_with_production_rule_index(child, production_rule_index);
+        const found = find_node_with_production_rule_indices(child, production_rule_indices);
         if (found !== undefined) {
             return found;
         }
     }
 
     return undefined;
+}
+
+function find_nodes_with_production_rule_indices(node: Node, production_rule_indices: number[]): Node[] {
+
+    const nodes: Node[] = [];
+
+    const has_production_rule = (element: Node): boolean => {
+        return element.production_rule_index !== undefined && production_rule_indices.indexOf(element.production_rule_index) !== -1;
+    };
+
+    if (has_production_rule(node)) {
+        nodes.push(node);
+    }
+
+    {
+        const found_nodes = node.children.filter(child => has_production_rule(child));
+        nodes.push(...found_nodes);
+    }
+
+    // Avoid exploring child nodes for sake of optimization as production rules are usually at the same level in the node tree.
+    if (nodes.length > 0) {
+        return nodes;
+    }
+
+    for (const child of node.children) {
+        const found_nodes = find_nodes_with_production_rule_indices(child, production_rule_indices);
+        nodes.push(...found_nodes);
+    }
+
+    return nodes;
 }
 
 function get_terminal_value(node: Node): string {
@@ -946,13 +988,35 @@ function get_terminal_value(node: Node): string {
     return get_terminal_value(node.children[0]);
 }
 
-function find_module_name(node: Node, key_to_production_rule_index: Map<string, number>): string {
-    const production_rule_index = key_to_production_rule_index.get("Module_name") as number;
-    const module_name_node = find_node_with_production_rule_index(node, production_rule_index) as Node;
+function find_module_name(node: Node, key_to_production_rule_indices: Map<string, number[]>): string {
+    const production_rule_indices = key_to_production_rule_indices.get("Module_name") as number[];
+    if (production_rule_indices === undefined) {
+        return "";
+    }
+
+    const module_name_node = find_node_with_production_rule_indices(node, production_rule_indices) as Node;
     return get_terminal_value(module_name_node);
 }
 
-export function parse_tree_to_module(root: Node, key_to_production_rule_index: Map<string, number>): Core.Module {
+function find_declaration_nodes(node: Node, key_to_production_rule_indices: Map<string, number[]>): Node[] {
+    const module_body_production_rule_indices = key_to_production_rule_indices.get("Module_body") as number[];
+
+    const module_body_node = find_node_with_production_rule_indices(node, module_body_production_rule_indices);
+    if (module_body_node === undefined) {
+        return [];
+    }
+
+    const declaration_production_rule_indices = key_to_production_rule_indices.get("Declaration") as number[];
+    const declaration_nodes = find_nodes_with_production_rule_indices(module_body_node, declaration_production_rule_indices);
+    return declaration_nodes;
+}
+
+export function parse_tree_to_module(
+    root: Node,
+    production_rules: Grammar.Production_rule[],
+    production_rule_to_value_map: Production_rule_info[],
+    key_to_production_rule_indices: Map<string, number[]>
+): Core.Module {
 
     const language_version: Core.Language_version = {
         major: 0,
@@ -960,7 +1024,24 @@ export function parse_tree_to_module(root: Node, key_to_production_rule_index: M
         patch: 0
     };
 
-    const name = find_module_name(root, key_to_production_rule_index);
+    const name = find_module_name(root, key_to_production_rule_indices);
+    const all_declaration_nodes = find_declaration_nodes(root, key_to_production_rule_indices);
+
+    const underlying_declaration_nodes = all_declaration_nodes.map(declaration => {
+        const child = declaration.children[0];
+        if (child.word.value === "Function") {
+            for (const node of child.children) {
+                if (node.word.value === "Function_declaration") {
+                    return node;
+                }
+            }
+        }
+        return child;
+    });
+
+    const all_declarations = underlying_declaration_nodes.map(node => map_node_to_value(node, production_rules, production_rule_to_value_map));
+
+    const external_function_declarations = all_declarations.filter(value => value)
 
     const export_declarations: Core.Module_declarations = {
         alias_type_declarations: {

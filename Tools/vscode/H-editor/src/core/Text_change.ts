@@ -57,10 +57,11 @@ export function update(
                 const new_parse_tree = modify_change.new_node;
 
                 // TODO can be cached:
-                const key_to_production_rule_index = Parse_tree_convertor.create_key_to_production_rule_index_map(language_description.production_rules);
+                const production_rule_to_value_map = Parse_tree_convertor.create_production_rule_to_value_map(language_description.production_rules);
+                const key_to_production_rule_index = Parse_tree_convertor.create_key_to_production_rule_indices_map(language_description.production_rules);
 
                 state.parse_tree = new_parse_tree;
-                state.module = Parse_tree_convertor.parse_tree_to_module(new_parse_tree, key_to_production_rule_index);
+                state.module = Parse_tree_convertor.parse_tree_to_module(new_parse_tree, language_description.production_rules, production_rule_to_value_map, key_to_production_rule_index);
             }
             else if (state.parse_tree !== undefined) {
                 // TODO can be cached
