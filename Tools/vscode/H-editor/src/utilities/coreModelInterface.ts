@@ -29,11 +29,6 @@ export enum Fundamental_type {
     C_ulonglong = "C_ulonglong",
 }
 
-export enum Variable_expression_type {
-    Function_argument = "Function_argument",
-    Local_variable = "Local_variable",
-}
-
 export enum Binary_operation {
     Add = "Add",
     Subtract = "Subtract",
@@ -48,18 +43,6 @@ export enum Linkage {
     Private = "Private",
 }
 
-export enum Type_reference_enum {
-    Alias_type_reference = "Alias_type_reference",
-    Builtin_type_reference = "Builtin_type_reference",
-    Constant_array_type = "Constant_array_type",
-    Enum_type_reference = "Enum_type_reference",
-    Fundamental_type = "Fundamental_type",
-    Function_type = "Function_type",
-    Integer_type = "Integer_type",
-    Pointer_type = "Pointer_type",
-    Struct_type_reference = "Struct_type_reference",
-}
-
 export enum Expression_enum {
     Binary_expression = "Binary_expression",
     Call_expression = "Call_expression",
@@ -67,6 +50,16 @@ export enum Expression_enum {
     Invalid_expression = "Invalid_expression",
     Return_expression = "Return_expression",
     Variable_expression = "Variable_expression",
+}
+
+export enum Type_reference_enum {
+    Builtin_type_reference = "Builtin_type_reference",
+    Constant_array_type = "Constant_array_type",
+    Custom_type_reference = "Custom_type_reference",
+    Fundamental_type = "Fundamental_type",
+    Function_type = "Function_type",
+    Integer_type = "Integer_type",
+    Pointer_type = "Pointer_type",
 }
 
 export interface Integer_type {
@@ -93,32 +86,21 @@ export interface Module_reference {
     name: string;
 }
 
-export interface Alias_type_reference {
-    module_reference: Module_reference;
-    id: number;
-}
-
 export interface Constant_array_type {
     value_type: Vector<Type_reference>;
     size: number;
 }
 
-export interface Enum_type_reference {
+export interface Custom_type_reference {
     module_reference: Module_reference;
-    id: number;
-}
-
-export interface Struct_type_reference {
-    module_reference: Module_reference;
-    id: number;
+    name: string;
 }
 
 export interface Type_reference {
-    data: Variant<Type_reference_enum, Alias_type_reference | Builtin_type_reference | Constant_array_type | Enum_type_reference | Fundamental_type | Function_type | Integer_type | Pointer_type | Struct_type_reference>;
+    data: Variant<Type_reference_enum, Builtin_type_reference | Constant_array_type | Custom_type_reference | Fundamental_type | Function_type | Integer_type | Pointer_type>;
 }
 
 export interface Alias_type_declaration {
-    id: number;
     name: string;
     type: Vector<Type_reference>;
 }
@@ -129,13 +111,11 @@ export interface Enum_value {
 }
 
 export interface Enum_declaration {
-    id: number;
     name: string;
     values: Vector<Enum_value>;
 }
 
 export interface Struct_declaration {
-    id: number;
     name: string;
     member_types: Vector<Type_reference>;
     member_names: Vector<string>;
@@ -143,14 +123,8 @@ export interface Struct_declaration {
     is_literal: boolean;
 }
 
-export interface Function_reference {
-    module_reference: Module_reference;
-    function_id: number;
-}
-
 export interface Variable_expression {
-    type: Variable_expression_type;
-    id: number;
+    name: string;
 }
 
 export interface Expression_index {
@@ -164,7 +138,7 @@ export interface Binary_expression {
 }
 
 export interface Call_expression {
-    function_reference: Function_reference;
+    function_name: string;
     arguments: Vector<Expression_index>;
 }
 
@@ -186,24 +160,19 @@ export interface Expression {
 }
 
 export interface Statement {
-    id: number;
     name: string;
     expressions: Vector<Expression>;
 }
 
 export interface Function_declaration {
-    id: number;
     name: string;
     type: Function_type;
-    input_parameter_ids: Vector<number>;
     input_parameter_names: Vector<string>;
-    output_parameter_ids: Vector<number>;
     output_parameter_names: Vector<string>;
     linkage: Linkage;
 }
 
 export interface Function_definition {
-    id: number;
     statements: Vector<Statement>;
 }
 

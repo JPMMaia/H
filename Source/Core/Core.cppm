@@ -78,14 +78,6 @@ namespace h
         friend auto operator<=>(Module_reference const&, Module_reference const&) = default;
     };
 
-    export struct Alias_type_reference
-    {
-        Module_reference module_reference;
-        std::uint64_t id;
-
-        friend auto operator<=>(Alias_type_reference const&, Alias_type_reference const&) = default;
-    };
-
     export struct Constant_array_type
     {
         std::pmr::vector<Type_reference> value_type;
@@ -94,34 +86,24 @@ namespace h
         friend auto operator<=>(Constant_array_type const&, Constant_array_type const&) = default;
     };
 
-    export struct Enum_type_reference
+    export struct Custom_type_reference
     {
         Module_reference module_reference;
-        std::uint64_t id;
+        std::pmr::string name;
 
-        friend auto operator<=>(Enum_type_reference const&, Enum_type_reference const&) = default;
-    };
-
-    export struct Struct_type_reference
-    {
-        Module_reference module_reference;
-        std::uint64_t id;
-
-        friend auto operator<=>(Struct_type_reference const&, Struct_type_reference const&) = default;
+        friend auto operator<=>(Custom_type_reference const&, Custom_type_reference const&) = default;
     };
 
     export struct Type_reference
     {
         using Data_type = std::variant<
-            Alias_type_reference,
             Builtin_type_reference,
             Constant_array_type,
-            Enum_type_reference,
+            Custom_type_reference,
             Fundamental_type,
             Function_type,
             Integer_type,
-            Pointer_type,
-            Struct_type_reference
+            Pointer_type
         >;
 
         Data_type data;
@@ -131,7 +113,6 @@ namespace h
 
     export struct Alias_type_declaration
     {
-        std::uint64_t id;
         std::pmr::string name;
         std::pmr::vector<Type_reference> type;
 
@@ -148,7 +129,6 @@ namespace h
 
     export struct Enum_declaration
     {
-        std::uint64_t id;
         std::pmr::string name;
         std::pmr::vector<Enum_value> values;
 
@@ -157,7 +137,6 @@ namespace h
 
     export struct Struct_declaration
     {
-        std::uint64_t id;
         std::pmr::string name;
         std::pmr::vector<Type_reference> member_types;
         std::pmr::vector<std::pmr::string> member_names;
@@ -167,24 +146,9 @@ namespace h
         friend auto operator<=>(Struct_declaration const&, Struct_declaration const&) = default;
     };
 
-    export struct Function_reference
-    {
-        Module_reference module_reference;
-        std::uint64_t function_id;
-
-        friend auto operator<=>(Function_reference const&, Function_reference const&) = default;
-    };
-
-    export enum class Variable_expression_type
-    {
-        Function_argument,
-        Local_variable
-    };
-
     export struct Variable_expression
     {
-        Variable_expression_type type;
-        std::uint64_t id;
+        std::pmr::string name;
 
         friend auto operator<=>(Variable_expression const&, Variable_expression const&) = default;
     };
@@ -217,7 +181,7 @@ namespace h
 
     export struct Call_expression
     {
-        Function_reference function_reference;
+        std::pmr::string function_name;
         std::pmr::vector<Expression_index> arguments;
 
         friend auto operator<=>(Call_expression const&, Call_expression const&) = default;
@@ -263,7 +227,6 @@ namespace h
 
     export struct Statement
     {
-        std::uint64_t id;
         std::pmr::string name;
         std::pmr::vector<Expression> expressions;
 
@@ -278,12 +241,9 @@ namespace h
 
     export struct Function_declaration
     {
-        std::uint64_t id;
         std::pmr::string name;
         Function_type type;
-        std::pmr::vector<std::uint64_t> input_parameter_ids;
         std::pmr::vector<std::pmr::string> input_parameter_names;
-        std::pmr::vector<std::uint64_t> output_parameter_ids;
         std::pmr::vector<std::pmr::string> output_parameter_names;
         Linkage linkage;
 
@@ -292,7 +252,6 @@ namespace h
 
     export struct Function_definition
     {
-        std::uint64_t id;
         std::pmr::vector<Statement> statements;
 
         friend auto operator<=>(Function_definition const&, Function_definition const&) = default;
