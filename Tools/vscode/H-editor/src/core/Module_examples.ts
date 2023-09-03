@@ -299,7 +299,7 @@ export function create_0(): core.Module {
                         },
                         input_parameter_names: { size: 2, elements: ["lhs", "rhs"] },
                         output_parameter_names: { size: 1, elements: ["result"] },
-                        linkage: core.Linkage.External,
+                        linkage: core.Linkage.Private,
                     },
                 ]
             }
