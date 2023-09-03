@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { HDocumentManager } from '../HDocumentManager';
-import * as core from '../utilities/coreModelInterface';
+import * as core from '../core/Core_interface';
 import { HDocument } from '../HDocument';
 import * as Change from "../utilities/Change";
 

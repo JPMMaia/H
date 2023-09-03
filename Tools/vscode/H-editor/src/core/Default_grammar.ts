@@ -21,7 +21,7 @@ export function create_description(): string[] {
         "Function -> Function_declaration Function_definition",
         "Function_declaration -> Export function Function_name ( Function_input_parameters ) -> ( Function_output_parameters )",
         "Function_input_parameters -> Function_parameter , $0_or_more",
-        "Function_output_parameters -> Function_parameter $0_or_more",
+        "Function_output_parameters -> Function_parameter , $0_or_more",
         "Function_parameter -> Function_parameter_name : Function_parameter_type",
         "Function_parameter_name -> identifier",
         "Function_parameter_type -> identifier",

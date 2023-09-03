@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
 import { findNumber, findEndOfString, fromPositionToOffset, findEndOfCurrentObject, ParserState, getObjectAtPosition } from './utilities/parseJSON';
 import * as hCoreReflectionInfo from './utilities/h_core_reflection.json';
-import { createDefaultElement, createEmptyModule } from './utilities/coreModel';
-import * as coreModel from './utilities/coreModel';
-import * as core from './utilities/coreModelInterface';
+import { create_default_element, create_empty_module } from './core/Core_reflection';
+import * as coreModel from './core/Core_reflection';
+import * as core from './core/Core_interface';
 import * as Change from "./utilities/Change";
 import * as Change_update from "./utilities/Change_update";
 import { onThrowError } from './utilities/errors';
@@ -55,10 +55,10 @@ function updateArraySize(document: vscode.TextDocument, text: string, position: 
     return updateValueWithOffset(document, text, offsetResult.offset, newArraySize);
 }
 
-function insertVectorElement(document: vscode.TextDocument, text: string, position: any[], value?: any, defaultValueOptions?: coreModel.DefaultValueOptions): InsertInfo {
+function insertVectorElement(document: vscode.TextDocument, text: string, position: any[], value?: any, defaultValueOptions?: coreModel.Default_value_options): InsertInfo {
 
     const reflectionInfo = { enums: hCoreReflectionInfo.enums, structs: hCoreReflectionInfo.structs };
-    const newElement = value !== undefined ? value : createDefaultElement(reflectionInfo, position, defaultValueOptions);
+    const newElement = value !== undefined ? value : create_default_element(reflectionInfo, position, defaultValueOptions);
     const newElementText = JSON.stringify(newElement);
 
     // TODO cache
@@ -124,7 +124,7 @@ function updateValueWithOffset(document: vscode.TextDocument, text: string, offs
     };
 }
 
-function insertVectorElementAndUpdateArraySize(edit: vscode.WorkspaceEdit, document: vscode.TextDocument, text: string, position: any[], value?: any, defaultValueOptions?: coreModel.DefaultValueOptions): void {
+function insertVectorElementAndUpdateArraySize(edit: vscode.WorkspaceEdit, document: vscode.TextDocument, text: string, position: any[], value?: any, defaultValueOptions?: coreModel.Default_value_options): void {
 
     const insertInfo = insertVectorElement(document, text, position, value, defaultValueOptions);
     edit.insert(
@@ -305,11 +305,11 @@ function updateWithNewChanges(edit: vscode.WorkspaceEdit, document: vscode.TextD
 export class HDocument {
 
     private state: core.Module;
-    private reflectionInfo: coreModel.ReflectionInfo;
+    private reflectionInfo: coreModel.Reflection_info;
 
     constructor(private document: vscode.TextDocument) {
         this.state = this.getDocumentAsJson();
-        this.reflectionInfo = coreModel.createReflectionInfo();
+        this.reflectionInfo = coreModel.create_reflection_info();
     }
 
     public getDocumentUri(): vscode.Uri {
@@ -350,7 +350,7 @@ export class HDocument {
         const fileName = filePath.replace(/^.*[\\\/]/, '');
         const moduleName = fileName.substring(0, fileName.lastIndexOf('.')) || fileName;
 
-        const defaultModule = createEmptyModule(this.reflectionInfo);
+        const defaultModule = create_empty_module(this.reflectionInfo);
         defaultModule.name = moduleName;
         defaultModule.language_version.major = 0;
         defaultModule.language_version.minor = 1;

@@ -2,7 +2,7 @@ import "mocha";
 
 import * as assert from "assert";
 
-import * as Core from "../utilities/coreModelInterface";
+import * as Core from "./Core_interface";
 import * as Grammar from "./Grammar";
 import * as Grammar_examples from "./Grammar_examples";
 import * as Module_change from "../utilities/Change";

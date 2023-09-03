@@ -1,6 +1,6 @@
 import { getObjectAtPosition } from './parseJSON';
 import * as Change from './Change';
-import type * as Core from './coreModelInterface';
+import type * as Core from '../core/Core_interface';
 
 function do_add_element_of_vector_change(object: any, change: Change.Add_element_to_vector, position: any[]): void {
     const vector_position = position.concat(change.vector_name);

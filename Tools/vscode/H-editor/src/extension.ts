@@ -11,11 +11,11 @@ import { H_document_provider } from "./text_editor/H_document_provider";
 
 import * as Change from "./utilities/Change";
 import * as Change_update_from_text from "./utilities/Change_update_from_text";
-import * as core from "./utilities/coreModelInterface";
-import * as core_helpers from "./utilities/coreModelInterfaceHelpers";
+import * as Core from "./core/Core_interface";
+import * as Core_helpers from "./core/Core_helpers";
 import * as Module_examples from "./core/Module_examples";
 import * as Text_change from "./core/Text_change";
-import * as type_utilities from "./utilities/Type_utilities";
+import * as Type_utilities from "./core/Type_utilities";
 import { onThrowError } from "./utilities/errors";
 
 function openDocumentIfRequired(hDocumentManager: HDocumentManager, documentUri: vscode.Uri): Thenable<HDocument> {
@@ -132,9 +132,9 @@ export function activate(context: ExtensionContext) {
 
           const index = module.internal_declarations.alias_type_declarations.size;
           const id = module.next_unique_id;
-          const new_type = type_utilities.create_default_type_reference();
+          const new_type = Type_utilities.create_default_type_reference();
 
-          const new_alias_type_declaration: core.Alias_type_declaration = {
+          const new_alias_type_declaration: Core.Alias_type_declaration = {
             id: id,
             name: name,
             type: {
@@ -175,7 +175,7 @@ export function activate(context: ExtensionContext) {
           const index = module.internal_declarations.enum_declarations.size;
           const id = module.next_unique_id;
 
-          const new_enum_declaration: core.Enum_declaration = {
+          const new_enum_declaration: Core.Enum_declaration = {
             id: id,
             name: name,
             values: {
@@ -216,7 +216,7 @@ export function activate(context: ExtensionContext) {
           const index = module.internal_declarations.struct_declarations.size;
           const id = module.next_unique_id;
 
-          const new_struct_declaration: core.Struct_declaration = {
+          const new_struct_declaration: Core.Struct_declaration = {
             id: id,
             name: name,
             member_types: {
@@ -264,7 +264,7 @@ export function activate(context: ExtensionContext) {
           const declaration_index = module.internal_declarations.function_declarations.size;
           const definition_index = module.definitions.function_definitions.size;
 
-          const new_function_declaration: core.Function_declaration = {
+          const new_function_declaration: Core.Function_declaration = {
             id: id,
             name: name,
             type: {
@@ -294,10 +294,10 @@ export function activate(context: ExtensionContext) {
               size: 0,
               elements: []
             },
-            linkage: core.Linkage.Private
+            linkage: Core.Linkage.Private
           };
 
-          const new_function_definition: core.Function_definition = {
+          const new_function_definition: Core.Function_definition = {
             id: id,
             statements: {
               size: 0,
@@ -354,7 +354,7 @@ export function activate(context: ExtensionContext) {
                 .map(entry => entry.hID !== undefined ? entry.hID : -1)
                 .filter(id => id !== -1)
                 .map(id => {
-                  return core_helpers.get_position_of_vector_element(module, id);
+                  return Core_helpers.get_position_of_vector_element(module, id);
                 })
                 .map(position => position !== undefined ? position : [])
                 .filter(position => position.length === 4)
@@ -401,9 +401,9 @@ export function activate(context: ExtensionContext) {
 
               const vector_name = entry.contextValue + "s";
               const id = entry.hID;
-              const result = core_helpers.findElementIndexWithId(
-                core_helpers.get_declarations_vector(module.export_declarations, vector_name).elements,
-                core_helpers.get_declarations_vector(module.internal_declarations, vector_name).elements,
+              const result = Core_helpers.findElementIndexWithId(
+                Core_helpers.get_declarations_vector(module.export_declarations, vector_name).elements,
+                Core_helpers.get_declarations_vector(module.internal_declarations, vector_name).elements,
                 id
               );
               const index = result.index;

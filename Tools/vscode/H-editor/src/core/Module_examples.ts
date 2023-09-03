@@ -1,9 +1,9 @@
-import * as core from "../utilities/coreModelInterface";
-import * as core_reflection from "../utilities/coreModel";
+import * as core from "./Core_interface";
+import * as core_reflection from "./Core_reflection";
 
 export function create_empty(): core.Module {
-    const reflection_info = core_reflection.createReflectionInfo();
-    const module = core_reflection.createEmptyModule(reflection_info);
+    const reflection_info = core_reflection.create_reflection_info();
+    const module = core_reflection.create_empty_module(reflection_info);
     return module;
 }
 

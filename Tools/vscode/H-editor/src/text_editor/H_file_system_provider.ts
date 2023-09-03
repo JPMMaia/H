@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 
-import * as Core from "../utilities/coreModelInterface";
+import * as Core from "../core/Core_interface";
 import * as Document from "../core/Document";
 import * as Language from "../core/Language";
 

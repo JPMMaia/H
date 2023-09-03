@@ -1,4 +1,4 @@
-import type * as Core from '../utilities/coreModelInterface';
+import type * as Core from './Core_interface';
 
 export enum Type {
     Add_element_to_vector,

@@ -1,4 +1,4 @@
-import * as Core from "../utilities/coreModelInterface";
+import * as Core from "./Core_interface";
 import { onThrowError } from "../utilities/errors";
 import * as Grammar from "./Grammar";
 import * as Module_change from "./Module_change";
@@ -988,27 +988,82 @@ function get_terminal_value(node: Node): string {
     return get_terminal_value(node.children[0]);
 }
 
-function find_module_name(node: Node, key_to_production_rule_indices: Map<string, number[]>): string {
-    const production_rule_indices = key_to_production_rule_indices.get("Module_name") as number[];
+function find_node(node: Node, key: string, key_to_production_rule_indices: Map<string, number[]>): Node | undefined {
+    const production_rule_indices = key_to_production_rule_indices.get(key) as number[];
     if (production_rule_indices === undefined) {
-        return "";
+        return undefined;
     }
 
-    const module_name_node = find_node_with_production_rule_indices(node, production_rule_indices) as Node;
-    return get_terminal_value(module_name_node);
+    const found_node = find_node_with_production_rule_indices(node, production_rule_indices);
+    return found_node;
 }
 
-function find_declaration_nodes(node: Node, key_to_production_rule_indices: Map<string, number[]>): Node[] {
-    const module_body_production_rule_indices = key_to_production_rule_indices.get("Module_body") as number[];
-
-    const module_body_node = find_node_with_production_rule_indices(node, module_body_production_rule_indices);
-    if (module_body_node === undefined) {
+function find_nodes(node: Node, key: string, key_to_production_rule_indices: Map<string, number[]>): Node[] {
+    const production_rule_indices = key_to_production_rule_indices.get(key) as number[];
+    if (production_rule_indices === undefined) {
         return [];
     }
 
-    const declaration_production_rule_indices = key_to_production_rule_indices.get("Declaration") as number[];
-    const declaration_nodes = find_nodes_with_production_rule_indices(module_body_node, declaration_production_rule_indices);
-    return declaration_nodes;
+    const found_nodes = find_nodes_with_production_rule_indices(node, production_rule_indices);
+    return found_nodes;
+}
+
+function find_node_value(node: Node, key: string, key_to_production_rule_indices: Map<string, number[]>): string {
+    const found_node = find_node(node, key, key_to_production_rule_indices);
+    if (found_node === undefined) {
+        return "";
+    }
+    return get_terminal_value(found_node);
+}
+
+function find_nodes_inside_parent(node: Node, parent_key: string, child_key: string, key_to_production_rule_indices: Map<string, number[]>): Node[] {
+    const parent_node = find_node(node, parent_key, key_to_production_rule_indices);
+    if (parent_node === undefined) {
+        return [];
+    }
+
+    const child_nodes = find_nodes(parent_node, child_key, key_to_production_rule_indices);
+    return child_nodes;
+}
+
+function node_to_function_declaration(node: Node, key_to_production_rule_indices: Map<string, number[]>): Core.Function_declaration {
+
+    const name = find_node_value(node, "Function_name", key_to_production_rule_indices);
+
+    const input_parameter_nodes = find_nodes_inside_parent(node, "Function_input_parameters", "Function_parameter", key_to_production_rule_indices);
+    const input_parameter_names = input_parameter_nodes.map(node => find_node_value(node, "Function_parameter_name", key_to_production_rule_indices));
+    const input_parameter_types = input_parameter_nodes.map(node => find_node_value(node, "Function_parameter_type", key_to_production_rule_indices));
+
+    const output_parameter_nodes = find_nodes_inside_parent(node, "Function_output_parameters", "Function_parameter", key_to_production_rule_indices);
+    const output_parameter_names = output_parameter_nodes.map(node => find_node_value(node, "Function_parameter_name", key_to_production_rule_indices));
+    const output_parameter_types = output_parameter_nodes.map(node => find_node_value(node, "Function_parameter_type", key_to_production_rule_indices));
+
+    const export_value = find_node_value(node, "Export", key_to_production_rule_indices);
+    const linkage = export_value.length > 0 ? Core.Linkage.External : Core.Linkage.Private;
+
+    return {
+        name: name,
+        type: {
+            input_parameter_types: {
+                size: 0,
+                elements: []
+            },
+            output_parameter_types: {
+                size: 0,
+                elements: []
+            },
+            is_variadic: false // TODO
+        },
+        input_parameter_names: {
+            size: input_parameter_names.length,
+            elements: input_parameter_names
+        },
+        output_parameter_names: {
+            size: output_parameter_names.length,
+            elements: output_parameter_names
+        },
+        linkage: linkage
+    };
 }
 
 export function parse_tree_to_module(
@@ -1024,24 +1079,26 @@ export function parse_tree_to_module(
         patch: 0
     };
 
-    const name = find_module_name(root, key_to_production_rule_indices);
-    const all_declaration_nodes = find_declaration_nodes(root, key_to_production_rule_indices);
+    const name = find_node_value(root, "Module_name", key_to_production_rule_indices);
+    const all_declaration_nodes = find_nodes_inside_parent(root, "Module_body", "Declaration", key_to_production_rule_indices);
 
-    const underlying_declaration_nodes = all_declaration_nodes.map(declaration => {
-        const child = declaration.children[0];
-        if (child.word.value === "Function") {
-            for (const node of child.children) {
-                if (node.word.value === "Function_declaration") {
-                    return node;
-                }
-            }
+    const function_nodes = all_declaration_nodes.filter(declaration => declaration.children[0].word.value === "Function");
+    const function_declarations = function_nodes.map(node => {
+        const function_declaration_node = node.children[0].children.find(child => child.word.value === "Function_declaration");
+        if (function_declaration_node === undefined) {
+            return undefined;
         }
-        return child;
+        return map_node_to_value(function_declaration_node, production_rules, production_rule_to_value_map) as Core.Function_declaration;
     });
-
-    const all_declarations = underlying_declaration_nodes.map(node => map_node_to_value(node, production_rules, production_rule_to_value_map));
-
-    const external_function_declarations = all_declarations.filter(value => value);
+    const external_function_declarations = function_declarations.filter(declaration => declaration !== undefined && declaration.linkage === Core.Linkage.External) as Core.Function_declaration[];
+    const internal_function_declarations = function_declarations.filter(declaration => declaration !== undefined && declaration.linkage !== Core.Linkage.External) as Core.Function_declaration[];
+    const function_definitions = function_nodes.map(node => {
+        const function_definition_node = node.children[0].children.find(child => child.word.value === "Function_definition");
+        if (function_definition_node === undefined) {
+            return undefined;
+        }
+        return map_node_to_value(function_definition_node, production_rules, production_rule_to_value_map) as Core.Function_definition;
+    }).filter(definition => definition !== undefined) as Core.Function_definition[];
 
     const export_declarations: Core.Module_declarations = {
         alias_type_declarations: {
@@ -1057,8 +1114,8 @@ export function parse_tree_to_module(
             elements: []
         },
         function_declarations: {
-            size: 0,
-            elements: []
+            size: external_function_declarations.length,
+            elements: external_function_declarations
         },
     };
 
@@ -1076,15 +1133,15 @@ export function parse_tree_to_module(
             elements: []
         },
         function_declarations: {
-            size: 0,
-            elements: []
+            size: internal_function_declarations.length,
+            elements: internal_function_declarations
         },
     };
 
     const definitions: Core.Module_definitions = {
         function_definitions: {
-            size: 0,
-            elements: []
+            size: function_definitions.length,
+            elements: function_definitions
         },
     };
 

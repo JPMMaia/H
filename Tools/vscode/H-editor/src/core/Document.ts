@@ -1,4 +1,4 @@
-import * as Core from "../utilities/coreModelInterface";
+import * as Core from "./Core_interface";
 import * as Grammar from "./Grammar";
 import * as Module_examples from "./Module_examples";
 import * as Parse_tree_convertor from "./Parse_tree_convertor";
