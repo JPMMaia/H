@@ -112,63 +112,6 @@ export function find_module(modules: Core.Module[], reference: Core.Module_refer
     throw Error(message);
 }
 
-export function get_underlying_type_name(
-    modules: Core.Module[],
-    type_reference: Core.Type_reference
-): string {
-
-    switch (type_reference.data.type) {
-        case Core.Type_reference_enum.Builtin_type_reference:
-            {
-                const value = type_reference.data.value as Core.Builtin_type_reference;
-                return value.value;
-            }
-        case Core.Type_reference_enum.Constant_array_type:
-            {
-                const value = type_reference.data.value as Core.Constant_array_type;
-                const valueTypeName = get_underlying_type_name(modules, value.value_type.elements[0]);
-                return `${valueTypeName}[${value.size}]`;
-            }
-        case Core.Type_reference_enum.Custom_type_reference:
-            {
-                const value = type_reference.data.value as Core.Custom_type_reference;
-                const module = find_module(modules, value.module_reference);
-                return `${module.name}.${value.name}`;
-            }
-        case Core.Type_reference_enum.Fundamental_type:
-            {
-                const value = type_reference.data.value as Core.Fundamental_type;
-                return value.toString();
-            }
-        case Core.Type_reference_enum.Function_type:
-            {
-                const value = type_reference.data.value as Core.Function_type;
-                const parameterNames = value.input_parameter_types.elements.map(value => get_underlying_type_name(modules, value));
-                const parameterNamesPlusVariadic = value.is_variadic ? parameterNames.concat("...") : parameterNames;
-                const parametersString = "(" + parameterNamesPlusVariadic.join(", ") + ")";
-                const returnTypeNames = value.output_parameter_types.elements.map(value => get_underlying_type_name(modules, value));
-                const returnTypesString = "(" + returnTypeNames.join(", ") + ")";
-                return `${parametersString} -> ${returnTypesString}`;
-            }
-        case Core.Type_reference_enum.Integer_type:
-            {
-                const value = type_reference.data.value as Core.Integer_type;
-                return (value.is_signed ? "Int" : "Uint") + value.number_of_bits.toString();
-            }
-        case Core.Type_reference_enum.Pointer_type:
-            {
-                const value = type_reference.data.value as Core.Pointer_type;
-                const valueTypeName = value.element_type.elements.length === 0 ? "void" : get_underlying_type_name(modules, value.element_type.elements[0]);
-                const mutableKeyword = value.is_mutable ? " mutable" : "";
-                return `${valueTypeName}${mutableKeyword}*`;
-            }
-    }
-
-    const message = "getUnderlyingTypeName() not implemented for " + type_reference;
-    onThrowError(message);
-    throw Error(message);
-}
-
 export function get_module_custom_type_names(module: Core.Module): string[] {
 
     const get_name = (element: any): string => element.name;
