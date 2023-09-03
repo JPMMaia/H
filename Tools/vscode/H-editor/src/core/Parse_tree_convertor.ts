@@ -4,6 +4,7 @@ import * as Grammar from "./Grammar";
 import * as Module_change from "./Module_change";
 import * as Parser from "./Parser";
 import * as Scanner from "./Scanner";
+import * as Type_utilities from "./Type_utilities";
 import { get_node_at_position, Node } from "./Parser_node";
 
 const g_debug = false;
@@ -652,7 +653,8 @@ function map_terminal_to_word(
         const state = current_state.value as Function_parameters_state;
         const index = current_state.index;
         const parameter_types = state.is_input_parameter ? state.declaration.type.input_parameter_types : state.declaration.type.output_parameter_types;
-        const name = "type"; // TODO
+        const type_reference = parameter_types.elements[index];
+        const name = Type_utilities.get_type_name([module], type_reference);
         return { value: name, type: Grammar.Word_type.Alphanumeric };
     }
     else if (parent_label === "Struct_name") {
@@ -898,11 +900,13 @@ export function create_module_changes(
 
 export function create_key_to_production_rule_indices_map(production_rules: Grammar.Production_rule[]): Map<string, number[]> {
 
-    const keys: string[] = [
-        "Module_body",
-        "Module_name",
-        "Declaration"
-    ];
+    const keys: string[] = [production_rules[0].lhs];
+
+    for (let index = 1; index < production_rules.length; ++index) {
+        if (production_rules[index].lhs !== production_rules[index - 1].lhs) {
+            keys.push(production_rules[index].lhs);
+        }
+    }
 
     const map = new Map<string, number[]>();
 
@@ -985,6 +989,10 @@ function get_terminal_value(node: Node): string {
         return node.word.value;
     }
 
+    if (node.children.length === 0) {
+        return "";
+    }
+
     return get_terminal_value(node.children[0]);
 }
 
@@ -1032,11 +1040,11 @@ function node_to_function_declaration(node: Node, key_to_production_rule_indices
 
     const input_parameter_nodes = find_nodes_inside_parent(node, "Function_input_parameters", "Function_parameter", key_to_production_rule_indices);
     const input_parameter_names = input_parameter_nodes.map(node => find_node_value(node, "Function_parameter_name", key_to_production_rule_indices));
-    const input_parameter_types = input_parameter_nodes.map(node => find_node_value(node, "Function_parameter_type", key_to_production_rule_indices));
+    const input_parameter_types = input_parameter_nodes.map(node => find_node_value(node, "Function_parameter_type", key_to_production_rule_indices)).map(name => Type_utilities.parse_type_name(name)[0]);
 
     const output_parameter_nodes = find_nodes_inside_parent(node, "Function_output_parameters", "Function_parameter", key_to_production_rule_indices);
     const output_parameter_names = output_parameter_nodes.map(node => find_node_value(node, "Function_parameter_name", key_to_production_rule_indices));
-    const output_parameter_types = output_parameter_nodes.map(node => find_node_value(node, "Function_parameter_type", key_to_production_rule_indices));
+    const output_parameter_types = output_parameter_nodes.map(node => find_node_value(node, "Function_parameter_type", key_to_production_rule_indices)).map(name => Type_utilities.parse_type_name(name)[0]);
 
     const export_value = find_node_value(node, "Export", key_to_production_rule_indices);
     const linkage = export_value.length > 0 ? Core.Linkage.External : Core.Linkage.Private;
@@ -1045,12 +1053,12 @@ function node_to_function_declaration(node: Node, key_to_production_rule_indices
         name: name,
         type: {
             input_parameter_types: {
-                size: 0,
-                elements: []
+                size: input_parameter_types.length,
+                elements: input_parameter_types
             },
             output_parameter_types: {
-                size: 0,
-                elements: []
+                size: output_parameter_types.length,
+                elements: output_parameter_types
             },
             is_variadic: false // TODO
         },
@@ -1088,7 +1096,7 @@ export function parse_tree_to_module(
         if (function_declaration_node === undefined) {
             return undefined;
         }
-        return map_node_to_value(function_declaration_node, production_rules, production_rule_to_value_map) as Core.Function_declaration;
+        return node_to_function_declaration(function_declaration_node, key_to_production_rule_indices) as Core.Function_declaration;
     });
     const external_function_declarations = function_declarations.filter(declaration => declaration !== undefined && declaration.linkage === Core.Linkage.External) as Core.Function_declaration[];
     const internal_function_declarations = function_declarations.filter(declaration => declaration !== undefined && declaration.linkage !== Core.Linkage.External) as Core.Function_declaration[];

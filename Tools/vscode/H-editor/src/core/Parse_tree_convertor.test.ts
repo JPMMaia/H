@@ -14,8 +14,9 @@ import { Node } from "./Parser_node";
 import * as Scanner from "./Scanner";
 import { scan_new_change } from "./Scan_new_changes";
 import * as Text_formatter from "./Text_formatter";
+import * as Type_utilities from "./Type_utilities";
 
-function assert_function_parameters(parameters_node: Node, parameter_names: string[]): void {
+function assert_function_parameters(module: Core.Module, parameters_node: Node, parameter_names: string[], parameter_types: Core.Type_reference[]): void {
 
     assert.equal(parameters_node.children.length, parameter_names.length === 0 ? 0 : parameter_names.length * 2 - 1);
 
@@ -23,12 +24,19 @@ function assert_function_parameters(parameters_node: Node, parameter_names: stri
 
         const parameter_node = parameters_node.children[parameter_index * 2];
         const parameter_name = parameter_names[parameter_index];
+        const parameter_type = parameter_types[parameter_index];
 
         assert.equal(parameter_node.children.length, 3);
 
         {
             const parameter_name_node = parameter_node.children[0];
             assert.equal(parameter_name_node.children[0].word.value, parameter_name);
+        }
+
+        {
+            const parameter_type_node = parameter_node.children[2];
+            const expected_name = Type_utilities.get_type_name([module], parameter_type);
+            assert.equal(parameter_type_node.children[0].word.value, expected_name);
         }
     }
 }
@@ -184,14 +192,14 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                             const input_parameters_node = function_declaration_node.children[4];
                             assert.equal(input_parameters_node.word.value, "Function_input_parameters");
 
-                            assert_function_parameters(input_parameters_node, function_declaration.input_parameter_names.elements);
+                            assert_function_parameters(module, input_parameters_node, function_declaration.input_parameter_names.elements, function_declaration.type.input_parameter_types.elements);
                         }
 
                         {
                             const output_parameters_node = function_declaration_node.children[8];
                             assert.equal(output_parameters_node.word.value, "Function_output_parameters");
 
-                            assert_function_parameters(output_parameters_node, function_declaration.output_parameter_names.elements);
+                            assert_function_parameters(module, output_parameters_node, function_declaration.output_parameter_names.elements, function_declaration.type.output_parameter_types.elements);
                         }
                     }
                 }
