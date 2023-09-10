@@ -240,8 +240,10 @@ enum State_type {
     Module_body,
     Alias,
     Enum,
+    Expression,
     Function,
     Function_parameters,
+    Statement,
     Struct,
 }
 
@@ -251,6 +253,12 @@ interface Alias_state {
 
 interface Enum_state {
     declaration: Core.Enum_declaration;
+}
+
+interface Expression_state {
+    function_declaration: Core.Function_declaration;
+    function_definition: Core.Function_definition;
+    statement_index: number;
 }
 
 interface Function_state {
@@ -263,6 +271,11 @@ interface Function_parameters_state {
     is_input_parameter: boolean;
 }
 
+interface Statement_state {
+    function_declaration: Core.Function_declaration;
+    function_definition: Core.Function_definition;
+}
+
 interface Struct_state {
     declaration: Core.Struct_declaration;
 }
@@ -270,7 +283,7 @@ interface Struct_state {
 interface State {
     type: State_type;
     index: number;
-    value: Alias_state | Enum_state | Function_state | Function_parameters_state | Struct_state | undefined;
+    value: Alias_state | Enum_state | Expression_state | Function_state | Function_parameters_state | Statement_state | Struct_state | undefined;
 }
 
 interface Module_to_parse_tree_stack_element {
@@ -423,6 +436,84 @@ function calculate_array_index(production_rule: Grammar.Production_rule, label_i
 
 function get_next_state(module: Core.Module, declarations: Declaration[], production_rule: Grammar.Production_rule, current_state: State, label: string, label_index: number): State {
 
+    if (current_state.type === State_type.Statement) {
+        if (label === "Expression_return") {
+            const statement_state = current_state.value as Statement_state;
+
+            const new_state: Expression_state = {
+                function_declaration: statement_state.function_declaration,
+                function_definition: statement_state.function_definition,
+                statement_index: current_state.index
+            };
+
+            return {
+                type: State_type.Expression,
+                index: 0,
+                value: new_state
+            };
+        }
+    }
+    else if (current_state.type === State_type.Expression) {
+        const expression_state = current_state.value as Expression_state;
+        const function_definition = expression_state.function_definition;
+        const statement = function_definition.statements.elements[expression_state.statement_index];
+        const expression = statement.expressions.elements[current_state.index];
+        if (expression.data.type === Core.Expression_enum.Binary_expression) {
+            const binary_expression = expression.data.value as Core.Binary_expression;
+            if (label === "Expression_binary") {
+                return {
+                    type: current_state.type,
+                    index: current_state.index,
+                    value: current_state.value
+                };
+            }
+            else {
+                if (label_index === 0) {
+                    return {
+                        type: current_state.type,
+                        index: binary_expression.left_hand_side.expression_index,
+                        value: current_state.value
+                    };
+                }
+                else if (label_index === 1) {
+                    return {
+                        type: current_state.type,
+                        index: current_state.index,
+                        value: current_state.value
+                    };
+                }
+                else if (label_index === 2) {
+                    return {
+                        type: current_state.type,
+                        index: binary_expression.right_hand_side.expression_index,
+                        value: current_state.value
+                    };
+                }
+            }
+        }
+        else if (expression.data.type === Core.Expression_enum.Return_expression) {
+            const return_expression = expression.data.value as Core.Return_expression;
+            return {
+                type: current_state.type,
+                index: return_expression.expression.expression_index,
+                value: current_state.value
+            };
+        }
+        else if (expression.data.type === Core.Expression_enum.Variable_expression) {
+            return {
+                type: current_state.type,
+                index: current_state.index,
+                value: current_state.value
+            };
+        }
+
+        return {
+            type: current_state.type,
+            index: calculate_array_index(production_rule, label_index),
+            value: current_state.value
+        };
+    }
+
     if (label === "Module_body") {
         return {
             type: State_type.Module_body,
@@ -520,6 +611,28 @@ function get_next_state(module: Core.Module, declarations: Declaration[], produc
             value: current_state.value
         };
     }
+    else if (label === "Statements") {
+
+        const function_state = current_state.value as Function_state;
+
+        const new_state: Statement_state = {
+            function_declaration: function_state.declaration,
+            function_definition: function_state.definition
+        };
+
+        return {
+            type: State_type.Statement,
+            index: -1,
+            value: new_state
+        };
+    }
+    else if (label === "Statement") {
+        return {
+            type: current_state.type,
+            index: calculate_array_index(production_rule, label_index),
+            value: current_state.value
+        };
+    }
     else if (label === "Struct") {
         const declaration = declarations[current_state.index];
         const module_declarations = declaration.is_export ? module.export_declarations : module.internal_declarations;
@@ -548,6 +661,48 @@ function choose_production_rule_index(module: Core.Module, production_rules: Gra
 
     if (production_rule_indices.length === 1) {
         return production_rule_indices[0];
+    }
+
+    if (current_state.type === State_type.Statement) {
+
+        if (label === "Statements") {
+            const state_value = current_state.value as Statement_state;
+            const function_definition = state_value.function_definition;
+
+            const index = function_definition.statements.elements.length > 1 ? 2 : function_definition.statements.elements.length;
+            return production_rule_indices[index];
+        }
+        else if (label === "Statement") {
+            const state_value = current_state.value as Statement_state;
+            const function_definition = state_value.function_definition;
+            const statement = function_definition.statements.elements[current_state.index];
+
+            const first_expression = statement.expressions.elements[0];
+            const rhs_label = map_expression_type_to_production_rule_label(first_expression.data.type);
+            const index = production_rule_indices.findIndex(index => contains(production_rules[index].rhs, rhs_label));
+            return production_rule_indices[index];
+        }
+    }
+    else if (current_state.type === State_type.Expression) {
+
+        const state_value = current_state.value as Expression_state;
+        const function_definition = state_value.function_definition;
+        const statement = function_definition.statements.elements[state_value.statement_index];
+        const expression = statement.expressions.elements[current_state.index];
+
+        if (label === "Generic_expression") {
+            const rhs_label = map_expression_type_to_production_rule_label(expression.data.type);
+            const index = production_rule_indices.findIndex(index => contains(production_rules[index].rhs, rhs_label));
+            return production_rule_indices[index];
+        }
+        else if (label === "Expression_binary_symbol") {
+            if (expression.data.type === Core.Expression_enum.Binary_expression) {
+                const binary_expression = expression.data.value as Core.Binary_expression;
+                const rhs_label = map_binary_operation_production_rule_label(binary_expression.operation);
+                const index = production_rule_indices.findIndex(index => contains(production_rules[index].rhs, rhs_label));
+                return production_rule_indices[index];
+            }
+        }
     }
 
     if (label === "Module_body") {
@@ -592,10 +747,41 @@ function choose_production_rule_index(module: Core.Module, production_rules: Gra
         const index = function_declaration.input_parameter_names.elements.length > 1 ? 2 : function_declaration.input_parameter_names.elements.length;
         return production_rule_indices[index];
     }
+    else if (label === "Expression_binary_symbol") {
+        const state_value = current_state.value as Function_parameters_state;
+        const function_declaration = state_value.declaration;
 
-    const message = "Not implemented! Got: " + label;
+        const index = function_declaration.input_parameter_names.elements.length > 1 ? 2 : function_declaration.input_parameter_names.elements.length;
+        return production_rule_indices[index];
+    }
+
+    // TODO
+    return production_rule_indices[0];
+
+    /*const message = "Not implemented! Got: " + label;
     onThrowError(message);
-    throw Error(message);
+    throw Error(message);*/
+}
+
+function map_expression_type_to_production_rule_label(type: Core.Expression_enum): string {
+    switch (type) {
+        case Core.Expression_enum.Binary_expression:
+            return "Expression_binary";
+        case Core.Expression_enum.Call_expression:
+            return "Expression_call";
+        case Core.Expression_enum.Constant_expression:
+            return "Expression_constant";
+        case Core.Expression_enum.Invalid_expression:
+            return "Expression_invalid";
+        case Core.Expression_enum.Return_expression:
+            return "Expression_return";
+        case Core.Expression_enum.Variable_expression:
+            return "Expression_variable";
+    }
+}
+
+function map_binary_operation_production_rule_label(type: Core.Binary_operation): string {
+    return "Expression_binary_symbol_" + type.toLocaleLowerCase();
 }
 
 function get_underlying_declaration_production_rule_lhs(type: Declaration_type): string {
@@ -639,8 +825,10 @@ function map_terminal_to_word(
         return { value: state.declaration.name, type: Grammar.Word_type.Alphanumeric };
     }
     else if (parent_label === "Function_name") {
-        const state = current_state.value as Function_state;
-        return { value: state.declaration.name, type: Grammar.Word_type.Alphanumeric };
+        if (current_state.type === State_type.Function) {
+            const state = current_state.value as Function_state;
+            return { value: state.declaration.name, type: Grammar.Word_type.Alphanumeric };
+        }
     }
     else if (parent_label === "Function_parameter_name") {
         const state = current_state.value as Function_parameters_state;
@@ -660,6 +848,18 @@ function map_terminal_to_word(
     else if (parent_label === "Struct_name") {
         const state = current_state.value as Struct_state;
         return { value: state.declaration.name, type: Grammar.Word_type.Alphanumeric };
+    }
+    else if (parent_label === "Variable_name") {
+        if (current_state.type === State_type.Expression) {
+            const state = current_state.value as Expression_state;
+            const function_definition = state.function_definition;
+            const statement = function_definition.statements.elements[state.statement_index];
+            const expression = statement.expressions.elements[current_state.index];
+            if (expression.data.type === Core.Expression_enum.Variable_expression) {
+                const variable_expression = expression.data.value as Core.Variable_expression;
+                return { value: variable_expression.name, type: Grammar.Word_type.Alphanumeric };
+            }
+        }
     }
 
     return { value: terminal, type: Scanner.get_word_type(terminal) };

@@ -202,6 +202,121 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                             assert_function_parameters(module, output_parameters_node, function_declaration.output_parameter_names.elements, function_declaration.type.output_parameter_types.elements);
                         }
                     }
+
+                    {
+                        const function_definition_node = function_node.children[1];
+                        assert.equal(function_definition_node.word.value, "Function_definition");
+
+                        const block = function_definition_node.children[0];
+                        assert.equal(block.word.value, "Block");
+                        assert.equal(block.children.length, 3);
+
+                        {
+                            const open_block_node = block.children[0];
+                            assert.equal(open_block_node.word.value, "{");
+                            assert.equal(open_block_node.children.length, 0);
+                        }
+
+                        {
+                            const statements = block.children[1];
+                            assert.equal(statements.word.value, "Statements");
+
+                            if (function_declaration.name === "Empty_function") {
+                                assert.equal(statements.children.length, 0);
+                            }
+                            else {
+                                assert.equal(statements.children.length, 1);
+
+                                const statement = statements.children[0];
+                                assert.equal(statement.word.value, "Statement");
+                                assert.equal(statement.children.length, 2);
+
+                                {
+                                    const return_expression = statement.children[0];
+                                    assert.equal(return_expression.word.value, "Expression_return");
+                                    assert.equal(return_expression.children.length, 2);
+
+                                    {
+                                        const return_keyword = return_expression.children[0];
+                                        assert.equal(return_keyword.word.value, "return");
+                                        assert.equal(return_keyword.children.length, 0);
+                                    }
+
+                                    {
+                                        const generic_expression_0 = return_expression.children[1];
+                                        assert.equal(generic_expression_0.word.value, "Generic_expression");
+                                        assert.equal(generic_expression_0.children.length, 1);
+
+                                        const binary_expression = generic_expression_0.children[0];
+                                        assert.equal(binary_expression.word.value, "Expression_binary");
+                                        assert.equal(binary_expression.children.length, 3);
+
+                                        {
+                                            const generic_expression_1 = binary_expression.children[0];
+                                            assert.equal(generic_expression_1.word.value, "Generic_expression");
+                                            assert.equal(generic_expression_1.children.length, 1);
+
+                                            const variable_expression = generic_expression_1.children[0];
+                                            assert.equal(variable_expression.word.value, "Expression_variable");
+                                            assert.equal(variable_expression.children.length, 1);
+
+                                            const variable_name_expression = variable_expression.children[0];
+                                            assert.equal(variable_name_expression.word.value, "Variable_name");
+                                            assert.equal(variable_name_expression.children.length, 1);
+
+                                            const variable_name = variable_name_expression.children[0];
+                                            assert.equal(variable_name.word.value, "lhs");
+                                            assert.equal(variable_name.children.length, 0);
+                                        }
+
+                                        {
+                                            const binary_symbol = binary_expression.children[1];
+                                            assert.equal(binary_symbol.word.value, "Expression_binary_symbol");
+                                            assert.equal(binary_symbol.children.length, 1);
+
+                                            const symbol = binary_symbol.children[0];
+                                            assert.equal(symbol.word.value, "Expression_binary_symbol_add");
+                                            assert.equal(symbol.children.length, 1);
+
+                                            const identifier = symbol.children[0];
+                                            assert.equal(identifier.word.value, "+");
+                                            assert.equal(identifier.children.length, 0);
+                                        }
+
+                                        {
+                                            const generic_expression_2 = binary_expression.children[2];
+                                            assert.equal(generic_expression_2.word.value, "Generic_expression");
+                                            assert.equal(generic_expression_2.children.length, 1);
+
+                                            const variable_expression = generic_expression_2.children[0];
+                                            assert.equal(variable_expression.word.value, "Expression_variable");
+                                            assert.equal(variable_expression.children.length, 1);
+
+                                            const variable_name_expression = variable_expression.children[0];
+                                            assert.equal(variable_name_expression.word.value, "Variable_name");
+                                            assert.equal(variable_name_expression.children.length, 1);
+
+                                            const variable_name = variable_name_expression.children[0];
+                                            assert.equal(variable_name.word.value, "rhs");
+                                            assert.equal(variable_name.children.length, 0);
+                                        }
+                                    }
+                                }
+
+                                {
+                                    const semicolon = statement.children[1];
+                                    assert.equal(semicolon.word.value, ";");
+                                    assert.equal(semicolon.children.length, 0);
+                                }
+                            }
+                        }
+
+                        {
+                            const close_block_node = block.children[2];
+                            assert.equal(close_block_node.word.value, "}");
+                            assert.equal(close_block_node.children.length, 0);
+                        }
+                    }
                 }
                 else if (declaration.type === Parse_tree_convertor.Declaration_type.Struct) {
 
