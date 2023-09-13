@@ -306,7 +306,7 @@ export function create_0(): core.Module {
         },
         definitions: {
             function_definitions: {
-                size: 4,
+                size: 5,
                 elements: [
                     {
                         name: "My_function_0",
@@ -314,7 +314,7 @@ export function create_0(): core.Module {
                             size: 1,
                             elements: [
                                 {
-                                    name: "var_0",
+                                    name: "",
                                     expressions: {
                                         size: 4,
                                         elements: [
@@ -362,7 +362,7 @@ export function create_0(): core.Module {
                             size: 1,
                             elements: [
                                 {
-                                    name: "var_0",
+                                    name: "",
                                     expressions: {
                                         size: 4,
                                         elements: [
@@ -410,7 +410,7 @@ export function create_0(): core.Module {
                             size: 1,
                             elements: [
                                 {
-                                    name: "var_0",
+                                    name: "",
                                     expressions: {
                                         size: 4,
                                         elements: [
@@ -465,7 +465,7 @@ export function create_0(): core.Module {
                             size: 1,
                             elements: [
                                 {
-                                    name: "var_0",
+                                    name: "",
                                     expressions: {
                                         size: 4,
                                         elements: [

@@ -1274,6 +1274,152 @@ function node_to_function_declaration(node: Node, key_to_production_rule_indices
     };
 }
 
+function node_to_function_definition(node: Node, declaration: Core.Function_declaration, key_to_production_rule_indices: Map<string, number[]>): Core.Function_definition {
+
+    const block_node = find_node(node, "Block", key_to_production_rule_indices);
+    if (block_node !== undefined) {
+        const statements_node = find_node(block_node, "Statements", key_to_production_rule_indices);
+        if (statements_node !== undefined) {
+            const statements = statements_node.children.map(node => node_to_statement(node, key_to_production_rule_indices));
+            return {
+                name: declaration.name,
+                statements: {
+                    size: statements.length,
+                    elements: statements
+                }
+            };
+        }
+    }
+
+    return {
+        name: declaration.name,
+        statements: {
+            size: 0,
+            elements: []
+        }
+    };
+}
+
+function node_to_statement(node: Node, key_to_production_rule_indices: Map<string, number[]>): Core.Statement {
+
+    const expressions: Core.Expression[] = [];
+
+    const call_production_rule_indices = key_to_production_rule_indices.get("Expression_call") as number[];
+    const return_production_rule_indices = key_to_production_rule_indices.get("Expression_return") as number[];
+    const variable_assignment_production_rule_indices = key_to_production_rule_indices.get("Expression_variable_assignment") as number[];
+    const variable_declaration_and_assignment_production_rule_indices = key_to_production_rule_indices.get("Expression_variable_declaration_and_assignment") as number[];
+
+    for (let index = 0; index < node.children.length; ++index) {
+        const child = node.children[index];
+
+        if (child.production_rule_index === undefined) {
+            continue;
+        }
+
+        if (return_production_rule_indices.indexOf(child.production_rule_index) !== -1) {
+            add_expression_return(child, expressions, key_to_production_rule_indices);
+            break;
+        }
+        else {
+            const message = "node_to_statement: case not handled!";
+            onThrowError(message);
+            throw Error(message);
+        }
+    }
+
+    return {
+        name: "",
+        expressions: {
+            size: expressions.length,
+            elements: expressions
+        }
+    };
+}
+
+function add_expression_return(node: Node, expressions: Core.Expression[], key_to_production_rule_indices: Map<string, number[]>): void {
+
+    const return_expression: Core.Return_expression = {
+        expression: {
+            expression_index: expressions.length + 1
+        }
+    };
+    expressions.push({ data: { type: Core.Expression_enum.Return_expression, value: return_expression } });
+
+    const generic_expression_node = find_node(node, "Generic_expression", key_to_production_rule_indices);
+    if (generic_expression_node !== undefined) {
+        add_expression_generic(generic_expression_node, expressions, key_to_production_rule_indices);
+    }
+}
+
+function add_expression_generic(node: Node, expressions: Core.Expression[], key_to_production_rule_indices: Map<string, number[]>): void {
+
+    const child = node.children[0];
+
+    switch (child.word.value) {
+        case "Expression_binary":
+            add_expression_binary(child, expressions, key_to_production_rule_indices);
+            break;
+        case "Expression_variable":
+            add_expression_variable_name(child, expressions);
+            break;
+        default:
+            const message = "add_expression_generic: case not handled!";
+            onThrowError(message);
+            throw Error(message);
+    }
+}
+
+function add_expression_binary(node: Node, expressions: Core.Expression[], key_to_production_rule_indices: Map<string, number[]>): void {
+
+    const generic_expressions = find_nodes(node, "Generic_expression", key_to_production_rule_indices);
+    const operation_node = find_node(node, "Expression_binary_symbol", key_to_production_rule_indices);
+
+    if (generic_expressions.length !== 2 || operation_node === undefined) {
+        const message = "add_expression_binary: could not process node!";
+        onThrowError(message);
+        throw Error(message);
+    }
+
+    const left_hand_side = generic_expressions[0];
+    const right_hand_size = generic_expressions[1];
+
+    const operation_node_child = operation_node.children[0];
+    const operation = map_production_rule_label_to_binary_operation(operation_node_child.word.value);
+
+    const binary_expression: Core.Binary_expression = {
+        left_hand_side: {
+            expression_index: -1
+        },
+        operation: operation,
+        right_hand_side: {
+            expression_index: -1
+        }
+    };
+
+    expressions.push({ data: { type: Core.Expression_enum.Binary_expression, value: binary_expression } });
+
+    binary_expression.left_hand_side.expression_index = expressions.length;
+    add_expression_generic(left_hand_side, expressions, key_to_production_rule_indices);
+
+    binary_expression.right_hand_side.expression_index = expressions.length;
+    add_expression_generic(right_hand_size, expressions, key_to_production_rule_indices);
+}
+
+function map_production_rule_label_to_binary_operation(label: string): Core.Binary_operation {
+    const value = label.substring(26, label.length);
+    const str = label[25].toLocaleUpperCase() + value;
+    const operation = str as keyof typeof Core.Binary_operation;
+    return Core.Binary_operation[operation];
+}
+
+function add_expression_variable_name(node: Node, expressions: Core.Expression[]): void {
+    const name = get_terminal_value(node);
+    const variable_expression: Core.Variable_expression = {
+        name: name
+    };
+    expressions.push({ data: { type: Core.Expression_enum.Variable_expression, value: variable_expression } });
+}
+
 export function parse_tree_to_module(
     root: Node,
     production_rules: Grammar.Production_rule[],
@@ -1300,12 +1446,16 @@ export function parse_tree_to_module(
     });
     const external_function_declarations = function_declarations.filter(declaration => declaration !== undefined && declaration.linkage === Core.Linkage.External) as Core.Function_declaration[];
     const internal_function_declarations = function_declarations.filter(declaration => declaration !== undefined && declaration.linkage !== Core.Linkage.External) as Core.Function_declaration[];
-    const function_definitions = function_nodes.map(node => {
+    const function_definitions = function_nodes.map((node, index) => {
         const function_definition_node = node.children[0].children.find(child => child.word.value === "Function_definition");
         if (function_definition_node === undefined) {
             return undefined;
         }
-        return map_node_to_value(function_definition_node, production_rules, production_rule_to_value_map) as Core.Function_definition;
+        const function_declaration = function_declarations[index];
+        if (function_declaration === undefined) {
+            return undefined;
+        }
+        return node_to_function_definition(function_definition_node, function_declaration, key_to_production_rule_indices) as Core.Function_definition;
     }).filter(definition => definition !== undefined) as Core.Function_definition[];
 
     const export_declarations: Core.Module_declarations = {
