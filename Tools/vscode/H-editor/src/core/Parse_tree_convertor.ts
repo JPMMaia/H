@@ -7,7 +7,7 @@ import * as Scanner from "./Scanner";
 import * as Type_utilities from "./Type_utilities";
 import { get_node_at_position, Node } from "./Parser_node";
 
-const g_debug = true;
+const g_debug = false;
 
 export enum Declaration_type {
     Alias,
@@ -1520,6 +1520,70 @@ function node_to_alias_type_declaration(node: Node, key_to_production_rule_indic
     };
 }
 
+function node_to_enum_declaration(node: Node, key_to_production_rule_indices: Map<string, number[]>): Core.Enum_declaration {
+    const name = find_node_value(node, "Enum_name", key_to_production_rule_indices);
+
+    const value_nodes = find_nodes_inside_parent(node, "Enum_values", "Enum_value", key_to_production_rule_indices);
+
+    const values: Core.Enum_value[] = [];
+
+    for (let index = 0; index < value_nodes.length; ++index) {
+        const value_node = value_nodes[index];
+
+        const value_name = find_node_value(value_node, "Enum_value_name", key_to_production_rule_indices);
+        const value_value = find_node_value(value_node, "Enum_value_value", key_to_production_rule_indices);
+
+        values.push(
+            {
+                name: value_name,
+                value: Number(value_value)
+            }
+        );
+    }
+
+    return {
+        name: name,
+        values: {
+            size: values.length,
+            elements: values
+        }
+    };
+}
+
+function node_to_struct_declaration(node: Node, key_to_production_rule_indices: Map<string, number[]>): Core.Struct_declaration {
+    const name = find_node_value(node, "Struct_name", key_to_production_rule_indices);
+
+    const member_nodes = find_nodes_inside_parent(node, "Struct_members", "Struct_member", key_to_production_rule_indices);
+
+    const member_names: string[] = [];
+    const member_types: Core.Type_reference[] = [];
+
+    for (let index = 0; index < member_nodes.length; ++index) {
+        const member_node = member_nodes[index];
+
+        const member_name = find_node_value(member_node, "Struct_member_name", key_to_production_rule_indices);
+        const member_type_name = find_node_value(member_node, "Struct_member_type", key_to_production_rule_indices);
+        const member_type = Type_utilities.parse_type_name(member_type_name);
+
+        member_names.push(member_name);
+        member_types.push(member_type[0]);
+    }
+
+    return {
+        name: name,
+        member_names: {
+            size: member_names.length,
+            elements: member_names
+        },
+        member_types: {
+            size: member_types.length,
+            elements: member_types
+        },
+        is_packed: false,
+        is_literal: false
+    };
+}
+
 function is_export_node(node: Node, key_to_production_rule_indices: Map<string, number[]>): boolean {
     const export_value = find_node_value(node, "Export", key_to_production_rule_indices);
     return export_value.length > 0;
@@ -1568,18 +1632,28 @@ export function parse_tree_to_module(
     const external_alias_type_declarations = alias_type_declarations.filter((declaration, index) => is_export_node(alias_type_nodes[index], key_to_production_rule_indices));
     const internal_alias_type_declarations = alias_type_declarations.filter((declaration, index) => !is_export_node(alias_type_nodes[index], key_to_production_rule_indices));
 
+    const enum_nodes = all_declaration_nodes.filter(declaration => declaration.children[0].word.value === "Enum");
+    const enum_declarations = enum_nodes.map(node => node_to_enum_declaration(node, key_to_production_rule_indices));
+    const external_enum_declarations = enum_declarations.filter((declaration, index) => is_export_node(enum_nodes[index], key_to_production_rule_indices));
+    const internal_enum_declarations = enum_declarations.filter((declaration, index) => !is_export_node(enum_nodes[index], key_to_production_rule_indices));
+
+    const struct_nodes = all_declaration_nodes.filter(declaration => declaration.children[0].word.value === "Struct");
+    const struct_declarations = struct_nodes.map(node => node_to_struct_declaration(node, key_to_production_rule_indices));
+    const external_struct_declarations = struct_declarations.filter((declaration, index) => is_export_node(struct_nodes[index], key_to_production_rule_indices));
+    const internal_struct_declarations = struct_declarations.filter((declaration, index) => !is_export_node(struct_nodes[index], key_to_production_rule_indices));
+
     const export_declarations: Core.Module_declarations = {
         alias_type_declarations: {
             size: external_alias_type_declarations.length,
             elements: external_alias_type_declarations
         },
         enum_declarations: {
-            size: 0,
-            elements: []
+            size: external_enum_declarations.length,
+            elements: external_enum_declarations
         },
         struct_declarations: {
-            size: 0,
-            elements: []
+            size: external_struct_declarations.length,
+            elements: external_struct_declarations
         },
         function_declarations: {
             size: external_function_declarations.length,
@@ -1593,12 +1667,12 @@ export function parse_tree_to_module(
             elements: internal_alias_type_declarations
         },
         enum_declarations: {
-            size: 0,
-            elements: []
+            size: internal_enum_declarations.length,
+            elements: internal_enum_declarations
         },
         struct_declarations: {
-            size: 0,
-            elements: []
+            size: internal_struct_declarations.length,
+            elements: internal_struct_declarations
         },
         function_declarations: {
             size: internal_function_declarations.length,
