@@ -127,9 +127,9 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                     }
 
                     {
-                        // TODO type
-                        //const type_node = alias_node.children[4];
-                        //assert.equal(type_node.children[0].word.value, alias_declaration.name);
+                        const type_node = alias_node.children[4];
+                        const expected_type = Type_utilities.get_type_name([module], alias_declaration.type.elements[0]);
+                        assert.equal(type_node.children[0].word.value, expected_type);
                     }
                 }
                 else if (declaration.type === Parse_tree_convertor.Declaration_type.Enum) {
@@ -141,7 +141,7 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                     const enum_node = declaration_node.children[0];
                     assert.equal(enum_node.word.value, "Enum");
 
-                    assert.equal(enum_node.children.length > 3, true);
+                    assert.equal(enum_node.children.length === 6, true);
 
                     {
                         const export_node = enum_node.children[0];
@@ -155,6 +155,28 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                     {
                         const name_node = enum_node.children[2];
                         assert.equal(name_node.children[0].word.value, enum_declaration.name);
+                    }
+
+                    const values_node = enum_node.children[4];
+                    assert.equal(values_node.children.length, enum_declaration.values.size);
+                    assert.equal(values_node.children.length, enum_declaration.values.elements.length);
+
+                    for (let member_index = 0; member_index < enum_declaration.values.elements.length; ++member_index) {
+                        const value = enum_declaration.values.elements[member_index];
+
+                        const value_node = values_node.children[member_index];
+
+                        {
+                            const value_name_node = value_node.children[0];
+                            const identifier_node = value_name_node.children[0];
+                            assert.equal(identifier_node.word.value, value.name);
+                        }
+
+                        {
+                            const value_value_node = value_node.children[2];
+                            const number_node = value_value_node.children[0];
+                            assert.equal(number_node.word.value, value.value);
+                        }
                     }
                 }
                 else if (declaration.type === Parse_tree_convertor.Declaration_type.Function) {
@@ -327,7 +349,7 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                     const struct_node = declaration_node.children[0];
                     assert.equal(struct_node.word.value, "Struct");
 
-                    assert.equal(struct_node.children.length > 3, true);
+                    assert.equal(struct_node.children.length === 6, true);
 
                     {
                         const export_node = struct_node.children[0];
@@ -341,6 +363,30 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                     {
                         const name_node = struct_node.children[2];
                         assert.equal(name_node.children[0].word.value, struct_declaration.name);
+                    }
+
+                    const members_node = struct_node.children[4];
+                    assert.equal(members_node.children.length, struct_declaration.member_names.size);
+                    assert.equal(members_node.children.length, struct_declaration.member_names.elements.length);
+
+                    for (let member_index = 0; member_index < struct_declaration.member_names.elements.length; ++member_index) {
+                        const member_name = struct_declaration.member_names.elements[member_index];
+                        const member_type = struct_declaration.member_types.elements[member_index];
+                        const member_type_name = Type_utilities.get_type_name([module], member_type);
+
+                        const member_node = members_node.children[member_index];
+
+                        {
+                            const member_name_node = member_node.children[0];
+                            const identifier_node = member_name_node.children[0];
+                            assert.equal(identifier_node.word.value, member_name);
+                        }
+
+                        {
+                            const member_type_node = member_node.children[2];
+                            const identifier_node = member_type_node.children[0];
+                            assert.equal(identifier_node.word.value, member_type_name);
+                        }
                     }
                 }
             }
@@ -923,6 +969,48 @@ function assert_function_declarations(actual_function_declarations: Core.Vector<
     }
 }
 
+function assert_alias_type_declarations(actual_alias_type_declarations: Core.Vector<Core.Alias_type_declaration>, expected_alias_type_declarations: Core.Vector<Core.Alias_type_declaration>) {
+    assert.equal(actual_alias_type_declarations.size, expected_alias_type_declarations.size);
+    assert.equal(actual_alias_type_declarations.elements.length, expected_alias_type_declarations.elements.length);
+
+    for (let alias_type_index = 0; alias_type_index < actual_alias_type_declarations.elements.length; ++alias_type_index) {
+        const actual_alias_type_declaration = actual_alias_type_declarations.elements[alias_type_index];
+        const expected_alias_type_declaration = expected_alias_type_declarations.elements[alias_type_index];
+
+        assert.equal(actual_alias_type_declaration.name, expected_alias_type_declaration.name);
+        assert.deepEqual(actual_alias_type_declaration.type, expected_alias_type_declaration.type);
+    }
+}
+
+function assert_enum_declarations(actual_enum_declarations: Core.Vector<Core.Enum_declaration>, expected_enum_declarations: Core.Vector<Core.Enum_declaration>) {
+    assert.equal(actual_enum_declarations.size, expected_enum_declarations.size);
+    assert.equal(actual_enum_declarations.elements.length, expected_enum_declarations.elements.length);
+
+    for (let enum_index = 0; enum_index < actual_enum_declarations.elements.length; ++enum_index) {
+        const actual_enum_declaration = actual_enum_declarations.elements[enum_index];
+        const expected_enum_declaration = expected_enum_declarations.elements[enum_index];
+
+        assert.equal(actual_enum_declaration.name, expected_enum_declaration.name);
+        assert.deepEqual(actual_enum_declaration.values, expected_enum_declaration.values);
+    }
+}
+
+function assert_struct_declarations(actual_struct_declarations: Core.Vector<Core.Struct_declaration>, expected_struct_declarations: Core.Vector<Core.Struct_declaration>) {
+    assert.equal(actual_struct_declarations.size, expected_struct_declarations.size);
+    assert.equal(actual_struct_declarations.elements.length, expected_struct_declarations.elements.length);
+
+    for (let struct_index = 0; struct_index < actual_struct_declarations.elements.length; ++struct_index) {
+        const actual_struct_declaration = actual_struct_declarations.elements[struct_index];
+        const expected_struct_declaration = expected_struct_declarations.elements[struct_index];
+
+        assert.equal(actual_struct_declaration.name, expected_struct_declaration.name);
+        assert.equal(actual_struct_declaration.is_literal, expected_struct_declaration.is_literal);
+        assert.equal(actual_struct_declaration.is_packed, expected_struct_declaration.is_packed);
+        assert.deepEqual(actual_struct_declaration.member_names, expected_struct_declaration.member_names);
+        assert.deepEqual(actual_struct_declaration.member_types, expected_struct_declaration.member_types);
+    }
+}
+
 describe("Parse_tree_convertor.parse_tree_to_module", () => {
 
     const grammar_description = Grammar_examples.create_test_grammar_9_description();
@@ -960,5 +1048,20 @@ describe("Parse_tree_convertor.parse_tree_to_module", () => {
                 assert.deepEqual(actual_statement, expected_statement);
             }
         }
+    });
+
+    it("Handles alias", () => {
+        assert_alias_type_declarations(actual_module.export_declarations.alias_type_declarations, expected_module.export_declarations.alias_type_declarations);
+        assert_alias_type_declarations(actual_module.internal_declarations.alias_type_declarations, expected_module.internal_declarations.alias_type_declarations);
+    });
+
+    it("Handles enums", () => {
+        assert_enum_declarations(actual_module.export_declarations.enum_declarations, expected_module.export_declarations.enum_declarations);
+        assert_enum_declarations(actual_module.internal_declarations.enum_declarations, expected_module.internal_declarations.enum_declarations);
+    });
+
+    it("Handles structs", () => {
+        assert_struct_declarations(actual_module.export_declarations.struct_declarations, expected_module.export_declarations.struct_declarations);
+        assert_struct_declarations(actual_module.internal_declarations.struct_declarations, expected_module.internal_declarations.struct_declarations);
     });
 });

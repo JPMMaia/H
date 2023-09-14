@@ -7,7 +7,7 @@ import * as Scanner from "./Scanner";
 import * as Type_utilities from "./Type_utilities";
 import { get_node_at_position, Node } from "./Parser_node";
 
-const g_debug = false;
+const g_debug = true;
 
 export enum Declaration_type {
     Alias,
@@ -240,11 +240,13 @@ enum State_type {
     Module_body,
     Alias,
     Enum,
+    Enum_value,
     Expression,
     Function,
     Function_parameters,
     Statement,
     Struct,
+    Struct_member
 }
 
 interface Alias_state {
@@ -411,6 +413,18 @@ function get_production_rule_array_rhs_length(production_rule: Grammar.Productio
         const has_separator = production_rule.rhs.length === 3;
         return has_separator ? parameter_count * 2 - 1 : parameter_count;
     }
+    else if (production_rule.lhs === "Enum_values" || production_rule.lhs === "Enum_value") {
+        if (state.type === State_type.Enum_value) {
+            const state_value = state.value as Enum_state;
+            return state_value.declaration.values.elements.length;
+        }
+    }
+    else if (production_rule.lhs === "Struct_members" || production_rule.lhs === "Struct_member") {
+        if (state.type === State_type.Struct_member) {
+            const state_value = state.value as Struct_state;
+            return state_value.declaration.member_names.elements.length;
+        }
+    }
 
     const message = "Not implemented! get_production_rule_array_rhs_length: " + production_rule.lhs;
     onThrowError(message);
@@ -558,6 +572,23 @@ function get_next_state(module: Core.Module, declarations: Declaration[], produc
             value: value
         };
     }
+    else if (label === "Enum_values") {
+        if (current_state.type === State_type.Enum) {
+            const state = current_state.value as Enum_state;
+            return {
+                type: State_type.Enum_value,
+                index: -1,
+                value: state
+            };
+        }
+    }
+    else if (label === "Enum_value") {
+        return {
+            type: current_state.type,
+            index: calculate_array_index(production_rule, label_index),
+            value: current_state.value
+        };
+    }
     else if (label === "Function") {
         const declaration = declarations[current_state.index];
         const module_declarations = declaration.is_export ? module.export_declarations : module.internal_declarations;
@@ -648,6 +679,23 @@ function get_next_state(module: Core.Module, declarations: Declaration[], produc
             value: value
         };
     }
+    else if (label === "Struct_members") {
+        if (current_state.type === State_type.Struct) {
+            const state = current_state.value as Struct_state;
+            return {
+                type: State_type.Struct_member,
+                index: -1,
+                value: state
+            };
+        }
+    }
+    else if (label === "Struct_member") {
+        return {
+            type: current_state.type,
+            index: calculate_array_index(production_rule, label_index),
+            value: current_state.value
+        };
+    }
 
     return current_state;
 }
@@ -719,6 +767,14 @@ function choose_production_rule_index(module: Core.Module, production_rules: Gra
         const index = production_rule_indices.findIndex(index => contains(production_rules[index].rhs, lhs));
         return production_rule_indices[index];
     }
+    else if (label === "Enum_values" || label === "Enum_value") {
+        if (current_state.type === State_type.Enum_value) {
+            const state = current_state.value as Enum_state;
+            const enum_declaration = state.declaration;
+            const index = enum_declaration.values.elements.length > 1 ? 2 : enum_declaration.values.elements.length;
+            return production_rule_indices[index];
+        }
+    }
     else if (label === "Export") {
 
         const declaration_index = current_state.index;
@@ -753,6 +809,14 @@ function choose_production_rule_index(module: Core.Module, production_rules: Gra
 
         const index = function_declaration.input_parameter_names.elements.length > 1 ? 2 : function_declaration.input_parameter_names.elements.length;
         return production_rule_indices[index];
+    }
+    else if (label === "Struct_member" || label === "Struct_members") {
+        if (current_state.type === State_type.Struct_member) {
+            const state = current_state.value as Struct_state;
+            const struct_declaration = state.declaration;
+            const index = struct_declaration.member_names.elements.length > 1 ? 2 : struct_declaration.member_names.elements.length;
+            return production_rule_indices[index];
+        }
     }
 
     // TODO
@@ -817,12 +881,22 @@ function map_terminal_to_word(
     }
     else if (parent_label === "Alias_type") {
         const state = current_state.value as Alias_state;
-        const name = find_type_name(state.declaration.type.elements);
-        return { value: name !== undefined ? name : "<error>", type: Grammar.Word_type.Alphanumeric };
+        const name = Type_utilities.get_type_name([module], state.declaration.type.elements[0]);
+        return { value: name, type: Grammar.Word_type.Alphanumeric };
     }
     else if (parent_label === "Enum_name") {
         const state = current_state.value as Enum_state;
         return { value: state.declaration.name, type: Grammar.Word_type.Alphanumeric };
+    }
+    else if (parent_label === "Enum_value_name") {
+        const state = current_state.value as Enum_state;
+        const value = state.declaration.values.elements[current_state.index];
+        return { value: value.name, type: Grammar.Word_type.Alphanumeric };
+    }
+    else if (parent_label === "Enum_value_value") {
+        const state = current_state.value as Enum_state;
+        const value = state.declaration.values.elements[current_state.index];
+        return { value: value.value.toString(), type: Grammar.Word_type.Alphanumeric };
     }
     else if (parent_label === "Function_name") {
         if (current_state.type === State_type.Function) {
@@ -848,6 +922,17 @@ function map_terminal_to_word(
     else if (parent_label === "Struct_name") {
         const state = current_state.value as Struct_state;
         return { value: state.declaration.name, type: Grammar.Word_type.Alphanumeric };
+    }
+    else if (parent_label === "Struct_member_name") {
+        const state = current_state.value as Struct_state;
+        const member_name = state.declaration.member_names.elements[current_state.index];
+        return { value: member_name, type: Grammar.Word_type.Alphanumeric };
+    }
+    else if (parent_label === "Struct_member_type") {
+        const state = current_state.value as Struct_state;
+        const member_type = state.declaration.member_types.elements[current_state.index];
+        const member_type_name = Type_utilities.get_type_name([module], member_type);
+        return { value: member_type_name, type: Grammar.Word_type.Alphanumeric };
     }
     else if (parent_label === "Variable_name") {
         if (current_state.type === State_type.Expression) {
@@ -1420,6 +1505,26 @@ function add_expression_variable_name(node: Node, expressions: Core.Expression[]
     expressions.push({ data: { type: Core.Expression_enum.Variable_expression, value: variable_expression } });
 }
 
+function node_to_alias_type_declaration(node: Node, key_to_production_rule_indices: Map<string, number[]>): Core.Alias_type_declaration {
+    const name = find_node_value(node, "Alias_name", key_to_production_rule_indices);
+
+    const type_name = find_node_value(node, "Alias_type", key_to_production_rule_indices);
+    const type_reference = Type_utilities.parse_type_name(type_name);
+
+    return {
+        name: name,
+        type: {
+            size: type_reference.length,
+            elements: type_reference
+        }
+    };
+}
+
+function is_export_node(node: Node, key_to_production_rule_indices: Map<string, number[]>): boolean {
+    const export_value = find_node_value(node, "Export", key_to_production_rule_indices);
+    return export_value.length > 0;
+}
+
 export function parse_tree_to_module(
     root: Node,
     production_rules: Grammar.Production_rule[],
@@ -1455,13 +1560,18 @@ export function parse_tree_to_module(
         if (function_declaration === undefined) {
             return undefined;
         }
-        return node_to_function_definition(function_definition_node, function_declaration, key_to_production_rule_indices) as Core.Function_definition;
+        return node_to_function_definition(function_definition_node, function_declaration, key_to_production_rule_indices);
     }).filter(definition => definition !== undefined) as Core.Function_definition[];
+
+    const alias_type_nodes = all_declaration_nodes.filter(declaration => declaration.children[0].word.value === "Alias");
+    const alias_type_declarations = alias_type_nodes.map(node => node_to_alias_type_declaration(node, key_to_production_rule_indices));
+    const external_alias_type_declarations = alias_type_declarations.filter((declaration, index) => is_export_node(alias_type_nodes[index], key_to_production_rule_indices));
+    const internal_alias_type_declarations = alias_type_declarations.filter((declaration, index) => !is_export_node(alias_type_nodes[index], key_to_production_rule_indices));
 
     const export_declarations: Core.Module_declarations = {
         alias_type_declarations: {
-            size: 0,
-            elements: []
+            size: external_alias_type_declarations.length,
+            elements: external_alias_type_declarations
         },
         enum_declarations: {
             size: 0,
@@ -1479,8 +1589,8 @@ export function parse_tree_to_module(
 
     const internal_declarations: Core.Module_declarations = {
         alias_type_declarations: {
-            size: 0,
-            elements: []
+            size: internal_alias_type_declarations.length,
+            elements: internal_alias_type_declarations
         },
         enum_declarations: {
             size: 0,
