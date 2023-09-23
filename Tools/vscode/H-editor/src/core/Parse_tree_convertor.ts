@@ -1,8 +1,10 @@
 import * as Core from "./Core_interface";
+import * as Core_helpers from "./Core_helpers";
 import { onThrowError } from "../utilities/errors";
 import * as Grammar from "./Grammar";
 import * as Module_change from "./Module_change";
 import * as Parser from "./Parser";
+import * as Parser_node from "./Parser_node";
 import * as Scanner from "./Scanner";
 import * as Type_utilities from "./Type_utilities";
 import { get_node_at_position, Node } from "./Parser_node";
@@ -950,7 +952,7 @@ function map_terminal_to_word(
     return { value: terminal, type: Scanner.get_word_type(terminal) };
 }
 
-function get_array_elements(node: Node, array_name: string, element_name: string, separator_name: string, production_rules: Grammar.Production_rule[], production_rule_to_value_map: Production_rule_info[]): any[] {
+function get_array_elements(node: Node, array_name: string, element_name: string, separator_name: string, production_rules: Grammar.Production_rule[], production_rule_to_value_map: Production_rule_info[], key_to_production_rule_indices: Map<string, number[]>): any[] {
 
     const has_separator = separator_name.length > 0;
 
@@ -963,7 +965,7 @@ function get_array_elements(node: Node, array_name: string, element_name: string
 
     const child_nodes = has_separator ? array_node.children.filter(child => child.word.value !== separator_name) : array_node.children;
 
-    const elements = child_nodes.map(child => map_node_to_value(child, production_rules, production_rule_to_value_map));
+    const elements = child_nodes.map(child => map_node_to_value(child, production_rules, production_rule_to_value_map, key_to_production_rule_indices));
 
     return elements;
 }
@@ -979,10 +981,21 @@ function set_nested_property(object: any, keys: string[], value: any): void {
     current_object[keys[keys.length - 1]] = value;
 }
 
-function map_node_to_value(node: Node, production_rules: Grammar.Production_rule[], production_rule_to_value_map: Production_rule_info[]): any {
+function map_node_to_value(node: Node, production_rules: Grammar.Production_rule[], production_rule_to_value_map: Production_rule_info[], key_to_production_rule_indices: Map<string, number[]>): any {
 
     if (node.production_rule_index === undefined) {
         return node.word.value;
+    }
+
+    switch (node.word.value) {
+        case "Module_name":
+        case "Function_name":
+            return get_terminal_value(node);
+        case "Function_declaration":
+            return node_to_function_declaration(node, key_to_production_rule_indices);
+        case "Function_definition":
+            // TODO get function name
+            return node_to_function_definition(node, "", key_to_production_rule_indices);
     }
 
     const info = production_rule_to_value_map[node.production_rule_index];
@@ -993,12 +1006,12 @@ function map_node_to_value(node: Node, production_rules: Grammar.Production_rule
     else if (info.type === Production_rule_info_type.Child_pointer) {
         const index = info.value as number;
         const child = node.children[index];
-        const value = map_node_to_value(child, production_rules, production_rule_to_value_map);
+        const value = map_node_to_value(child, production_rules, production_rule_to_value_map, key_to_production_rule_indices);
         return value;
     }
     else if (info.type === Production_rule_info_type.Array) {
         const array_info = info.value as Array_info;
-        const value = get_array_elements(node, array_info.array_name, array_info.element_type, array_info.separator_type, production_rules, production_rule_to_value_map);
+        const value = get_array_elements(node, array_info.array_name, array_info.element_type, array_info.separator_type, production_rules, production_rule_to_value_map, key_to_production_rule_indices);
         return value;
     }
     else if (info.type === Production_rule_info_type.Object) {
@@ -1008,7 +1021,7 @@ function map_node_to_value(node: Node, production_rules: Grammar.Production_rule
         const arrays: any[][] = [];
 
         for (const array_info of object_info.arrays) {
-            const array = get_array_elements(node, array_info.array_name, array_info.element_type, array_info.separator_type, production_rules, production_rule_to_value_map);
+            const array = get_array_elements(node, array_info.array_name, array_info.element_type, array_info.separator_type, production_rules, production_rule_to_value_map, key_to_production_rule_indices);
             arrays.push(array);
         }
 
@@ -1045,7 +1058,7 @@ function map_node_to_value(node: Node, production_rules: Grammar.Production_rule
             else if (property.type === Object_entry_type.Child_index) {
                 const child_index = property.value as number;
                 const child = node.children[child_index];
-                const value = map_node_to_value(child, production_rules, production_rule_to_value_map);
+                const value = map_node_to_value(child, production_rules, production_rule_to_value_map, key_to_production_rule_indices);
                 set_nested_property(object, property.keys, value);
             }
             else if (property.type === Object_entry_type.Value) {
@@ -1083,6 +1096,7 @@ export function create_module_changes(
     production_rule_to_change_action_map: Change_action[],
     parse_tree: Node,
     parse_tree_changes: Parser.Change[],
+    key_to_production_rule_indices: Map<string, number[]>
 ): { position: any[], change: Module_change.Change }[] {
 
     const changes: { position: any[], change: Module_change.Change }[] = [];
@@ -1095,30 +1109,54 @@ export function create_module_changes(
             const node_stack: Node[] = [];
             node_stack.push(modify_change.new_node);
 
+            const node_position_stack: number[][] = [];
+            node_position_stack.push(modify_change.position);
+
             while (node_stack.length > 0) {
                 const current_node = node_stack.pop() as Node;
+                const current_node_position = node_position_stack.pop() as number[];
 
                 if (current_node.production_rule_index === undefined) {
                     continue;
                 }
 
-                const change_info = production_rule_to_change_action_map[current_node.production_rule_index];
+                switch (current_node.word.value) {
+                    case "Module_name": {
+                        const value = map_node_to_value(current_node, production_rules, production_rule_to_value_map, key_to_production_rule_indices);
+                        changes.push({ position: [], change: Module_change.create_update("name", value) });
+                        continue;
+                    }
+                    case "Function_name": {
+                        const value = map_node_to_value(current_node, production_rules, production_rule_to_value_map, key_to_production_rule_indices);
+                        const old_node = Parser_node.get_node_at_position(parse_tree, current_node_position);
+                        const old_function_name = get_terminal_value(old_node);
+                        const function_declaration_position = Core_helpers.find_function_declaration_position(module, old_function_name) as any[];
+                        changes.push({ position: function_declaration_position, change: Module_change.create_update("name", value) });
+                        continue;
+                    }
+                }
+
+                for (let index_plus_one = current_node.children.length; index_plus_one > 0; --index_plus_one) {
+                    const index = index_plus_one - 1;
+                    node_stack.push(current_node.children[index]);
+                    node_position_stack.push([...current_node_position, index]);
+                }
+
+                /*const change_info = production_rule_to_change_action_map[current_node.production_rule_index];
 
                 if (change_info.type === Change_action_type.Update) {
                     const update_info = change_info.value as Update_action;
 
                     const position = update_info.position;
                     const key = update_info.key;
-                    const current_value = map_node_to_value(current_node, production_rules, production_rule_to_value_map);
+                    const current_value = map_node_to_value(current_node, production_rules, production_rule_to_value_map, key_to_production_rule_indices);
 
                     const change = Module_change.create_update(key, current_value);
                     changes.push({ position: position, change: change });
                 }
                 else {
-                    for (let index_plus_one = current_node.children.length; index_plus_one > 0; --index_plus_one) {
-                        node_stack.push(current_node.children[index_plus_one - 1]);
-                    }
-                }
+                    
+                }*/
             }
         }
         else if (parse_tree_change.type === Parser.Change_type.Add) {
@@ -1133,45 +1171,102 @@ export function create_module_changes(
                 for (const new_node of add_change.new_nodes) {
                     const declaration_type = new_node.children[0].word.value;
 
-                    const is_export = is_export_declaration(new_node);
+                    const underlying_declaration_node = declaration_type === "Function" ? new_node.children[0].children[0] : new_node.children[0];
+                    const is_export = is_export_node(underlying_declaration_node, key_to_production_rule_indices);
+
                     const declarations_member_name = is_export ? "export_declarations" : "internal_declarations";
 
-                    const underlying_declaration_node = new_node.children[0].children[0];
-                    const node_value = map_node_to_value(underlying_declaration_node, production_rules, production_rule_to_value_map);
+                    const declaration = map_node_to_value(underlying_declaration_node, production_rules, production_rule_to_value_map, key_to_production_rule_indices);
 
                     if (declaration_type === "Alias") {
-                        const change = Module_change.create_add_element_to_vector("alias_type_declarations", 0, node_value);
+                        const change = Module_change.create_add_element_to_vector("alias_type_declarations", 0, declaration);
                         changes.push({ position: [declarations_member_name], change: change });
                     }
                     else if (declaration_type === "Enum") {
-                        const change = Module_change.create_add_element_to_vector("enum_declarations", 0, node_value);
+                        const change = Module_change.create_add_element_to_vector("enum_declarations", 0, declaration);
                         changes.push({ position: [declarations_member_name], change: change });
                     }
                     else if (declaration_type === "Struct") {
-                        const change = Module_change.create_add_element_to_vector("struct_declarations", 0, node_value);
+                        const change = Module_change.create_add_element_to_vector("struct_declarations", 0, declaration);
                         changes.push({ position: [declarations_member_name], change: change });
                     }
                     else if (declaration_type === "Function") {
 
-                        // TODO
-
                         {
                             // TODO change index
-                            const change = Module_change.create_add_element_to_vector("function_declarations", 0, node_value);
+                            const change = Module_change.create_add_element_to_vector("function_declarations", 0, declaration);
                             changes.push({ position: [declarations_member_name], change: change });
                         }
 
-                        const function_definition: Core.Function_definition = {
-                            name: node_value.name,
-                            statements: {
-                                size: 0,
-                                elements: []
-                            }
-                        };
-
                         {
+                            const function_definition_node = find_node(new_node.children[0], "Function_definition", key_to_production_rule_indices) as Parser_node.Node;
+                            const function_definition = node_to_function_definition(function_definition_node, declaration.name, key_to_production_rule_indices);
+
                             // TODO change index
                             const change = Module_change.create_add_element_to_vector("function_definitions", 0, function_definition);
+                            changes.push({ position: ["definitions"], change: change });
+                        }
+                    }
+                }
+            }
+            else if (parent_node.word.value === "Function_input_parameters" || parent_node.word.value === "Function_output_parameters") {
+                for (const new_node of add_change.new_nodes) {
+                    if (new_node.word.value === "Function_parameter") {
+                        const function_declaration_node = find_parent(parse_tree, add_change.parent_position, "Function_declaration", key_to_production_rule_indices) as Parser_node.Node;
+                        const function_name = find_node_value(function_declaration_node, "Function_name", key_to_production_rule_indices);
+
+                        const function_declaration_position = Core_helpers.find_function_declaration_position(module, function_name) as number[];
+
+                        const prefix = parent_node.word.value === "Function_input_parameters" ? "input" : "output";
+
+                        {
+                            const parameter_name = find_node_value(new_node, "Function_parameter_name", key_to_production_rule_indices);
+                            const change = Module_change.create_add_element_to_vector(`${prefix}_parameter_names`, add_change.index, parameter_name);
+                            changes.push({ position: function_declaration_position, change: change });
+                        }
+
+                        {
+                            const parameter_type_name = find_node_value(new_node, "Function_parameter_type", key_to_production_rule_indices);
+                            const parameter_type = Type_utilities.parse_type_name(parameter_type_name)[0];
+                            const change = Module_change.create_add_element_to_vector(`${prefix}_parameter_types`, add_change.index, parameter_type);
+                            changes.push({ position: [...function_declaration_position, "type"], change: change });
+                        }
+                    }
+                }
+            }
+        }
+        else if (parse_tree_change.type === Parser.Change_type.Remove) {
+            const remove_change = parse_tree_change.value as Parser.Remove_change;
+
+            const parent_node = get_node_at_position(parse_tree, remove_change.parent_position);
+
+            if (parent_node.word.value === "Module_body") {
+
+                for (let index = 0; index < remove_change.count; ++index) {
+                    const removed_node_index = remove_change.index + index;
+                    const removed_node = parent_node.children[removed_node_index];
+
+                    const declaration_type = removed_node.children[0].word.value;
+
+                    const underlying_declaration_node = declaration_type === "Function" ? removed_node.children[0].children[0] : removed_node.children[0];
+
+                    if (declaration_type === "Function") {
+                        const function_name = find_node_value(underlying_declaration_node, "Function_name", key_to_production_rule_indices);;
+
+                        {
+                            const position_to_remove = Core_helpers.find_function_declaration_position(module, function_name) as any[];
+
+                            const declaration_index = position_to_remove[position_to_remove.length - 1];
+                            const declarations_member_name = position_to_remove[0];
+
+                            const change = Module_change.create_remove_element_of_vector("function_declarations", declaration_index);
+                            changes.push({ position: [declarations_member_name], change: change });
+                        }
+
+                        {
+                            const definition_index = module.definitions.function_definitions.elements.findIndex(value => value.name === function_name);
+
+                            const change = Module_change.create_remove_element_of_vector("function_definitions", definition_index);
                             changes.push({ position: ["definitions"], change: change });
                         }
                     }
@@ -1181,6 +1276,27 @@ export function create_module_changes(
     }
 
     return changes;
+}
+
+function find_parent(root: Parser_node.Node, node_position: number[], key: string, key_to_production_rule_indices: Map<string, number[]>): Parser_node.Node | undefined {
+    const indices = key_to_production_rule_indices.get(key);
+    if (indices === undefined) {
+        return undefined;
+    }
+
+    if (node_position.length === 0) {
+        return undefined;
+    }
+
+    let current_node_position = Parser_node.get_parent_position(node_position);
+    let current_node = Parser_node.get_node_at_position(root, current_node_position);
+
+    while (current_node_position.length > 0 && current_node.word.value !== key) {
+        current_node_position = Parser_node.get_parent_position(node_position);
+        current_node = Parser_node.get_node_at_position(root, current_node_position);
+    }
+
+    return current_node;
 }
 
 export function create_key_to_production_rule_indices_map(production_rules: Grammar.Production_rule[]): Map<string, number[]> {
@@ -1359,7 +1475,7 @@ function node_to_function_declaration(node: Node, key_to_production_rule_indices
     };
 }
 
-function node_to_function_definition(node: Node, declaration: Core.Function_declaration, key_to_production_rule_indices: Map<string, number[]>): Core.Function_definition {
+function node_to_function_definition(node: Node, function_name: string, key_to_production_rule_indices: Map<string, number[]>): Core.Function_definition {
 
     const block_node = find_node(node, "Block", key_to_production_rule_indices);
     if (block_node !== undefined) {
@@ -1367,7 +1483,7 @@ function node_to_function_definition(node: Node, declaration: Core.Function_decl
         if (statements_node !== undefined) {
             const statements = statements_node.children.map(node => node_to_statement(node, key_to_production_rule_indices));
             return {
-                name: declaration.name,
+                name: function_name,
                 statements: {
                     size: statements.length,
                     elements: statements
@@ -1377,7 +1493,7 @@ function node_to_function_definition(node: Node, declaration: Core.Function_decl
     }
 
     return {
-        name: declaration.name,
+        name: function_name,
         statements: {
             size: 0,
             elements: []
@@ -1624,7 +1740,7 @@ export function parse_tree_to_module(
         if (function_declaration === undefined) {
             return undefined;
         }
-        return node_to_function_definition(function_definition_node, function_declaration, key_to_production_rule_indices);
+        return node_to_function_definition(function_definition_node, function_declaration.name, key_to_production_rule_indices);
     }).filter(definition => definition !== undefined) as Core.Function_definition[];
 
     const alias_type_nodes = all_declaration_nodes.filter(declaration => declaration.children[0].word.value === "Alias");

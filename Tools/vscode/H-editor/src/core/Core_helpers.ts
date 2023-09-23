@@ -35,6 +35,15 @@ export function find_function_declaration_index(module: Core.Module, name: strin
     return undefined;
 }
 
+export function find_function_declaration_position(module: Core.Module, name: string): any[] | undefined {
+    const result = find_function_declaration_index(module, name);
+    if (result === undefined || result.index === -1) {
+        return undefined;
+    }
+
+    return [result.isExportDeclaration ? "export_declarations" : "internal_declarations", "function_declarations", "elements", result.index];
+}
+
 export function find_function_declaration(module: Core.Module, name: string): Core.Function_declaration | undefined {
     const result = find_function_declaration_index(module, name);
     if (result === undefined || result.index === -1) {

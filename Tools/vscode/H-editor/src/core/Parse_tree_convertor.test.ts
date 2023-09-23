@@ -5,6 +5,7 @@ import * as assert from "assert";
 import * as Core from "./Core_interface";
 import * as Grammar from "./Grammar";
 import * as Grammar_examples from "./Grammar_examples";
+import * as Language from "./Language";
 import * as Module_change from "../utilities/Change";
 import * as Module_examples from "./Module_examples";
 import * as Parse_tree_convertor from "./Parse_tree_convertor";
@@ -407,7 +408,7 @@ function text_position_to_offset(text: string, position: Text_position): number 
 
     while (current_line < position.line) {
         const next_new_line = text.indexOf("\n", current_offset);
-        current_offset = next_new_line;
+        current_offset = next_new_line + 1;
         current_line += 1;
     }
 
@@ -419,16 +420,21 @@ function create_module_changes(
     end_text_position: Text_position,
     new_text: string
 ): { position: any[], change: Module_change.Change }[] {
+
     const grammar_description = Grammar_examples.create_test_grammar_9_description();
     const production_rules = Grammar.create_production_rules(grammar_description);
-    const module = Module_examples.create_0();
-    const declarations = Parse_tree_convertor.create_declarations(module);
-    const initial_parse_tree = Parse_tree_convertor.module_to_parse_tree(module, declarations, production_rules);
-    const text_cache = Parse_tree_text_position_cache.create_cache();
+    const non_terminals = Grammar.get_non_terminals(production_rules);
+    const terminals = Grammar.get_terminals(production_rules, non_terminals);
+    const terminals_set = new Set<string>(terminals);
 
     const map_word_to_terminal = (word: Grammar.Word): string => {
-        if (word.value === "enum" || word.value === "export" || word.value === "function" || word.value === "module" || word.value === "struct" || word.value === "using") {
+
+        if (terminals_set.has(word.value)) {
             return word.value;
+        }
+
+        if (word.type === Grammar.Word_type.Number) {
+            return "number";
         }
 
         if (word.type === Grammar.Word_type.Alphanumeric) {
@@ -438,7 +444,13 @@ function create_module_changes(
         return word.value;
     };
 
+    const module = Module_examples.create_0();
+    const declarations = Parse_tree_convertor.create_declarations(module);
+    const initial_parse_tree = Parse_tree_convertor.module_to_parse_tree(module, declarations, production_rules);
+    const text_cache = Parse_tree_text_position_cache.create_cache();
+
     const initial_parse_tree_text = Text_formatter.to_string(initial_parse_tree, text_cache, []);
+    console.log(initial_parse_tree_text);
     const scanned_words = Scanner.scan(initial_parse_tree_text, 0, initial_parse_tree_text.length);
 
     const parsing_tables = Grammar.create_parsing_tables_from_production_rules(production_rules);
@@ -483,6 +495,7 @@ function create_module_changes(
 
     const production_rule_to_value_map = Parse_tree_convertor.create_production_rule_to_value_map(production_rules);
     const production_rule_to_change_action_map = Parse_tree_convertor.create_production_rule_to_change_action_map(production_rules);
+    const key_to_production_rule_indices = Parse_tree_convertor.create_key_to_production_rule_indices_map(production_rules);
 
     const module_changes = Parse_tree_convertor.create_module_changes(
         module,
@@ -491,7 +504,8 @@ function create_module_changes(
         production_rule_to_value_map,
         production_rule_to_change_action_map,
         parse_tree,
-        parse_result.changes
+        parse_result.changes,
+        key_to_production_rule_indices
     );
 
     return module_changes;
@@ -572,8 +586,8 @@ describe("Parse_tree_convertor.create_module_changes", () => {
     it("Removes a function", () => {
 
         const module_changes = create_module_changes(
-            { line: 6, column: 0 },
-            { line: 10, column: 0 },
+            { line: 9, column: 0 },
+            { line: 15, column: 0 },
             ""
         );
 
@@ -605,8 +619,8 @@ describe("Parse_tree_convertor.create_module_changes", () => {
     it("Sets function name", () => {
 
         const module_changes = create_module_changes(
-            { line: 10, column: 16 },
-            { line: 10, column: 29 },
+            { line: 9, column: 16 },
+            { line: 9, column: 29 },
             "Another_name"
         );
 
@@ -614,7 +628,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["export_declarations", "function_declarations", 1]);
+            assert.deepEqual(change.position, ["export_declarations", "function_declarations", "elements", 0]);
 
             assert.equal(change.change.type, Module_change.Type.Update);
 
@@ -627,8 +641,8 @@ describe("Parse_tree_convertor.create_module_changes", () => {
     it("Adds new function input parameter", () => {
 
         const module_changes = create_module_changes(
-            { line: 14, column: 30 },
-            { line: 14, column: 30 },
+            { line: 15, column: 30 },
+            { line: 15, column: 30 },
             "foo: Bar, "
         );
 
@@ -636,26 +650,38 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["export_declarations", "function_declarations", 2]);
+            assert.deepEqual(change.position, ["export_declarations", "function_declarations", "elements", 1]);
 
             assert.equal(change.change.type, Module_change.Type.Add_element_to_vector);
 
             const add_change = change.change.value as Module_change.Add_element_to_vector;
-            assert.equal(add_change.vector_name, "parameter_names");
+            assert.equal(add_change.vector_name, "input_parameter_names");
             assert.equal(add_change.index, 0);
             assert.equal(add_change.value, "foo");
         }
 
         {
             const change = module_changes[1];
-            assert.deepEqual(change.position, ["export_declarations", "function_declarations", 2, "type"]);
+            assert.deepEqual(change.position, ["export_declarations", "function_declarations", "elements", 1, "type"]);
 
             assert.equal(change.change.type, Module_change.Type.Add_element_to_vector);
 
             const add_change = change.change.value as Module_change.Add_element_to_vector;
-            assert.equal(add_change.vector_name, "input_parameters");
+            assert.equal(add_change.vector_name, "input_parameter_types");
             assert.equal(add_change.index, 0);
-            assert.equal(add_change.value, "Bar");
+
+            const expected_type_reference: Core.Type_reference = {
+                data: {
+                    type: Core.Type_reference_enum.Custom_type_reference,
+                    value: {
+                        module_reference: {
+                            name: ""
+                        },
+                        name: "Bar"
+                    }
+                }
+            };
+            assert.deepEqual(add_change.value, expected_type_reference);
         }
     });
 
