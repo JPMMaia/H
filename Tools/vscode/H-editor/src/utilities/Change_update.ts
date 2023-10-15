@@ -1,30 +1,31 @@
-import { getObjectAtPosition } from './parseJSON';
 import * as Change from './Change';
 import type * as Core from '../core/Core_interface';
+import { get_object_reference_at_position } from './Object_reference';
+
 
 function do_add_element_of_vector_change(object: any, change: Change.Add_element_to_vector, position: any[]): void {
     const vector_position = position.concat(change.vector_name);
-    const vector_reference: Core.Vector<any> = getObjectAtPosition(object, vector_position).value;
+    const vector_reference: Core.Vector<any> = get_object_reference_at_position(object, vector_position).value;
     vector_reference.elements.splice(change.index, 0, change.value);
     vector_reference.size += 1;
 }
 
 function do_remove_element_of_vector_change(object: any, change: Change.Remove_element_of_vector, position: any[]): void {
     const vector_position = position.concat(change.vector_name);
-    const vector_reference: Core.Vector<any> = getObjectAtPosition(object, vector_position).value;
+    const vector_reference: Core.Vector<any> = get_object_reference_at_position(object, vector_position).value;
     vector_reference.elements.splice(change.index, 1);
     vector_reference.size -= 1;
 }
 
 function do_set_element_of_vector_change(object: any, change: Change.Set_element_of_vector, position: any[]): void {
     const vector_position = position.concat(change.vector_name);
-    const vector_reference: Core.Vector<any> = getObjectAtPosition(object, vector_position).value;
+    const vector_reference: Core.Vector<any> = get_object_reference_at_position(object, vector_position).value;
     vector_reference.elements[change.index] = change.value;
 }
 
 function do_move_element_of_vector_change(object: any, change: Change.Move_element_of_vector, position: any[]): void {
     const vector_position = position.concat(change.vector_name);
-    const vector_reference: Core.Vector<any> = getObjectAtPosition(object, vector_position).value;
+    const vector_reference: Core.Vector<any> = get_object_reference_at_position(object, vector_position).value;
     const element_to_move = vector_reference.elements[change.from_index];
     vector_reference.elements.splice(change.from_index, 1);
     vector_reference.elements.splice(change.to_index, 0, element_to_move);
@@ -32,14 +33,14 @@ function do_move_element_of_vector_change(object: any, change: Change.Move_eleme
 
 function do_add_number_change(object: any, change: Change.Add_number, position: any[]): void {
     const value_position = position.concat(change.key);
-    const value_reference = getObjectAtPosition(object, value_position);
+    const value_reference = get_object_reference_at_position(object, value_position);
     const value: number = value_reference.value;
     value_reference.value = value + change.value;
 }
 
 function do_update_change(object: any, change: Change.Update, position: any[]): void {
     const value_position = position.concat(change.key);
-    const value_reference = getObjectAtPosition(object, value_position);
+    const value_reference = get_object_reference_at_position(object, value_position);
     value_reference.value = change.value;
 }
 
