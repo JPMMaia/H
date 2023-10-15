@@ -524,17 +524,19 @@ export function create_lr1_graph(production_rules: Production_rule[], terminals:
         }
     }
 
-    for (let state_index = 0; state_index < states.length; ++state_index) {
-        console.log(`State ${state_index}`);
-        for (const item of states[state_index]) {
-            console.log(lr1_item_to_string(production_rules, item));
+    if (g_debug) {
+        for (let state_index = 0; state_index < states.length; ++state_index) {
+            console.log(`State ${state_index}`);
+            for (const item of states[state_index]) {
+                console.log(lr1_item_to_string(production_rules, item));
+            }
+            console.log("");
         }
-        console.log("");
-    }
 
-    for (let edge_index = 0; edge_index < edges.length; ++edge_index) {
-        const edge = edges[edge_index];
-        console.log(`Edge ${edge_index}: ${edge.from_state} -> ${edge.to_state} (${edge.label})`);
+        for (let edge_index = 0; edge_index < edges.length; ++edge_index) {
+            const edge = edges[edge_index];
+            console.log(`Edge ${edge_index}: ${edge.from_state} -> ${edge.to_state} (${edge.label})`);
+        }
     }
 
     return {

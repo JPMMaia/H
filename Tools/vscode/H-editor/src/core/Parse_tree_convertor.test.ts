@@ -17,6 +17,8 @@ import { scan_new_change } from "./Scan_new_changes";
 import * as Text_formatter from "./Text_formatter";
 import * as Type_utilities from "./Type_utilities";
 
+const g_debug = false;
+
 function assert_function_parameters(module: Core.Module, parameters_node: Node, parameter_names: string[], parameter_types: Core.Type_reference[]): void {
 
     assert.equal(parameters_node.children.length, parameter_names.length === 0 ? 0 : parameter_names.length * 2 - 1);
@@ -450,7 +452,10 @@ function create_module_changes(
     const text_cache = Parse_tree_text_position_cache.create_cache();
 
     const initial_parse_tree_text = Text_formatter.to_string(initial_parse_tree, text_cache, []);
+
+    if (g_debug) {
     console.log(initial_parse_tree_text);
+    }
     const scanned_words = Scanner.scan(initial_parse_tree_text, 0, initial_parse_tree_text.length);
 
     const parsing_tables = Grammar.create_parsing_tables_from_production_rules(production_rules);
@@ -464,7 +469,9 @@ function create_module_changes(
 
     // Also sets parse_tree Text_position:
     const text = Text_formatter.to_string(parse_tree, text_cache, []);
+    if (g_debug) {
     console.log(text);
+    }
 
     const start_text_offset = text_position_to_offset(text, start_text_position);
     const end_text_offset = text_position_to_offset(text, end_text_position);

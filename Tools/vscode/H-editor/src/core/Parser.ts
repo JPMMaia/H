@@ -2,7 +2,7 @@ import * as Grammar from "./Grammar";
 import * as Scanner from "./Scanner";
 import { clone_node, find_node_common_root, get_next_terminal_node, get_node_at_position, get_parent_position, get_rightmost_brother, get_rightmost_terminal_descendant, have_same_parent, is_same_position, is_valid_position, Node, } from "./Parser_node";
 
-const g_debug = true;
+const g_debug = false;
 
 function get_all_stack_elements_on_tree(
     original_node_tree: Node | undefined,

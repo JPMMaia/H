@@ -5,6 +5,8 @@ import * as assert from "assert";
 import * as Grammar from "./Grammar";
 import * as Grammar_examples from "./Grammar_examples";
 
+const g_debug = false;
+
 describe("Grammar.create_production_rules", () => {
 
     it("Creates production rules for description 0", () => {
@@ -720,8 +722,10 @@ describe("Grammar.create_next_lr1_item_set", () => {
         // T -> .T + n, $
         // T -> .T + n, +
 
-        for (const item of lr1_item_set_0) {
-            console.log(Grammar.lr1_item_to_string(production_rules, item));
+        if (g_debug) {
+            for (const item of lr1_item_set_0) {
+                console.log(Grammar.lr1_item_to_string(production_rules, item));
+            }
         }
 
         {
@@ -1680,7 +1684,9 @@ describe("Grammar.create_parsing_tables", () => {
 
             for (let action_index = 0; action_index < actual_row.length; ++action_index) {
 
-                //console.log(`${state_index} ${action_index}`);
+                if (g_debug) {
+                    console.log(`${state_index} ${action_index}`);
+                }
 
                 const actual = actual_row[action_index];
                 const expected = expected_row[action_index];
@@ -1698,7 +1704,9 @@ describe("Grammar.create_parsing_tables", () => {
 
             for (let action_index = 0; action_index < actual_row.length; ++action_index) {
 
-                //console.log(`${state_index} ${action_index}`);
+                if (g_debug) {
+                    console.log(`${state_index} ${action_index}`);
+                }
 
                 const actual = actual_row[action_index];
                 const expected = expected_row[action_index];
@@ -1810,7 +1818,9 @@ describe("Grammar.create_parsing_tables", () => {
 
             for (let action_index = 0; action_index < actual_row.length; ++action_index) {
 
-                console.log(`${state_index} ${action_index}`);
+                if (g_debug) {
+                    console.log(`${state_index} ${action_index}`);
+                }
 
                 const actual = actual_row[action_index];
                 const expected = expected_row[action_index];
@@ -1828,7 +1838,9 @@ describe("Grammar.create_parsing_tables", () => {
 
             for (let action_index = 0; action_index < actual_row.length; ++action_index) {
 
-                console.log(`${state_index} ${action_index}`);
+                if (g_debug) {
+                    console.log(`${state_index} ${action_index}`);
+                }
 
                 const actual = actual_row[action_index];
                 const expected = expected_row[action_index];
@@ -1947,7 +1959,9 @@ describe("Grammar.create_parsing_tables", () => {
 
             for (let action_index = 0; action_index < actual_row.length; ++action_index) {
 
-                console.log(`${state_index} ${action_index}`);
+                if (g_debug) {
+                    console.log(`${state_index} ${action_index}`);
+                }
 
                 const actual = actual_row[action_index];
                 const expected = expected_row[action_index];
@@ -1965,7 +1979,9 @@ describe("Grammar.create_parsing_tables", () => {
 
             for (let action_index = 0; action_index < actual_row.length; ++action_index) {
 
-                console.log(`${state_index} ${action_index}`);
+                if (g_debug) {
+                    console.log(`${state_index} ${action_index}`);
+                }
 
                 const actual = actual_row[action_index];
                 const expected = expected_row[action_index];

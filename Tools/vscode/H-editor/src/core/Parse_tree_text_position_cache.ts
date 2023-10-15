@@ -1,7 +1,7 @@
 import * as Parser_node from "./Parser_node";
 import * as Scanner from "./Scanner";
 
-const g_debug = true;
+const g_debug = false;
 
 interface Cache_entry {
     offset: number;
