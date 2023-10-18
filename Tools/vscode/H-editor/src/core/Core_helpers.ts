@@ -109,6 +109,81 @@ export function find_struct_declaration(module: Core.Module, name: string): Core
     return element;
 }
 
+export function find_alias_declaration_position(module: Core.Module, name: string): { position: any[], value: Core.Alias_type_declaration } | undefined {
+
+    {
+        const index = module.export_declarations.alias_type_declarations.elements.findIndex(alias => alias.name === name);
+        if (index !== -1) {
+            return {
+                position: ["export_declarations", "alias_type_declarations", "elements", index],
+                value: module.export_declarations.alias_type_declarations.elements[index]
+            };
+        }
+    }
+
+    {
+        const index = module.internal_declarations.alias_type_declarations.elements.findIndex(alias => alias.name === name);
+        if (index !== -1) {
+            return {
+                position: ["internal_declarations", "alias_type_declarations", "elements", index],
+                value: module.internal_declarations.alias_type_declarations.elements[index]
+            };
+        }
+    }
+
+    return undefined;
+}
+
+export function find_enum_declaration_position(module: Core.Module, name: string): { position: any[], value: Core.Enum_declaration } | undefined {
+
+    {
+        const index = module.export_declarations.enum_declarations.elements.findIndex(alias => alias.name === name);
+        if (index !== -1) {
+            return {
+                position: ["export_declarations", "enum_declarations", "elements", index],
+                value: module.export_declarations.enum_declarations.elements[index]
+            };
+        }
+    }
+
+    {
+        const index = module.internal_declarations.enum_declarations.elements.findIndex(alias => alias.name === name);
+        if (index !== -1) {
+            return {
+                position: ["internal_declarations", "enum_declarations", "elements", index],
+                value: module.internal_declarations.enum_declarations.elements[index]
+            };
+        }
+    }
+
+    return undefined;
+}
+
+export function find_struct_declaration_position(module: Core.Module, name: string): { position: any[], value: Core.Struct_declaration } | undefined {
+
+    {
+        const index = module.export_declarations.struct_declarations.elements.findIndex(struct => struct.name === name);
+        if (index !== -1) {
+            return {
+                position: ["export_declarations", "struct_declarations", "elements", index],
+                value: module.export_declarations.struct_declarations.elements[index]
+            };
+        }
+    }
+
+    {
+        const index = module.internal_declarations.struct_declarations.elements.findIndex(struct => struct.name === name);
+        if (index !== -1) {
+            return {
+                position: ["internal_declarations", "struct_declarations", "elements", index],
+                value: module.internal_declarations.struct_declarations.elements[index]
+            };
+        }
+    }
+
+    return undefined;
+}
+
 export function find_module(modules: Core.Module[], reference: Core.Module_reference): any {
 
     const module = modules.find(module => module.name === reference.name);
