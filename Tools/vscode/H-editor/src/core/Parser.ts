@@ -1187,10 +1187,22 @@ export function apply_changes(node_tree: Node, changes: Change[]): void {
     for (const change of changes) {
         if (change.type === Change_type.Add) {
             const add_change = change.value as Add_change;
-            // TODO
+            const parent_node = get_node_at_position(node_tree, add_change.parent_position);
+            parent_node.children.splice(add_change.index, 0, ...add_change.new_nodes);
+        }
+        else if (change.type === Change_type.Remove) {
+            const remove_change = change.value as Remove_change;
+            const parent_node = get_node_at_position(node_tree, remove_change.parent_position);
+            parent_node.children.splice(remove_change.index, remove_change.count);
+        }
+        else if (change.type === Change_type.Modify) {
+            const modify_change = change.value as Modify_change;
+            const parent_node_position = get_parent_position(modify_change.position);
+            const parent_node = get_node_at_position(node_tree, parent_node_position);
+            const child_to_modify_index = modify_change.position[modify_change.position.length - 1];
+            parent_node.children[child_to_modify_index] = modify_change.new_node;
         }
     }
-
 }
 
 function parse_incrementally_after_change(
