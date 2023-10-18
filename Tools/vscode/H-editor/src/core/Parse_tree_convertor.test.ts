@@ -38,7 +38,7 @@ function assert_function_parameters(module: Core.Module, parameters_node: Node, 
 
         {
             const parameter_type_node = parameter_node.children[2];
-            const expected_name = Type_utilities.get_type_name([module], parameter_type);
+            const expected_name = Type_utilities.get_type_name([parameter_type]);
             assert.equal(parameter_type_node.children[0].word.value, expected_name);
         }
     }
@@ -131,7 +131,7 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
 
                     {
                         const type_node = alias_node.children[4];
-                        const expected_type = Type_utilities.get_type_name([module], alias_declaration.type.elements[0]);
+                        const expected_type = Type_utilities.get_type_name(alias_declaration.type.elements);
                         assert.equal(type_node.children[0].word.value, expected_type);
                     }
                 }
@@ -375,7 +375,7 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                     for (let member_index = 0; member_index < struct_declaration.member_names.elements.length; ++member_index) {
                         const member_name = struct_declaration.member_names.elements[member_index];
                         const member_type = struct_declaration.member_types.elements[member_index];
-                        const member_type_name = Type_utilities.get_type_name([module], member_type);
+                        const member_type_name = Type_utilities.get_type_name([member_type]);
 
                         const member_node = members_node.children[member_index];
 
@@ -454,7 +454,7 @@ function create_module_changes(
     const initial_parse_tree_text = Text_formatter.to_string(initial_parse_tree, text_cache, []);
 
     if (g_debug) {
-    console.log(initial_parse_tree_text);
+        console.log(initial_parse_tree_text);
     }
     const scanned_words = Scanner.scan(initial_parse_tree_text, 0, initial_parse_tree_text.length);
 
@@ -470,7 +470,7 @@ function create_module_changes(
     // Also sets parse_tree Text_position:
     const text = Text_formatter.to_string(parse_tree, text_cache, []);
     if (g_debug) {
-    console.log(text);
+        console.log(text);
     }
 
     const start_text_offset = text_position_to_offset(text, start_text_position);
@@ -695,8 +695,8 @@ describe("Parse_tree_convertor.create_module_changes", () => {
     it("Removes function input parameter", () => {
 
         const module_changes = create_module_changes(
-            { line: 14, column: 40 },
-            { line: 14, column: 51 },
+            { line: 15, column: 30 },
+            { line: 15, column: 44 },
             ""
         );
 
@@ -704,32 +704,32 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["export_declarations", "function_declarations", 2]);
+            assert.deepEqual(change.position, ["export_declarations", "function_declarations", "elements", 1]);
 
             assert.equal(change.change.type, Module_change.Type.Remove_element_of_vector);
 
             const remove_change = change.change.value as Module_change.Remove_element_of_vector;
-            assert.equal(remove_change.vector_name, "parameter_names");
-            assert.equal(remove_change.index, 1);
+            assert.equal(remove_change.vector_name, "input_parameter_names");
+            assert.equal(remove_change.index, 0);
         }
 
         {
             const change = module_changes[1];
-            assert.deepEqual(change.position, ["export_declarations", "function_declarations", 2, "type"]);
+            assert.deepEqual(change.position, ["export_declarations", "function_declarations", "elements", 1, "type"]);
 
             assert.equal(change.change.type, Module_change.Type.Remove_element_of_vector);
 
             const remove_change = change.change.value as Module_change.Remove_element_of_vector;
-            assert.equal(remove_change.vector_name, "input_parameters");
-            assert.equal(remove_change.index, 1);
+            assert.equal(remove_change.vector_name, "input_parameter_types");
+            assert.equal(remove_change.index, 0);
         }
     });
 
     it("Sets function input parameter name", () => {
 
         const module_changes = create_module_changes(
-            { line: 14, column: 41 },
-            { line: 14, column: 44 },
+            { line: 15, column: 30 },
+            { line: 15, column: 33 },
             "beep"
         );
 
@@ -737,13 +737,13 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["export_declarations", "function_declarations", 2]);
+            assert.deepEqual(change.position, ["export_declarations", "function_declarations", "elements", 1]);
 
             assert.equal(change.change.type, Module_change.Type.Set_element_of_vector);
 
             const update_change = change.change.value as Module_change.Set_element_of_vector;
-            assert.equal(update_change.vector_name, "parameter_names");
-            assert.equal(update_change.index, 1);
+            assert.equal(update_change.vector_name, "input_parameter_names");
+            assert.equal(update_change.index, 0);
             assert.equal(update_change.value, "beep");
         }
     });
@@ -751,31 +751,67 @@ describe("Parse_tree_convertor.create_module_changes", () => {
     it("Sets function input parameter type", () => {
 
         const module_changes = create_module_changes(
-            { line: 14, column: 47 },
-            { line: 14, column: 51 },
+            { line: 15, column: 35 },
+            { line: 15, column: 42 },
             "beep"
         );
 
-        assert.equal(module_changes.length, 1);
+        assert.equal(module_changes.length, 4);
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["export_declarations", "function_declarations", 2, "type"]);
+            assert.deepEqual(change.position, ["export_declarations", "function_declarations", "elements", 1]);
 
-            assert.equal(change.change.type, Module_change.Type.Set_element_of_vector);
+            assert.equal(change.change.type, Module_change.Type.Remove_element_of_vector);
 
-            const update_change = change.change.value as Module_change.Set_element_of_vector;
-            assert.equal(update_change.vector_name, "input_parameters");
-            assert.equal(update_change.index, 1);
-            assert.equal(update_change.value, "beep");
+            const remove_change = change.change.value as Module_change.Remove_element_of_vector;
+            assert.equal(remove_change.vector_name, "input_parameter_names");
+            assert.equal(remove_change.index, 0);
         }
+
+        {
+            const change = module_changes[1];
+            assert.deepEqual(change.position, ["export_declarations", "function_declarations", "elements", 1, "type"]);
+
+            assert.equal(change.change.type, Module_change.Type.Remove_element_of_vector);
+
+            const remove_change = change.change.value as Module_change.Remove_element_of_vector;
+            assert.equal(remove_change.vector_name, "input_parameter_types");
+            assert.equal(remove_change.index, 0);
+        }
+
+        {
+            const change = module_changes[2];
+            assert.deepEqual(change.position, ["export_declarations", "function_declarations", "elements", 1]);
+
+            assert.equal(change.change.type, Module_change.Type.Add_element_to_vector);
+
+            const add_change = change.change.value as Module_change.Add_element_to_vector;
+            assert.equal(add_change.vector_name, "input_parameter_names");
+            assert.equal(add_change.index, 0);
+            assert.equal(add_change.value, "lhs");
+        }
+
+        {
+            const change = module_changes[3];
+            assert.deepEqual(change.position, ["export_declarations", "function_declarations", "elements", 1, "type"]);
+
+            assert.equal(change.change.type, Module_change.Type.Add_element_to_vector);
+
+            const add_change = change.change.value as Module_change.Add_element_to_vector;
+            assert.equal(add_change.vector_name, "input_parameter_types");
+            assert.equal(add_change.index, 0);
+            const expected_type = Type_utilities.parse_type_name("beep")[0];
+            assert.deepEqual(add_change.value, expected_type);
+        }
+
     });
 
     it("Adds new struct", () => {
 
         const module_changes = create_module_changes(
-            { line: 0, column: 19 },
-            { line: 0, column: 19 },
+            { line: 1, column: 0 },
+            { line: 1, column: 0 },
             "\nstruct Struct_name {}\n"
         );
 
@@ -792,8 +828,10 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
             const struct_declaration = add_change.value as Core.Struct_declaration;
             assert.equal(struct_declaration.name, "Struct_name");
-            assert.deepEqual(struct_declaration.member_names, []);
-            assert.deepEqual(struct_declaration.member_types, []);
+            assert.equal(struct_declaration.member_names.size, 0);
+            assert.deepEqual(struct_declaration.member_names.elements, []);
+            assert.equal(struct_declaration.member_types.size, 0);
+            assert.deepEqual(struct_declaration.member_types.elements, []);
             assert.equal(struct_declaration.is_literal, false);
             assert.equal(struct_declaration.is_packed, false);
         }
@@ -802,8 +840,8 @@ describe("Parse_tree_convertor.create_module_changes", () => {
     it("Removes a struct", () => {
 
         const module_changes = create_module_changes(
-            { line: 22, column: 0 },
-            { line: 26, column: 0 },
+            { line: 31, column: 0 },
+            { line: 38, column: 0 },
             ""
         );
 
@@ -824,8 +862,8 @@ describe("Parse_tree_convertor.create_module_changes", () => {
     it("Sets struct name", () => {
 
         const module_changes = create_module_changes(
-            { line: 22, column: 14 },
-            { line: 22, column: 25 },
+            { line: 31, column: 14 },
+            { line: 31, column: 25 },
             "Another_name"
         );
 
@@ -833,7 +871,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["export_declarations", "struct_declarations", 0]);
+            assert.deepEqual(change.position, ["export_declarations", "struct_declarations", "elements", 0]);
 
             assert.equal(change.change.type, Module_change.Type.Update);
 
@@ -846,8 +884,8 @@ describe("Parse_tree_convertor.create_module_changes", () => {
     it("Adds new enum", () => {
 
         const module_changes = create_module_changes(
-            { line: 0, column: 19 },
-            { line: 0, column: 19 },
+            { line: 1, column: 0 },
+            { line: 1, column: 0 },
             "\nenum My_enum {}\n"
         );
 
@@ -864,15 +902,16 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
             const enum_declaration = add_change.value as Core.Enum_declaration;
             assert.equal(enum_declaration.name, "My_enum");
-            assert.deepEqual(enum_declaration.values, []);
+            assert.equal(enum_declaration.values.size, 0);
+            assert.deepEqual(enum_declaration.values.elements, []);
         }
     });
 
     it("Removes an enum", () => {
 
         const module_changes = create_module_changes(
-            { line: 2, column: 0 },
-            { line: 6, column: 0 },
+            { line: 3, column: 0 },
+            { line: 8, column: 0 },
             ""
         );
 
@@ -893,8 +932,8 @@ describe("Parse_tree_convertor.create_module_changes", () => {
     it("Sets enum name", () => {
 
         const module_changes = create_module_changes(
-            { line: 22, column: 14 },
-            { line: 22, column: 25 },
+            { line: 4, column: 12 },
+            { line: 4, column: 21 },
             "Another_name"
         );
 
@@ -902,7 +941,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["export_declarations", "enum_declarations", 0]);
+            assert.deepEqual(change.position, ["export_declarations", "enum_declarations", "elements", 0]);
 
             assert.equal(change.change.type, Module_change.Type.Update);
 
@@ -941,7 +980,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         const module_changes = create_module_changes(
             { line: 1, column: 0 },
-            { line: 2, column: 0 },
+            { line: 3, column: 0 },
             ""
         );
 
@@ -962,8 +1001,8 @@ describe("Parse_tree_convertor.create_module_changes", () => {
     it("Sets alias name", () => {
 
         const module_changes = create_module_changes(
-            { line: 22, column: 14 },
-            { line: 22, column: 25 },
+            { line: 2, column: 13 },
+            { line: 2, column: 21 },
             "Another_name"
         );
 
@@ -971,13 +1010,43 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["export_declarations", "alias_type_declarations", 0]);
+            assert.deepEqual(change.position, ["export_declarations", "alias_type_declarations", "elements", 0]);
 
             assert.equal(change.change.type, Module_change.Type.Update);
 
             const update_change = change.change.value as Module_change.Update;
             assert.equal(update_change.key, "name");
             assert.equal(update_change.value, "Another_name");
+        }
+    });
+
+    it("Sets alias type", () => {
+
+        const module_changes = create_module_changes(
+            { line: 2, column: 24 },
+            { line: 2, column: 31 },
+            "Float64"
+        );
+
+        assert.equal(module_changes.length, 1);
+
+        {
+            const change = module_changes[0];
+            assert.deepEqual(change.position, ["export_declarations", "alias_type_declarations", "elements", 0, "type"]);
+
+            assert.equal(change.change.type, Module_change.Type.Update);
+
+            const update_change = change.change.value as Module_change.Update;
+            assert.equal(update_change.key, "type");
+
+            const expected_type_reference: Core.Type_reference = {
+                data: {
+                    type: Core.Type_reference_enum.Fundamental_type,
+                    value: Core.Fundamental_type.Float64
+                }
+            };
+            assert.equal(update_change.value.size, 1);
+            assert.deepEqual(update_change.value.elements, [expected_type_reference]);
         }
     });
 });

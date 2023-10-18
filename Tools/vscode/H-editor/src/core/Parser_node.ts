@@ -97,8 +97,16 @@ export function get_next_terminal_node(root: Node, current_node: Node, current_n
     return get_next_node_with_condition(root, current_node, current_node_position, is_terminal_node);
 }
 
-export function get_next_node_with_condition(root: Node, current_node: Node, current_node_position: number[], condition: (node: Node, position: number[]) => boolean): { node: Node, position: number[] } | undefined {
-    let result = iterate_forward(root, current_node, current_node_position);
+export function get_next_sibling_terminal_node(root: Node, current_node: Node, current_node_position: number[]): { node: Node, position: number[] } | undefined {
+    const is_terminal_node = (node: Node, position: number[]): boolean => {
+        return node.children.length === 0 && node.production_rule_index === undefined;
+    };
+
+    return get_next_node_with_condition(root, current_node, current_node_position, is_terminal_node, Iterate_direction.Up);
+}
+
+export function get_next_node_with_condition(root: Node, current_node: Node, current_node_position: number[], condition: (node: Node, position: number[]) => boolean, initial_direction?: Iterate_direction): { node: Node, position: number[] } | undefined {
+    let result = iterate_forward(root, current_node, current_node_position, initial_direction);
 
     while (result !== undefined) {
         if (condition(result.next_node, result.next_position)) {
@@ -274,9 +282,9 @@ export function iterate_forward_with_repetition(root: Node, current_node: Node, 
     };
 }
 
-export function iterate_forward(root: Node, current_node: Node, current_position: number[]): { next_node: Node, next_position: number[] } | undefined {
+export function iterate_forward(root: Node, current_node: Node, current_position: number[], initial_direction?: Iterate_direction): { next_node: Node, next_position: number[] } | undefined {
 
-    let result = iterate_forward_with_repetition(root, current_node, current_position, Iterate_direction.Down);
+    let result = iterate_forward_with_repetition(root, current_node, current_position, initial_direction ? initial_direction : Iterate_direction.Down);
 
     while (result !== undefined && result.direction === Iterate_direction.Up) {
         result = iterate_forward_with_repetition(root, result.next_node, result.next_position, result.direction);

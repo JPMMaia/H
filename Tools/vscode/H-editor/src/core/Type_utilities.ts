@@ -87,6 +87,9 @@ export function parse_type_name(name: string): Core.Type_reference[] {
         const type = Core.Fundamental_type[name as keyof typeof Core.Fundamental_type];
         return [create_type_reference(Core.Type_reference_enum.Fundamental_type, type)];
     }
+    else if (name === "void") {
+        return [];
+    }
     else {
         const type: Core.Custom_type_reference = {
             module_reference: {
@@ -99,52 +102,57 @@ export function parse_type_name(name: string): Core.Type_reference[] {
 }
 
 export function get_type_name(
-    modules: Core.Module[],
-    type_reference: Core.Type_reference
+    type_reference: Core.Type_reference[]
 ): string {
 
-    switch (type_reference.data.type) {
+    if (type_reference.length === 0) {
+        return "void";
+    }
+
+    const type_reference_value = type_reference[0];
+
+    switch (type_reference_value.data.type) {
         case Core.Type_reference_enum.Builtin_type_reference:
             {
-                const value = type_reference.data.value as Core.Builtin_type_reference;
+                const value = type_reference_value.data.value as Core.Builtin_type_reference;
                 return value.value;
             }
         case Core.Type_reference_enum.Constant_array_type:
             {
-                const value = type_reference.data.value as Core.Constant_array_type;
-                const valueTypeName = get_type_name(modules, value.value_type.elements[0]);
-                return `${valueTypeName}[${value.size}]`;
+                const value = type_reference_value.data.value as Core.Constant_array_type;
+                const value_type_name = get_type_name(value.value_type.elements);
+                return `${value_type_name}[${value.size}]`;
             }
         case Core.Type_reference_enum.Custom_type_reference:
             {
-                const value = type_reference.data.value as Core.Custom_type_reference;
-                const module = Core_helpers.find_module(modules, value.module_reference);
-                return `${module.name}.${value.name}`;
+                const value = type_reference_value.data.value as Core.Custom_type_reference;
+                const module_name = value.module_reference.name;
+                return `${module_name}.${value.name}`;
             }
         case Core.Type_reference_enum.Fundamental_type:
             {
-                const value = type_reference.data.value as Core.Fundamental_type;
+                const value = type_reference_value.data.value as Core.Fundamental_type;
                 return value.toString();
             }
         case Core.Type_reference_enum.Function_type:
             {
-                const value = type_reference.data.value as Core.Function_type;
-                const parameterNames = value.input_parameter_types.elements.map(value => get_type_name(modules, value));
+                const value = type_reference_value.data.value as Core.Function_type;
+                const parameterNames = value.input_parameter_types.elements.map(value => get_type_name([value]));
                 const parameterNamesPlusVariadic = value.is_variadic ? parameterNames.concat("...") : parameterNames;
                 const parametersString = "(" + parameterNamesPlusVariadic.join(", ") + ")";
-                const returnTypeNames = value.output_parameter_types.elements.map(value => get_type_name(modules, value));
+                const returnTypeNames = value.output_parameter_types.elements.map(value => get_type_name([value]));
                 const returnTypesString = "(" + returnTypeNames.join(", ") + ")";
                 return `${parametersString} -> ${returnTypesString}`;
             }
         case Core.Type_reference_enum.Integer_type:
             {
-                const value = type_reference.data.value as Core.Integer_type;
+                const value = type_reference_value.data.value as Core.Integer_type;
                 return (value.is_signed ? "Int" : "Uint") + value.number_of_bits.toString();
             }
         case Core.Type_reference_enum.Pointer_type:
             {
-                const value = type_reference.data.value as Core.Pointer_type;
-                const valueTypeName = value.element_type.elements.length === 0 ? "void" : get_type_name(modules, value.element_type.elements[0]);
+                const value = type_reference_value.data.value as Core.Pointer_type;
+                const valueTypeName = value.element_type.elements.length === 0 ? "void" : get_type_name(value.element_type.elements);
                 const mutableKeyword = value.is_mutable ? " mutable" : "";
                 return `${valueTypeName}${mutableKeyword}*`;
             }
@@ -168,4 +176,10 @@ export function create_default_type_reference(): Core.Type_reference {
     };
 
     return new_type_reference;
+}
+
+export function are_equal(lhs: Core.Type_reference[], rhs: Core.Type_reference[]): boolean {
+    const lhs_name = get_type_name(lhs);
+    const rhs_name = get_type_name(rhs);
+    return lhs_name === rhs_name;
 }

@@ -1,6 +1,6 @@
 import * as Grammar from "./Grammar";
 import * as Scanner from "./Scanner";
-import { clone_node, find_node_common_root, get_next_terminal_node, get_node_at_position, get_parent_position, get_rightmost_brother, get_rightmost_terminal_descendant, have_same_parent, is_same_position, is_valid_position, Node, } from "./Parser_node";
+import { clone_node, find_node_common_root, get_next_terminal_node, get_next_sibling_terminal_node, get_node_at_position, get_parent_position, get_rightmost_brother, get_rightmost_terminal_descendant, have_same_parent, is_same_position, is_valid_position, Node, } from "./Parser_node";
 
 const g_debug = false;
 
@@ -255,13 +255,7 @@ function elements_have_same_parent(elements: Parsing_stack_element[]): boolean {
         return true;
     }
 
-    for (const element of elements) {
-        if (element.original_tree_position === undefined) {
-            return false;
-        }
-    }
-
-    const positions = elements.map(element => element.original_tree_position) as number[][];
+    const positions = elements.filter(element => element.original_tree_position !== undefined).map(element => element.original_tree_position) as number[][];
     return have_same_parent(positions);
 }
 
@@ -795,7 +789,13 @@ function find_original_node_position_of_reduced_node(
         }
     }
     else if (elements_have_same_parent(children_elements)) {
-        const parent_position = get_parent_position(children_elements[0].original_tree_position as number[]);
+
+        const child_position = children_elements.find(element => element.original_tree_position !== undefined);
+        if (child_position === undefined) {
+            return undefined;
+        }
+
+        const parent_position = get_parent_position(child_position.original_tree_position as number[]);
         return parent_position;
     }
 
@@ -1278,7 +1278,7 @@ function parse_incrementally_after_change(
             // Get node after rightmost brother:
             {
                 const rightmost_brother = get_top_of_stack(stack, mark);
-                const iterate_result = get_next_terminal_node(original_node_tree, rightmost_brother.node, rightmost_brother.original_tree_position as number[]);
+                const iterate_result = get_next_sibling_terminal_node(original_node_tree, rightmost_brother.node, rightmost_brother.original_tree_position as number[]);
                 next_word_node = iterate_result !== undefined ? clone_node(iterate_result.node) : create_bottom_of_stack_node();
                 next_word_node_position = iterate_result !== undefined ? iterate_result.position : [];
                 current_word_index += 1; // TODO
