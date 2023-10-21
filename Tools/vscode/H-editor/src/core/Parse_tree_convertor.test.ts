@@ -593,7 +593,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
     it("Removes a function", () => {
 
         const module_changes = create_module_changes(
-            { line: 9, column: 0 },
+            { line: 11, column: 0 },
             { line: 15, column: 0 },
             ""
         );
@@ -626,8 +626,8 @@ describe("Parse_tree_convertor.create_module_changes", () => {
     it("Sets function name", () => {
 
         const module_changes = create_module_changes(
-            { line: 9, column: 16 },
-            { line: 9, column: 29 },
+            { line: 11, column: 16 },
+            { line: 11, column: 29 },
             "Another_name"
         );
 
@@ -648,8 +648,8 @@ describe("Parse_tree_convertor.create_module_changes", () => {
     it("Adds new function input parameter", () => {
 
         const module_changes = create_module_changes(
-            { line: 15, column: 30 },
-            { line: 15, column: 30 },
+            { line: 16, column: 30 },
+            { line: 16, column: 30 },
             "foo: Bar, "
         );
 
@@ -695,8 +695,8 @@ describe("Parse_tree_convertor.create_module_changes", () => {
     it("Removes function input parameter", () => {
 
         const module_changes = create_module_changes(
-            { line: 15, column: 30 },
-            { line: 15, column: 44 },
+            { line: 16, column: 30 },
+            { line: 16, column: 44 },
             ""
         );
 
@@ -728,8 +728,8 @@ describe("Parse_tree_convertor.create_module_changes", () => {
     it("Sets function input parameter name", () => {
 
         const module_changes = create_module_changes(
-            { line: 15, column: 30 },
-            { line: 15, column: 33 },
+            { line: 16, column: 30 },
+            { line: 16, column: 33 },
             "beep"
         );
 
@@ -751,8 +751,8 @@ describe("Parse_tree_convertor.create_module_changes", () => {
     it("Sets function input parameter type", () => {
 
         const module_changes = create_module_changes(
-            { line: 15, column: 35 },
-            { line: 15, column: 42 },
+            { line: 16, column: 35 },
+            { line: 16, column: 42 },
             "beep"
         );
 
@@ -840,8 +840,8 @@ describe("Parse_tree_convertor.create_module_changes", () => {
     it("Removes a struct", () => {
 
         const module_changes = create_module_changes(
-            { line: 31, column: 0 },
-            { line: 38, column: 0 },
+            { line: 30, column: 0 },
+            { line: 36, column: 0 },
             ""
         );
 
@@ -862,8 +862,8 @@ describe("Parse_tree_convertor.create_module_changes", () => {
     it("Sets struct name", () => {
 
         const module_changes = create_module_changes(
-            { line: 31, column: 14 },
-            { line: 31, column: 25 },
+            { line: 30, column: 14 },
+            { line: 30, column: 25 },
             "Another_name"
         );
 
@@ -910,8 +910,8 @@ describe("Parse_tree_convertor.create_module_changes", () => {
     it("Removes an enum", () => {
 
         const module_changes = create_module_changes(
-            { line: 3, column: 0 },
-            { line: 8, column: 0 },
+            { line: 4, column: 0 },
+            { line: 10, column: 0 },
             ""
         );
 

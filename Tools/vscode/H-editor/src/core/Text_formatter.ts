@@ -2,15 +2,24 @@ import * as Grammar from "./Grammar";
 import * as Parse_tree_text_position_cache from "./Parse_tree_text_position_cache";
 import { get_node_at_position, iterate_forward_with_repetition, Iterate_direction, Node } from "./Parser_node";
 
-function should_add_space(current_word: Grammar.Word, previous_word: Grammar.Word): boolean {
+enum State {
+    Global,
+    Module_declaration,
+    Alias,
+    Enum,
+    Struct,
+    Function
+}
+
+function should_add_space(current_word: Grammar.Word, previous_word: Grammar.Word): number {
 
     if (previous_word.type === Grammar.Word_type.Invalid && current_word.value === "module") {
-        return false;
+        return 0;
     }
 
     switch (previous_word.value) {
         case "->":
-            return true;
+            return 1;
     }
 
     switch (current_word.value) {
@@ -23,9 +32,9 @@ function should_add_space(current_word: Grammar.Word, previous_word: Grammar.Wor
         case ";":
         case ":":
         case ",":
-            return false;
+            return 0;
         case "->":
-            return true;
+            return 1;
     }
 
     switch (previous_word.value) {
@@ -35,10 +44,57 @@ function should_add_space(current_word: Grammar.Word, previous_word: Grammar.Wor
         case "}":
         case "[":
         case "]":
-            return false;
+            return 0;
     }
 
-    return true;
+    return 1;
+}
+
+function should_add_new_line_before(state: State, current_word: Grammar.Word, previous_word: Grammar.Word): number {
+
+    if (state === State.Enum) {
+        if (current_word.value === "}" && previous_word.value === ",") {
+            return 0;
+        }
+    }
+    else if (state === State.Struct || state === State.Function) {
+        if (current_word.value === "}" && previous_word.value === ";") {
+            return 0;
+        }
+    }
+
+    return current_word.value === "{" || (current_word.value === "}" && previous_word.value !== "{") ? 1 : 0;
+}
+
+function should_add_new_line_after(state: State, current_word: Grammar.Word, previous_word: Grammar.Word): number {
+
+    if (state === State.Global) {
+        if (current_word.value === ";") {
+            return 1;
+        }
+    }
+    else if (state === State.Module_declaration) {
+        if (current_word.value === ";") {
+            return 1;
+        }
+    }
+    else if (state === State.Enum) {
+        if (current_word.value === ",") {
+            return 1;
+        }
+    }
+    else if (state === State.Function) {
+        if (current_word.value === ";") {
+            return 1;
+        }
+    }
+    else if (state === State.Struct) {
+        if (current_word.value === ";") {
+            return 1;
+        }
+    }
+
+    return (current_word.value === "{" || current_word.value === "}") ? 1 : 0;
 }
 
 export function to_string(root: Node, cache: Parse_tree_text_position_cache.Cache | undefined, production_rules_to_cache: number[]): string {
@@ -57,7 +113,44 @@ export function to_string(root: Node, cache: Parse_tree_text_position_cache.Cach
     let current_direction = Iterate_direction.Down;
     let previous_word: Grammar.Word = { value: "", type: Grammar.Word_type.Invalid };
 
+    const state_stack: State[] = [State.Global];
+
     while (current_node !== undefined) {
+
+        if (current_node.word.value === "Module_declaration") {
+            if (current_direction === Iterate_direction.Down) {
+                state_stack.push(State.Module_declaration);
+            }
+            else {
+                state_stack.pop();
+            }
+        }
+        else if (current_node.word.value === "Enum") {
+            if (current_direction === Iterate_direction.Down) {
+                state_stack.push(State.Enum);
+            }
+            else {
+                state_stack.pop();
+            }
+        }
+        else if (current_node.word.value === "Function") {
+            if (current_direction === Iterate_direction.Down) {
+                state_stack.push(State.Function);
+            }
+            else {
+                state_stack.pop();
+            }
+        }
+        else if (current_node.word.value === "Struct") {
+            if (current_direction === Iterate_direction.Down) {
+                state_stack.push(State.Struct);
+            }
+            else {
+                state_stack.pop();
+            }
+        }
+
+        const current_state = state_stack[state_stack.length - 1];
 
         if (current_direction === Iterate_direction.Down) {
 
@@ -65,22 +158,26 @@ export function to_string(root: Node, cache: Parse_tree_text_position_cache.Cach
             if (current_node.production_rule_index === undefined) {
                 const word = current_node.word;
 
-                const adding_new_line = current_node.word.value === "{" || (current_node.word.value === "}" && previous_word.value !== "{");
+                const new_lines_to_add_before = should_add_new_line_before(current_state, current_node.word, previous_word);
 
-                if (adding_new_line) {
+                for (let index = 0; index < new_lines_to_add_before; ++index) {
                     add_new_line(buffer);
                     current_line += 1;
                     current_column = 0;
                     current_text_offset += 1;
                 }
 
-                const added_new_line = buffer[buffer.length - 1] === "\n";
-                const adding_space = added_new_line ? false : should_add_space(word, previous_word);
+                if (current_node.word.value === "}") {
+                    indentation_count -= 1;
+                }
 
-                const new_word = adding_space ? ` ${word.value}` : word.value;
+                const added_new_line = buffer[buffer.length - 1] === "\n";
+                const spaces_to_add_before = added_new_line ? indentation_count * indentation_width : should_add_space(word, previous_word);
+
+                const new_word = " ".repeat(spaces_to_add_before) + word.value;
 
                 if (cache !== undefined && should_cache_node(current_node, production_rules_to_cache)) {
-                    const new_word_offset = adding_space ? current_text_offset + 1 : current_text_offset;
+                    const new_word_offset = current_text_offset + spaces_to_add_before;
                     Parse_tree_text_position_cache.set_entry(cache, new_word_offset, current_node, current_position);
                 }
 
@@ -88,9 +185,13 @@ export function to_string(root: Node, cache: Parse_tree_text_position_cache.Cach
                 current_text_offset += new_word.length;
                 current_column += new_word.length;
 
-                const add_another_line = current_node.word.value === "{" || current_node.word.value === "}" || current_node.word.value === ";";
+                if (current_node.word.value === "{") {
+                    indentation_count += 1;
+                }
 
-                if (add_another_line) {
+                const new_lines_to_add_after = should_add_new_line_after(current_state, current_node.word, previous_word);
+
+                for (let index = 0; index < new_lines_to_add_after; ++index) {
                     add_new_line(buffer);
                     current_line += 1;
                     current_column = 0;
