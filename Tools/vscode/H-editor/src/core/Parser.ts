@@ -1,6 +1,6 @@
 import * as Grammar from "./Grammar";
 import * as Scanner from "./Scanner";
-import { clone_node, find_node_common_root, get_next_terminal_node, get_next_sibling_terminal_node, get_node_at_position, get_parent_position, get_rightmost_brother, get_rightmost_terminal_descendant, have_same_parent, is_same_position, is_valid_position, Node, } from "./Parser_node";
+import { clone_node, find_node_common_root, get_next_terminal_node, get_next_sibling_terminal_node, get_node_at_position, get_parent_position, get_rightmost_brother, get_rightmost_terminal_descendant, have_same_parent, is_same_position, is_valid_position, Node, iterate_backward, } from "./Parser_node";
 
 const g_debug = false;
 
@@ -412,18 +412,28 @@ function get_next_word(
     return { value: "$", type: Grammar.Word_type.Symbol };
 }
 
-function get_end_of_tree(root: Node): { position: number[], node: Node } {
+function get_end_of_tree(root: Node): { position: number[], node: Node } | undefined {
 
-    const position: number[] = [];
+    let current_position: number[] = [];
     let current_node = root;
 
     while (current_node.children.length > 0) {
-        position.push(current_node.children.length - 1);
+        current_position.push(current_node.children.length - 1);
         current_node = current_node.children[current_node.children.length - 1];
     }
 
+    while (current_node.word.value === "" || current_node.production_rule_index !== undefined) {
+        const result = iterate_backward(root, current_node, current_position);
+        if (result === undefined) {
+            return undefined;
+        }
+
+        current_node = result.previous_node;
+        current_position = result.previous_position;
+    }
+
     return {
-        position: position,
+        position: current_position,
         node: current_node
     };
 }
@@ -463,17 +473,23 @@ function adjust_mark_and_stack(original_node_tree: Node | undefined, stack: Pars
 
 function get_initial_mark_node(original_node_tree: Node | undefined, start_change_node_position: number[] | undefined): Parsing_stack_element {
 
-    if (original_node_tree === undefined || start_change_node_position === undefined) {
+    if (original_node_tree === undefined) {
         return {
             original_tree_position: undefined,
             node: create_bottom_of_stack_node()
         };
     }
 
-    const start_at_end_position = !is_valid_position(original_node_tree, start_change_node_position);
+    const start_at_end_position = start_change_node_position === undefined || !is_valid_position(original_node_tree, start_change_node_position);
 
     if (start_at_end_position) {
         const end = get_end_of_tree(original_node_tree);
+        if (end === undefined) {
+            return {
+                original_tree_position: undefined,
+                node: create_bottom_of_stack_node()
+            };
+        }
         return {
             original_tree_position: end.position,
             node: end.node

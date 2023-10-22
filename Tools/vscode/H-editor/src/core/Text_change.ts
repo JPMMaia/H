@@ -6,6 +6,7 @@ import * as Parser_node from "./Parser_node";
 import * as Parse_tree_convertor from "./Parse_tree_convertor";
 import * as Parse_tree_text_position_cache from "./Parse_tree_text_position_cache";
 import { scan_new_change } from "./Scan_new_changes";
+import * as Scanner from "./Scanner";
 
 export interface Text_range {
     start: number;
@@ -36,8 +37,8 @@ export function update(
 
     if (scanned_input_change.new_words.length > 0) {
 
-        const start_change_node_position = scanned_input_change.start_change !== undefined ? scanned_input_change.start_change.node_position : undefined;
-        const after_change_node_position = scanned_input_change.after_change !== undefined ? scanned_input_change.after_change.node_position : undefined;
+        const start_change_node_position = (scanned_input_change.start_change !== undefined && scanned_input_change.start_change.node !== undefined) ? scanned_input_change.start_change.node_position : undefined;
+        const after_change_node_position = (scanned_input_change.after_change !== undefined && scanned_input_change.after_change.node !== undefined) ? scanned_input_change.after_change.node_position : undefined;
 
         const parse_result = Parser.parse_incrementally(
             state.parse_tree,
