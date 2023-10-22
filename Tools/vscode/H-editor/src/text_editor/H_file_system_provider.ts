@@ -47,7 +47,7 @@ export class H_file_system_provider implements vscode.FileSystemProvider {
         const module: Core.Module = json_data as Core.Module;
 
         const language_description = Language.create_default_description();
-        const document_state = Document.create_state_from_module(module, language_description.production_rules, []);
+        const document_state = Document.create_state_from_module(module, language_description, []);
 
         const document_data: H_document_provider.H_document = {
             language_description: language_description,
