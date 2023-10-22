@@ -352,3 +352,33 @@ export function iterate_backward(root: Node, current_node: Node, current_positio
         previous_position: result.previous_position
     };
 }
+
+export function are_equal(lhs: Node, rhs: Node): boolean {
+
+    if (lhs.word.value !== rhs.word.value || lhs.word.type !== rhs.word.type) {
+        return false;
+    }
+
+    if (lhs.state !== rhs.state) {
+        return false;
+    }
+
+    if (lhs.production_rule_index !== rhs.production_rule_index) {
+        return false;
+    }
+
+    if (lhs.children.length !== rhs.children.length) {
+        return false;
+    }
+
+    for (let child_index = 0; child_index < lhs.children.length; ++child_index) {
+        const lhs_child = lhs.children[child_index];
+        const rhs_child = rhs.children[child_index];
+
+        if (!are_equal(lhs_child, rhs_child)) {
+            return false;
+        }
+    }
+
+    return true;
+}

@@ -8,6 +8,8 @@ import * as Parse_tree_text_position_cache from "./Parse_tree_text_position_cach
 import { scan_new_change } from "./Scan_new_changes";
 import * as Scanner from "./Scanner";
 
+const g_debug_validate = false;
+
 export interface Text_range {
     start: number;
     end: number;
@@ -87,6 +89,34 @@ export function update(
 
             state.text = text_after_changes;
             state.pending_text_changes = [];
+
+            if (g_debug_validate) {
+                const scanned_words = Scanner.scan(text_after_changes, 0, text_after_changes.length);
+                const expected_parse_tree = Parser.parse(scanned_words, language_description.actions_table, language_description.go_to_table, language_description.array_infos, language_description.map_word_to_terminal);
+
+                if ((state.parse_tree === undefined && expected_parse_tree !== undefined) || (state.parse_tree !== undefined && expected_parse_tree === undefined)) {
+                    console.log("Error: state.parse_tree does not match expected_parse_tree");
+                }
+
+                if (state.parse_tree !== undefined && expected_parse_tree !== undefined && !Parser_node.are_equal(state.parse_tree, expected_parse_tree)) {
+                    console.log("Error: state.parse_tree does not match expected_parse_tree");
+                }
+
+                if (expected_parse_tree !== undefined) {
+                    const production_rule_to_value_map = Parse_tree_convertor.create_production_rule_to_value_map(language_description.production_rules);
+                    const key_to_production_rule_index = Parse_tree_convertor.create_key_to_production_rule_indices_map(language_description.production_rules);
+                    const expected_module = Parse_tree_convertor.parse_tree_to_module(expected_parse_tree, language_description.production_rules, production_rule_to_value_map, key_to_production_rule_index);
+
+                    const expected_module_string = expected_module.toString();
+                    const actual_module_string = state.module.toString();
+                    if (actual_module_string !== expected_module_string) {
+                        console.log("Error: state.module does not match expected_module");
+                    }
+                }
+                else {
+                    // TODO compare module with empty
+                }
+            }
         }
         else {
             state.pending_text_changes = [text_change];
