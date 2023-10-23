@@ -143,3 +143,20 @@ export function scan_new_change(
         new_words: new_words
     };
 }
+
+export function has_meaningful_content(changes: { start_change: Parse_tree_text_iterator.Iterator | undefined, after_change: Parse_tree_text_iterator.Iterator | undefined, new_words: Scanner.Scanned_word[] }): boolean {
+
+    if (changes.new_words.length > 0) {
+        return true;
+    }
+
+    if (changes.start_change === undefined && changes.after_change === undefined) {
+        return false;
+    }
+
+    if ((changes.start_change !== undefined && changes.after_change === undefined) || (changes.start_change === undefined && changes.after_change !== undefined)) {
+        return true;
+    }
+
+    return changes.start_change?.offset !== changes.after_change?.offset;
+}

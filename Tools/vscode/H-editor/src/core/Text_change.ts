@@ -5,7 +5,7 @@ import * as Parser from "./Parser";
 import * as Parser_node from "./Parser_node";
 import * as Parse_tree_convertor from "./Parse_tree_convertor";
 import * as Parse_tree_text_position_cache from "./Parse_tree_text_position_cache";
-import { scan_new_change } from "./Scan_new_changes";
+import { has_meaningful_content, scan_new_change } from "./Scan_new_changes";
 import * as Scanner from "./Scanner";
 
 const g_debug_validate = false;
@@ -37,7 +37,7 @@ export function update(
         text_change.text
     );
 
-    if (scanned_input_change.new_words.length > 0) {
+    if (has_meaningful_content(scanned_input_change)) {
 
         const start_change_node_position = (scanned_input_change.start_change !== undefined && scanned_input_change.start_change.node !== undefined) ? scanned_input_change.start_change.node_position : undefined;
         const after_change_node_position = (scanned_input_change.after_change !== undefined && scanned_input_change.after_change.node !== undefined) ? scanned_input_change.after_change.node_position : undefined;
