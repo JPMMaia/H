@@ -1032,7 +1032,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["export_declarations", "alias_type_declarations", "elements", 0, "type"]);
+            assert.deepEqual(change.position, ["export_declarations", "alias_type_declarations", "elements", 0]);
 
             assert.equal(change.change.type, Module_change.Type.Update);
 

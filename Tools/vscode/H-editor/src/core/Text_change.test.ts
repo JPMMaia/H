@@ -420,4 +420,75 @@ describe("Text_change.update", () => {
             assert.deepEqual(new_alias.type.elements, expected_type);
         }
     });
+
+    it("Handles changing alias type", () => {
+
+        const document_state = Document.create_empty_state(language_description.production_rules);
+
+        {
+            const text_changes: Text_change.Text_change[] = [
+                {
+                    range: {
+                        start: 0,
+                        end: 0,
+                    },
+                    text: "module Foo;\n\nexport using My_float = Float32;\n"
+                }
+            ];
+
+            const text_after_changes = "module Foo;\n\nexport using My_float = Float32;\n";
+
+            Text_change.update(
+                language_description,
+                document_state,
+                text_changes,
+                text_after_changes
+            );
+
+            assert.equal(document_state.module.name, "Foo");
+
+            assert.equal(document_state.pending_text_changes.length, 0);
+
+            assert.equal(document_state.module.export_declarations.alias_type_declarations.size, 1);
+            assert.equal(document_state.module.export_declarations.alias_type_declarations.elements.length, 1);
+
+            const new_alias = document_state.module.export_declarations.alias_type_declarations.elements[0];
+            assert.equal(new_alias.name, "My_float");
+
+            const expected_type = Type_utilities.parse_type_name("Float32");
+            assert.deepEqual(new_alias.type.elements, expected_type);
+        }
+
+        {
+            const text_changes: Text_change.Text_change[] = [
+                {
+                    range: {
+                        start: 37,
+                        end: 44,
+                    },
+                    text: "Float16"
+                }
+            ];
+
+            const text_after_changes = "module Foo;\n\nexport using My_float = Float16;\n";
+
+            Text_change.update(
+                language_description,
+                document_state,
+                text_changes,
+                text_after_changes
+            );
+
+            assert.equal(document_state.pending_text_changes.length, 0);
+
+            assert.equal(document_state.module.export_declarations.alias_type_declarations.size, 1);
+            assert.equal(document_state.module.export_declarations.alias_type_declarations.elements.length, 1);
+
+            const new_alias = document_state.module.export_declarations.alias_type_declarations.elements[0];
+            assert.equal(new_alias.name, "My_float");
+
+            const expected_type = Type_utilities.parse_type_name("Float16");
+            assert.deepEqual(new_alias.type.elements, expected_type);
+        }
+    });
 });

@@ -1144,7 +1144,7 @@ function create_modify_change(
                 elements: new_type_value
             };
 
-            return { position: [...alias.position, "type"], change: Module_change.create_update("type", new_vector_value) };
+            return { position: [...alias.position], change: Module_change.create_update("type", new_vector_value) };
         }
         case "Enum_name": {
             const value = map_node_to_value(current_node, production_rules, production_rule_to_value_map, key_to_production_rule_indices);
