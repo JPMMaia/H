@@ -159,6 +159,46 @@ export function find_enum_declaration_position(module: Core.Module, name: string
     return undefined;
 }
 
+export function find_function_declaration_position_2(module: Core.Module, name: string): { position: any[], value: Core.Function_declaration } | undefined {
+
+    {
+        const index = module.export_declarations.function_declarations.elements.findIndex(element => element.name === name);
+        if (index !== -1) {
+            return {
+                position: ["export_declarations", "function_declarations", "elements", index],
+                value: module.export_declarations.function_declarations.elements[index]
+            };
+        }
+    }
+
+    {
+        const index = module.internal_declarations.function_declarations.elements.findIndex(element => element.name === name);
+        if (index !== -1) {
+            return {
+                position: ["internal_declarations", "function_declarations", "elements", index],
+                value: module.internal_declarations.function_declarations.elements[index]
+            };
+        }
+    }
+
+    return undefined;
+}
+
+export function find_function_definition_position_2(module: Core.Module, name: string): { position: any[], value: Core.Function_definition } | undefined {
+
+    {
+        const index = module.definitions.function_definitions.elements.findIndex(element => element.name === name);
+        if (index !== -1) {
+            return {
+                position: ["definitions", "function_definitions", "elements", index],
+                value: module.definitions.function_definitions.elements[index]
+            };
+        }
+    }
+
+    return undefined;
+}
+
 export function find_struct_declaration_position(module: Core.Module, name: string): { position: any[], value: Core.Struct_declaration } | undefined {
 
     {
