@@ -88,6 +88,10 @@ export function is_same_position(first: number[], second: number[]): boolean {
     return true;
 }
 
+export function is_terminal_node(node: Node): boolean {
+    return node.children.length === 0 && node.production_rule_index === undefined;
+}
+
 export function get_next_terminal_node(root: Node, current_node: Node, current_node_position: number[]): { node: Node, position: number[] } | undefined {
 
     const is_terminal_node = (node: Node, position: number[]): boolean => {
