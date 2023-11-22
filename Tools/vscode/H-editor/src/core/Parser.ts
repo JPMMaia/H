@@ -496,7 +496,11 @@ function get_initial_mark_node(original_node_tree: Node | undefined, start_chang
         };
     }
     else {
-        const previous = get_previous_node_on_stack(original_node_tree, start_change_node_position) as { node: Node, position: number[] };
+        let previous = get_previous_node_on_stack(original_node_tree, start_change_node_position) as { node: Node, position: number[] };
+        while (!is_terminal_node(previous.node) && previous.node.children.length === 0) {
+            previous = get_previous_node_on_stack(original_node_tree, previous.position) as { node: Node, position: number[] };
+        }
+
         return {
             original_tree_position: previous.position,
             node: previous.node
