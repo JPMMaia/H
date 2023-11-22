@@ -1,6 +1,6 @@
 import * as Grammar from "./Grammar";
 import * as Scanner from "./Scanner";
-import { clone_node, find_node_common_root, get_next_terminal_node, get_next_sibling_terminal_node, get_node_at_position, get_parent_position, get_rightmost_brother, get_rightmost_terminal_descendant, have_same_parent, is_same_position, is_valid_position, Node, iterate_backward, } from "./Parser_node";
+import { clone_node, find_node_common_root, get_next_terminal_node, get_next_sibling_terminal_node, get_node_at_position, get_parent_position, get_rightmost_brother, get_rightmost_terminal_descendant, have_same_parent, is_same_position, is_terminal_node, is_valid_position, Node, iterate_backward, } from "./Parser_node";
 
 const g_debug = false;
 
@@ -376,6 +376,46 @@ function create_modify_change(position: number[], new_node: Node): Change {
             new_node: new_node
         }
     };
+}
+
+function can_be_modiy_change(first: Change, second: Change): boolean {
+
+    if (first.type === Change_type.Remove && second.type === Change_type.Add) {
+        const remove_change = first.value as Remove_change;
+        const add_change = second.value as Add_change;
+
+        if (is_same_position(remove_change.parent_position, add_change.parent_position)) {
+            if (remove_change.index === add_change.index && remove_change.count === 1 && add_change.new_nodes.length === 1) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+export function simplify_changes(changes: Change[]): Change[] {
+
+    const simplified_changes: Change[] = [];
+
+    for (let index = 0; index < changes.length; ++index) {
+        const change = changes[index];
+
+        if (change.type === Change_type.Remove && index + 1 < changes.length) {
+            const next_change = changes[index + 1];
+            if (can_be_modiy_change(change, next_change)) {
+                const add_change = next_change.value as Add_change;
+                const set_change = create_modify_change([...add_change.parent_position, add_change.index], add_change.new_nodes[0]);
+                simplified_changes.push(set_change);
+                index += 1;
+                continue;
+            }
+        }
+
+        simplified_changes.push(change);
+    }
+
+    return simplified_changes;
 }
 
 export interface Words_change {
