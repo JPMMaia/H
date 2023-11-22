@@ -418,6 +418,7 @@ function text_position_to_offset(text: string, position: Text_position): number 
 }
 
 function create_module_changes(
+    module: Core.Module,
     start_text_position: Text_position,
     end_text_position: Text_position,
     new_text: string
@@ -446,7 +447,6 @@ function create_module_changes(
         return word.value;
     };
 
-    const module = Module_examples.create_0();
     const declarations = Parse_tree_convertor.create_declarations(module);
     const initial_parse_tree = Parse_tree_convertor.module_to_parse_tree(module, declarations, production_rules);
     const text_cache = Parse_tree_text_position_cache.create_cache();
@@ -500,6 +500,8 @@ function create_module_changes(
 
     assert.equal(parse_result.status, Parser.Parse_status.Accept);
 
+    const simplified_changes = Parser.simplify_changes(parse_result.changes);
+
     const production_rule_to_value_map = Parse_tree_convertor.create_production_rule_to_value_map(production_rules);
     const production_rule_to_change_action_map = Parse_tree_convertor.create_production_rule_to_change_action_map(production_rules);
     const key_to_production_rule_indices = Parse_tree_convertor.create_key_to_production_rule_indices_map(production_rules);
@@ -511,7 +513,7 @@ function create_module_changes(
         production_rule_to_value_map,
         production_rule_to_change_action_map,
         parse_tree,
-        parse_result.changes,
+        simplified_changes,
         key_to_production_rule_indices
     );
 
@@ -522,7 +524,10 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Sets name of module", () => {
 
+        const module = Module_examples.create_0();
+
         const module_changes = create_module_changes(
+            module,
             { line: 0, column: 18 },
             { line: 0, column: 18 },
             "_2"
@@ -544,7 +549,10 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Adds new function", () => {
 
+        const module = Module_examples.create_0();
+
         const module_changes = create_module_changes(
+            module,
             { line: 0, column: 19 },
             { line: 0, column: 19 },
             "\nfunction function_name() -> () {}\n"
@@ -562,16 +570,32 @@ describe("Parse_tree_convertor.create_module_changes", () => {
             assert.equal(add_change.vector_name, "function_declarations");
 
             const function_declaration = add_change.value as Core.Function_declaration;
-            //assert.equal(function_declaration.id, 200);
-            assert.equal(function_declaration.linkage, Core.Linkage.Private);
-            assert.equal(function_declaration.type.is_variadic, false);
-            assert.deepEqual(function_declaration.name, "function_name");
-            //assert.deepEqual(function_declaration.input_parameter_ids.elements, []);
-            assert.deepEqual(function_declaration.input_parameter_names.elements, []);
-            assert.deepEqual(function_declaration.type.input_parameter_types.elements, []);
-            //assert.deepEqual(function_declaration.output_parameter_ids.elements, []);
-            assert.deepEqual(function_declaration.output_parameter_names.elements, []);
-            assert.deepEqual(function_declaration.type.output_parameter_types.elements, []);
+
+            const expected: Core.Function_declaration = {
+                name: "function_name",
+                type: {
+                    input_parameter_types: {
+                        size: 0,
+                        elements: []
+                    },
+                    output_parameter_types: {
+                        size: 0,
+                        elements: []
+                    },
+                    is_variadic: false
+                },
+                input_parameter_names: {
+                    size: 0,
+                    elements: []
+                },
+                output_parameter_names: {
+                    size: 0,
+                    elements: []
+                },
+                linkage: Core.Linkage.Private
+            };
+
+            assert.deepEqual(function_declaration, expected);
         }
 
         {
@@ -585,14 +609,17 @@ describe("Parse_tree_convertor.create_module_changes", () => {
             //assert.equal(add_change.index, 5);
 
             const function_definition = add_change.value as Core.Function_definition;
-            //assert.equal(function_definition.id, 200);
+            assert.equal(function_definition.name, "function_name");
             assert.deepEqual(function_definition.statements.elements, []);
         }
     });
 
     it("Removes a function", () => {
 
+        const module = Module_examples.create_0();
+
         const module_changes = create_module_changes(
+            module,
             { line: 11, column: 0 },
             { line: 15, column: 0 },
             ""
@@ -625,109 +652,118 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Sets function name", () => {
 
+        const module = Module_examples.create_0();
+
         const module_changes = create_module_changes(
+            module,
             { line: 11, column: 16 },
             { line: 11, column: 29 },
             "Another_name"
+        );
+
+        assert.equal(module_changes.length, 2);
+
+        {
+            const change = module_changes[0];
+            assert.deepEqual(change.position, ["export_declarations"]);
+
+            assert.equal(change.change.type, Module_change.Type.Set_element_of_vector);
+
+            const set_change = change.change.value as Module_change.Set_element_of_vector;
+            assert.equal(set_change.vector_name, "function_declarations");
+            assert.equal(set_change.index, 0);
+
+            const expected: Core.Function_declaration = JSON.parse(JSON.stringify(module.export_declarations.function_declarations.elements[0]));
+            expected.name = "Another_name";
+            assert.deepEqual(set_change.value, expected);
+        }
+
+        {
+            const change = module_changes[1];
+            assert.deepEqual(change.position, ["definitions"]);
+
+            assert.equal(change.change.type, Module_change.Type.Set_element_of_vector);
+
+            const set_change = change.change.value as Module_change.Set_element_of_vector;
+            assert.equal(set_change.vector_name, "function_definitions");
+            assert.equal(set_change.index, 0);
+
+            const expected: Core.Function_declaration = JSON.parse(JSON.stringify(module.definitions.function_definitions.elements[0]));
+            expected.name = "Another_name";
+            assert.deepEqual(set_change.value, expected);
+        }
+    });
+
+    it("Adds new function input parameter", () => {
+
+        const module = Module_examples.create_0();
+
+        const module_changes = create_module_changes(
+            module,
+            { line: 16, column: 30 },
+            { line: 16, column: 30 },
+            "foo: Bar, "
         );
 
         assert.equal(module_changes.length, 1);
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["export_declarations", "function_declarations", "elements", 0]);
+            assert.deepEqual(change.position, ["export_declarations"]);
 
-            assert.equal(change.change.type, Module_change.Type.Update);
+            assert.equal(change.change.type, Module_change.Type.Set_element_of_vector);
 
-            const update_change = change.change.value as Module_change.Update;
-            assert.equal(update_change.key, "name");
-            assert.equal(update_change.value, "Another_name");
-        }
-    });
+            const set_change = change.change.value as Module_change.Set_element_of_vector;
+            assert.equal(set_change.vector_name, "function_declarations");
+            assert.equal(set_change.index, 1);
 
-    it("Adds new function input parameter", () => {
-
-        const module_changes = create_module_changes(
-            { line: 16, column: 30 },
-            { line: 16, column: 30 },
-            "foo: Bar, "
-        );
-
-        assert.equal(module_changes.length, 2);
-
-        {
-            const change = module_changes[0];
-            assert.deepEqual(change.position, ["export_declarations", "function_declarations", "elements", 1]);
-
-            assert.equal(change.change.type, Module_change.Type.Add_element_to_vector);
-
-            const add_change = change.change.value as Module_change.Add_element_to_vector;
-            assert.equal(add_change.vector_name, "input_parameter_names");
-            assert.equal(add_change.index, 0);
-            assert.equal(add_change.value, "foo");
-        }
-
-        {
-            const change = module_changes[1];
-            assert.deepEqual(change.position, ["export_declarations", "function_declarations", "elements", 1, "type"]);
-
-            assert.equal(change.change.type, Module_change.Type.Add_element_to_vector);
-
-            const add_change = change.change.value as Module_change.Add_element_to_vector;
-            assert.equal(add_change.vector_name, "input_parameter_types");
-            assert.equal(add_change.index, 0);
-
-            const expected_type_reference: Core.Type_reference = {
-                data: {
-                    type: Core.Type_reference_enum.Custom_type_reference,
-                    value: {
-                        module_reference: {
-                            name: ""
-                        },
-                        name: "Bar"
-                    }
-                }
-            };
-            assert.deepEqual(add_change.value, expected_type_reference);
+            const expected: Core.Function_declaration = JSON.parse(JSON.stringify(module.export_declarations.function_declarations.elements[1]));
+            expected.input_parameter_names.size += 1;
+            expected.input_parameter_names.elements.splice(0, 0, "foo");
+            expected.type.input_parameter_types.size += 1;
+            expected.type.input_parameter_types.elements.splice(0, 0, Type_utilities.parse_type_name("Bar")[0]);
+            assert.deepEqual(set_change.value, expected);
         }
     });
 
     it("Removes function input parameter", () => {
 
+        const module = Module_examples.create_0();
+
         const module_changes = create_module_changes(
+            module,
             { line: 16, column: 30 },
             { line: 16, column: 44 },
             ""
         );
 
-        assert.equal(module_changes.length, 2);
+        assert.equal(module_changes.length, 1);
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["export_declarations", "function_declarations", "elements", 1]);
+            assert.deepEqual(change.position, ["export_declarations"]);
 
-            assert.equal(change.change.type, Module_change.Type.Remove_element_of_vector);
+            assert.equal(change.change.type, Module_change.Type.Set_element_of_vector);
 
-            const remove_change = change.change.value as Module_change.Remove_element_of_vector;
-            assert.equal(remove_change.vector_name, "input_parameter_names");
-            assert.equal(remove_change.index, 0);
-        }
+            const set_change = change.change.value as Module_change.Set_element_of_vector;
+            assert.equal(set_change.vector_name, "function_declarations");
+            assert.equal(set_change.index, 1);
 
-        {
-            const change = module_changes[1];
-            assert.deepEqual(change.position, ["export_declarations", "function_declarations", "elements", 1, "type"]);
-
-            assert.equal(change.change.type, Module_change.Type.Remove_element_of_vector);
-
-            const remove_change = change.change.value as Module_change.Remove_element_of_vector;
-            assert.equal(remove_change.vector_name, "input_parameter_types");
-            assert.equal(remove_change.index, 0);
+            const expected: Core.Function_declaration = JSON.parse(JSON.stringify(module.export_declarations.function_declarations.elements[1]));
+            expected.input_parameter_names.size -= 1;
+            expected.input_parameter_names.elements.splice(0, 1);
+            expected.type.input_parameter_types.size -= 1;
+            expected.type.input_parameter_types.elements.splice(0, 1);
+            assert.deepEqual(set_change.value, expected);
         }
     });
 
     it("Sets function input parameter name", () => {
 
+        const module = Module_examples.create_0();
+
         const module_changes = create_module_changes(
+            module,
             { line: 16, column: 30 },
             { line: 16, column: 33 },
             "beep"
@@ -737,79 +773,55 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["export_declarations", "function_declarations", "elements", 1]);
+            assert.deepEqual(change.position, ["export_declarations"]);
 
             assert.equal(change.change.type, Module_change.Type.Set_element_of_vector);
 
-            const update_change = change.change.value as Module_change.Set_element_of_vector;
-            assert.equal(update_change.vector_name, "input_parameter_names");
-            assert.equal(update_change.index, 0);
-            assert.equal(update_change.value, "beep");
+            const set_change = change.change.value as Module_change.Set_element_of_vector;
+            assert.equal(set_change.vector_name, "function_declarations");
+            assert.equal(set_change.index, 1);
+
+            const expected: Core.Function_declaration = JSON.parse(JSON.stringify(module.export_declarations.function_declarations.elements[1]));
+            expected.input_parameter_names.elements[0] = "beep";
+            assert.deepEqual(set_change.value, expected);
         }
     });
 
     it("Sets function input parameter type", () => {
 
+        const module = Module_examples.create_0();
+
         const module_changes = create_module_changes(
+            module,
             { line: 16, column: 35 },
             { line: 16, column: 42 },
             "beep"
         );
 
-        assert.equal(module_changes.length, 4);
+        assert.equal(module_changes.length, 1);
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["export_declarations", "function_declarations", "elements", 1]);
+            assert.deepEqual(change.position, ["export_declarations"]);
 
-            assert.equal(change.change.type, Module_change.Type.Remove_element_of_vector);
+            assert.equal(change.change.type, Module_change.Type.Set_element_of_vector);
 
-            const remove_change = change.change.value as Module_change.Remove_element_of_vector;
-            assert.equal(remove_change.vector_name, "input_parameter_names");
-            assert.equal(remove_change.index, 0);
+            const set_change = change.change.value as Module_change.Set_element_of_vector;
+            assert.equal(set_change.vector_name, "function_declarations");
+            assert.equal(set_change.index, 1);
+
+            const expected: Core.Function_declaration = JSON.parse(JSON.stringify(module.export_declarations.function_declarations.elements[1]));
+            expected.type.input_parameter_types.elements[0] = Type_utilities.parse_type_name("beep")[0];
+            assert.deepEqual(set_change.value, expected);
         }
-
-        {
-            const change = module_changes[1];
-            assert.deepEqual(change.position, ["export_declarations", "function_declarations", "elements", 1, "type"]);
-
-            assert.equal(change.change.type, Module_change.Type.Remove_element_of_vector);
-
-            const remove_change = change.change.value as Module_change.Remove_element_of_vector;
-            assert.equal(remove_change.vector_name, "input_parameter_types");
-            assert.equal(remove_change.index, 0);
-        }
-
-        {
-            const change = module_changes[2];
-            assert.deepEqual(change.position, ["export_declarations", "function_declarations", "elements", 1]);
-
-            assert.equal(change.change.type, Module_change.Type.Add_element_to_vector);
-
-            const add_change = change.change.value as Module_change.Add_element_to_vector;
-            assert.equal(add_change.vector_name, "input_parameter_names");
-            assert.equal(add_change.index, 0);
-            assert.equal(add_change.value, "lhs");
-        }
-
-        {
-            const change = module_changes[3];
-            assert.deepEqual(change.position, ["export_declarations", "function_declarations", "elements", 1, "type"]);
-
-            assert.equal(change.change.type, Module_change.Type.Add_element_to_vector);
-
-            const add_change = change.change.value as Module_change.Add_element_to_vector;
-            assert.equal(add_change.vector_name, "input_parameter_types");
-            assert.equal(add_change.index, 0);
-            const expected_type = Type_utilities.parse_type_name("beep")[0];
-            assert.deepEqual(add_change.value, expected_type);
-        }
-
     });
 
     it("Adds new struct", () => {
 
+        const module = Module_examples.create_0();
+
         const module_changes = create_module_changes(
+            module,
             { line: 1, column: 0 },
             { line: 1, column: 0 },
             "\nstruct Struct_name {}\n"
@@ -839,7 +851,10 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Removes a struct", () => {
 
+        const module = Module_examples.create_0();
+
         const module_changes = create_module_changes(
+            module,
             { line: 30, column: 0 },
             { line: 36, column: 0 },
             ""
@@ -861,7 +876,10 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Sets struct name", () => {
 
+        const module = Module_examples.create_0();
+
         const module_changes = create_module_changes(
+            module,
             { line: 30, column: 14 },
             { line: 30, column: 25 },
             "Another_name"
@@ -871,19 +889,26 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["export_declarations", "struct_declarations", "elements", 0]);
+            assert.deepEqual(change.position, ["export_declarations"]);
 
-            assert.equal(change.change.type, Module_change.Type.Update);
+            assert.equal(change.change.type, Module_change.Type.Set_element_of_vector);
 
-            const update_change = change.change.value as Module_change.Update;
-            assert.equal(update_change.key, "name");
-            assert.equal(update_change.value, "Another_name");
+            const set_change = change.change.value as Module_change.Set_element_of_vector;
+            assert.equal(set_change.vector_name, "struct_declarations");
+            assert.equal(set_change.index, 0);
+
+            const expected: Core.Struct_declaration = JSON.parse(JSON.stringify(module.export_declarations.struct_declarations.elements[0]));
+            expected.name = "Another_name";
+            assert.deepEqual(set_change.value, expected);
         }
     });
 
     it("Adds new enum", () => {
 
+        const module = Module_examples.create_0();
+
         const module_changes = create_module_changes(
+            module,
             { line: 1, column: 0 },
             { line: 1, column: 0 },
             "\nenum My_enum {}\n"
@@ -909,7 +934,10 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Removes an enum", () => {
 
+        const module = Module_examples.create_0();
+
         const module_changes = create_module_changes(
+            module,
             { line: 4, column: 0 },
             { line: 10, column: 0 },
             ""
@@ -931,7 +959,10 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Sets enum name", () => {
 
+        const module = Module_examples.create_0();
+
         const module_changes = create_module_changes(
+            module,
             { line: 4, column: 12 },
             { line: 4, column: 21 },
             "Another_name"
@@ -941,19 +972,26 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["export_declarations", "enum_declarations", "elements", 0]);
+            assert.deepEqual(change.position, ["export_declarations"]);
 
-            assert.equal(change.change.type, Module_change.Type.Update);
+            assert.equal(change.change.type, Module_change.Type.Set_element_of_vector);
 
-            const update_change = change.change.value as Module_change.Update;
-            assert.equal(update_change.key, "name");
-            assert.equal(update_change.value, "Another_name");
+            const set_change = change.change.value as Module_change.Set_element_of_vector;
+            assert.equal(set_change.vector_name, "enum_declarations");
+            assert.equal(set_change.index, 0);
+
+            const expected: Core.Enum_declaration = JSON.parse(JSON.stringify(module.export_declarations.enum_declarations.elements[0]));
+            expected.name = "Another_name";
+            assert.deepEqual(set_change.value, expected);
         }
     });
 
     it("Adds new alias", () => {
 
+        const module = Module_examples.create_0();
+
         const module_changes = create_module_changes(
+            module,
             { line: 1, column: 0 },
             { line: 1, column: 0 },
             "using My_alias = Float32;\n"
@@ -971,14 +1009,20 @@ describe("Parse_tree_convertor.create_module_changes", () => {
             assert.equal(add_change.vector_name, "alias_type_declarations");
 
             const alias_declaration = add_change.value as Core.Alias_type_declaration;
-            assert.equal(alias_declaration.name, "My_alias");
-            // TODO type
+            assert.deepEqual(alias_declaration.name, "My_alias");
+
+            const expected_type = Type_utilities.parse_type_name("Float32");
+            assert.equal(alias_declaration.type.size, 1);
+            assert.deepEqual(alias_declaration.type.elements, expected_type);
         }
     });
 
     it("Removes an alias", () => {
 
+        const module = Module_examples.create_0();
+
         const module_changes = create_module_changes(
+            module,
             { line: 1, column: 0 },
             { line: 3, column: 0 },
             ""
@@ -1000,7 +1044,10 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Sets alias name", () => {
 
+        const module = Module_examples.create_0();
+
         const module_changes = create_module_changes(
+            module,
             { line: 2, column: 13 },
             { line: 2, column: 21 },
             "Another_name"
@@ -1010,19 +1057,26 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["export_declarations", "alias_type_declarations", "elements", 0]);
+            assert.deepEqual(change.position, ["export_declarations"]);
 
-            assert.equal(change.change.type, Module_change.Type.Update);
+            assert.equal(change.change.type, Module_change.Type.Set_element_of_vector);
 
-            const update_change = change.change.value as Module_change.Update;
-            assert.equal(update_change.key, "name");
-            assert.equal(update_change.value, "Another_name");
+            const set_change = change.change.value as Module_change.Set_element_of_vector;
+            assert.equal(set_change.vector_name, "alias_type_declarations");
+            assert.equal(set_change.index, 0);
+
+            const expected: Core.Alias_type_declaration = JSON.parse(JSON.stringify(module.export_declarations.alias_type_declarations.elements[0]));
+            expected.name = "Another_name";
+            assert.deepEqual(set_change.value, expected);
         }
     });
 
     it("Sets alias type", () => {
 
+        const module = Module_examples.create_0();
+
         const module_changes = create_module_changes(
+            module,
             { line: 2, column: 24 },
             { line: 2, column: 31 },
             "Float64"
@@ -1032,21 +1086,19 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["export_declarations", "alias_type_declarations", "elements", 0]);
 
-            assert.equal(change.change.type, Module_change.Type.Update);
+            assert.deepEqual(change.position, ["export_declarations"]);
 
-            const update_change = change.change.value as Module_change.Update;
-            assert.equal(update_change.key, "type");
+            assert.equal(change.change.type, Module_change.Type.Set_element_of_vector);
 
-            const expected_type_reference: Core.Type_reference = {
-                data: {
-                    type: Core.Type_reference_enum.Fundamental_type,
-                    value: Core.Fundamental_type.Float64
-                }
-            };
-            assert.equal(update_change.value.size, 1);
-            assert.deepEqual(update_change.value.elements, [expected_type_reference]);
+            const set_change = change.change.value as Module_change.Set_element_of_vector;
+            assert.equal(set_change.vector_name, "alias_type_declarations");
+            assert.equal(set_change.index, 0);
+
+            const expected: Core.Alias_type_declaration = JSON.parse(JSON.stringify(module.export_declarations.alias_type_declarations.elements[0]));
+            expected.type.size = 1;
+            expected.type.elements = Type_utilities.parse_type_name("Float64");
+            assert.deepEqual(set_change.value, expected);
         }
     });
 });

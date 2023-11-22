@@ -863,10 +863,6 @@ function get_underlying_declaration_production_rule_lhs(type: Declaration_type):
     }
 }
 
-function find_type_name(type: Core.Type_reference[]): string {
-    return "type"; // TODO
-}
-
 function map_terminal_to_word(
     module: Core.Module,
     current_state: State,
@@ -1085,139 +1081,453 @@ function map_node_to_value(node: Node, production_rules: Grammar.Production_rule
     }
 }
 
-function is_export_declaration(declaration: Node): boolean {
-
-    if (declaration.children.length === 0) {
-        return false;
+function get_change_parent_position(change: Parser.Change): any[] {
+    if (change.type === Parser.Change_type.Add) {
+        const add_change = change.value as Parser.Add_change;
+        return add_change.parent_position;
     }
-
-    const child = declaration.children[0];
-    const export_node_index = child.children.findIndex(value => value.word.value === "Export");
-    if (export_node_index === -1) {
-        return false;
+    else if (change.type === Parser.Change_type.Remove) {
+        const remove_change = change.value as Parser.Remove_change;
+        return remove_change.parent_position;
     }
-
-    const export_node = child.children[export_node_index];
-    return export_node.children.length > 0;
+    else {
+        const modify_change = change.value as Parser.Modify_change;
+        return modify_change.position.slice(0, modify_change.position.length - 1);
+    }
 }
 
-function create_modify_change(
-    module: Core.Module,
-    parse_tree: Parser_node.Node,
-    current_node: Parser_node.Node,
-    current_node_position: number[],
+function is_key_node(node: Node): boolean {
+    switch (node.word.value) {
+        case "Module_head":
+        case "Module_declaration":
+        case "Module_body":
+        case "Declaration":
+        case "Alias":
+        case "Enum":
+        case "Function":
+        case "Function_definition":
+        case "Function_declaration":
+        case "Struct":
+            return true;
+        default:
+            return false;
+    }
+}
+
+function create_add_change(
+    add_change: Parser.Add_change,
+    parent_node: Parser_node.Node,
     production_rules: Grammar.Production_rule[],
     production_rule_to_value_map: Production_rule_info[],
     key_to_production_rule_indices: Map<string, number[]>
-): { position: any[], change: Module_change.Change } | undefined {
+): { position: any[], change: Module_change.Change }[] {
 
-    switch (current_node.word.value) {
-        case "Module_name": {
-            const value = map_node_to_value(current_node, production_rules, production_rule_to_value_map, key_to_production_rule_indices);
-            if (module.name === value) {
-                return undefined;
-            }
-            return { position: [], change: Module_change.create_update("name", value) };
-        }
-        case "Alias_name": {
-            const value = map_node_to_value(current_node, production_rules, production_rule_to_value_map, key_to_production_rule_indices);
-            const old_node = Parser_node.get_node_at_position(parse_tree, current_node_position);
-            const old_alias_name = get_terminal_value(old_node);
-            if (old_alias_name === value) {
-                return undefined;
-            }
-            const alias = Core_helpers.find_alias_declaration_position(module, old_alias_name) as { position: any[], value: Core.Alias_type_declaration };
-            return { position: alias.position, change: Module_change.create_update("name", value) };
-        }
-        case "Alias_type": {
-            const alias_node = find_parent(parse_tree, current_node_position, "Alias", key_to_production_rule_indices)?.node as Parser_node.Node;
-            const alias_name = find_node_value(alias_node, "Alias_name", key_to_production_rule_indices);
-            const alias = Core_helpers.find_alias_declaration_position(module, alias_name) as { position: any[], value: Core.Alias_type_declaration };
+    if (parent_node.word.value === "Module_body") {
 
-            const new_type_value = map_node_to_value(current_node, production_rules, production_rule_to_value_map, key_to_production_rule_indices) as Core.Type_reference[];
-            if (Type_utilities.are_equal(alias.value.type.elements, new_type_value)) {
-                return undefined;
-            }
+        // We are going to add alias, enums, functions and structs:
+        for (const new_node of add_change.new_nodes) {
+            const declaration_type = new_node.children[0].word.value;
 
-            const new_vector_value: Core.Vector<Core.Type_reference> = {
-                size: new_type_value.length,
-                elements: new_type_value
-            };
+            const underlying_declaration_node = declaration_type === "Function" ? new_node.children[0].children[0] : new_node.children[0];
+            const is_export = is_export_node(underlying_declaration_node, key_to_production_rule_indices);
 
-            return { position: [...alias.position], change: Module_change.create_update("type", new_vector_value) };
-        }
-        case "Enum_name": {
-            const value = map_node_to_value(current_node, production_rules, production_rule_to_value_map, key_to_production_rule_indices);
-            const old_node = Parser_node.get_node_at_position(parse_tree, current_node_position);
-            const old_enum_name = get_terminal_value(old_node);
-            if (value === old_enum_name) {
-                return undefined;
-            }
-            const declaration = Core_helpers.find_enum_declaration_position(module, old_enum_name) as { position: any[], value: Core.Enum_declaration };
+            const declarations_member_name = is_export ? "export_declarations" : "internal_declarations";
 
-            return { position: declaration.position, change: Module_change.create_update("name", value) };
-        }
-        case "Function_name": {
-            const value = map_node_to_value(current_node, production_rules, production_rule_to_value_map, key_to_production_rule_indices);
-            const old_node = Parser_node.get_node_at_position(parse_tree, current_node_position);
-            const old_function_name = get_terminal_value(old_node);
-            if (value === old_function_name) {
-                return undefined;
+            const declaration = map_node_to_value(underlying_declaration_node, production_rules, production_rule_to_value_map, key_to_production_rule_indices);
+
+            if (declaration_type === "Alias") {
+                const change = Module_change.create_add_element_to_vector("alias_type_declarations", 0, declaration);
+                return [{ position: [declarations_member_name], change: change }];
             }
-            const function_declaration_position = Core_helpers.find_function_declaration_position(module, old_function_name) as any[];
-            return { position: function_declaration_position, change: Module_change.create_update("name", value) };
-        }
-        case "Function_parameter_name": {
-            const value = map_node_to_value(current_node, production_rules, production_rule_to_value_map, key_to_production_rule_indices);
-            const function_node = find_parent(parse_tree, current_node_position, "Function_declaration", key_to_production_rule_indices)?.node as Parser_node.Node;
-            const function_name = find_node_value(function_node, "Function_name", key_to_production_rule_indices);
-            const function_declaration_position = Core_helpers.find_function_declaration_position(module, function_name) as any[];
-            const function_declaration = Core_helpers.find_function_declaration(module, function_name) as Core.Function_declaration;
-            const old_node = Parser_node.get_node_at_position(parse_tree, current_node_position);
-            const parameter_name = get_terminal_value(old_node);
-            if (value === parameter_name) {
-                return undefined;
+            else if (declaration_type === "Enum") {
+                const change = Module_change.create_add_element_to_vector("enum_declarations", 0, declaration);
+                return [{ position: [declarations_member_name], change: change }];
             }
-            const parameter_node = find_parent(parse_tree, current_node_position, "Function_parameter", key_to_production_rule_indices);
-            const parameter_array_node_position = Parser_node.get_parent_position(parameter_node?.position as number[]);
-            const parameter_array_node = Parser_node.get_node_at_position(parse_tree, parameter_array_node_position);
-            const parameter_names_vector = parameter_array_node.word.value === "Function_input_parameters" ? function_declaration.input_parameter_names.elements : function_declaration.output_parameter_names.elements;
-            const parameter_index = parameter_names_vector.findIndex(name => name === parameter_name);
-            const vector_name = parameter_array_node.word.value === "Function_input_parameters" ? "input_parameter_names" : "output_parameter_names";
-            return { position: function_declaration_position, change: Module_change.create_set_element_of_vector(vector_name, parameter_index, value) };
-        }
-        case "Function_parameter_type": {
-            const value = map_node_to_value(current_node, production_rules, production_rule_to_value_map, key_to_production_rule_indices) as Core.Type_reference[];
-            const function_node = find_parent(parse_tree, current_node_position, "Function_declaration", key_to_production_rule_indices)?.node as Parser_node.Node;
-            const function_name = find_node_value(function_node, "Function_name", key_to_production_rule_indices);
-            const function_declaration_position = Core_helpers.find_function_declaration_position(module, function_name) as any[];
-            const function_declaration = Core_helpers.find_function_declaration(module, function_name) as Core.Function_declaration;
-            const parameter_node = find_parent(parse_tree, current_node_position, "Function_parameter", key_to_production_rule_indices) as { node: Parser_node.Node, position: number[] };
-            const parameter_array_node_position = Parser_node.get_parent_position(parameter_node?.position as number[]);
-            const parameter_array_node = Parser_node.get_node_at_position(parse_tree, parameter_array_node_position);
-            const parameter_names_vector = parameter_array_node.word.value === "Function_input_parameters" ? function_declaration.input_parameter_names.elements : function_declaration.output_parameter_names.elements;
-            const parameter_name = find_node_value(parameter_node.node, "Function_parameter_name", key_to_production_rule_indices);
-            const parameter_index = parameter_names_vector.findIndex(name => name === parameter_name);
-            const parameter_types_vector = parameter_array_node.word.value === "Function_input_parameters" ? function_declaration.type.input_parameter_types.elements : function_declaration.type.output_parameter_types.elements;
-            const paramenter_type = parameter_types_vector[parameter_index];
-            if (Type_utilities.are_equal(value, [paramenter_type])) {
-                return undefined;
+            else if (declaration_type === "Struct") {
+                const change = Module_change.create_add_element_to_vector("struct_declarations", 0, declaration);
+                return [{ position: [declarations_member_name], change: change }];
             }
-            const vector_name = parameter_array_node.word.value === "Function_input_parameters" ? "input_parameter_types" : "output_parameter_types";
-            return { position: [...function_declaration_position, "type"], change: Module_change.create_set_element_of_vector(vector_name, parameter_index, value[0]) };
-        }
-        case "Struct_name": {
-            const value = map_node_to_value(current_node, production_rules, production_rule_to_value_map, key_to_production_rule_indices);
-            const old_node = Parser_node.get_node_at_position(parse_tree, current_node_position);
-            const old_struct_name = get_terminal_value(old_node);
-            if (value === old_struct_name) {
-                return undefined;
+            else if (declaration_type === "Function") {
+
+                const new_changes: { position: any[], change: Module_change.Change }[] = [];
+
+                {
+                    // TODO change index
+                    const change = Module_change.create_add_element_to_vector("function_declarations", 0, declaration);
+                    new_changes.push({ position: [declarations_member_name], change: change });
+                }
+
+                {
+                    const function_definition_node = find_node(new_node.children[0], "Function_definition", key_to_production_rule_indices) as Parser_node.Node;
+                    const function_definition = node_to_function_definition(function_definition_node, declaration.name, key_to_production_rule_indices);
+
+                    // TODO change index
+                    const change = Module_change.create_add_element_to_vector("function_definitions", 0, function_definition);
+                    new_changes.push({ position: ["definitions"], change: change });
+                }
+
+                return new_changes;
             }
-            const struct = Core_helpers.find_struct_declaration_position(module, old_struct_name) as { position: any[], value: Core.Struct_declaration };
-            return { position: struct.position, change: Module_change.create_update("name", value) };
         }
-        default:
-            return undefined;
+    }
+
+    const message = `Parse_tree_convertor.add_change() not implemented for '${parent_node.word.value}'`;
+    onThrowError(message);
+    throw message;
+}
+
+function create_remove_change(
+    remove_change: Parser.Remove_change,
+    module: Core.Module,
+    parent_node: Parser_node.Node,
+    key_to_production_rule_indices: Map<string, number[]>
+): { position: any[], change: Module_change.Change }[] {
+
+    if (parent_node.word.value === "Module_body") {
+
+        const new_changes: { position: any[], change: Module_change.Change }[] = [];
+
+        for (let index = 0; index < remove_change.count; ++index) {
+            const removed_node_index = remove_change.index + index;
+            const removed_node = parent_node.children[removed_node_index];
+
+            const declaration_type = removed_node.children[0].word.value;
+
+            const underlying_declaration_node = declaration_type === "Function" ? removed_node.children[0].children[0] : removed_node.children[0];
+
+            if (declaration_type === "Alias") {
+                const alias_name = find_node_value(underlying_declaration_node, "Alias_name", key_to_production_rule_indices);
+
+                const alias = Core_helpers.find_alias_declaration_position(module, alias_name) as { position: any[], value: Core.Alias_type_declaration };
+
+                const element_index = alias.position[alias.position.length - 1];
+                const change = Module_change.create_remove_element_of_vector(alias.position[1], element_index);
+                new_changes.push({ position: [alias.position[0]], change: change });
+            }
+            else if (declaration_type === "Enum") {
+                const enum_name = find_node_value(underlying_declaration_node, "Enum_name", key_to_production_rule_indices);
+
+                const enum_declaration = Core_helpers.find_enum_declaration_position(module, enum_name) as { position: any[], value: Core.Enum_declaration };
+
+                const element_index = enum_declaration.position[enum_declaration.position.length - 1];
+                const change = Module_change.create_remove_element_of_vector(enum_declaration.position[1], element_index);
+                new_changes.push({ position: [enum_declaration.position[0]], change: change });
+            }
+            if (declaration_type === "Function") {
+                const function_name = find_node_value(underlying_declaration_node, "Function_name", key_to_production_rule_indices);
+
+                {
+                    const position_to_remove = Core_helpers.find_function_declaration_position(module, function_name) as any[];
+
+                    const declaration_index = position_to_remove[position_to_remove.length - 1];
+                    const declarations_member_name = position_to_remove[0];
+
+                    const change = Module_change.create_remove_element_of_vector("function_declarations", declaration_index);
+                    new_changes.push({ position: [declarations_member_name], change: change });
+                }
+
+                {
+                    const definition_index = module.definitions.function_definitions.elements.findIndex(value => value.name === function_name);
+
+                    const change = Module_change.create_remove_element_of_vector("function_definitions", definition_index);
+                    new_changes.push({ position: ["definitions"], change: change });
+                }
+            }
+            else if (declaration_type === "Struct") {
+                const struct_name = find_node_value(underlying_declaration_node, "Struct_name", key_to_production_rule_indices);
+
+                const struct = Core_helpers.find_struct_declaration_position(module, struct_name) as { position: any[], value: Core.Struct_declaration };
+
+                const element_index = struct.position[struct.position.length - 1];
+                const change = Module_change.create_remove_element_of_vector(struct.position[1], element_index);
+                new_changes.push({ position: [struct.position[0]], change: change });
+            }
+        }
+
+        return new_changes;
+    }
+
+    const message = `Parse_tree_convertor.add_change() not implemented for '${parent_node.word.value}'`;
+    onThrowError(message);
+    throw message;
+}
+
+function get_key_ancestor(
+    root: Parser_node.Node,
+    node: Parser_node.Node,
+    position: number[]
+): { node: Parser_node.Node, position: number[] } {
+
+    let current_node = node;
+    let current_position = position;
+
+    while (!is_key_node(current_node)) {
+        current_position = Parser_node.get_parent_position(current_position);
+        current_node = Parser_node.get_node_at_position(root, current_position);
+    }
+
+    return {
+        node: current_node,
+        position: current_position
+    };
+}
+
+function apply_parse_tree_change(
+    node: Parser_node.Node,
+    position: number[],
+    change: Parser.Change
+): void {
+    if (change.type === Parser.Change_type.Add) {
+        const add_change = change.value as Parser.Add_change;
+        const parent_position = add_change.parent_position.slice(position.length, add_change.parent_position.length);
+        const parent_node = get_node_at_position(node, parent_position);
+        parent_node.children.splice(add_change.index, 0, ...add_change.new_nodes);
+    }
+    else if (change.type === Parser.Change_type.Remove) {
+        const remove_change = change.value as Parser.Remove_change;
+        const parent_position = remove_change.parent_position.slice(position.length, remove_change.parent_position.length);
+        const parent_node = get_node_at_position(node, parent_position);
+        parent_node.children.splice(remove_change.index, remove_change.count);
+    }
+    else if (change.type === Parser.Change_type.Modify) {
+        const modify_change = change.value as Parser.Modify_change;
+        const change_position = modify_change.position.slice(position.length, modify_change.position.length);
+        const parent_node_position = Parser_node.get_parent_position(change_position);
+        const parent_node = get_node_at_position(node, parent_node_position);
+        const child_to_modify_index = modify_change.position[modify_change.position.length - 1];
+        parent_node.children[child_to_modify_index] = modify_change.new_node;
+    }
+}
+
+function create_module_modify_change(value: any, element_position: any[]): { position: any[], change: Module_change.Change } {
+    const position = element_position.slice(0, element_position.length - 3);
+    const vector_name = element_position[element_position.length - 3] as string;
+    const index = element_position[element_position.length - 1] as number;
+    return {
+        position: position,
+        change: Module_change.create_set_element_of_vector(vector_name, index, value)
+    };
+}
+
+function create_module_head_modify_change(
+    module: Core.Module,
+    root: Parser_node.Node,
+    node: Parser_node.Node,
+    position: number[],
+    key_to_production_rule_indices: Map<string, number[]>
+): { position: any[], change: Module_change.Change }[] {
+
+    const changes: { position: any[], change: Module_change.Change }[] = [];
+
+    const module_declaration_node = find_node(node, "Module_declaration", key_to_production_rule_indices) as Parser_node.Node;
+    changes.push(create_module_declaration_modify_change(module_declaration_node, key_to_production_rule_indices));
+
+    return changes;
+}
+
+function create_module_declaration_modify_change(
+    node: Parser_node.Node,
+    key_to_production_rule_indices: Map<string, number[]>
+): { position: any[], change: Module_change.Change } {
+    const new_name = find_node_value(node, "Module_name", key_to_production_rule_indices);
+    return {
+        position: [],
+        change: Module_change.create_update("name", new_name)
+    };
+}
+
+function create_declaration_modify_change(
+    module: Core.Module,
+    root: Parser_node.Node,
+    node: Parser_node.Node,
+    position: number[],
+    key_to_production_rule_indices: Map<string, number[]>
+): { position: any[], change: Module_change.Change }[] {
+    const child_node = node.children[0];
+    const child_position = [...position, 0];
+    const type = child_node.word.value;
+    switch (type) {
+        case "Alias":
+            return [create_alias_modify_change(module, root, child_node, child_position, key_to_production_rule_indices)];
+        case "Enum":
+            return [create_enum_modify_change(module, root, child_node, child_position, key_to_production_rule_indices)];
+        case "Function":
+            return create_function_modify_change(module, root, child_node, child_position, key_to_production_rule_indices);
+        case "Struct":
+            return [create_struct_modify_change(module, root, child_node, child_position, key_to_production_rule_indices)];
+        default: {
+            const message = `Parse_tree_convertor.create_declaration_modify_change() not implemented for '${type}'`;
+            onThrowError(message);
+            throw Error(message);
+        }
+    }
+}
+
+function create_alias_modify_change(
+    module: Core.Module,
+    root: Parser_node.Node,
+    node: Parser_node.Node,
+    position: number[],
+    key_to_production_rule_indices: Map<string, number[]>
+): { position: any[], change: Module_change.Change } {
+    const alias_declaration = node_to_alias_type_declaration(node, key_to_production_rule_indices);
+    const old_node = Parser_node.get_node_at_position(root, position);
+    const old_name = find_node_value(old_node, "Alias_name", key_to_production_rule_indices);
+    const old_declaration = Core_helpers.find_alias_declaration_position(module, old_name) as { position: any[], value: Core.Alias_type_declaration };
+    return create_module_modify_change(alias_declaration, old_declaration.position);
+}
+
+function create_enum_modify_change(
+    module: Core.Module,
+    root: Parser_node.Node,
+    node: Parser_node.Node,
+    position: number[],
+    key_to_production_rule_indices: Map<string, number[]>
+): { position: any[], change: Module_change.Change } {
+    const enum_declaration = node_to_enum_declaration(node, key_to_production_rule_indices);
+    const old_node = Parser_node.get_node_at_position(root, position);
+    const old_name = find_node_value(old_node, "Enum_name", key_to_production_rule_indices);
+    const old_declaration = Core_helpers.find_enum_declaration_position(module, old_name) as { position: any[], value: Core.Enum_declaration };
+    return create_module_modify_change(enum_declaration, old_declaration.position);
+}
+
+function get_function_name_from_node(
+    root: Parser_node.Node,
+    position: number[],
+    key_to_production_rule_indices: Map<string, number[]>
+): string {
+    const old_node = Parser_node.get_node_at_position(root, position);
+    const old_name = find_node_value(old_node, "Function_name", key_to_production_rule_indices);
+    return old_name;
+}
+
+function create_function_modify_change(
+    module: Core.Module,
+    root: Parser_node.Node,
+    node: Parser_node.Node,
+    position: number[],
+    key_to_production_rule_indices: Map<string, number[]>
+): { position: any[], change: Module_change.Change }[] {
+    const declaration_node_index = find_node_child_index(node, "Function_declaration", key_to_production_rule_indices);
+    const declaration_node = node.children[declaration_node_index];
+
+    const definition_node_index = find_node_child_index(node, "Function_definition", key_to_production_rule_indices);
+    const definition_node = node.children[definition_node_index];
+
+    const old_function_name = get_function_name_from_node(root, position, key_to_production_rule_indices);
+
+    const declaration_change = create_function_declaration_modify_change(module, declaration_node, old_function_name, key_to_production_rule_indices);
+    const new_function_name =
+        declaration_change.length > 0 ?
+            ((declaration_change[0].change.value as Module_change.Set_element_of_vector).value as Core.Function_declaration).name :
+            old_function_name;
+
+    const definition_change = create_function_definition_modify_change(module, definition_node, old_function_name, new_function_name, key_to_production_rule_indices);
+
+    return [
+        ...declaration_change,
+        ...definition_change
+    ];
+}
+
+function create_function_declaration_modify_change(
+    module: Core.Module,
+    node: Parser_node.Node,
+    old_function_name: string,
+    key_to_production_rule_indices: Map<string, number[]>
+): { position: any[], change: Module_change.Change }[] {
+    const function_declaration = node_to_function_declaration(node, key_to_production_rule_indices);
+    const old_declaration = Core_helpers.find_function_declaration_position_2(module, old_function_name) as { position: any[], value: Core.Function_declaration };
+    if (deep_equal(function_declaration, old_declaration.value)) {
+        return [];
+    }
+    return [create_module_modify_change(function_declaration, old_declaration.position)];
+}
+
+function create_function_definition_modify_change(
+    module: Core.Module,
+    node: Parser_node.Node,
+    old_function_name: string,
+    new_function_name: string,
+    key_to_production_rule_indices: Map<string, number[]>
+): { position: any[], change: Module_change.Change }[] {
+    const function_definition = node_to_function_definition(node, new_function_name, key_to_production_rule_indices);
+    const old_definition = Core_helpers.find_function_definition_position_2(module, old_function_name) as { position: any[], value: Core.Function_definition };
+    if (deep_equal(function_definition, old_definition.value)) {
+        return [];
+    }
+    return [create_module_modify_change(function_definition, old_definition.position)];
+}
+
+function create_struct_modify_change(
+    module: Core.Module,
+    root: Parser_node.Node,
+    node: Parser_node.Node,
+    position: number[],
+    key_to_production_rule_indices: Map<string, number[]>
+): { position: any[], change: Module_change.Change } {
+    const struct_declaration = node_to_struct_declaration(node, key_to_production_rule_indices);
+    const old_node = Parser_node.get_node_at_position(root, position);
+    const old_name = find_node_value(old_node, "Struct_name", key_to_production_rule_indices);
+    const old_declaration = Core_helpers.find_struct_declaration_position(module, old_name) as { position: any[], value: Core.Struct_declaration };
+    return create_module_modify_change(struct_declaration, old_declaration.position);
+}
+
+function create_modify_change(
+    any_change: Parser.Change,
+    root: Parser_node.Node,
+    node: Parser_node.Node,
+    node_position: number[],
+    module: Core.Module,
+    key_to_production_rule_indices: Map<string, number[]>
+): { position: any[], change: Module_change.Change }[] {
+
+    const key_ancestor = get_key_ancestor(root, node, node_position);
+
+    const key_node_clone = JSON.parse(JSON.stringify(key_ancestor.node)) as Parser_node.Node;
+
+    apply_parse_tree_change(key_node_clone, key_ancestor.position, any_change);
+
+    switch (key_node_clone.word.value) {
+        case "Module_head": {
+            return create_module_head_modify_change(module, root, key_node_clone, key_ancestor.position, key_to_production_rule_indices);
+        }
+        case "Module_declaration": {
+            return [create_module_declaration_modify_change(key_node_clone, key_to_production_rule_indices)];
+        }
+        case "Module_body": {
+            // TODO
+        }
+        case "Declaration": {
+            return create_declaration_modify_change(module, root, key_node_clone, key_ancestor.position, key_to_production_rule_indices);
+        }
+        case "Alias": {
+            return [create_alias_modify_change(module, root, key_node_clone, key_ancestor.position, key_to_production_rule_indices)];
+        }
+        case "Enum": {
+            return [create_enum_modify_change(module, root, key_node_clone, key_ancestor.position, key_to_production_rule_indices)];
+        }
+        case "Function": {
+            return create_function_modify_change(module, root, key_node_clone, key_ancestor.position, key_to_production_rule_indices);
+        }
+        case "Function_declaration": {
+            const function_node = find_parent(root, key_ancestor.position, "Function", key_to_production_rule_indices) as { node: Parser_node.Node, position: number[] };
+            const function_name = get_function_name_from_node(root, function_node.position, key_to_production_rule_indices);
+            return create_function_declaration_modify_change(module, key_node_clone, function_name, key_to_production_rule_indices);
+        }
+        case "Function_definition": {
+            const function_node = find_parent(root, key_ancestor.position, "Function", key_to_production_rule_indices) as { node: Parser_node.Node, position: number[] };
+            const function_name = get_function_name_from_node(root, function_node.position, key_to_production_rule_indices);
+            return create_function_definition_modify_change(module, key_node_clone, function_name, function_name, key_to_production_rule_indices);
+        }
+        case "Struct": {
+            return [create_struct_modify_change(module, root, key_node_clone, key_ancestor.position, key_to_production_rule_indices)];
+        }
+        default: {
+            const message = `Parse_tree_convertor.create_modify_change() not implemented for '${key_node_clone.word.value}'`;
+            onThrowError(message);
+            throw message;
+        }
     }
 }
 
@@ -1236,209 +1546,23 @@ export function create_module_changes(
 
     for (const parse_tree_change of parse_tree_changes) {
 
-        if (parse_tree_change.type === Parser.Change_type.Modify) {
-            const modify_change = parse_tree_change.value as Parser.Modify_change;
+        const parent_position = get_change_parent_position(parse_tree_change);
+        const parent_node = get_node_at_position(parse_tree, parent_position);
+        const is_key = is_key_node(parent_node);
 
-            const node_stack: Node[] = [];
-            node_stack.push(modify_change.new_node);
-
-            const node_position_stack: number[][] = [];
-            node_position_stack.push(modify_change.position);
-
-            while (node_stack.length > 0) {
-                const current_node = node_stack.pop() as Node;
-                const current_node_position = node_position_stack.pop() as number[];
-
-                if (current_node.production_rule_index === undefined) {
-                    continue;
-                }
-
-                const change = create_modify_change(module, parse_tree, current_node, current_node_position, production_rules, production_rule_to_value_map, key_to_production_rule_indices);
-
-                if (change !== undefined) {
-                    changes.push(change);
-                    continue;
-                }
-
-                for (let index_plus_one = current_node.children.length; index_plus_one > 0; --index_plus_one) {
-                    const index = index_plus_one - 1;
-                    node_stack.push(current_node.children[index]);
-                    node_position_stack.push([...current_node_position, index]);
-                }
-            }
-        }
-        else if (parse_tree_change.type === Parser.Change_type.Add) {
+        if (is_key && parse_tree_change.type === Parser.Change_type.Add) {
             const add_change = parse_tree_change.value as Parser.Add_change;
-
-            // Figure out the context from parent position and index:
-            const parent_node = get_node_at_position(parse_tree, add_change.parent_position);
-
-            if (parent_node.word.value === "Module_body") {
-
-                // We are going to add alias, enums, functions and structs:
-                for (const new_node of add_change.new_nodes) {
-                    const declaration_type = new_node.children[0].word.value;
-
-                    const underlying_declaration_node = declaration_type === "Function" ? new_node.children[0].children[0] : new_node.children[0];
-                    const is_export = is_export_node(underlying_declaration_node, key_to_production_rule_indices);
-
-                    const declarations_member_name = is_export ? "export_declarations" : "internal_declarations";
-
-                    const declaration = map_node_to_value(underlying_declaration_node, production_rules, production_rule_to_value_map, key_to_production_rule_indices);
-
-                    if (declaration_type === "Alias") {
-                        const change = Module_change.create_add_element_to_vector("alias_type_declarations", 0, declaration);
-                        changes.push({ position: [declarations_member_name], change: change });
-                    }
-                    else if (declaration_type === "Enum") {
-                        const change = Module_change.create_add_element_to_vector("enum_declarations", 0, declaration);
-                        changes.push({ position: [declarations_member_name], change: change });
-                    }
-                    else if (declaration_type === "Struct") {
-                        const change = Module_change.create_add_element_to_vector("struct_declarations", 0, declaration);
-                        changes.push({ position: [declarations_member_name], change: change });
-                    }
-                    else if (declaration_type === "Function") {
-
-                        {
-                            // TODO change index
-                            const change = Module_change.create_add_element_to_vector("function_declarations", 0, declaration);
-                            changes.push({ position: [declarations_member_name], change: change });
-                        }
-
-                        {
-                            const function_definition_node = find_node(new_node.children[0], "Function_definition", key_to_production_rule_indices) as Parser_node.Node;
-                            const function_definition = node_to_function_definition(function_definition_node, declaration.name, key_to_production_rule_indices);
-
-                            // TODO change index
-                            const change = Module_change.create_add_element_to_vector("function_definitions", 0, function_definition);
-                            changes.push({ position: ["definitions"], change: change });
-                        }
-                    }
-                }
-            }
-            else if (parent_node.word.value === "Function_input_parameters" || parent_node.word.value === "Function_output_parameters") {
-                for (const new_node of add_change.new_nodes) {
-                    if (new_node.word.value === "Function_parameter") {
-                        const function_declaration_node = find_parent(parse_tree, add_change.parent_position, "Function_declaration", key_to_production_rule_indices)?.node as Parser_node.Node;
-                        const function_name = find_node_value(function_declaration_node, "Function_name", key_to_production_rule_indices);
-
-                        const function_declaration_position = Core_helpers.find_function_declaration_position(module, function_name) as number[];
-
-                        const prefix = parent_node.word.value === "Function_input_parameters" ? "input" : "output";
-
-                        {
-                            const parameter_name = find_node_value(new_node, "Function_parameter_name", key_to_production_rule_indices);
-                            const change = Module_change.create_add_element_to_vector(`${prefix}_parameter_names`, add_change.index, parameter_name);
-                            changes.push({ position: function_declaration_position, change: change });
-                        }
-
-                        {
-                            const parameter_type_name = find_node_value(new_node, "Function_parameter_type", key_to_production_rule_indices);
-                            const parameter_type = Type_utilities.parse_type_name(parameter_type_name)[0];
-                            const change = Module_change.create_add_element_to_vector(`${prefix}_parameter_types`, add_change.index, parameter_type);
-                            changes.push({ position: [...function_declaration_position, "type"], change: change });
-                        }
-                    }
-                }
-            }
+            const new_changes = create_add_change(add_change, parent_node, production_rules, production_rule_to_value_map, key_to_production_rule_indices);
+            changes.push(...new_changes);
         }
-        else if (parse_tree_change.type === Parser.Change_type.Remove) {
+        else if (is_key && parse_tree_change.type === Parser.Change_type.Remove) {
             const remove_change = parse_tree_change.value as Parser.Remove_change;
-
-            const parent_node = get_node_at_position(parse_tree, remove_change.parent_position);
-
-            if (parent_node.word.value === "Module_body") {
-
-                for (let index = 0; index < remove_change.count; ++index) {
-                    const removed_node_index = remove_change.index + index;
-                    const removed_node = parent_node.children[removed_node_index];
-
-                    const declaration_type = removed_node.children[0].word.value;
-
-                    const underlying_declaration_node = declaration_type === "Function" ? removed_node.children[0].children[0] : removed_node.children[0];
-
-                    if (declaration_type === "Alias") {
-                        const alias_name = find_node_value(underlying_declaration_node, "Alias_name", key_to_production_rule_indices);
-
-                        const alias = Core_helpers.find_alias_declaration_position(module, alias_name) as { position: any[], value: Core.Alias_type_declaration };
-
-                        const element_index = alias.position[alias.position.length - 1];
-                        const change = Module_change.create_remove_element_of_vector(alias.position[1], element_index);
-                        changes.push({ position: [alias.position[0]], change: change });
-                    }
-                    else if (declaration_type === "Enum") {
-                        const enum_name = find_node_value(underlying_declaration_node, "Enum_name", key_to_production_rule_indices);
-
-                        const enum_declaration = Core_helpers.find_enum_declaration_position(module, enum_name) as { position: any[], value: Core.Enum_declaration };
-
-                        const element_index = enum_declaration.position[enum_declaration.position.length - 1];
-                        const change = Module_change.create_remove_element_of_vector(enum_declaration.position[1], element_index);
-                        changes.push({ position: [enum_declaration.position[0]], change: change });
-                    }
-                    if (declaration_type === "Function") {
-                        const function_name = find_node_value(underlying_declaration_node, "Function_name", key_to_production_rule_indices);
-
-                        {
-                            const position_to_remove = Core_helpers.find_function_declaration_position(module, function_name) as any[];
-
-                            const declaration_index = position_to_remove[position_to_remove.length - 1];
-                            const declarations_member_name = position_to_remove[0];
-
-                            const change = Module_change.create_remove_element_of_vector("function_declarations", declaration_index);
-                            changes.push({ position: [declarations_member_name], change: change });
-                        }
-
-                        {
-                            const definition_index = module.definitions.function_definitions.elements.findIndex(value => value.name === function_name);
-
-                            const change = Module_change.create_remove_element_of_vector("function_definitions", definition_index);
-                            changes.push({ position: ["definitions"], change: change });
-                        }
-                    }
-                    else if (declaration_type === "Struct") {
-                        const struct_name = find_node_value(underlying_declaration_node, "Struct_name", key_to_production_rule_indices);
-
-                        const struct = Core_helpers.find_struct_declaration_position(module, struct_name) as { position: any[], value: Core.Struct_declaration };
-
-                        const element_index = struct.position[struct.position.length - 1];
-                        const change = Module_change.create_remove_element_of_vector(struct.position[1], element_index);
-                        changes.push({ position: [struct.position[0]], change: change });
-                    }
-                }
-            }
-            else if (parent_node.word.value === "Function_input_parameters" || parent_node.word.value === "Function_output_parameters") {
-
-                for (let index = 0; index < remove_change.count; ++index) {
-                    const removed_node_index = remove_change.index + index;
-                    const removed_node = parent_node.children[removed_node_index];
-
-                    if (removed_node.word.value === "Function_parameter") {
-
-                        const function_declaration_node = find_parent(parse_tree, remove_change.parent_position, "Function_declaration", key_to_production_rule_indices)?.node as Parser_node.Node;
-                        const function_name = find_node_value(function_declaration_node, "Function_name", key_to_production_rule_indices);
-                        const function_declaration = Core_helpers.find_function_declaration(module, function_name) as Core.Function_declaration;
-
-                        const parameter_name = find_node_value(removed_node, "Function_parameter_name", key_to_production_rule_indices);
-                        const parameter_list = parent_node.word.value === "Function_input_parameters" ? function_declaration.input_parameter_names.elements : function_declaration.output_parameter_names.elements;
-                        const parameter_index = parameter_list.findIndex(name => name === parameter_name);
-
-                        const function_declaration_position = Core_helpers.find_function_declaration_position(module, function_name) as number[];
-
-                        const prefix = parent_node.word.value === "Function_input_parameters" ? "input" : "output";
-
-                        {
-                            const change = Module_change.create_remove_element_of_vector(`${prefix}_parameter_names`, parameter_index);
-                            changes.push({ position: function_declaration_position, change: change });
-                        }
-
-                        {
-                            const change = Module_change.create_remove_element_of_vector(`${prefix}_parameter_types`, parameter_index);
-                            changes.push({ position: [...function_declaration_position, "type"], change: change });
-                        }
-                    }
-                }
-            }
+            const new_changes = create_remove_change(remove_change, module, parent_node, key_to_production_rule_indices);
+            changes.push(...new_changes);
+        }
+        else {
+            const new_changes = create_modify_change(parse_tree_change, parse_tree, parent_node, parent_position, module, key_to_production_rule_indices);
+            changes.push(...new_changes);
         }
     }
 
@@ -1457,6 +1581,52 @@ function find_parent(root: Parser_node.Node, node_position: number[], key: strin
 
     let current_node_position = Parser_node.get_parent_position(node_position);
     let current_node = Parser_node.get_node_at_position(root, current_node_position);
+
+    while (current_node_position.length > 0 && current_node.word.value !== key) {
+        current_node_position = Parser_node.get_parent_position(current_node_position);
+        current_node = Parser_node.get_node_at_position(root, current_node_position);
+    }
+
+    return {
+        node: current_node,
+        position: current_node_position
+    };
+}
+
+function find_parent_with_new_node(
+    root: Parser_node.Node,
+    new_node: Parser_node.Node,
+    new_node_position: number[],
+    node_position: number[],
+    key: string,
+    key_to_production_rule_indices: Map<string, number[]>
+): { node: Parser_node.Node, position: number[] } | undefined {
+    const indices = key_to_production_rule_indices.get(key);
+    if (indices === undefined) {
+        return undefined;
+    }
+
+    if (node_position.length === 0) {
+        return undefined;
+    }
+
+    let current_node_position = node_position.slice(new_node_position.length, node_position.length);
+    let current_node = Parser_node.get_node_at_position(new_node, current_node_position);
+
+    while (current_node_position.length > 0 && current_node.word.value !== key) {
+        current_node_position = Parser_node.get_parent_position(current_node_position);
+        current_node = Parser_node.get_node_at_position(new_node, current_node_position);
+    }
+
+    if (current_node.word.value === key) {
+        current_node_position = [...new_node_position, ...current_node_position];
+        return {
+            node: current_node,
+            position: current_node_position
+        };
+    }
+
+    current_node_position = node_position;
 
     while (current_node_position.length > 0 && current_node.word.value !== key) {
         current_node_position = Parser_node.get_parent_position(current_node_position);
@@ -1603,6 +1773,11 @@ function find_nodes_inside_parent(node: Node, parent_key: string, child_key: str
 
     const child_nodes = find_nodes(parent_node, child_key, key_to_production_rule_indices);
     return child_nodes;
+}
+
+function find_node_child_index(node: Node, key: string, key_to_production_rule_indices: Map<string, number[]>): number {
+    const production_rule_indices = key_to_production_rule_indices.get(key) as number[];
+    return node.children.findIndex(child => production_rule_indices.find(index => index === child.production_rule_index) !== undefined);
 }
 
 function node_to_function_declaration(node: Node, key_to_production_rule_indices: Map<string, number[]>): Core.Function_declaration {
@@ -1980,4 +2155,30 @@ export function parse_tree_to_module(
         internal_declarations: internal_declarations,
         definitions: definitions
     };
+}
+
+function deep_equal(obj1: any, obj2: any): boolean {
+
+    if (typeof obj1 !== 'object' || typeof obj2 !== 'object') {
+        return obj1 === obj2;
+    }
+
+    if (obj1 === null && obj2 === null) {
+        return true;
+    }
+
+    const keys1 = Object.keys(obj1);
+    const keys2 = Object.keys(obj2);
+
+    if (keys1.length !== keys2.length) {
+        return false;
+    }
+
+    for (const key of keys1) {
+        if (!deep_equal(obj1[key], obj2[key])) {
+            return false;
+        }
+    }
+
+    return true;
 }
