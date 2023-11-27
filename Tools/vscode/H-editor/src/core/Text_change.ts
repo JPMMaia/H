@@ -72,6 +72,8 @@ export function update(
                 const production_rule_to_change_action_map = Parse_tree_convertor.create_production_rule_to_change_action_map(language_description.production_rules);
                 const key_to_production_rule_indices = Parse_tree_convertor.create_key_to_production_rule_indices_map(language_description.production_rules);
 
+                const simplified_changes = Parser.simplify_changes(parse_result.changes);
+
                 const module_changes = Parse_tree_convertor.create_module_changes(
                     state.module,
                     state.declarations,
@@ -79,7 +81,7 @@ export function update(
                     production_rule_to_value_map,
                     production_rule_to_change_action_map,
                     state.parse_tree,
-                    parse_result.changes,
+                    simplified_changes,
                     key_to_production_rule_indices
                 );
 
