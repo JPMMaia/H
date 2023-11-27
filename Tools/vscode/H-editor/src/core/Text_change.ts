@@ -27,7 +27,7 @@ export function update(
     text_after_changes: string
 ): Document.State {
 
-    const text_change = aggregate_text_changes(text_after_changes, [...state.pending_text_changes, ...text_changes]);
+    const text_change = aggregate_text_changes(state.text, [...state.pending_text_changes, ...text_changes]);
 
     const scanned_input_change = scan_new_change(
         state.parse_tree,
@@ -143,36 +143,50 @@ function is_replacing_root(changes: Parser.Change[]): boolean {
     return false;
 }
 
-function aggregate_text_changes(after_changes_text: string, text_changes: Text_change[]): Text_change {
+function compose_text_changes(original_text: string, first: Text_change, second: Text_change): Text_change {
+
+    const end = (first.range.start + first.text.length) <= second.range.end ? second.range.end - first.text.length + (first.range.end - first.range.start) : first.range.end;
+
+    if (first.range.start <= second.range.start) {
+        const text_v0 = first.text + original_text.substring(first.range.end, first.range.end + Math.max(0, second.range.start - first.range.end - first.text.length));
+        const text_v1 = text_v0.substring(0, second.range.start - first.range.start) + second.text + text_v0.substring(second.range.end - first.range.start, text_v0.length);
+        const start = first.range.start;
+        return {
+            range: {
+                start: start,
+                end: end
+            },
+            text: text_v1
+        };
+    }
+    else {
+        const text_v0 = original_text.substring(second.range.end, second.range.end + Math.max(0, first.range.start - second.range.end)) + first.text;
+        const text_v1 = second.text + text_v0.substring(second.range.end - first.range.start, text_v0.length);
+        const start = second.range.start;
+        return {
+            range: {
+                start: start,
+                end: end
+            },
+            text: text_v1
+        };
+    }
+}
+
+export function aggregate_text_changes(original_text: string, text_changes: Text_change[]): Text_change {
 
     if (text_changes.length === 1) {
         return text_changes[0];
     }
 
-    let global_start_offset = Infinity;
-    let global_change_length = 0;
+    let composed = text_changes[0];
 
-    for (const change of text_changes) {
-
-        const range_start_offset = change.range.start;
-
-        if (range_start_offset < global_start_offset) {
-            global_start_offset = range_start_offset;
-        }
-
-        global_change_length += change.text.length;
+    for (let index = 1; index < text_changes.length; ++index) {
+        const next_change = text_changes[index];
+        composed = compose_text_changes(original_text, composed, next_change);
     }
 
-    const changed_text = after_changes_text.substring(global_start_offset, global_start_offset + global_change_length);
-    const global_end_offset = global_start_offset + global_change_length;
-
-    return {
-        range: {
-            start: global_start_offset,
-            end: global_end_offset
-        },
-        text: changed_text
-    };
+    return composed;
 }
 
 function update_parse_tree_text_position_cache(cache: Parse_tree_text_position_cache.Cache, text: string, text_change: Text_change, parse_tree: Parser_node.Node, parse_tree_changes: Parser.Change[]): void {

@@ -578,3 +578,303 @@ describe("Text_change.update", () => {
         }
     });
 });
+
+describe("Text_change.aggregate_changes", () => {
+    it("Handles erasing of characters 0", () => {
+        const original_text = "()";
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 1,
+                    end: 1
+                },
+                text: "foo: "
+            },
+            {
+                range: {
+                    start: 5,
+                    end: 6
+                },
+                text: ""
+            },
+        ];
+
+        const aggregated_changes = Text_change.aggregate_text_changes(original_text, text_changes);
+
+        assert.equal(aggregated_changes.range.start, 1);
+        assert.equal(aggregated_changes.range.end, 1);
+        assert.equal(aggregated_changes.text, "foo:");
+    });
+
+    it("Handles erasing of characters 1", () => {
+        const original_text = "()";
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 1,
+                    end: 1
+                },
+                text: "foo: Int32"
+            },
+            {
+                range: {
+                    start: 1,
+                    end: 11
+                },
+                text: ""
+            },
+        ];
+
+        const aggregated_changes = Text_change.aggregate_text_changes(original_text, text_changes);
+
+        assert.equal(aggregated_changes.range.start, 1);
+        assert.equal(aggregated_changes.range.end, 1);
+        assert.equal(aggregated_changes.text, "");
+    });
+
+    it("Handles erasing of characters 2", () => {
+        const original_text = "()";
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 1,
+                    end: 1
+                },
+                text: "foo: Int32"
+            },
+            {
+                range: {
+                    start: 11,
+                    end: 12
+                },
+                text: ""
+            },
+        ];
+
+        const aggregated_changes = Text_change.aggregate_text_changes(original_text, text_changes);
+
+        assert.equal(aggregated_changes.range.start, 1);
+        assert.equal(aggregated_changes.range.end, 2);
+        assert.equal(aggregated_changes.text, "foo: Int32");
+    });
+
+    it("Handles erasing of characters 3", () => {
+        const original_text = "()23456";
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 2,
+                    end: 7
+                },
+                text: ""
+            },
+            {
+                range: {
+                    start: 1,
+                    end: 1
+                },
+                text: "foo"
+            },
+        ];
+
+        const aggregated_changes = Text_change.aggregate_text_changes(original_text, text_changes);
+
+        assert.equal(aggregated_changes.range.start, 1);
+        assert.equal(aggregated_changes.range.end, 7);
+        assert.equal(aggregated_changes.text, "foo)");
+    });
+
+    it("Handles first is first 0", () => {
+        const original_text = "";
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: "abc"
+            },
+            {
+                range: {
+                    start: 1,
+                    end: 3
+                },
+                text: "123"
+            },
+        ];
+
+        const aggregated_changes = Text_change.aggregate_text_changes(original_text, text_changes);
+
+        assert.equal(aggregated_changes.range.start, 0);
+        assert.equal(aggregated_changes.range.end, 0);
+        assert.equal(aggregated_changes.text, "a123");
+    });
+
+    it("Handles first is first 1", () => {
+        const original_text = "de";
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: "abc"
+            },
+            {
+                range: {
+                    start: 5,
+                    end: 5
+                },
+                text: "123"
+            },
+        ];
+
+        const aggregated_changes = Text_change.aggregate_text_changes(original_text, text_changes);
+
+        assert.equal(aggregated_changes.range.start, 0);
+        assert.equal(aggregated_changes.range.end, 2);
+        assert.equal(aggregated_changes.text, "abcde123");
+    });
+
+    it("Handles first is first 2", () => {
+        const original_text = "ab";
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 2
+                },
+                text: "abc"
+            },
+            {
+                range: {
+                    start: 1,
+                    end: 2
+                },
+                text: "1234"
+            },
+        ];
+
+        const aggregated_changes = Text_change.aggregate_text_changes(original_text, text_changes);
+
+        assert.equal(aggregated_changes.range.start, 0);
+        assert.equal(aggregated_changes.range.end, 2);
+        assert.equal(aggregated_changes.text, "a1234c");
+    });
+
+    it("Handles first is first 3", () => {
+        const original_text = "xyzw";
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 1,
+                    end: 3
+                },
+                text: "abc"
+            },
+            {
+                range: {
+                    start: 1,
+                    end: 5
+                },
+                text: "123"
+            },
+        ];
+
+        const aggregated_changes = Text_change.aggregate_text_changes(original_text, text_changes);
+
+        assert.equal(aggregated_changes.range.start, 1);
+        assert.equal(aggregated_changes.range.end, 4);
+        assert.equal(aggregated_changes.text, "123");
+    });
+
+    it("Handles second is first 0", () => {
+        const original_text = " ";
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 1,
+                    end: 1
+                },
+                text: "abc"
+            },
+            {
+                range: {
+                    start: 0,
+                    end: 3
+                },
+                text: "123"
+            },
+        ];
+
+        const aggregated_changes = Text_change.aggregate_text_changes(original_text, text_changes);
+
+        assert.equal(aggregated_changes.range.start, 0);
+        assert.equal(aggregated_changes.range.end, 1);
+        assert.equal(aggregated_changes.text, "123c");
+    });
+
+    it("Handles second is first 1", () => {
+        const original_text = "de";
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 2,
+                    end: 2
+                },
+                text: "abc"
+            },
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: "123"
+            },
+        ];
+
+        const aggregated_changes = Text_change.aggregate_text_changes(original_text, text_changes);
+
+        assert.equal(aggregated_changes.range.start, 0);
+        assert.equal(aggregated_changes.range.end, 2);
+        assert.equal(aggregated_changes.text, "123deabc");
+    });
+
+    it("Handles second is first 2", () => {
+        const original_text = "abc";
+        "a1234c"
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 1,
+                    end: 2
+                },
+                text: "1234"
+            },
+            {
+                range: {
+                    start: 0,
+                    end: 6
+                },
+                text: "def"
+            },
+        ];
+
+        const aggregated_changes = Text_change.aggregate_text_changes(original_text, text_changes);
+
+        assert.equal(aggregated_changes.range.start, 0);
+        assert.equal(aggregated_changes.range.end, 3);
+        assert.equal(aggregated_changes.text, "def");
+    });
+});
