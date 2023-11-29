@@ -127,7 +127,7 @@ export function get_type_name(
             {
                 const value = type_reference_value.data.value as Core.Custom_type_reference;
                 const module_name = value.module_reference.name;
-                return `${module_name}.${value.name}`;
+                return module_name.length > 0 ? `${module_name}.${value.name}` : value.name;
             }
         case Core.Type_reference_enum.Fundamental_type:
             {
