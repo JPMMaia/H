@@ -372,7 +372,7 @@ export function module_to_parse_tree(
             const next_production_rule_index = choose_production_rule_index(module, production_rules, next_production_rule_indices, label, declarations, next_state);
             const next_production_rule = production_rules[next_production_rule_index];
 
-            const is_next_production_rule_array = (next_production_rule.flags & Grammar.Production_rule_flags.Is_array) !== 0;
+            const is_next_production_rule_array = (next_production_rule.flags & (Grammar.Production_rule_flags.Is_array | Grammar.Production_rule_flags.Is_array_set)) !== 0;
             const rhs_length = is_next_production_rule_array ? get_production_rule_array_rhs_length(next_production_rule, declarations, next_state) : next_production_rule.rhs.length;
 
             const child_stack_element: Module_to_parse_tree_stack_element =
@@ -425,6 +425,12 @@ function get_production_rule_array_rhs_length(production_rule: Grammar.Productio
         if (state.type === State_type.Struct_member) {
             const state_value = state.value as Struct_state;
             return state_value.declaration.member_names.elements.length;
+        }
+    }
+    else if (production_rule.lhs === "Statements") {
+        if (state.type === State_type.Statement) {
+            const state_value = state.value as Statement_state;
+            return state_value.function_definition.statements.elements.length;
         }
     }
 

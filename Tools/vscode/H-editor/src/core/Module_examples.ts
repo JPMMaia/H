@@ -170,20 +170,17 @@ export function create_0(): core.Module {
                         name: "Empty_function",
                         type: {
                             input_parameter_types: {
-                                size: 2,
-                                elements: [
-                                    { data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } },
-                                    { data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } },
-                                ],
+                                size: 0,
+                                elements: [],
                             },
                             output_parameter_types: {
-                                size: 1,
-                                elements: [{ data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } }],
+                                size: 0,
+                                elements: [],
                             },
                             is_variadic: false,
                         },
-                        input_parameter_names: { size: 2, elements: ["lhs", "rhs"] },
-                        output_parameter_names: { size: 1, elements: ["result"] },
+                        input_parameter_names: { size: 0, elements: [] },
+                        output_parameter_names: { size: 0, elements: [] },
                         linkage: core.Linkage.External,
                     },
                 ],
