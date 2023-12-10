@@ -21,6 +21,7 @@ namespace h
         Float16,
         Float32,
         Float64,
+        String,
         Any_type,
 
         C_bool,
