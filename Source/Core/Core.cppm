@@ -267,6 +267,17 @@ namespace h
         friend auto operator<=>(Language_version const&, Language_version const&) = default;
     };
 
+    export struct Import_module_with_alias
+    {
+        std::pmr::string module_name;
+        std::pmr::string alias;
+    };
+
+    export struct Module_dependencies
+    {
+        std::pmr::vector<Import_module_with_alias> alias_imports;
+    };
+
     export struct Module_declarations
     {
         std::pmr::vector<Alias_type_declaration> alias_type_declarations;
@@ -288,6 +299,7 @@ namespace h
     {
         Language_version language_version;
         std::pmr::string name;
+        Module_dependencies dependencies;
         Module_declarations export_declarations;
         Module_declarations internal_declarations;
         Module_definitions definitions;
