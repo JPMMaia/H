@@ -14,6 +14,7 @@ export enum Fundamental_type {
     Float16 = "Float16",
     Float32 = "Float32",
     Float64 = "Float64",
+    String = "String",
     Any_type = "Any_type",
     C_bool = "C_bool",
     C_char = "C_char",
@@ -183,6 +184,15 @@ export interface Language_version {
     patch: number;
 }
 
+export interface Import_module_with_alias {
+    module_name: string;
+    alias: string;
+}
+
+export interface Module_dependencies {
+    alias_imports: Vector<Import_module_with_alias>;
+}
+
 export interface Module_declarations {
     alias_type_declarations: Vector<Alias_type_declaration>;
     enum_declarations: Vector<Enum_declaration>;
@@ -197,6 +207,7 @@ export interface Module_definitions {
 export interface Module {
     language_version: Language_version;
     name: string;
+    dependencies: Module_dependencies;
     export_declarations: Module_declarations;
     internal_declarations: Module_declarations;
     definitions: Module_definitions;

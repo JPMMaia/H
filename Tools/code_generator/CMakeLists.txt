@@ -53,13 +53,13 @@ add_custom_command(
 add_custom_target(Generate_h_core_reflection_json DEPENDS "${H_ROOT_DIR}/Tools/vscode/H-editor/src/utilities/h_core_reflection.json")
 
 add_custom_command(
-    OUTPUT "${H_ROOT_DIR}/Tools/vscode/H-editor/src/utilities/coreModelInterface.ts"
+    OUTPUT "${H_ROOT_DIR}/Tools/vscode/H-editor/src/core/Core_interface.ts"
     COMMAND H_Tools_Generate_JSON
                 ARGS
                 "typescript_interface"
                 "${H_ROOT_DIR}/Source/Core/Core.cppm"
-                "${H_ROOT_DIR}/Tools/vscode/H-editor/src/utilities/coreModelInterface.ts"
+                "${H_ROOT_DIR}/Tools/vscode/H-editor/src/core/Core_interface.ts"
     DEPENDS H_Tools_Generate_JSON "${H_ROOT_DIR}/Source/Core/Core.cppm"
     VERBATIM
 )
-add_custom_target(Generate_h_core_typescript_interface DEPENDS "${H_ROOT_DIR}/Tools/vscode/H-editor/src/utilities/coreModelInterface.ts")
+add_custom_target(Generate_h_core_typescript_interface DEPENDS "${H_ROOT_DIR}/Tools/vscode/H-editor/src/core/Core_interface.ts")
