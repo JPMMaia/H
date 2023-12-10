@@ -34,6 +34,10 @@ namespace h::json
         {
             return "float64";
         }
+        else if (value == Fundamental_type::String)
+        {
+            return "string";
+        }
         else if (value == Fundamental_type::Any_type)
         {
             return "any_type";
@@ -276,6 +280,18 @@ namespace h::json
         void write_object(
             Writer_type& writer,
             Language_version const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Import_module_with_alias const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Module_dependencies const& input
         );
 
     export template<typename Writer_type>
@@ -815,6 +831,32 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Import_module_with_alias const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("module_name");
+        writer.String(output.module_name.data(), output.module_name.size());
+        writer.Key("alias");
+        writer.String(output.alias.data(), output.alias.size());
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Module_dependencies const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("alias_imports");
+        write_object(writer, output.alias_imports);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Module_declarations const& output
         )
     {
@@ -853,6 +895,8 @@ namespace h::json
         write_object(writer, output.language_version);
         writer.Key("name");
         writer.String(output.name.data(), output.name.size());
+        writer.Key("dependencies");
+        write_object(writer, output.dependencies);
         writer.Key("export_declarations");
         write_object(writer, output.export_declarations);
         writer.Key("internal_declarations");

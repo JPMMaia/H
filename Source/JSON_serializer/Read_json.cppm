@@ -218,6 +218,11 @@ namespace h::json
             output = Fundamental_type::Float64;
             return true;
         }
+        else if (value == "string")
+        {
+            output = Fundamental_type::String;
+            return true;
+        }
         else if (value == "any_type")
         {
             output = Fundamental_type::Any_type;
@@ -3066,6 +3071,167 @@ namespace h::json
 
     export template<typename Event_data>
         bool read_object(
+            Import_module_with_alias& output,
+            Event const event,
+            Event_data const event_data,
+            std::pmr::vector<int>& state_stack,
+            std::size_t const state_stack_position
+        )
+    {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
+        int& state = state_stack[state_stack_position];
+
+        switch (state)
+        {
+        case 0:
+        {
+            if (event == Event::Start_object)
+            {
+                state = 1;
+                return true;
+            }
+            break;
+        }
+        case 1:
+        {
+            switch (event)
+            {
+            case Event::Key:
+            {
+                if constexpr (std::is_same_v<Event_data, std::string_view>)
+                {
+                    if (event_data == "module_name")
+                    {
+                        state = 3;
+                        return true;
+                    }
+                    else if (event_data == "alias")
+                    {
+                        state = 4;
+                        return true;
+                    }
+                }
+                break;
+            }
+            case Event::End_object:
+            {
+                state = 2;
+                return true;
+            }
+            }
+            break;
+        }
+        case 2:
+        {
+            std::cerr << "While parsing 'Import_module_with_alias' unexpected '}' found.\n";
+            return false;
+        }
+        case 3:
+        {
+            state = 1;
+            return read_value(output.module_name, "module_name", event_data);
+        }
+        case 4:
+        {
+            state = 1;
+            return read_value(output.alias, "alias", event_data);
+        }
+        }
+
+        std::cerr << "Error while reading 'Import_module_with_alias'.\n";
+        return false;
+    }
+
+    export template<typename Event_data>
+        bool read_object(
+            Module_dependencies& output,
+            Event const event,
+            Event_data const event_data,
+            std::pmr::vector<int>& state_stack,
+            std::size_t const state_stack_position
+        )
+    {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
+        int& state = state_stack[state_stack_position];
+
+        switch (state)
+        {
+        case 0:
+        {
+            if (event == Event::Start_object)
+            {
+                state = 1;
+                return true;
+            }
+            break;
+        }
+        case 1:
+        {
+            switch (event)
+            {
+            case Event::Key:
+            {
+                if constexpr (std::is_same_v<Event_data, std::string_view>)
+                {
+                    if (event_data == "alias_imports")
+                    {
+                        state = 3;
+                        return true;
+                    }
+                }
+                break;
+            }
+            case Event::End_object:
+            {
+                state = 2;
+                return true;
+            }
+            }
+            break;
+        }
+        case 2:
+        {
+            std::cerr << "While parsing 'Module_dependencies' unexpected '}' found.\n";
+            return false;
+        }
+        case 3:
+        {
+            state = 4;
+            return read_object(output.alias_imports, event, event_data, state_stack, state_stack_position + 1 + 0);
+        }
+        case 4:
+        {
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
+            {
+                if (!read_object(output.alias_imports, event, event_data, state_stack, state_stack_position + 1 + 0))
+                {
+                    return false;
+                }
+
+                state = 1;
+                return true;
+            }
+            else
+            {
+                return read_object(output.alias_imports, event, event_data, state_stack, state_stack_position + 1 + 0);
+            }
+        }
+        }
+
+        std::cerr << "Error while reading 'Module_dependencies'.\n";
+        return false;
+    }
+
+    export template<typename Event_data>
+        bool read_object(
             Module_declarations& output,
             Event const event,
             Event_data const event_data,
@@ -3358,19 +3524,24 @@ namespace h::json
                         state = 5;
                         return true;
                     }
-                    else if (event_data == "export_declarations")
+                    else if (event_data == "dependencies")
                     {
                         state = 6;
                         return true;
                     }
-                    else if (event_data == "internal_declarations")
+                    else if (event_data == "export_declarations")
                     {
                         state = 8;
                         return true;
                     }
-                    else if (event_data == "definitions")
+                    else if (event_data == "internal_declarations")
                     {
                         state = 10;
+                        return true;
+                    }
+                    else if (event_data == "definitions")
+                    {
+                        state = 12;
                         return true;
                     }
                 }
@@ -3419,9 +3590,31 @@ namespace h::json
         case 6:
         {
             state = 7;
-            return read_object(output.export_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
+            return read_object(output.dependencies, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
         case 7:
+        {
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
+            {
+                if (!read_object(output.dependencies, event, event_data, state_stack, state_stack_position + 1 + 0))
+                {
+                    return false;
+                }
+
+                state = 1;
+                return true;
+            }
+            else
+            {
+                return read_object(output.dependencies, event, event_data, state_stack, state_stack_position + 1 + 0);
+            }
+        }
+        case 8:
+        {
+            state = 9;
+            return read_object(output.export_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
+        }
+        case 9:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
@@ -3438,12 +3631,12 @@ namespace h::json
                 return read_object(output.export_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
             }
         }
-        case 8:
+        case 10:
         {
-            state = 9;
+            state = 11;
             return read_object(output.internal_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
-        case 9:
+        case 11:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
@@ -3460,12 +3653,12 @@ namespace h::json
                 return read_object(output.internal_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
             }
         }
-        case 10:
+        case 12:
         {
-            state = 11;
+            state = 13;
             return read_object(output.definitions, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
-        case 11:
+        case 13:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {
