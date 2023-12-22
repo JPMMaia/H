@@ -116,9 +116,14 @@ export function create_test_grammar_8_description(): string[] {
 export function create_test_grammar_9_description(): string[] {
     return [
         "Module -> Module_head Module_body",
-        "Module_head -> Module_declaration",
+        "Identifier_with_dots -> identifier . $1_or_more",
+        "Module_head -> Module_declaration Imports",
         "Module_declaration -> module Module_name ;",
-        "Module_name -> identifier",
+        "Module_name -> Identifier_with_dots",
+        "Imports -> Import $0_or_more",
+        "Import -> import Import_name as Import_alias ;",
+        "Import_name -> Identifier_with_dots",
+        "Import_alias -> identifier",
         "Module_body -> Declaration $0_or_more",
         "Declaration -> Alias",
         "Declaration -> Enum",
@@ -159,7 +164,7 @@ export function create_test_grammar_9_description(): string[] {
         "Generic_expression -> Expression_call",
         "Generic_expression -> Expression_binary",
         "Generic_expression -> Expression_variable",
-        "Expression_call -> Function_name ( Expression_call_arguments )",
+        "Expression_call -> Variable_name ( Expression_call_arguments )",
         "Expression_call_arguments -> Generic_expression , $0_or_more",
         "Expression_binary -> Generic_expression Expression_binary_symbol Generic_expression",
         "Expression_binary_symbol -> Expression_binary_symbol_add | Expression_binary_symbol_subtract | Expression_binary_symbol_multiply | Expression_binary_symbol_signed_divide | Expression_binary_symbol_unsigned_divide",
@@ -173,7 +178,7 @@ export function create_test_grammar_9_description(): string[] {
         "Expression_variable -> Variable_name",
         "Expression_variable_assignment -> Variable_name = Generic_expression",
         "Expression_variable_declaration_and_assignment -> var Variable_name = Generic_expression",
-        "Variable_name -> identifier",
+        "Variable_name -> Identifier_with_dots",
     ];
 }
 

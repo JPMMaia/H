@@ -194,8 +194,14 @@ function get_object_at_position(object: any, position: any[]): Object_reference 
 function do_add_element_of_vector_change(object: any, change: Add_element_to_vector, position: any[]): void {
     const vector_position = position.concat(change.vector_name);
     const vector_reference: Core.Vector<any> = get_object_at_position(object, vector_position).value;
-    vector_reference.elements.splice(change.index, 0, change.value);
-    vector_reference.size += 1;
+    if (change.index >= 0) {
+        vector_reference.elements.splice(change.index, 0, change.value);
+        vector_reference.size += 1;
+    }
+    else {
+        vector_reference.elements.push(change.value);
+        vector_reference.size += 1;
+    }
 }
 
 function do_remove_element_of_vector_change(object: any, change: Remove_element_of_vector, position: any[]): void {

@@ -3,6 +3,7 @@ import * as Core_helpers from "./Core_helpers";
 import { onThrowError } from "../utilities/errors";
 import * as Grammar from "./Grammar";
 import * as Module_change from "./Module_change";
+import * as Object_reference from "../utilities/Object_reference";
 import * as Parser from "./Parser";
 import * as Parser_node from "./Parser_node";
 import * as Scanner from "./Scanner";
@@ -239,6 +240,7 @@ export function create_production_rule_to_change_action_map(production_rules: Gr
 
 enum State_type {
     Module,
+    Imports,
     Module_body,
     Alias,
     Enum,
@@ -249,6 +251,10 @@ enum State_type {
     Statement,
     Struct,
     Struct_member
+}
+
+interface Imports_state {
+    dependencies: Core.Module_dependencies;
 }
 
 interface Alias_state {
@@ -287,7 +293,7 @@ interface Struct_state {
 interface State {
     type: State_type;
     index: number;
-    value: Alias_state | Enum_state | Expression_state | Function_state | Function_parameters_state | Statement_state | Struct_state | undefined;
+    value: Imports_state | Alias_state | Enum_state | Expression_state | Function_state | Function_parameters_state | Statement_state | Struct_state | undefined;
 }
 
 interface Module_to_parse_tree_stack_element {
@@ -354,7 +360,7 @@ export function module_to_parse_tree(
 
         if (is_terminal) {
 
-            const word = map_terminal_to_word(module, top.state, parent_node.word.value, label);
+            const word = map_terminal_to_word(module, stack, top.state, parent_node.word.value, label);
 
             const child_node: Node = {
                 word: word,
@@ -373,7 +379,7 @@ export function module_to_parse_tree(
             const next_production_rule = production_rules[next_production_rule_index];
 
             const is_next_production_rule_array = (next_production_rule.flags & (Grammar.Production_rule_flags.Is_array | Grammar.Production_rule_flags.Is_array_set)) !== 0;
-            const rhs_length = is_next_production_rule_array ? get_production_rule_array_rhs_length(next_production_rule, declarations, next_state) : next_production_rule.rhs.length;
+            const rhs_length = is_next_production_rule_array ? get_production_rule_array_rhs_length(module, production_rules, next_production_rule, declarations, stack, next_state) : next_production_rule.rhs.length;
 
             const child_stack_element: Module_to_parse_tree_stack_element =
             {
@@ -400,9 +406,51 @@ export function module_to_parse_tree(
     return stack[0].node;
 }
 
-function get_production_rule_array_rhs_length(production_rule: Grammar.Production_rule, declarations: Declaration[], state: State): number {
+function get_core_value_from_stack(module: Core.Module, production_rules: Grammar.Production_rule[], stack: Module_to_parse_tree_stack_element[]): any {
 
-    if (production_rule.lhs === "Module_body") {
+    const top = stack[stack.length - 1];
+
+    switch (top.node.word.value) {
+        case "Module": {
+            return module;
+        }
+        case "Module_name": {
+            return module.name;
+        }
+        case "Imports": {
+            return module.dependencies.alias_imports;
+        }
+        case "Import_name": {
+            const production_rule = production_rules[top.production_rule_index];
+            const index = calculate_array_index(production_rule, top.current_child_index);
+            const alias_import = module.dependencies.alias_imports.elements[index];
+            return alias_import.module_name;
+        }
+        default: {
+            const message = "Parse_tree_convertor.get_core_value_from_stack() case not handled!";
+            onThrowError(message);
+            throw Error(message);
+        }
+    }
+}
+
+function get_production_rule_array_rhs_length(module: Core.Module, production_rules: Grammar.Production_rule[], production_rule: Grammar.Production_rule, declarations: Declaration[], stack: Module_to_parse_tree_stack_element[], state: State): number {
+
+    if (production_rule.lhs === "Identifier_with_dots") {
+        const value = get_core_value_from_stack(module, production_rules, stack) as string;
+        let count = 1;
+        for (let index = 0; index < value.length; ++index) {
+            if (value.charAt(index) === ".") {
+                count += 2;
+            }
+        }
+        return count;
+    }
+    else if (production_rule.lhs === "Imports") {
+        const state_value = state.value as Imports_state;
+        return state_value.dependencies.alias_imports.elements.length;
+    }
+    else if (production_rule.lhs === "Module_body") {
         return declarations.length;
     }
     else if (production_rule.lhs === "Function_input_parameters" || production_rule.lhs === "Function_output_parameters") {
@@ -458,7 +506,30 @@ function calculate_array_index(production_rule: Grammar.Production_rule, label_i
 
 function get_next_state(module: Core.Module, declarations: Declaration[], production_rule: Grammar.Production_rule, current_state: State, label: string, label_index: number): State {
 
-    if (current_state.type === State_type.Statement) {
+    if (current_state.type === State_type.Module) {
+        if (label === "Imports") {
+
+            const new_state: Imports_state = {
+                dependencies: module.dependencies
+            };
+
+            return {
+                type: State_type.Imports,
+                index: -1,
+                value: new_state
+            };
+        }
+    }
+    else if (current_state.type === State_type.Imports) {
+        if (label === "Import") {
+            return {
+                type: current_state.type,
+                index: calculate_array_index(production_rule, label_index),
+                value: current_state.value
+            };
+        }
+    }
+    else if (current_state.type === State_type.Statement) {
         if (label === "Expression_return") {
             const statement_state = current_state.value as Statement_state;
 
@@ -719,7 +790,14 @@ function choose_production_rule_index(module: Core.Module, production_rules: Gra
         return production_rule_indices[0];
     }
 
-    if (current_state.type === State_type.Statement) {
+    if (current_state.type === State_type.Imports) {
+        if (label === "Imports") {
+            const state_value = current_state.value as Imports_state;
+            const index = state_value.dependencies.alias_imports.elements.length > 1 ? 2 : state_value.dependencies.alias_imports.elements.length;
+            return production_rule_indices[index];
+        }
+    }
+    else if (current_state.type === State_type.Statement) {
 
         if (label === "Statements") {
             const state_value = current_state.value as Statement_state;
@@ -871,13 +949,66 @@ function get_underlying_declaration_production_rule_lhs(type: Declaration_type):
 
 function map_terminal_to_word(
     module: Core.Module,
+    stack: Module_to_parse_tree_stack_element[],
     current_state: State,
     parent_label: string,
     terminal: string
 ): Scanner.Scanned_word {
 
-    if (parent_label === "Module_name") {
-        return { value: module.name, type: Grammar.Word_type.Alphanumeric };
+    if (parent_label === "Identifier_with_dots") {
+        const grandparent_label = stack[stack.length - 2].node.word.value;
+
+        const slice = (value: string, slice_index: number): Scanner.Scanned_word => {
+
+            if ((slice_index % 2) !== 0) {
+                return { value: ".", type: Grammar.Word_type.Symbol };
+            }
+
+            let current_slice_index = 0;
+            for (let index = 0; index < value.length; ++index) {
+                if (current_slice_index === slice_index) {
+                    const end = value.indexOf(".", index);
+                    return { value: value.substring(index, end === -1 ? value.length : end), type: Grammar.Word_type.Alphanumeric };
+                }
+                if (value.charAt(index) === ".") {
+                    current_slice_index += 2;
+                }
+            }
+
+            return { value: "", type: Grammar.Word_type.Alphanumeric };
+        };
+
+        switch (grandparent_label) {
+            case "Module_name": {
+                const word = slice(module.name, current_state.index);
+                return word;
+            }
+            case "Import_name": {
+                const state = current_state.value as Imports_state;
+                const import_value = state.dependencies.alias_imports.elements[current_state.index];
+                const word = slice(import_value.module_name, current_state.index);
+                return word;
+            }
+            case "Variable_name": {
+                if (current_state.type === State_type.Expression) {
+                    const state = current_state.value as Expression_state;
+                    const function_definition = state.function_definition;
+                    const statement = function_definition.statements.elements[state.statement_index];
+                    const expression = statement.expressions.elements[current_state.index]; // TODO index is wrong
+                    if (expression.data.type === Core.Expression_enum.Variable_expression) {
+                        const variable_expression = expression.data.value as Core.Variable_expression;
+                        const word = slice(variable_expression.name, current_state.index);
+                        return word;
+                    }
+                }
+            }
+        }
+    }
+
+    if (parent_label === "Import_alias") {
+        const state = current_state.value as Imports_state;
+        const import_value = state.dependencies.alias_imports.elements[current_state.index];
+        return { value: import_value.alias, type: Grammar.Word_type.Alphanumeric };
     }
     else if (parent_label === "Alias_name") {
         const state = current_state.value as Alias_state;
@@ -937,18 +1068,6 @@ function map_terminal_to_word(
         const member_type = state.declaration.member_types.elements[current_state.index];
         const member_type_name = Type_utilities.get_type_name([member_type]);
         return { value: member_type_name, type: Grammar.Word_type.Alphanumeric };
-    }
-    else if (parent_label === "Variable_name") {
-        if (current_state.type === State_type.Expression) {
-            const state = current_state.value as Expression_state;
-            const function_definition = state.function_definition;
-            const statement = function_definition.statements.elements[state.statement_index];
-            const expression = statement.expressions.elements[current_state.index];
-            if (expression.data.type === Core.Expression_enum.Variable_expression) {
-                const variable_expression = expression.data.value as Core.Variable_expression;
-                return { value: variable_expression.name, type: Grammar.Word_type.Alphanumeric };
-            }
-        }
     }
 
     return { value: terminal, type: Scanner.get_word_type(terminal) };
@@ -1104,6 +1223,7 @@ function get_change_parent_position(change: Parser.Change): any[] {
 
 function is_key_node(node: Node): boolean {
     switch (node.word.value) {
+        case "Module":
         case "Module_head":
         case "Module_declaration":
         case "Module_body":
@@ -1282,30 +1402,42 @@ function apply_parse_tree_change(
     node: Parser_node.Node,
     position: number[],
     change: Parser.Change
-): void {
+): Parser_node.Node {
     if (change.type === Parser.Change_type.Add) {
         const add_change = change.value as Parser.Add_change;
         const parent_position = add_change.parent_position.slice(position.length, add_change.parent_position.length);
         const parent_node = get_node_at_position(node, parent_position);
         parent_node.children.splice(add_change.index, 0, ...add_change.new_nodes);
+        return node;
     }
     else if (change.type === Parser.Change_type.Remove) {
         const remove_change = change.value as Parser.Remove_change;
         const parent_position = remove_change.parent_position.slice(position.length, remove_change.parent_position.length);
         const parent_node = get_node_at_position(node, parent_position);
         parent_node.children.splice(remove_change.index, remove_change.count);
+        return node;
     }
     else if (change.type === Parser.Change_type.Modify) {
         const modify_change = change.value as Parser.Modify_change;
+        if (modify_change.position.length === 0 && modify_change.new_node.word.value === "Module") {
+            return JSON.parse(JSON.stringify(modify_change.new_node));
+        }
+
         const change_position = modify_change.position.slice(position.length, modify_change.position.length);
         const parent_node_position = Parser_node.get_parent_position(change_position);
         const parent_node = get_node_at_position(node, parent_node_position);
         const child_to_modify_index = modify_change.position[modify_change.position.length - 1];
         parent_node.children[child_to_modify_index] = modify_change.new_node;
+        return node;
+    }
+    else {
+        const message = "Parse_tree_convertor.apply_parse_tree_change(): change type not handled!";
+        onThrowError(message);
+        throw Error(message);
     }
 }
 
-function create_module_modify_change(value: any, element_position: any[]): { position: any[], change: Module_change.Change } {
+function create_module_set_element_of_vector_change(value: any, element_position: any[]): { position: any[], change: Module_change.Change } {
     const position = element_position.slice(0, element_position.length - 3);
     const vector_name = element_position[element_position.length - 3] as string;
     const index = element_position[element_position.length - 1] as number;
@@ -1315,7 +1447,7 @@ function create_module_modify_change(value: any, element_position: any[]): { pos
     };
 }
 
-function create_module_head_modify_change(
+function create_module_modify_change(
     module: Core.Module,
     root: Parser_node.Node,
     node: Parser_node.Node,
@@ -1325,21 +1457,352 @@ function create_module_head_modify_change(
 
     const changes: { position: any[], change: Module_change.Change }[] = [];
 
+    {
+        const head_node = find_node(node, "Module_head", key_to_production_rule_indices) as Parser_node.Node;
+        changes.push(...create_module_head_modify_change(module, root, head_node, key_to_production_rule_indices));
+    }
+
+    {
+        const body_node_index = find_node_child_index(node, "Module_body", key_to_production_rule_indices);
+        const body_node = node.children[body_node_index];
+        const body_node_position = [...position, body_node_index];
+        changes.push(...create_module_body_modify_change(module, root, body_node, body_node_position, key_to_production_rule_indices));
+    }
+
+    return changes;
+}
+
+function create_module_head_modify_change(
+    module: Core.Module,
+    root: Parser_node.Node,
+    node: Parser_node.Node,
+    key_to_production_rule_indices: Map<string, number[]>
+): { position: any[], change: Module_change.Change }[] {
+
+    const changes: { position: any[], change: Module_change.Change }[] = [];
+
     const module_declaration_node = find_node(node, "Module_declaration", key_to_production_rule_indices) as Parser_node.Node;
-    changes.push(create_module_declaration_modify_change(module_declaration_node, key_to_production_rule_indices));
+    changes.push(...create_module_declaration_modify_change(module, module_declaration_node, key_to_production_rule_indices));
+
+    const module_imports_node = find_node(node, "Imports", key_to_production_rule_indices) as Parser_node.Node;
+    changes.push(...create_module_imports_modify_change(module, root, module_imports_node, key_to_production_rule_indices));
 
     return changes;
 }
 
 function create_module_declaration_modify_change(
+    module: Core.Module,
     node: Parser_node.Node,
     key_to_production_rule_indices: Map<string, number[]>
-): { position: any[], change: Module_change.Change } {
+): { position: any[], change: Module_change.Change }[] {
     const new_name = find_node_value(node, "Module_name", key_to_production_rule_indices);
+    if (new_name === module.name) {
+        return [];
+    }
+
+    return [
+        {
+            position: [],
+            change: Module_change.create_update("name", new_name)
+        }
+    ];
+}
+
+function create_module_imports_modify_change(
+    module: Core.Module,
+    root: Parser_node.Node,
+    node: Parser_node.Node,
+    key_to_production_rule_indices: Map<string, number[]>
+): { position: any[], change: Module_change.Change }[] {
+    const changes: { position: any[], change: Module_change.Change }[] = [];
+
+    const find_import_name = (node: Parser_node.Node) => find_node_value(node, "Import_name", key_to_production_rule_indices);
+
+    const old_module_head = find_node(root, "Module_head", key_to_production_rule_indices) as Parser_node.Node;
+    const old_import_nodes = find_nodes_inside_parent(old_module_head, "Imports", "Import", key_to_production_rule_indices);
+    const new_import_nodes = find_nodes(node, "Import", key_to_production_rule_indices);
+
+    const old_import_names = old_import_nodes.map(node => find_import_name(node));
+    const new_import_names = new_import_nodes.map(node => find_import_name(node));
+
+    const pending_modify_nodes: { old: number, new: number }[] = [];
+    const pending_add_nodes: number[] = [];
+    const pending_remove_nodes: number[] = [];
+
+    for (let new_index = 0; new_index < new_import_nodes.length; ++new_index) {
+        const new_name = new_import_names[new_index];
+        const old_index = old_import_names.findIndex(value => value === new_name);
+        if (old_index !== -1) {
+            const old_import_node = old_import_nodes[old_index];
+            const new_import_node = new_import_nodes[new_index];
+            if (!Parser_node.are_equal(old_import_node, new_import_node)) {
+                pending_modify_nodes.push({ old: old_index, new: new_index });
+            }
+        }
+        else {
+            pending_add_nodes.push(new_index);
+        }
+    }
+
+    for (let old_index = 0; old_index < old_import_names.length; ++old_index) {
+        const old_name = old_import_names[old_index];
+        const new_index = new_import_names.findIndex(value => value === old_name);
+        if (new_index === -1) {
+            pending_remove_nodes.push(old_index);
+        }
+    }
+
+    for (const modify_change of pending_modify_nodes) {
+        const new_node = new_import_nodes[modify_change.new];
+        const import_module = node_to_import_module_with_alias(new_node, key_to_production_rule_indices);
+
+        const import_name = new_import_names[modify_change.new];
+        const index = module.dependencies.alias_imports.elements.findIndex(value => value.module_name === import_name);
+
+        changes.push(
+            create_module_set_element_of_vector_change(import_module, ["dependencies", "alias_imports", "elements", index])
+        );
+    }
+
+    for (const old_index of pending_remove_nodes) {
+        const import_name = old_import_names[old_index];
+        const index = module.dependencies.alias_imports.elements.findIndex(value => value.module_name === import_name);
+
+        changes.push(
+            {
+                position: ["dependencies"],
+                change: Module_change.create_remove_element_of_vector("alias_imports", index)
+            }
+        );
+    }
+
+    for (const new_index of pending_add_nodes) {
+        const node_to_add = new_import_nodes[new_index];
+        const import_module = node_to_import_module_with_alias(node_to_add, key_to_production_rule_indices);
+
+        changes.push(
+            {
+                position: ["dependencies"],
+                change: Module_change.create_add_element_to_vector("alias_imports", -1, import_module)
+            }
+        );
+    }
+
+    return changes;
+}
+
+function create_module_body_modify_change(
+    module: Core.Module,
+    root: Parser_node.Node,
+    node: Parser_node.Node,
+    position: number[],
+    key_to_production_rule_indices: Map<string, number[]>
+): { position: any[], change: Module_change.Change }[] {
+    const changes: { position: any[], change: Module_change.Change }[] = [];
+
+    const old_declaration_nodes = find_nodes_inside_parent(root, "Module_body", "Declaration", key_to_production_rule_indices);
+    const new_declaration_nodes = find_nodes(node, "Declaration", key_to_production_rule_indices);
+
+    const old_declaration_names = old_declaration_nodes.map(node => find_declaration_name(node, key_to_production_rule_indices));
+    const new_declaration_names = new_declaration_nodes.map(node => find_declaration_name(node, key_to_production_rule_indices));
+
+    const pending_modify_nodes: { old: number, new: number }[] = [];
+    const pending_add_nodes: number[] = [];
+    const pending_remove_nodes: number[] = [];
+
+    for (let new_index = 0; new_index < new_declaration_nodes.length; ++new_index) {
+        const new_name = new_declaration_names[new_index];
+        const old_index = old_declaration_names.findIndex(value => value === new_name);
+        if (old_index !== -1) {
+            const old_declaration_node = old_declaration_nodes[old_index];
+            const new_declaration_node = new_declaration_nodes[new_index];
+            if (!Parser_node.are_equal(old_declaration_node, new_declaration_node)) {
+                const old_type = old_declaration_node.children[0].word.value;
+                const new_type = new_declaration_node.children[0].word.value;
+                const old_export = find_node_value(old_declaration_node, "Export", key_to_production_rule_indices);
+                const new_export = find_node_value(old_declaration_node, "Export", key_to_production_rule_indices);
+                if (old_type === new_type && old_export && new_export) {
+                    pending_modify_nodes.push({ old: old_index, new: new_index });
+                }
+                else {
+                    pending_remove_nodes.push(old_index);
+                    pending_add_nodes.push(new_index);
+                }
+            }
+        }
+        else {
+            pending_add_nodes.push(new_index);
+        }
+    }
+
+    for (let old_index = 0; old_index < old_declaration_names.length; ++old_index) {
+        const old_name = old_declaration_names[old_index];
+        const new_index = new_declaration_names.findIndex(value => value === old_name);
+        if (new_index === -1) {
+            pending_remove_nodes.push(old_index);
+        }
+    }
+
+    for (const node_to_modify of pending_modify_nodes) {
+        const change = create_declaration_modify_change(
+            module,
+            root,
+            new_declaration_nodes[node_to_modify.new],
+            [...position, node_to_modify.new],
+            key_to_production_rule_indices
+        );
+
+        changes.push(...change);
+    }
+
+    for (const old_index of pending_remove_nodes) {
+        const node_to_remove = old_declaration_nodes[old_index];
+        const core_position = find_declaration_position_in_module(module, node_to_remove, key_to_production_rule_indices);
+        const position = decompose_vector_position(core_position);
+
+        changes.push(
+            {
+                position: position.vector_position,
+                change: Module_change.create_remove_element_of_vector(position.vector_name, position.index)
+            }
+        );
+    }
+
+    for (const new_index of pending_add_nodes) {
+        const node_to_add = new_declaration_nodes[new_index];
+        const declaration = node_to_declaration(node_to_add, key_to_production_rule_indices);
+        const core_position = create_declaration_vector_position_at_end(module, node_to_add, key_to_production_rule_indices);
+        const position = decompose_vector_position(core_position);
+
+        changes.push(
+            {
+                position: position.vector_position,
+                change: Module_change.create_add_element_to_vector(position.vector_name, -1, declaration)
+            }
+        );
+    }
+
+    return changes;
+}
+
+function declaration_type_to_vector_name(type: string): string {
+    switch (type) {
+        case "Alias":
+            return "alias_type_declarations";
+        case "Enum":
+            return "enum_declarations";
+        case "Function":
+            return "function_declarations";
+        case "Struct":
+            return "struct_declarations";
+        default: {
+            const message = "Parse_tree_convertor.declaration_type_to_vector_name() case not handled!";
+            onThrowError(message);
+            throw Error(message);
+        }
+    }
+}
+
+function find_declaration_name(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): string {
+    const type = node.children[0].word.value;
+    switch (type) {
+        case "Alias":
+            return find_node_value(node.children[0], "Alias_name", key_to_production_rule_indices);
+        case "Enum":
+            return find_node_value(node.children[0], "Enum_name", key_to_production_rule_indices);
+        case "Function":
+            return find_node_value(node.children[0], "Function_name", key_to_production_rule_indices);
+        case "Struct":
+            return find_node_value(node.children[0], "Struct_name", key_to_production_rule_indices);
+        default: {
+            const message = "Parse_tree_convertor.find_declaration_name() case not handled!";
+            onThrowError(message);
+            throw Error(message);
+        }
+    }
+}
+
+function find_declaration_position_in_module(
+    module: Core.Module,
+    node: Parser_node.Node,
+    key_to_production_rule_indices: Map<string, number[]>
+): any[] {
+    const declaration_name = find_declaration_name(node, key_to_production_rule_indices);
+
+    const type = node.children[0].word.value;
+    const vector_name = declaration_type_to_vector_name(type);
+
+    const export_value = find_node_value(node, "Export", key_to_production_rule_indices);
+    const first_name = export_value.length === 0 ? "internal_declarations" : "export_declarations";
+
+    const elements_position = [first_name, vector_name, "elements"];
+    const elements = Object_reference.get_object_reference_at_position(module, elements_position);
+    const index = (elements.value as any[]).findIndex(value => value.name === declaration_name);
+
+    return [...elements_position, index];
+}
+
+function create_declaration_vector_position_at_end(
+    module: Core.Module,
+    node: Parser_node.Node,
+    key_to_production_rule_indices: Map<string, number[]>
+): any[] {
+    const type = node.children[0].word.value;
+    const vector_name = declaration_type_to_vector_name(type);
+
+    const export_value = find_node_value(node, "Export", key_to_production_rule_indices);
+    const first_name = export_value.length === 0 ? "internal_declarations" : "export_declarations";
+
+    const elements_position = [first_name, vector_name, "elements"];
+    const elements = Object_reference.get_object_reference_at_position(module, elements_position);
+    const elements_length = elements.value.length;
+
+    return [...elements_position, elements_length];
+}
+
+function decompose_vector_position(position: any[]): { vector_position: any[], vector_name: string, index: number } {
+    const vector_position = position.slice(0, position.length - 3);
+    const vector_name = position[position.length - 3];
+    const index = position[position.length - 1];
     return {
-        position: [],
-        change: Module_change.create_update("name", new_name)
+        vector_position: vector_position,
+        vector_name: vector_name,
+        index: index
     };
+}
+
+function node_to_declaration(
+    node: Parser_node.Node,
+    key_to_production_rule_indices: Map<string, number[]>
+): Core.Alias_type_declaration | Core.Enum_declaration | Core.Struct_declaration | { declaration: Core.Function_declaration, definition: Core.Function_definition } {
+
+    const child = node.children[0];
+    switch (child.word.value) {
+        case "Alias": {
+            return node_to_alias_type_declaration(child, key_to_production_rule_indices);
+        }
+        case "Enum": {
+            return node_to_enum_declaration(child, key_to_production_rule_indices);
+        }
+        case "Function": {
+            const declaration_node_index = find_node_child_index(child, "Function_declaration", key_to_production_rule_indices);
+            const definition_node_index = find_node_child_index(child, "Function_definition", key_to_production_rule_indices);
+            const declaration = node_to_function_declaration(child.children[declaration_node_index], key_to_production_rule_indices);
+            const definition = node_to_function_definition(child.children[definition_node_index], declaration.name, key_to_production_rule_indices);
+            return {
+                declaration: declaration,
+                definition: definition
+            };
+        }
+        case "Struct": {
+            return node_to_struct_declaration(child, key_to_production_rule_indices);
+        }
+        default: {
+            const message = "Parse_tree_convertor.node_to_declaration(): failed to handle node";
+            onThrowError(message);
+            throw message;
+        }
+    }
 }
 
 function create_declaration_modify_change(
@@ -1380,7 +1843,7 @@ function create_alias_modify_change(
     const old_node = Parser_node.get_node_at_position(root, position);
     const old_name = find_node_value(old_node, "Alias_name", key_to_production_rule_indices);
     const old_declaration = Core_helpers.find_alias_declaration_position(module, old_name) as { position: any[], value: Core.Alias_type_declaration };
-    return create_module_modify_change(alias_declaration, old_declaration.position);
+    return create_module_set_element_of_vector_change(alias_declaration, old_declaration.position);
 }
 
 function create_enum_modify_change(
@@ -1394,7 +1857,7 @@ function create_enum_modify_change(
     const old_node = Parser_node.get_node_at_position(root, position);
     const old_name = find_node_value(old_node, "Enum_name", key_to_production_rule_indices);
     const old_declaration = Core_helpers.find_enum_declaration_position(module, old_name) as { position: any[], value: Core.Enum_declaration };
-    return create_module_modify_change(enum_declaration, old_declaration.position);
+    return create_module_set_element_of_vector_change(enum_declaration, old_declaration.position);
 }
 
 function get_function_name_from_node(
@@ -1447,7 +1910,7 @@ function create_function_declaration_modify_change(
     if (deep_equal(function_declaration, old_declaration.value)) {
         return [];
     }
-    return [create_module_modify_change(function_declaration, old_declaration.position)];
+    return [create_module_set_element_of_vector_change(function_declaration, old_declaration.position)];
 }
 
 function create_function_definition_modify_change(
@@ -1462,7 +1925,7 @@ function create_function_definition_modify_change(
     if (deep_equal(function_definition, old_definition.value)) {
         return [];
     }
-    return [create_module_modify_change(function_definition, old_definition.position)];
+    return [create_module_set_element_of_vector_change(function_definition, old_definition.position)];
 }
 
 function create_struct_modify_change(
@@ -1476,7 +1939,7 @@ function create_struct_modify_change(
     const old_node = Parser_node.get_node_at_position(root, position);
     const old_name = find_node_value(old_node, "Struct_name", key_to_production_rule_indices);
     const old_declaration = Core_helpers.find_struct_declaration_position(module, old_name) as { position: any[], value: Core.Struct_declaration };
-    return create_module_modify_change(struct_declaration, old_declaration.position);
+    return create_module_set_element_of_vector_change(struct_declaration, old_declaration.position);
 }
 
 function create_modify_change(
@@ -1491,46 +1954,48 @@ function create_modify_change(
     const key_ancestor = get_key_ancestor(root, node, node_position);
 
     const key_node_clone = JSON.parse(JSON.stringify(key_ancestor.node)) as Parser_node.Node;
+    const new_node = apply_parse_tree_change(key_node_clone, key_ancestor.position, any_change);
 
-    apply_parse_tree_change(key_node_clone, key_ancestor.position, any_change);
-
-    switch (key_node_clone.word.value) {
+    switch (new_node.word.value) {
+        case "Module": {
+            return create_module_modify_change(module, root, new_node, key_ancestor.position, key_to_production_rule_indices);
+        }
         case "Module_head": {
-            return create_module_head_modify_change(module, root, key_node_clone, key_ancestor.position, key_to_production_rule_indices);
+            return create_module_head_modify_change(module, root, new_node, key_to_production_rule_indices);
         }
         case "Module_declaration": {
-            return [create_module_declaration_modify_change(key_node_clone, key_to_production_rule_indices)];
+            return create_module_declaration_modify_change(module, new_node, key_to_production_rule_indices);
         }
         case "Module_body": {
-            // TODO
+            return create_module_body_modify_change(module, root, new_node, key_ancestor.position, key_to_production_rule_indices);
         }
         case "Declaration": {
-            return create_declaration_modify_change(module, root, key_node_clone, key_ancestor.position, key_to_production_rule_indices);
+            return create_declaration_modify_change(module, root, new_node, key_ancestor.position, key_to_production_rule_indices);
         }
         case "Alias": {
-            return [create_alias_modify_change(module, root, key_node_clone, key_ancestor.position, key_to_production_rule_indices)];
+            return [create_alias_modify_change(module, root, new_node, key_ancestor.position, key_to_production_rule_indices)];
         }
         case "Enum": {
-            return [create_enum_modify_change(module, root, key_node_clone, key_ancestor.position, key_to_production_rule_indices)];
+            return [create_enum_modify_change(module, root, new_node, key_ancestor.position, key_to_production_rule_indices)];
         }
         case "Function": {
-            return create_function_modify_change(module, root, key_node_clone, key_ancestor.position, key_to_production_rule_indices);
+            return create_function_modify_change(module, root, new_node, key_ancestor.position, key_to_production_rule_indices);
         }
         case "Function_declaration": {
             const function_node = find_parent(root, key_ancestor.position, "Function", key_to_production_rule_indices) as { node: Parser_node.Node, position: number[] };
             const function_name = get_function_name_from_node(root, function_node.position, key_to_production_rule_indices);
-            return create_function_declaration_modify_change(module, key_node_clone, function_name, key_to_production_rule_indices);
+            return create_function_declaration_modify_change(module, new_node, function_name, key_to_production_rule_indices);
         }
         case "Function_definition": {
             const function_node = find_parent(root, key_ancestor.position, "Function", key_to_production_rule_indices) as { node: Parser_node.Node, position: number[] };
             const function_name = get_function_name_from_node(root, function_node.position, key_to_production_rule_indices);
-            return create_function_definition_modify_change(module, key_node_clone, function_name, function_name, key_to_production_rule_indices);
+            return create_function_definition_modify_change(module, new_node, function_name, function_name, key_to_production_rule_indices);
         }
         case "Struct": {
-            return [create_struct_modify_change(module, root, key_node_clone, key_ancestor.position, key_to_production_rule_indices)];
+            return [create_struct_modify_change(module, root, new_node, key_ancestor.position, key_to_production_rule_indices)];
         }
         default: {
-            const message = `Parse_tree_convertor.create_modify_change() not implemented for '${key_node_clone.word.value}'`;
+            const message = `Parse_tree_convertor.create_modify_change() not implemented for '${new_node.word.value}'`;
             onThrowError(message);
             throw message;
         }
@@ -1738,6 +2203,14 @@ function get_terminal_value(node: Node): string {
 
     if (node.children.length === 0) {
         return "";
+    }
+
+    if (node.word.value === "Identifier_with_dots") {
+        const values: string[] = [];
+        for (const child of node.children) {
+            values.push(child.word.value);
+        }
+        return values.join("");
     }
 
     return get_terminal_value(node.children[0]);
@@ -2056,6 +2529,18 @@ function is_export_node(node: Node, key_to_production_rule_indices: Map<string, 
     return export_value.length > 0;
 }
 
+function node_to_import_module_with_alias(
+    node: Parser_node.Node,
+    key_to_production_rule_indices: Map<string, number[]>
+): Core.Import_module_with_alias {
+    const module_name = find_node_value(node, "Import_name", key_to_production_rule_indices);
+    const alias = find_node_value(node, "Import_alias", key_to_production_rule_indices);
+    return {
+        module_name: module_name,
+        alias: alias
+    };
+}
+
 export function parse_tree_to_module(
     root: Node,
     production_rules: Grammar.Production_rule[],
@@ -2070,6 +2555,16 @@ export function parse_tree_to_module(
     };
 
     const name = find_node_value(root, "Module_name", key_to_production_rule_indices);
+
+    const imports_node = find_node(root, "Imports", key_to_production_rule_indices) as Parser_node.Node;
+    const alias_imports = imports_node.children.map(child => node_to_import_module_with_alias(child, key_to_production_rule_indices));
+    const dependencies: Core.Module_dependencies = {
+        alias_imports: {
+            size: alias_imports.length,
+            elements: alias_imports
+        }
+    };
+
     const all_declaration_nodes = find_nodes_inside_parent(root, "Module_body", "Declaration", key_to_production_rule_indices);
 
     const function_nodes = all_declaration_nodes.filter(declaration => declaration.children[0].word.value === "Function");
@@ -2157,6 +2652,7 @@ export function parse_tree_to_module(
     return {
         language_version: language_version,
         name: name,
+        dependencies: dependencies,
         export_declarations: export_declarations,
         internal_declarations: internal_declarations,
         definitions: definitions

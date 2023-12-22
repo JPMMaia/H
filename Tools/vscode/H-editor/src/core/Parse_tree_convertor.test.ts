@@ -59,12 +59,12 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
         {
             const module_head = parse_tree.children[0];
             assert.equal(module_head.word.value, "Module_head");
-            assert.equal(module_head.production_rule_index, 1);
+            assert.equal(module_head.production_rule_index, 3);
 
             {
                 const module_declaration = module_head.children[0];
                 assert.equal(module_declaration.word.value, "Module_declaration");
-                assert.equal(module_declaration.production_rule_index, 2);
+                assert.equal(module_declaration.production_rule_index, 4);
 
                 {
                     const module_keyword = module_declaration.children[0];
@@ -75,13 +75,15 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                 {
                     const module_name = module_declaration.children[1];
                     assert.equal(module_name.word.value, "Module_name");
-                    assert.equal(module_name.production_rule_index, 3);
+                    assert.equal(module_name.production_rule_index, 5);
 
-                    {
-                        const identifier = module_name.children[0];
-                        assert.equal(identifier.word.value, "module_name");
-                        assert.equal(identifier.production_rule_index, undefined);
-                    }
+                    const identifier_with_dots = module_name.children[0];
+                    assert.equal(identifier_with_dots.word.value, "Identifier_with_dots");
+                    assert.equal(identifier_with_dots.production_rule_index, 1);
+
+                    const identifier = identifier_with_dots.children[0];
+                    assert.equal(identifier.word.value, "module_name");
+                    assert.equal(identifier.production_rule_index, undefined);
                 }
 
                 {
@@ -289,7 +291,11 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                                             assert.equal(variable_name_expression.word.value, "Variable_name");
                                             assert.equal(variable_name_expression.children.length, 1);
 
-                                            const variable_name = variable_name_expression.children[0];
+                                            const identifier_with_dots = variable_name_expression.children[0];
+                                            assert.equal(identifier_with_dots.word.value, "Identifier_with_dots");
+                                            assert.equal(identifier_with_dots.children.length, 1);
+
+                                            const variable_name = identifier_with_dots.children[0];
                                             assert.equal(variable_name.word.value, "lhs");
                                             assert.equal(variable_name.children.length, 0);
                                         }
@@ -321,7 +327,11 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                                             assert.equal(variable_name_expression.word.value, "Variable_name");
                                             assert.equal(variable_name_expression.children.length, 1);
 
-                                            const variable_name = variable_name_expression.children[0];
+                                            const identifier_with_dots = variable_name_expression.children[0];
+                                            assert.equal(identifier_with_dots.word.value, "Identifier_with_dots");
+                                            assert.equal(identifier_with_dots.children.length, 1);
+
+                                            const variable_name = identifier_with_dots.children[0];
                                             assert.equal(variable_name.word.value, "rhs");
                                             assert.equal(variable_name.children.length, 0);
                                         }
@@ -392,6 +402,135 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                         }
                     }
                 }
+            }
+        }
+    });
+
+    it("Creates module imports nodes", () => {
+        const grammar_description = Grammar_examples.create_test_grammar_9_description();
+        const production_rules = Grammar.create_production_rules(grammar_description);
+        const module = Module_examples.create_module_with_dependencies();
+        const declarations = Parse_tree_convertor.create_declarations(module);
+        const parse_tree = Parse_tree_convertor.module_to_parse_tree(module, declarations, production_rules);
+
+        assert.equal(parse_tree.word.value, "Module");
+        assert.equal(parse_tree.children.length, 2);
+
+        const module_head = parse_tree.children[0];
+        assert.equal(module_head.word.value, "Module_head");
+        assert.equal(module_head.children.length, 2);
+
+        const imports = module_head.children[1];
+        assert.equal(imports.word.value, "Imports");
+        assert.equal(imports.children.length, 2);
+
+        {
+            const import_node = imports.children[0];
+            assert.equal(import_node.word.value, "Import");
+            assert.equal(import_node.children.length, 5);
+
+            {
+                const keyword_node = import_node.children[0];
+                assert.equal(keyword_node.word.value, "import");
+                assert.equal(keyword_node.children.length, 0);
+            }
+
+            {
+                const module_name_node = import_node.children[1];
+                assert.equal(module_name_node.word.value, "Import_name");
+                assert.equal(module_name_node.children.length, 1);
+
+                const identifier_with_dots_node = module_name_node.children[0];
+                assert.equal(identifier_with_dots_node.word.value, "Identifier_with_dots");
+                assert.equal(identifier_with_dots_node.children.length, 3);
+
+                {
+                    const identifier_node = identifier_with_dots_node.children[0];
+                    assert.equal(identifier_node.word.value, "C");
+                    assert.equal(identifier_node.children.length, 0);
+                }
+
+                {
+                    const identifier_node = identifier_with_dots_node.children[1];
+                    assert.equal(identifier_node.word.value, ".");
+                    assert.equal(identifier_node.children.length, 0);
+                }
+
+                {
+                    const identifier_node = identifier_with_dots_node.children[2];
+                    assert.equal(identifier_node.word.value, "Standard_library");
+                    assert.equal(identifier_node.children.length, 0);
+                }
+            }
+
+            {
+                const as_node = import_node.children[2];
+                assert.equal(as_node.word.value, "as");
+                assert.equal(as_node.children.length, 0);
+            }
+
+            {
+                const alias_node = import_node.children[3];
+                assert.equal(alias_node.word.value, "Import_alias");
+                assert.equal(alias_node.children.length, 1);
+
+                const identifier_node = alias_node.children[0];
+                assert.equal(identifier_node.word.value, "Cstl");
+                assert.equal(identifier_node.children.length, 0);
+            }
+
+            {
+                const semicolon_node = import_node.children[4];
+                assert.equal(semicolon_node.word.value, ";");
+                assert.equal(semicolon_node.children.length, 0);
+            }
+        }
+
+        {
+            const import_node = imports.children[1];
+            assert.equal(import_node.word.value, "Import");
+            assert.equal(import_node.children.length, 5);
+
+            {
+                const keyword_node = import_node.children[0];
+                assert.equal(keyword_node.word.value, "import");
+                assert.equal(keyword_node.children.length, 0);
+            }
+
+            {
+                const module_name_node = import_node.children[1];
+                assert.equal(module_name_node.word.value, "Import_name");
+                assert.equal(module_name_node.children.length, 1);
+
+                const identifier_with_dots_node = module_name_node.children[0];
+                assert.equal(identifier_with_dots_node.word.value, "Identifier_with_dots");
+                assert.equal(identifier_with_dots_node.children.length, 1);
+
+                const identifier_node = identifier_with_dots_node.children[0];
+                assert.equal(identifier_node.word.value, "My_library");
+                assert.equal(identifier_node.children.length, 0);
+            }
+
+            {
+                const as_node = import_node.children[2];
+                assert.equal(as_node.word.value, "as");
+                assert.equal(as_node.children.length, 0);
+            }
+
+            {
+                const alias_node = import_node.children[3];
+                assert.equal(alias_node.word.value, "Import_alias");
+                assert.equal(alias_node.children.length, 1);
+
+                const identifier_node = alias_node.children[0];
+                assert.equal(identifier_node.word.value, "ml");
+                assert.equal(identifier_node.children.length, 0);
+            }
+
+            {
+                const semicolon_node = import_node.children[4];
+                assert.equal(semicolon_node.word.value, ";");
+                assert.equal(semicolon_node.children.length, 0);
             }
         }
     });
@@ -1101,6 +1240,124 @@ describe("Parse_tree_convertor.create_module_changes", () => {
             assert.deepEqual(set_change.value, expected);
         }
     });
+
+    it("Adds import module", () => {
+
+        const module = Module_examples.create_0();
+
+        const module_changes = create_module_changes(
+            module,
+            { line: 0, column: 19 },
+            { line: 0, column: 19 },
+            "\nimport My_library as ml;"
+        );
+
+        assert.equal(module_changes.length, 1);
+
+        {
+            const change = module_changes[0];
+            assert.deepEqual(change.position, ["dependencies"]);
+
+            assert.equal(change.change.type, Module_change.Type.Add_element_to_vector);
+
+            const add_change = change.change.value as Module_change.Add_element_to_vector;
+            assert.equal(add_change.vector_name, "alias_imports");
+            assert.equal(add_change.index, -1);
+
+            const value: Core.Import_module_with_alias = {
+                module_name: "My_library",
+                alias: "ml"
+            };
+            assert.deepEqual(add_change.value, value);
+        }
+    });
+
+    it("Removes import module", () => {
+
+        const module = Module_examples.create_module_with_dependencies();
+
+        const module_changes = create_module_changes(
+            module,
+            { line: 2, column: 0 },
+            { line: 3, column: 0 },
+            ""
+        );
+
+        assert.equal(module_changes.length, 1);
+
+        {
+            const change = module_changes[0];
+            assert.deepEqual(change.position, ["dependencies"]);
+
+            assert.equal(change.change.type, Module_change.Type.Remove_element_of_vector);
+
+            const remove_change = change.change.value as Module_change.Remove_element_of_vector;
+            assert.equal(remove_change.vector_name, "alias_imports");
+            assert.equal(remove_change.index, 0);
+        }
+    });
+
+    it("Sets import module name", () => {
+
+        const module = Module_examples.create_module_with_dependencies();
+
+        const module_changes = create_module_changes(
+            module,
+            { line: 2, column: 7 },
+            { line: 2, column: 25 },
+            "Another_name"
+        );
+
+        assert.equal(module_changes.length, 1);
+
+        {
+            const change = module_changes[0];
+            assert.deepEqual(change.position, ["dependencies"]);
+
+            assert.equal(change.change.type, Module_change.Type.Set_element_of_vector);
+
+            const set_change = change.change.value as Module_change.Set_element_of_vector;
+            assert.equal(set_change.vector_name, "alias_imports");
+            assert.equal(set_change.index, 0);
+
+            const value: Core.Import_module_with_alias = {
+                module_name: "Another_name",
+                alias: "Cstl"
+            };
+            assert.deepEqual(set_change.value, value);
+        }
+    });
+
+    it("Sets import module alias", () => {
+
+        const module = Module_examples.create_module_with_dependencies();
+
+        const module_changes = create_module_changes(
+            module,
+            { line: 2, column: 29 },
+            { line: 2, column: 31 },
+            "Another_alias"
+        );
+
+        assert.equal(module_changes.length, 1);
+
+        {
+            const change = module_changes[0];
+            assert.deepEqual(change.position, ["dependencies"]);
+
+            assert.equal(change.change.type, Module_change.Type.Set_element_of_vector);
+
+            const set_change = change.change.value as Module_change.Set_element_of_vector;
+            assert.equal(set_change.vector_name, "alias_imports");
+            assert.equal(set_change.index, 0);
+
+            const value: Core.Import_module_with_alias = {
+                module_name: "C.Standard_library",
+                alias: "Another_alias"
+            };
+            assert.deepEqual(set_change.value, value);
+        }
+    });
 });
 
 function assert_function_declarations(actual_function_declarations: Core.Vector<Core.Function_declaration>, expected_function_declarations: Core.Vector<Core.Function_declaration>) {
@@ -1165,11 +1422,8 @@ function assert_struct_declarations(actual_struct_declarations: Core.Vector<Core
     }
 }
 
-describe("Parse_tree_convertor.parse_tree_to_module", () => {
-
-    const grammar_description = Grammar_examples.create_test_grammar_9_description();
+function test_parse_tree_to_module(grammar_description: string[], expected_module: Core.Module): Core.Module {
     const production_rules = Grammar.create_production_rules(grammar_description);
-    const expected_module = Module_examples.create_0();
     const declarations = Parse_tree_convertor.create_declarations(expected_module);
     const parse_tree = Parse_tree_convertor.module_to_parse_tree(expected_module, declarations, production_rules);
 
@@ -1177,11 +1431,24 @@ describe("Parse_tree_convertor.parse_tree_to_module", () => {
     const key_to_production_rule_indices = Parse_tree_convertor.create_key_to_production_rule_indices_map(production_rules);
     const actual_module = Parse_tree_convertor.parse_tree_to_module(parse_tree, production_rules, production_rule_to_value_map, key_to_production_rule_indices);
 
+    return actual_module;
+}
+
+describe("Parse_tree_convertor.parse_tree_to_module", () => {
+
     it("Handles the module name", () => {
+        const grammar_description = Grammar_examples.create_test_grammar_9_description();
+        const expected_module = Module_examples.create_0();
+        const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
         assert.equal(actual_module.name, expected_module.name);
     });
 
     it("Handles functions", () => {
+
+        const grammar_description = Grammar_examples.create_test_grammar_9_description();
+        const expected_module = Module_examples.create_0();
+        const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
+
         assert_function_declarations(actual_module.export_declarations.function_declarations, expected_module.export_declarations.function_declarations);
         assert_function_declarations(actual_module.internal_declarations.function_declarations, expected_module.internal_declarations.function_declarations);
 
@@ -1205,17 +1472,37 @@ describe("Parse_tree_convertor.parse_tree_to_module", () => {
     });
 
     it("Handles alias", () => {
+        const grammar_description = Grammar_examples.create_test_grammar_9_description();
+        const expected_module = Module_examples.create_0();
+        const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
+
         assert_alias_type_declarations(actual_module.export_declarations.alias_type_declarations, expected_module.export_declarations.alias_type_declarations);
         assert_alias_type_declarations(actual_module.internal_declarations.alias_type_declarations, expected_module.internal_declarations.alias_type_declarations);
     });
 
     it("Handles enums", () => {
+        const grammar_description = Grammar_examples.create_test_grammar_9_description();
+        const expected_module = Module_examples.create_0();
+        const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
+
         assert_enum_declarations(actual_module.export_declarations.enum_declarations, expected_module.export_declarations.enum_declarations);
         assert_enum_declarations(actual_module.internal_declarations.enum_declarations, expected_module.internal_declarations.enum_declarations);
     });
 
     it("Handles structs", () => {
+        const grammar_description = Grammar_examples.create_test_grammar_9_description();
+        const expected_module = Module_examples.create_0();
+        const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
+
         assert_struct_declarations(actual_module.export_declarations.struct_declarations, expected_module.export_declarations.struct_declarations);
         assert_struct_declarations(actual_module.internal_declarations.struct_declarations, expected_module.internal_declarations.struct_declarations);
+    });
+
+    it("Handles import dependencies", () => {
+        const grammar_description = Grammar_examples.create_test_grammar_9_description();
+        const expected_module = Module_examples.create_module_with_dependencies();
+        const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
+
+        assert.deepEqual(actual_module.dependencies, expected_module.dependencies);
     });
 });

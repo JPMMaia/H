@@ -1,9 +1,13 @@
 export function create_description(): string[] {
     return [
         "Module -> Module_head Module_body",
-        "Module_head -> Module_declaration",
+        "Module_head -> Module_declaration Imports",
         "Module_declaration -> module Module_name ;",
         "Module_name -> identifier",
+        "Imports -> Import $0_or_more",
+        "Import -> import Import_name as Import_alias ;",
+        "Import_name -> identifier",
+        "Import_alias -> identifier",
         "Module_body -> Declaration $0_or_more",
         "Declaration -> Alias",
         "Declaration -> Enum",

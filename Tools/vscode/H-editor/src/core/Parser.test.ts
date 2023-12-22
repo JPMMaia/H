@@ -817,9 +817,15 @@ describe("Parser.parse_incrementally", () => {
             assert.equal(module_name_node.children.length, 1);
 
             {
-                const identifier_node = module_name_node.children[0];
-                assert.equal(identifier_node.word.value, "module_name_2");
-                assert.equal(identifier_node.children.length, 0);
+                const identifier_with_dots_node = module_name_node.children[0];
+                assert.equal(identifier_with_dots_node.word.value, "Identifier_with_dots");
+                assert.equal(identifier_with_dots_node.children.length, 1);
+
+                {
+                    const identifier_node = identifier_with_dots_node.children[0];
+                    assert.equal(identifier_node.word.value, "module_name_2");
+                    assert.equal(identifier_node.children.length, 0);
+                }
             }
         }
 

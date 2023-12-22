@@ -162,7 +162,7 @@ function get_top_elements_from_stack(
 
         const is_node_part_of_array = (element_count: number, has_separator: boolean, node: Node): boolean => {
 
-            const current_node_label = node.production_rule_index === -1 ? map_word_to_terminal(node.word) : node.word.value;
+            const current_node_label = node.production_rule_index === undefined ? map_word_to_terminal(node.word) : node.word.value;
 
             if (has_separator) {
                 if ((element_count % 2) === 0) {
@@ -511,6 +511,16 @@ function adjust_mark_and_stack(original_node_tree: Node | undefined, stack: Pars
     };
 }
 
+function is_last_descendant_empty(node: Node): boolean {
+
+    if (node.children.length === 0) {
+        return node.production_rule_index !== undefined;
+    }
+
+    const child = node.children[node.children.length - 1];
+    return is_last_descendant_empty(child);
+}
+
 function get_initial_mark_node(original_node_tree: Node | undefined, start_change_node_position: number[] | undefined): Parsing_stack_element {
 
     if (original_node_tree === undefined) {
@@ -537,8 +547,16 @@ function get_initial_mark_node(original_node_tree: Node | undefined, start_chang
     }
     else {
         let previous = get_previous_node_on_stack(original_node_tree, start_change_node_position) as { node: Node, position: number[] };
-        while (!is_terminal_node(previous.node) && previous.node.children.length === 0) {
-            previous = get_previous_node_on_stack(original_node_tree, previous.position) as { node: Node, position: number[] };
+        while (!is_terminal_node(previous.node) && is_last_descendant_empty(previous.node)) {
+            if (previous.node.children.length > 0 && is_last_descendant_empty(previous.node)) {
+                previous = {
+                    node: previous.node.children[previous.node.children.length - 1],
+                    position: [...previous.position, previous.node.children.length - 1]
+                };
+            }
+            else {
+                previous = get_previous_node_on_stack(original_node_tree, previous.position) as { node: Node, position: number[] };
+            }
         }
 
         return {

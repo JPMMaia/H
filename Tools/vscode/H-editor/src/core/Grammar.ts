@@ -58,6 +58,25 @@ function create_0_or_more_production_rule(lhs: string, rhs: string[]): Productio
     ];
 }
 
+function create_1_or_more_production_rule(lhs: string, rhs: string[]): Production_rule[] {
+
+    const array_element = rhs[0];
+    const has_separator = rhs.length === 2;
+
+    return [
+        {
+            lhs: lhs,
+            rhs: [array_element],
+            flags: Production_rule_flags.Is_array_set
+        },
+        {
+            lhs: lhs,
+            rhs: has_separator ? [array_element, rhs[1], array_element] : [array_element, array_element],
+            flags: Production_rule_flags.Is_array | Production_rule_flags.Is_array_set
+        }
+    ];
+}
+
 export function create_production_rules(grammar_description: string[]): Production_rule[] {
 
     const production_rules: Production_rule[] = [];
@@ -81,6 +100,10 @@ export function create_production_rules(grammar_description: string[]): Producti
                     const new_production_rules = create_0_or_more_production_rule(lhs, rhs);
                     production_rules.push(...new_production_rules);
                 }
+                else if (word_index - 1 > 0 && words[word_index - 1] === "$1_or_more") {
+                    const new_production_rules = create_1_or_more_production_rule(lhs, rhs);
+                    production_rules.push(...new_production_rules);
+                }
                 else {
                     production_rules.push({
                         lhs: lhs,
@@ -90,7 +113,7 @@ export function create_production_rules(grammar_description: string[]): Producti
                 }
                 rhs.splice(0, rhs.length);
             }
-            else if (word !== "" && word !== "$0_or_more") {
+            else if (word !== "" && word !== "$0_or_more" && word !== "$1_or_more") {
                 rhs.push(word);
             }
 
@@ -99,6 +122,10 @@ export function create_production_rules(grammar_description: string[]): Producti
 
         if (words.length > 0 && words[words.length - 1] === "$0_or_more") {
             const new_production_rules = create_0_or_more_production_rule(lhs, rhs);
+            production_rules.push(...new_production_rules);
+        }
+        else if (words.length > 0 && words[words.length - 1] === "$1_or_more") {
+            const new_production_rules = create_1_or_more_production_rule(lhs, rhs);
             production_rules.push(...new_production_rules);
         }
         else {

@@ -5,6 +5,7 @@ import { get_node_at_position, iterate_forward_with_repetition, Iterate_directio
 enum State {
     Global,
     Module_declaration,
+    Imports,
     Alias,
     Enum,
     Struct,
@@ -32,6 +33,7 @@ function should_add_space(current_word: Grammar.Word, previous_word: Grammar.Wor
         case ";":
         case ":":
         case ",":
+        case ".":
             return 0;
         case "->":
             return 1;
@@ -75,22 +77,41 @@ function should_add_new_line_after(state: State, current_word: Grammar.Word, pre
     }
     else if (state === State.Module_declaration) {
         if (current_word.value === ";") {
+            return 2;
+        }
+    }
+    else if (state === State.Imports) {
+        if (current_word.value === ";") {
             return 1;
+        }
+    }
+    else if (state === State.Alias) {
+        if (current_word.value === ";") {
+            return 2;
         }
     }
     else if (state === State.Enum) {
         if (current_word.value === ",") {
             return 1;
         }
+        else if (current_word.value === "}") {
+            return 2;
+        }
     }
     else if (state === State.Function) {
         if (current_word.value === ";") {
             return 1;
         }
+        else if (current_word.value === "}") {
+            return 2;
+        }
     }
     else if (state === State.Struct) {
         if (current_word.value === ";") {
             return 1;
+        }
+        else if (current_word.value === "}") {
+            return 2;
         }
     }
 
@@ -120,6 +141,22 @@ export function to_string(root: Node, cache: Parse_tree_text_position_cache.Cach
         if (current_node.word.value === "Module_declaration") {
             if (current_direction === Iterate_direction.Down) {
                 state_stack.push(State.Module_declaration);
+            }
+            else {
+                state_stack.pop();
+            }
+        }
+        else if (current_node.word.value === "Imports") {
+            if (current_direction === Iterate_direction.Down) {
+                state_stack.push(State.Imports);
+            }
+            else {
+                state_stack.pop();
+            }
+        }
+        else if (current_node.word.value === "Alias") {
+            if (current_direction === Iterate_direction.Down) {
+                state_stack.push(State.Alias);
             }
             else {
                 state_stack.pop();
@@ -199,14 +236,6 @@ export function to_string(root: Node, cache: Parse_tree_text_position_cache.Cach
                 }
 
                 previous_word = current_node.word;
-            }
-            else {
-                if (current_node.word.value === "Declaration") {
-                    add_new_line(buffer);
-                    current_line += 1;
-                    current_column = 0;
-                    current_text_offset += 1;
-                }
             }
         }
 

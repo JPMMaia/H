@@ -17,6 +17,12 @@ export function create_0(): core.Module {
     {
         language_version: { major: 0, minor: 1, patch: 0 },
         name: "module_name",
+        dependencies: {
+            alias_imports: {
+                size: 0,
+                elements: []
+            }
+        },
         export_declarations: {
             alias_type_declarations: {
                 size: 1,
@@ -700,5 +706,22 @@ export function create_function_example(): core.Module {
         ]
     };
 
+    return module;
+}
+
+export function create_module_with_dependencies(): core.Module {
+    const module = create_empty();
+    module.name = "Module_with_dependencies";
+    module.dependencies.alias_imports.elements = [
+        {
+            module_name: "C.Standard_library",
+            alias: "Cstl"
+        },
+        {
+            module_name: "My_library",
+            alias: "ml"
+        }
+    ];
+    module.dependencies.alias_imports.size = module.dependencies.alias_imports.elements.length;
     return module;
 }
