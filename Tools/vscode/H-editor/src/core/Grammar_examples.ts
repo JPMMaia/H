@@ -173,12 +173,12 @@ export function create_test_grammar_9_description(): string[] {
         "Expression_binary_symbol_multiply -> +",
         "Expression_binary_symbol_signed_divide -> /",
         "Expression_binary_symbol_unsigned_divide -> /",
-        "Expression_return -> return Generic_expression",
         "Expression_return -> return",
+        "Expression_return -> return Generic_expression",
         "Expression_variable -> Variable_name",
         "Expression_variable_assignment -> Variable_name = Generic_expression",
         "Expression_variable_declaration_and_assignment -> var Variable_name = Generic_expression",
-        "Variable_name -> Identifier_with_dots",
+        "Variable_name -> identifier",
     ];
 }
 

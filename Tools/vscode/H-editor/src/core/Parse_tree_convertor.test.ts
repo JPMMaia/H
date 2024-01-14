@@ -291,11 +291,7 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                                             assert.equal(variable_name_expression.word.value, "Variable_name");
                                             assert.equal(variable_name_expression.children.length, 1);
 
-                                            const identifier_with_dots = variable_name_expression.children[0];
-                                            assert.equal(identifier_with_dots.word.value, "Identifier_with_dots");
-                                            assert.equal(identifier_with_dots.children.length, 1);
-
-                                            const variable_name = identifier_with_dots.children[0];
+                                            const variable_name = variable_name_expression.children[0];
                                             assert.equal(variable_name.word.value, "lhs");
                                             assert.equal(variable_name.children.length, 0);
                                         }
@@ -327,11 +323,7 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                                             assert.equal(variable_name_expression.word.value, "Variable_name");
                                             assert.equal(variable_name_expression.children.length, 1);
 
-                                            const identifier_with_dots = variable_name_expression.children[0];
-                                            assert.equal(identifier_with_dots.word.value, "Identifier_with_dots");
-                                            assert.equal(identifier_with_dots.children.length, 1);
-
-                                            const variable_name = identifier_with_dots.children[0];
+                                            const variable_name = variable_name_expression.children[0];
                                             assert.equal(variable_name.word.value, "rhs");
                                             assert.equal(variable_name.children.length, 0);
                                         }
