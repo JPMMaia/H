@@ -19,6 +19,8 @@ function should_add_space(current_word: Grammar.Word, previous_word: Grammar.Wor
     }
 
     switch (previous_word.value) {
+        case ".":
+            return 0;
         case "->":
             return 1;
     }

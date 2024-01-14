@@ -1300,23 +1300,34 @@ describe("Parse_tree_convertor.create_module_changes", () => {
             "Another_name"
         );
 
-        assert.equal(module_changes.length, 1);
+        assert.equal(module_changes.length, 2);
 
         {
             const change = module_changes[0];
             assert.deepEqual(change.position, ["dependencies"]);
 
-            assert.equal(change.change.type, Module_change.Type.Set_element_of_vector);
+            assert.equal(change.change.type, Module_change.Type.Remove_element_of_vector);
 
-            const set_change = change.change.value as Module_change.Set_element_of_vector;
-            assert.equal(set_change.vector_name, "alias_imports");
-            assert.equal(set_change.index, 0);
+            const remove_change = change.change.value as Module_change.Remove_element_of_vector;
+            assert.equal(remove_change.vector_name, "alias_imports");
+            assert.equal(remove_change.index, 0);
+        }
+
+        {
+            const change = module_changes[1];
+            assert.deepEqual(change.position, ["dependencies"]);
+
+            assert.equal(change.change.type, Module_change.Type.Add_element_to_vector);
+
+            const add_change = change.change.value as Module_change.Add_element_to_vector;
+            assert.equal(add_change.vector_name, "alias_imports");
+            assert.equal(add_change.index, -1);
 
             const value: Core.Import_module_with_alias = {
                 module_name: "Another_name",
                 alias: "Cstl"
             };
-            assert.deepEqual(set_change.value, value);
+            assert.deepEqual(add_change.value, value);
         }
     });
 
@@ -1327,7 +1338,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
         const module_changes = create_module_changes(
             module,
             { line: 2, column: 29 },
-            { line: 2, column: 31 },
+            { line: 2, column: 33 },
             "Another_alias"
         );
 
