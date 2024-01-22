@@ -9,6 +9,7 @@ import * as Language from "./Language";
 import * as Module_change from "../utilities/Change";
 import * as Module_examples from "./Module_examples";
 import * as Parse_tree_convertor from "./Parse_tree_convertor";
+import * as Parse_tree_convertor_mappings from "./Parse_tree_convertor_mappings";
 import * as Parse_tree_text_position_cache from "./Parse_tree_text_position_cache";
 import * as Parser from "./Parser";
 import { Node } from "./Parser_node";
@@ -51,7 +52,9 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
         const production_rules = Grammar.create_production_rules(grammar_description);
         const module = Module_examples.create_0();
         const declarations = Parse_tree_convertor.create_declarations(module);
-        const parse_tree = Parse_tree_convertor.module_to_parse_tree(module, declarations, production_rules);
+        const key_to_production_rule_indices = Parse_tree_convertor.create_key_to_production_rule_indices_map(production_rules);
+        const mappings = Parse_tree_convertor_mappings.create_mapping(key_to_production_rule_indices);
+        const parse_tree = Parse_tree_convertor.module_to_parse_tree(module, declarations, production_rules, mappings);
 
         assert.equal(parse_tree.word.value, "Module");
         assert.equal(parse_tree.production_rule_index, 0);
@@ -403,7 +406,9 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
         const production_rules = Grammar.create_production_rules(grammar_description);
         const module = Module_examples.create_module_with_dependencies();
         const declarations = Parse_tree_convertor.create_declarations(module);
-        const parse_tree = Parse_tree_convertor.module_to_parse_tree(module, declarations, production_rules);
+        const key_to_production_rule_indices = Parse_tree_convertor.create_key_to_production_rule_indices_map(production_rules);
+        const mappings = Parse_tree_convertor_mappings.create_mapping(key_to_production_rule_indices);
+        const parse_tree = Parse_tree_convertor.module_to_parse_tree(module, declarations, production_rules, mappings);
 
         assert.equal(parse_tree.word.value, "Module");
         assert.equal(parse_tree.children.length, 2);
@@ -579,7 +584,9 @@ function create_module_changes(
     };
 
     const declarations = Parse_tree_convertor.create_declarations(module);
-    const initial_parse_tree = Parse_tree_convertor.module_to_parse_tree(module, declarations, production_rules);
+    const key_to_production_rule_indices = Parse_tree_convertor.create_key_to_production_rule_indices_map(production_rules);
+    const mappings = Parse_tree_convertor_mappings.create_mapping(key_to_production_rule_indices);
+    const initial_parse_tree = Parse_tree_convertor.module_to_parse_tree(module, declarations, production_rules, mappings);
     const text_cache = Parse_tree_text_position_cache.create_cache();
 
     const initial_parse_tree_text = Text_formatter.to_string(initial_parse_tree, text_cache, []);
@@ -635,7 +642,6 @@ function create_module_changes(
 
     const production_rule_to_value_map = Parse_tree_convertor.create_production_rule_to_value_map(production_rules);
     const production_rule_to_change_action_map = Parse_tree_convertor.create_production_rule_to_change_action_map(production_rules);
-    const key_to_production_rule_indices = Parse_tree_convertor.create_key_to_production_rule_indices_map(production_rules);
 
     const module_changes = Parse_tree_convertor.create_module_changes(
         module,
@@ -1428,11 +1434,12 @@ function assert_struct_declarations(actual_struct_declarations: Core.Vector<Core
 function test_parse_tree_to_module(grammar_description: string[], expected_module: Core.Module): Core.Module {
     const production_rules = Grammar.create_production_rules(grammar_description);
     const declarations = Parse_tree_convertor.create_declarations(expected_module);
-    const parse_tree = Parse_tree_convertor.module_to_parse_tree(expected_module, declarations, production_rules);
 
-    const production_rule_to_value_map = Parse_tree_convertor.create_production_rule_to_value_map(production_rules);
     const key_to_production_rule_indices = Parse_tree_convertor.create_key_to_production_rule_indices_map(production_rules);
-    const actual_module = Parse_tree_convertor.parse_tree_to_module(parse_tree, production_rules, production_rule_to_value_map, key_to_production_rule_indices);
+    const mappings = Parse_tree_convertor_mappings.create_mapping(key_to_production_rule_indices);
+    const parse_tree = Parse_tree_convertor.module_to_parse_tree(expected_module, declarations, production_rules, mappings);
+
+    const actual_module = Parse_tree_convertor.parse_tree_to_module(parse_tree, production_rules, mappings, key_to_production_rule_indices);
 
     return actual_module;
 }
@@ -1441,7 +1448,8 @@ describe("Parse_tree_convertor.parse_tree_to_module", () => {
 
     it("Handles the module name", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
-        const expected_module = Module_examples.create_0();
+        const expected_module = Module_examples.create_empty();
+        expected_module.name = "Test_name";
         const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
         assert.equal(actual_module.name, expected_module.name);
     });
@@ -1449,7 +1457,7 @@ describe("Parse_tree_convertor.parse_tree_to_module", () => {
     it("Handles functions", () => {
 
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
-        const expected_module = Module_examples.create_0();
+        const expected_module = Module_examples.create_function_example();
         const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
 
         assert_function_declarations(actual_module.export_declarations.function_declarations, expected_module.export_declarations.function_declarations);
@@ -1476,7 +1484,7 @@ describe("Parse_tree_convertor.parse_tree_to_module", () => {
 
     it("Handles alias", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
-        const expected_module = Module_examples.create_0();
+        const expected_module = Module_examples.create_alias_example();
         const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
 
         assert_alias_type_declarations(actual_module.export_declarations.alias_type_declarations, expected_module.export_declarations.alias_type_declarations);
@@ -1485,7 +1493,7 @@ describe("Parse_tree_convertor.parse_tree_to_module", () => {
 
     it("Handles enums", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
-        const expected_module = Module_examples.create_0();
+        const expected_module = Module_examples.create_enum_example();
         const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
 
         assert_enum_declarations(actual_module.export_declarations.enum_declarations, expected_module.export_declarations.enum_declarations);
@@ -1494,7 +1502,7 @@ describe("Parse_tree_convertor.parse_tree_to_module", () => {
 
     it("Handles structs", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
-        const expected_module = Module_examples.create_0();
+        const expected_module = Module_examples.create_struct_example();
         const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
 
         assert_struct_declarations(actual_module.export_declarations.struct_declarations, expected_module.export_declarations.struct_declarations);

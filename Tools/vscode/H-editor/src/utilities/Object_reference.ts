@@ -1,6 +1,7 @@
 export interface Object_reference {
     get value(): any;
     set value(value: any);
+    is_valid(): boolean;
 }
 
 export function get_object_reference_at_position(object: any, position: any[]): Object_reference {
@@ -12,6 +13,9 @@ export function get_object_reference_at_position(object: any, position: any[]): 
             },
             set value(value: any) {
                 object[position[0]] = value;
+            },
+            is_valid() {
+                return object.hasOwnProperty(position[0]);
             }
         };
     }

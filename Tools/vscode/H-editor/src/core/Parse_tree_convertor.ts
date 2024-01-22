@@ -1,5 +1,6 @@
 import * as Core from "./Core_interface";
 import * as Core_helpers from "./Core_helpers";
+import * as Core_reflection from "./Core_reflection";
 import { onThrowError } from "../utilities/errors";
 import * as Grammar from "./Grammar";
 import * as Module_change from "./Module_change";
@@ -238,7 +239,7 @@ export function create_production_rule_to_change_action_map(production_rules: Gr
     return map;
 }
 
-type Choose_production_rule_handler = (
+export type Choose_production_rule_handler = (
     module: Core.Module,
     declarations: Declaration[],
     production_rules: Grammar.Production_rule[],
@@ -249,290 +250,14 @@ type Choose_production_rule_handler = (
     key_to_production_rule_indices: Map<string, number[]>
 ) => { next_state: State, next_production_rule_index: number };
 
-interface Parse_tree_mappings {
-    vector_to_node_name: Map<string, string>;
+export interface Parse_tree_mappings {
+    vector_to_node_name: (vector_position: any[]) => string;
     value_map: Map<string, string[]>;
     value_transforms: Map<string, (value: any) => string>;
-    vector_map: Map<string, string[]>;
+    node_to_value_transforms: Map<string, (node: Parser_node.Node, position: number[]) => any>;
+    vector_map: Map<string, string[][]>;
     order_index_nodes: Set<string>;
     choose_production_rule: Map<string, Choose_production_rule_handler>;
-}
-
-function create_mapping(): Parse_tree_mappings {
-
-    const vector_to_node_name = new Map<string, string>(
-        [
-            ["alias_type_declarations", "Alias_name"],
-            ["enum_declarations", "Enum_name"],
-            ["function_declarations", "Function_name"],
-            ["function_definitions", "Function_name"],
-            ["struct_declarations", "Struct_name"]
-        ]
-    );
-
-    const value_map = new Map<string, string[]>(
-        [
-            ["Module_name", ["name"]],
-            ["Import_name", ["dependencies", "alias_imports", "elements", "$order_index", "module_name"]],
-            ["Import_alias", ["dependencies", "alias_imports", "elements", "$order_index", "alias"]],
-            ["Alias_name", ["$export", "alias_type_declarations", "elements", "$name_index", "name"]],
-            ["Alias_type", ["$export", "alias_type_declarations", "elements", "$name_index", "type", "elements"]],
-            ["Enum_name", ["$export", "enum_declarations", "elements", "$name_index", "name"]],
-            ["Enum_value_name", ["$export", "enum_declarations", "elements", "$name_index", "values", "elements", "$order_index", "name"]],
-            ["Enum_value_value", ["$export", "enum_declarations", "elements", "$name_index", "values", "elements", "$order_index", "value"]],
-            ["Function_name", ["$export", "function_declarations", "elements", "$name_index", "name"]],
-            ["Function_parameter_name", ["$export", "function_declarations", "elements", "$name_index", "$parameter_names", "elements", "$order_index"]],
-            ["Function_parameter_type", ["$export", "function_declarations", "elements", "$name_index", "type", "$parameter_types", "elements", "$order_index"]],
-            ["Struct_name", ["$export", "struct_declarations", "elements", "$name_index", "name"]],
-            ["Struct_member_name", ["$export", "struct_declarations", "elements", "$name_index", "member_names", "elements", "$order_index"]],
-            ["Struct_member_type", ["$export", "struct_declarations", "elements", "$name_index", "member_types", "elements", "$order_index"]],
-            ["Variable_name", ["definitions", "function_definitions", "elements", "$name_index", "statements", "elements", "$order_index", "expressions", "elements", "$expression_index", "data", "value", "name"]],
-        ]
-    );
-
-    const value_transforms = new Map<string, (value: any) => string>(
-        [
-            ["Alias_type", Type_utilities.get_type_name],
-            ["Function_parameter_type", value => Type_utilities.get_type_name([value])],
-            ["Struct_member_type", value => Type_utilities.get_type_name([value])],
-        ]
-    );
-
-    const vector_map = new Map<string, string[]>(
-        [
-            ["Imports", ["dependencies", "alias_imports"]],
-            ["Module_body", ["$declarations"]],
-            ["Enum_values", ["$export", "enum_declarations", "elements", "$name_index", "values"]],
-            ["Function_input_parameters", ["$export", "function_declarations", "elements", "$name_index", "input_parameter_names"]],
-            ["Function_output_parameters", ["$export", "function_declarations", "elements", "$name_index", "output_parameter_names"]],
-            ["Struct_members", ["$export", "struct_declarations", "elements", "$name_index", "member_names"]],
-            ["Statements", ["definitions", "function_definitions", "elements", "$name_index", "statements"]],
-        ]
-    );
-
-    const order_index_nodes = new Set<string>(
-        [
-            "Imports",
-            "Enum_values",
-            "Function_input_parameters",
-            "Function_output_parameters",
-            "Struct_members",
-            "Statements",
-        ]
-    );
-
-    const choose_production_rule = new Map<string, Choose_production_rule_handler>(
-        [
-            ["Identifier_with_dots", choose_production_rule_identifier_with_dots],
-            ["Declaration", choose_production_rule_declaration],
-            ["Export", choose_production_rule_export],
-            ["Statement", choose_production_rule_statement],
-            ["Expression_return", choose_production_rule_expression],
-            ["Generic_expression", choose_production_rule_expression],
-            ["Expression_binary_symbol", choose_production_rule_expression],
-        ]
-    );
-
-    return {
-        vector_to_node_name: vector_to_node_name,
-        value_map: value_map,
-        value_transforms: value_transforms,
-        vector_map: vector_map,
-        order_index_nodes: order_index_nodes,
-        choose_production_rule: choose_production_rule
-    };
-}
-
-function choose_production_rule_identifier_with_dots(
-    module: Core.Module,
-    declarations: Declaration[],
-    production_rules: Grammar.Production_rule[],
-    production_rule_indices: number[],
-    label: string,
-    stack: Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
-): { next_state: State, next_production_rule_index: number } {
-    const word = map_terminal_to_word(module, stack, production_rules, key_to_production_rule_indices, "", mappings, declarations);
-    const split = word.value.split(".");
-    const index = split.length > 1 ? 1 : 0;
-    return {
-        next_state: {
-            index: 0,
-            value: undefined
-        },
-        next_production_rule_index: production_rule_indices[index]
-    };
-}
-
-function choose_production_rule_declaration(
-    module: Core.Module,
-    declarations: Declaration[],
-    production_rules: Grammar.Production_rule[],
-    production_rule_indices: number[],
-    label: string,
-    stack: Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
-): { next_state: State, next_production_rule_index: number } {
-    const top = stack[stack.length - 1];
-    const production_rule = production_rules[top.production_rule_index];
-    const declaration_index = calculate_array_index(production_rule, top.current_child_index);
-    const declaration = declarations[declaration_index];
-
-    const lhs = get_underlying_declaration_production_rule_lhs(declaration.type);
-
-    const index = production_rule_indices.findIndex(index => contains(production_rules[index].rhs, lhs));
-    return {
-        next_state: {
-            index: declaration_index,
-            value: declaration
-        },
-        next_production_rule_index: production_rule_indices[index]
-    };
-}
-
-function choose_production_rule_export(
-    module: Core.Module,
-    declarations: Declaration[],
-    production_rules: Grammar.Production_rule[],
-    production_rule_indices: number[],
-    label: string,
-    stack: Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
-): { next_state: State, next_production_rule_index: number } {
-    const top = stack[stack.length - 1];
-    const declaration = top.state.value as Declaration;
-    const predicate =
-        declaration.is_export ?
-            (index: number) => production_rules[index].rhs.length > 0 :
-            (index: number) => production_rules[index].rhs.length === 0;
-    const index = production_rule_indices.findIndex(predicate);
-
-    return {
-        next_state: top.state,
-        next_production_rule_index: production_rule_indices[index]
-    };
-}
-
-function choose_production_rule_statement(
-    module: Core.Module,
-    declarations: Declaration[],
-    production_rules: Grammar.Production_rule[],
-    production_rule_indices: number[],
-    label: string,
-    stack: Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
-): { next_state: State, next_production_rule_index: number } {
-
-    const top = stack[stack.length - 1];
-
-    const statements_array = top.state.value as Core.Statement[];
-    const statement_index = calculate_array_index(production_rules[top.production_rule_index], top.current_child_index);
-    const statement = statements_array[statement_index];
-
-    const first_expression = statement.expressions.elements[0];
-    const rhs_label = map_expression_type_to_production_rule_label(first_expression.data.type);
-    const index = production_rule_indices.findIndex(index => contains(production_rules[index].rhs, rhs_label));
-
-    return {
-        next_state: {
-            index: 0,
-            value: statement
-        },
-        next_production_rule_index: production_rule_indices[index]
-    };
-}
-
-function choose_production_rule_expression(
-    module: Core.Module,
-    declarations: Declaration[],
-    production_rules: Grammar.Production_rule[],
-    production_rule_indices: number[],
-    label: string,
-    stack: Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
-): { next_state: State, next_production_rule_index: number } {
-
-    const top = stack[stack.length - 1];
-    const statement = top.state.value as Core.Statement;
-
-    const calculate_expression_index = (): number => {
-        switch (top.node.word.value) {
-            case "Statement": {
-                return 0;
-            }
-            case "Expression_binary": {
-                const binary_expression = statement.expressions.elements[top.state.index].data.value as Core.Binary_expression;
-                switch (top.current_child_index) {
-                    case 0:
-                        return binary_expression.left_hand_side.expression_index;
-                    case 1:
-                        return top.state.index;
-                    default:
-                        return binary_expression.right_hand_side.expression_index;
-                }
-            }
-            case "Expression_return": {
-                const return_expression = statement.expressions.elements[top.state.index].data.value as Core.Return_expression;
-                return return_expression.expression.expression_index;
-            }
-            default: {
-                const message = `Parse_tree_convertor.choose_production_rule_expression.calculate_expression_index(): expression type not handled: '${top.node.word.value}'`;
-                onThrowError(message);
-                throw message;
-            }
-        }
-    };
-
-    const expression_index = calculate_expression_index();
-    const expression = statement.expressions.elements[expression_index];
-
-    switch (label) {
-        case "Expression_binary_symbol": {
-            const binary_expression = expression.data.value as Core.Binary_expression;
-            const rhs_label = map_binary_operation_production_rule_label(binary_expression.operation);
-            const index = production_rule_indices.findIndex(index => contains(production_rules[index].rhs, rhs_label));
-            return {
-                next_state: {
-                    index: expression_index,
-                    value: statement
-                },
-                next_production_rule_index: production_rule_indices[index]
-            };
-        }
-        case "Expression_return": {
-            const return_expression = expression.data.value as Core.Return_expression;
-            const next_expression_index = return_expression.expression.expression_index;
-            const index = next_expression_index !== -1 ? 1 : 0;
-            return {
-                next_state: {
-                    index: expression_index,
-                    value: statement
-                },
-                next_production_rule_index: production_rule_indices[index]
-            };
-        }
-        case "Generic_expression": {
-            const rhs_label = map_expression_type_to_production_rule_label(expression.data.type);
-            const index = production_rule_indices.findIndex(index => contains(production_rules[index].rhs, rhs_label));
-            return {
-                next_state: {
-                    index: expression_index,
-                    value: statement
-                },
-                next_production_rule_index: production_rule_indices[index]
-            };
-        }
-        default: {
-            const message = `Parse_tree_convertor.choose_production_rule_expression(): expression type not handled: '${label}'`;
-            onThrowError(message);
-            throw message;
-        }
-    }
 }
 
 function find_parent_state_index(
@@ -638,12 +363,96 @@ function replace_placeholders_by_values(
     return position;
 }
 
-interface State {
+function replace_placeholders_by_values_2(
+    position_with_placeholders: string[],
+    module: Core.Module,
+    root: Node,
+    node: Node,
+    node_position: number[],
+    production_rules: Grammar.Production_rule[],
+    mappings: Parse_tree_mappings,
+    key_to_production_rule_indices: Map<string, number[]>
+): any[] {
+
+    const position: any[] = [];
+
+    for (let index = 0; index < position_with_placeholders.length; ++index) {
+        const placeholder = position_with_placeholders[index];
+
+        switch (placeholder) {
+            case "$export": {
+                const declaration_node = find_parent(root, node_position, "Declaration", key_to_production_rule_indices);
+                if (declaration_node !== undefined) {
+                    const export_value = find_node_value(declaration_node.node, "Export", key_to_production_rule_indices);
+                    const value = export_value.length > 0 ? "export_declarations" : "internal_declarations";
+                    position.push(value);
+                }
+                break;
+            }
+            case "$order_index": {
+                const vector_node_name = mappings.vector_to_node_name(position.slice(0, index - 1)) as string;
+                const is_order_array_node = (node: Parser_node.Node, position: number[]): boolean => {
+                    return node.word.value === vector_node_name;
+                };
+                const vector_node = find_parent_if(root, node_position, is_order_array_node);
+                const label_index = node_position[vector_node.position.length];
+                const production_rule = production_rules[vector_node.node.production_rule_index as number];
+                const order_index = calculate_array_index(production_rule, label_index);
+                position.push(order_index);
+                break;
+            }
+            case "$name_index": {
+                const declaration = find_parent(root, node_position, "Declaration", key_to_production_rule_indices) as { node: Parser_node.Node, position: number[] };
+                const underlying_declaration = declaration.node.children[0];
+                const name_node_id = `${underlying_declaration.word.value}_name`;
+                const is_name_node = (node: Parser_node.Node) => node.word.value === name_node_id;
+                const name_node = find_descendant_if(underlying_declaration, is_name_node) as Parser_node.Node;
+                const declaration_name = get_terminal_value(name_node);
+
+                const vector_array = Object_reference.get_object_reference_at_position(module, position);
+                const element_index = vector_array.value.findIndex((element: any) => element.name === declaration_name);
+                position.push(element_index);
+                break;
+            }
+            case "$parameter_names":
+            case "$parameter_types": {
+                const is_parameter_list_element = (node: Parser_node.Node): boolean => {
+                    return node.word.value.startsWith("Function_input") || node.word.value.startsWith("Function_output");
+                };
+                const parameter_list_node = find_parent_if(root, node_position, is_parameter_list_element).node;
+
+                const prefix = parameter_list_node.word.value === "Function_input_parameters" ? "input_parameter_" : "output_parameter_";
+                const suffix = placeholder === "$parameter_names" ? "names" : "types";
+                const position_value = prefix + suffix;
+                position.push(position_value);
+                break;
+            }
+            case "$expression_index": {
+                const expression_vector = Object_reference.get_object_reference_at_position(module, position.slice(0, position.length - 1));
+
+                expression_vector.value.elements.push({});
+                expression_vector.value.size += 1;
+
+                const expression_index = expression_vector.value.elements.length - 1;
+                position.push(expression_index);
+                break;
+            }
+            default: {
+                position.push(placeholder);
+                break;
+            }
+        }
+    }
+
+    return position;
+}
+
+export interface State {
     index: number;
     value: any;
 }
 
-interface Module_to_parse_tree_stack_element {
+export interface Module_to_parse_tree_stack_element {
     production_rule_index: number;
     state: State;
     node: Node;
@@ -667,10 +476,10 @@ function get_stack_element_index_with_label(stack: Module_to_parse_tree_stack_el
 export function module_to_parse_tree(
     module: Core.Module,
     declarations: Declaration[],
-    production_rules: Grammar.Production_rule[]
+    production_rules: Grammar.Production_rule[],
+    mappings: Parse_tree_mappings
 ): Node {
 
-    const mappings = create_mapping();
     const key_to_production_rule_indices = create_key_to_production_rule_indices_map(production_rules);
 
     const stack: Module_to_parse_tree_stack_element[] = [
@@ -781,7 +590,7 @@ function get_production_rule_array_rhs_length(
 ): number {
 
     if (production_rule.lhs === "Identifier_with_dots") {
-        const word = map_terminal_to_word(module, stack, production_rules, key_to_production_rule_indices, "", mappings, declarations);
+        const word = map_terminal_to_word(module, stack, production_rules, key_to_production_rule_indices, "identifier", mappings, declarations);
         const split = word.value.split(".");
         const has_separator = production_rule.rhs.length === 3;
         const array_rhs_length = has_separator ? split.length * 2 - 1 : split.length;
@@ -795,12 +604,12 @@ function get_production_rule_array_rhs_length(
         throw Error(message);
     }
 
-    if (vector_position_with_placeholders[0] === "$declarations") {
+    if (vector_position_with_placeholders[0][0] === "$declarations") {
         return declarations.length;
     }
 
     const vector_position = replace_placeholders_by_values(
-        vector_position_with_placeholders,
+        vector_position_with_placeholders[0],
         production_rules,
         declarations,
         stack,
@@ -825,15 +634,10 @@ function get_production_rule_rhs(production_rule: Grammar.Production_rule, index
     }
 }
 
-function calculate_array_index(production_rule: Grammar.Production_rule, label_index: number): number {
+export function calculate_array_index(production_rule: Grammar.Production_rule, label_index: number): number {
     const is_production_rule_array = (production_rule.flags & Grammar.Production_rule_flags.Is_array);
     const array_index = is_production_rule_array ? (production_rule.rhs.length === 3 ? label_index / 2 : label_index) : label_index;
     return array_index;
-}
-
-function contains(array: any[], value: any): boolean {
-    const index = array.findIndex(current => current === value);
-    return index !== -1;
 }
 
 function choose_production_rule_index(
@@ -877,7 +681,7 @@ function choose_production_rule_index(
         const vector_position_with_placeholders = mappings.vector_map.get(label);
         if (vector_position_with_placeholders !== undefined) {
 
-            if (vector_position_with_placeholders.length > 0 && vector_position_with_placeholders[0] === "$declarations") {
+            if (vector_position_with_placeholders.length > 0 && vector_position_with_placeholders[0][0] === "$declarations") {
                 const length = declarations.length;
                 const index = length > 1 ? 2 : length;
                 return {
@@ -889,7 +693,7 @@ function choose_production_rule_index(
                 };
             }
 
-            const vector_position = replace_placeholders_by_values(vector_position_with_placeholders, production_rules, declarations, stack, mappings);
+            const vector_position = replace_placeholders_by_values(vector_position_with_placeholders[0], production_rules, declarations, stack, mappings);
             const vector_array_reference = Object_reference.get_object_reference_at_position(module, [...vector_position, "elements"]);
             const length = vector_array_reference.value.length;
             const index = length > 1 ? 2 : length;
@@ -908,41 +712,7 @@ function choose_production_rule_index(
     throw Error(message);
 }
 
-function map_expression_type_to_production_rule_label(type: Core.Expression_enum): string {
-    switch (type) {
-        case Core.Expression_enum.Binary_expression:
-            return "Expression_binary";
-        case Core.Expression_enum.Call_expression:
-            return "Expression_call";
-        case Core.Expression_enum.Constant_expression:
-            return "Expression_constant";
-        case Core.Expression_enum.Invalid_expression:
-            return "Expression_invalid";
-        case Core.Expression_enum.Return_expression:
-            return "Expression_return";
-        case Core.Expression_enum.Variable_expression:
-            return "Expression_variable";
-    }
-}
-
-function map_binary_operation_production_rule_label(type: Core.Binary_operation): string {
-    return "Expression_binary_symbol_" + type.toLocaleLowerCase();
-}
-
-function get_underlying_declaration_production_rule_lhs(type: Declaration_type): string {
-    switch (type) {
-        case Declaration_type.Alias:
-            return "Alias";
-        case Declaration_type.Enum:
-            return "Enum";
-        case Declaration_type.Function:
-            return "Function";
-        case Declaration_type.Struct:
-            return "Struct";
-    }
-}
-
-function map_terminal_to_word(
+export function map_terminal_to_word(
     module: Core.Module,
     stack: Module_to_parse_tree_stack_element[],
     production_rules: Grammar.Production_rule[],
@@ -960,9 +730,13 @@ function map_terminal_to_word(
             return { value: ".", type: Grammar.Word_type.Symbol };
         }
 
-        const word = map_terminal_to_word(module, stack.slice(0, stack.length - 1), production_rules, key_to_production_rule_indices, "", mappings, declarations);
+        const word = map_terminal_to_word(module, stack.slice(0, stack.length - 1), production_rules, key_to_production_rule_indices, "identifier", mappings, declarations);
         const split = word.value.split(".");
         return { value: split[index / 2], type: Grammar.Word_type.Alphanumeric };
+    }
+
+    if (terminal !== "identifier" && terminal !== "number") {
+        return { value: terminal, type: Scanner.get_word_type(terminal) };
     }
 
     const position_with_placeholders = mappings.value_map.get(label);
@@ -1975,6 +1749,22 @@ function find_parent(root: Parser_node.Node, node_position: number[], key: strin
     };
 }
 
+function find_parent_if(root: Parser_node.Node, node_position: number[], predicate: (node: Parser_node.Node, position: number[]) => boolean): { node: Parser_node.Node, position: number[] } {
+
+    let current_node_position = Parser_node.get_parent_position(node_position);
+    let current_node = Parser_node.get_node_at_position(root, current_node_position);
+
+    while (current_node_position.length > 0 && !predicate(current_node, current_node_position)) {
+        current_node_position = Parser_node.get_parent_position(current_node_position);
+        current_node = Parser_node.get_node_at_position(root, current_node_position);
+    }
+
+    return {
+        node: current_node,
+        position: current_node_position
+    };
+}
+
 function find_parent_with_new_node(
     root: Parser_node.Node,
     new_node: Parser_node.Node,
@@ -2019,6 +1809,31 @@ function find_parent_with_new_node(
         node: current_node,
         position: current_node_position
     };
+}
+
+function find_descendant_if(node: Parser_node.Node, predicate: (node: Parser_node.Node) => boolean): Parser_node.Node | undefined {
+
+    const list: Parser_node.Node[] = [];
+
+    for (let index = 0; index < node.children.length; ++index) {
+        const child = node.children[index];
+        list.push(child);
+    }
+
+    while (list.length > 0) {
+        const node = list.splice(0, 1)[0];
+
+        if (predicate(node)) {
+            return node;
+        }
+
+        for (let index = 0; index < node.children.length; ++index) {
+            const child = node.children[index];
+            list.push(child);
+        }
+    }
+
+    return undefined;
 }
 
 export function create_key_to_production_rule_indices_map(production_rules: Grammar.Production_rule[]): Map<string, number[]> {
@@ -2107,7 +1922,7 @@ function find_nodes_with_production_rule_indices(node: Node, production_rule_ind
     return nodes;
 }
 
-function get_terminal_value(node: Node): string {
+export function get_terminal_value(node: Node): string {
     if (node.production_rule_index === undefined && node.children.length === 0) {
         return node.word.value;
     }
@@ -2452,13 +2267,183 @@ function node_to_import_module_with_alias(
     };
 }
 
+function create_module_declarations_from_parse_tree(
+    module: Core.Module,
+    reflection_info: Core_reflection.Reflection_info,
+    root: Parser_node.Node
+): void {
+
+    const module_body = root.children[1];
+
+    const declaration_default_elements = new Map<string, any>(
+        [
+            ["Alias", Core_reflection.create_default_value(reflection_info, { name: "Alias_type_declaration" })],
+            ["Enum", Core_reflection.create_default_value(reflection_info, { name: "Enum_declaration" })],
+            ["Function", Core_reflection.create_default_value(reflection_info, { name: "Function_declaration" })],
+            ["Struct", Core_reflection.create_default_value(reflection_info, { name: "Struct_declaration" })],
+        ]
+    );
+
+    const function_definition_default = Core_reflection.create_default_value(reflection_info, { name: "Function_definition" });
+
+    for (let declaration_index = 0; declaration_index < module_body.children.length; ++declaration_index) {
+        const declaration_node = module_body.children[declaration_index];
+        const underlying_declaration_node = declaration_node.children[0];
+        const name_node_id = `${underlying_declaration_node.word.value}_name`;
+        const name_node = find_descendant_if(underlying_declaration_node, node => node.word.value === name_node_id) as Parser_node.Node;
+        const declaration_name = get_terminal_value(name_node);
+
+        const export_node = find_descendant_if(underlying_declaration_node, node => node.word.value === "Export") as Parser_node.Node;
+        const export_node_value = get_terminal_value(export_node);
+        const is_export = export_node_value.length > 0;
+
+        const type = underlying_declaration_node.word.value;
+
+        const module_declarations = is_export ? module.export_declarations : module.internal_declarations;
+        const get_underlying_module_declarations = () => {
+            switch (type) {
+                case "Alias": return module_declarations.alias_type_declarations;
+                case "Enum": return module_declarations.enum_declarations;
+                case "Function": return module_declarations.function_declarations;
+                case "Struct": return module_declarations.struct_declarations;
+            }
+        };
+        const underlying_module_declarations = get_underlying_module_declarations() as Core.Vector<any>;
+
+        const index = underlying_module_declarations.elements.findIndex(value => value.name === declaration_name);
+        if (index === -1) {
+            const default_element = declaration_default_elements.get(type);
+            const clone = JSON.parse(JSON.stringify(default_element));
+            clone.name = declaration_name;
+
+            if (type === "Function") {
+                const linkage = is_export ? Core.Linkage.External : Core.Linkage.Private;
+                clone.linkage = linkage;
+            }
+
+            underlying_module_declarations.elements.push(clone);
+        }
+    }
+
+    for (let index = 0; index < module.export_declarations.function_declarations.elements.length; ++index) {
+        const name = module.export_declarations.function_declarations.elements[index].name;
+        const clone = JSON.parse(JSON.stringify(function_definition_default)) as Core.Function_definition;
+        clone.name = name;
+        module.definitions.function_definitions.elements.push(clone);
+    }
+
+    for (let index = 0; index < module.internal_declarations.function_declarations.elements.length; ++index) {
+        const name = module.internal_declarations.function_declarations.elements[index].name;
+        const clone = JSON.parse(JSON.stringify(function_definition_default)) as Core.Function_definition;
+        clone.name = name;
+        module.definitions.function_definitions.elements.push(clone);
+    }
+
+    module.export_declarations.alias_type_declarations.size = module.export_declarations.alias_type_declarations.elements.length;
+    module.export_declarations.enum_declarations.size = module.export_declarations.enum_declarations.elements.length;
+    module.export_declarations.function_declarations.size = module.export_declarations.function_declarations.elements.length;
+    module.export_declarations.struct_declarations.size = module.export_declarations.struct_declarations.elements.length;
+
+    module.internal_declarations.alias_type_declarations.size = module.internal_declarations.alias_type_declarations.elements.length;
+    module.internal_declarations.enum_declarations.size = module.internal_declarations.enum_declarations.elements.length;
+    module.internal_declarations.function_declarations.size = module.internal_declarations.function_declarations.elements.length;
+    module.internal_declarations.struct_declarations.size = module.internal_declarations.struct_declarations.elements.length;
+
+    module.definitions.function_definitions.size = module.definitions.function_definitions.elements.length;
+}
+
 export function parse_tree_to_module(
     root: Node,
     production_rules: Grammar.Production_rule[],
-    production_rule_to_value_map: Production_rule_info[],
+    mappings: Parse_tree_mappings,
     key_to_production_rule_indices: Map<string, number[]>
 ): Core.Module {
 
+    const reflection_info = Core_reflection.create_reflection_info();
+    const module = Core_reflection.create_empty_module(reflection_info) as Core.Module;
+
+    create_module_declarations_from_parse_tree(module, reflection_info, root);
+
+    const node_positions: number[][] = [];
+    node_positions.push([]);
+
+    const node_stack: Node[] = [];
+    node_stack.push(root);
+
+    while (node_stack.length > 0) {
+        const node = node_stack.pop() as Node;
+        const node_position = node_positions.pop() as number[];
+
+        if (g_debug) {
+            console.log(node.word.value);
+        }
+
+        {
+            const node_to_value_transform = mappings.node_to_value_transforms.get(node.word.value);
+            if (node_to_value_transform !== undefined) {
+                const new_value = node_to_value_transform(node, node_position);
+
+                const value_position_with_placeholders = mappings.value_map.get(node.word.value) as string[];
+                const value_position = replace_placeholders_by_values_2(value_position_with_placeholders, module, root, node, node_position, production_rules, mappings, key_to_production_rule_indices);
+                const object_reference = Object_reference.get_object_reference_at_position(module, value_position);
+                object_reference.value = new_value;
+
+                continue;
+            }
+        }
+
+        if (node.production_rule_index !== undefined) {
+            const production_rule = production_rules[node.production_rule_index];
+            if (production_rule.flags & Grammar.Production_rule_flags.Is_array_set) {
+                const vector_position_with_placeholders_array = mappings.vector_map.get(node.word.value) as string[][];
+
+                for (const vector_position_with_placeholders of vector_position_with_placeholders_array) {
+                    if (vector_position_with_placeholders.length > 0 && vector_position_with_placeholders[0] === "$declarations") {
+
+                    }
+                    else {
+                        const vector_position = replace_placeholders_by_values_2(vector_position_with_placeholders, module, root, node, node_position, production_rules, mappings, key_to_production_rule_indices);
+                        const vector_reference = Object_reference.get_object_reference_at_position(module, vector_position);
+                        vector_reference.value = {
+                            elements: [],
+                            size: 0
+                        };
+                        const default_element = Core_reflection.create_default_element(reflection_info, vector_position);
+                        const array_size = Math.ceil(calculate_array_index(production_rule, node.children.length));
+                        for (let index = 0; index < array_size; ++index) {
+                            const clone = JSON.parse(JSON.stringify(default_element));
+                            vector_reference.value.elements.push(clone);
+                        }
+                        vector_reference.value.size = array_size;
+                    }
+                }
+            }
+        }
+
+        {
+            const value_position_with_placeholders = mappings.value_map.get(node.word.value);
+            if (value_position_with_placeholders !== undefined) {
+                const new_value = get_terminal_value(node);
+
+                const value_position = replace_placeholders_by_values_2(value_position_with_placeholders, module, root, node, node_position, production_rules, mappings, key_to_production_rule_indices);
+                const object_reference = Object_reference.get_object_reference_at_position(module, value_position);
+                object_reference.value = new_value;
+
+                continue;
+            }
+        }
+
+        for (let index = 0; index < node.children.length; ++index) {
+            const child_index = node.children.length - 1 - index;
+            const child = node.children[child_index];
+            node_stack.push(child);
+            node_positions.push([...node_position, child_index]);
+        }
+    }
+
+    return module;
+
+    /*
     const language_version: Core.Language_version = {
         major: 0,
         minor: 1,
@@ -2567,7 +2552,7 @@ export function parse_tree_to_module(
         export_declarations: export_declarations,
         internal_declarations: internal_declarations,
         definitions: definitions
-    };
+    };*/
 }
 
 function deep_equal(obj1: any, obj2: any): boolean {

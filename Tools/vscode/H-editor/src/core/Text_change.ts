@@ -4,6 +4,7 @@ import * as Language from "./Language";
 import * as Parser from "./Parser";
 import * as Parser_node from "./Parser_node";
 import * as Parse_tree_convertor from "./Parse_tree_convertor";
+import * as Parse_tree_convertor_mappings from "./Parse_tree_convertor_mappings";
 import * as Parse_tree_text_position_cache from "./Parse_tree_text_position_cache";
 import { has_meaningful_content, scan_new_change } from "./Scan_new_changes";
 import * as Scanner from "./Scanner";
@@ -60,11 +61,11 @@ export function update(
                 const new_parse_tree = modify_change.new_node;
 
                 // TODO can be cached:
-                const production_rule_to_value_map = Parse_tree_convertor.create_production_rule_to_value_map(language_description.production_rules);
                 const key_to_production_rule_index = Parse_tree_convertor.create_key_to_production_rule_indices_map(language_description.production_rules);
+                const mappings = Parse_tree_convertor_mappings.create_mapping(key_to_production_rule_index);
 
                 state.parse_tree = new_parse_tree;
-                state.module = Parse_tree_convertor.parse_tree_to_module(new_parse_tree, language_description.production_rules, production_rule_to_value_map, key_to_production_rule_index);
+                state.module = Parse_tree_convertor.parse_tree_to_module(new_parse_tree, language_description.production_rules, mappings, key_to_production_rule_index);
             }
             else if (state.parse_tree !== undefined) {
                 // TODO can be cached
@@ -109,9 +110,9 @@ export function update(
             }
 
             if (expected_parse_tree !== undefined) {
-                const production_rule_to_value_map = Parse_tree_convertor.create_production_rule_to_value_map(language_description.production_rules);
                 const key_to_production_rule_index = Parse_tree_convertor.create_key_to_production_rule_indices_map(language_description.production_rules);
-                const expected_module = Parse_tree_convertor.parse_tree_to_module(expected_parse_tree, language_description.production_rules, production_rule_to_value_map, key_to_production_rule_index);
+                const mappings = Parse_tree_convertor_mappings.create_mapping(key_to_production_rule_index);
+                const expected_module = Parse_tree_convertor.parse_tree_to_module(expected_parse_tree, language_description.production_rules, mappings, key_to_production_rule_index);
 
                 const expected_module_string = expected_module.toString();
                 const actual_module_string = state.module.toString();
