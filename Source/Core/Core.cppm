@@ -210,6 +210,14 @@ namespace h
         friend auto operator<=>(Return_expression const&, Return_expression const&) = default;
     };
 
+    export struct Struct_member_expression
+    {
+        Expression_index instance;
+        std::pmr::string member_name;
+
+        friend auto operator<=>(Struct_member_expression const&, Struct_member_expression const&) = default;
+    };
+
     export struct Expression
     {
         using Data_type = std::variant<
@@ -218,6 +226,7 @@ namespace h
             Constant_expression,
             Invalid_expression,
             Return_expression,
+            Struct_member_expression,
             Variable_expression
         >;
 

@@ -50,6 +50,7 @@ export enum Expression_enum {
     Constant_expression = "Constant_expression",
     Invalid_expression = "Invalid_expression",
     Return_expression = "Return_expression",
+    Struct_member_expression = "Struct_member_expression",
     Variable_expression = "Variable_expression",
 }
 
@@ -156,8 +157,13 @@ export interface Return_expression {
     expression: Expression_index;
 }
 
+export interface Struct_member_expression {
+    instance: Expression_index;
+    member_name: string;
+}
+
 export interface Expression {
-    data: Variant<Expression_enum, Binary_expression | Call_expression | Constant_expression | Invalid_expression | Return_expression | Variable_expression>;
+    data: Variant<Expression_enum, Binary_expression | Call_expression | Constant_expression | Invalid_expression | Return_expression | Struct_member_expression | Variable_expression>;
 }
 
 export interface Statement {

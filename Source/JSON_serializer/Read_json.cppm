@@ -2309,6 +2309,100 @@ namespace h::json
 
     export template<typename Event_data>
         bool read_object(
+            Struct_member_expression& output,
+            Event const event,
+            Event_data const event_data,
+            std::pmr::vector<int>& state_stack,
+            std::size_t const state_stack_position
+        )
+    {
+        if (state_stack_position >= state_stack.size())
+        {
+            return false;
+        }
+
+        int& state = state_stack[state_stack_position];
+
+        switch (state)
+        {
+        case 0:
+        {
+            if (event == Event::Start_object)
+            {
+                state = 1;
+                return true;
+            }
+            break;
+        }
+        case 1:
+        {
+            switch (event)
+            {
+            case Event::Key:
+            {
+                if constexpr (std::is_same_v<Event_data, std::string_view>)
+                {
+                    if (event_data == "instance")
+                    {
+                        state = 3;
+                        return true;
+                    }
+                    else if (event_data == "member_name")
+                    {
+                        state = 5;
+                        return true;
+                    }
+                }
+                break;
+            }
+            case Event::End_object:
+            {
+                state = 2;
+                return true;
+            }
+            }
+            break;
+        }
+        case 2:
+        {
+            std::cerr << "While parsing 'Struct_member_expression' unexpected '}' found.\n";
+            return false;
+        }
+        case 3:
+        {
+            state = 4;
+            return read_object(output.instance, event, event_data, state_stack, state_stack_position + 1 + 0);
+        }
+        case 4:
+        {
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
+            {
+                if (!read_object(output.instance, event, event_data, state_stack, state_stack_position + 1 + 0))
+                {
+                    return false;
+                }
+
+                state = 1;
+                return true;
+            }
+            else
+            {
+                return read_object(output.instance, event, event_data, state_stack, state_stack_position + 1 + 0);
+            }
+        }
+        case 5:
+        {
+            state = 1;
+            return read_value(output.member_name, "member_name", event_data);
+        }
+        }
+
+        std::cerr << "Error while reading 'Struct_member_expression'.\n";
+        return false;
+    }
+
+    export template<typename Event_data>
+        bool read_object(
             Expression& output,
             Event const event,
             Event_data const event_data,
@@ -2424,10 +2518,16 @@ namespace h::json
                     state = 19;
                     return true;
                 }
+                else if (event_data == "struct_member_expression")
+                {
+                    output.data = Struct_member_expression{};
+                    state = 22;
+                    return true;
+                }
                 else if (event_data == "variable_expression")
                 {
                     output.data = Variable_expression{};
-                    state = 22;
+                    state = 25;
                     return true;
                 }
             }
@@ -2611,9 +2711,42 @@ namespace h::json
         case 23:
         {
             state = 24;
-            return read_object(std::get<Variable_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
+            return read_object(std::get<Struct_member_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
         }
         case 24:
+        {
+            if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
+            {
+                if (!read_object(std::get<Struct_member_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1))
+                {
+                    return false;
+                }
+
+                state = 4;
+                return true;
+            }
+            else
+            {
+                return read_object(std::get<Struct_member_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
+            }
+        }
+        case 25:
+        {
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
+            {
+                if (event == Event::Key && event_data == "value")
+                {
+                    state = 26;
+                    return true;
+                }
+            }
+        }
+        case 26:
+        {
+            state = 27;
+            return read_object(std::get<Variable_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
+        }
+        case 27:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
             {

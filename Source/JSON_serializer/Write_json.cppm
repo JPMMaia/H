@@ -255,6 +255,12 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Struct_member_expression const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Expression const& input
         );
 
@@ -701,6 +707,20 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Struct_member_expression const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("instance");
+        write_object(writer, output.instance);
+        writer.Key("member_name");
+        writer.String(output.member_name.data(), output.member_name.size());
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Expression const& output
         )
     {
@@ -746,6 +766,14 @@ namespace h::json
             writer.String("return_expression");
             writer.Key("value");
             Return_expression const& value = std::get<Return_expression>(output.data);
+            write_object(writer, value);
+        }
+        else if (std::holds_alternative<Struct_member_expression>(output.data))
+        {
+            writer.Key("type");
+            writer.String("struct_member_expression");
+            writer.Key("value");
+            Struct_member_expression const& value = std::get<Struct_member_expression>(output.data);
             write_object(writer, value);
         }
         else if (std::holds_alternative<Variable_expression>(output.data))
