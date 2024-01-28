@@ -4,7 +4,6 @@ import * as Language from "./Language";
 import * as Parser from "./Parser";
 import * as Parser_node from "./Parser_node";
 import * as Parse_tree_convertor from "./Parse_tree_convertor";
-import * as Parse_tree_convertor_mappings from "./Parse_tree_convertor_mappings";
 import * as Parse_tree_text_position_cache from "./Parse_tree_text_position_cache";
 import { has_meaningful_content, scan_new_change } from "./Scan_new_changes";
 import * as Scanner from "./Scanner";
@@ -60,18 +59,10 @@ export function update(
                 const modify_change = parse_result.changes[0].value as Parser.Modify_change;
                 const new_parse_tree = modify_change.new_node;
 
-                // TODO can be cached:
-                const key_to_production_rule_index = Parse_tree_convertor.create_key_to_production_rule_indices_map(language_description.production_rules);
-                const mappings = Parse_tree_convertor_mappings.create_mapping(key_to_production_rule_index);
-
                 state.parse_tree = new_parse_tree;
-                state.module = Parse_tree_convertor.parse_tree_to_module(new_parse_tree, language_description.production_rules, mappings, key_to_production_rule_index);
+                state.module = Parse_tree_convertor.parse_tree_to_module(new_parse_tree, language_description.production_rules, language_description.mappings, language_description.key_to_production_rule_indices);
             }
             else if (state.parse_tree !== undefined) {
-                // TODO can be cached
-                const key_to_production_rule_indices = Parse_tree_convertor.create_key_to_production_rule_indices_map(language_description.production_rules);
-                const mappings = Parse_tree_convertor_mappings.create_mapping(key_to_production_rule_indices);
-
                 const simplified_changes = Parser.simplify_changes(parse_result.changes);
 
                 const module_changes = Parse_tree_convertor.create_module_changes(
@@ -79,8 +70,8 @@ export function update(
                     language_description.production_rules,
                     state.parse_tree,
                     simplified_changes,
-                    mappings,
-                    key_to_production_rule_indices
+                    language_description.mappings,
+                    language_description.key_to_production_rule_indices
                 );
 
                 Parser.apply_changes(state.parse_tree, parse_result.changes);
@@ -107,9 +98,7 @@ export function update(
             }
 
             if (expected_parse_tree !== undefined) {
-                const key_to_production_rule_index = Parse_tree_convertor.create_key_to_production_rule_indices_map(language_description.production_rules);
-                const mappings = Parse_tree_convertor_mappings.create_mapping(key_to_production_rule_index);
-                const expected_module = Parse_tree_convertor.parse_tree_to_module(expected_parse_tree, language_description.production_rules, mappings, key_to_production_rule_index);
+                const expected_module = Parse_tree_convertor.parse_tree_to_module(expected_parse_tree, language_description.production_rules, language_description.mappings, language_description.key_to_production_rule_indices);
 
                 const expected_module_string = expected_module.toString();
                 const actual_module_string = state.module.toString();

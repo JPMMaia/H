@@ -26,10 +26,8 @@ export type Choose_production_rule_handler = (
 ) => { next_state: State, next_production_rule_index: number };
 
 export interface Parse_tree_mappings {
-    vector_to_node_name: (vector_position: any[]) => string;
     value_map: Map<string, string[]>;
     value_transforms: Map<string, (value: any) => string>;
-    node_to_value_transforms: Map<string, (node: Parser_node.Node, position: number[]) => any>;
     vector_map: Map<string, string[][]>;
     order_index_nodes: Set<string>;
     choose_production_rule: Map<string, Choose_production_rule_handler>;

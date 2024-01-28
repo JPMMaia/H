@@ -50,7 +50,7 @@ export function create_state_from_module(core_module: Core.Module, language_desc
 
     const module = Core_intermediate_representation.create_intermediate_representation(core_module);
     const key_to_production_rule_indices = Parse_tree_convertor.create_key_to_production_rule_indices_map(language_description.production_rules);
-    const mappings = Parse_tree_convertor_mappings.create_mapping(key_to_production_rule_indices);
+    const mappings = Parse_tree_convertor_mappings.create_mapping();
     const parse_tree_without_state = Parse_tree_convertor.module_to_parse_tree(module, language_description.production_rules, mappings);
     const parse_tree_text_position_cache = Parse_tree_text_position_cache.create_cache();
     const text = Text_formatter.to_string(parse_tree_without_state, parse_tree_text_position_cache, production_rules_to_cache);

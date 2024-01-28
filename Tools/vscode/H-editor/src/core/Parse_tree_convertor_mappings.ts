@@ -6,34 +6,7 @@ import * as Parser_node from "./Parser_node";
 import * as Type_utilities from "./Type_utilities";
 import { onThrowError } from "../utilities/errors";
 
-export function create_mapping(
-    key_to_production_rule_indices: Map<string, number[]>
-): Parse_tree_convertor.Parse_tree_mappings {
-
-    const vector_to_node_name = (vector_position: any[]): string => {
-        const last_value = vector_position[vector_position.length - 1];
-        switch (last_value) {
-            case "alias_imports": return "Imports";
-            case "alias_type_declarations": return "Alias_name";
-            case "enum_declarations": return "Enum_name";
-            case "values": return "Enum_values";
-            case "function_declarations": return "Function_name";
-            case "function_definitions": return "Function_name";
-            case "input_parameter_names": return "Function_input_parameters";
-            case "input_parameter_types": return "Function_input_parameters";
-            case "output_parameter_names": return "Function_output_parameters";
-            case "output_parameter_types": return "Function_output_parameters";
-            case "statements": return "Statements";
-            case "struct_declarations": return "Struct_name";
-            case "member_names": return "Struct_members";
-            case "member_types": return "Struct_members";
-            default: {
-                const message = `Parse_tree_convertor.create_mapping(): case not handled '${last_value}'`;
-                onThrowError(message);
-                throw Error(message);
-            }
-        }
-    };
+export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
 
     const value_map = new Map<string, string[]>(
         [
@@ -61,17 +34,6 @@ export function create_mapping(
             ["Alias_type", vector => Type_utilities.get_type_name(vector.elements)],
             ["Function_parameter_type", value => Type_utilities.get_type_name([value])],
             ["Struct_member_type", value => Type_utilities.get_type_name([value])],
-        ]
-    );
-
-    const node_to_value_transforms = new Map<string, (node: Parser_node.Node, position: number[]) => any>(
-        [
-            ["Module_name", join_all_child_node_values],
-            ["Import_name", join_all_child_node_values],
-            ["Alias_type", node => convert_to_vector(Type_utilities.parse_type_name(Parse_tree_convertor.get_terminal_value(node)))],
-            ["Function_parameter_type", node => Type_utilities.parse_type_name(Parse_tree_convertor.get_terminal_value(node))[0]],
-            ["Statement", node => node_to_statement(node, key_to_production_rule_indices)],
-            ["Struct_member_type", node => Type_utilities.parse_type_name(Parse_tree_convertor.get_terminal_value(node))[0]],
         ]
     );
 
@@ -121,10 +83,8 @@ export function create_mapping(
     );
 
     return {
-        vector_to_node_name: vector_to_node_name,
         value_map: value_map,
         value_transforms: value_transforms,
-        node_to_value_transforms: node_to_value_transforms,
         vector_map: vector_map,
         order_index_nodes: order_index_nodes,
         choose_production_rule: choose_production_rule

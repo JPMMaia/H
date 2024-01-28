@@ -53,7 +53,7 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
         const production_rules = Grammar.create_production_rules(grammar_description);
         const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
         const key_to_production_rule_indices = Parse_tree_convertor.create_key_to_production_rule_indices_map(production_rules);
-        const mappings = Parse_tree_convertor_mappings.create_mapping(key_to_production_rule_indices);
+        const mappings = Parse_tree_convertor_mappings.create_mapping();
         const parse_tree = Parse_tree_convertor.module_to_parse_tree(module, production_rules, mappings);
 
         assert.equal(parse_tree.word.value, "Module");
@@ -407,7 +407,7 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
         const production_rules = Grammar.create_production_rules(grammar_description);
         const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_module_with_dependencies());
         const key_to_production_rule_indices = Parse_tree_convertor.create_key_to_production_rule_indices_map(production_rules);
-        const mappings = Parse_tree_convertor_mappings.create_mapping(key_to_production_rule_indices);
+        const mappings = Parse_tree_convertor_mappings.create_mapping();
         const parse_tree = Parse_tree_convertor.module_to_parse_tree(module, production_rules, mappings);
 
         assert.equal(parse_tree.word.value, "Module");
@@ -584,7 +584,7 @@ function create_module_changes(
     };
 
     const key_to_production_rule_indices = Parse_tree_convertor.create_key_to_production_rule_indices_map(production_rules);
-    const mappings = Parse_tree_convertor_mappings.create_mapping(key_to_production_rule_indices);
+    const mappings = Parse_tree_convertor_mappings.create_mapping();
     const initial_parse_tree = Parse_tree_convertor.module_to_parse_tree(module, production_rules, mappings);
     const text_cache = Parse_tree_text_position_cache.create_cache();
 
@@ -1471,7 +1471,7 @@ function test_parse_tree_to_module(grammar_description: string[], expected_modul
     const production_rules = Grammar.create_production_rules(grammar_description);
 
     const key_to_production_rule_indices = Parse_tree_convertor.create_key_to_production_rule_indices_map(production_rules);
-    const mappings = Parse_tree_convertor_mappings.create_mapping(key_to_production_rule_indices);
+    const mappings = Parse_tree_convertor_mappings.create_mapping();
     const parse_tree = Parse_tree_convertor.module_to_parse_tree(expected_module, production_rules, mappings);
 
     const actual_module = Parse_tree_convertor.parse_tree_to_module(parse_tree, production_rules, mappings, key_to_production_rule_indices);
