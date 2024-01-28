@@ -5,7 +5,6 @@ import { onThrowError } from "../utilities/errors";
 import * as Fast_array_diff from "fast-array-diff";
 import * as Grammar from "./Grammar";
 import * as Module_change from "./Module_change";
-import * as Module_change_2 from "./Module_change_2";
 import * as Core_intermediate_representation from "./Core_intermediate_representation";
 import * as Object_reference from "../utilities/Object_reference";
 import * as Parser from "./Parser";
@@ -942,7 +941,7 @@ function create_add_change(
     production_rule_to_value_map: Production_rule_info[],
     key_to_production_rule_indices: Map<string, number[]>,
     reflection_info: Core_reflection.Reflection_info
-): { position: any[], change: Module_change_2.Change }[] {
+): { position: any[], change: Module_change.Change }[] {
 
     const new_changes: { position: any[], change: Module_change.Change }[] = [];
 
@@ -960,20 +959,20 @@ function create_remove_change(
     remove_change: Parser.Remove_change,
     parent_node: Parser_node.Node,
     key_to_production_rule_indices: Map<string, number[]>
-): { position: any[], change: Module_change_2.Change }[] {
+): { position: any[], change: Module_change.Change }[] {
 
-    const new_changes: { position: any[], change: Module_change_2.Change }[] = [];
+    const new_changes: { position: any[], change: Module_change.Change }[] = [];
 
     for (let index = 0; index < remove_change.count; ++index) {
         const removed_node_index = remove_change.index + index;
         const removed_node = parent_node.children[removed_node_index];
 
         if (removed_node.word.value === "Import") {
-            const new_change = Module_change_2.create_remove_element_of_vector("imports", removed_node_index);
+            const new_change = Module_change.create_remove_element_of_vector("imports", removed_node_index);
             new_changes.push({ position: [], change: new_change });
         }
         else if (removed_node.word.value === "Declaration") {
-            const new_change = Module_change_2.create_remove_element_of_vector("declarations", removed_node_index);
+            const new_change = Module_change.create_remove_element_of_vector("declarations", removed_node_index);
             new_changes.push({ position: [], change: new_change });
         }
     }
@@ -1707,7 +1706,7 @@ export function create_module_changes(
     // TODO add as parameter
     const reflection_info = Core_reflection.create_reflection_info();
 
-    const changes: { position: any[], change: Module_change_2.Change }[] = [];
+    const changes: { position: any[], change: Module_change.Change }[] = [];
 
     const simplified_changes = simplify_changes(parse_tree, parse_tree_changes);
 
@@ -2415,7 +2414,7 @@ export function parse_tree_to_module(
     };
 
     const new_changes = parse_tree_to_core_object(module, root, root, [], production_rules, mappings, key_to_production_rule_indices, reflection_info, false);
-    Module_change_2.update_module(module, new_changes);
+    Module_change.update_module(module, new_changes);
 
     return module;
 }
@@ -2512,9 +2511,9 @@ function parse_tree_to_core_object(
     key_to_production_rule_indices: Map<string, number[]>,
     reflection_info: Core_reflection.Reflection_info,
     modify_change: boolean
-): { position: any[], change: Module_change_2.Change }[] {
+): { position: any[], change: Module_change.Change }[] {
 
-    const new_changes: { position: any[], change: Module_change_2.Change }[] = [];
+    const new_changes: { position: any[], change: Module_change.Change }[] = [];
 
     const node_positions: number[][] = [];
     node_positions.push(initial_node_position);
@@ -2533,7 +2532,7 @@ function parse_tree_to_core_object(
         if (node.word.value === "Module_name") {
             const module_name = join_all_child_node_values(node);
             if (module.name !== module_name) {
-                new_changes.push({ position: [], change: Module_change_2.create_update("name", module_name) });
+                new_changes.push({ position: [], change: Module_change.create_update("name", module_name) });
             }
             continue;
         }
@@ -2545,10 +2544,10 @@ function parse_tree_to_core_object(
                 const index = node_position[node_position.length - 1];
                 if (!deep_equal(module.imports[index], new_import)) {
                     if (index === -1) {
-                        new_changes.push({ position: [], change: Module_change_2.create_add_element_to_vector("imports", index, new_import) });
+                        new_changes.push({ position: [], change: Module_change.create_add_element_to_vector("imports", index, new_import) });
                     }
                     else {
-                        new_changes.push({ position: [], change: Module_change_2.create_set_element_of_vector("imports", index, new_import) });
+                        new_changes.push({ position: [], change: Module_change.create_set_element_of_vector("imports", index, new_import) });
                     }
                 }
             }
@@ -2562,10 +2561,10 @@ function parse_tree_to_core_object(
                 if (!deep_equal(module.imports[index], new_import)) {
                     if (index === -1) {
                         const index = node_position[node_position.length - 1];
-                        new_changes.push({ position: [], change: Module_change_2.create_add_element_to_vector("imports", index, new_import) });
+                        new_changes.push({ position: [], change: Module_change.create_add_element_to_vector("imports", index, new_import) });
                     }
                     else {
-                        new_changes.push({ position: [], change: Module_change_2.create_set_element_of_vector("imports", index, new_import) });
+                        new_changes.push({ position: [], change: Module_change.create_set_element_of_vector("imports", index, new_import) });
                     }
                 }
             }
@@ -2580,10 +2579,10 @@ function parse_tree_to_core_object(
                 const index = node_position[node_position.length - 2];
                 if (!deep_equal(module.declarations[index], new_declaration)) {
                     if (index === -1) {
-                        new_changes.push({ position: [], change: Module_change_2.create_add_element_to_vector("declarations", index, new_declaration) });
+                        new_changes.push({ position: [], change: Module_change.create_add_element_to_vector("declarations", index, new_declaration) });
                     }
                     else {
-                        new_changes.push({ position: [], change: Module_change_2.create_set_element_of_vector("declarations", index, new_declaration) });
+                        new_changes.push({ position: [], change: Module_change.create_set_element_of_vector("declarations", index, new_declaration) });
                     }
                 }
             }
@@ -2597,10 +2596,10 @@ function parse_tree_to_core_object(
                 if (!deep_equal(module.declarations[index], new_declaration)) {
                     if (index === -1) {
                         const index = node_position[node_position.length - 1];
-                        new_changes.push({ position: [], change: Module_change_2.create_add_element_to_vector("declarations", index, new_declaration) });
+                        new_changes.push({ position: [], change: Module_change.create_add_element_to_vector("declarations", index, new_declaration) });
                     }
                     else {
-                        new_changes.push({ position: [], change: Module_change_2.create_set_element_of_vector("declarations", index, new_declaration) });
+                        new_changes.push({ position: [], change: Module_change.create_set_element_of_vector("declarations", index, new_declaration) });
                     }
                 }
             }

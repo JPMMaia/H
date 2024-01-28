@@ -7,8 +7,7 @@ import * as Core_intermediate_representation from "./Core_intermediate_represent
 import * as Grammar from "./Grammar";
 import * as Grammar_examples from "./Grammar_examples";
 import * as Language from "./Language";
-import * as Module_change from "../utilities/Change";
-import * as Module_change_2 from "../utilities/Change";
+import * as Module_change from "./Module_change";
 import * as Module_examples from "./Module_examples";
 import * as Parse_tree_convertor from "./Parse_tree_convertor";
 import * as Parse_tree_convertor_mappings from "./Parse_tree_convertor_mappings";
@@ -1173,9 +1172,9 @@ describe("Parse_tree_convertor.create_module_changes", () => {
             const change = module_changes[0];
             assert.deepEqual(change.position, []);
 
-            assert.equal(change.change.type, Module_change_2.Type.Add_element_to_vector);
+            assert.equal(change.change.type, Module_change.Type.Add_element_to_vector);
 
-            const add_change = change.change.value as Module_change_2.Add_element_to_vector;
+            const add_change = change.change.value as Module_change.Add_element_to_vector;
             assert.equal(add_change.vector_name, "declarations");
             assert.equal(add_change.index, 0);
 

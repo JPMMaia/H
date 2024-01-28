@@ -1,5 +1,5 @@
 import * as Document from "./Document";
-import * as Module_change from "./Module_change_2";
+import * as Module_change from "./Module_change";
 import * as Language from "./Language";
 import * as Parser from "./Parser";
 import * as Parser_node from "./Parser_node";
