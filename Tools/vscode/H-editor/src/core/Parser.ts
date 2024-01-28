@@ -335,7 +335,7 @@ export interface Add_change {
     new_nodes: Node[];
 }
 
-function create_add_change(parent_position: number[], child_index: number, new_nodes: Node[]): Change {
+export function create_add_change(parent_position: number[], child_index: number, new_nodes: Node[]): Change {
     return {
         type: Change_type.Add,
         value: {
@@ -352,7 +352,7 @@ export interface Remove_change {
     count: number;
 }
 
-function create_remove_change(parent_position: number[], child_index: number, count: number): Change {
+export function create_remove_change(parent_position: number[], child_index: number, count: number): Change {
     return {
         type: Change_type.Remove,
         value: {
@@ -368,7 +368,7 @@ export interface Modify_change {
     new_node: Node;
 }
 
-function create_modify_change(position: number[], new_node: Node): Change {
+export function create_modify_change(position: number[], new_node: Node): Change {
     return {
         type: Change_type.Modify,
         value: {

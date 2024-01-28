@@ -3,10 +3,12 @@ import "mocha";
 import * as assert from "assert";
 
 import * as Core from "./Core_interface";
+import * as Core_intermediate_representation from "./Core_intermediate_representation";
 import * as Grammar from "./Grammar";
 import * as Grammar_examples from "./Grammar_examples";
 import * as Language from "./Language";
 import * as Module_change from "../utilities/Change";
+import * as Module_change_2 from "../utilities/Change";
 import * as Module_examples from "./Module_examples";
 import * as Parse_tree_convertor from "./Parse_tree_convertor";
 import * as Parse_tree_convertor_mappings from "./Parse_tree_convertor_mappings";
@@ -20,7 +22,7 @@ import * as Type_utilities from "./Type_utilities";
 
 const g_debug = false;
 
-function assert_function_parameters(module: Core.Module, parameters_node: Node, parameter_names: string[], parameter_types: Core.Type_reference[]): void {
+function assert_function_parameters(parameters_node: Node, parameter_names: string[], parameter_types: Core.Type_reference[]): void {
 
     assert.equal(parameters_node.children.length, parameter_names.length === 0 ? 0 : parameter_names.length * 2 - 1);
 
@@ -50,11 +52,10 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
     it("Creates module parse tree from grammar 9", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
         const production_rules = Grammar.create_production_rules(grammar_description);
-        const module = Module_examples.create_0();
-        const declarations = Parse_tree_convertor.create_declarations(module);
+        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
         const key_to_production_rule_indices = Parse_tree_convertor.create_key_to_production_rule_indices_map(production_rules);
         const mappings = Parse_tree_convertor_mappings.create_mapping(key_to_production_rule_indices);
-        const parse_tree = Parse_tree_convertor.module_to_parse_tree(module, declarations, production_rules, mappings);
+        const parse_tree = Parse_tree_convertor.module_to_parse_tree(module, production_rules, mappings);
 
         assert.equal(parse_tree.word.value, "Module");
         assert.equal(parse_tree.production_rule_index, 0);
@@ -99,19 +100,19 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
 
         {
             const module_body = parse_tree.children[1];
-            assert.equal(module_body.children.length, declarations.length);
+            assert.equal(module_body.children.length, module.declarations.length);
 
-            for (let declaration_index = 0; declaration_index < declarations.length; ++declaration_index) {
-                const declaration = declarations[declaration_index];
+            for (let declaration_index = 0; declaration_index < module.declarations.length; ++declaration_index) {
+                const declaration = module.declarations[declaration_index];
                 const declaration_node = module_body.children[declaration_index];
-                const module_declarations = declaration.is_export ? module.export_declarations : module.internal_declarations;
+                const module_declarations = module.declarations;
 
                 assert.equal(declaration_node.word.value, "Declaration");
 
 
-                if (declaration.type === Parse_tree_convertor.Declaration_type.Alias) {
+                if (declaration.type === Core_intermediate_representation.Declaration_type.Alias) {
 
-                    const alias_declaration = module_declarations.alias_type_declarations.elements[declaration.index];
+                    const alias_declaration = module_declarations[declaration_index].value as Core.Alias_type_declaration;
 
                     assert.equal(declaration_node.children.length, 1);
 
@@ -140,9 +141,9 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                         assert.equal(type_node.children[0].word.value, expected_type);
                     }
                 }
-                else if (declaration.type === Parse_tree_convertor.Declaration_type.Enum) {
+                else if (declaration.type === Core_intermediate_representation.Declaration_type.Enum) {
 
-                    const enum_declaration = module_declarations.enum_declarations.elements[declaration.index];
+                    const enum_declaration = module_declarations[declaration_index].value as Core.Enum_declaration;
 
                     assert.equal(declaration_node.children.length, 1);
 
@@ -187,9 +188,10 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                         }
                     }
                 }
-                else if (declaration.type === Parse_tree_convertor.Declaration_type.Function) {
+                else if (declaration.type === Core_intermediate_representation.Declaration_type.Function) {
 
-                    const function_declaration = module_declarations.function_declarations.elements[declaration.index];
+                    const function_value = module_declarations[declaration_index].value as Core_intermediate_representation.Function;
+                    const function_declaration = function_value.declaration;
 
                     assert.equal(declaration_node.children.length, 1);
 
@@ -222,14 +224,14 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                             const input_parameters_node = function_declaration_node.children[4];
                             assert.equal(input_parameters_node.word.value, "Function_input_parameters");
 
-                            assert_function_parameters(module, input_parameters_node, function_declaration.input_parameter_names.elements, function_declaration.type.input_parameter_types.elements);
+                            assert_function_parameters(input_parameters_node, function_declaration.input_parameter_names.elements, function_declaration.type.input_parameter_types.elements);
                         }
 
                         {
                             const output_parameters_node = function_declaration_node.children[8];
                             assert.equal(output_parameters_node.word.value, "Function_output_parameters");
 
-                            assert_function_parameters(module, output_parameters_node, function_declaration.output_parameter_names.elements, function_declaration.type.output_parameter_types.elements);
+                            assert_function_parameters(output_parameters_node, function_declaration.output_parameter_names.elements, function_declaration.type.output_parameter_types.elements);
                         }
                     }
 
@@ -348,9 +350,9 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                         }
                     }
                 }
-                else if (declaration.type === Parse_tree_convertor.Declaration_type.Struct) {
+                else if (declaration.type === Core_intermediate_representation.Declaration_type.Struct) {
 
-                    const struct_declaration = module_declarations.struct_declarations.elements[declaration.index];
+                    const struct_declaration = module_declarations[declaration_index].value as Core.Struct_declaration;
 
                     assert.equal(declaration_node.children.length, 1);
 
@@ -404,11 +406,10 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
     it("Creates module imports nodes", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
         const production_rules = Grammar.create_production_rules(grammar_description);
-        const module = Module_examples.create_module_with_dependencies();
-        const declarations = Parse_tree_convertor.create_declarations(module);
+        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_module_with_dependencies());
         const key_to_production_rule_indices = Parse_tree_convertor.create_key_to_production_rule_indices_map(production_rules);
         const mappings = Parse_tree_convertor_mappings.create_mapping(key_to_production_rule_indices);
-        const parse_tree = Parse_tree_convertor.module_to_parse_tree(module, declarations, production_rules, mappings);
+        const parse_tree = Parse_tree_convertor.module_to_parse_tree(module, production_rules, mappings);
 
         assert.equal(parse_tree.word.value, "Module");
         assert.equal(parse_tree.children.length, 2);
@@ -554,7 +555,7 @@ function text_position_to_offset(text: string, position: Text_position): number 
 }
 
 function create_module_changes(
-    module: Core.Module,
+    module: Core_intermediate_representation.Module,
     start_text_position: Text_position,
     end_text_position: Text_position,
     new_text: string
@@ -583,10 +584,9 @@ function create_module_changes(
         return word.value;
     };
 
-    const declarations = Parse_tree_convertor.create_declarations(module);
     const key_to_production_rule_indices = Parse_tree_convertor.create_key_to_production_rule_indices_map(production_rules);
     const mappings = Parse_tree_convertor_mappings.create_mapping(key_to_production_rule_indices);
-    const initial_parse_tree = Parse_tree_convertor.module_to_parse_tree(module, declarations, production_rules, mappings);
+    const initial_parse_tree = Parse_tree_convertor.module_to_parse_tree(module, production_rules, mappings);
     const text_cache = Parse_tree_text_position_cache.create_cache();
 
     const initial_parse_tree_text = Text_formatter.to_string(initial_parse_tree, text_cache, []);
@@ -645,12 +645,12 @@ function create_module_changes(
 
     const module_changes = Parse_tree_convertor.create_module_changes(
         module,
-        declarations,
         production_rules,
         production_rule_to_value_map,
         production_rule_to_change_action_map,
         parse_tree,
         simplified_changes,
+        mappings,
         key_to_production_rule_indices
     );
 
@@ -661,7 +661,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Sets name of module", () => {
 
-        const module = Module_examples.create_0();
+        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
             module,
@@ -686,7 +686,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Adds new function", () => {
 
-        const module = Module_examples.create_0();
+        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
             module,
@@ -695,20 +695,28 @@ describe("Parse_tree_convertor.create_module_changes", () => {
             "\nfunction function_name() -> () {}\n"
         );
 
-        assert.equal(module_changes.length, 2);
+        assert.equal(module_changes.length, 1);
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["internal_declarations"]);
+            assert.deepEqual(change.position, []);
 
             assert.equal(change.change.type, Module_change.Type.Add_element_to_vector);
 
             const add_change = change.change.value as Module_change.Add_element_to_vector;
-            assert.equal(add_change.vector_name, "function_declarations");
+            assert.equal(add_change.vector_name, "declarations");
+            assert.equal(add_change.index, 0);
 
-            const function_declaration = add_change.value as Core.Function_declaration;
+            const declaration = add_change.value as Core_intermediate_representation.Declaration;
+            assert.equal(declaration.name, "function_name");
+            assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Function);
+            assert.equal(declaration.is_export, false);
 
-            const expected: Core.Function_declaration = {
+            const function_value = declaration.value as Core_intermediate_representation.Function;
+
+            const function_declaration = function_value.declaration;
+
+            const expected_function_declaration: Core.Function_declaration = {
                 name: "function_name",
                 type: {
                     input_parameter_types: {
@@ -732,20 +740,9 @@ describe("Parse_tree_convertor.create_module_changes", () => {
                 linkage: Core.Linkage.Private
             };
 
-            assert.deepEqual(function_declaration, expected);
-        }
+            assert.deepEqual(function_declaration, expected_function_declaration);
 
-        {
-            const change = module_changes[1];
-            assert.deepEqual(change.position, ["definitions"]);
-
-            assert.equal(change.change.type, Module_change.Type.Add_element_to_vector);
-
-            const add_change = change.change.value as Module_change.Add_element_to_vector;
-            assert.equal(add_change.vector_name, "function_definitions");
-            //assert.equal(add_change.index, 5);
-
-            const function_definition = add_change.value as Core.Function_definition;
+            const function_definition = function_value.definition;
             assert.equal(function_definition.name, "function_name");
             assert.deepEqual(function_definition.statements.elements, []);
         }
@@ -753,7 +750,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Removes a function", () => {
 
-        const module = Module_examples.create_0();
+        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
             module,
@@ -762,34 +759,23 @@ describe("Parse_tree_convertor.create_module_changes", () => {
             ""
         );
 
-        assert.equal(module_changes.length, 2);
+        assert.equal(module_changes.length, 1);
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["export_declarations"]);
+            assert.deepEqual(change.position, []);
 
             assert.equal(change.change.type, Module_change.Type.Remove_element_of_vector);
 
             const remove_change = change.change.value as Module_change.Remove_element_of_vector;
-            assert.equal(remove_change.vector_name, "function_declarations");
-            assert.equal(remove_change.index, 0);
-        }
-
-        {
-            const change = module_changes[1];
-            assert.deepEqual(change.position, ["definitions"]);
-
-            assert.equal(change.change.type, Module_change.Type.Remove_element_of_vector);
-
-            const remove_change = change.change.value as Module_change.Remove_element_of_vector;
-            assert.equal(remove_change.vector_name, "function_definitions");
-            assert.equal(remove_change.index, 0);
+            assert.equal(remove_change.vector_name, "declarations");
+            assert.equal(remove_change.index, 2);
         }
     });
 
     it("Sets function name", () => {
 
-        const module = Module_examples.create_0();
+        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
             module,
@@ -798,42 +784,39 @@ describe("Parse_tree_convertor.create_module_changes", () => {
             "Another_name"
         );
 
-        assert.equal(module_changes.length, 2);
+        assert.equal(module_changes.length, 1);
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["export_declarations"]);
+            assert.deepEqual(change.position, []);
 
             assert.equal(change.change.type, Module_change.Type.Set_element_of_vector);
 
             const set_change = change.change.value as Module_change.Set_element_of_vector;
-            assert.equal(set_change.vector_name, "function_declarations");
-            assert.equal(set_change.index, 0);
+            assert.equal(set_change.vector_name, "declarations");
+            assert.equal(set_change.index, 2);
 
-            const expected: Core.Function_declaration = JSON.parse(JSON.stringify(module.export_declarations.function_declarations.elements[0]));
-            expected.name = "Another_name";
-            assert.deepEqual(set_change.value, expected);
-        }
+            const declaration = set_change.value as Core_intermediate_representation.Declaration;
+            assert.equal(declaration.name, "Another_name");
+            assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Function);
+            assert.equal(declaration.is_export, true);
 
-        {
-            const change = module_changes[1];
-            assert.deepEqual(change.position, ["definitions"]);
+            const function_value = declaration.value as Core_intermediate_representation.Function;
+            const expected_function_value: Core_intermediate_representation.Function = JSON.parse(JSON.stringify(module.declarations[2].value));
 
-            assert.equal(change.change.type, Module_change.Type.Set_element_of_vector);
+            const expected_declaration = expected_function_value.declaration;
+            expected_declaration.name = "Another_name";
+            assert.deepEqual(function_value.declaration, expected_declaration);
 
-            const set_change = change.change.value as Module_change.Set_element_of_vector;
-            assert.equal(set_change.vector_name, "function_definitions");
-            assert.equal(set_change.index, 0);
-
-            const expected: Core.Function_declaration = JSON.parse(JSON.stringify(module.definitions.function_definitions.elements[0]));
-            expected.name = "Another_name";
-            assert.deepEqual(set_change.value, expected);
+            const expected_definition = expected_function_value.definition;
+            expected_definition.name = "Another_name";
+            assert.deepEqual(function_value.definition, expected_definition);
         }
     });
 
     it("Adds new function input parameter", () => {
 
-        const module = Module_examples.create_0();
+        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
             module,
@@ -846,26 +829,33 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["export_declarations"]);
+            assert.deepEqual(change.position, []);
 
             assert.equal(change.change.type, Module_change.Type.Set_element_of_vector);
 
             const set_change = change.change.value as Module_change.Set_element_of_vector;
-            assert.equal(set_change.vector_name, "function_declarations");
-            assert.equal(set_change.index, 1);
+            assert.equal(set_change.vector_name, "declarations");
+            assert.equal(set_change.index, 3);
 
-            const expected: Core.Function_declaration = JSON.parse(JSON.stringify(module.export_declarations.function_declarations.elements[1]));
-            expected.input_parameter_names.size += 1;
-            expected.input_parameter_names.elements.splice(0, 0, "foo");
-            expected.type.input_parameter_types.size += 1;
-            expected.type.input_parameter_types.elements.splice(0, 0, Type_utilities.parse_type_name("Bar")[0]);
-            assert.deepEqual(set_change.value, expected);
+            const declaration = set_change.value as Core_intermediate_representation.Declaration;
+            assert.equal(declaration.name, "My_function_1");
+            assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Function);
+            assert.equal(declaration.is_export, true);
+
+            const function_value = declaration.value as Core_intermediate_representation.Function;
+
+            const expected: Core_intermediate_representation.Function = JSON.parse(JSON.stringify(module.declarations[3].value));
+            expected.declaration.input_parameter_names.size += 1;
+            expected.declaration.input_parameter_names.elements.splice(0, 0, "foo");
+            expected.declaration.type.input_parameter_types.size += 1;
+            expected.declaration.type.input_parameter_types.elements.splice(0, 0, Type_utilities.parse_type_name("Bar")[0]);
+            assert.deepEqual(function_value.declaration, expected.declaration);
         }
     });
 
     it("Removes function input parameter", () => {
 
-        const module = Module_examples.create_0();
+        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
             module,
@@ -878,26 +868,33 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["export_declarations"]);
+            assert.deepEqual(change.position, []);
 
             assert.equal(change.change.type, Module_change.Type.Set_element_of_vector);
 
             const set_change = change.change.value as Module_change.Set_element_of_vector;
-            assert.equal(set_change.vector_name, "function_declarations");
-            assert.equal(set_change.index, 1);
+            assert.equal(set_change.vector_name, "declarations");
+            assert.equal(set_change.index, 3);
 
-            const expected: Core.Function_declaration = JSON.parse(JSON.stringify(module.export_declarations.function_declarations.elements[1]));
-            expected.input_parameter_names.size -= 1;
-            expected.input_parameter_names.elements.splice(0, 1);
-            expected.type.input_parameter_types.size -= 1;
-            expected.type.input_parameter_types.elements.splice(0, 1);
-            assert.deepEqual(set_change.value, expected);
+            const declaration = set_change.value as Core_intermediate_representation.Declaration;
+            assert.equal(declaration.name, "My_function_1");
+            assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Function);
+            assert.equal(declaration.is_export, true);
+
+            const function_value = declaration.value as Core_intermediate_representation.Function;
+
+            const expected: Core_intermediate_representation.Function = JSON.parse(JSON.stringify(module.declarations[3].value));
+            expected.declaration.input_parameter_names.size -= 1;
+            expected.declaration.input_parameter_names.elements.splice(0, 1);
+            expected.declaration.type.input_parameter_types.size -= 1;
+            expected.declaration.type.input_parameter_types.elements.splice(0, 1);
+            assert.deepEqual(function_value.declaration, expected.declaration);
         }
     });
 
     it("Sets function input parameter name", () => {
 
-        const module = Module_examples.create_0();
+        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
             module,
@@ -910,23 +907,30 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["export_declarations"]);
+            assert.deepEqual(change.position, []);
 
             assert.equal(change.change.type, Module_change.Type.Set_element_of_vector);
 
             const set_change = change.change.value as Module_change.Set_element_of_vector;
-            assert.equal(set_change.vector_name, "function_declarations");
-            assert.equal(set_change.index, 1);
+            assert.equal(set_change.vector_name, "declarations");
+            assert.equal(set_change.index, 3);
 
-            const expected: Core.Function_declaration = JSON.parse(JSON.stringify(module.export_declarations.function_declarations.elements[1]));
-            expected.input_parameter_names.elements[0] = "beep";
-            assert.deepEqual(set_change.value, expected);
+            const declaration = set_change.value as Core_intermediate_representation.Declaration;
+            assert.equal(declaration.name, "My_function_1");
+            assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Function);
+            assert.equal(declaration.is_export, true);
+
+            const function_value = declaration.value as Core_intermediate_representation.Function;
+
+            const expected: Core_intermediate_representation.Function = JSON.parse(JSON.stringify(module.declarations[3].value));
+            expected.declaration.input_parameter_names.elements[0] = "beep";
+            assert.deepEqual(function_value.declaration, expected.declaration);
         }
     });
 
     it("Sets function input parameter type", () => {
 
-        const module = Module_examples.create_0();
+        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
             module,
@@ -939,23 +943,30 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["export_declarations"]);
+            assert.deepEqual(change.position, []);
 
             assert.equal(change.change.type, Module_change.Type.Set_element_of_vector);
 
             const set_change = change.change.value as Module_change.Set_element_of_vector;
-            assert.equal(set_change.vector_name, "function_declarations");
-            assert.equal(set_change.index, 1);
+            assert.equal(set_change.vector_name, "declarations");
+            assert.equal(set_change.index, 3);
 
-            const expected: Core.Function_declaration = JSON.parse(JSON.stringify(module.export_declarations.function_declarations.elements[1]));
-            expected.type.input_parameter_types.elements[0] = Type_utilities.parse_type_name("beep")[0];
-            assert.deepEqual(set_change.value, expected);
+            const declaration = set_change.value as Core_intermediate_representation.Declaration;
+            assert.equal(declaration.name, "My_function_1");
+            assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Function);
+            assert.equal(declaration.is_export, true);
+
+            const function_value = declaration.value as Core_intermediate_representation.Function;
+
+            const expected: Core_intermediate_representation.Function = JSON.parse(JSON.stringify(module.declarations[3].value));
+            expected.declaration.type.input_parameter_types.elements[0] = Type_utilities.parse_type_name("beep")[0];
+            assert.deepEqual(function_value.declaration, expected.declaration);
         }
     });
 
     it("Adds new struct", () => {
 
-        const module = Module_examples.create_0();
+        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
             module,
@@ -968,14 +979,20 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["internal_declarations"]);
+            assert.deepEqual(change.position, []);
 
             assert.equal(change.change.type, Module_change.Type.Add_element_to_vector);
 
             const add_change = change.change.value as Module_change.Add_element_to_vector;
-            assert.equal(add_change.vector_name, "struct_declarations");
+            assert.equal(add_change.vector_name, "declarations");
+            assert.equal(add_change.index, 0);
 
-            const struct_declaration = add_change.value as Core.Struct_declaration;
+            const declaration = add_change.value as Core_intermediate_representation.Declaration;
+            assert.equal(declaration.name, "Struct_name");
+            assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Struct);
+            assert.equal(declaration.is_export, false);
+
+            const struct_declaration = declaration.value as Core.Struct_declaration;
             assert.equal(struct_declaration.name, "Struct_name");
             assert.equal(struct_declaration.member_names.size, 0);
             assert.deepEqual(struct_declaration.member_names.elements, []);
@@ -988,7 +1005,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Removes a struct", () => {
 
-        const module = Module_examples.create_0();
+        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
             module,
@@ -1001,19 +1018,19 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["export_declarations"]);
+            assert.deepEqual(change.position, []);
 
             assert.equal(change.change.type, Module_change.Type.Remove_element_of_vector);
 
             const remove_change = change.change.value as Module_change.Remove_element_of_vector;
-            assert.equal(remove_change.vector_name, "struct_declarations");
-            assert.equal(remove_change.index, 0);
+            assert.equal(remove_change.vector_name, "declarations");
+            assert.equal(remove_change.index, 6);
         }
     });
 
     it("Sets struct name", () => {
 
-        const module = Module_examples.create_0();
+        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
             module,
@@ -1026,23 +1043,28 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["export_declarations"]);
+            assert.deepEqual(change.position, []);
 
             assert.equal(change.change.type, Module_change.Type.Set_element_of_vector);
 
             const set_change = change.change.value as Module_change.Set_element_of_vector;
-            assert.equal(set_change.vector_name, "struct_declarations");
-            assert.equal(set_change.index, 0);
+            assert.equal(set_change.vector_name, "declarations");
+            assert.equal(set_change.index, 6);
 
-            const expected: Core.Struct_declaration = JSON.parse(JSON.stringify(module.export_declarations.struct_declarations.elements[0]));
+            const declaration = set_change.value as Core_intermediate_representation.Declaration;
+            assert.equal(declaration.name, "Another_name");
+            assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Struct);
+            assert.equal(declaration.is_export, true);
+
+            const expected: Core.Struct_declaration = JSON.parse(JSON.stringify(module.declarations[6].value));
             expected.name = "Another_name";
-            assert.deepEqual(set_change.value, expected);
+            assert.deepEqual(declaration.value, expected);
         }
     });
 
     it("Adds new enum", () => {
 
-        const module = Module_examples.create_0();
+        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
             module,
@@ -1055,14 +1077,20 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["internal_declarations"]);
+            assert.deepEqual(change.position, []);
 
             assert.equal(change.change.type, Module_change.Type.Add_element_to_vector);
 
             const add_change = change.change.value as Module_change.Add_element_to_vector;
-            assert.equal(add_change.vector_name, "enum_declarations");
+            assert.equal(add_change.vector_name, "declarations");
+            assert.equal(add_change.index, 0);
 
-            const enum_declaration = add_change.value as Core.Enum_declaration;
+            const declaration = add_change.value as Core_intermediate_representation.Declaration;
+            assert.equal(declaration.name, "My_enum");
+            assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Enum);
+            assert.equal(declaration.is_export, false);
+
+            const enum_declaration = declaration.value as Core.Enum_declaration;
             assert.equal(enum_declaration.name, "My_enum");
             assert.equal(enum_declaration.values.size, 0);
             assert.deepEqual(enum_declaration.values.elements, []);
@@ -1071,7 +1099,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Removes an enum", () => {
 
-        const module = Module_examples.create_0();
+        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
             module,
@@ -1084,19 +1112,19 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["export_declarations"]);
+            assert.deepEqual(change.position, []);
 
             assert.equal(change.change.type, Module_change.Type.Remove_element_of_vector);
 
             const remove_change = change.change.value as Module_change.Remove_element_of_vector;
-            assert.equal(remove_change.vector_name, "enum_declarations");
-            assert.equal(remove_change.index, 0);
+            assert.equal(remove_change.vector_name, "declarations");
+            assert.equal(remove_change.index, 1);
         }
     });
 
     it("Sets enum name", () => {
 
-        const module = Module_examples.create_0();
+        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
             module,
@@ -1109,23 +1137,28 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["export_declarations"]);
+            assert.deepEqual(change.position, []);
 
             assert.equal(change.change.type, Module_change.Type.Set_element_of_vector);
 
             const set_change = change.change.value as Module_change.Set_element_of_vector;
-            assert.equal(set_change.vector_name, "enum_declarations");
-            assert.equal(set_change.index, 0);
+            assert.equal(set_change.vector_name, "declarations");
+            assert.equal(set_change.index, 1);
 
-            const expected: Core.Enum_declaration = JSON.parse(JSON.stringify(module.export_declarations.enum_declarations.elements[0]));
+            const declaration = set_change.value as Core_intermediate_representation.Declaration;
+            assert.equal(declaration.name, "Another_name");
+            assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Enum);
+            assert.equal(declaration.is_export, true);
+
+            const expected: Core.Enum_declaration = JSON.parse(JSON.stringify(module.declarations[1].value));
             expected.name = "Another_name";
-            assert.deepEqual(set_change.value, expected);
+            assert.deepEqual(declaration.value, expected);
         }
     });
 
     it("Adds new alias", () => {
 
-        const module = Module_examples.create_0();
+        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
             module,
@@ -1138,14 +1171,20 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["internal_declarations"]);
+            assert.deepEqual(change.position, []);
 
-            assert.equal(change.change.type, Module_change.Type.Add_element_to_vector);
+            assert.equal(change.change.type, Module_change_2.Type.Add_element_to_vector);
 
-            const add_change = change.change.value as Module_change.Add_element_to_vector;
-            assert.equal(add_change.vector_name, "alias_type_declarations");
+            const add_change = change.change.value as Module_change_2.Add_element_to_vector;
+            assert.equal(add_change.vector_name, "declarations");
+            assert.equal(add_change.index, 0);
 
-            const alias_declaration = add_change.value as Core.Alias_type_declaration;
+            const declaration = add_change.value as Core_intermediate_representation.Declaration;
+            assert.equal(declaration.name, "My_alias");
+            assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Alias);
+            assert.equal(declaration.is_export, false);
+
+            const alias_declaration = declaration.value as Core.Alias_type_declaration;
             assert.deepEqual(alias_declaration.name, "My_alias");
 
             const expected_type = Type_utilities.parse_type_name("Float32");
@@ -1156,7 +1195,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Removes an alias", () => {
 
-        const module = Module_examples.create_0();
+        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
             module,
@@ -1169,19 +1208,19 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["export_declarations"]);
+            assert.deepEqual(change.position, []);
 
             assert.equal(change.change.type, Module_change.Type.Remove_element_of_vector);
 
             const remove_change = change.change.value as Module_change.Remove_element_of_vector;
-            assert.equal(remove_change.vector_name, "alias_type_declarations");
+            assert.equal(remove_change.vector_name, "declarations");
             assert.equal(remove_change.index, 0);
         }
     });
 
     it("Sets alias name", () => {
 
-        const module = Module_examples.create_0();
+        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
             module,
@@ -1194,23 +1233,28 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["export_declarations"]);
+            assert.deepEqual(change.position, []);
 
             assert.equal(change.change.type, Module_change.Type.Set_element_of_vector);
 
             const set_change = change.change.value as Module_change.Set_element_of_vector;
-            assert.equal(set_change.vector_name, "alias_type_declarations");
+            assert.equal(set_change.vector_name, "declarations");
             assert.equal(set_change.index, 0);
 
-            const expected: Core.Alias_type_declaration = JSON.parse(JSON.stringify(module.export_declarations.alias_type_declarations.elements[0]));
+            const declaration = set_change.value as Core_intermediate_representation.Declaration;
+            assert.equal(declaration.name, "Another_name");
+            assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Alias);
+            assert.equal(declaration.is_export, true);
+
+            const expected: Core.Alias_type_declaration = JSON.parse(JSON.stringify(module.declarations[0].value));
             expected.name = "Another_name";
-            assert.deepEqual(set_change.value, expected);
+            assert.deepEqual(declaration.value, expected);
         }
     });
 
     it("Sets alias type", () => {
 
-        const module = Module_examples.create_0();
+        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
             module,
@@ -1224,24 +1268,29 @@ describe("Parse_tree_convertor.create_module_changes", () => {
         {
             const change = module_changes[0];
 
-            assert.deepEqual(change.position, ["export_declarations"]);
+            assert.deepEqual(change.position, []);
 
             assert.equal(change.change.type, Module_change.Type.Set_element_of_vector);
 
             const set_change = change.change.value as Module_change.Set_element_of_vector;
-            assert.equal(set_change.vector_name, "alias_type_declarations");
+            assert.equal(set_change.vector_name, "declarations");
             assert.equal(set_change.index, 0);
 
-            const expected: Core.Alias_type_declaration = JSON.parse(JSON.stringify(module.export_declarations.alias_type_declarations.elements[0]));
+            const declaration = set_change.value as Core_intermediate_representation.Declaration;
+            assert.equal(declaration.name, "My_float");
+            assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Alias);
+            assert.equal(declaration.is_export, true);
+
+            const expected: Core.Alias_type_declaration = JSON.parse(JSON.stringify(module.declarations[0].value));
             expected.type.size = 1;
             expected.type.elements = Type_utilities.parse_type_name("Float64");
-            assert.deepEqual(set_change.value, expected);
+            assert.deepEqual(declaration.value, expected);
         }
     });
 
     it("Adds import module", () => {
 
-        const module = Module_examples.create_0();
+        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
             module,
@@ -1254,13 +1303,13 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["dependencies"]);
+            assert.deepEqual(change.position, []);
 
             assert.equal(change.change.type, Module_change.Type.Add_element_to_vector);
 
             const add_change = change.change.value as Module_change.Add_element_to_vector;
-            assert.equal(add_change.vector_name, "alias_imports");
-            assert.equal(add_change.index, -1);
+            assert.equal(add_change.vector_name, "imports");
+            assert.equal(add_change.index, 0);
 
             const value: Core.Import_module_with_alias = {
                 module_name: "My_library",
@@ -1272,7 +1321,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Removes import module", () => {
 
-        const module = Module_examples.create_module_with_dependencies();
+        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_module_with_dependencies());
 
         const module_changes = create_module_changes(
             module,
@@ -1285,19 +1334,19 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["dependencies"]);
+            assert.deepEqual(change.position, []);
 
             assert.equal(change.change.type, Module_change.Type.Remove_element_of_vector);
 
             const remove_change = change.change.value as Module_change.Remove_element_of_vector;
-            assert.equal(remove_change.vector_name, "alias_imports");
+            assert.equal(remove_change.vector_name, "imports");
             assert.equal(remove_change.index, 0);
         }
     });
 
     it("Sets import module name", () => {
 
-        const module = Module_examples.create_module_with_dependencies();
+        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_module_with_dependencies());
 
         const module_changes = create_module_changes(
             module,
@@ -1306,40 +1355,29 @@ describe("Parse_tree_convertor.create_module_changes", () => {
             "Another_name"
         );
 
-        assert.equal(module_changes.length, 2);
+        assert.equal(module_changes.length, 1);
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["dependencies"]);
+            assert.deepEqual(change.position, []);
 
-            assert.equal(change.change.type, Module_change.Type.Remove_element_of_vector);
+            assert.equal(change.change.type, Module_change.Type.Set_element_of_vector);
 
-            const remove_change = change.change.value as Module_change.Remove_element_of_vector;
-            assert.equal(remove_change.vector_name, "alias_imports");
-            assert.equal(remove_change.index, 0);
-        }
-
-        {
-            const change = module_changes[1];
-            assert.deepEqual(change.position, ["dependencies"]);
-
-            assert.equal(change.change.type, Module_change.Type.Add_element_to_vector);
-
-            const add_change = change.change.value as Module_change.Add_element_to_vector;
-            assert.equal(add_change.vector_name, "alias_imports");
-            assert.equal(add_change.index, -1);
+            const set_change = change.change.value as Module_change.Add_element_to_vector;
+            assert.equal(set_change.vector_name, "imports");
+            assert.equal(set_change.index, 0);
 
             const value: Core.Import_module_with_alias = {
                 module_name: "Another_name",
                 alias: "Cstl"
             };
-            assert.deepEqual(add_change.value, value);
+            assert.deepEqual(set_change.value, value);
         }
     });
 
     it("Sets import module alias", () => {
 
-        const module = Module_examples.create_module_with_dependencies();
+        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_module_with_dependencies());
 
         const module_changes = create_module_changes(
             module,
@@ -1352,12 +1390,12 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         {
             const change = module_changes[0];
-            assert.deepEqual(change.position, ["dependencies"]);
+            assert.deepEqual(change.position, []);
 
             assert.equal(change.change.type, Module_change.Type.Set_element_of_vector);
 
             const set_change = change.change.value as Module_change.Set_element_of_vector;
-            assert.equal(set_change.vector_name, "alias_imports");
+            assert.equal(set_change.vector_name, "imports");
             assert.equal(set_change.index, 0);
 
             const value: Core.Import_module_with_alias = {
@@ -1369,75 +1407,78 @@ describe("Parse_tree_convertor.create_module_changes", () => {
     });
 });
 
-function assert_function_declarations(actual_function_declarations: Core.Vector<Core.Function_declaration>, expected_function_declarations: Core.Vector<Core.Function_declaration>) {
-    assert.equal(actual_function_declarations.size, expected_function_declarations.size);
-    assert.equal(actual_function_declarations.elements.length, expected_function_declarations.elements.length);
+function assert_declarations(actual_declarations: Core_intermediate_representation.Declaration[], expected_declarations: Core_intermediate_representation.Declaration[]) {
 
-    for (let function_index = 0; function_index < actual_function_declarations.elements.length; ++function_index) {
-        const actual_function_declaration = actual_function_declarations.elements[function_index];
-        const expected_function_declaration = expected_function_declarations.elements[function_index];
+    assert.equal(actual_declarations.length, expected_declarations.length);
 
-        assert.equal(actual_function_declaration.name, expected_function_declaration.name);
-        assert.equal(actual_function_declaration.linkage, expected_function_declaration.linkage);
+    for (let declaration_index = 0; declaration_index < actual_declarations.length; ++declaration_index) {
+        const actual_declaration = actual_declarations[declaration_index];
+        const expected_declaration = expected_declarations[declaration_index];
 
-        assert.deepEqual(actual_function_declaration.type.input_parameter_types, expected_function_declaration.type.input_parameter_types);
-        assert.deepEqual(actual_function_declaration.type.output_parameter_types, expected_function_declaration.type.output_parameter_types);
-        assert.equal(actual_function_declaration.type.is_variadic, expected_function_declaration.type.is_variadic);
+        assert.equal(actual_declaration.name, expected_declaration.name);
+        assert.equal(actual_declaration.type, expected_declaration.type);
+        assert.equal(actual_declaration.is_export, expected_declaration.is_export);
 
-        assert.deepEqual(actual_function_declaration.input_parameter_names, expected_function_declaration.input_parameter_names);
-        assert.deepEqual(actual_function_declaration.output_parameter_names, expected_function_declaration.output_parameter_names);
+        if (actual_declaration.type === Core_intermediate_representation.Declaration_type.Alias) {
+            const actual_value = actual_declaration.value as Core.Alias_type_declaration;
+            const expected_value = expected_declaration.value as Core.Alias_type_declaration;
+
+            assert.equal(actual_value.name, expected_value.name);
+            assert.deepEqual(actual_value.type, expected_value.type);
+        }
+        else if (actual_declaration.type === Core_intermediate_representation.Declaration_type.Enum) {
+            const actual_value = actual_declaration.value as Core.Enum_declaration;
+            const expected_value = expected_declaration.value as Core.Enum_declaration;
+
+            assert.equal(actual_value.name, expected_value.name);
+            assert.deepEqual(actual_value.values, expected_value.values);
+        }
+        else if (actual_declaration.type === Core_intermediate_representation.Declaration_type.Function) {
+            const actual_value = actual_declaration.value as Core_intermediate_representation.Function;
+            const expected_value = expected_declaration.value as Core_intermediate_representation.Function;
+
+            assert.equal(actual_value.declaration.name, expected_value.declaration.name);
+            assert.equal(actual_value.declaration.linkage, expected_value.declaration.linkage);
+
+            assert.deepEqual(actual_value.declaration.type.input_parameter_types, expected_value.declaration.type.input_parameter_types);
+            assert.deepEqual(actual_value.declaration.type.output_parameter_types, expected_value.declaration.type.output_parameter_types);
+            assert.equal(actual_value.declaration.type.is_variadic, expected_value.declaration.type.is_variadic);
+
+            assert.deepEqual(actual_value.declaration.input_parameter_names, expected_value.declaration.input_parameter_names);
+            assert.deepEqual(actual_value.declaration.output_parameter_names, expected_value.declaration.output_parameter_names);
+
+            assert.equal(actual_value.definition.name, expected_value.definition.name);
+
+            assert.equal(actual_value.definition.statements.size, expected_value.definition.statements.size);
+            assert.equal(actual_value.definition.statements.elements.length, expected_value.definition.statements.elements.length);
+
+            for (let statement_index = 0; statement_index < actual_value.definition.statements.elements.length; ++statement_index) {
+                const actual_statement = actual_value.definition.statements.elements[statement_index];
+                const expected_statement = expected_value.definition.statements.elements[statement_index];
+
+                assert.deepEqual(actual_statement, expected_statement);
+            }
+        }
+        else if (actual_declaration.type === Core_intermediate_representation.Declaration_type.Struct) {
+            const actual_value = actual_declaration.value as Core.Struct_declaration;
+            const expected_value = expected_declaration.value as Core.Struct_declaration;
+
+            assert.equal(actual_value.name, expected_value.name);
+            assert.equal(actual_value.is_literal, expected_value.is_literal);
+            assert.equal(actual_value.is_packed, expected_value.is_packed);
+            assert.deepEqual(actual_value.member_names, expected_value.member_names);
+            assert.deepEqual(actual_value.member_types, expected_value.member_types);
+        }
     }
 }
 
-function assert_alias_type_declarations(actual_alias_type_declarations: Core.Vector<Core.Alias_type_declaration>, expected_alias_type_declarations: Core.Vector<Core.Alias_type_declaration>) {
-    assert.equal(actual_alias_type_declarations.size, expected_alias_type_declarations.size);
-    assert.equal(actual_alias_type_declarations.elements.length, expected_alias_type_declarations.elements.length);
 
-    for (let alias_type_index = 0; alias_type_index < actual_alias_type_declarations.elements.length; ++alias_type_index) {
-        const actual_alias_type_declaration = actual_alias_type_declarations.elements[alias_type_index];
-        const expected_alias_type_declaration = expected_alias_type_declarations.elements[alias_type_index];
-
-        assert.equal(actual_alias_type_declaration.name, expected_alias_type_declaration.name);
-        assert.deepEqual(actual_alias_type_declaration.type, expected_alias_type_declaration.type);
-    }
-}
-
-function assert_enum_declarations(actual_enum_declarations: Core.Vector<Core.Enum_declaration>, expected_enum_declarations: Core.Vector<Core.Enum_declaration>) {
-    assert.equal(actual_enum_declarations.size, expected_enum_declarations.size);
-    assert.equal(actual_enum_declarations.elements.length, expected_enum_declarations.elements.length);
-
-    for (let enum_index = 0; enum_index < actual_enum_declarations.elements.length; ++enum_index) {
-        const actual_enum_declaration = actual_enum_declarations.elements[enum_index];
-        const expected_enum_declaration = expected_enum_declarations.elements[enum_index];
-
-        assert.equal(actual_enum_declaration.name, expected_enum_declaration.name);
-        assert.deepEqual(actual_enum_declaration.values, expected_enum_declaration.values);
-    }
-}
-
-function assert_struct_declarations(actual_struct_declarations: Core.Vector<Core.Struct_declaration>, expected_struct_declarations: Core.Vector<Core.Struct_declaration>) {
-    assert.equal(actual_struct_declarations.size, expected_struct_declarations.size);
-    assert.equal(actual_struct_declarations.elements.length, expected_struct_declarations.elements.length);
-
-    for (let struct_index = 0; struct_index < actual_struct_declarations.elements.length; ++struct_index) {
-        const actual_struct_declaration = actual_struct_declarations.elements[struct_index];
-        const expected_struct_declaration = expected_struct_declarations.elements[struct_index];
-
-        assert.equal(actual_struct_declaration.name, expected_struct_declaration.name);
-        assert.equal(actual_struct_declaration.is_literal, expected_struct_declaration.is_literal);
-        assert.equal(actual_struct_declaration.is_packed, expected_struct_declaration.is_packed);
-        assert.deepEqual(actual_struct_declaration.member_names, expected_struct_declaration.member_names);
-        assert.deepEqual(actual_struct_declaration.member_types, expected_struct_declaration.member_types);
-    }
-}
-
-function test_parse_tree_to_module(grammar_description: string[], expected_module: Core.Module): Core.Module {
+function test_parse_tree_to_module(grammar_description: string[], expected_module: Core_intermediate_representation.Module): Core_intermediate_representation.Module {
     const production_rules = Grammar.create_production_rules(grammar_description);
-    const declarations = Parse_tree_convertor.create_declarations(expected_module);
 
     const key_to_production_rule_indices = Parse_tree_convertor.create_key_to_production_rule_indices_map(production_rules);
     const mappings = Parse_tree_convertor_mappings.create_mapping(key_to_production_rule_indices);
-    const parse_tree = Parse_tree_convertor.module_to_parse_tree(expected_module, declarations, production_rules, mappings);
+    const parse_tree = Parse_tree_convertor.module_to_parse_tree(expected_module, production_rules, mappings);
 
     const actual_module = Parse_tree_convertor.parse_tree_to_module(parse_tree, production_rules, mappings, key_to_production_rule_indices);
 
@@ -1448,7 +1489,7 @@ describe("Parse_tree_convertor.parse_tree_to_module", () => {
 
     it("Handles the module name", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
-        const expected_module = Module_examples.create_empty();
+        const expected_module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_empty());
         expected_module.name = "Test_name";
         const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
         assert.equal(actual_module.name, expected_module.name);
@@ -1457,63 +1498,41 @@ describe("Parse_tree_convertor.parse_tree_to_module", () => {
     it("Handles functions", () => {
 
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
-        const expected_module = Module_examples.create_function_example();
+        const expected_module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_function_example());
         const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
 
-        assert_function_declarations(actual_module.export_declarations.function_declarations, expected_module.export_declarations.function_declarations);
-        assert_function_declarations(actual_module.internal_declarations.function_declarations, expected_module.internal_declarations.function_declarations);
-
-        assert.equal(actual_module.definitions.function_definitions.size, expected_module.definitions.function_definitions.size);
-        assert.equal(actual_module.definitions.function_definitions.elements.length, expected_module.definitions.function_definitions.elements.length);
-
-        for (let definition_index = 0; definition_index < actual_module.definitions.function_definitions.elements.length; ++definition_index) {
-            const actual_definition = actual_module.definitions.function_definitions.elements[definition_index];
-            const expected_definition = expected_module.definitions.function_definitions.elements[definition_index];
-
-            assert.equal(actual_definition.statements.size, expected_definition.statements.size);
-            assert.equal(actual_definition.statements.elements.length, expected_definition.statements.elements.length);
-
-            for (let statement_index = 0; statement_index < actual_definition.statements.elements.length; ++statement_index) {
-                const actual_statement = actual_definition.statements.elements[statement_index];
-                const expected_statement = expected_definition.statements.elements[statement_index];
-
-                assert.deepEqual(actual_statement, expected_statement);
-            }
-        }
+        assert_declarations(actual_module.declarations, expected_module.declarations);
     });
 
     it("Handles alias", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
-        const expected_module = Module_examples.create_alias_example();
+        const expected_module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_alias_example());
         const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
 
-        assert_alias_type_declarations(actual_module.export_declarations.alias_type_declarations, expected_module.export_declarations.alias_type_declarations);
-        assert_alias_type_declarations(actual_module.internal_declarations.alias_type_declarations, expected_module.internal_declarations.alias_type_declarations);
+        assert_declarations(actual_module.declarations, expected_module.declarations);
     });
 
     it("Handles enums", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
-        const expected_module = Module_examples.create_enum_example();
+        const expected_module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_enum_example());
         const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
 
-        assert_enum_declarations(actual_module.export_declarations.enum_declarations, expected_module.export_declarations.enum_declarations);
-        assert_enum_declarations(actual_module.internal_declarations.enum_declarations, expected_module.internal_declarations.enum_declarations);
+        assert_declarations(actual_module.declarations, expected_module.declarations);
     });
 
     it("Handles structs", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
-        const expected_module = Module_examples.create_struct_example();
+        const expected_module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_struct_example());
         const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
 
-        assert_struct_declarations(actual_module.export_declarations.struct_declarations, expected_module.export_declarations.struct_declarations);
-        assert_struct_declarations(actual_module.internal_declarations.struct_declarations, expected_module.internal_declarations.struct_declarations);
+        assert_declarations(actual_module.declarations, expected_module.declarations);
     });
 
     it("Handles import dependencies", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
-        const expected_module = Module_examples.create_module_with_dependencies();
+        const expected_module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_module_with_dependencies());
         const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
 
-        assert.deepEqual(actual_module.dependencies, expected_module.dependencies);
+        assert.deepEqual(actual_module.imports, expected_module.imports);
     });
 });

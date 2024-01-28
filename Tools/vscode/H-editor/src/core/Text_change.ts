@@ -1,5 +1,5 @@
 import * as Document from "./Document";
-import * as Module_change from "./Module_change";
+import * as Module_change from "./Module_change_2";
 import * as Language from "./Language";
 import * as Parser from "./Parser";
 import * as Parser_node from "./Parser_node";
@@ -72,17 +72,18 @@ export function update(
                 const production_rule_to_value_map = Parse_tree_convertor.create_production_rule_to_value_map(language_description.production_rules);
                 const production_rule_to_change_action_map = Parse_tree_convertor.create_production_rule_to_change_action_map(language_description.production_rules);
                 const key_to_production_rule_indices = Parse_tree_convertor.create_key_to_production_rule_indices_map(language_description.production_rules);
+                const mappings = Parse_tree_convertor_mappings.create_mapping(key_to_production_rule_indices);
 
                 const simplified_changes = Parser.simplify_changes(parse_result.changes);
 
                 const module_changes = Parse_tree_convertor.create_module_changes(
                     state.module,
-                    state.declarations,
                     language_description.production_rules,
                     production_rule_to_value_map,
                     production_rule_to_change_action_map,
                     state.parse_tree,
                     simplified_changes,
+                    mappings,
                     key_to_production_rule_indices
                 );
 

@@ -13,6 +13,7 @@ export enum Declaration_type {
 }
 
 export interface Declaration {
+    name: string;
     type: Declaration_type;
     is_export: boolean;
     value: Core.Alias_type_declaration | Core.Enum_declaration | Function | Core.Struct_declaration
@@ -39,14 +40,14 @@ export function create_intermediate_representation(core_module: Core.Module): Mo
 function create_declarations(module: Core.Module): Declaration[] {
 
     const declarations: Declaration[] = [
-        ...module.export_declarations.alias_type_declarations.elements.map((value, index): Declaration => { return { type: Declaration_type.Alias, is_export: true, value: value }; }),
-        ...module.export_declarations.enum_declarations.elements.map((value, index): Declaration => { return { type: Declaration_type.Enum, is_export: true, value: value }; }),
-        ...module.export_declarations.function_declarations.elements.map((value, index): Declaration => { return { type: Declaration_type.Function, is_export: true, value: create_function_value(module, value) }; }),
-        ...module.export_declarations.struct_declarations.elements.map((value, index): Declaration => { return { type: Declaration_type.Struct, is_export: true, value: value }; }),
-        ...module.internal_declarations.alias_type_declarations.elements.map((value, index): Declaration => { return { type: Declaration_type.Alias, is_export: false, value: value }; }),
-        ...module.internal_declarations.enum_declarations.elements.map((value, index): Declaration => { return { type: Declaration_type.Enum, is_export: false, value: value }; }),
-        ...module.internal_declarations.function_declarations.elements.map((value, index): Declaration => { return { type: Declaration_type.Function, is_export: false, value: create_function_value(module, value) }; }),
-        ...module.internal_declarations.struct_declarations.elements.map((value, index): Declaration => { return { type: Declaration_type.Struct, is_export: false, value: value }; }),
+        ...module.export_declarations.alias_type_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Alias, is_export: true, value: value }; }),
+        ...module.export_declarations.enum_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Enum, is_export: true, value: value }; }),
+        ...module.export_declarations.function_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Function, is_export: true, value: create_function_value(module, value) }; }),
+        ...module.export_declarations.struct_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Struct, is_export: true, value: value }; }),
+        ...module.internal_declarations.alias_type_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Alias, is_export: false, value: value }; }),
+        ...module.internal_declarations.enum_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Enum, is_export: false, value: value }; }),
+        ...module.internal_declarations.function_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Function, is_export: false, value: create_function_value(module, value) }; }),
+        ...module.internal_declarations.struct_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Struct, is_export: false, value: value }; }),
     ];
 
     return declarations;

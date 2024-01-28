@@ -2,6 +2,7 @@ import "mocha";
 
 import * as assert from "assert";
 import * as Core from "./Core_interface";
+import * as Core_intermediate_representation from "./Core_intermediate_representation";
 import * as Document from "./Document";
 import * as Language from "./Language";
 import * as Text_change from "./Text_change";
@@ -243,10 +244,14 @@ describe("Text_change.update", () => {
 
             assert.equal(document_state.pending_text_changes.length, 0);
 
-            assert.equal(document_state.module.export_declarations.alias_type_declarations.size, 1);
-            assert.equal(document_state.module.export_declarations.alias_type_declarations.elements.length, 1);
+            assert.equal(document_state.module.declarations.length, 1);
 
-            const new_alias = document_state.module.export_declarations.alias_type_declarations.elements[0];
+            const declaration = document_state.module.declarations[0];
+            assert.equal(declaration.name, "My_float");
+            assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Alias);
+            assert.equal(declaration.is_export, true);
+
+            const new_alias = declaration.value as Core.Alias_type_declaration;
             assert.equal(new_alias.name, "My_float");
 
             const expected_type = Type_utilities.parse_type_name("Float32");
@@ -282,10 +287,14 @@ describe("Text_change.update", () => {
 
             assert.equal(document_state.pending_text_changes.length, 0);
 
-            assert.equal(document_state.module.export_declarations.alias_type_declarations.size, 1);
-            assert.equal(document_state.module.export_declarations.alias_type_declarations.elements.length, 1);
+            assert.equal(document_state.module.declarations.length, 1);
 
-            const new_alias = document_state.module.export_declarations.alias_type_declarations.elements[0];
+            const declaration = document_state.module.declarations[0];
+            assert.equal(declaration.name, "My_float");
+            assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Alias);
+            assert.equal(declaration.is_export, true);
+
+            const new_alias = declaration.value as Core.Alias_type_declaration;
             assert.equal(new_alias.name, "My_float");
 
             const expected_type = Type_utilities.parse_type_name("Float32");
@@ -314,8 +323,7 @@ describe("Text_change.update", () => {
 
             assert.equal(document_state.pending_text_changes.length, 0);
 
-            assert.equal(document_state.module.export_declarations.alias_type_declarations.size, 0);
-            assert.equal(document_state.module.export_declarations.alias_type_declarations.elements.length, 0);
+            assert.equal(document_state.module.declarations.length, 0);
         }
     });
 
@@ -347,10 +355,14 @@ describe("Text_change.update", () => {
 
             assert.equal(document_state.pending_text_changes.length, 0);
 
-            assert.equal(document_state.module.export_declarations.alias_type_declarations.size, 1);
-            assert.equal(document_state.module.export_declarations.alias_type_declarations.elements.length, 1);
+            assert.equal(document_state.module.declarations.length, 1);
 
-            const new_alias = document_state.module.export_declarations.alias_type_declarations.elements[0];
+            const declaration = document_state.module.declarations[0];
+            assert.equal(declaration.name, "My_float");
+            assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Alias);
+            assert.equal(declaration.is_export, true);
+
+            const new_alias = declaration.value as Core.Alias_type_declaration;
             assert.equal(new_alias.name, "My_float");
 
             const expected_type = Type_utilities.parse_type_name("Float32");
@@ -379,10 +391,14 @@ describe("Text_change.update", () => {
 
             assert.equal(document_state.pending_text_changes.length, 0);
 
-            assert.equal(document_state.module.export_declarations.alias_type_declarations.size, 1);
-            assert.equal(document_state.module.export_declarations.alias_type_declarations.elements.length, 1);
+            assert.equal(document_state.module.declarations.length, 1);
 
-            const new_alias = document_state.module.export_declarations.alias_type_declarations.elements[0];
+            const declaration = document_state.module.declarations[0];
+            assert.equal(declaration.name, "My_float");
+            assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Alias);
+            assert.equal(declaration.is_export, true);
+
+            const new_alias = declaration.value as Core.Alias_type_declaration;
             assert.equal(new_alias.name, "My_float");
 
             const expected_type = Type_utilities.parse_type_name("Float32");
@@ -411,10 +427,14 @@ describe("Text_change.update", () => {
 
             assert.equal(document_state.pending_text_changes.length, 0);
 
-            assert.equal(document_state.module.export_declarations.alias_type_declarations.size, 1);
-            assert.equal(document_state.module.export_declarations.alias_type_declarations.elements.length, 1);
+            assert.equal(document_state.module.declarations.length, 1);
 
-            const new_alias = document_state.module.export_declarations.alias_type_declarations.elements[0];
+            const declaration = document_state.module.declarations[0];
+            assert.equal(declaration.name, "My_float");
+            assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Alias);
+            assert.equal(declaration.is_export, true);
+
+            const new_alias = declaration.value as Core.Alias_type_declaration;
             assert.equal(new_alias.name, "My_float");
 
             const expected_type = Type_utilities.parse_type_name("Float32");
@@ -450,10 +470,14 @@ describe("Text_change.update", () => {
 
             assert.equal(document_state.pending_text_changes.length, 0);
 
-            assert.equal(document_state.module.export_declarations.alias_type_declarations.size, 1);
-            assert.equal(document_state.module.export_declarations.alias_type_declarations.elements.length, 1);
+            assert.equal(document_state.module.declarations.length, 1);
 
-            const new_alias = document_state.module.export_declarations.alias_type_declarations.elements[0];
+            const declaration = document_state.module.declarations[0];
+            assert.equal(declaration.name, "My_float");
+            assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Alias);
+            assert.equal(declaration.is_export, true);
+
+            const new_alias = declaration.value as Core.Alias_type_declaration;
             assert.equal(new_alias.name, "My_float");
 
             const expected_type = Type_utilities.parse_type_name("Float32");
@@ -482,10 +506,14 @@ describe("Text_change.update", () => {
 
             assert.equal(document_state.pending_text_changes.length, 0);
 
-            assert.equal(document_state.module.export_declarations.alias_type_declarations.size, 1);
-            assert.equal(document_state.module.export_declarations.alias_type_declarations.elements.length, 1);
+            assert.equal(document_state.module.declarations.length, 1);
 
-            const new_alias = document_state.module.export_declarations.alias_type_declarations.elements[0];
+            const declaration = document_state.module.declarations[0];
+            assert.equal(declaration.name, "My_float");
+            assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Alias);
+            assert.equal(declaration.is_export, true);
+
+            const new_alias = declaration.value as Core.Alias_type_declaration;
             assert.equal(new_alias.name, "My_float");
 
             const expected_type = Type_utilities.parse_type_name("Float16");
@@ -521,10 +549,16 @@ describe("Text_change.update", () => {
 
             assert.equal(document_state.pending_text_changes.length, 0);
 
-            assert.equal(document_state.module.export_declarations.function_declarations.size, 1);
-            assert.equal(document_state.module.export_declarations.function_declarations.elements.length, 1);
+            assert.equal(document_state.module.declarations.length, 1);
 
-            const new_function_declaration = document_state.module.export_declarations.function_declarations.elements[0];
+            const declaration = document_state.module.declarations[0];
+            assert.equal(declaration.name, "My_function");
+            assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Function);
+            assert.equal(declaration.is_export, true);
+
+            const function_value = declaration.value as Core_intermediate_representation.Function;
+
+            const new_function_declaration = function_value.declaration;
             assert.equal(new_function_declaration.name, "My_function");
             assert.equal(new_function_declaration.linkage, Core.Linkage.External);
             assert.equal(new_function_declaration.input_parameter_names.size, 0);
@@ -562,10 +596,16 @@ describe("Text_change.update", () => {
 
             assert.equal(document_state.pending_text_changes.length, 0);
 
-            assert.equal(document_state.module.export_declarations.function_declarations.size, 1);
-            assert.equal(document_state.module.export_declarations.function_declarations.elements.length, 1);
+            assert.equal(document_state.module.declarations.length, 1);
 
-            const new_function_declaration = document_state.module.export_declarations.function_declarations.elements[0];
+            const declaration = document_state.module.declarations[0];
+            assert.equal(declaration.name, "My_function");
+            assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Function);
+            assert.equal(declaration.is_export, true);
+
+            const function_value = declaration.value as Core_intermediate_representation.Function;
+
+            const new_function_declaration = function_value.declaration;
             assert.equal(new_function_declaration.input_parameter_names.size, 1);
             assert.equal(new_function_declaration.input_parameter_names.elements.length, 1);
             assert.equal(new_function_declaration.type.input_parameter_types.size, 1);
