@@ -639,14 +639,9 @@ function create_module_changes(
 
     const simplified_changes = Parser.simplify_changes(parse_result.changes);
 
-    const production_rule_to_value_map = Parse_tree_convertor.create_production_rule_to_value_map(production_rules);
-    const production_rule_to_change_action_map = Parse_tree_convertor.create_production_rule_to_change_action_map(production_rules);
-
     const module_changes = Parse_tree_convertor.create_module_changes(
         module,
         production_rules,
-        production_rule_to_value_map,
-        production_rule_to_change_action_map,
         parse_tree,
         simplified_changes,
         mappings,

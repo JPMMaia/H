@@ -69,8 +69,6 @@ export function update(
             }
             else if (state.parse_tree !== undefined) {
                 // TODO can be cached
-                const production_rule_to_value_map = Parse_tree_convertor.create_production_rule_to_value_map(language_description.production_rules);
-                const production_rule_to_change_action_map = Parse_tree_convertor.create_production_rule_to_change_action_map(language_description.production_rules);
                 const key_to_production_rule_indices = Parse_tree_convertor.create_key_to_production_rule_indices_map(language_description.production_rules);
                 const mappings = Parse_tree_convertor_mappings.create_mapping(key_to_production_rule_indices);
 
@@ -79,8 +77,6 @@ export function update(
                 const module_changes = Parse_tree_convertor.create_module_changes(
                     state.module,
                     language_description.production_rules,
-                    production_rule_to_value_map,
-                    production_rule_to_change_action_map,
                     state.parse_tree,
                     simplified_changes,
                     mappings,

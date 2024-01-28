@@ -1,4 +1,5 @@
 import * as Core from "./Core_interface";
+import * as Core_intermediate_representation from "./Core_intermediate_representation";
 import * as Grammar from "./Grammar";
 import * as Parse_tree_convertor from "./Parse_tree_convertor";
 import * as Parser_node from "./Parser_node";
@@ -37,21 +38,21 @@ export function create_mapping(
     const value_map = new Map<string, string[]>(
         [
             ["Module_name", ["name"]],
-            ["Import_name", ["dependencies", "alias_imports", "elements", "$order_index", "module_name"]],
-            ["Import_alias", ["dependencies", "alias_imports", "elements", "$order_index", "alias"]],
-            ["Alias_name", ["$export", "alias_type_declarations", "elements", "$name_index", "name"]],
-            ["Alias_type", ["$export", "alias_type_declarations", "elements", "$name_index", "type"]],
-            ["Enum_name", ["$export", "enum_declarations", "elements", "$name_index", "name"]],
-            ["Enum_value_name", ["$export", "enum_declarations", "elements", "$name_index", "values", "elements", "$order_index", "name"]],
-            ["Enum_value_value", ["$export", "enum_declarations", "elements", "$name_index", "values", "elements", "$order_index", "value"]],
-            ["Function_name", ["$export", "function_declarations", "elements", "$name_index", "name"]],
-            ["Function_parameter_name", ["$export", "function_declarations", "elements", "$name_index", "$parameter_names", "elements", "$order_index"]],
-            ["Function_parameter_type", ["$export", "function_declarations", "elements", "$name_index", "type", "$parameter_types", "elements", "$order_index"]],
-            ["Statement", ["definitions", "function_definitions", "elements", "$name_index", "statements", "elements", "$order_index"]],
-            ["Struct_name", ["$export", "struct_declarations", "elements", "$name_index", "name"]],
-            ["Struct_member_name", ["$export", "struct_declarations", "elements", "$name_index", "member_names", "elements", "$order_index"]],
-            ["Struct_member_type", ["$export", "struct_declarations", "elements", "$name_index", "member_types", "elements", "$order_index"]],
-            ["Variable_name", ["definitions", "function_definitions", "elements", "$name_index", "statements", "elements", "$order_index", "expressions", "elements", "$expression_index", "data", "value", "name"]],
+            ["Import_name", ["imports", "$order_index", "module_name"]],
+            ["Import_alias", ["imports", "$order_index", "alias"]],
+            ["Alias_name", ["declarations", "$declaration_index", "value", "name"]],
+            ["Alias_type", ["declarations", "$declaration_index", "value", "type"]],
+            ["Enum_name", ["declarations", "$declaration_index", "value", "name"]],
+            ["Enum_value_name", ["declarations", "$declaration_index", "value", "values", "elements", "$order_index", "name"]],
+            ["Enum_value_value", ["declarations", "$declaration_index", "value", "values", "elements", "$order_index", "value"]],
+            ["Function_name", ["declarations", "$declaration_index", "value", "declaration", "name"]],
+            ["Function_parameter_name", ["declarations", "$declaration_index", "value", "declaration", "$parameter_names", "elements", "$order_index"]],
+            ["Function_parameter_type", ["declarations", "$declaration_index", "value", "declaration", "type", "$parameter_types", "elements", "$order_index"]],
+            ["Statement", ["declarations", "$declaration_index", "value", "definition", "statements", "elements", "$order_index"]],
+            ["Variable_name", ["declarations", "$declaration_index", "value", "definition", "statements", "elements", "$order_index", "expressions", "elements", "$expression_index", "data", "value", "name"]],
+            ["Struct_name", ["declarations", "$declaration_index", "value", "name"]],
+            ["Struct_member_name", ["declarations", "$declaration_index", "value", "member_names", "elements", "$order_index"]],
+            ["Struct_member_type", ["declarations", "$declaration_index", "value", "member_types", "elements", "$order_index"]],
         ]
     );
 
@@ -76,28 +77,29 @@ export function create_mapping(
 
     const vector_map = new Map<string, string[][]>(
         [
-            ["Imports", [["dependencies", "alias_imports"]]],
-            ["Module_body", [["$declarations"]]],
-            ["Enum_values", [["$export", "enum_declarations", "elements", "$name_index", "values"]]],
+            ["Imports", [["imports"]]],
+            ["Module_body", [["declarations"]]],
+            ["Enum_values", [["declarations", "$order_index", "value", "values"]]],
             ["Function_input_parameters", [
-                ["$export", "function_declarations", "elements", "$name_index", "input_parameter_names"],
-                ["$export", "function_declarations", "elements", "$name_index", "type", "input_parameter_types"]
+                ["declarations", "$declaration_index", "value", "declaration", "input_parameter_names"],
+                ["declarations", "$declaration_index", "value", "declaration", "type", "input_parameter_types"]
             ]],
             ["Function_output_parameters", [
-                ["$export", "function_declarations", "elements", "$name_index", "output_parameter_names"],
-                ["$export", "function_declarations", "elements", "$name_index", "type", "output_parameter_types"],
+                ["declarations", "$declaration_index", "value", "declaration", "output_parameter_names"],
+                ["declarations", "$declaration_index", "value", "declaration", "type", "output_parameter_types"],
             ]],
             ["Struct_members", [
-                ["$export", "struct_declarations", "elements", "$name_index", "member_names"],
-                ["$export", "struct_declarations", "elements", "$name_index", "member_types"]
+                ["declarations", "$declaration_index", "value", "member_names"],
+                ["declarations", "$declaration_index", "value", "member_types"]
             ]],
-            ["Statements", [["definitions", "function_definitions", "elements", "$name_index", "statements"]]],
+            ["Statements", [["declarations", "$order_index", "value", "definition", "statements"]]],
         ]
     );
 
     const order_index_nodes = new Set<string>(
         [
             "Imports",
+            "Module_body",
             "Enum_values",
             "Function_input_parameters",
             "Function_output_parameters",
@@ -160,8 +162,7 @@ function convert_to_vector(elements: any[]): Core.Vector<any> {
 }
 
 function choose_production_rule_identifier_with_dots(
-    module: Core.Module,
-    declarations: Parse_tree_convertor.Declaration[],
+    module: Core_intermediate_representation.Module,
     production_rules: Grammar.Production_rule[],
     production_rule_indices: number[],
     label: string,
@@ -169,7 +170,7 @@ function choose_production_rule_identifier_with_dots(
     mappings: Parse_tree_convertor.Parse_tree_mappings,
     key_to_production_rule_indices: Map<string, number[]>
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
-    const word = Parse_tree_convertor.map_terminal_to_word(module, stack, production_rules, key_to_production_rule_indices, "identifier", mappings, declarations);
+    const word = Parse_tree_convertor.map_terminal_to_word(module, stack, production_rules, key_to_production_rule_indices, "identifier", mappings);
     const split = word.value.split(".");
     const index = split.length > 1 ? 1 : 0;
     return {
@@ -182,8 +183,7 @@ function choose_production_rule_identifier_with_dots(
 }
 
 function choose_production_rule_declaration(
-    module: Core.Module,
-    declarations: Parse_tree_convertor.Declaration[],
+    module: Core_intermediate_representation.Module,
     production_rules: Grammar.Production_rule[],
     production_rule_indices: number[],
     label: string,
@@ -194,7 +194,7 @@ function choose_production_rule_declaration(
     const top = stack[stack.length - 1];
     const production_rule = production_rules[top.production_rule_index];
     const declaration_index = Parse_tree_convertor.calculate_array_index(production_rule, top.current_child_index);
-    const declaration = declarations[declaration_index];
+    const declaration = module.declarations[declaration_index];
 
     const lhs = get_underlying_declaration_production_rule_lhs(declaration.type);
 
@@ -208,22 +208,21 @@ function choose_production_rule_declaration(
     };
 }
 
-function get_underlying_declaration_production_rule_lhs(type: Parse_tree_convertor.Declaration_type): string {
+function get_underlying_declaration_production_rule_lhs(type: Core_intermediate_representation.Declaration_type): string {
     switch (type) {
-        case Parse_tree_convertor.Declaration_type.Alias:
+        case Core_intermediate_representation.Declaration_type.Alias:
             return "Alias";
-        case Parse_tree_convertor.Declaration_type.Enum:
+        case Core_intermediate_representation.Declaration_type.Enum:
             return "Enum";
-        case Parse_tree_convertor.Declaration_type.Function:
+        case Core_intermediate_representation.Declaration_type.Function:
             return "Function";
-        case Parse_tree_convertor.Declaration_type.Struct:
+        case Core_intermediate_representation.Declaration_type.Struct:
             return "Struct";
     }
 }
 
 function choose_production_rule_export(
-    module: Core.Module,
-    declarations: Parse_tree_convertor.Declaration[],
+    module: Core_intermediate_representation.Module,
     production_rules: Grammar.Production_rule[],
     production_rule_indices: number[],
     label: string,
@@ -232,7 +231,7 @@ function choose_production_rule_export(
     key_to_production_rule_indices: Map<string, number[]>
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
     const top = stack[stack.length - 1];
-    const declaration = top.state.value as Parse_tree_convertor.Declaration;
+    const declaration = top.state.value as Core_intermediate_representation.Declaration;
     const predicate =
         declaration.is_export ?
             (index: number) => production_rules[index].rhs.length > 0 :
@@ -246,8 +245,7 @@ function choose_production_rule_export(
 }
 
 function choose_production_rule_statement(
-    module: Core.Module,
-    declarations: Parse_tree_convertor.Declaration[],
+    module: Core_intermediate_representation.Module,
     production_rules: Grammar.Production_rule[],
     production_rule_indices: number[],
     label: string,
@@ -258,7 +256,7 @@ function choose_production_rule_statement(
 
     const top = stack[stack.length - 1];
 
-    const statements_array = top.state.value as Core.Statement[];
+    const statements_array = top.state.value.elements as Core.Statement[];
     const statement_index = Parse_tree_convertor.calculate_array_index(production_rules[top.production_rule_index], top.current_child_index);
     const statement = statements_array[statement_index];
 
@@ -276,8 +274,7 @@ function choose_production_rule_statement(
 }
 
 function choose_production_rule_expression(
-    module: Core.Module,
-    declarations: Parse_tree_convertor.Declaration[],
+    module: Core_intermediate_representation.Module,
     production_rules: Grammar.Production_rule[],
     production_rule_indices: number[],
     label: string,
