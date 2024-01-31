@@ -182,6 +182,7 @@ namespace h
 
     export struct Call_expression
     {
+        Module_reference module_reference;
         std::pmr::string function_name;
         std::pmr::vector<Expression_index> arguments;
 

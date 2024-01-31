@@ -140,6 +140,7 @@ export interface Binary_expression {
 }
 
 export interface Call_expression {
+    module_reference: Module_reference;
     function_name: string;
     arguments: Vector<Expression_index>;
 }

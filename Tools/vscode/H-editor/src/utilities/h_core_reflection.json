@@ -304,6 +304,12 @@
             "members": [
                 {
                     "type": {
+                        "name": "Module_reference"
+                    },
+                    "name": "module_reference"
+                },
+                {
+                    "type": {
                         "name": "std::pmr::string"
                     },
                     "name": "function_name"

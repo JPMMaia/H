@@ -2020,14 +2020,19 @@ namespace h::json
             {
                 if constexpr (std::is_same_v<Event_data, std::string_view>)
                 {
-                    if (event_data == "function_name")
+                    if (event_data == "module_reference")
                     {
                         state = 3;
                         return true;
                     }
+                    else if (event_data == "function_name")
+                    {
+                        state = 5;
+                        return true;
+                    }
                     else if (event_data == "arguments")
                     {
-                        state = 4;
+                        state = 6;
                         return true;
                     }
                 }
@@ -2048,15 +2053,37 @@ namespace h::json
         }
         case 3:
         {
-            state = 1;
-            return read_value(output.function_name, "function_name", event_data);
+            state = 4;
+            return read_object(output.module_reference, event, event_data, state_stack, state_stack_position + 1 + 0);
         }
         case 4:
         {
-            state = 5;
-            return read_object(output.arguments, event, event_data, state_stack, state_stack_position + 1 + 0);
+            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
+            {
+                if (!read_object(output.module_reference, event, event_data, state_stack, state_stack_position + 1 + 0))
+                {
+                    return false;
+                }
+
+                state = 1;
+                return true;
+            }
+            else
+            {
+                return read_object(output.module_reference, event, event_data, state_stack, state_stack_position + 1 + 0);
+            }
         }
         case 5:
+        {
+            state = 1;
+            return read_value(output.function_name, "function_name", event_data);
+        }
+        case 6:
+        {
+            state = 7;
+            return read_object(output.arguments, event, event_data, state_stack, state_stack_position + 1 + 0);
+        }
+        case 7:
         {
             if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
             {

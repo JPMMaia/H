@@ -656,6 +656,8 @@ namespace h::json
         )
     {
         writer.StartObject();
+        writer.Key("module_reference");
+        write_object(writer, output.module_reference);
         writer.Key("function_name");
         writer.String(output.function_name.data(), output.function_name.size());
         writer.Key("arguments");
