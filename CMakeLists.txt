@@ -13,3 +13,9 @@ add_subdirectory("Source")
 add_subdirectory("Application")
 add_subdirectory("Tests")
 
+add_custom_target(
+    Generate_code_after_core_update DEPENDS
+        Generate_json_serializer_code
+        Generate_h_core_reflection_json
+        Generate_h_core_typescript_interface
+)
