@@ -651,7 +651,7 @@ export function create_function_example(): core.Module {
                 linkage: core.Linkage.External,
             }
         ]
-    }
+    };
     module.definitions.function_definitions = {
         size: 1,
         elements: [
