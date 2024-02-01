@@ -335,6 +335,8 @@ function map_expression_type_to_production_rule_label(type: Core.Expression_enum
             return "Expression_return";
         case Core.Expression_enum.Variable_expression:
             return "Expression_variable";
+        case Core.Expression_enum.Struct_member_expression:
+            return "Expression_struct_member";
     }
 }
 
