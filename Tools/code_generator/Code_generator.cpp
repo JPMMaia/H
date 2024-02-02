@@ -791,14 +791,14 @@ namespace h::tools::code_generator
 
             {
                 auto const is_alphabetic = [](char const c) -> bool
-                {
-                    return std::isalpha(c) != 0;
-                };
+                    {
+                        return std::isalpha(c) != 0;
+                    };
 
                 auto const is_not_alphabetic_neither_digit = [](char const c) -> bool
-                {
-                    return (std::isalpha(c) == 0) && (std::isdigit(c) == 0) && (c != '_') && (c != '-');
-                };
+                    {
+                        return (std::isalpha(c) == 0) && (std::isdigit(c) == 0) && (c != '_') && (c != '-');
+                    };
 
                 auto current_location = open_bracket_location + 1;
 
@@ -1075,11 +1075,11 @@ namespace h::tools::code_generator
 
         std::pmr::unordered_map<std::pmr::string, Enum> const enum_map = create_name_map<Enum>(
             enums
-            );
+        );
 
         std::pmr::unordered_map<std::pmr::string, Struct> struct_map = create_name_map<Struct>(
             structs
-            );
+        );
 
         return File_types
         {
@@ -1312,11 +1312,11 @@ namespace h::tools::code_generator
 
         std::pmr::unordered_map<std::pmr::string, Enum> const enum_map = create_name_map<Enum>(
             file_types.enums
-            );
+        );
 
         std::pmr::unordered_map<std::pmr::string, Struct> struct_map = create_name_map<Struct>(
             file_types.structs
-            );
+        );
 
         for (Struct const& struct_type : file_types.structs)
         {
@@ -1421,11 +1421,11 @@ namespace h::tools::code_generator
 
         std::pmr::unordered_map<std::pmr::string, Enum> const enum_map = create_name_map<Enum>(
             file_types.enums
-            );
+        );
 
         std::pmr::unordered_map<std::pmr::string, Struct> struct_map = create_name_map<Struct>(
             file_types.structs
-            );
+        );
 
         for (Struct const& struct_type : file_types.structs)
         {
@@ -1696,31 +1696,31 @@ namespace h::tools::code_generator
             std::views::common;
 
         auto const variant_strings = [&]
-        {
-            std::pmr::vector<std::string_view> variant_strings{ variant_strings_view.begin(), variant_strings_view.end() };
-            std::ranges::sort(variant_strings);
-            auto const [first, last] = std::ranges::unique(variant_strings.begin(), variant_strings.end());
-            variant_strings.erase(first, last);
-            return variant_strings;
-        }();
-
-        for (std::string_view const variant_string : variant_strings)
-        {
-            std::pmr::vector<std::pmr::string> const variant_type_names = get_variadic_types(
-                variant_string
-            );
-
-            std::pmr::string const variant_type_enum_name = generate_variant_types_enum_name(variant_type_names);
-
-            output_stream << "export enum " << variant_type_enum_name << " {\n";
             {
-                for (std::string_view const name : variant_type_names)
+                std::pmr::vector<std::string_view> variant_strings{ variant_strings_view.begin(), variant_strings_view.end() };
+                std::ranges::sort(variant_strings);
+                auto const [first, last] = std::ranges::unique(variant_strings.begin(), variant_strings.end());
+                variant_strings.erase(first, last);
+                return variant_strings;
+            }();
+
+            for (std::string_view const variant_string : variant_strings)
+            {
+                std::pmr::vector<std::pmr::string> const variant_type_names = get_variadic_types(
+                    variant_string
+                );
+
+                std::pmr::string const variant_type_enum_name = generate_variant_types_enum_name(variant_type_names);
+
+                output_stream << "export enum " << variant_type_enum_name << " {\n";
                 {
-                    output_stream << std::format("    {} = \"{}\",\n", name, name);
+                    for (std::string_view const name : variant_type_names)
+                    {
+                        output_stream << std::format("    {} = \"{}\",\n", name, name);
+                    }
                 }
+                output_stream << "}\n\n";
             }
-            output_stream << "}\n\n";
-        }
     }
 
     void generate_typescript_interface(
@@ -1735,11 +1735,11 @@ namespace h::tools::code_generator
 
         std::pmr::unordered_map<std::pmr::string, Enum> const enum_map = create_name_map<Enum>(
             file_types.enums
-            );
+        );
 
         std::pmr::unordered_map<std::pmr::string, Struct> struct_map = create_name_map<Struct>(
             file_types.structs
-            );
+        );
 
         {
             output_stream << "export interface Vector<T> {\n";
