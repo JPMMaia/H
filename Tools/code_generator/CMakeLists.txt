@@ -63,3 +63,15 @@ add_custom_command(
     VERBATIM
 )
 add_custom_target(Generate_h_core_typescript_interface DEPENDS "${H_ROOT_DIR}/Tools/vscode/H-editor/src/core/Core_interface.ts")
+
+add_custom_command(
+    OUTPUT "${H_ROOT_DIR}/Tools/vscode/H-editor/src/core/Core_intermediate_representation.ts"
+    COMMAND H_Tools_Generate_JSON
+                ARGS
+                "typescript_intermediate_representation"
+                "${H_ROOT_DIR}/Source/Core/Core.cppm"
+                "${H_ROOT_DIR}/Tools/vscode/H-editor/src/core/Core_intermediate_representation.ts"
+    DEPENDS H_Tools_Generate_JSON "${H_ROOT_DIR}/Source/Core/Core.cppm"
+    VERBATIM
+)
+add_custom_target(Generate_h_core_typescript_intermediate_representation DEPENDS "${H_ROOT_DIR}/Tools/vscode/H-editor/src/core/Core_intermediate_representation.ts")

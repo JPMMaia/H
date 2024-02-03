@@ -1635,9 +1635,20 @@ namespace h::tools::code_generator
     std::pmr::string to_typescript_type(
         Type const& type,
         std::pmr::unordered_map<std::pmr::string, Enum> const& enum_map,
-        std::pmr::unordered_map<std::pmr::string, Struct> const& struct_map
+        std::pmr::unordered_map<std::pmr::string, Struct> const& struct_map,
+        std::pmr::unordered_map<std::pmr::string, std::pmr::string> const& replace_map,
+        bool const intermediate_representation
     )
     {
+        {
+            auto const location = replace_map.find(type.name);
+            if (location != replace_map.end())
+            {
+                std::pmr::string const& new_type = location->second;
+                return to_typescript_type(Type{ .name = new_type.c_str() }, enum_map, struct_map, replace_map, true);
+            }
+        }
+
         if (is_int_type(type) || is_int64_type(type) || is_uint_type(type) || is_uint64_type(type) || is_double_type(type))
         {
             return std::pmr::string{ "number" };
@@ -1661,8 +1672,16 @@ namespace h::tools::code_generator
         else if (is_vector_type(type))
         {
             std::pmr::string const value_type = get_vector_value_type(type);
-            std::pmr::string const typescript_type = to_typescript_type(Type{ .name = value_type }, enum_map, struct_map);
-            return std::pmr::string{ std::format("Vector<{}>", typescript_type) };
+            std::pmr::string const typescript_type = to_typescript_type(Type{ .name = value_type }, enum_map, struct_map, replace_map, intermediate_representation);
+
+            if (intermediate_representation)
+            {
+                return std::pmr::string(std::format("{}[]", typescript_type));
+            }
+            else
+            {
+                return std::pmr::string{ std::format("Vector<{}>", typescript_type) };
+            }
         }
         else if (is_variant_type(type))
         {
@@ -1723,6 +1742,11 @@ namespace h::tools::code_generator
             }
     }
 
+    bool is_expression_type(std::string_view const type_name)
+    {
+        return type_name.starts_with("Expression") || type_name.ends_with("expression");
+    }
+
     void generate_typescript_interface(
         std::istream& input_stream,
         std::ostream& output_stream
@@ -1775,10 +1799,521 @@ namespace h::tools::code_generator
             {
                 for (Member const& member : struct_info.members)
                 {
-                    output_stream << std::format("    {}: {};\n", member.name, to_typescript_type(member.type, enum_map, struct_map));
+                    output_stream << std::format("    {}: {};\n", member.name, to_typescript_type(member.type, enum_map, struct_map, {}, false));
                 }
             }
             output_stream << "}\n\n";
+        }
+    }
+
+    void generate_variant_core_to_intermediate_representation(std::ostream& output_stream, Type const& type, std::pmr::unordered_map<std::pmr::string, Enum> const& enum_map)
+    {
+        std::pmr::vector<std::pmr::string> const variant_types = get_variadic_types(type.name);
+        std::pmr::string const variant_type_enum_name = generate_variant_types_enum_name(variant_types);
+
+        output_stream << "    switch (core_value.data.type) {\n";
+
+        for (std::pmr::string const& variant_type : variant_types)
+        {
+            output_stream << std::format("        case Core.{}.{}: {{\n", variant_type_enum_name, variant_type);
+            output_stream << "            return {\n";
+            output_stream << "                data: {\n";
+            output_stream << "                    type: core_value.data.type,\n";
+
+            if (is_expression_type(variant_type))
+            {
+                output_stream << std::format("                    value: core_to_intermediate_{}(core_value.data.value as Core.{}, statement)\n", to_lowercase(variant_type), variant_type);
+            }
+            else if (is_enum_type(Type{ .name = variant_type }, enum_map))
+            {
+                output_stream << std::format("                    value: core_value.data.value as {}\n", variant_type);
+            }
+            else
+            {
+                output_stream << std::format("                    value: core_to_intermediate_{}(core_value.data.value as Core.{})\n", to_lowercase(variant_type), variant_type);
+            }
+
+            output_stream << "                }\n";
+            output_stream << "            };\n";
+            output_stream << "        }\n";
+        }
+
+        output_stream << "    }\n";
+    }
+
+    void generate_variant_intermediate_to_core_representation(std::ostream& output_stream, Type const& type, std::pmr::unordered_map<std::pmr::string, Enum> const& enum_map)
+    {
+        std::pmr::vector<std::pmr::string> const variant_types = get_variadic_types(type.name);
+        std::pmr::string const variant_type_enum_name = generate_variant_types_enum_name(variant_types);
+
+        output_stream << "    switch (intermediate_value.data.type) {\n";
+
+        if (variant_type_enum_name == "Expression_enum")
+        {
+            for (std::pmr::string const& variant_type : variant_types)
+            {
+                output_stream << std::format("        case {}.{}: {{\n", variant_type_enum_name, variant_type);
+                output_stream << std::format("            intermediate_to_core_{}(intermediate_value.data.value as {}, expressions);\n", to_lowercase(variant_type), variant_type);
+                output_stream << "        }\n";
+            }
+        }
+        else
+        {
+            for (std::pmr::string const& variant_type : variant_types)
+            {
+                output_stream << std::format("        case {}.{}: {{\n", variant_type_enum_name, variant_type);
+                output_stream << "            return {\n";
+                output_stream << "                data: {\n";
+                output_stream << "                    type: intermediate_value.data.type,\n";
+
+                if (is_enum_type(Type{ .name = variant_type }, enum_map))
+                {
+                    output_stream << std::format("                    value: intermediate_value.data.value as {}\n", variant_type);
+                }
+                else
+                {
+                    output_stream << std::format("                    value: intermediate_to_core_{}(intermediate_value.data.value as {})\n", to_lowercase(variant_type), variant_type);
+                }
+
+                output_stream << "                }\n";
+                output_stream << "            };\n";
+                output_stream << "        }\n";
+            }
+        }
+
+        output_stream << "    }\n";
+    }
+
+    void generate_typescript_intermediate_representation(
+        std::istream& input_stream,
+        std::ostream& output_stream
+    )
+    {
+        File_types const file_types = identify_file_types(
+            input_stream
+        );
+
+
+        std::pmr::unordered_map<std::pmr::string, Enum> const enum_map = create_name_map<Enum>(
+            file_types.enums
+        );
+
+        std::pmr::unordered_map<std::pmr::string, Struct> struct_map = create_name_map<Struct>(
+            file_types.structs
+        );
+
+        char const* const head = R"(
+import * as Core from "./Core_interface";
+
+export interface Variant<Type_enum, T> {
+    type: Type_enum;
+    value: T;
+}
+
+export interface Module {
+    name: string;
+    imports: Import_module_with_alias[];
+    declarations: Declaration[];
+}
+
+export function create_intermediate_representation(core_module: Core.Module): Module {
+
+    const imports = core_module.dependencies.alias_imports.elements.map(value => core_to_intermediate_import_module_with_alias(value));
+    const declarations = create_declarations(core_module);
+
+    return {
+        name: core_module.name,
+        imports: imports,
+        declarations: declarations
+    };
+}
+
+export function create_core_module(module: Module, language_version: Core.Language_version): Core.Module {
+
+    const alias_imports = module.imports.map(value => intermediate_to_core_import_module_with_alias(value));
+
+    const export_alias: Core.Alias_type_declaration[] = [];
+    const internal_alias: Core.Alias_type_declaration[] = [];
+    const export_enums: Core.Enum_declaration[] = [];
+    const internal_enums: Core.Enum_declaration[] = [];
+    const export_functions: Core.Function_declaration[] = [];
+    const internal_functions: Core.Function_declaration[] = [];
+    const export_structs: Core.Struct_declaration[] = [];
+    const internal_structs: Core.Struct_declaration[] = [];
+    const function_definitions: Core.Function_definition[] = [];
+
+    for (const declaration of module.declarations) {
+        switch (declaration.type) {
+            case Declaration_type.Alias: {
+                const array = declaration.is_export ? export_alias : internal_alias;
+                array.push(intermediate_to_core_alias_type_declaration(declaration.value as Alias_type_declaration));
+                break;
+            }
+            case Declaration_type.Enum: {
+                const array = declaration.is_export ? export_enums : internal_enums;
+                array.push(intermediate_to_core_enum_declaration(declaration.value as Enum_declaration));
+                break;
+            }
+            case Declaration_type.Function: {
+                const array = declaration.is_export ? export_functions : internal_functions;
+                const function_value = declaration.value as Function;
+                array.push(intermediate_to_core_function_declaration(function_value.declaration));
+                function_definitions.push(intermediate_to_core_function_definition(function_value.definition));
+                break;
+            }
+            case Declaration_type.Struct: {
+                const array = declaration.is_export ? export_structs : internal_structs;
+                array.push(intermediate_to_core_struct_declaration(declaration.value as Struct_declaration));
+                break;
+            }
+        }
+    }
+
+    return {
+        language_version: language_version,
+        name: module.name,
+        dependencies: {
+            alias_imports: {
+                size: alias_imports.length,
+                elements: alias_imports
+            }
+        },
+        export_declarations: {
+            alias_type_declarations: {
+                size: export_alias.length,
+                elements: export_alias
+            },
+            enum_declarations: {
+                size: export_enums.length,
+                elements: export_enums
+            },
+            function_declarations: {
+                size: export_functions.length,
+                elements: export_functions
+            },
+            struct_declarations: {
+                size: export_structs.length,
+                elements: export_structs
+            },
+        },
+        internal_declarations: {
+            alias_type_declarations: {
+                size: internal_alias.length,
+                elements: internal_alias
+            },
+            enum_declarations: {
+                size: internal_enums.length,
+                elements: internal_enums
+            },
+            function_declarations: {
+                size: internal_functions.length,
+                elements: internal_functions
+            },
+            struct_declarations: {
+                size: internal_structs.length,
+                elements: internal_structs
+            },
+        },
+        definitions: {
+            function_definitions: {
+                size: function_definitions.length,
+                elements: function_definitions
+            }
+        }
+    };
+}
+
+export enum Declaration_type {
+    Alias,
+    Enum,
+    Function,
+    Struct
+}
+
+export interface Declaration {
+    name: string;
+    type: Declaration_type;
+    is_export: boolean;
+    value: Alias_type_declaration | Enum_declaration | Function | Struct_declaration
+}
+
+function create_declarations(module: Core.Module): Declaration[] {
+
+    const declarations: Declaration[] = [
+        ...module.export_declarations.alias_type_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Alias, is_export: true, value: core_to_intermediate_alias_type_declaration(value) }; }),
+        ...module.export_declarations.enum_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Enum, is_export: true, value: core_to_intermediate_enum_declaration(value) }; }),
+        ...module.export_declarations.function_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Function, is_export: true, value: core_to_intermediate_function(module, value) }; }),
+        ...module.export_declarations.struct_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Struct, is_export: true, value: core_to_intermediate_struct_declaration(value) }; }),
+        ...module.internal_declarations.alias_type_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Alias, is_export: false, value: core_to_intermediate_alias_type_declaration(value) }; }),
+        ...module.internal_declarations.enum_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Enum, is_export: false, value: core_to_intermediate_enum_declaration(value) }; }),
+        ...module.internal_declarations.function_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Function, is_export: false, value: core_to_intermediate_function(module, value) }; }),
+        ...module.internal_declarations.struct_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Struct, is_export: false, value: core_to_intermediate_struct_declaration(value) }; }),
+    ];
+
+    return declarations;
+}
+
+export interface Function {
+    declaration: Function_declaration;
+    definition: Function_definition;
+}
+
+function core_to_intermediate_function(module: Core.Module, declaration: Core.Function_declaration): Function {
+
+    const definition_index = module.definitions.function_definitions.elements.findIndex(value => value.name === declaration.name);
+    const definition = module.definitions.function_definitions.elements[definition_index];
+
+    const value: Function = {
+        declaration: core_to_intermediate_function_declaration(declaration),
+        definition: core_to_intermediate_function_definition(definition)
+    };
+
+    return value;
+}
+
+export interface Statement {
+    name: string;
+    expression: Expression;
+}
+
+function core_to_intermediate_statement(core_value: Core.Statement): Statement {
+    return {
+        name: core_value.name,
+        expression: core_to_intermediate_expression(core_value.expressions.elements[0], core_value)
+    };
+}
+
+function intermediate_to_core_statement(intermediate_value: Statement): Core.Statement {
+
+    const expressions: Core.Expression[] = [];
+    intermediate_to_core_expression(intermediate_value.expression, expressions);
+
+    return {
+        name: intermediate_value.name,
+        expressions: {
+            size: expressions.length,
+            elements: expressions
+        }
+    };
+}
+
+)";
+
+        output_stream << head;
+
+        for (Enum const& enum_info : file_types.enums)
+        {
+            output_stream << "export enum " << enum_info.name << " {\n";
+            {
+                for (std::pmr::string const& value : enum_info.values)
+                {
+                    output_stream << std::format("    {} = \"{}\",\n", value, value);
+                }
+            }
+            output_stream << "}\n\n";
+        }
+
+        generate_variant_enums(output_stream, file_types.structs);
+
+        std::array<char const*, 6> const struct_ignore_list = {
+            "Module",
+            "Module_declarations",
+            "Module_definitions",
+            "Module_dependencies",
+            "Statement",
+            "Expression_index"
+        };
+
+        std::pmr::unordered_map<std::pmr::string, std::pmr::string> const replace_type_map = {
+            { "Expression_index", "Expression" }
+        };
+
+        for (Struct const& struct_info : file_types.structs)
+        {
+            if (std::find(struct_ignore_list.begin(), struct_ignore_list.end(), struct_info.name) != struct_ignore_list.end())
+            {
+                continue;
+            }
+
+            output_stream << "export interface " << struct_info.name << " {\n";
+            {
+                for (Member const& member : struct_info.members)
+                {
+                    output_stream << std::format("    {}: {};\n", member.name, to_typescript_type(member.type, enum_map, struct_map, replace_type_map, true));
+                }
+            }
+            output_stream << "}\n\n";
+
+            {
+                if (is_expression_type(struct_info.name))
+                {
+                    output_stream << std::format("function core_to_intermediate_{}(core_value: Core.{}, statement: Core.Statement): {} {{\n", to_lowercase(struct_info.name), struct_info.name, struct_info.name);
+                }
+                else
+                {
+                    output_stream << std::format("function core_to_intermediate_{}(core_value: Core.{}): {} {{\n", to_lowercase(struct_info.name), struct_info.name, struct_info.name);
+                }
+
+                {
+                    if (struct_info.members.size() == 1 && is_variant_type(struct_info.members[0].type))
+                    {
+                        generate_variant_core_to_intermediate_representation(output_stream, struct_info.members[0].type, enum_map);
+                    }
+                    else
+                    {
+                        output_stream << "    return {\n";
+                        for (Member const& member : struct_info.members)
+                        {
+                            if (member.type.name == "Expression_index")
+                            {
+                                output_stream << std::format("        {}: core_to_intermediate_expression(statement.expressions.elements[core_value.{}.expression_index], statement),\n", member.name, member.name);
+                            }
+                            else if (is_vector_type(member.type))
+                            {
+                                Type const vector_value_type = Type{ .name = get_vector_value_type(member.type) };
+                                if (vector_value_type.name == "Expression_index")
+                                {
+                                    output_stream << std::format("        {}: core_value.{}.elements.map(value => core_to_intermediate_expression(statement.expressions.elements[value.expression_index], statement)),\n", member.name, member.name);
+                                }
+                                else if (is_struct_type(vector_value_type, struct_map))
+                                {
+                                    output_stream << std::format("        {}: core_value.{}.elements.map(value => core_to_intermediate_{}(value)),\n", member.name, member.name, to_lowercase(vector_value_type.name));
+                                }
+                                else
+                                {
+                                    output_stream << std::format("        {}: core_value.{}.elements,\n", member.name, member.name);
+                                }
+                            }
+                            else if (is_struct_type(member.type, struct_map))
+                            {
+                                output_stream << std::format("        {}: core_to_intermediate_{}(core_value.{}),\n", member.name, to_lowercase(member.type.name), member.name);
+                            }
+                            else
+                            {
+                                output_stream << std::format("        {}: core_value.{},\n", member.name, member.name);
+                            }
+
+                        }
+                        output_stream << "    };\n";
+                    }
+                }
+                output_stream << "}\n\n";
+            }
+
+            {
+                if (is_expression_type(struct_info.name))
+                {
+                    output_stream << std::format("function intermediate_to_core_{}(intermediate_value: {}, expressions: Core.Expression[]): void {{\n", to_lowercase(struct_info.name), struct_info.name, struct_info.name);
+                }
+                else
+                {
+                    output_stream << std::format("function intermediate_to_core_{}(intermediate_value: {}): Core.{} {{\n", to_lowercase(struct_info.name), struct_info.name, struct_info.name);
+                }
+
+                if (struct_info.members.size() == 1 && is_variant_type(struct_info.members[0].type))
+                {
+                    generate_variant_intermediate_to_core_representation(output_stream, struct_info.members[0].type, enum_map);
+                }
+                else if (is_expression_type(struct_info.name))
+                {
+                    output_stream << "    const core_value: Core.Expression = {\n";
+                    output_stream << "        data: {\n";
+                    output_stream << std::format("            type: Core.Expression_enum.{},\n", struct_info.name);
+                    output_stream << "            value: {\n";
+                    for (Member const& member : struct_info.members)
+                    {
+                        if (member.type.name == "Expression_index")
+                        {
+                            output_stream << std::format("                {}: {{\n", member.name);
+                            output_stream << "                    expression_index: -1\n";
+                            output_stream << "                },\n";
+                        }
+                        else if (is_vector_type(member.type) && get_vector_value_type(member.type) == "Expression_index")
+                        {
+                            output_stream << std::format("                {}: {{\n", member.name);
+                            output_stream << "                    size: 0,\n";
+                            output_stream << "                    elements: []\n";
+                            output_stream << "                }\n";
+                        }
+                        else
+                        {
+                            output_stream << std::format("                {}: intermediate_value.{},\n", member.name, member.name);
+                        }
+                    }
+                    output_stream << "            }\n";
+                    output_stream << "        }\n";
+                    output_stream << "    };\n\n";
+
+                    output_stream << "    expressions.push(core_value);\n";
+
+                    for (Member const& member : struct_info.members)
+                    {
+                        if (member.type.name == "Expression_index")
+                        {
+                            output_stream << "\n";
+                            output_stream << std::format("    (core_value.data.value as Core.{}).{}.expression_index = expressions.length;\n", struct_info.name, member.name);
+                            output_stream << std::format("    intermediate_to_core_expression(intermediate_value.{}, expressions);\n", member.name);
+                        }
+                        else if (is_vector_type(member.type) && get_vector_value_type(member.type) == "Expression_index")
+                        {
+                            output_stream << "\n";
+                            output_stream << std::format("    for (const element of intermediate_value.{})\n", member.name);
+                            output_stream << "    {\n";
+                            output_stream << std::format("        (core_value.data.value as Core.{}).{}.elements.push({{expression_index: expressions.length}});\n", struct_info.name, member.name);
+                            output_stream << "        intermediate_to_core_expression(element, expressions);\n";
+                            output_stream << "    }\n";
+                            output_stream << std::format("    (core_value.data.value as Core.{}).{}.size = (core_value.data.value as Core.{}).{}.elements.length;\n", struct_info.name, member.name, struct_info.name, member.name);
+                        }
+                    }
+                }
+                else
+                {
+                    output_stream << "    return {\n";
+                    for (Member const& member : struct_info.members)
+                    {
+                        if (is_vector_type(member.type))
+                        {
+                            Type const vector_value_type = Type{ .name = get_vector_value_type(member.type) };
+                            if (vector_value_type.name == "Expression_index")
+                            {
+                                // TODO
+                                output_stream << std::format("        {}: {{\n", member.name);
+                                output_stream << std::format("            size: intermediate_value.{}.length,\n", member.name);
+                                output_stream << std::format("            elements: intermediate_value.{}.map(value => intermediate_to_core_expression(TODO, statement)),\n", member.name, to_lowercase(vector_value_type.name));
+                                output_stream << "        },\n";
+
+                                output_stream << std::format("        {}: intermediate_value.{}.elements.map(value => intermediate_to_core_expression(statement.expressions.elements[value.expression_index], statement)),\n", member.name, member.name);
+                            }
+                            else if (is_struct_type(vector_value_type, struct_map))
+                            {
+                                output_stream << std::format("        {}: {{\n", member.name);
+                                output_stream << std::format("            size: intermediate_value.{}.length,\n", member.name);
+                                output_stream << std::format("            elements: intermediate_value.{}.map(value => intermediate_to_core_{}(value)),\n", member.name, to_lowercase(vector_value_type.name));
+                                output_stream << "        },\n";
+                            }
+                            else
+                            {
+                                output_stream << std::format("        {}: {{\n", member.name);
+                                output_stream << std::format("            size: intermediate_value.{}.length,\n", member.name);
+                                output_stream << std::format("            elements: intermediate_value.{},\n", member.name);
+                                output_stream << "        },\n";
+                            }
+                        }
+                        else if (is_struct_type(member.type, struct_map))
+                        {
+                            output_stream << std::format("        {}: intermediate_to_core_{}(intermediate_value.{}),\n", member.name, to_lowercase(member.type.name), member.name);
+                        }
+                        else
+                        {
+                            output_stream << std::format("        {}: intermediate_value.{},\n", member.name, member.name);
+                        }
+
+                    }
+                    output_stream << "    };\n";
+                }
+
+                output_stream << "}\n\n";
+            }
         }
     }
 }
