@@ -1,0 +1,114 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Attach",
+            "type": "cppvsdbg",
+            "request": "attach",
+            "processId": "${command:pickProcess}"
+        },
+        {
+            "name": "Launch Language Server",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/Application/Language_server/Debug/H_Language_server.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Generate read JSON",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/Tools/code_generator/Debug/H_Tools_Generate_JSON.exe",
+            "args": [
+                "read",
+                "h.json_serializer.read_json",
+                "${workspaceFolder}/Source/Core/Core.cppm",
+                "${workspaceFolder}/Source/JSON_serializer/Read_json.cppm"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Generate write JSON",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/Tools/code_generator/Debug/H_Tools_Generate_JSON.exe",
+            "args": [
+                "write",
+                "h.json_serializer.write_json",
+                "${workspaceFolder}/Source/Core/Core.cppm",
+                "${workspaceFolder}/Source/JSON_serializer/Write_json.cppm"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Generate JSON operators",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/Tools/code_generator/Debug/H_Tools_Generate_JSON.exe",
+            "args": [
+                "operators",
+                "h.json_serializer.operators",
+                "${workspaceFolder}/Source/Core/Core.cppm",
+                "${workspaceFolder}/Source/JSON_serializer/Operators.cppm"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "C Header Importer tests",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/Source/Interoperability/Debug/H_c_header_importer_tests.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Generate TypeScript interface",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/Tools/code_generator/Debug/H_Tools_Generate_JSON.exe",
+            "args": [
+                "typescript_interface",
+                "${workspaceFolder}/Source/Core/Core.cppm",
+                "${workspaceFolder}/Tools/vscode/H-editor/src/core/Core_interface.ts"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Generate TypeScript intermediate representation",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/Tools/code_generator/Debug/H_Tools_Generate_JSON.exe",
+            "args": [
+                "typescript_intermediate_representation",
+                "${workspaceFolder}/Source/Core/Core.cppm",
+                "${workspaceFolder}/Tools/vscode/H-editor/src/core/Core_intermediate_representation_gen.ts"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "console": "integratedTerminal"
+        }
+    ]
+}
