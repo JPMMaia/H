@@ -27,6 +27,7 @@ export interface State {
     parse_tree_text_position_cache: Parse_tree_text_position_cache.Cache | undefined;
     text: string;
     pending_text_changes: Text_change[];
+    messages: string[];
 }
 
 export function create_empty_state(production_rules: Grammar.Production_rule[]): State {
@@ -42,14 +43,14 @@ export function create_empty_state(production_rules: Grammar.Production_rule[]):
         parse_tree: parse_tree,
         parse_tree_text_position_cache: parse_tree_text_position_cache,
         text: text,
-        pending_text_changes: []
+        pending_text_changes: [],
+        messages: []
     };
 }
 
 export function create_state_from_module(core_module: Core.Module, language_description: Language.Description, production_rules_to_cache: number[]): State {
 
     const module = Core_intermediate_representation.create_intermediate_representation(core_module);
-    const key_to_production_rule_indices = Parse_tree_convertor.create_key_to_production_rule_indices_map(language_description.production_rules);
     const mappings = Parse_tree_convertor_mappings.create_mapping();
     const parse_tree_without_state = Parse_tree_convertor.module_to_parse_tree(module, language_description.production_rules, mappings);
     const parse_tree_text_position_cache = Parse_tree_text_position_cache.create_cache();
@@ -62,6 +63,7 @@ export function create_state_from_module(core_module: Core.Module, language_desc
         parse_tree: parse_tree,
         parse_tree_text_position_cache: parse_tree_text_position_cache,
         text: text,
-        pending_text_changes: []
+        pending_text_changes: [],
+        messages: []
     };
 }

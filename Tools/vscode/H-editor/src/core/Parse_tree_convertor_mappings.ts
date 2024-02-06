@@ -160,8 +160,7 @@ function map_expression_constant_to_word(
 
     switch (constant_expression.type) {
         case Core_intermediate_representation.Fundamental_type.String: {
-            const value = `"${constant_expression.data}"`;
-            return { value: value, type: Grammar.Word_type.String };
+            return { value: constant_expression.data, type: Grammar.Word_type.String };
         }
         default: {
             return { value: constant_expression.data, type: Scanner.get_word_type(constant_expression.data) };
@@ -918,10 +917,9 @@ function node_to_expression_constant(node: Parser_node.Node): Core_intermediate_
     const value = get_terminal_value(node);
 
     // TODO only handles strings
-    const string_value = value.slice(1, -1);
     return {
         type: Core_intermediate_representation.Fundamental_type.String,
-        data: string_value
+        data: value
     };
 }
 

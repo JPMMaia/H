@@ -704,7 +704,7 @@ export function parse_incrementally(
     go_to_table: Grammar.Go_to_column[][],
     array_infos: Map<string, Grammar.Array_info>,
     map_word_to_terminal: (word: Scanner.Scanned_word) => string
-): { status: Parse_status, processed_words: number, changes: Change[] } {
+): { status: Parse_status, processed_words: number, changes: Change[], messages: string[] } {
 
     let mark = get_initial_mark_node(original_node_tree, start_change_node_position);
 
@@ -719,13 +719,18 @@ export function parse_incrementally(
         const current_word = get_next_word(new_words, current_word_index, original_node_tree, after_change_node_position);
 
         const row = parsing_table[top_of_stack.node.state];
-        const column = row.find(column => column.label === map_word_to_terminal(current_word));
+        const terminal = map_word_to_terminal(current_word);
+        const column = row.find(column => column.label === terminal);
 
         if (column === undefined) {
+
+            const error_message = `Did not expect '${current_word.value}'.`;
+
             return {
                 status: Parse_status.Failed,
                 processed_words: current_word_index,
-                changes: []
+                changes: [],
+                messages: [error_message]
             };
         }
 
@@ -793,7 +798,8 @@ export function parse_incrementally(
                                     return {
                                         status: Parse_status.Accept,
                                         processed_words: current_word_index,
-                                        changes: changes
+                                        changes: changes,
+                                        messages: []
                                     };
                                 }
                             }
@@ -821,7 +827,8 @@ export function parse_incrementally(
                         processed_words: current_word_index,
                         changes: [
                             create_modify_change([], new_node)
-                        ]
+                        ],
+                        messages: []
                     };
                 }
             case Grammar.Action_type.Shift:
@@ -844,14 +851,16 @@ export function parse_incrementally(
                             return {
                                 status: Parse_status.Accept,
                                 processed_words: new_words.length + result.processed_words,
-                                changes: result.changes
+                                changes: result.changes,
+                                messages: []
                             };
                         }
                         else {
                             return {
                                 status: Parse_status.Failed,
                                 processed_words: 1,
-                                changes: []
+                                changes: [],
+                                messages: []
                             };
                         }
                     }
@@ -874,7 +883,8 @@ export function parse_incrementally(
                         return {
                             status: Parse_status.Failed,
                             processed_words: 1,
-                            changes: []
+                            changes: [],
+                            messages: []
                         };
                     }
 
@@ -884,7 +894,8 @@ export function parse_incrementally(
                             return {
                                 status: Parse_status.Failed,
                                 processed_words: 1,
-                                changes: []
+                                changes: [],
+                                messages: []
                             };
                         }
                         mark = result.new_mark;
@@ -911,7 +922,8 @@ export function parse_incrementally(
                         return {
                             status: Parse_status.Failed,
                             processed_words: 1,
-                            changes: []
+                            changes: [],
+                            messages: []
                         };
                     }
 
@@ -925,7 +937,8 @@ export function parse_incrementally(
     return {
         status: Parse_status.Failed,
         processed_words: current_word_index,
-        changes: []
+        changes: [],
+        messages: []
     };
 }
 

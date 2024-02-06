@@ -80,9 +80,11 @@ export function update(
 
             state.text = text_after_changes;
             state.pending_text_changes = [];
+            state.messages = [];
         }
         else {
             state.pending_text_changes = [text_change];
+            state.messages = parse_result.messages;
         }
 
         if (g_debug_validate) {

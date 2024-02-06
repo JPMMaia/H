@@ -611,6 +611,95 @@ describe("Text_change.update", () => {
             }
         }
     });
+
+
+    it("Handles hello world!", () => {
+
+        const document_state = Document.create_empty_state(language_description.production_rules);
+
+        const hello_world_program = `
+module Hello_world;
+
+import C.Standard_library as Cstl;
+
+export function hello() -> ()
+{
+    Cstl.puts("Hello world!");
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: hello_world_program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, hello_world_program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        assert.equal(new_document_state.module.name, "Hello_world");
+
+        const expected_imports: Core_intermediate_representation.Import_module_with_alias[] = [
+            { module_name: "C.Standard_library", alias: "Cstl" }
+        ];
+        assert.deepEqual(new_document_state.module.imports, expected_imports);
+
+        const expected_declarations: Core_intermediate_representation.Declaration[] = [
+            {
+                name: "hello",
+                type: Core_intermediate_representation.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "hello",
+                        type: {
+                            input_parameter_types: [],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: [],
+                        output_parameter_names: [],
+                        linkage: Core_intermediate_representation.Linkage.External
+                    },
+                    definition: {
+                        name: "hello",
+                        statements: [
+                            {
+                                name: "",
+                                expression: {
+                                    data: {
+                                        type: Core_intermediate_representation.Expression_enum.Call_expression,
+                                        value: {
+                                            module_reference: {
+                                                name: "Cstl"
+                                            },
+                                            function_name: "puts",
+                                            arguments: [
+                                                {
+                                                    data: {
+                                                        type: Core_intermediate_representation.Expression_enum.Constant_expression,
+                                                        value: {
+                                                            type: Core_intermediate_representation.Fundamental_type.String,
+                                                            data: "Hello world!"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        ];
+        assert.deepEqual(new_document_state.module.declarations, expected_declarations);
+    });
 });
 
 describe("Text_change.aggregate_changes", () => {
