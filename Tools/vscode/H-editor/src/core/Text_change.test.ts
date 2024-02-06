@@ -886,7 +886,6 @@ describe("Text_change.aggregate_changes", () => {
 
     it("Handles second is first 2", () => {
         const original_text = "abc";
-        "a1234c"
 
         const text_changes: Text_change.Text_change[] = [
             {
