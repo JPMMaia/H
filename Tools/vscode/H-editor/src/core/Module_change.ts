@@ -47,6 +47,11 @@ export interface Change {
     value: Add_element_to_vector | Remove_element_of_vector | Move_element_of_vector | Add_number | Update
 }
 
+export interface Position_change_pair {
+    position: any[];
+    change: Change
+}
+
 export interface Position_hierarchy_pair {
     position: any[],
     hierarchy: Hierarchy

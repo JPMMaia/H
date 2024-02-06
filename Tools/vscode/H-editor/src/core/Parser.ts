@@ -1,6 +1,7 @@
 import * as Grammar from "./Grammar";
+import * as Fast_array_diff from "fast-array-diff";
 import * as Scanner from "./Scanner";
-import { clone_node, find_node_common_root, get_next_terminal_node, get_next_sibling_terminal_node, get_node_at_position, get_parent_position, get_rightmost_brother, get_rightmost_terminal_descendant, have_same_parent, is_same_position, is_terminal_node, is_valid_position, Node, iterate_backward, } from "./Parser_node";
+import { clone_node, find_descendant_position_if, find_node_common_root, get_next_terminal_node, get_next_sibling_terminal_node, get_node_at_position, get_parent_position, get_rightmost_brother, get_rightmost_terminal_descendant, have_same_parent, is_same_position, is_terminal_node, is_valid_position, join_all_child_node_values, Node, iterate_backward, } from "./Parser_node";
 
 const g_debug = false;
 
@@ -394,7 +395,7 @@ function can_be_modiy_change(first: Change, second: Change): boolean {
     return false;
 }
 
-export function simplify_changes(changes: Change[]): Change[] {
+export function simplify_changes(root: Node, changes: Change[]): Change[] {
 
     const simplified_changes: Change[] = [];
 
@@ -415,7 +416,115 @@ export function simplify_changes(changes: Change[]): Change[] {
         simplified_changes.push(change);
     }
 
-    return simplified_changes;
+    const simplified_changes_2 = apply_module_change_simplications(root, simplified_changes);
+    return simplified_changes_2;
+}
+
+
+function get_value_of_node_in_trees(node_0: Node, node_1: Node, key: string, transform: (node: Node) => any): { value_0: any, value_1: any, position: number[] } {
+
+    const value_node_0 = find_descendant_position_if(node_0, node => node.word.value === key) as { node: Node, position: number[] };
+    const value_node_1 = get_node_at_position(node_1, value_node_0.position);
+
+    const value_0 = transform(value_node_0.node);
+    const value_1 = transform(value_node_1);
+
+    return {
+        value_0: value_0,
+        value_1: value_1,
+        position: value_node_0.position
+    };
+}
+
+function apply_patch(children_0: Node[], children_1: Node[], parent_position: number[]): Change[] {
+
+    const changes: Change[] = [];
+
+    const patches = Fast_array_diff.getPatch(children_0, children_1, deep_equal);
+
+    for (const patch of patches) {
+        if (patch.type === "add") {
+            const new_change = create_add_change(parent_position, patch.newPos, patch.items);
+            changes.push(new_change);
+        }
+        else if (patch.type === "remove") {
+            const new_change = create_remove_change(parent_position, patch.newPos, patch.items.length);
+            changes.push(new_change);
+        }
+    }
+
+    return changes;
+}
+
+function apply_module_change_simplications(root: Node, parse_tree_changes: Change[]): Change[] {
+
+    if (parse_tree_changes.length === 0) {
+        return parse_tree_changes;
+    }
+
+    if (parse_tree_changes[0].type === Change_type.Modify) {
+        const change = parse_tree_changes[0].value as Modify_change;
+
+        const new_node = change.new_node;
+
+        if (new_node.word.value === "Module") {
+            const new_changes: Change[] = [];
+
+            {
+                const values = get_value_of_node_in_trees(root, new_node, "Module_name", join_all_child_node_values);
+                if (values.value_0 !== values.value_1) {
+                    const new_change = create_modify_change(values.position, values.value_1);
+                    new_changes.push(new_change);
+                }
+            }
+
+            {
+                const root_imports = find_descendant_position_if(root, node => node.word.value === "Imports") as { node: Node, position: number[] };
+                const new_imports_node = get_node_at_position(new_node, root_imports.position);
+
+                const patch_changes = apply_patch(root_imports.node.children, new_imports_node.children, root_imports.position);
+                new_changes.push(...patch_changes);
+            }
+
+            {
+                const root_declarations = find_descendant_position_if(root, node => node.word.value === "Module_body") as { node: Node, position: number[] };
+                const new_declarations_node = get_node_at_position(new_node, root_declarations.position);
+
+                const patch_changes = apply_patch(root_declarations.node.children, new_declarations_node.children, root_declarations.position);
+                new_changes.push(...patch_changes);
+            }
+
+            return new_changes;
+        }
+    }
+
+    return parse_tree_changes;
+}
+
+function deep_equal(obj1: any, obj2: any): boolean {
+
+    if (typeof obj1 !== 'object' || typeof obj2 !== 'object') {
+        return obj1 === obj2;
+    }
+
+    if (obj1 === null && obj2 === null) {
+        return true;
+    }
+
+    const keys1 = Object.keys(obj1);
+    const keys2 = Object.keys(obj2);
+
+    if (keys1.length !== keys2.length) {
+        return false;
+    }
+
+    for (const key of keys1) {
+        if (!deep_equal(obj1[key], obj2[key])) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 export interface Words_change {

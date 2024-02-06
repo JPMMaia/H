@@ -251,11 +251,11 @@ describe("Text_change.update", () => {
             assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Alias);
             assert.equal(declaration.is_export, true);
 
-            const new_alias = declaration.value as Core.Alias_type_declaration;
+            const new_alias = declaration.value as Core_intermediate_representation.Alias_type_declaration;
             assert.equal(new_alias.name, "My_float");
 
             const expected_type = Type_utilities.parse_type_name("Float32");
-            assert.deepEqual(new_alias.type.elements, expected_type);
+            assert.deepEqual(new_alias.type, expected_type);
         }
     });
 
@@ -294,11 +294,11 @@ describe("Text_change.update", () => {
             assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Alias);
             assert.equal(declaration.is_export, true);
 
-            const new_alias = declaration.value as Core.Alias_type_declaration;
+            const new_alias = declaration.value as Core_intermediate_representation.Alias_type_declaration;
             assert.equal(new_alias.name, "My_float");
 
             const expected_type = Type_utilities.parse_type_name("Float32");
-            assert.deepEqual(new_alias.type.elements, expected_type);
+            assert.deepEqual(new_alias.type, expected_type);
         }
 
         {
@@ -362,11 +362,11 @@ describe("Text_change.update", () => {
             assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Alias);
             assert.equal(declaration.is_export, true);
 
-            const new_alias = declaration.value as Core.Alias_type_declaration;
+            const new_alias = declaration.value as Core_intermediate_representation.Alias_type_declaration;
             assert.equal(new_alias.name, "My_float");
 
             const expected_type = Type_utilities.parse_type_name("Float32");
-            assert.deepEqual(new_alias.type.elements, expected_type);
+            assert.deepEqual(new_alias.type, expected_type);
         }
 
         {
@@ -398,11 +398,11 @@ describe("Text_change.update", () => {
             assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Alias);
             assert.equal(declaration.is_export, true);
 
-            const new_alias = declaration.value as Core.Alias_type_declaration;
+            const new_alias = declaration.value as Core_intermediate_representation.Alias_type_declaration;
             assert.equal(new_alias.name, "My_float");
 
             const expected_type = Type_utilities.parse_type_name("Float32");
-            assert.deepEqual(new_alias.type.elements, expected_type);
+            assert.deepEqual(new_alias.type, expected_type);
         }
 
         {
@@ -434,11 +434,11 @@ describe("Text_change.update", () => {
             assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Alias);
             assert.equal(declaration.is_export, true);
 
-            const new_alias = declaration.value as Core.Alias_type_declaration;
+            const new_alias = declaration.value as Core_intermediate_representation.Alias_type_declaration;
             assert.equal(new_alias.name, "My_float");
 
             const expected_type = Type_utilities.parse_type_name("Float32");
-            assert.deepEqual(new_alias.type.elements, expected_type);
+            assert.deepEqual(new_alias.type, expected_type);
         }
     });
 
@@ -477,11 +477,11 @@ describe("Text_change.update", () => {
             assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Alias);
             assert.equal(declaration.is_export, true);
 
-            const new_alias = declaration.value as Core.Alias_type_declaration;
+            const new_alias = declaration.value as Core_intermediate_representation.Alias_type_declaration;
             assert.equal(new_alias.name, "My_float");
 
             const expected_type = Type_utilities.parse_type_name("Float32");
-            assert.deepEqual(new_alias.type.elements, expected_type);
+            assert.deepEqual(new_alias.type, expected_type);
         }
 
         {
@@ -513,11 +513,11 @@ describe("Text_change.update", () => {
             assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Alias);
             assert.equal(declaration.is_export, true);
 
-            const new_alias = declaration.value as Core.Alias_type_declaration;
+            const new_alias = declaration.value as Core_intermediate_representation.Alias_type_declaration;
             assert.equal(new_alias.name, "My_float");
 
             const expected_type = Type_utilities.parse_type_name("Float16");
-            assert.deepEqual(new_alias.type.elements, expected_type);
+            assert.deepEqual(new_alias.type, expected_type);
         }
     });
 
@@ -560,16 +560,12 @@ describe("Text_change.update", () => {
 
             const new_function_declaration = function_value.declaration;
             assert.equal(new_function_declaration.name, "My_function");
-            assert.equal(new_function_declaration.linkage, Core.Linkage.External);
-            assert.equal(new_function_declaration.input_parameter_names.size, 0);
-            assert.equal(new_function_declaration.input_parameter_names.elements.length, 0);
-            assert.equal(new_function_declaration.output_parameter_names.size, 0);
-            assert.equal(new_function_declaration.output_parameter_names.elements.length, 0);
+            assert.equal(new_function_declaration.linkage, Core_intermediate_representation.Linkage.External);
+            assert.equal(new_function_declaration.input_parameter_names.length, 0);
+            assert.equal(new_function_declaration.output_parameter_names.length, 0);
             assert.equal(new_function_declaration.type.is_variadic, false);
-            assert.equal(new_function_declaration.type.input_parameter_types.size, 0);
-            assert.equal(new_function_declaration.type.input_parameter_types.elements.length, 0);
-            assert.equal(new_function_declaration.type.output_parameter_types.size, 0);
-            assert.equal(new_function_declaration.type.output_parameter_types.elements.length, 0);
+            assert.equal(new_function_declaration.type.input_parameter_types.length, 0);
+            assert.equal(new_function_declaration.type.output_parameter_types.length, 0);
         }
 
         {
@@ -606,14 +602,12 @@ describe("Text_change.update", () => {
             const function_value = declaration.value as Core_intermediate_representation.Function;
 
             const new_function_declaration = function_value.declaration;
-            assert.equal(new_function_declaration.input_parameter_names.size, 1);
-            assert.equal(new_function_declaration.input_parameter_names.elements.length, 1);
-            assert.equal(new_function_declaration.type.input_parameter_types.size, 1);
-            assert.equal(new_function_declaration.type.input_parameter_types.elements.length, 1);
-            if (new_function_declaration.input_parameter_names.elements.length > 0 && new_function_declaration.type.input_parameter_types.elements.length > 0) {
-                assert.equal(new_function_declaration.input_parameter_names.elements[0], "first");
+            assert.equal(new_function_declaration.input_parameter_names.length, 1);
+            assert.equal(new_function_declaration.type.input_parameter_types.length, 1);
+            if (new_function_declaration.input_parameter_names.length > 0 && new_function_declaration.type.input_parameter_types.length > 0) {
+                assert.equal(new_function_declaration.input_parameter_names[0], "first");
                 const expected_type = Type_utilities.parse_type_name("Float16");
-                assert.deepEqual(new_function_declaration.type.input_parameter_types.elements[0], expected_type[0]);
+                assert.deepEqual(new_function_declaration.type.input_parameter_types[0], expected_type[0]);
             }
         }
     });

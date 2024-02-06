@@ -386,3 +386,59 @@ export function are_equal(lhs: Node, rhs: Node): boolean {
 
     return true;
 }
+
+export function join_all_child_node_values(node: Node): string {
+
+    const values: string[] = [];
+
+    const stack: Node[] = [];
+    stack.push(node);
+
+    while (stack.length > 0) {
+        const current_node = stack.pop() as Node;
+        if (current_node.children.length === 0 && current_node.production_rule_index === undefined) {
+            values.push(current_node.word.value);
+        }
+
+        for (let index = 0; index < current_node.children.length; ++index) {
+            const child_index = current_node.children.length - 1 - index;
+            stack.push(current_node.children[child_index]);
+        }
+    }
+
+    const value = values.join("");
+    return value;
+}
+
+export function find_descendant_position_if(node: Node, predicate: (node: Node) => boolean): { node: Node, position: number[] } | undefined {
+
+    const list: Node[] = [];
+    const positions: number[][] = [];
+
+    for (let index = 0; index < node.children.length; ++index) {
+        const child = node.children[index];
+        list.push(child);
+        positions.push([index]);
+    }
+
+    while (list.length > 0) {
+        const node = list.splice(0, 1)[0];
+        const position = positions.splice(0, 1)[0];
+
+        if (predicate(node)) {
+            return {
+                node: node,
+                position: position
+            };
+        }
+
+        for (let index = 0; index < node.children.length; ++index) {
+            const child = node.children[index];
+            list.push(child);
+            positions.push([...position, index]);
+
+        }
+    }
+
+    return undefined;
+}

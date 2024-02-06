@@ -709,6 +709,88 @@ export function create_function_example(): core.Module {
     return module;
 }
 
+export function create_function_calling_module_function_example(): core.Module {
+    const module = create_empty();
+    module.name = "function_calling_module_function_example";
+    module.dependencies.alias_imports = {
+        size: 1,
+        elements: [
+            { module_name: "C.Standard_library", alias: "Cstl" }
+        ]
+    };
+    module.export_declarations.function_declarations = {
+        size: 1,
+        elements: [
+            {
+                name: "My_function",
+                type: {
+                    input_parameter_types: {
+                        size: 0,
+                        elements: [],
+                    },
+                    output_parameter_types: {
+                        size: 0,
+                        elements: [],
+                    },
+                    is_variadic: false,
+                },
+                input_parameter_names: { size: 0, elements: [] },
+                output_parameter_names: { size: 0, elements: [] },
+                linkage: core.Linkage.External,
+            }
+        ]
+    };
+    module.definitions.function_definitions = {
+        size: 1,
+        elements: [
+            {
+                name: "My_function",
+                statements: {
+                    size: 1,
+                    elements: [
+                        {
+                            name: "",
+                            expressions: {
+                                size: 4,
+                                elements: [
+                                    {
+                                        data: {
+                                            type: core.Expression_enum.Call_expression,
+                                            value: {
+                                                module_reference: {
+                                                    name: "Cstl"
+                                                },
+                                                function_name: "printf",
+                                                arguments: {
+                                                    size: 1,
+                                                    elements: [
+                                                        { expression_index: 1 }
+                                                    ]
+                                                }
+                                            },
+                                        },
+                                    },
+                                    {
+                                        data: {
+                                            type: core.Expression_enum.Constant_expression,
+                                            value: {
+                                                type: core.Fundamental_type.String,
+                                                data: "Hello world!"
+                                            },
+                                        },
+                                    },
+                                ],
+                            },
+                        },
+                    ],
+                },
+            },
+        ]
+    };
+
+    return module;
+}
+
 export function create_module_with_dependencies(): core.Module {
     const module = create_empty();
     module.name = "Module_with_dependencies";

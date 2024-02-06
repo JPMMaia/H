@@ -63,7 +63,7 @@ export function update(
                 state.module = Parse_tree_convertor.parse_tree_to_module(new_parse_tree, language_description.production_rules, language_description.mappings, language_description.key_to_production_rule_indices);
             }
             else if (state.parse_tree !== undefined) {
-                const simplified_changes = Parser.simplify_changes(parse_result.changes);
+                const simplified_changes = Parser.simplify_changes(state.parse_tree, parse_result.changes);
 
                 const module_changes = Parse_tree_convertor.create_module_changes(
                     state.module,
