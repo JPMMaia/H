@@ -892,24 +892,31 @@ function intermediate_to_core_expression(intermediate_value: Expression, express
     switch (intermediate_value.data.type) {
         case Expression_enum.Binary_expression: {
             intermediate_to_core_binary_expression(intermediate_value.data.value as Binary_expression, expressions);
+            break;
         }
         case Expression_enum.Call_expression: {
             intermediate_to_core_call_expression(intermediate_value.data.value as Call_expression, expressions);
+            break;
         }
         case Expression_enum.Constant_expression: {
             intermediate_to_core_constant_expression(intermediate_value.data.value as Constant_expression, expressions);
+            break;
         }
         case Expression_enum.Invalid_expression: {
             intermediate_to_core_invalid_expression(intermediate_value.data.value as Invalid_expression, expressions);
+            break;
         }
         case Expression_enum.Return_expression: {
             intermediate_to_core_return_expression(intermediate_value.data.value as Return_expression, expressions);
+            break;
         }
         case Expression_enum.Struct_member_expression: {
             intermediate_to_core_struct_member_expression(intermediate_value.data.value as Struct_member_expression, expressions);
+            break;
         }
         case Expression_enum.Variable_expression: {
             intermediate_to_core_variable_expression(intermediate_value.data.value as Variable_expression, expressions);
+            break;
         }
     }
 }

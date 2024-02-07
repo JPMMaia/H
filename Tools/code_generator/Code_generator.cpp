@@ -1854,6 +1854,7 @@ namespace h::tools::code_generator
             {
                 output_stream << std::format("        case {}.{}: {{\n", variant_type_enum_name, variant_type);
                 output_stream << std::format("            intermediate_to_core_{}(intermediate_value.data.value as {}, expressions);\n", to_lowercase(variant_type), variant_type);
+                output_stream << "            break;\n";
                 output_stream << "        }\n";
             }
         }
