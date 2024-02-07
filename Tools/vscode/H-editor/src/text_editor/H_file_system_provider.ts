@@ -1,8 +1,10 @@
 import * as vscode from "vscode";
 
 import * as Core from "../core/Core_interface";
+import * as Core_intermediate_interface from "../core/Core_intermediate_representation";
 import * as Document from "../core/Document";
 import * as Language from "../core/Language";
+import * as Module_examples from "../core/Module_examples";
 
 import * as H_document_provider from "./H_document_provider";
 
@@ -36,15 +38,35 @@ export class H_file_system_provider implements vscode.FileSystemProvider {
         return vscode.workspace.fs.createDirectory(file_uri);
     }
 
+    private createNameFromFileUri(file_uri: vscode.Uri): string {
+        const begin = file_uri.path.lastIndexOf("/") + 1;
+        const end = file_uri.path.length - 3;
+        const name = file_uri.path.slice(begin, end);
+        return name;
+    }
+
+    private createModuleFromData(file_uri: vscode.Uri, data: Uint8Array): Core.Module {
+
+        if (data.length === 0) {
+            const module = Module_examples.create_empty();
+            module.name = this.createNameFromFileUri(file_uri);
+            return module;
+        }
+
+        const utf8_data = Buffer.from(data).toString("utf8");
+        const json_data = JSON.parse(utf8_data);
+
+        const module: Core.Module = json_data as Core.Module;
+        return module;
+    }
+
     public async readFile(uri: vscode.Uri): Promise<Uint8Array> {
 
         const file_uri = uri.with({ scheme: "file" });
 
         const file_data = await vscode.workspace.fs.readFile(file_uri);
-        const utf8_data = Buffer.from(file_data).toString("utf8");
-        const json_data = JSON.parse(utf8_data);
 
-        const module: Core.Module = json_data as Core.Module;
+        const module = this.createModuleFromData(file_uri, file_data);
 
         const language_description = Language.create_default_description();
         const document_state = Document.create_state_from_module(module, language_description, []);
@@ -68,7 +90,13 @@ export class H_file_system_provider implements vscode.FileSystemProvider {
 
         const file_uri = uri.with({ scheme: "file" });
 
-        const json_data = JSON.stringify(document_data.state.module);
+        const language_version: Core.Language_version = {
+            major: 0,
+            minor: 0,
+            patch: 1
+        };
+        const module = Core_intermediate_interface.create_core_module(document_data.state.module, language_version);
+        const json_data = JSON.stringify(module);
         const file_data: Uint8Array = Buffer.from(json_data, "utf8");
 
         return vscode.workspace.fs.writeFile(file_uri, file_data);
