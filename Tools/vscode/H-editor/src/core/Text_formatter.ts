@@ -1,6 +1,8 @@
 import * as Grammar from "./Grammar";
 import * as Parse_tree_text_position_cache from "./Parse_tree_text_position_cache";
-import { get_node_at_position, iterate_forward_with_repetition, Iterate_direction, Node } from "./Parser_node";
+import { iterate_forward_with_repetition, Iterate_direction, Node } from "./Parser_node";
+
+const g_debug = false;
 
 enum State {
     Global,
@@ -140,6 +142,12 @@ export function to_string(root: Node, cache: Parse_tree_text_position_cache.Cach
 
     while (current_node !== undefined) {
 
+        if (g_debug) {
+            console.log(current_node.word.value);
+        }
+
+        const previous_state = state_stack[state_stack.length - 1];
+
         if (current_node.word.value === "Module_declaration") {
             if (current_direction === Iterate_direction.Down) {
                 state_stack.push(State.Module_declaration);
@@ -191,6 +199,13 @@ export function to_string(root: Node, cache: Parse_tree_text_position_cache.Cach
 
         const current_state = state_stack[state_stack.length - 1];
 
+        if (previous_state === State.Imports && current_state === State.Global) {
+            add_new_line(buffer);
+            current_line += 1;
+            current_column = 0;
+            current_text_offset += 1;
+        }
+
         if (current_direction === Iterate_direction.Down) {
 
             // If node corresponds to terminal:
@@ -213,7 +228,7 @@ export function to_string(root: Node, cache: Parse_tree_text_position_cache.Cach
                 const added_new_line = buffer[buffer.length - 1] === "\n";
                 const spaces_to_add_before = added_new_line ? indentation_count * indentation_width : should_add_space(word, previous_word);
 
-                const new_word = " ".repeat(spaces_to_add_before) + word.value;
+                const new_word = " ".repeat(spaces_to_add_before) + format_word(word);
 
                 if (cache !== undefined && should_cache_node(current_node, production_rules_to_cache)) {
                     const new_word_offset = current_text_offset + spaces_to_add_before;
@@ -270,4 +285,15 @@ function add_new_line(buffer: string[]): void {
 function should_cache_node(node: Node, production_rules_to_cache: number[]): boolean {
     const production_rule_index = production_rules_to_cache.find(element => element === node.production_rule_index);
     return production_rule_index !== undefined;
+}
+
+function format_word(word: Grammar.Word): string {
+    switch (word.type) {
+        case Grammar.Word_type.String: {
+            return `"${word.value}"`;
+        }
+        default: {
+            return word.value;
+        }
+    }
 }

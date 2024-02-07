@@ -1,4 +1,5 @@
 import * as core from "./Core_interface";
+import * as Core_intermediate_representation from "./Core_intermediate_representation";
 import * as core_reflection from "./Core_reflection";
 
 export function create_empty(): core.Module {
@@ -806,4 +807,93 @@ export function create_module_with_dependencies(): core.Module {
     ];
     module.dependencies.alias_imports.size = module.dependencies.alias_imports.elements.length;
     return module;
+}
+
+export function create_hello_world(): Core_intermediate_representation.Module {
+    return {
+        name: "Hello_world",
+        imports: [
+            {
+                module_name: "C.Standard_library",
+                alias: "Cstl"
+            }
+        ],
+        declarations: [
+            {
+                name: "main",
+                type: Core_intermediate_representation.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "main",
+                        type: {
+                            input_parameter_types: [],
+                            output_parameter_types: [{
+                                data: {
+                                    type: Core_intermediate_representation.Type_reference_enum.Integer_type,
+                                    value: {
+                                        number_of_bits: 32,
+                                        is_signed: true
+                                    }
+                                }
+                            }],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: [],
+                        output_parameter_names: ["result"],
+                        linkage: Core_intermediate_representation.Linkage.External
+                    },
+                    definition: {
+                        name: "main",
+                        statements: [
+                            {
+                                name: "",
+                                expression: {
+                                    data: {
+                                        type: Core_intermediate_representation.Expression_enum.Call_expression,
+                                        value: {
+                                            module_reference: {
+                                                name: "Cstl"
+                                            },
+                                            function_name: "puts",
+                                            arguments: [
+                                                {
+                                                    data: {
+                                                        type: Core_intermediate_representation.Expression_enum.Constant_expression,
+                                                        value: {
+                                                            type: Core_intermediate_representation.Fundamental_type.String,
+                                                            data: "Hello world!"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                name: "",
+                                expression: {
+                                    data: {
+                                        type: Core_intermediate_representation.Expression_enum.Return_expression,
+                                        value: {
+                                            expression: {
+                                                data: {
+                                                    type: Core_intermediate_representation.Expression_enum.Constant_expression,
+                                                    value: {
+                                                        type: Core_intermediate_representation.Fundamental_type.String, // TODO
+                                                        data: "0"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        ]
+    };
 }

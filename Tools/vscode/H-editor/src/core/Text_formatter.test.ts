@@ -83,7 +83,22 @@ describe("Text_formatter.to_string", () => {
 
         const actual_text = Text_formatter.to_string(parse_tree, text_cache, []);
 
-        const expected_text = "module Module_with_dependencies;\n\nimport C.Standard_library as Cstl;\nimport My_library as ml;\n";
+        const expected_text = "module Module_with_dependencies;\n\nimport C.Standard_library as Cstl;\nimport My_library as ml;\n\n";
+
+        assert.equal(actual_text, expected_text);
+    });
+
+    it("Formats hello world correctly", () => {
+        const grammar_description = Grammar_examples.create_test_grammar_9_description();
+        const production_rules = Grammar.create_production_rules(grammar_description);
+        const mappings = Parse_tree_convertor_mappings.create_mapping();
+        const module = Module_examples.create_hello_world();
+        const parse_tree = Parse_tree_convertor.module_to_parse_tree(module, production_rules, mappings);
+        const text_cache = Parse_tree_text_position_cache.create_cache();
+
+        const actual_text = Text_formatter.to_string(parse_tree, text_cache, []);
+
+        const expected_text = "module Hello_world;\n\nimport C.Standard_library as Cstl;\n\nexport function main() -> (result: Int32)\n{\n    Cstl.puts(\"Hello world!\");\n    return \"0\";\n}\n\n";
 
         assert.equal(actual_text, expected_text);
     });
