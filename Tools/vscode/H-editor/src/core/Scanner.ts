@@ -169,7 +169,7 @@ function scan_string(code: string, start_offset: number): { word: string, proces
     }
 
     return {
-        word: code.substring(start_offset + 1, current_offset - 1),
+        word: code.substring(start_offset, current_offset),
         processed_characters: current_offset - start_offset
     };
 }

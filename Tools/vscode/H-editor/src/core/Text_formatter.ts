@@ -289,9 +289,6 @@ function should_cache_node(node: Node, production_rules_to_cache: number[]): boo
 
 function format_word(word: Grammar.Word): string {
     switch (word.type) {
-        case Grammar.Word_type.String: {
-            return `"${word.value}"`;
-        }
         default: {
             return word.value;
         }

@@ -703,6 +703,60 @@ export function hello() -> ()
         ];
         assert.deepEqual(new_document_state.module.declarations, expected_declarations);
     });
+
+    it("Handles adding return statement", () => {
+
+        const document_state = Document.create_empty_state(language_description.production_rules);
+
+        const hello_world_program = `
+module Hello_world;
+
+import C.Standard_library as Cstl;
+
+export function hello() -> ()
+{
+    Cstl.puts("Hello world!");
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: hello_world_program
+            },
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, hello_world_program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const text_changes_2: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 121,
+                    end: 121
+                },
+                text: "    return 0;\n"
+            },
+        ];
+
+        const hello_world_program_2 = `
+module Hello_world;
+
+import C.Standard_library as Cstl;
+
+export function hello() -> ()
+{
+    Cstl.puts("Hello world!");
+    return 0;
+}
+`;
+
+        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, hello_world_program_2);
+        assert.equal(new_document_state_2.pending_text_changes.length, 0);
+    });
 });
 
 describe("Text_change.aggregate_changes", () => {

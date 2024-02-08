@@ -170,6 +170,7 @@ export function create_test_grammar_9_description(): string[] {
         "Expression_call_module_name -> identifier",
         "Expression_call_function_name -> identifier",
         "Expression_call_arguments -> Generic_expression , $0_or_more",
+        "Expression_constant -> number",
         "Expression_constant -> string",
         "Expression_binary -> Generic_expression Expression_binary_symbol Generic_expression",
         "Expression_binary_symbol -> Expression_binary_symbol_add | Expression_binary_symbol_subtract | Expression_binary_symbol_multiply | Expression_binary_symbol_signed_divide | Expression_binary_symbol_unsigned_divide",

@@ -630,7 +630,7 @@ function is_last_descendant_empty(node: Node): boolean {
     return is_last_descendant_empty(child);
 }
 
-function get_initial_mark_node(original_node_tree: Node | undefined, start_change_node_position: number[] | undefined): Parsing_stack_element {
+function get_initial_mark_node(original_node_tree: Node | undefined, start_change_node_position: number[] | undefined, array_infos: Map<string, Grammar.Array_info>): Parsing_stack_element {
 
     if (original_node_tree === undefined) {
         return {
@@ -656,8 +656,14 @@ function get_initial_mark_node(original_node_tree: Node | undefined, start_chang
     }
     else {
         let previous = get_previous_node_on_stack(original_node_tree, start_change_node_position) as { node: Node, position: number[] };
-        while (!is_terminal_node(previous.node) && is_last_descendant_empty(previous.node)) {
-            if (previous.node.children.length > 0 && is_last_descendant_empty(previous.node)) {
+
+        while (true) {
+
+            if ((is_terminal_node(previous.node) || !is_last_descendant_empty(previous.node)) && !array_infos.has(previous.node.word.value)) {
+                break;
+            }
+
+            if (previous.node.children.length > 0) {
                 previous = {
                     node: previous.node.children[previous.node.children.length - 1],
                     position: [...previous.position, previous.node.children.length - 1]
@@ -706,7 +712,7 @@ export function parse_incrementally(
     map_word_to_terminal: (word: Scanner.Scanned_word) => string
 ): { status: Parse_status, processed_words: number, changes: Change[], messages: string[] } {
 
-    let mark = get_initial_mark_node(original_node_tree, start_change_node_position);
+    let mark = get_initial_mark_node(original_node_tree, start_change_node_position, array_infos);
 
     const stack: Parsing_stack_element[] = [];
 
@@ -749,7 +755,7 @@ export function parse_incrementally(
                             const has_separator = array_info.separator_label.length > 0;
                             const element_labels = has_separator ? [array_info.element_label, array_info.separator_label] : [array_info.element_label];
 
-                            const initial_mark_node = get_initial_mark_node(original_node_tree, start_change_node_position);
+                            const initial_mark_node = get_initial_mark_node(original_node_tree, start_change_node_position, array_infos);
                             const before_start_element = initial_mark_node.original_tree_position !== undefined ? get_parent_node_with_labels_in_original_tree(original_node_tree, initial_mark_node.original_tree_position, element_labels, map_word_to_terminal) : undefined;
                             const start_element = (start_change_node_position !== undefined && is_valid_position(original_node_tree, start_change_node_position)) ? get_parent_node_with_labels_in_original_tree(original_node_tree, start_change_node_position, element_labels, map_word_to_terminal) : undefined;
 

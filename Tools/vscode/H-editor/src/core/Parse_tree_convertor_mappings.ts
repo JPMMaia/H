@@ -89,6 +89,7 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Statement", choose_production_rule_statement],
             ["Expression_binary_symbol", choose_production_rule_expression_binary_symbol],
             ["Expression_call", choose_production_rule_expression_call],
+            ["Expression_constant", choose_production_rule_expression_constant],
             ["Expression_return", choose_production_rule_expression_return],
             ["Generic_expression", choose_production_rule_generic_expression],
         ]
@@ -163,7 +164,7 @@ function map_expression_constant_to_word(
             const type = constant_expression.type.value as Core_intermediate_representation.Fundamental_type;
             switch (type) {
                 case Core_intermediate_representation.Fundamental_type.String: {
-                    return { value: constant_expression.data, type: Grammar.Word_type.String };
+                    return { value: `"${constant_expression.data}"`, type: Grammar.Word_type.String };
                 }
                 default: {
                     return { value: constant_expression.data, type: Scanner.get_word_type(constant_expression.data) };
@@ -379,6 +380,48 @@ function choose_production_rule_expression_call(
         },
         next_production_rule_index: production_rule_indices[index]
     };
+}
+
+function choose_production_rule_expression_constant(
+    module: Core_intermediate_representation.Module,
+    production_rules: Grammar.Production_rule[],
+    production_rule_indices: number[],
+    label: string,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    mappings: Parse_tree_convertor.Parse_tree_mappings,
+    key_to_production_rule_indices: Map<string, number[]>
+): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
+
+    const top = stack[stack.length - 1];
+
+    const expression = top.state.value as Core_intermediate_representation.Expression;
+    const constant_expression = expression.data.value as Core_intermediate_representation.Constant_expression;
+
+    switch (constant_expression.type.type) {
+        case Core_intermediate_representation.Constant_expression_enum.Fundamental_type: {
+            const fundamental_type = constant_expression.type.value as Core_intermediate_representation.Fundamental_type;
+            const rhs_to_find = fundamental_type === Core_intermediate_representation.Fundamental_type.String ? "string" : "number";
+
+            const index = production_rule_indices.findIndex(index => production_rules[index].rhs[0] === rhs_to_find);
+            return {
+                next_state: {
+                    index: 0,
+                    value: expression
+                },
+                next_production_rule_index: production_rule_indices[index]
+            };
+        }
+        case Core_intermediate_representation.Constant_expression_enum.Integer_type: {
+            const index = production_rule_indices.findIndex(index => production_rules[index].rhs[0] === "number");
+            return {
+                next_state: {
+                    index: 0,
+                    value: expression
+                },
+                next_production_rule_index: production_rule_indices[index]
+            };
+        }
+    }
 }
 
 function choose_production_rule_expression_return(
@@ -930,7 +973,7 @@ function node_to_expression_constant(node: Parser_node.Node): Core_intermediate_
             type: Core_intermediate_representation.Constant_expression_enum.Fundamental_type,
             value: Core_intermediate_representation.Fundamental_type.String
         },
-        data: value
+        data: value.slice(1, -1)
     };
 }
 
