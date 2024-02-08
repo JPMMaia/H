@@ -158,12 +158,20 @@ function map_expression_constant_to_word(
     const expression = top.state.value as Core_intermediate_representation.Expression;
     const constant_expression = expression.data.value as Core_intermediate_representation.Constant_expression;
 
-    switch (constant_expression.type) {
-        case Core_intermediate_representation.Fundamental_type.String: {
-            return { value: constant_expression.data, type: Grammar.Word_type.String };
+    switch (constant_expression.type.type) {
+        case Core_intermediate_representation.Constant_expression_enum.Fundamental_type: {
+            const type = constant_expression.type.value as Core_intermediate_representation.Fundamental_type;
+            switch (type) {
+                case Core_intermediate_representation.Fundamental_type.String: {
+                    return { value: constant_expression.data, type: Grammar.Word_type.String };
+                }
+                default: {
+                    return { value: constant_expression.data, type: Scanner.get_word_type(constant_expression.data) };
+                }
+            }
         }
-        default: {
-            return { value: constant_expression.data, type: Scanner.get_word_type(constant_expression.data) };
+        case Core_intermediate_representation.Constant_expression_enum.Integer_type: {
+            return { value: constant_expression.data, type: Grammar.Word_type.Number };
         }
     }
 }
@@ -918,7 +926,10 @@ function node_to_expression_constant(node: Parser_node.Node): Core_intermediate_
 
     // TODO only handles strings
     return {
-        type: Core_intermediate_representation.Fundamental_type.String,
+        type: {
+            type: Core_intermediate_representation.Constant_expression_enum.Fundamental_type,
+            value: Core_intermediate_representation.Fundamental_type.String
+        },
         data: value
     };
 }

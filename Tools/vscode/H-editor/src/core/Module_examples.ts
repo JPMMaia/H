@@ -775,7 +775,10 @@ export function create_function_calling_module_function_example(): core.Module {
                                         data: {
                                             type: core.Expression_enum.Constant_expression,
                                             value: {
-                                                type: core.Fundamental_type.String,
+                                                type: {
+                                                    type: core.Constant_expression_enum.Fundamental_type,
+                                                    value: core.Fundamental_type.String
+                                                },
                                                 data: "Hello world!"
                                             },
                                         },
@@ -861,7 +864,10 @@ export function create_hello_world(): Core_intermediate_representation.Module {
                                                     data: {
                                                         type: Core_intermediate_representation.Expression_enum.Constant_expression,
                                                         value: {
-                                                            type: Core_intermediate_representation.Fundamental_type.String,
+                                                            type: {
+                                                                type: core.Constant_expression_enum.Fundamental_type,
+                                                                value: core.Fundamental_type.String
+                                                            },
                                                             data: "Hello world!"
                                                         }
                                                     }
@@ -881,7 +887,13 @@ export function create_hello_world(): Core_intermediate_representation.Module {
                                                 data: {
                                                     type: Core_intermediate_representation.Expression_enum.Constant_expression,
                                                     value: {
-                                                        type: Core_intermediate_representation.Fundamental_type.String, // TODO
+                                                        type: {
+                                                            type: core.Constant_expression_enum.Integer_type,
+                                                            value: {
+                                                                number_of_bits: 32,
+                                                                is_signed: true
+                                                            }
+                                                        },
                                                         data: "0"
                                                     }
                                                 }

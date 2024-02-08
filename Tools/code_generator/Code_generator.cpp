@@ -1616,15 +1616,19 @@ namespace h::tools::code_generator
         return output;
     }
 
-    std::pmr::string generate_variant_types_enum_name(std::span<std::pmr::string const> const variant_type_names)
+    std::pmr::string generate_variant_types_enum_name(std::string_view const parent_type_name, std::span<std::pmr::string const> const variant_type_names)
     {
-        if (variant_type_names[0].ends_with("type_reference"))
+        if (parent_type_name == "Type_reference")
         {
             return std::pmr::string{ "Type_reference_enum" };
         }
-        else if (variant_type_names[0].ends_with("expression"))
+        else if (parent_type_name == "Expression")
         {
             return std::pmr::string{ "Expression_enum" };
+        }
+        else if (parent_type_name == "Constant_expression")
+        {
+            return std::pmr::string{ "Constant_expression_enum" };
         }
         else
         {
@@ -1634,6 +1638,7 @@ namespace h::tools::code_generator
 
     std::pmr::string to_typescript_type(
         Type const& type,
+        std::string_view const parent_type_name,
         std::pmr::unordered_map<std::pmr::string, Enum> const& enum_map,
         std::pmr::unordered_map<std::pmr::string, Struct> const& struct_map,
         std::pmr::unordered_map<std::pmr::string, std::pmr::string> const& replace_map,
@@ -1645,7 +1650,7 @@ namespace h::tools::code_generator
             if (location != replace_map.end())
             {
                 std::pmr::string const& new_type = location->second;
-                return to_typescript_type(Type{ .name = new_type.c_str() }, enum_map, struct_map, replace_map, true);
+                return to_typescript_type(Type{ .name = new_type.c_str() }, parent_type_name, enum_map, struct_map, replace_map, true);
             }
         }
 
@@ -1672,7 +1677,7 @@ namespace h::tools::code_generator
         else if (is_vector_type(type))
         {
             std::pmr::string const value_type = get_vector_value_type(type);
-            std::pmr::string const typescript_type = to_typescript_type(Type{ .name = value_type }, enum_map, struct_map, replace_map, intermediate_representation);
+            std::pmr::string const typescript_type = to_typescript_type(Type{ .name = value_type }, parent_type_name, enum_map, struct_map, replace_map, intermediate_representation);
 
             if (intermediate_representation)
             {
@@ -1689,7 +1694,7 @@ namespace h::tools::code_generator
                 type.name
             );
 
-            std::pmr::string const variant_type_enum_name = generate_variant_types_enum_name(variant_type_names);
+            std::pmr::string const variant_type_enum_name = generate_variant_types_enum_name(parent_type_name, variant_type_names);
 
             std::pmr::string const typescript_variant_type = join(variant_type_names, " | ");
 
@@ -1706,40 +1711,31 @@ namespace h::tools::code_generator
         std::span<Struct const> const struct_infos
     )
     {
-        auto variant_strings_view =
-            struct_infos |
-            std::views::transform([](Struct const& info) -> std::span<Member const> { return info.members; }) |
-            std::views::join |
-            std::views::filter([](Member const& member) -> bool { return is_variant_type(member.type); }) |
-            std::views::transform([](Member const& member) -> std::string_view { return member.type.name; }) |
-            std::views::common;
-
-        auto const variant_strings = [&]
+        for (Struct const& struct_info : struct_infos)
+        {
+            for (Member const& member : struct_info.members)
             {
-                std::pmr::vector<std::string_view> variant_strings{ variant_strings_view.begin(), variant_strings_view.end() };
-                std::ranges::sort(variant_strings);
-                auto const [first, last] = std::ranges::unique(variant_strings.begin(), variant_strings.end());
-                variant_strings.erase(first, last);
-                return variant_strings;
-            }();
-
-            for (std::string_view const variant_string : variant_strings)
-            {
-                std::pmr::vector<std::pmr::string> const variant_type_names = get_variadic_types(
-                    variant_string
-                );
-
-                std::pmr::string const variant_type_enum_name = generate_variant_types_enum_name(variant_type_names);
-
-                output_stream << "export enum " << variant_type_enum_name << " {\n";
+                if (is_variant_type(member.type))
                 {
-                    for (std::string_view const name : variant_type_names)
+                    std::string_view const variant_string = member.type.name;
+
+                    std::pmr::vector<std::pmr::string> const variant_type_names = get_variadic_types(
+                        variant_string
+                    );
+
+                    std::pmr::string const variant_type_enum_name = generate_variant_types_enum_name(struct_info.name, variant_type_names);
+
+                    output_stream << "export enum " << variant_type_enum_name << " {\n";
                     {
-                        output_stream << std::format("    {} = \"{}\",\n", name, name);
+                        for (std::string_view const name : variant_type_names)
+                        {
+                            output_stream << std::format("    {} = \"{}\",\n", name, name);
+                        }
                     }
+                    output_stream << "}\n\n";
                 }
-                output_stream << "}\n\n";
             }
+        }
     }
 
     bool is_expression_type(std::string_view const type_name)
@@ -1799,17 +1795,17 @@ namespace h::tools::code_generator
             {
                 for (Member const& member : struct_info.members)
                 {
-                    output_stream << std::format("    {}: {};\n", member.name, to_typescript_type(member.type, enum_map, struct_map, {}, false));
+                    output_stream << std::format("    {}: {};\n", member.name, to_typescript_type(member.type, struct_info.name, enum_map, struct_map, {}, false));
                 }
             }
             output_stream << "}\n\n";
         }
     }
 
-    void generate_variant_core_to_intermediate_representation(std::ostream& output_stream, Type const& type, std::pmr::unordered_map<std::pmr::string, Enum> const& enum_map)
+    void generate_variant_core_to_intermediate_representation(std::ostream& output_stream, Type const& type, std::string_view const parent_type_name, std::pmr::unordered_map<std::pmr::string, Enum> const& enum_map)
     {
         std::pmr::vector<std::pmr::string> const variant_types = get_variadic_types(type.name);
-        std::pmr::string const variant_type_enum_name = generate_variant_types_enum_name(variant_types);
+        std::pmr::string const variant_type_enum_name = generate_variant_types_enum_name(parent_type_name, variant_types);
 
         output_stream << "    switch (core_value.data.type) {\n";
 
@@ -1841,10 +1837,10 @@ namespace h::tools::code_generator
         output_stream << "    }\n";
     }
 
-    void generate_variant_intermediate_to_core_representation(std::ostream& output_stream, Type const& type, std::pmr::unordered_map<std::pmr::string, Enum> const& enum_map)
+    void generate_variant_intermediate_to_core_representation(std::ostream& output_stream, Type const& type, std::string_view const parent_type_name, std::pmr::unordered_map<std::pmr::string, Enum> const& enum_map)
     {
         std::pmr::vector<std::pmr::string> const variant_types = get_variadic_types(type.name);
-        std::pmr::string const variant_type_enum_name = generate_variant_types_enum_name(variant_types);
+        std::pmr::string const variant_type_enum_name = generate_variant_types_enum_name(parent_type_name, variant_types);
 
         output_stream << "    switch (intermediate_value.data.type) {\n";
 
@@ -2140,7 +2136,7 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
             {
                 for (Member const& member : struct_info.members)
                 {
-                    output_stream << std::format("    {}: {};\n", member.name, to_typescript_type(member.type, enum_map, struct_map, replace_type_map, true));
+                    output_stream << std::format("    {}: {};\n", member.name, to_typescript_type(member.type, struct_info.name, enum_map, struct_map, replace_type_map, true));
                 }
             }
             output_stream << "}\n\n";
@@ -2158,7 +2154,7 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
                 {
                     if (struct_info.members.size() == 1 && is_variant_type(struct_info.members[0].type))
                     {
-                        generate_variant_core_to_intermediate_representation(output_stream, struct_info.members[0].type, enum_map);
+                        generate_variant_core_to_intermediate_representation(output_stream, struct_info.members[0].type, struct_info.name, enum_map);
                     }
                     else
                     {
@@ -2213,7 +2209,7 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
 
                 if (struct_info.members.size() == 1 && is_variant_type(struct_info.members[0].type))
                 {
-                    generate_variant_intermediate_to_core_representation(output_stream, struct_info.members[0].type, enum_map);
+                    generate_variant_intermediate_to_core_representation(output_stream, struct_info.members[0].type, struct_info.name, enum_map);
                 }
                 else if (is_expression_type(struct_info.name))
                 {

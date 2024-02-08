@@ -229,16 +229,6 @@ export enum Linkage {
     Private = "Private",
 }
 
-export enum Expression_enum {
-    Binary_expression = "Binary_expression",
-    Call_expression = "Call_expression",
-    Constant_expression = "Constant_expression",
-    Invalid_expression = "Invalid_expression",
-    Return_expression = "Return_expression",
-    Struct_member_expression = "Struct_member_expression",
-    Variable_expression = "Variable_expression",
-}
-
 export enum Type_reference_enum {
     Builtin_type_reference = "Builtin_type_reference",
     Constant_array_type = "Constant_array_type",
@@ -247,6 +237,21 @@ export enum Type_reference_enum {
     Function_type = "Function_type",
     Integer_type = "Integer_type",
     Pointer_type = "Pointer_type",
+}
+
+export enum Constant_expression_enum {
+    Fundamental_type = "Fundamental_type",
+    Integer_type = "Integer_type",
+}
+
+export enum Expression_enum {
+    Binary_expression = "Binary_expression",
+    Call_expression = "Call_expression",
+    Constant_expression = "Constant_expression",
+    Invalid_expression = "Invalid_expression",
+    Return_expression = "Return_expression",
+    Struct_member_expression = "Struct_member_expression",
+    Variable_expression = "Variable_expression",
 }
 
 export interface Integer_type {
@@ -716,7 +721,7 @@ function intermediate_to_core_call_expression(intermediate_value: Call_expressio
 }
 
 export interface Constant_expression {
-    type: Fundamental_type;
+    type: Variant<Constant_expression_enum, Fundamental_type | Integer_type>;
     data: string;
 }
 

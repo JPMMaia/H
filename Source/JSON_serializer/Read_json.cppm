@@ -2141,7 +2141,7 @@ namespace h::json
             {
                 if constexpr (std::is_same_v<Event_data, std::string_view>)
                 {
-                    if (event_data == "type")
+                    if (event_data == "data")
                     {
                         state = 3;
                         return true;
@@ -2169,10 +2169,99 @@ namespace h::json
         }
         case 3:
         {
-            state = 1;
-            return read_enum(output.type, event_data);
+            if (event == Event::Start_object)
+            {
+                state = 5;
+                return true;
+            }
         }
         case 4:
+        {
+            if (event == Event::End_object)
+            {
+                state = 1;
+                return true;
+            }
+        }
+        case 5:
+        {
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
+            {
+                if (event == Event::Key && event_data == "type")
+                {
+                    state = 6;
+                    return true;
+                }
+            }
+        }
+        case 6:
+        {
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
+            {
+                if (event_data == "fundamental_type")
+                {
+                    output.data = Fundamental_type{};
+                    state = 7;
+                    return true;
+                }
+                else if (event_data == "integer_type")
+                {
+                    output.data = Integer_type{};
+                    state = 10;
+                    return true;
+                }
+            }
+        }
+        case 7:
+        {
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
+            {
+                if (event == Event::Key && event_data == "value")
+                {
+                    state = 8;
+                    return true;
+                }
+            }
+        }
+        case 8:
+        {
+            state = 4;
+            return read_enum(std::get<Fundamental_type>(output.type), event_data);
+        }
+        case 10:
+        {
+            if constexpr (std::is_same_v<Event_data, std::string_view>)
+            {
+                if (event == Event::Key && event_data == "value")
+                {
+                    state = 11;
+                    return true;
+                }
+            }
+        }
+        case 11:
+        {
+            state = 12;
+            return read_object(std::get<Integer_type>(output.type), event, event_data, state_stack, state_stack_position + 1 + 1);
+        }
+        case 12:
+        {
+            if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
+            {
+                if (!read_object(std::get<Integer_type>(output.type), event, event_data, state_stack, state_stack_position + 1 + 1))
+                {
+                    return false;
+                }
+
+                state = 4;
+                return true;
+            }
+            else
+            {
+                return read_object(std::get<Integer_type>(output.type), event, event_data, state_stack, state_stack_position + 1 + 1);
+            }
+        }
+        case 13:
         {
             state = 1;
             return read_value(output.data, "data", event_data);

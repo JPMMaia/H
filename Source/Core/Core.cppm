@@ -191,7 +191,12 @@ namespace h
 
     export struct Constant_expression
     {
-        Fundamental_type type;
+        using Type = std::variant<
+            Fundamental_type,
+            Integer_type
+        >;
+
+        Type type;
         std::pmr::string data;
 
         friend auto operator<=>(Constant_expression const&, Constant_expression const&) = default;
