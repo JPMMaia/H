@@ -965,16 +965,33 @@ function node_to_expression_call(node: Parser_node.Node, key_to_production_rule_
 }
 
 function node_to_expression_constant(node: Parser_node.Node): Core_intermediate_representation.Constant_expression {
-    const value = get_terminal_value(node);
+    const terminal_node = node.children[0];
 
-    // TODO only handles strings
-    return {
-        type: {
-            type: Core_intermediate_representation.Constant_expression_enum.Fundamental_type,
-            value: Core_intermediate_representation.Fundamental_type.String
-        },
-        data: value.slice(1, -1)
-    };
+    switch (terminal_node.word.type) {
+        case Grammar.Word_type.Number: {
+            // TODO only supports 32-bit signed integers
+            return {
+                type: {
+                    type: Core_intermediate_representation.Constant_expression_enum.Integer_type,
+                    value: {
+                        number_of_bits: 32,
+                        is_signed: true
+                    }
+                },
+                data: terminal_node.word.value
+            };
+        }
+        case Grammar.Word_type.String:
+        default: {
+            return {
+                type: {
+                    type: Core_intermediate_representation.Constant_expression_enum.Fundamental_type,
+                    value: Core_intermediate_representation.Fundamental_type.String
+                },
+                data: terminal_node.word.value.slice(1, -1)
+            };
+        }
+    }
 }
 
 function node_to_expression_variable_name(node: Parser_node.Node): Core_intermediate_representation.Variable_expression {
