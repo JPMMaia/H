@@ -638,7 +638,7 @@ namespace h::compiler
             create_name_to_index_map<Function_declaration>(
                 module_declarations.function_declarations,
                 temporaries_allocator
-                );
+            );
 
         for (Function_definition const& definition : module_definitions.function_definitions)
         {
@@ -654,7 +654,7 @@ namespace h::compiler
                 definition.name,
                 module_declarations.function_declarations,
                 function_name_to_declaration_index_map
-                );
+            );
 
             create_function_definition(
                 llvm_context,
