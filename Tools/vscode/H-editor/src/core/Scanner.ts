@@ -2,7 +2,7 @@ import { onThrowError } from "../utilities/errors";
 import * as Grammar from "./Grammar";
 
 export function is_whitespace_or_new_line(character: string): boolean {
-    return character === " " || character === "\n" || character === "\t";
+    return character === " " || character === "\n" || character === "\r" || character === "\t";
 }
 
 export function ignore_whitespace_or_new_lines(code: string, current_offset: number): number {
