@@ -18,14 +18,6 @@ namespace h::c
     constexpr char const* g_c_headers_location = C_HEADERS_LOCATION;
     constexpr char const* g_vulkan_headers_location = VULKAN_HEADERS_LOCATION;
 
-    h::Alias_type_declaration const& find_alias_type_declaration(h::c::C_header const& header, std::uint64_t const id)
-    {
-        std::span<h::Alias_type_declaration const> const declarations = header.declarations.alias_type_declarations;
-        auto const location = std::find_if(declarations.begin(), declarations.end(), [id](h::Alias_type_declaration const& value) -> bool { return value.id == id; });
-        REQUIRE(location != declarations.end());
-        return *location;
-    }
-
     h::Alias_type_declaration const& find_alias_type_declaration(h::c::C_header const& header, std::string_view const name)
     {
         std::span<h::Alias_type_declaration const> const declarations = header.declarations.alias_type_declarations;
@@ -84,10 +76,8 @@ namespace h::c
             CHECK(actual.type.output_parameter_types[0] == expected_return_type);
         }
 
-        CHECK(actual.input_parameter_ids.size() == 1);
         REQUIRE(actual.input_parameter_names.size() == 1);
         CHECK(!actual.input_parameter_names[0].empty());
-        CHECK(actual.output_parameter_ids.size() == 1);
         REQUIRE(actual.output_parameter_names.size() == 1);
         CHECK(!actual.output_parameter_names[0].empty());
         CHECK(actual.linkage == Linkage::External);
@@ -161,20 +151,20 @@ namespace h::c
             CHECK(actual.member_names[0] == "sType");
 
             h::Enum_declaration const& expected_type_declaration = find_enum_declaration(header, "VkStructureType");
-            h::Enum_type_reference const expected_type =
+            h::Custom_type_reference const expected_type =
             {
                 .module_reference = {
                     .name = {}
                 },
-                .id = expected_type_declaration.id
+                .name = expected_type_declaration.name
             };
 
-            if (std::holds_alternative<h::Alias_type_reference>(actual.member_types[0].data))
+            if (std::holds_alternative<h::Custom_type_reference>(actual.member_types[0].data))
             {
-                h::Alias_type_reference const& alias_type_reference = std::get<h::Alias_type_reference>(actual.member_types[0].data);
+                h::Custom_type_reference const& alias_type_reference = std::get<h::Custom_type_reference>(actual.member_types[0].data);
 
                 REQUIRE(alias_type_reference.module_reference.name == "");
-                h::Alias_type_declaration const& alias_type_declaration = find_alias_type_declaration(header, alias_type_reference.id);
+                h::Alias_type_declaration const& alias_type_declaration = find_alias_type_declaration(header, alias_type_reference.name);
                 REQUIRE(alias_type_declaration.type.size() == 1);
 
                 CHECK(alias_type_declaration.type[0] == h::Type_reference{ .data = expected_type });
@@ -201,12 +191,12 @@ namespace h::c
             CHECK(actual.member_names[2] == "flags");
 
             h::Alias_type_declaration const& expected_type_declaration = find_alias_type_declaration(header, "VkCommandPoolCreateFlags");
-            h::Alias_type_reference const expected_type =
+            h::Custom_type_reference const expected_type =
             {
                 .module_reference = {
                     .name = {}
                 },
-                .id = expected_type_declaration.id
+                .name = expected_type_declaration.name
             };
 
             CHECK(actual.member_types[2] == h::Type_reference{ .data = expected_type });

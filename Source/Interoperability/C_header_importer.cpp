@@ -243,12 +243,12 @@ namespace h::c
 
             h::Enum_declaration const& declaration = *location;
 
-            h::Enum_type_reference reference
+            h::Custom_type_reference reference
             {
                 .module_reference = {
                     .name = {}
                 },
-                .id = declaration.id
+                .name = declaration.name
             };
 
             return h::Type_reference
@@ -289,12 +289,12 @@ namespace h::c
 
             h::Alias_type_declaration const& declaration = *location;
 
-            h::Alias_type_reference reference
+            h::Custom_type_reference reference
             {
                 .module_reference = {
                     .name = {}
                 },
-                .id = declaration.id
+                .name = declaration.name
             };
 
             return h::Type_reference
@@ -360,7 +360,7 @@ namespace h::c
         }
     }
 
-    h::Alias_type_declaration create_alias_type_declaration(C_declarations const& declarations, std::uint64_t const id, CXCursor const cursor)
+    h::Alias_type_declaration create_alias_type_declaration(C_declarations const& declarations, CXCursor const cursor)
     {
         CXType const type = clang_getCursorType(cursor);
         String const type_spelling = { clang_getTypeSpelling(type) };
@@ -377,13 +377,12 @@ namespace h::c
 
         return h::Alias_type_declaration
         {
-            .id = id,
             .name = std::pmr::string{type_name},
             .type = std::move(alias_type)
         };
     }
 
-    h::Enum_declaration create_enum_declaration(C_declarations const& declarations, std::uint64_t const id, CXCursor const cursor)
+    h::Enum_declaration create_enum_declaration(C_declarations const& declarations, CXCursor const cursor)
     {
         using Enum_values = std::pmr::vector<h::Enum_value>;
 
@@ -427,7 +426,6 @@ namespace h::c
 
         return h::Enum_declaration
         {
-            .id = id,
             .name = std::pmr::string{enum_type_name},
             .values = std::move(values)
         };
@@ -471,24 +469,27 @@ namespace h::c
         return std::pmr::vector<std::pmr::string>{"result"};
     }
 
-    h::Function_declaration create_function_declaration(C_declarations const& declarations, std::uint64_t const id, CXCursor const cursor)
+    h::Function_declaration create_function_declaration(C_declarations const& declarations, CXCursor const cursor)
     {
         String const cursor_spelling = { clang_getCursorSpelling(cursor) };
         std::string_view const function_name = cursor_spelling.string_view();
+        if (function_name == "puts") {
+            int i = 0;
+        }
 
         CXType const function_type = clang_getCursorType(cursor);
 
         h::Function_type h_function_type = create_function_type(declarations, function_type);
 
+        std::pmr::vector<std::pmr::string> input_parameter_names = create_input_parameter_names(cursor);
+        std::pmr::vector<std::pmr::string> output_parameter_names = create_output_parameter_names(h_function_type.output_parameter_types.size());
+
         return h::Function_declaration
         {
-            .id = id,
             .name = std::pmr::string{function_name},
             .type = std::move(h_function_type),
-            .input_parameter_ids = generate_parameter_ids(h_function_type.input_parameter_types.size()),
-            .input_parameter_names = create_input_parameter_names(cursor),
-            .output_parameter_ids = generate_parameter_ids(h_function_type.output_parameter_types.size()),
-            .output_parameter_names = create_output_parameter_names(h_function_type.output_parameter_types.size()),
+            .input_parameter_names = std::move(input_parameter_names),
+            .output_parameter_names = std::move(output_parameter_names),
             .linkage = h::Linkage::External
         };
     }
@@ -535,7 +536,7 @@ namespace h::c
         }
     }
 
-    h::Struct_declaration create_struct_declaration(C_declarations const& declarations, std::uint64_t const id, CXCursor const cursor)
+    h::Struct_declaration create_struct_declaration(C_declarations const& declarations, CXCursor const cursor)
     {
         struct Client_data
         {
@@ -585,7 +586,6 @@ namespace h::c
 
         h::Struct_declaration struct_declaration
         {
-            .id = id,
             .name = std::pmr::string{struct_name},
             .member_types = {},
             .member_names = {},
@@ -621,7 +621,7 @@ namespace h::c
             name == "uint64_t";
     }
 
-    bool is_fixed_width_integer_typedef_reference(h::Alias_type_reference const& reference, std::span<std::uint64_t const> const integer_alias_ids)
+    bool is_fixed_width_integer_typedef_reference(h::Custom_type_reference const& reference, std::span<std::string_view const> const integer_alias_names)
     {
         if (!reference.module_reference.name.empty())
         {
@@ -629,12 +629,12 @@ namespace h::c
         }
 
         auto const location = std::find(
-            integer_alias_ids.begin(),
-            integer_alias_ids.end(),
-            reference.id
+            integer_alias_names.begin(),
+            integer_alias_names.end(),
+            reference.name
         );
 
-        return location != integer_alias_ids.end();
+        return location != integer_alias_names.end();
     }
 
     h::Integer_type create_integer_type_from_fixed_width_integer_typedef_name(std::string_view const name)
@@ -711,19 +711,19 @@ namespace h::c
     void convert_typedef_to_integer_type_if_necessary(
         h::Type_reference& type,
         std::span<h::Alias_type_declaration const> const alias_type_declarations,
-        std::span<std::uint64_t const> const integer_alias_ids,
+        std::span<std::string_view const> const integer_alias_names,
         std::span<std::size_t const> const integer_alias_indices
     )
     {
-        if (std::holds_alternative<h::Alias_type_reference>(type.data))
+        if (std::holds_alternative<h::Custom_type_reference>(type.data))
         {
-            h::Alias_type_reference const& reference = std::get<h::Alias_type_reference>(type.data);
+            h::Custom_type_reference const& reference = std::get<h::Custom_type_reference>(type.data);
 
-            if (is_fixed_width_integer_typedef_reference(reference, integer_alias_ids))
+            if (is_fixed_width_integer_typedef_reference(reference, integer_alias_names))
             {
-                auto const id_location = std::find(integer_alias_ids.begin(), integer_alias_ids.end(), reference.id);
-                auto const id_index = std::distance(integer_alias_ids.begin(), id_location);
-                std::size_t integer_alias_index = integer_alias_indices[id_index];
+                auto const name_location = std::find(integer_alias_names.begin(), integer_alias_names.end(), reference.name);
+                auto const name_index = std::distance(integer_alias_names.begin(), name_location);
+                std::size_t integer_alias_index = integer_alias_indices[name_index];
                 h::Alias_type_declaration const& integer_alias_declaration = alias_type_declarations[integer_alias_index];
 
                 type.data = create_integer_type_from_fixed_width_integer_typedef_name(integer_alias_declaration.name);
@@ -738,7 +738,7 @@ namespace h::c
                 convert_typedef_to_integer_type_if_necessary(
                     reference,
                     alias_type_declarations,
-                    integer_alias_ids,
+                    integer_alias_names,
                     integer_alias_indices
                 );
             }
@@ -752,7 +752,7 @@ namespace h::c
                 convert_typedef_to_integer_type_if_necessary(
                     reference,
                     alias_type_declarations,
-                    integer_alias_ids,
+                    integer_alias_names,
                     integer_alias_indices
                 );
             }
@@ -762,7 +762,7 @@ namespace h::c
                 convert_typedef_to_integer_type_if_necessary(
                     reference,
                     alias_type_declarations,
-                    integer_alias_ids,
+                    integer_alias_names,
                     integer_alias_indices
                 );
             }
@@ -776,7 +776,7 @@ namespace h::c
                 convert_typedef_to_integer_type_if_necessary(
                     reference,
                     alias_type_declarations,
-                    integer_alias_ids,
+                    integer_alias_names,
                     integer_alias_indices
                 );
             }
@@ -803,12 +803,12 @@ namespace h::c
             }
         }
 
-        std::pmr::vector<std::uint64_t> ids;
-        ids.reserve(indices.size());
+        std::pmr::vector<std::string_view> names;
+        names.reserve(indices.size());
 
         for (std::size_t const index : indices)
         {
-            ids.push_back(input.alias_type_declarations[index].id);
+            names.push_back(input.alias_type_declarations[index].name);
         }
 
         C_declarations output = input;
@@ -826,7 +826,7 @@ namespace h::c
                 convert_typedef_to_integer_type_if_necessary(
                     reference,
                     input.alias_type_declarations,
-                    ids,
+                    names,
                     indices
                 );
             }
@@ -839,7 +839,7 @@ namespace h::c
                 convert_typedef_to_integer_type_if_necessary(
                     reference,
                     input.alias_type_declarations,
-                    ids,
+                    names,
                     indices
                 );
             }
@@ -852,7 +852,7 @@ namespace h::c
                 convert_typedef_to_integer_type_if_necessary(
                     reference,
                     input.alias_type_declarations,
-                    ids,
+                    names,
                     indices
                 );
             }
@@ -862,7 +862,7 @@ namespace h::c
                 convert_typedef_to_integer_type_if_necessary(
                     reference,
                     input.alias_type_declarations,
-                    ids,
+                    names,
                     indices
                 );
             }
@@ -922,25 +922,21 @@ namespace h::c
 
             if (cursor_kind == CXCursor_EnumDecl)
             {
-                std::uint64_t const enum_id = declarations->enum_declarations.size();
-                h::Enum_declaration declaration = create_enum_declaration(*declarations, enum_id, current_cursor);
+                h::Enum_declaration declaration = create_enum_declaration(*declarations, current_cursor);
                 declarations->enum_declarations.push_back(std::move(declaration));
             }
             else if (cursor_kind == CXCursor_TypedefDecl)
             {
-                std::uint64_t const alias_type_id = declarations->alias_type_declarations.size();
-                h::Alias_type_declaration declaration = create_alias_type_declaration(*declarations, alias_type_id, current_cursor);
+                h::Alias_type_declaration declaration = create_alias_type_declaration(*declarations, current_cursor);
                 declarations->alias_type_declarations.push_back(std::move(declaration));
             }
             else if (cursor_kind == CXCursor_FunctionDecl)
             {
-                std::uint64_t const function_id = declarations->function_declarations.size();
-                declarations->function_declarations.push_back(create_function_declaration(*declarations, function_id, current_cursor));
+                declarations->function_declarations.push_back(create_function_declaration(*declarations, current_cursor));
             }
             else if (cursor_kind == CXCursor_StructDecl)
             {
-                std::uint64_t const struct_id = declarations->struct_declarations.size();
-                declarations->struct_declarations.push_back(create_struct_declaration(*declarations, struct_id, current_cursor));
+                declarations->struct_declarations.push_back(create_struct_declaration(*declarations, current_cursor));
             }
 
             return CXChildVisit_Continue;
