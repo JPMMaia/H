@@ -287,11 +287,15 @@ namespace h
     {
         std::pmr::string module_name;
         std::pmr::string alias;
+
+        friend auto operator<=>(Import_module_with_alias const&, Import_module_with_alias const&) = default;
     };
 
     export struct Module_dependencies
     {
         std::pmr::vector<Import_module_with_alias> alias_imports;
+
+        friend auto operator<=>(Module_dependencies const&, Module_dependencies const&) = default;
     };
 
     export struct Module_declarations
