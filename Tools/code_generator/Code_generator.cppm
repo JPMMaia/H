@@ -25,11 +25,13 @@ namespace h::tools::code_generator
     };
 
     export std::pmr::string generate_read_enum_json_code(
-        Enum enum_type
+        Enum enum_type,
+        int indentation
     );
 
     export std::pmr::string generate_write_enum_json_code(
-        Enum enum_type
+        Enum enum_type,
+        int indentation
     );
 
     export struct Member
@@ -47,13 +49,15 @@ namespace h::tools::code_generator
     export std::pmr::string generate_read_struct_json_code(
         Struct const& struct_type,
         std::pmr::unordered_map<std::pmr::string, Enum> const& enum_types,
-        std::pmr::unordered_map<std::pmr::string, Struct> const& struct_types
+        std::pmr::unordered_map<std::pmr::string, Struct> const& struct_types,
+        int indentation
     );
 
     export std::pmr::string generate_write_struct_json_code(
         Struct const& struct_type,
         std::pmr::unordered_map<std::pmr::string, Enum> const& enum_types,
-        std::pmr::unordered_map<std::pmr::string, Struct> const& struct_types
+        std::pmr::unordered_map<std::pmr::string, Struct> const& struct_types,
+        int indentation
     );
 
     export struct File_types

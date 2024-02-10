@@ -20,6 +20,11 @@ module h.tools.code_generator;
 
 namespace h::tools::code_generator
 {
+    std::string indent(int const indentation)
+    {
+        return std::format("{:{}}", "", indentation);
+    }
+
     std::pmr::string to_lowercase(std::string_view const string)
     {
         std::pmr::string lowercase_string;
@@ -36,71 +41,73 @@ namespace h::tools::code_generator
     }
 
     std::pmr::string generate_read_enum_json_code(
-        Enum const enum_type
+        Enum const enum_type,
+        int const indentation
     )
     {
         std::stringstream output_stream;
 
-        output_stream << "export template<>\n";
-        output_stream << "bool read_enum(" << enum_type.name << "& output, std::string_view const value)\n";
-        output_stream << "{\n";
+        output_stream << indent(indentation) << "export template<>\n";
+        output_stream << indent(indentation) << "    bool read_enum(" << enum_type.name << "& output, std::string_view const value)\n";
+        output_stream << indent(indentation) << "{\n";
 
         if (!enum_type.values.empty())
         {
             std::string_view const value = enum_type.values[0];
-            output_stream << "    if (value == \"" << to_lowercase(value) << "\")\n";
-            output_stream << "    {\n";
-            output_stream << "        output = " << enum_type.name << "::" << value << ";\n";
-            output_stream << "        return true;\n";
-            output_stream << "    }\n";
+            output_stream << indent(indentation) << "    if (value == \"" << to_lowercase(value) << "\")\n";
+            output_stream << indent(indentation) << "    {\n";
+            output_stream << indent(indentation) << "        output = " << enum_type.name << "::" << value << ";\n";
+            output_stream << indent(indentation) << "        return true;\n";
+            output_stream << indent(indentation) << "    }\n";
         }
 
         for (std::size_t index = 1; index < enum_type.values.size(); ++index)
         {
             std::string_view const value = enum_type.values[index];
-            output_stream << "else if (value == \"" << to_lowercase(value) << "\")\n";
-            output_stream << "{\n";
-            output_stream << "    output = " << enum_type.name << "::" << value << ";\n";
-            output_stream << "    return true;\n";
-            output_stream << "}\n";
+            output_stream << indent(indentation) << "    else if (value == \"" << to_lowercase(value) << "\")\n";
+            output_stream << indent(indentation) << "    {\n";
+            output_stream << indent(indentation) << "        output = " << enum_type.name << "::" << value << ";\n";
+            output_stream << indent(indentation) << "        return true;\n";
+            output_stream << indent(indentation) << "    }\n";
         }
         output_stream << "\n";
-        output_stream << "    std::cerr << std::format(\"Failed to read enum '" << enum_type.name << "' with value '{}'\\n\", value);\n";
-        output_stream << "    return false;\n";
-        output_stream << "}\n";
+        output_stream << indent(indentation) << "    std::cerr << std::format(\"Failed to read enum '" << enum_type.name << "' with value '{}'\\n\", value);\n";
+        output_stream << indent(indentation) << "    return false;\n";
+        output_stream << indent(indentation) << "}\n";
 
         return std::pmr::string{ output_stream.str() };
     }
 
     std::pmr::string generate_write_enum_json_code(
-        Enum enum_type
+        Enum enum_type,
+        int const indentation
     )
     {
         std::stringstream output_stream;
 
-        output_stream << "export std::string_view write_enum(" << enum_type.name << " const value)\n";
-        output_stream << "{\n";
+        output_stream << indent(indentation) << "export std::string_view write_enum(" << enum_type.name << " const value)\n";
+        output_stream << indent(indentation) << "{\n";
 
         if (!enum_type.values.empty())
         {
             std::string_view const value = enum_type.values[0];
-            output_stream << "    if (value == " << enum_type.name << "::" << value << ")\n";
-            output_stream << "    {\n";
-            output_stream << "        return \"" << to_lowercase(value) << "\";\n";
-            output_stream << "    }\n";
+            output_stream << indent(indentation) << "    if (value == " << enum_type.name << "::" << value << ")\n";
+            output_stream << indent(indentation) << "    {\n";
+            output_stream << indent(indentation) << "        return \"" << to_lowercase(value) << "\";\n";
+            output_stream << indent(indentation) << "    }\n";
         }
 
         for (std::size_t index = 1; index < enum_type.values.size(); ++index)
         {
             std::string_view const value = enum_type.values[index];
-            output_stream << "    else if (value == " << enum_type.name << "::" << value << ")\n";
-            output_stream << "    {\n";
-            output_stream << "        return \"" << to_lowercase(value) << "\";\n";
-            output_stream << "    }\n";
+            output_stream << indent(indentation) << "    else if (value == " << enum_type.name << "::" << value << ")\n";
+            output_stream << indent(indentation) << "    {\n";
+            output_stream << indent(indentation) << "        return \"" << to_lowercase(value) << "\";\n";
+            output_stream << indent(indentation) << "    }\n";
         }
-        output_stream << "    \n";
-        output_stream << "    throw std::runtime_error{\"Failed to write enum '" << enum_type.name << "'!\\n\"};\n";
-        output_stream << "}\n";
+        output_stream << "\n";
+        output_stream << indent(indentation) << "    throw std::runtime_error{ \"Failed to write enum '" << enum_type.name << "'!\\n\" };\n";
+        output_stream << indent(indentation) << "}\n";
 
         return std::pmr::string{ output_stream.str() };
     }
@@ -249,25 +256,31 @@ namespace h::tools::code_generator
             std::string_view const struct_name,
             Member const& member,
             int const state,
-            std::pmr::unordered_map<std::pmr::string, Struct> const& struct_types
+            std::pmr::unordered_map<std::pmr::string, Struct> const& struct_types,
+            int const indentation,
+            bool const indent_first
         )
         {
             if (is_variant_type(member.type))
             {
+                if (indent_first)
+                    output_stream << indent(indentation);
                 output_stream << "if (event_data == \"data\")\n";
-                output_stream << "{\n";
-                output_stream << "    state = " << state << ";\n";
-                output_stream << "    return true;\n";
-                output_stream << "}\n";
+                output_stream << indent(indentation) << "{\n";
+                output_stream << indent(indentation) << "    state = " << state << ";\n";
+                output_stream << indent(indentation) << "    return true;\n";
+                output_stream << indent(indentation) << "}\n";
                 return 1;
             }
             else
             {
+                if (indent_first)
+                    output_stream << indent(indentation);
                 output_stream << "if (event_data == \"" << member.name << "\")\n";
-                output_stream << "{\n";
-                output_stream << "    state = " << state << ";\n";
-                output_stream << "    return true;\n";
-                output_stream << "}\n";
+                output_stream << indent(indentation) << "{\n";
+                output_stream << indent(indentation) << "    state = " << state << ";\n";
+                output_stream << indent(indentation) << "    return true;\n";
+                output_stream << indent(indentation) << "}\n";
 
                 return ((is_struct_type(member.type, struct_types) || is_vector_type(member.type)) ? 2 : 1);
             }
@@ -278,31 +291,32 @@ namespace h::tools::code_generator
             std::string_view const output_name,
             int const state,
             int const end_state,
-            int const stack_offset
+            int const stack_offset,
+            int const indentation
         )
         {
-            output_stream << "case " << state << ":\n";
-            output_stream << "{\n";
-            output_stream << "    state = " << (state + 1) << ";\n";
-            output_stream << "    return read_object(" << output_name << ", event, event_data, state_stack, state_stack_position + 1 + " << stack_offset << ");\n";
-            output_stream << "}\n";
-            output_stream << "case " << (state + 1) << ":\n";
-            output_stream << "{\n";
-            output_stream << "    if ((event == Event::End_object) && (state_stack_position + 2 + " << stack_offset << " == state_stack.size()))\n";
-            output_stream << "    {\n";
-            output_stream << "        if (!read_object(" << output_name << ", event, event_data, state_stack, state_stack_position + 1 + " << stack_offset << "))\n";
-            output_stream << "        {\n";
-            output_stream << "            return false;\n";
-            output_stream << "        }\n";
-            output_stream << "        \n";
-            output_stream << "        state = " << end_state << ";\n";
-            output_stream << "        return true;\n";
-            output_stream << "    }\n";
-            output_stream << "    else\n";
-            output_stream << "    {\n";
-            output_stream << "        return read_object(" << output_name << ", event, event_data, state_stack, state_stack_position + 1 + " << stack_offset << ");\n";
-            output_stream << "    }\n";
-            output_stream << "}\n";
+            output_stream << indent(indentation) << "case " << state << ":\n";
+            output_stream << indent(indentation) << "{\n";
+            output_stream << indent(indentation) << "    state = " << (state + 1) << ";\n";
+            output_stream << indent(indentation) << "    return read_object(" << output_name << ", event, event_data, state_stack, state_stack_position + 1 + " << stack_offset << ");\n";
+            output_stream << indent(indentation) << "}\n";
+            output_stream << indent(indentation) << "case " << (state + 1) << ":\n";
+            output_stream << indent(indentation) << "{\n";
+            output_stream << indent(indentation) << "    if ((event == Event::End_object) && (state_stack_position + 2 + " << stack_offset << " == state_stack.size()))\n";
+            output_stream << indent(indentation) << "    {\n";
+            output_stream << indent(indentation) << "        if (!read_object(" << output_name << ", event, event_data, state_stack, state_stack_position + 1 + " << stack_offset << "))\n";
+            output_stream << indent(indentation) << "        {\n";
+            output_stream << indent(indentation) << "            return false;\n";
+            output_stream << indent(indentation) << "        }\n";
+            output_stream << "\n";
+            output_stream << indent(indentation) << "        state = " << end_state << ";\n";
+            output_stream << indent(indentation) << "        return true;\n";
+            output_stream << indent(indentation) << "    }\n";
+            output_stream << indent(indentation) << "    else\n";
+            output_stream << indent(indentation) << "    {\n";
+            output_stream << indent(indentation) << "        return read_object(" << output_name << ", event, event_data, state_stack, state_stack_position + 1 + " << stack_offset << ");\n";
+            output_stream << indent(indentation) << "    }\n";
+            output_stream << indent(indentation) << "}\n";
         }
 
         int generate_read_struct_member_value_code(
@@ -311,7 +325,8 @@ namespace h::tools::code_generator
             Member const& member,
             int const state,
             std::pmr::unordered_map<std::pmr::string, Enum> const& enum_types,
-            std::pmr::unordered_map<std::pmr::string, Struct> const& struct_types
+            std::pmr::unordered_map<std::pmr::string, Struct> const& struct_types,
+            int const indentation
         )
         {
             if (is_struct_type(member.type, struct_types) || is_vector_type(member.type))
@@ -323,18 +338,19 @@ namespace h::tools::code_generator
                     output_name,
                     state,
                     1,
-                    0
+                    0,
+                    indentation
                 );
 
                 return 2;
             }
             else if (is_enum_type(member.type, enum_types))
             {
-                output_stream << "case " << state << ":\n";
-                output_stream << "{\n";
-                output_stream << "    state = 1;\n";
-                output_stream << "    return read_enum(output." << member.name << ", event_data);\n";
-                output_stream << "}\n";
+                output_stream << indent(indentation) << "case " << state << ":\n";
+                output_stream << indent(indentation) << "{\n";
+                output_stream << indent(indentation) << "    state = 1;\n";
+                output_stream << indent(indentation) << "    return read_enum(output." << member.name << ", event_data);\n";
+                output_stream << indent(indentation) << "}\n";
 
                 return 1;
             }
@@ -343,70 +359,73 @@ namespace h::tools::code_generator
                 std::pmr::vector<std::pmr::string> const variadic_types = get_variadic_types(member.type.name);
 
                 {
-                    output_stream << "case " << state << ":\n";
-                    output_stream << "{\n";
-                    output_stream << "    if (event == Event::Start_object)\n";
-                    output_stream << "    {\n";
-                    output_stream << "        state = " << (state + 2) << ";\n";
-                    output_stream << "        return true;\n";
-                    output_stream << "    }\n";
-                    output_stream << "}\n";
+                    output_stream << indent(indentation) << "case " << state << ":\n";
+                    output_stream << indent(indentation) << "{\n";
+                    output_stream << indent(indentation) << "    if (event == Event::Start_object)\n";
+                    output_stream << indent(indentation) << "    {\n";
+                    output_stream << indent(indentation) << "        state = " << (state + 2) << ";\n";
+                    output_stream << indent(indentation) << "        return true;\n";
+                    output_stream << indent(indentation) << "    }\n";
+                    output_stream << indent(indentation) << "}\n";
                 }
 
                 const int end_object_state = (state + 1);
                 {
-                    output_stream << "case " << end_object_state << ":\n";
-                    output_stream << "{\n";
-                    output_stream << "    if (event == Event::End_object)\n";
-                    output_stream << "    {\n";
-                    output_stream << "        state = 1;\n";
-                    output_stream << "        return true;\n";
-                    output_stream << "    }\n";
-                    output_stream << "}\n";
+                    output_stream << indent(indentation) << "case " << end_object_state << ":\n";
+                    output_stream << indent(indentation) << "{\n";
+                    output_stream << indent(indentation) << "    if (event == Event::End_object)\n";
+                    output_stream << indent(indentation) << "    {\n";
+                    output_stream << indent(indentation) << "        state = 1;\n";
+                    output_stream << indent(indentation) << "        return true;\n";
+                    output_stream << indent(indentation) << "    }\n";
+                    output_stream << indent(indentation) << "}\n";
                 }
 
                 {
-                    output_stream << "case " << (state + 2) << ":\n";
-                    output_stream << "{\n";
-                    output_stream << "    if constexpr (std::is_same_v<Event_data, std::string_view>)\n";
-                    output_stream << "    {\n";
-                    output_stream << "        if (event == Event::Key && event_data == \"type\")\n";
-                    output_stream << "        {\n";
-                    output_stream << "            state = " << (state + 3) << ";\n";
-                    output_stream << "            return true;\n";
-                    output_stream << "        }\n";
-                    output_stream << "    }\n";
-                    output_stream << "}\n";
+                    output_stream << indent(indentation) << "case " << (state + 2) << ":\n";
+                    output_stream << indent(indentation) << "{\n";
+                    output_stream << indent(indentation) << "    if constexpr (std::is_same_v<Event_data, std::string_view>)\n";
+                    output_stream << indent(indentation) << "    {\n";
+                    output_stream << indent(indentation) << "        if (event == Event::Key && event_data == \"type\")\n";
+                    output_stream << indent(indentation) << "        {\n";
+                    output_stream << indent(indentation) << "            state = " << (state + 3) << ";\n";
+                    output_stream << indent(indentation) << "            return true;\n";
+                    output_stream << indent(indentation) << "        }\n";
+                    output_stream << indent(indentation) << "    }\n";
+                    output_stream << indent(indentation) << "}\n";
                 }
 
                 {
-                    output_stream << "case " << (state + 3) << ":\n";
-                    output_stream << "{\n";
+                    output_stream << indent(indentation) << "case " << (state + 3) << ":\n";
+                    output_stream << indent(indentation) << "{\n";
                     {
-                        output_stream << "if constexpr (std::is_same_v<Event_data, std::string_view>)\n";
-                        output_stream << "{\n";
+                        output_stream << indent(indentation) << "    if constexpr (std::is_same_v<Event_data, std::string_view>)\n";
+                        output_stream << indent(indentation) << "    {\n";
 
                         for (std::size_t index = 0; index < variadic_types.size(); ++index)
                         {
                             std::string_view const type_name = variadic_types[index];
                             const int next_state = (state + 4 + 3 * index);
 
+                            if (index == 0)
+                                output_stream << indent(indentation + 8);
+
                             output_stream << "if (event_data == \"" << to_lowercase(type_name) << "\")\n";
-                            output_stream << "{\n";
-                            output_stream << "    output." << member.name << " = " << type_name << "{};\n";
-                            output_stream << "    state = " << next_state << ";\n";
-                            output_stream << "    return true;\n";
-                            output_stream << "}\n";
+                            output_stream << indent(indentation) << "        {\n";
+                            output_stream << indent(indentation) << "            output." << member.name << " = " << type_name << "{};\n";
+                            output_stream << indent(indentation) << "            state = " << next_state << ";\n";
+                            output_stream << indent(indentation) << "            return true;\n";
+                            output_stream << indent(indentation) << "        }\n";
 
                             if ((index + 1) != variadic_types.size())
                             {
-                                output_stream << "else ";
+                                output_stream << indent(indentation) << "        else ";
                             }
                         }
 
-                        output_stream << "}\n";
+                        output_stream << indent(indentation) << "    }\n";
                     }
-                    output_stream << "}\n";
+                    output_stream << indent(indentation) << "}\n";
                 }
 
                 for (std::size_t index = 0; index < variadic_types.size(); ++index)
@@ -417,25 +436,25 @@ namespace h::tools::code_generator
 
                     std::pmr::string const output_name = "std::get<" + std::pmr::string{ type_name } + ">(output." + member.name + ")";
 
-                    output_stream << "case " << current_state << ":\n";
-                    output_stream << "{\n";
-                    output_stream << "    if constexpr (std::is_same_v<Event_data, std::string_view>)\n";
-                    output_stream << "    {\n";
-                    output_stream << "        if (event == Event::Key && event_data == \"value\")\n";
-                    output_stream << "        {\n";
-                    output_stream << "            state = " << (current_state + 1) << ";\n";
-                    output_stream << "            return true;\n";
-                    output_stream << "        }\n";
-                    output_stream << "    }\n";
-                    output_stream << "}\n";
+                    output_stream << indent(indentation) << "case " << current_state << ":\n";
+                    output_stream << indent(indentation) << "{\n";
+                    output_stream << indent(indentation) << "    if constexpr (std::is_same_v<Event_data, std::string_view>)\n";
+                    output_stream << indent(indentation) << "    {\n";
+                    output_stream << indent(indentation) << "        if (event == Event::Key && event_data == \"value\")\n";
+                    output_stream << indent(indentation) << "        {\n";
+                    output_stream << indent(indentation) << "            state = " << (current_state + 1) << ";\n";
+                    output_stream << indent(indentation) << "            return true;\n";
+                    output_stream << indent(indentation) << "        }\n";
+                    output_stream << indent(indentation) << "    }\n";
+                    output_stream << indent(indentation) << "}\n";
 
                     if (is_enum_type(type, enum_types))
                     {
-                        output_stream << "case " << (current_state + 1) << ":\n";
-                        output_stream << "{\n";
-                        output_stream << "    state = " << end_object_state << ";\n";
-                        output_stream << "    return read_enum(" << output_name << ", event_data);\n";
-                        output_stream << "}\n";
+                        output_stream << indent(indentation) << "case " << (current_state + 1) << ":\n";
+                        output_stream << indent(indentation) << "{\n";
+                        output_stream << indent(indentation) << "    state = " << end_object_state << ";\n";
+                        output_stream << indent(indentation) << "    return read_enum(" << output_name << ", event_data);\n";
+                        output_stream << indent(indentation) << "}\n";
                     }
                     else if (is_struct_type(type, struct_types))
                     {
@@ -444,16 +463,17 @@ namespace h::tools::code_generator
                             output_name,
                             current_state + 1,
                             end_object_state,
-                            1
+                            1,
+                            indentation
                         );
                     }
                     else
                     {
-                        output_stream << "case " << (current_state + 1) << ":\n";
-                        output_stream << "{\n";
-                        output_stream << "    state = " << end_object_state << ";\n";
-                        output_stream << "    return read_value(" << output_name << ", \"" << member.name << "\", event_data);\n";
-                        output_stream << "}\n";
+                        output_stream << indent(indentation) << "case " << (current_state + 1) << ":\n";
+                        output_stream << indent(indentation) << "{\n";
+                        output_stream << indent(indentation) << "    state = " << end_object_state << ";\n";
+                        output_stream << indent(indentation) << "    return read_value(" << output_name << ", \"" << member.name << "\", event_data);\n";
+                        output_stream << indent(indentation) << "}\n";
                     }
                 }
 
@@ -461,11 +481,11 @@ namespace h::tools::code_generator
             }
             else
             {
-                output_stream << "case " << state << ":\n";
-                output_stream << "{\n";
-                output_stream << "    state = 1;\n";
-                output_stream << "    return read_value(output." << member.name << ", \"" << member.name << "\", event_data);\n";
-                output_stream << "}\n";
+                output_stream << indent(indentation) << "case " << state << ":\n";
+                output_stream << indent(indentation) << "{\n";
+                output_stream << indent(indentation) << "    state = 1;\n";
+                output_stream << indent(indentation) << "    return read_value(output." << member.name << ", \"" << member.name << "\", event_data);\n";
+                output_stream << indent(indentation) << "}\n";
 
                 return 1;
             }
@@ -475,46 +495,47 @@ namespace h::tools::code_generator
     std::pmr::string generate_read_struct_json_code(
         Struct const& struct_type,
         std::pmr::unordered_map<std::pmr::string, Enum> const& enum_types,
-        std::pmr::unordered_map<std::pmr::string, Struct> const& struct_types
+        std::pmr::unordered_map<std::pmr::string, Struct> const& struct_types,
+        int const indentation
     )
     {
         std::stringstream output_stream;
 
-        output_stream << "export template<typename Event_data>\n";
-        output_stream << "bool read_object(\n";
-        output_stream << "    " << struct_type.name << "& output,\n";
-        output_stream << "    Event const event,\n";
-        output_stream << "    Event_data const event_data,\n";
-        output_stream << "    std::pmr::vector<int>& state_stack,\n";
-        output_stream << "    std::size_t const state_stack_position\n";
-        output_stream << ")\n";
-        output_stream << "{\n";
-        output_stream << "    if (state_stack_position >= state_stack.size())\n";
-        output_stream << "    {\n";
-        output_stream << "        return false;\n";
-        output_stream << "    }\n";
-        output_stream << "    \n";
-        output_stream << "    int& state = state_stack[state_stack_position];\n";
+        output_stream << indent(indentation) << "export template<typename Event_data>\n";
+        output_stream << indent(indentation) << "    bool read_object(\n";
+        output_stream << indent(indentation) << "        " << struct_type.name << "& output,\n";
+        output_stream << indent(indentation) << "        Event const event,\n";
+        output_stream << indent(indentation) << "        Event_data const event_data,\n";
+        output_stream << indent(indentation) << "        std::pmr::vector<int>& state_stack,\n";
+        output_stream << indent(indentation) << "        std::size_t const state_stack_position\n";
+        output_stream << indent(indentation) << "    )\n";
+        output_stream << indent(indentation) << "{\n";
+        output_stream << indent(indentation) << "    if (state_stack_position >= state_stack.size())\n";
+        output_stream << indent(indentation) << "    {\n";
+        output_stream << indent(indentation) << "        return false;\n";
+        output_stream << indent(indentation) << "    }\n";
         output_stream << "\n";
-        output_stream << "    switch (state)\n";
-        output_stream << "    {\n";
-        output_stream << "    case 0:\n";
-        output_stream << "    {\n";
-        output_stream << "        if (event == Event::Start_object)\n";
-        output_stream << "        {\n";
-        output_stream << "            state = 1;\n";
-        output_stream << "            return true;\n";
-        output_stream << "        }\n";
-        output_stream << "        break;\n";
-        output_stream << "    }\n";
-        output_stream << "    case 1:\n";
-        output_stream << "    {\n";
-        output_stream << "        switch (event)\n";
-        output_stream << "        {\n";
-        output_stream << "        case Event::Key:\n";
-        output_stream << "        {\n";
-        output_stream << "            if constexpr (std::is_same_v<Event_data, std::string_view>)\n";
-        output_stream << "            {\n";
+        output_stream << indent(indentation) << "    int& state = state_stack[state_stack_position];\n";
+        output_stream << "\n";
+        output_stream << indent(indentation) << "    switch (state)\n";
+        output_stream << indent(indentation) << "    {\n";
+        output_stream << indent(indentation) << "    case 0:\n";
+        output_stream << indent(indentation) << "    {\n";
+        output_stream << indent(indentation) << "        if (event == Event::Start_object)\n";
+        output_stream << indent(indentation) << "        {\n";
+        output_stream << indent(indentation) << "            state = 1;\n";
+        output_stream << indent(indentation) << "            return true;\n";
+        output_stream << indent(indentation) << "        }\n";
+        output_stream << indent(indentation) << "        break;\n";
+        output_stream << indent(indentation) << "    }\n";
+        output_stream << indent(indentation) << "    case 1:\n";
+        output_stream << indent(indentation) << "    {\n";
+        output_stream << indent(indentation) << "        switch (event)\n";
+        output_stream << indent(indentation) << "        {\n";
+        output_stream << indent(indentation) << "        case Event::Key:\n";
+        output_stream << indent(indentation) << "        {\n";
+        output_stream << indent(indentation) << "            if constexpr (std::is_same_v<Event_data, std::string_view>)\n";
+        output_stream << indent(indentation) << "            {\n";
 
         constexpr int first_member_parse_state = 3;
 
@@ -530,7 +551,9 @@ namespace h::tools::code_generator
                     struct_type.name,
                     member,
                     current_state,
-                    struct_types
+                    struct_types,
+                    indentation + 16,
+                    true
                 );
 
                 current_state += state_count;
@@ -540,36 +563,38 @@ namespace h::tools::code_generator
             {
                 Member const& member = struct_type.members[member_index];
 
-                output_stream << "else ";
+                output_stream << indent(indentation) << "                else ";
 
                 int const state_count = generate_read_struct_member_key_code(
                     output_stream,
                     struct_type.name,
                     member,
                     current_state,
-                    struct_types
+                    struct_types,
+                    indentation + 16,
+                    false
                 );
 
                 current_state += state_count;
             }
         }
 
-        output_stream << "            }\n";
-        output_stream << "            break;\n";
-        output_stream << "        }\n";
-        output_stream << "        case Event::End_object:\n";
-        output_stream << "        {\n";
-        output_stream << "            state = 2;\n";
-        output_stream << "            return true;\n";
-        output_stream << "        }\n";
-        output_stream << "        }\n";
-        output_stream << "        break;\n";
-        output_stream << "    }\n";
-        output_stream << "    case 2:\n";
-        output_stream << "    {\n";
-        output_stream << "        std::cerr << \"While parsing '" << struct_type.name << "' unexpected '}' found.\\n\";\n";
-        output_stream << "        return false;\n";
-        output_stream << "    }\n";
+        output_stream << indent(indentation) << "            }\n";
+        output_stream << indent(indentation) << "            break;\n";
+        output_stream << indent(indentation) << "        }\n";
+        output_stream << indent(indentation) << "        case Event::End_object:\n";
+        output_stream << indent(indentation) << "        {\n";
+        output_stream << indent(indentation) << "            state = 2;\n";
+        output_stream << indent(indentation) << "            return true;\n";
+        output_stream << indent(indentation) << "        }\n";
+        output_stream << indent(indentation) << "        }\n";
+        output_stream << indent(indentation) << "        break;\n";
+        output_stream << indent(indentation) << "    }\n";
+        output_stream << indent(indentation) << "    case 2:\n";
+        output_stream << indent(indentation) << "    {\n";
+        output_stream << indent(indentation) << "        std::cerr << \"While parsing '" << struct_type.name << "' unexpected '}' found.\\n\";\n";
+        output_stream << indent(indentation) << "        return false;\n";
+        output_stream << indent(indentation) << "    }\n";
 
         {
             int current_state = first_member_parse_state;
@@ -584,18 +609,19 @@ namespace h::tools::code_generator
                     member,
                     current_state,
                     enum_types,
-                    struct_types
+                    struct_types,
+                    indentation + 4
                 );
 
                 current_state += state_count;
             }
         }
 
-        output_stream << "    }\n";
-        output_stream << "    \n";
-        output_stream << "    std::cerr << \"Error while reading '" << struct_type.name << "'.\\n\";\n";
-        output_stream << "    return false;\n";
-        output_stream << "}\n";
+        output_stream << indent(indentation) << "    }\n";
+        output_stream << "\n";
+        output_stream << indent(indentation) << "    std::cerr << \"Error while reading '" << struct_type.name << "'.\\n\";\n";
+        output_stream << indent(indentation) << "    return false;\n";
+        output_stream << indent(indentation) << "}\n";
 
         return std::pmr::string{ output_stream.str() };
     }
@@ -653,26 +679,27 @@ namespace h::tools::code_generator
     std::pmr::string generate_write_struct_json_code(
         Struct const& struct_type,
         std::pmr::unordered_map<std::pmr::string, Enum> const& enum_types,
-        std::pmr::unordered_map<std::pmr::string, Struct> const& struct_types
+        std::pmr::unordered_map<std::pmr::string, Struct> const& struct_types,
+        int const indentation
     )
     {
         std::stringstream output_stream;
 
-        output_stream << "export template<typename Writer_type>\n";
-        output_stream << "void write_object(\n";
-        output_stream << "    Writer_type& writer,\n";
-        output_stream << "    " << struct_type.name << " const& output\n";
-        output_stream << ")\n";
-        output_stream << "{\n";
-        output_stream << "    writer.StartObject();\n";
+        output_stream << indent(indentation) << "export template<typename Writer_type>\n";
+        output_stream << indent(indentation) << "    void write_object(\n";
+        output_stream << indent(indentation) << "        Writer_type& writer,\n";
+        output_stream << indent(indentation) << "        " << struct_type.name << " const& output\n";
+        output_stream << indent(indentation) << "    )\n";
+        output_stream << indent(indentation) << "{\n";
+        output_stream << indent(indentation) << "    writer.StartObject();\n";
 
         for (Member const& member : struct_type.members)
         {
             if (is_variant_type(member.type))
             {
-                output_stream << "    writer.Key(\"data\");\n";
+                output_stream << indent(indentation) << "    writer.Key(\"data\");\n";
                 output_stream << "\n";
-                output_stream << "    writer.StartObject();\n";
+                output_stream << indent(indentation) << "    writer.StartObject();\n";
 
                 std::pmr::vector<std::pmr::string> const type_names = get_variadic_types(
                     member.type.name
@@ -683,61 +710,61 @@ namespace h::tools::code_generator
                     std::pmr::string const& type_name = type_names[index];
                     Type const underlying_type = { .name = type_name };
 
-                    output_stream << "    ";
+                    output_stream << indent(indentation + 4);
                     if (index != 0)
                     {
                         output_stream << "else ";
                     }
                     output_stream << "if (std::holds_alternative<" << type_name << ">(output." << member.name << "))\n";
-                    output_stream << "    {\n";
-                    output_stream << "        writer.Key(\"type\");\n";
-                    output_stream << "        writer.String(\"" << to_lowercase(type_name) << "\");\n";
-                    output_stream << "        writer.Key(\"value\");\n";
+                    output_stream << indent(indentation) << "    {\n";
+                    output_stream << indent(indentation) << "        writer.Key(\"type\");\n";
+                    output_stream << indent(indentation) << "        writer.String(\"" << to_lowercase(type_name) << "\");\n";
+                    output_stream << indent(indentation) << "        writer.Key(\"value\");\n";
 
                     if (is_enum_type(underlying_type, enum_types))
                     {
-                        output_stream << "        {\n";
-                        output_stream << "            " << type_name << " const& value = std::get<" << type_name << ">(output." << member.name << ");\n";
-                        output_stream << "            std::string_view const enum_value_string = write_enum(value);\n";
-                        output_stream << "            writer.String(enum_value_string.data(), enum_value_string.size());\n";
-                        output_stream << "        }\n";
+                        output_stream << indent(indentation) << "        {\n";
+                        output_stream << indent(indentation) << "            " << type_name << " const& value = std::get<" << type_name << ">(output." << member.name << ");\n";
+                        output_stream << indent(indentation) << "            std::string_view const enum_value_string = write_enum(value);\n";
+                        output_stream << indent(indentation) << "            writer.String(enum_value_string.data(), enum_value_string.size());\n";
+                        output_stream << indent(indentation) << "        }\n";
                     }
                     else if (is_struct_type(underlying_type, struct_types))
                     {
-                        output_stream << "        " << type_name << " const& value = std::get<" << type_name << ">(output." << member.name << ");\n";
-                        output_stream << "        write_object(writer, value);\n";
+                        output_stream << indent(indentation) << "        " << type_name << " const& value = std::get<" << type_name << ">(output." << member.name << ");\n";
+                        output_stream << indent(indentation) << "        write_object(writer, value);\n";
                     }
                     else
                     {
-                        output_stream << "        " << type_name << " const& value = std::get<" << type_name << ">(output." << member.name << ");\n";
-                        output_stream << "        ";
+                        output_stream << indent(indentation) << "        " << type_name << " const& value = std::get<" << type_name << ">(output." << member.name << ");\n";
+                        output_stream << indent(indentation) << "        ";
                         generate_write_value_json_code(output_stream, underlying_type, "value");
                         output_stream << '\n';
                     }
 
-                    output_stream << "    }\n";
+                    output_stream << indent(indentation) << "    }\n";
                 }
 
-                output_stream << "    writer.EndObject();\n\n";
+                output_stream << indent(indentation) << "    writer.EndObject();\n\n";
             }
             else
             {
-                output_stream << "    writer.Key(\"" << member.name << "\");\n";
+                output_stream << indent(indentation) << "    writer.Key(\"" << member.name << "\");\n";
 
                 if (is_struct_type(member.type, struct_types) || is_vector_type(member.type))
                 {
-                    output_stream << "    write_object(writer, output." << member.name << ");\n";
+                    output_stream << indent(indentation) << "    write_object(writer, output." << member.name << ");\n";
                 }
                 else if (is_enum_type(member.type, enum_types))
                 {
-                    output_stream << "    {\n";
-                    output_stream << "        std::string_view const enum_value_string = write_enum(output." << member.name << ");\n";
-                    output_stream << "        writer.String(enum_value_string.data(), enum_value_string.size());\n";
-                    output_stream << "    }\n";
+                    output_stream << indent(indentation) << "    {\n";
+                    output_stream << indent(indentation) << "        std::string_view const enum_value_string = write_enum(output." << member.name << ");\n";
+                    output_stream << indent(indentation) << "        writer.String(enum_value_string.data(), enum_value_string.size());\n";
+                    output_stream << indent(indentation) << "    }\n";
                 }
                 else
                 {
-                    output_stream << "    ";
+                    output_stream << indent(indentation) << "    ";
                     std::pmr::string const name = "output." + member.name;
                     generate_write_value_json_code(output_stream, member.type, name);
                     output_stream << '\n';
@@ -745,8 +772,8 @@ namespace h::tools::code_generator
             }
         }
 
-        output_stream << "    writer.EndObject();\n";
-        output_stream << "}\n";
+        output_stream << indent(indentation) << "    writer.EndObject();\n";
+        output_stream << indent(indentation) << "}\n";
 
         return std::pmr::string{ output_stream.str() };
     }
@@ -1026,16 +1053,17 @@ namespace h::tools::code_generator
 
         void generate_write_forward_declarations(
             std::ostream& output_stream,
-            std::span<Struct const> const structs
+            std::span<Struct const> const structs,
+            int const indentation
         )
         {
             for (Struct const struct_type : structs)
             {
-                output_stream << "export template<typename Writer_type>\n";
-                output_stream << "void write_object(\n";
-                output_stream << "    Writer_type& writer,\n";
-                output_stream << "    " << struct_type.name << " const& input\n";
-                output_stream << ");\n";
+                output_stream << indent(indentation) << "export template<typename Writer_type>\n";
+                output_stream << indent(indentation) << "    void write_object(\n";
+                output_stream << indent(indentation) << "        Writer_type& writer,\n";
+                output_stream << indent(indentation) << "        " << struct_type.name << " const& input\n";
+                output_stream << indent(indentation) << "    );\n";
                 output_stream << "\n";
             }
         }
@@ -1123,11 +1151,11 @@ namespace h::tools::code_generator
         output_stream << "        Key,\n";
         output_stream << "        Value\n";
         output_stream << "    };\n";
-        output_stream << "    \n";
+        output_stream << "\n";
         output_stream << "    export struct No_event_data\n";
         output_stream << "    {\n";
         output_stream << "    };\n";
-        output_stream << "    \n";
+        output_stream << "\n";
         output_stream << "    export template<typename Output_type, typename Value_type>\n";
         output_stream << "        bool read_value(\n";
         output_stream << "            Output_type& output,\n";
@@ -1151,7 +1179,7 @@ namespace h::tools::code_generator
         output_stream << "            return false;\n";
         output_stream << "        }\n";
         output_stream << "    }\n";
-        output_stream << "    \n";
+        output_stream << "\n";
         output_stream << "    template<typename Object_type, typename Event_data>\n";
         output_stream << "    bool read_object(\n";
         output_stream << "        Object_type& output,\n";
@@ -1160,7 +1188,7 @@ namespace h::tools::code_generator
         output_stream << "        std::pmr::vector<int>& state_stack,\n";
         output_stream << "        std::size_t const state_stack_position\n";
         output_stream << "    );\n";
-        output_stream << "    \n";
+        output_stream << "\n";
         output_stream << "    export template<typename Output_type, typename Event_data>\n";
         output_stream << "        bool read_object(\n";
         output_stream << "            std::pmr::vector<Output_type>& output,\n";
@@ -1174,9 +1202,9 @@ namespace h::tools::code_generator
         output_stream << "        {\n";
         output_stream << "            return false;\n";
         output_stream << "        }\n";
-        output_stream << "        \n";
+        output_stream << "\n";
         output_stream << "        int& state = state_stack[state_stack_position];\n";
-        output_stream << "        \n";
+        output_stream << "\n";
         output_stream << "        if (state == 0)\n";
         output_stream << "        {\n";
         output_stream << "            if (event == Event::Start_object)\n";
@@ -1264,7 +1292,7 @@ namespace h::tools::code_generator
         output_stream << "                    {\n";
         output_stream << "                        return false;\n";
         output_stream << "                    }\n";
-        output_stream << "                    \n";
+        output_stream << "\n";
         output_stream << "                    state = 4;\n";
         output_stream << "                    return true;\n";
         output_stream << "                }\n";
@@ -1282,33 +1310,33 @@ namespace h::tools::code_generator
         output_stream << "                return true;\n";
         output_stream << "            }\n";
         output_stream << "        }\n";
-        output_stream << "    \n";
+        output_stream << "\n";
         output_stream << "        return false;\n";
         output_stream << "    }\n";
-        output_stream << "    \n";
+        output_stream << "\n";
         output_stream << "    export template<typename Enum_type, typename Event_value>\n";
-        output_stream << "    bool read_enum(Enum_type & output, Event_value const value)\n";
+        output_stream << "        bool read_enum(Enum_type& output, Event_value const value)\n";
         output_stream << "    {\n";
         output_stream << "        return false;\n";
         output_stream << "    };\n";
-        output_stream << "    \n";
+        output_stream << "\n";
 
         for (Enum const& enum_type : file_types.enums)
         {
-            output_stream << generate_read_enum_json_code(enum_type);
+            output_stream << generate_read_enum_json_code(enum_type, 4);
             output_stream << "\n";
         }
 
-        output_stream << "    \n";
+        output_stream << "\n";
         output_stream << "    export template<typename Object_type, typename Event_data>\n";
-        output_stream << "    bool read_object(\n";
-        output_stream << "        Object_type& output,\n";
-        output_stream << "        Event const event,\n";
-        output_stream << "        Event_data const event_data,\n";
-        output_stream << "        std::pmr::vector<int>& state_stack,\n";
-        output_stream << "        std::size_t const state_stack_position\n";
-        output_stream << "    );\n";
-        output_stream << "    \n";
+        output_stream << "        bool read_object(\n";
+        output_stream << "            Object_type& output,\n";
+        output_stream << "            Event const event,\n";
+        output_stream << "            Event_data const event_data,\n";
+        output_stream << "            std::pmr::vector<int>& state_stack,\n";
+        output_stream << "            std::size_t const state_stack_position\n";
+        output_stream << "        );\n";
+        output_stream << "\n";
 
         std::pmr::unordered_map<std::pmr::string, Enum> const enum_map = create_name_map<Enum>(
             file_types.enums
@@ -1320,7 +1348,7 @@ namespace h::tools::code_generator
 
         for (Struct const& struct_type : file_types.structs)
         {
-            output_stream << generate_read_struct_json_code(struct_type, enum_map, struct_map);
+            output_stream << generate_read_struct_json_code(struct_type, enum_map, struct_map, 4);
             output_stream << "\n";
         }
 
@@ -1356,23 +1384,23 @@ namespace h::tools::code_generator
 
         for (Enum const& enum_type : file_types.enums)
         {
-            output_stream << generate_write_enum_json_code(enum_type);
+            output_stream << generate_write_enum_json_code(enum_type, 4);
             output_stream << "\n";
         }
 
-        generate_write_forward_declarations(output_stream, file_types.structs);
+        generate_write_forward_declarations(output_stream, file_types.structs, 4);
 
         output_stream << "    export template <typename Writer_type, typename Value_type>\n";
         output_stream << "        void write_object(\n";
-        output_stream << "            Writer_type & writer,\n";
+        output_stream << "            Writer_type& writer,\n";
         output_stream << "            std::pmr::vector<Value_type> const& values\n";
         output_stream << "        )\n";
         output_stream << "    {\n";
         output_stream << "        writer.StartObject();\n";
-        output_stream << "        \n";
+        output_stream << "\n";
         output_stream << "        writer.Key(\"size\");\n";
         output_stream << "        writer.Uint64(values.size());\n";
-        output_stream << "        \n";
+        output_stream << "\n";
         output_stream << "        writer.Key(\"elements\");\n";
         output_stream << "        writer.StartArray();\n";
         output_stream << "        for (Value_type const& value : values)\n";
@@ -1414,10 +1442,10 @@ namespace h::tools::code_generator
         output_stream << "            }\n";
         output_stream << "        }\n";
         output_stream << "        writer.EndArray(values.size());\n";
-        output_stream << "        \n";
+        output_stream << "\n";
         output_stream << "        writer.EndObject();\n";
         output_stream << "    }\n";
-        output_stream << "    \n";
+        output_stream << "\n";
 
         std::pmr::unordered_map<std::pmr::string, Enum> const enum_map = create_name_map<Enum>(
             file_types.enums
@@ -1429,7 +1457,7 @@ namespace h::tools::code_generator
 
         for (Struct const& struct_type : file_types.structs)
         {
-            output_stream << generate_write_struct_json_code(struct_type, enum_map, struct_map);
+            output_stream << generate_write_struct_json_code(struct_type, enum_map, struct_map, 4);
             output_stream << "\n";
         }
 
@@ -1472,19 +1500,19 @@ namespace h::tools::code_generator
             output_stream << "    {\n";
             output_stream << "        std::pmr::string string;\n";
             output_stream << "        input_stream >> string;\n";
-            output_stream << "        \n";
+            output_stream << "\n";
             output_stream << "        value = h::json::read_enum<" << enum_type.name << ">(string);\n";
-            output_stream << "        \n";
+            output_stream << "\n";
             output_stream << "        return input_stream;\n";
             output_stream << "    }\n";
-            output_stream << "    \n";
+            output_stream << "\n";
             output_stream << "    export std::ostream& operator<<(std::ostream& output_stream, " << enum_type.name << " const value)\n";
             output_stream << "    {\n";
             output_stream << "        output_stream << h::json::write_enum(value);\n";
-            output_stream << "        \n";
+            output_stream << "\n";
             output_stream << "        return output_stream;\n";
             output_stream << "    }\n";
-            output_stream << "    \n";
+            output_stream << "\n";
         }
 
         for (Struct const& struct_type : file_types.structs)
@@ -1494,24 +1522,24 @@ namespace h::tools::code_generator
             output_stream << "        rapidjson::Reader reader;\n";
             output_stream << "        rapidjson::IStreamWrapper stream_wrapper{ input_stream };\n";
             output_stream << "        std::optional<" << struct_type.name << "> const output = h::json::read<" << struct_type.name << ">(reader, stream_wrapper);\n";
-            output_stream << "        \n";
+            output_stream << "\n";
             output_stream << "        if (output)\n";
             output_stream << "        {\n";
             output_stream << "            value = std::move(*output);\n";
             output_stream << "        }\n";
-            output_stream << "        \n";
+            output_stream << "\n";
             output_stream << "        return input_stream;\n";
             output_stream << "    }\n";
-            output_stream << "    \n";
+            output_stream << "\n";
             output_stream << "    export std::ostream& operator<<(std::ostream& output_stream, " << struct_type.name << " const& value)\n";
             output_stream << "    {\n";
             output_stream << "        rapidjson::OStreamWrapper stream_wrapper{ output_stream };\n";
             output_stream << "        rapidjson::Writer<rapidjson::OStreamWrapper> writer{ stream_wrapper };\n";
             output_stream << "        h::json::write(writer, value);\n";
-            output_stream << "        \n";
+            output_stream << "\n";
             output_stream << "        return output_stream;\n";
             output_stream << "    }\n";
-            output_stream << "    \n";
+            output_stream << "\n";
         }
 
         output_stream << "}\n";
