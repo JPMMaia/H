@@ -105,17 +105,17 @@ namespace h
         CHECK(actual == expected);
     }
 
-    TEST_CASE("Read Type_reference with Struct_type_reference")
+    TEST_CASE("Read Type_reference with Custom_type_reference")
     {
         std::pmr::string const json_data = R"JSON(
             {
                 "data": {
-                    "type": "struct_type_reference",
+                    "type": "custom_type_reference",
                     "value": {
                         "module_reference": {
                             "name": "module_foo"
                         },
-                        "id": 10
+                        "name": "custom_name"
                     }
                 }
             }
@@ -123,12 +123,12 @@ namespace h
 
         Type_reference const expected
         {
-            .data = Struct_type_reference
+            .data = Custom_type_reference
             {
                 .module_reference = Module_reference{
                     .name = "module_foo"
                 },
-                .id = 10
+                .name = "custom_name"
             }
         };
 
@@ -142,20 +142,20 @@ namespace h
         CHECK(actual == expected);
     }
 
-    TEST_CASE("Write Type_reference with Struct_type_reference")
+    TEST_CASE("Write Type_reference with Custom_type_reference")
     {
         Type_reference const input
         {
-            .data = Struct_type_reference
+            .data = Custom_type_reference
             {
                 .module_reference = Module_reference{
                     .name = "module_foo"
                 },
-                .id = 10
+                .name = "custom_name"
             }
         };
 
-        std::string const expected = "{\"data\":{\"type\":\"struct_type_reference\",\"value\":{\"module_reference\":{\"name\":\"module_foo\"},\"id\":10}}}";
+        std::string const expected = "{\"data\":{\"type\":\"custom_type_reference\",\"value\":{\"module_reference\":{\"name\":\"module_foo\"},\"name\":\"custom_name\"}}}";
 
         rapidjson::StringBuffer output_stream;
         rapidjson::Writer<rapidjson::StringBuffer> writer{ output_stream };
@@ -165,26 +165,18 @@ namespace h
         CHECK(actual == expected);
     }
 
-    TEST_CASE("Read Variable_expression_type")
-    {
-        CHECK(h::json::read_enum<Variable_expression_type>("function_argument") == Variable_expression_type::Function_argument);
-        CHECK(h::json::read_enum<Variable_expression_type>("local_variable") == Variable_expression_type::Local_variable);
-    }
-
     TEST_CASE("Read Variable_expression")
     {
         std::pmr::string const json_data = R"JSON(
             {
-                "type": "local_variable",
-                "id": 2
+                "name": "variable_name"
             }
             
         )JSON";
 
         Variable_expression const expected
         {
-            .type = Variable_expression_type::Local_variable,
-            .id = 2
+            .name = "variable_name"
         };
 
         rapidjson::Reader reader;
@@ -248,12 +240,10 @@ namespace h
     {
         std::pmr::string const json_data = R"JSON(
             {
-                "function_reference": {
-                    "module_reference": {
-                        "name": "default"
-                    },
-                    "function_id": 1
+                "module_reference": {
+                    "name": "default"
                 },
+                "function_name": "function_name",
                 "arguments": {
                     "size": 2,
                     "elements": [
@@ -282,12 +272,10 @@ namespace h
 
         Call_expression const expected
         {
-            .function_reference = {
-                .module_reference = {
-                    .name = "default"
-                },
-                .function_id = 1,
+            .module_reference = {
+                .name = "default"
             },
+            .function_name = "function_name",
             .arguments = std::move(arguments)
         };
 
@@ -303,25 +291,20 @@ namespace h
 
     h::Function_declaration create_expected_function_declaration()
     {
-        std::pmr::vector<Type_reference> parameter_types
+        std::pmr::vector<Type_reference> input_parameter_types
         {
             Type_reference{.data = Fundamental_type::Byte},
             Type_reference{.data = Fundamental_type::Byte},
         };
 
-        std::pmr::vector<std::uint64_t> input_parameter_ids
+        std::pmr::vector<Type_reference> output_parameter_types
         {
-            0, 1
+            Type_reference{.data = Fundamental_type::Byte},
         };
 
         std::pmr::vector<std::pmr::string> input_parameter_names
         {
             "lhs", "rhs"
-        };
-
-        std::pmr::vector<std::uint64_t> output_parameter_ids
-        {
-            0
         };
 
         std::pmr::vector<std::pmr::string> output_parameter_names
@@ -331,19 +314,16 @@ namespace h
 
         h::Function_type function_type
         {
-            .input_parameter_types = std::move(parameter_types),
-            .output_parameter_types = {Type_reference{.data = Fundamental_type::Byte}},
+            .input_parameter_types = std::move(input_parameter_types),
+            .output_parameter_types = std::move(output_parameter_types),
             .is_variadic = false
         };
 
         return h::Function_declaration
         {
-            .id = 125,
             .name = "Add",
             .type = std::move(function_type),
-            .input_parameter_ids = std::move(input_parameter_ids),
             .input_parameter_names = std::move(input_parameter_names),
-            .output_parameter_ids = std::move(output_parameter_ids),
             .output_parameter_names = std::move(output_parameter_names),
             .linkage = Linkage::External
         };
@@ -353,7 +333,6 @@ namespace h
     {
         std::pmr::string const json_data = R"JSON(
             {
-                "id": 125,
                 "name": "Add",
                 "type": {
                     "input_parameter_types": {
@@ -386,22 +365,10 @@ namespace h
                     },
                     "is_variadic": false
                 },
-                "input_parameter_ids": {
-                    "size": 2,
-                    "elements": [
-                        0, 1
-                    ]
-                },
                 "input_parameter_names": {
                     "size": 2,
                     "elements": [
                         "lhs", "rhs"
-                    ]
-                },
-                "output_parameter_ids": {
-                    "size": 1,
-                    "elements": [
-                        0
                     ]
                 },
                 "output_parameter_names": {
@@ -433,14 +400,12 @@ namespace h
             {
                 Expression{
                     .data = Variable_expression{
-                        .type = Variable_expression_type::Function_argument,
-                        .id = 0
+                        .name = "lhs"
                     }
                 },
                 Expression{
                     .data = Variable_expression{
-                        .type = Variable_expression_type::Function_argument,
-                        .id = 1
+                        .name = "rhs"
                     }
                 },
                 Expression{
@@ -468,7 +433,6 @@ namespace h
         {
             {
                 Statement{
-                    .id = 0,
                     .name = "var_0",
                     .expressions = std::move(expressions)
                 }
@@ -477,7 +441,7 @@ namespace h
 
         h::Function_definition function
         {
-            .id = 125,
+            .name = "Add",
             .statements = std::move(statements)
         };
 
@@ -488,12 +452,11 @@ namespace h
     {
         std::pmr::string const json_data = R"JSON(
         {
-            "id": 125,
+            "name": "Add",
             "statements": {
                 "size": 1,
                 "elements": [
                     {
-                        "id": 0,
                         "name": "var_0",
                         "expressions": {
                             "size": 4,
@@ -503,8 +466,7 @@ namespace h
                                     "data": {
                                         "type": "variable_expression",
                                         "value": {
-                                            "type": "function_argument",
-                                            "id": 0
+                                            "name": "lhs"
                                         }
                                     }
                                 },
@@ -512,8 +474,7 @@ namespace h
                                     "data": {
                                         "type": "variable_expression",
                                         "value": {
-                                            "type": "function_argument",
-                                            "id": 1
+                                            "name": "rhs"
                                         }
                                     }
                                 },
@@ -600,12 +561,17 @@ namespace h
                 "patch": 3
             },
             "name": "module_name",
+            "dependencies": {
+                "alias_imports": {
+                    "size": 0,
+                    "elements": []
+                }
+            },
             "export_declarations": {
                 "function_declarations": {
                     "size": 1,
                     "elements": [
                         {
-                            "id": 125,
                             "name": "Add",
                             "type": {
                                 "input_parameter_types": {
@@ -638,22 +604,10 @@ namespace h
                                 },
                                 "is_variadic": false
                             },
-                            "input_parameter_ids": {
-                                "size": 2,
-                                "elements": [
-                                    0, 1
-                                ]
-                            },
                             "input_parameter_names": {
                                 "size": 2,
                                 "elements": [
                                     "lhs", "rhs"
-                                ]
-                            },
-                            "output_parameter_ids": {
-                                "size": 1,
-                                "elements": [
-                                    0
                                 ]
                             },
                             "output_parameter_names": {
@@ -678,12 +632,11 @@ namespace h
                     "size": 1,
                     "elements": [
                         {
-                            "id": 125,
+                            "name": "Add",
                             "statements": {
                                 "size": 1,
                                 "elements": [
                                     {
-                                        "id": 0,
                                         "name": "var_0",
                                         "expressions": {
                                             "size": 4,
@@ -693,8 +646,7 @@ namespace h
                                                     "data": {
                                                         "type": "variable_expression",
                                                         "value": {
-                                                            "type": "function_argument",
-                                                            "id": 0
+                                                            "name": "lhs"
                                                         }
                                                     }
                                                 },
@@ -702,8 +654,7 @@ namespace h
                                                     "data": {
                                                         "type": "variable_expression",
                                                         "value": {
-                                                            "type": "function_argument",
-                                                            "id": 1
+                                                            "name": "rhs"
                                                         }
                                                     }
                                                 },
@@ -751,7 +702,7 @@ namespace h
 
         REQUIRE(output.has_value());
 
-        h::Module const& actual = output.value();
+        h::Module const actual = output.value();
         CHECK(actual == expected);
     }
 }
