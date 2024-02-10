@@ -2200,13 +2200,13 @@ namespace h::json
             {
                 if (event_data == "fundamental_type")
                 {
-                    output.data = Fundamental_type{};
+                    output.type = Fundamental_type{};
                     state = 7;
                     return true;
                 }
                 else if (event_data == "integer_type")
                 {
-                    output.data = Integer_type{};
+                    output.type = Integer_type{};
                     state = 10;
                     return true;
                 }

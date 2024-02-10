@@ -393,7 +393,7 @@ namespace h::tools::code_generator
 
                             output_stream << "if (event_data == \"" << to_lowercase(type_name) << "\")\n";
                             output_stream << "{\n";
-                            output_stream << "    output.data = " << type_name << "{};\n";
+                            output_stream << "    output." << member.name << " = " << type_name << "{};\n";
                             output_stream << "    state = " << next_state << ";\n";
                             output_stream << "    return true;\n";
                             output_stream << "}\n";
@@ -791,14 +791,14 @@ namespace h::tools::code_generator
 
             {
                 auto const is_alphabetic = [](char const c) -> bool
-                    {
-                        return std::isalpha(c) != 0;
-                    };
+                {
+                    return std::isalpha(c) != 0;
+                };
 
                 auto const is_not_alphabetic_neither_digit = [](char const c) -> bool
-                    {
-                        return (std::isalpha(c) == 0) && (std::isdigit(c) == 0) && (c != '_') && (c != '-');
-                    };
+                {
+                    return (std::isalpha(c) == 0) && (std::isdigit(c) == 0) && (c != '_') && (c != '-');
+                };
 
                 auto current_location = open_bracket_location + 1;
 
