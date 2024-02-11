@@ -193,97 +193,97 @@ namespace h::json
     export template<>
         bool read_enum(Fundamental_type& output, std::string_view const value)
     {
-        if (value == "bool")
+        if (value == "Bool")
         {
             output = Fundamental_type::Bool;
             return true;
         }
-        else if (value == "byte")
+        else if (value == "Byte")
         {
             output = Fundamental_type::Byte;
             return true;
         }
-        else if (value == "float16")
+        else if (value == "Float16")
         {
             output = Fundamental_type::Float16;
             return true;
         }
-        else if (value == "float32")
+        else if (value == "Float32")
         {
             output = Fundamental_type::Float32;
             return true;
         }
-        else if (value == "float64")
+        else if (value == "Float64")
         {
             output = Fundamental_type::Float64;
             return true;
         }
-        else if (value == "string")
+        else if (value == "String")
         {
             output = Fundamental_type::String;
             return true;
         }
-        else if (value == "any_type")
+        else if (value == "Any_type")
         {
             output = Fundamental_type::Any_type;
             return true;
         }
-        else if (value == "c_bool")
+        else if (value == "C_bool")
         {
             output = Fundamental_type::C_bool;
             return true;
         }
-        else if (value == "c_char")
+        else if (value == "C_char")
         {
             output = Fundamental_type::C_char;
             return true;
         }
-        else if (value == "c_schar")
+        else if (value == "C_schar")
         {
             output = Fundamental_type::C_schar;
             return true;
         }
-        else if (value == "c_uchar")
+        else if (value == "C_uchar")
         {
             output = Fundamental_type::C_uchar;
             return true;
         }
-        else if (value == "c_short")
+        else if (value == "C_short")
         {
             output = Fundamental_type::C_short;
             return true;
         }
-        else if (value == "c_ushort")
+        else if (value == "C_ushort")
         {
             output = Fundamental_type::C_ushort;
             return true;
         }
-        else if (value == "c_int")
+        else if (value == "C_int")
         {
             output = Fundamental_type::C_int;
             return true;
         }
-        else if (value == "c_uint")
+        else if (value == "C_uint")
         {
             output = Fundamental_type::C_uint;
             return true;
         }
-        else if (value == "c_long")
+        else if (value == "C_long")
         {
             output = Fundamental_type::C_long;
             return true;
         }
-        else if (value == "c_ulong")
+        else if (value == "C_ulong")
         {
             output = Fundamental_type::C_ulong;
             return true;
         }
-        else if (value == "c_longlong")
+        else if (value == "C_longlong")
         {
             output = Fundamental_type::C_longlong;
             return true;
         }
-        else if (value == "c_ulonglong")
+        else if (value == "C_ulonglong")
         {
             output = Fundamental_type::C_ulonglong;
             return true;
@@ -296,32 +296,32 @@ namespace h::json
     export template<>
         bool read_enum(Binary_operation& output, std::string_view const value)
     {
-        if (value == "add")
+        if (value == "Add")
         {
             output = Binary_operation::Add;
             return true;
         }
-        else if (value == "subtract")
+        else if (value == "Subtract")
         {
             output = Binary_operation::Subtract;
             return true;
         }
-        else if (value == "multiply")
+        else if (value == "Multiply")
         {
             output = Binary_operation::Multiply;
             return true;
         }
-        else if (value == "signed_divide")
+        else if (value == "Signed_divide")
         {
             output = Binary_operation::Signed_divide;
             return true;
         }
-        else if (value == "unsigned_divide")
+        else if (value == "Unsigned_divide")
         {
             output = Binary_operation::Unsigned_divide;
             return true;
         }
-        else if (value == "less_than")
+        else if (value == "Less_than")
         {
             output = Binary_operation::Less_than;
             return true;
@@ -334,12 +334,12 @@ namespace h::json
     export template<>
         bool read_enum(Linkage& output, std::string_view const value)
     {
-        if (value == "external")
+        if (value == "External")
         {
             output = Linkage::External;
             return true;
         }
-        else if (value == "private")
+        else if (value == "Private")
         {
             output = Linkage::Private;
             return true;
@@ -1076,43 +1076,43 @@ namespace h::json
         {
             if constexpr (std::is_same_v<Event_data, std::string_view>)
             {
-                if (event_data == "builtin_type_reference")
+                if (event_data == "Builtin_type_reference")
                 {
                     output.data = Builtin_type_reference{};
                     state = 7;
                     return true;
                 }
-                else if (event_data == "constant_array_type")
+                else if (event_data == "Constant_array_type")
                 {
                     output.data = Constant_array_type{};
                     state = 10;
                     return true;
                 }
-                else if (event_data == "custom_type_reference")
+                else if (event_data == "Custom_type_reference")
                 {
                     output.data = Custom_type_reference{};
                     state = 13;
                     return true;
                 }
-                else if (event_data == "fundamental_type")
+                else if (event_data == "Fundamental_type")
                 {
                     output.data = Fundamental_type{};
                     state = 16;
                     return true;
                 }
-                else if (event_data == "function_type")
+                else if (event_data == "Function_type")
                 {
                     output.data = Function_type{};
                     state = 19;
                     return true;
                 }
-                else if (event_data == "integer_type")
+                else if (event_data == "Integer_type")
                 {
                     output.data = Integer_type{};
                     state = 22;
                     return true;
                 }
-                else if (event_data == "pointer_type")
+                else if (event_data == "Pointer_type")
                 {
                     output.data = Pointer_type{};
                     state = 25;
@@ -2232,13 +2232,13 @@ namespace h::json
         {
             if constexpr (std::is_same_v<Event_data, std::string_view>)
             {
-                if (event_data == "fundamental_type")
+                if (event_data == "Fundamental_type")
                 {
                     output.type = Fundamental_type{};
                     state = 7;
                     return true;
                 }
-                else if (event_data == "integer_type")
+                else if (event_data == "Integer_type")
                 {
                     output.type = Integer_type{};
                     state = 10;
@@ -2646,43 +2646,43 @@ namespace h::json
         {
             if constexpr (std::is_same_v<Event_data, std::string_view>)
             {
-                if (event_data == "binary_expression")
+                if (event_data == "Binary_expression")
                 {
                     output.data = Binary_expression{};
                     state = 7;
                     return true;
                 }
-                else if (event_data == "call_expression")
+                else if (event_data == "Call_expression")
                 {
                     output.data = Call_expression{};
                     state = 10;
                     return true;
                 }
-                else if (event_data == "constant_expression")
+                else if (event_data == "Constant_expression")
                 {
                     output.data = Constant_expression{};
                     state = 13;
                     return true;
                 }
-                else if (event_data == "invalid_expression")
+                else if (event_data == "Invalid_expression")
                 {
                     output.data = Invalid_expression{};
                     state = 16;
                     return true;
                 }
-                else if (event_data == "return_expression")
+                else if (event_data == "Return_expression")
                 {
                     output.data = Return_expression{};
                     state = 19;
                     return true;
                 }
-                else if (event_data == "struct_member_expression")
+                else if (event_data == "Struct_member_expression")
                 {
                     output.data = Struct_member_expression{};
                     state = 22;
                     return true;
                 }
-                else if (event_data == "variable_expression")
+                else if (event_data == "Variable_expression")
                 {
                     output.data = Variable_expression{};
                     state = 25;

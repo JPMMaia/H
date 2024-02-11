@@ -67,8 +67,8 @@ namespace h
         std::pmr::string const json_data = R"JSON(
             {
                 "data": {
-                    "type": "fundamental_type",
-                    "value": "byte"
+                    "type": "Fundamental_type",
+                    "value": "Byte"
                 }
             }
         )JSON";
@@ -95,7 +95,7 @@ namespace h
             .data = Fundamental_type::Byte
         };
 
-        std::string const expected = "{\"data\":{\"type\":\"fundamental_type\",\"value\":\"byte\"}}";
+        std::string const expected = "{\"data\":{\"type\":\"Fundamental_type\",\"value\":\"Byte\"}}";
 
         rapidjson::StringBuffer output_stream;
         rapidjson::Writer<rapidjson::StringBuffer> writer{ output_stream };
@@ -110,7 +110,7 @@ namespace h
         std::pmr::string const json_data = R"JSON(
             {
                 "data": {
-                    "type": "custom_type_reference",
+                    "type": "Custom_type_reference",
                     "value": {
                         "module_reference": {
                             "name": "module_foo"
@@ -155,7 +155,7 @@ namespace h
             }
         };
 
-        std::string const expected = "{\"data\":{\"type\":\"custom_type_reference\",\"value\":{\"module_reference\":{\"name\":\"module_foo\"},\"name\":\"custom_name\"}}}";
+        std::string const expected = "{\"data\":{\"type\":\"Custom_type_reference\",\"value\":{\"module_reference\":{\"name\":\"module_foo\"},\"name\":\"custom_name\"}}}";
 
         rapidjson::StringBuffer output_stream;
         rapidjson::Writer<rapidjson::StringBuffer> writer{ output_stream };
@@ -191,12 +191,12 @@ namespace h
 
     TEST_CASE("Read Binary_operation")
     {
-        CHECK(h::json::read_enum<Binary_operation>("add") == Binary_operation::Add);
-        CHECK(h::json::read_enum<Binary_operation>("subtract") == Binary_operation::Subtract);
-        CHECK(h::json::read_enum<Binary_operation>("multiply") == Binary_operation::Multiply);
-        CHECK(h::json::read_enum<Binary_operation>("signed_divide") == Binary_operation::Signed_divide);
-        CHECK(h::json::read_enum<Binary_operation>("unsigned_divide") == Binary_operation::Unsigned_divide);
-        CHECK(h::json::read_enum<Binary_operation>("less_than") == Binary_operation::Less_than);
+        CHECK(h::json::read_enum<Binary_operation>("Add") == Binary_operation::Add);
+        CHECK(h::json::read_enum<Binary_operation>("Subtract") == Binary_operation::Subtract);
+        CHECK(h::json::read_enum<Binary_operation>("Multiply") == Binary_operation::Multiply);
+        CHECK(h::json::read_enum<Binary_operation>("Signed_divide") == Binary_operation::Signed_divide);
+        CHECK(h::json::read_enum<Binary_operation>("Unsigned_divide") == Binary_operation::Unsigned_divide);
+        CHECK(h::json::read_enum<Binary_operation>("Less_than") == Binary_operation::Less_than);
     }
 
     TEST_CASE("Read Binary_expression")
@@ -209,7 +209,7 @@ namespace h
                 "right_hand_side": {
                     "expression_index": 3
                 },
-                "operation": "subtract"
+                "operation": "Subtract"
             }
         )JSON";
 
@@ -340,14 +340,14 @@ namespace h
                         "elements": [
                             {
                                 "data": {
-                                    "type": "fundamental_type",
-                                    "value": "byte"
+                                    "type": "Fundamental_type",
+                                    "value": "Byte"
                                 }
                             },
                             {
                                 "data": {
-                                    "type": "fundamental_type",
-                                    "value": "byte"
+                                    "type": "Fundamental_type",
+                                    "value": "Byte"
                                 }
                             }
                         ]
@@ -357,8 +357,8 @@ namespace h
                         "elements": [
                             {
                                 "data": {
-                                    "type": "fundamental_type",
-                                    "value": "byte"
+                                    "type": "Fundamental_type",
+                                    "value": "Byte"
                                 }
                             }
                         ]            
@@ -377,7 +377,7 @@ namespace h
                         "sum"
                     ]
                 },
-                "linkage": "external"
+                "linkage": "External"
             }
         )JSON";
 
@@ -464,7 +464,7 @@ namespace h
                             [
                                 {
                                     "data": {
-                                        "type": "variable_expression",
+                                        "type": "Variable_expression",
                                         "value": {
                                             "name": "lhs"
                                         }
@@ -472,7 +472,7 @@ namespace h
                                 },
                                 {
                                     "data": {
-                                        "type": "variable_expression",
+                                        "type": "Variable_expression",
                                         "value": {
                                             "name": "rhs"
                                         }
@@ -480,7 +480,7 @@ namespace h
                                 },
                                 {
                                     "data": {
-                                        "type": "binary_expression",
+                                        "type": "Binary_expression",
                                         "value": {
                                             "left_hand_side": {
                                                 "expression_index": 0
@@ -488,13 +488,13 @@ namespace h
                                             "right_hand_side": {
                                                 "expression_index": 1
                                             },
-                                            "operation": "add"
+                                            "operation": "Add"
                                         }
                                     }
                                 },
                                 {
                                     "data": {
-                                        "type": "return_expression",
+                                        "type": "Return_expression",
                                         "value": {
                                             "expression": {
                                                 "expression_index": 2
@@ -579,14 +579,14 @@ namespace h
                                     "elements": [
                                         {
                                             "data": {
-                                                "type": "fundamental_type",
-                                                "value": "byte"
+                                                "type": "Fundamental_type",
+                                                "value": "Byte"
                                             }
                                         },
                                         {
                                             "data": {
-                                                "type": "fundamental_type",
-                                                "value": "byte"
+                                                "type": "Fundamental_type",
+                                                "value": "Byte"
                                             }
                                         }
                                     ]
@@ -596,8 +596,8 @@ namespace h
                                     "elements": [
                                         {
                                             "data": {
-                                                "type": "fundamental_type",
-                                                "value": "byte"
+                                                "type": "Fundamental_type",
+                                                "value": "Byte"
                                             }
                                         }
                                     ]
@@ -616,7 +616,7 @@ namespace h
                                     "sum"
                                 ]
                             },
-                            "linkage": "external"
+                            "linkage": "External"
                         }
                     ]
                 }
@@ -644,7 +644,7 @@ namespace h
                                             [
                                                 {
                                                     "data": {
-                                                        "type": "variable_expression",
+                                                        "type": "Variable_expression",
                                                         "value": {
                                                             "name": "lhs"
                                                         }
@@ -652,7 +652,7 @@ namespace h
                                                 },
                                                 {
                                                     "data": {
-                                                        "type": "variable_expression",
+                                                        "type": "Variable_expression",
                                                         "value": {
                                                             "name": "rhs"
                                                         }
@@ -660,7 +660,7 @@ namespace h
                                                 },
                                                 {
                                                     "data": {
-                                                        "type": "binary_expression",
+                                                        "type": "Binary_expression",
                                                         "value": {
                                                             "left_hand_side": {
                                                                 "expression_index": 0
@@ -668,13 +668,13 @@ namespace h
                                                             "right_hand_side": {
                                                                 "expression_index": 1
                                                             },
-                                                            "operation": "add"
+                                                            "operation": "Add"
                                                         }
                                                     }
                                                 },
                                                 {
                                                     "data": {
-                                                        "type": "return_expression",
+                                                        "type": "Return_expression",
                                                         "value": {
                                                             "expression": {
                                                                 "expression_index": 2

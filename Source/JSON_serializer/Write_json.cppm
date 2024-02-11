@@ -16,79 +16,79 @@ namespace h::json
     {
         if (value == Fundamental_type::Bool)
         {
-            return "bool";
+            return "Bool";
         }
         else if (value == Fundamental_type::Byte)
         {
-            return "byte";
+            return "Byte";
         }
         else if (value == Fundamental_type::Float16)
         {
-            return "float16";
+            return "Float16";
         }
         else if (value == Fundamental_type::Float32)
         {
-            return "float32";
+            return "Float32";
         }
         else if (value == Fundamental_type::Float64)
         {
-            return "float64";
+            return "Float64";
         }
         else if (value == Fundamental_type::String)
         {
-            return "string";
+            return "String";
         }
         else if (value == Fundamental_type::Any_type)
         {
-            return "any_type";
+            return "Any_type";
         }
         else if (value == Fundamental_type::C_bool)
         {
-            return "c_bool";
+            return "C_bool";
         }
         else if (value == Fundamental_type::C_char)
         {
-            return "c_char";
+            return "C_char";
         }
         else if (value == Fundamental_type::C_schar)
         {
-            return "c_schar";
+            return "C_schar";
         }
         else if (value == Fundamental_type::C_uchar)
         {
-            return "c_uchar";
+            return "C_uchar";
         }
         else if (value == Fundamental_type::C_short)
         {
-            return "c_short";
+            return "C_short";
         }
         else if (value == Fundamental_type::C_ushort)
         {
-            return "c_ushort";
+            return "C_ushort";
         }
         else if (value == Fundamental_type::C_int)
         {
-            return "c_int";
+            return "C_int";
         }
         else if (value == Fundamental_type::C_uint)
         {
-            return "c_uint";
+            return "C_uint";
         }
         else if (value == Fundamental_type::C_long)
         {
-            return "c_long";
+            return "C_long";
         }
         else if (value == Fundamental_type::C_ulong)
         {
-            return "c_ulong";
+            return "C_ulong";
         }
         else if (value == Fundamental_type::C_longlong)
         {
-            return "c_longlong";
+            return "C_longlong";
         }
         else if (value == Fundamental_type::C_ulonglong)
         {
-            return "c_ulonglong";
+            return "C_ulonglong";
         }
 
         throw std::runtime_error{ "Failed to write enum 'Fundamental_type'!\n" };
@@ -98,27 +98,27 @@ namespace h::json
     {
         if (value == Binary_operation::Add)
         {
-            return "add";
+            return "Add";
         }
         else if (value == Binary_operation::Subtract)
         {
-            return "subtract";
+            return "Subtract";
         }
         else if (value == Binary_operation::Multiply)
         {
-            return "multiply";
+            return "Multiply";
         }
         else if (value == Binary_operation::Signed_divide)
         {
-            return "signed_divide";
+            return "Signed_divide";
         }
         else if (value == Binary_operation::Unsigned_divide)
         {
-            return "unsigned_divide";
+            return "Unsigned_divide";
         }
         else if (value == Binary_operation::Less_than)
         {
-            return "less_than";
+            return "Less_than";
         }
 
         throw std::runtime_error{ "Failed to write enum 'Binary_operation'!\n" };
@@ -128,11 +128,11 @@ namespace h::json
     {
         if (value == Linkage::External)
         {
-            return "external";
+            return "External";
         }
         else if (value == Linkage::Private)
         {
-            return "private";
+            return "Private";
         }
 
         throw std::runtime_error{ "Failed to write enum 'Linkage'!\n" };
@@ -483,7 +483,7 @@ namespace h::json
         if (std::holds_alternative<Builtin_type_reference>(output.data))
         {
             writer.Key("type");
-            writer.String("builtin_type_reference");
+            writer.String("Builtin_type_reference");
             writer.Key("value");
             Builtin_type_reference const& value = std::get<Builtin_type_reference>(output.data);
             write_object(writer, value);
@@ -491,7 +491,7 @@ namespace h::json
         else if (std::holds_alternative<Constant_array_type>(output.data))
         {
             writer.Key("type");
-            writer.String("constant_array_type");
+            writer.String("Constant_array_type");
             writer.Key("value");
             Constant_array_type const& value = std::get<Constant_array_type>(output.data);
             write_object(writer, value);
@@ -499,7 +499,7 @@ namespace h::json
         else if (std::holds_alternative<Custom_type_reference>(output.data))
         {
             writer.Key("type");
-            writer.String("custom_type_reference");
+            writer.String("Custom_type_reference");
             writer.Key("value");
             Custom_type_reference const& value = std::get<Custom_type_reference>(output.data);
             write_object(writer, value);
@@ -507,7 +507,7 @@ namespace h::json
         else if (std::holds_alternative<Fundamental_type>(output.data))
         {
             writer.Key("type");
-            writer.String("fundamental_type");
+            writer.String("Fundamental_type");
             writer.Key("value");
             {
                 Fundamental_type const& value = std::get<Fundamental_type>(output.data);
@@ -518,7 +518,7 @@ namespace h::json
         else if (std::holds_alternative<Function_type>(output.data))
         {
             writer.Key("type");
-            writer.String("function_type");
+            writer.String("Function_type");
             writer.Key("value");
             Function_type const& value = std::get<Function_type>(output.data);
             write_object(writer, value);
@@ -526,7 +526,7 @@ namespace h::json
         else if (std::holds_alternative<Integer_type>(output.data))
         {
             writer.Key("type");
-            writer.String("integer_type");
+            writer.String("Integer_type");
             writer.Key("value");
             Integer_type const& value = std::get<Integer_type>(output.data);
             write_object(writer, value);
@@ -534,7 +534,7 @@ namespace h::json
         else if (std::holds_alternative<Pointer_type>(output.data))
         {
             writer.Key("type");
-            writer.String("pointer_type");
+            writer.String("Pointer_type");
             writer.Key("value");
             Pointer_type const& value = std::get<Pointer_type>(output.data);
             write_object(writer, value);
@@ -678,7 +678,7 @@ namespace h::json
         if (std::holds_alternative<Fundamental_type>(output.type))
         {
             writer.Key("type");
-            writer.String("fundamental_type");
+            writer.String("Fundamental_type");
             writer.Key("value");
             {
                 Fundamental_type const& value = std::get<Fundamental_type>(output.type);
@@ -689,7 +689,7 @@ namespace h::json
         else if (std::holds_alternative<Integer_type>(output.type))
         {
             writer.Key("type");
-            writer.String("integer_type");
+            writer.String("Integer_type");
             writer.Key("value");
             Integer_type const& value = std::get<Integer_type>(output.type);
             write_object(writer, value);
@@ -752,7 +752,7 @@ namespace h::json
         if (std::holds_alternative<Binary_expression>(output.data))
         {
             writer.Key("type");
-            writer.String("binary_expression");
+            writer.String("Binary_expression");
             writer.Key("value");
             Binary_expression const& value = std::get<Binary_expression>(output.data);
             write_object(writer, value);
@@ -760,7 +760,7 @@ namespace h::json
         else if (std::holds_alternative<Call_expression>(output.data))
         {
             writer.Key("type");
-            writer.String("call_expression");
+            writer.String("Call_expression");
             writer.Key("value");
             Call_expression const& value = std::get<Call_expression>(output.data);
             write_object(writer, value);
@@ -768,7 +768,7 @@ namespace h::json
         else if (std::holds_alternative<Constant_expression>(output.data))
         {
             writer.Key("type");
-            writer.String("constant_expression");
+            writer.String("Constant_expression");
             writer.Key("value");
             Constant_expression const& value = std::get<Constant_expression>(output.data);
             write_object(writer, value);
@@ -776,7 +776,7 @@ namespace h::json
         else if (std::holds_alternative<Invalid_expression>(output.data))
         {
             writer.Key("type");
-            writer.String("invalid_expression");
+            writer.String("Invalid_expression");
             writer.Key("value");
             Invalid_expression const& value = std::get<Invalid_expression>(output.data);
             write_object(writer, value);
@@ -784,7 +784,7 @@ namespace h::json
         else if (std::holds_alternative<Return_expression>(output.data))
         {
             writer.Key("type");
-            writer.String("return_expression");
+            writer.String("Return_expression");
             writer.Key("value");
             Return_expression const& value = std::get<Return_expression>(output.data);
             write_object(writer, value);
@@ -792,7 +792,7 @@ namespace h::json
         else if (std::holds_alternative<Struct_member_expression>(output.data))
         {
             writer.Key("type");
-            writer.String("struct_member_expression");
+            writer.String("Struct_member_expression");
             writer.Key("value");
             Struct_member_expression const& value = std::get<Struct_member_expression>(output.data);
             write_object(writer, value);
@@ -800,7 +800,7 @@ namespace h::json
         else if (std::holds_alternative<Variable_expression>(output.data))
         {
             writer.Key("type");
-            writer.String("variable_expression");
+            writer.String("Variable_expression");
             writer.Key("value");
             Variable_expression const& value = std::get<Variable_expression>(output.data);
             write_object(writer, value);
