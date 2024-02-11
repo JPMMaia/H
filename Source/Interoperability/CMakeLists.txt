@@ -3,7 +3,7 @@ add_library(H::c_header_importer ALIAS H_c_header_importer)
 
 target_compile_features(H_c_header_importer PUBLIC cxx_std_23)
 
-target_link_libraries(H_c_header_importer PRIVATE H::Core)
+target_link_libraries(H_c_header_importer PUBLIC H::Core)
 
 ## LLVM ##
 
