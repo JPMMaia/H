@@ -70,6 +70,16 @@ namespace h::json
         return handler.output;
     }
 
+    export template<typename Type>
+        std::optional<Type> read(
+            char const* const json_data
+        )
+    {
+        rapidjson::Reader reader;
+        rapidjson::StringStream input_stream{ json_data };
+        return h::json::read<Type>(reader, input_stream);
+    }
+
     export template<typename Writer_type, typename Input_type>
         void write(
             Writer_type& writer,
