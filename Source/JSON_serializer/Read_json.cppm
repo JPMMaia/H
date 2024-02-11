@@ -412,6 +412,8 @@ namespace h::json
                 state = 2;
                 return true;
             }
+            default:
+                break;
             }
             break;
         }
@@ -484,6 +486,8 @@ namespace h::json
                 state = 2;
                 return true;
             }
+            default:
+                break;
             }
             break;
         }
@@ -561,6 +565,8 @@ namespace h::json
                 state = 2;
                 return true;
             }
+            default:
+                break;
             }
             break;
         }
@@ -677,6 +683,8 @@ namespace h::json
                 state = 2;
                 return true;
             }
+            default:
+                break;
             }
             break;
         }
@@ -766,6 +774,8 @@ namespace h::json
                 state = 2;
                 return true;
             }
+            default:
+                break;
             }
             break;
         }
@@ -838,6 +848,8 @@ namespace h::json
                 state = 2;
                 return true;
             }
+            default:
+                break;
             }
             break;
         }
@@ -932,6 +944,8 @@ namespace h::json
                 state = 2;
                 return true;
             }
+            default:
+                break;
             }
             break;
         }
@@ -1021,6 +1035,8 @@ namespace h::json
                 state = 2;
                 return true;
             }
+            default:
+                break;
             }
             break;
         }
@@ -1377,6 +1393,8 @@ namespace h::json
                 state = 2;
                 return true;
             }
+            default:
+                break;
             }
             break;
         }
@@ -1471,6 +1489,8 @@ namespace h::json
                 state = 2;
                 return true;
             }
+            default:
+                break;
             }
             break;
         }
@@ -1548,6 +1568,8 @@ namespace h::json
                 state = 2;
                 return true;
             }
+            default:
+                break;
             }
             break;
         }
@@ -1657,6 +1679,8 @@ namespace h::json
                 state = 2;
                 return true;
             }
+            default:
+                break;
             }
             break;
         }
@@ -1778,6 +1802,8 @@ namespace h::json
                 state = 2;
                 return true;
             }
+            default:
+                break;
             }
             break;
         }
@@ -1845,6 +1871,8 @@ namespace h::json
                 state = 2;
                 return true;
             }
+            default:
+                break;
             }
             break;
         }
@@ -1922,6 +1950,8 @@ namespace h::json
                 state = 2;
                 return true;
             }
+            default:
+                break;
             }
             break;
         }
@@ -2043,6 +2073,8 @@ namespace h::json
                 state = 2;
                 return true;
             }
+            default:
+                break;
             }
             break;
         }
@@ -2159,6 +2191,8 @@ namespace h::json
                 state = 2;
                 return true;
             }
+            default:
+                break;
             }
             break;
         }
@@ -2320,6 +2354,8 @@ namespace h::json
                 state = 2;
                 return true;
             }
+            default:
+                break;
             }
             break;
         }
@@ -2387,6 +2423,8 @@ namespace h::json
                 state = 2;
                 return true;
             }
+            default:
+                break;
             }
             break;
         }
@@ -2476,6 +2514,8 @@ namespace h::json
                 state = 2;
                 return true;
             }
+            default:
+                break;
             }
             break;
         }
@@ -2565,6 +2605,8 @@ namespace h::json
                 state = 2;
                 return true;
             }
+            default:
+                break;
             }
             break;
         }
@@ -2938,6 +2980,8 @@ namespace h::json
                 state = 2;
                 return true;
             }
+            default:
+                break;
             }
             break;
         }
@@ -3047,6 +3091,8 @@ namespace h::json
                 state = 2;
                 return true;
             }
+            default:
+                break;
             }
             break;
         }
@@ -3190,6 +3236,8 @@ namespace h::json
                 state = 2;
                 return true;
             }
+            default:
+                break;
             }
             break;
         }
@@ -3289,6 +3337,8 @@ namespace h::json
                 state = 2;
                 return true;
             }
+            default:
+                break;
             }
             break;
         }
@@ -3371,6 +3421,8 @@ namespace h::json
                 state = 2;
                 return true;
             }
+            default:
+                break;
             }
             break;
         }
@@ -3443,6 +3495,8 @@ namespace h::json
                 state = 2;
                 return true;
             }
+            default:
+                break;
             }
             break;
         }
@@ -3542,6 +3596,8 @@ namespace h::json
                 state = 2;
                 return true;
             }
+            default:
+                break;
             }
             break;
         }
@@ -3692,6 +3748,8 @@ namespace h::json
                 state = 2;
                 return true;
             }
+            default:
+                break;
             }
             break;
         }
@@ -3801,6 +3859,8 @@ namespace h::json
                 state = 2;
                 return true;
             }
+            default:
+                break;
             }
             break;
         }

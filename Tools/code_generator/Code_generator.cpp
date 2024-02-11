@@ -587,6 +587,8 @@ namespace h::tools::code_generator
         output_stream << indent(indentation) << "            state = 2;\n";
         output_stream << indent(indentation) << "            return true;\n";
         output_stream << indent(indentation) << "        }\n";
+        output_stream << indent(indentation) << "        default:\n";
+        output_stream << indent(indentation) << "            break;\n";
         output_stream << indent(indentation) << "        }\n";
         output_stream << indent(indentation) << "        break;\n";
         output_stream << indent(indentation) << "    }\n";
