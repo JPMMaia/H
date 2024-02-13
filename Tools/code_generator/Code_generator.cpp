@@ -25,6 +25,21 @@ namespace h::tools::code_generator
         return std::format("{:{}}", "", indentation);
     }
 
+    std::pmr::string to_lowercase(std::string_view const string)
+    {
+        std::pmr::string lowercase_string;
+        lowercase_string.resize(string.size());
+
+        std::transform(
+            string.begin(),
+            string.end(),
+            lowercase_string.begin(),
+            [](char const c) { return std::tolower(c); }
+        );
+
+        return lowercase_string;
+    }
+
     std::pmr::string generate_read_enum_json_code(
         Enum const enum_type,
         int const indentation
@@ -236,6 +251,30 @@ namespace h::tools::code_generator
             return variadic_types;
         }
 
+        std::pmr::string create_formatted_variant_type(
+            std::span<std::pmr::string const> const types
+        )
+        {
+            std::stringstream stream;
+
+            stream << "std::variant<";
+
+            for (std::size_t index = 0; index < types.size(); ++index)
+            {
+                if (index != 0)
+                {
+                    stream << ", ";
+                }
+
+                std::pmr::string const& type = types[index];
+                stream << "h::" << type;
+            }
+
+            stream << ">";
+
+            return std::pmr::string{ stream.str() };
+        }
+
         int generate_read_struct_member_key_code(
             std::stringstream& output_stream,
             std::string_view const struct_name,
@@ -250,7 +289,7 @@ namespace h::tools::code_generator
             {
                 if (indent_first)
                     output_stream << indent(indentation);
-                output_stream << "if (event_data == \"data\")\n";
+                output_stream << "if (event_data == \"" << member.name << "\")\n";
                 output_stream << indent(indentation) << "{\n";
                 output_stream << indent(indentation) << "    state = " << state << ";\n";
                 output_stream << indent(indentation) << "    return true;\n";
@@ -523,6 +562,10 @@ namespace h::tools::code_generator
         output_stream << indent(indentation) << "            {\n";
 
         constexpr int first_member_parse_state = 3;
+
+        if (struct_type.name == "Constant_expression") {
+            int i = 0;
+        }
 
         {
             int current_state = first_member_parse_state;
@@ -1115,7 +1158,272 @@ namespace h::tools::code_generator
             input_stream
         );
 
+        std::pmr::unordered_map<std::pmr::string, Enum> const enum_map = create_name_map<Enum>(
+            file_types.enums
+        );
+
+        std::pmr::unordered_map<std::pmr::string, Struct> struct_map = create_name_map<Struct>(
+            file_types.structs
+        );
+
         output_stream << "module;\n";
+        output_stream << '\n';
+        output_stream << "#include <format>\n";
+        output_stream << "#include <iostream>\n";
+        output_stream << "#include <memory_resource>\n";
+        output_stream << "#include <optional>\n";
+        output_stream << "#include <variant>\n";
+        output_stream << "#include <vector>\n";
+        output_stream << '\n';
+        output_stream << "export module " << export_module_name << ";\n";
+        output_stream << '\n';
+        output_stream << "import " << module_name_to_import << ";\n";
+        output_stream << '\n';
+        output_stream << "namespace " << namespace_name << '\n';
+        output_stream << "{\n";
+        output_stream << "    export struct Stack_state\n";
+        output_stream << "    {\n";
+        output_stream << "        void* pointer;\n";
+        output_stream << "        std::pmr::string type;\n";
+        output_stream << "        std::optional<Stack_state>(*get_next_state)(Stack_state* state, std::string_view key);\n";
+        output_stream << "\n";
+        output_stream << "        void (*set_vector_size)(Stack_state const* state, std::size_t size);\n";
+        output_stream << "        void* (*get_element)(Stack_state const* state, std::size_t index);\n";
+        output_stream << "        std::optional<Stack_state>(*get_next_state_element)(Stack_state* state, std::string_view key);\n";
+        output_stream << "\n";
+        output_stream << "        void (*set_variant_type)(Stack_state* state, std::string_view type);\n";
+        output_stream << "    };\n";
+        output_stream << "\n";
+
+        // Generate read_enum()
+        output_stream << "    export template<typename Enum_type, typename Event_value>\n";
+        output_stream << "        bool read_enum(Enum_type& output, Event_value const value)\n";
+        output_stream << "    {\n";
+        output_stream << "        return false;\n";
+        output_stream << "    };\n";
+        output_stream << "\n";
+        for (Enum const& enum_type : file_types.enums)
+        {
+            output_stream << generate_read_enum_json_code(enum_type, 4);
+            output_stream << "\n";
+        }
+
+        // Generate read_enum_value()
+        output_stream << "    export std::optional<int> get_enum_value(std::string_view const type, std::string_view const value)\n";
+        output_stream << "    {\n";
+        for (Enum const& enum_type : file_types.enums)
+        {
+            output_stream << std::format("        if (type == \"{}\")\n", enum_type.name);
+            output_stream << "        {\n";
+            output_stream << std::format("            {} enum_value;\n", enum_type.name);
+            output_stream << "            read_enum(enum_value, value);\n";
+            output_stream << "            return static_cast<int>(enum_value);\n";
+            output_stream << "        }\n\n";
+        }
+        output_stream << "        return {};\n";
+        output_stream << "    }\n\n";
+
+        // Generate get_next_state_vector
+        output_stream << "    std::optional<Stack_state> get_next_state_vector(Stack_state* state, std::string_view const key)\n";
+        output_stream << "    {\n";
+        output_stream << "        if (key == \"size\")\n";
+        output_stream << "        {\n";
+        output_stream << "            return Stack_state\n";
+        output_stream << "            {\n";
+        output_stream << "                .pointer = state->pointer,\n";
+        output_stream << "                .type = \"vector_size\",\n";
+        output_stream << "                .get_next_state = nullptr,\n";
+        output_stream << "            };\n";
+        output_stream << "        }\n";
+        output_stream << "        else if (key == \"elements\")\n";
+        output_stream << "        {\n";
+        output_stream << "            return Stack_state\n";
+        output_stream << "            {\n";
+        output_stream << "                .pointer = state->pointer,\n";
+        output_stream << "                .type = \"vector_elements\",\n";
+        output_stream << "                .get_next_state = nullptr\n";
+        output_stream << "            };\n";
+        output_stream << "        }\n";
+        output_stream << "        else\n";
+        output_stream << "        {\n";
+        output_stream << "            return {};\n";
+        output_stream << "        }\n";
+        output_stream << "    }\n\n";
+
+        // Forward declare get_next_state
+        for (Struct const& struct_info : file_types.structs)
+        {
+            output_stream << "    export std::optional<Stack_state> get_next_state_" << to_lowercase(struct_info.name) << "(Stack_state* state, std::string_view const key);\n";
+        }
+
+        // Generate get_next_state
+        for (Struct const& struct_info : file_types.structs)
+        {
+            output_stream << "    export std::optional<Stack_state> get_next_state_" << to_lowercase(struct_info.name) << "(Stack_state* state, std::string_view const key)\n";
+            output_stream << "    {\n";
+            output_stream << std::format("        h::{}* parent = static_cast<h::{}*>(state->pointer);\n", struct_info.name, struct_info.name);
+            output_stream << '\n';
+
+            for (Member const& member : struct_info.members)
+            {
+                output_stream << std::format("        if (key == \"{}\")\n", member.name);
+                output_stream << "        {\n";
+
+                if (is_vector_type(member.type))
+                {
+                    output_stream << "            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void\n";
+                    output_stream << "            {\n";
+                    output_stream << std::format("                {}* parent = static_cast<{}*>(state->pointer);\n", member.type.name, member.type.name);
+                    output_stream << "                parent->resize(size);\n";
+                    output_stream << "            };\n\n";
+
+                    output_stream << "            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*\n";
+                    output_stream << "            {\n";
+                    output_stream << std::format("                {}* parent = static_cast<{}*>(state->pointer);\n", member.type.name, member.type.name);
+                    output_stream << "                return &((*parent)[index]);\n";
+                    output_stream << "            };\n";
+                }
+                else if (is_variant_type(member.type))
+                {
+                    std::pmr::vector<std::pmr::string> const variadic_types = get_variadic_types(member.type.name);
+                    std::pmr::string const variant_type = create_formatted_variant_type(variadic_types);
+
+                    output_stream << "            auto const set_variant_type = [](Stack_state* state, std::string_view const type) -> void\n";
+                    output_stream << "            {\n";
+                    output_stream << std::format("                using Variant_type = {};\n", variant_type);
+                    output_stream << "                Variant_type* pointer = static_cast<Variant_type*>(state->pointer);\n";
+                    output_stream << "\n";
+
+                    for (std::pmr::string const& type : variadic_types)
+                    {
+                        output_stream << std::format("                if (type == \"{}\")\n", type);
+                        output_stream << "                {\n";
+                        output_stream << std::format("                    *pointer = {}{};\n", type, "{}");
+                        output_stream << std::format("                    state->type = \"{}\";\n", type);
+                        output_stream << "                    return;\n";
+
+                        output_stream << "                }\n";
+                    }
+
+                    output_stream << "            };\n";
+                    output_stream << "\n";
+
+                    output_stream << "            auto const get_next_state = [](Stack_state* state, std::string_view const key) -> std::optional<Stack_state>\n";
+                    output_stream << "            {\n";
+                    output_stream << "                if (key == \"type\")\n";
+                    output_stream << "                {\n";
+                    output_stream << "                    return Stack_state\n";
+                    output_stream << "                    {\n";
+                    output_stream << "                        .pointer = state->pointer,\n";
+                    output_stream << "                        .type = \"variant_type\",\n";
+                    output_stream << "                        .get_next_state = nullptr\n";
+                    output_stream << "                    };\n";
+                    output_stream << "                }\n";
+                    output_stream << "\n";
+                    output_stream << "                if (key == \"value\")\n";
+                    output_stream << "                {\n";
+
+                    output_stream << "                    auto const get_next_state_function = [&]() -> std::optional<Stack_state>(*)(Stack_state* state, std::string_view key)\n";
+                    output_stream << "                    {\n";
+                    for (std::pmr::string const& type : variadic_types)
+                    {
+                        output_stream << std::format("                        if (state->type == \"{}\")\n", type);
+                        output_stream << "                        {\n";
+                        if (is_struct_type(Type{ type }, struct_map))
+                        {
+                            output_stream << std::format("                            return get_next_state_{};\n", to_lowercase(type));
+                        }
+                        else
+                        {
+                            output_stream << "                            return nullptr;\n";
+                        }
+                        output_stream << "                        }\n";
+                        output_stream << "\n";
+                    }
+                    output_stream << "                        return nullptr;\n";
+                    output_stream << "                    };\n";
+                    output_stream << "\n";
+                    output_stream << "                    return Stack_state\n";
+                    output_stream << "                    {\n";
+                    output_stream << "                        .pointer = state->pointer,\n";
+                    output_stream << "                        .type = \"variant_value\",\n";
+                    output_stream << "                        .get_next_state = get_next_state_function()\n";
+                    output_stream << "                    };\n";
+                    output_stream << "                }\n";
+                    output_stream << "\n";
+                    output_stream << "                return {};\n";
+                    output_stream << "            };\n";
+                    output_stream << "\n";
+                }
+                output_stream << "\n";
+
+                output_stream << "            return Stack_state\n";
+                output_stream << "            {\n";
+                output_stream << std::format("                .pointer = &parent->{},\n", member.name);
+                output_stream << std::format("                .type = \"{}\",\n", member.type.name);
+
+                if (is_struct_type(member.type, struct_map))
+                {
+                    output_stream << std::format("                .get_next_state = get_next_state_{},\n", to_lowercase(member.type.name));
+                }
+                else if (is_vector_type(member.type))
+                {
+                    std::pmr::string const value_type = get_vector_value_type(member.type);
+                    output_stream << "                .get_next_state = get_next_state_vector,\n";
+                    output_stream << "                .set_vector_size = set_vector_size,\n";
+                    output_stream << "                .get_element = get_element,\n";
+
+                    if (is_struct_type(Type{ value_type }, struct_map))
+                    {
+                        output_stream << std::format("                .get_next_state_element = get_next_state_{}\n", to_lowercase(value_type));
+                    }
+                    else
+                    {
+                        output_stream << "                .get_next_state_element = nullptr\n";
+                    }
+                }
+                else if (is_variant_type(member.type))
+                {
+                    output_stream << "                .get_next_state = get_next_state,\n";
+                    output_stream << "                .set_variant_type = set_variant_type,\n";
+                }
+                else
+                {
+                    output_stream << "                .get_next_state = nullptr,\n";
+                }
+
+                output_stream << "            };\n";
+                output_stream << "        }\n";
+                output_stream << '\n';
+            }
+
+            output_stream << "        return {};\n";
+            output_stream << "    }\n";
+            output_stream << "\n";
+        }
+
+        // Generate get_first_state()
+        output_stream << "    export template<typename Struct_type>\n";
+        output_stream << "        Stack_state get_first_state(Struct_type* output)\n";
+        output_stream << "    {\n";
+        for (Struct const& struct_info : file_types.structs)
+        {
+            output_stream << std::format("        if constexpr (std::is_same_v<Struct_type, h::{}>)\n", struct_info.name);
+            output_stream << "        {\n";
+            output_stream << "            return Stack_state\n";
+            output_stream << "            {\n";
+            output_stream << "                .pointer = output,\n";
+            output_stream << std::format("                .type = \"{}\",\n", struct_info.name);
+            output_stream << std::format("                .get_next_state = get_next_state_{}\n", to_lowercase(struct_info.name));
+            output_stream << "            };\n";
+            output_stream << "        }\n";
+            output_stream << "\n";
+        }
+        output_stream << "    }\n";
+
+        output_stream << "}\n";
+
+        /*output_stream << "module;\n";
         output_stream << '\n';
         output_stream << "#include <format>\n";
         output_stream << "#include <iostream>\n";
@@ -1339,7 +1647,7 @@ namespace h::tools::code_generator
             output_stream << "\n";
         }
 
-        output_stream << "}\n";
+        output_stream << "}\n";*/
     }
 
     void generate_write_json_code(

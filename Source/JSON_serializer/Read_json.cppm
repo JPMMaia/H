@@ -3,6 +3,7 @@ module;
 #include <format>
 #include <iostream>
 #include <memory_resource>
+#include <optional>
 #include <variant>
 #include <vector>
 
@@ -12,177 +13,18 @@ import h.core;
 
 namespace h::json
 {
-    export enum class Event
+    export struct Stack_state
     {
-        Start_object,
-        End_object,
-        Start_array,
-        End_array,
-        Key,
-        Value
+        void* pointer;
+        std::pmr::string type;
+        std::optional<Stack_state>(*get_next_state)(Stack_state* state, std::string_view key);
+
+        void (*set_vector_size)(Stack_state const* state, std::size_t size);
+        void* (*get_element)(Stack_state const* state, std::size_t index);
+        std::optional<Stack_state>(*get_next_state_element)(Stack_state* state, std::string_view key);
+
+        void (*set_variant_type)(Stack_state* state, std::string_view type);
     };
-
-    export struct No_event_data
-    {
-    };
-
-    export template<typename Output_type, typename Value_type>
-        bool read_value(
-            Output_type& output,
-            std::string_view const key,
-            Value_type const value
-        )
-    {
-        if constexpr (std::is_arithmetic_v<Output_type> && std::is_arithmetic_v<Value_type>)
-        {
-            output = static_cast<Output_type>(value);
-            return true;
-        }
-        else if constexpr (std::is_same_v<Output_type, std::pmr::string> && std::is_same_v<Value_type, std::string_view>)
-        {
-            output = value;
-            return true;
-        }
-        else
-        {
-            std::cerr << std::format("Incompatible type found while parsing key '{}'.\n", key);
-            return false;
-        }
-    }
-
-    template<typename Object_type, typename Event_data>
-    bool read_object(
-        Object_type& output,
-        Event const event,
-        Event_data const event_data,
-        std::pmr::vector<int>& state_stack,
-        std::size_t const state_stack_position
-    );
-
-    export template<typename Output_type, typename Event_data>
-        bool read_object(
-            std::pmr::vector<Output_type>& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
-    {
-        if (state_stack_position >= state_stack.size())
-        {
-            return false;
-        }
-
-        int& state = state_stack[state_stack_position];
-
-        if (state == 0)
-        {
-            if (event == Event::Start_object)
-            {
-                state = 1;
-                return true;
-            }
-        }
-        else if (state == 1)
-        {
-            if (event == Event::Key)
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "size")
-                    {
-                        state = 2;
-                        return true;
-                    }
-                    else if (event_data == "elements")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                }
-            }
-        }
-        else if (state == 2)
-        {
-            if (event == Event::Value)
-            {
-                if constexpr (std::is_unsigned_v<Event_data>)
-                {
-                    output.reserve(event_data);
-                    state = 1;
-                    return true;
-                }
-            }
-        }
-        else if (state == 3)
-        {
-            if (event == Event::Start_array)
-            {
-                state = 4;
-                return true;
-            }
-        }
-        else if (state == 4)
-        {
-            if (event == Event::Value)
-            {
-                if constexpr ((std::is_arithmetic_v<Output_type> && std::is_arithmetic_v<Event_data>) || std::is_same_v<Output_type, std::pmr::string>)
-                {
-                    Output_type element;
-                    if (!read_value(element, "array_element", event_data))
-                    {
-                        return false;
-                    }
-                    output.push_back(element);
-                    return true;
-                }
-            }
-            else if (event == Event::Start_object)
-            {
-                if constexpr (std::is_class_v<Output_type> && !std::is_same_v<Output_type, std::pmr::string>)
-                {
-                    output.emplace_back();
-                    state = 5;
-                    return read_object(output.back(), event, event_data, state_stack, state_stack_position + 1);
-                }
-            }
-            else if (event == Event::End_array)
-            {
-                state = 6;
-                return true;
-            }
-        }
-        else if (state == 5)
-        {
-            if constexpr (std::is_class_v<Output_type> && !std::is_same_v<Output_type, std::pmr::string>)
-            {
-                if ((event == Event::End_object) && (state_stack_position + 2) == state_stack.size())
-                {
-                    if (!read_object(output.back(), event, event_data, state_stack, state_stack_position + 1))
-                    {
-                        return false;
-                    }
-
-                    state = 4;
-                    return true;
-                }
-                else
-                {
-                    return read_object(output.back(), event, event_data, state_stack, state_stack_position + 1);
-                }
-            }
-        }
-        else if (state == 6)
-        {
-            if (event == Event::End_object)
-            {
-                state = 7;
-                return true;
-            }
-        }
-
-        return false;
-    }
 
     export template<typename Enum_type, typename Event_value>
         bool read_enum(Enum_type& output, Event_value const value)
@@ -349,3645 +191,1882 @@ namespace h::json
         return false;
     }
 
-
-    export template<typename Object_type, typename Event_data>
-        bool read_object(
-            Object_type& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        );
-
-    export template<typename Event_data>
-        bool read_object(
-            Integer_type& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    export std::optional<int> get_enum_value(std::string_view const type, std::string_view const value)
     {
-        if (state_stack_position >= state_stack.size())
+        if (type == "Fundamental_type")
         {
-            return false;
+            Fundamental_type enum_value;
+            read_enum(enum_value, value);
+            return static_cast<int>(enum_value);
         }
 
-        int& state = state_stack[state_stack_position];
-
-        switch (state)
+        if (type == "Binary_operation")
         {
-        case 0:
-        {
-            if (event == Event::Start_object)
-            {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "number_of_bits")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "is_signed")
-                    {
-                        state = 4;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            default:
-                break;
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Integer_type' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 1;
-            return read_value(output.number_of_bits, "number_of_bits", event_data);
-        }
-        case 4:
-        {
-            state = 1;
-            return read_value(output.is_signed, "is_signed", event_data);
-        }
+            Binary_operation enum_value;
+            read_enum(enum_value, value);
+            return static_cast<int>(enum_value);
         }
 
-        std::cerr << "Error while reading 'Integer_type'.\n";
-        return false;
+        if (type == "Linkage")
+        {
+            Linkage enum_value;
+            read_enum(enum_value, value);
+            return static_cast<int>(enum_value);
+        }
+
+        return {};
     }
 
-    export template<typename Event_data>
-        bool read_object(
-            Builtin_type_reference& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    std::optional<Stack_state> get_next_state_vector(Stack_state* state, std::string_view const key)
     {
-        if (state_stack_position >= state_stack.size())
+        if (key == "size")
         {
-            return false;
-        }
-
-        int& state = state_stack[state_stack_position];
-
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
+            return Stack_state
             {
-                state = 1;
-                return true;
-            }
-            break;
+                .pointer = state->pointer,
+                .type = "vector_size",
+                .get_next_state = nullptr,
+            };
         }
-        case 1:
+        else if (key == "elements")
         {
-            switch (event)
+            return Stack_state
             {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "value")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            default:
-                break;
-            }
-            break;
+                .pointer = state->pointer,
+                .type = "vector_elements",
+                .get_next_state = nullptr
+            };
         }
-        case 2:
+        else
         {
-            std::cerr << "While parsing 'Builtin_type_reference' unexpected '}' found.\n";
-            return false;
+            return {};
         }
-        case 3:
-        {
-            state = 1;
-            return read_value(output.value, "value", event_data);
-        }
-        }
-
-        std::cerr << "Error while reading 'Builtin_type_reference'.\n";
-        return false;
     }
 
-    export template<typename Event_data>
-        bool read_object(
-            Function_type& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    export std::optional<Stack_state> get_next_state_integer_type(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_builtin_type_reference(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_function_type(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_pointer_type(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_module_reference(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_constant_array_type(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_custom_type_reference(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_type_reference(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_alias_type_declaration(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_enum_value(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_enum_declaration(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_struct_declaration(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_variable_expression(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_expression_index(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_binary_expression(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_call_expression(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_constant_expression(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_invalid_expression(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_return_expression(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_struct_member_expression(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_expression(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_statement(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_function_declaration(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_function_definition(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_language_version(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_import_module_with_alias(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_module_dependencies(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_module_declarations(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_module_definitions(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_module(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_integer_type(Stack_state* state, std::string_view const key)
     {
-        if (state_stack_position >= state_stack.size())
+        h::Integer_type* parent = static_cast<h::Integer_type*>(state->pointer);
+
+        if (key == "number_of_bits")
         {
-            return false;
+
+            return Stack_state
+            {
+                .pointer = &parent->number_of_bits,
+                .type = "std::uint32_t",
+                .get_next_state = nullptr,
+            };
         }
 
-        int& state = state_stack[state_stack_position];
+        if (key == "is_signed")
+        {
 
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
+            return Stack_state
             {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "input_parameter_types")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "output_parameter_types")
-                    {
-                        state = 5;
-                        return true;
-                    }
-                    else if (event_data == "is_variadic")
-                    {
-                        state = 7;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            default:
-                break;
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Function_type' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 4;
-            return read_object(output.input_parameter_types, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 4:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.input_parameter_types, event, event_data, state_stack, state_stack_position + 1 + 0))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.input_parameter_types, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
-        case 5:
-        {
-            state = 6;
-            return read_object(output.output_parameter_types, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 6:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.output_parameter_types, event, event_data, state_stack, state_stack_position + 1 + 0))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.output_parameter_types, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
-        case 7:
-        {
-            state = 1;
-            return read_value(output.is_variadic, "is_variadic", event_data);
-        }
+                .pointer = &parent->is_signed,
+                .type = "bool",
+                .get_next_state = nullptr,
+            };
         }
 
-        std::cerr << "Error while reading 'Function_type'.\n";
-        return false;
+        return {};
     }
 
-    export template<typename Event_data>
-        bool read_object(
-            Pointer_type& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    export std::optional<Stack_state> get_next_state_builtin_type_reference(Stack_state* state, std::string_view const key)
     {
-        if (state_stack_position >= state_stack.size())
+        h::Builtin_type_reference* parent = static_cast<h::Builtin_type_reference*>(state->pointer);
+
+        if (key == "value")
         {
-            return false;
+
+            return Stack_state
+            {
+                .pointer = &parent->value,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
         }
 
-        int& state = state_stack[state_stack_position];
-
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
-            {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "element_type")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "is_mutable")
-                    {
-                        state = 5;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            default:
-                break;
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Pointer_type' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 4;
-            return read_object(output.element_type, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 4:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.element_type, event, event_data, state_stack, state_stack_position + 1 + 0))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.element_type, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
-        case 5:
-        {
-            state = 1;
-            return read_value(output.is_mutable, "is_mutable", event_data);
-        }
-        }
-
-        std::cerr << "Error while reading 'Pointer_type'.\n";
-        return false;
+        return {};
     }
 
-    export template<typename Event_data>
-        bool read_object(
-            Module_reference& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    export std::optional<Stack_state> get_next_state_function_type(Stack_state* state, std::string_view const key)
     {
-        if (state_stack_position >= state_stack.size())
+        h::Function_type* parent = static_cast<h::Function_type*>(state->pointer);
+
+        if (key == "input_parameter_types")
         {
-            return false;
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Type_reference>* parent = static_cast<std::pmr::vector<Type_reference>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Type_reference>* parent = static_cast<std::pmr::vector<Type_reference>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->input_parameter_types,
+                .type = "std::pmr::vector<Type_reference>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_type_reference
+            };
         }
 
-        int& state = state_stack[state_stack_position];
+        if (key == "output_parameter_types")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Type_reference>* parent = static_cast<std::pmr::vector<Type_reference>*>(state->pointer);
+                parent->resize(size);
+            };
 
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
             {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
+                std::pmr::vector<Type_reference>* parent = static_cast<std::pmr::vector<Type_reference>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
             {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "name")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            default:
-                break;
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Module_reference' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 1;
-            return read_value(output.name, "name", event_data);
-        }
+                .pointer = &parent->output_parameter_types,
+                .type = "std::pmr::vector<Type_reference>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_type_reference
+            };
         }
 
-        std::cerr << "Error while reading 'Module_reference'.\n";
-        return false;
+        if (key == "is_variadic")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->is_variadic,
+                .type = "bool",
+                .get_next_state = nullptr,
+            };
+        }
+
+        return {};
     }
 
-    export template<typename Event_data>
-        bool read_object(
-            Constant_array_type& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    export std::optional<Stack_state> get_next_state_pointer_type(Stack_state* state, std::string_view const key)
     {
-        if (state_stack_position >= state_stack.size())
+        h::Pointer_type* parent = static_cast<h::Pointer_type*>(state->pointer);
+
+        if (key == "element_type")
         {
-            return false;
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Type_reference>* parent = static_cast<std::pmr::vector<Type_reference>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Type_reference>* parent = static_cast<std::pmr::vector<Type_reference>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->element_type,
+                .type = "std::pmr::vector<Type_reference>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_type_reference
+            };
         }
 
-        int& state = state_stack[state_stack_position];
+        if (key == "is_mutable")
+        {
 
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
+            return Stack_state
             {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "value_type")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "size")
-                    {
-                        state = 5;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            default:
-                break;
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Constant_array_type' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 4;
-            return read_object(output.value_type, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 4:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.value_type, event, event_data, state_stack, state_stack_position + 1 + 0))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.value_type, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
-        case 5:
-        {
-            state = 1;
-            return read_value(output.size, "size", event_data);
-        }
+                .pointer = &parent->is_mutable,
+                .type = "bool",
+                .get_next_state = nullptr,
+            };
         }
 
-        std::cerr << "Error while reading 'Constant_array_type'.\n";
-        return false;
+        return {};
     }
 
-    export template<typename Event_data>
-        bool read_object(
-            Custom_type_reference& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    export std::optional<Stack_state> get_next_state_module_reference(Stack_state* state, std::string_view const key)
     {
-        if (state_stack_position >= state_stack.size())
+        h::Module_reference* parent = static_cast<h::Module_reference*>(state->pointer);
+
+        if (key == "name")
         {
-            return false;
+
+            return Stack_state
+            {
+                .pointer = &parent->name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
         }
 
-        int& state = state_stack[state_stack_position];
-
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
-            {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "module_reference")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "name")
-                    {
-                        state = 5;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            default:
-                break;
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Custom_type_reference' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 4;
-            return read_object(output.module_reference, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 4:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.module_reference, event, event_data, state_stack, state_stack_position + 1 + 0))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.module_reference, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
-        case 5:
-        {
-            state = 1;
-            return read_value(output.name, "name", event_data);
-        }
-        }
-
-        std::cerr << "Error while reading 'Custom_type_reference'.\n";
-        return false;
+        return {};
     }
 
-    export template<typename Event_data>
-        bool read_object(
-            Type_reference& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    export std::optional<Stack_state> get_next_state_constant_array_type(Stack_state* state, std::string_view const key)
     {
-        if (state_stack_position >= state_stack.size())
+        h::Constant_array_type* parent = static_cast<h::Constant_array_type*>(state->pointer);
+
+        if (key == "value_type")
         {
-            return false;
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Type_reference>* parent = static_cast<std::pmr::vector<Type_reference>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Type_reference>* parent = static_cast<std::pmr::vector<Type_reference>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->value_type,
+                .type = "std::pmr::vector<Type_reference>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_type_reference
+            };
         }
 
-        int& state = state_stack[state_stack_position];
+        if (key == "size")
+        {
 
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
+            return Stack_state
             {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "data")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            default:
-                break;
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Type_reference' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            if (event == Event::Start_object)
-            {
-                state = 5;
-                return true;
-            }
-        }
-        case 4:
-        {
-            if (event == Event::End_object)
-            {
-                state = 1;
-                return true;
-            }
-        }
-        case 5:
-        {
-            if constexpr (std::is_same_v<Event_data, std::string_view>)
-            {
-                if (event == Event::Key && event_data == "type")
-                {
-                    state = 6;
-                    return true;
-                }
-            }
-        }
-        case 6:
-        {
-            if constexpr (std::is_same_v<Event_data, std::string_view>)
-            {
-                if (event_data == "Builtin_type_reference")
-                {
-                    output.data = Builtin_type_reference{};
-                    state = 7;
-                    return true;
-                }
-                else if (event_data == "Constant_array_type")
-                {
-                    output.data = Constant_array_type{};
-                    state = 10;
-                    return true;
-                }
-                else if (event_data == "Custom_type_reference")
-                {
-                    output.data = Custom_type_reference{};
-                    state = 13;
-                    return true;
-                }
-                else if (event_data == "Fundamental_type")
-                {
-                    output.data = Fundamental_type{};
-                    state = 16;
-                    return true;
-                }
-                else if (event_data == "Function_type")
-                {
-                    output.data = Function_type{};
-                    state = 19;
-                    return true;
-                }
-                else if (event_data == "Integer_type")
-                {
-                    output.data = Integer_type{};
-                    state = 22;
-                    return true;
-                }
-                else if (event_data == "Pointer_type")
-                {
-                    output.data = Pointer_type{};
-                    state = 25;
-                    return true;
-                }
-            }
-        }
-        case 7:
-        {
-            if constexpr (std::is_same_v<Event_data, std::string_view>)
-            {
-                if (event == Event::Key && event_data == "value")
-                {
-                    state = 8;
-                    return true;
-                }
-            }
-        }
-        case 8:
-        {
-            state = 9;
-            return read_object(std::get<Builtin_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
-        }
-        case 9:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
-            {
-                if (!read_object(std::get<Builtin_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1))
-                {
-                    return false;
-                }
-
-                state = 4;
-                return true;
-            }
-            else
-            {
-                return read_object(std::get<Builtin_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
-            }
-        }
-        case 10:
-        {
-            if constexpr (std::is_same_v<Event_data, std::string_view>)
-            {
-                if (event == Event::Key && event_data == "value")
-                {
-                    state = 11;
-                    return true;
-                }
-            }
-        }
-        case 11:
-        {
-            state = 12;
-            return read_object(std::get<Constant_array_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
-        }
-        case 12:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
-            {
-                if (!read_object(std::get<Constant_array_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1))
-                {
-                    return false;
-                }
-
-                state = 4;
-                return true;
-            }
-            else
-            {
-                return read_object(std::get<Constant_array_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
-            }
-        }
-        case 13:
-        {
-            if constexpr (std::is_same_v<Event_data, std::string_view>)
-            {
-                if (event == Event::Key && event_data == "value")
-                {
-                    state = 14;
-                    return true;
-                }
-            }
-        }
-        case 14:
-        {
-            state = 15;
-            return read_object(std::get<Custom_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
-        }
-        case 15:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
-            {
-                if (!read_object(std::get<Custom_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1))
-                {
-                    return false;
-                }
-
-                state = 4;
-                return true;
-            }
-            else
-            {
-                return read_object(std::get<Custom_type_reference>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
-            }
-        }
-        case 16:
-        {
-            if constexpr (std::is_same_v<Event_data, std::string_view>)
-            {
-                if (event == Event::Key && event_data == "value")
-                {
-                    state = 17;
-                    return true;
-                }
-            }
-        }
-        case 17:
-        {
-            state = 4;
-            return read_enum(std::get<Fundamental_type>(output.data), event_data);
-        }
-        case 19:
-        {
-            if constexpr (std::is_same_v<Event_data, std::string_view>)
-            {
-                if (event == Event::Key && event_data == "value")
-                {
-                    state = 20;
-                    return true;
-                }
-            }
-        }
-        case 20:
-        {
-            state = 21;
-            return read_object(std::get<Function_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
-        }
-        case 21:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
-            {
-                if (!read_object(std::get<Function_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1))
-                {
-                    return false;
-                }
-
-                state = 4;
-                return true;
-            }
-            else
-            {
-                return read_object(std::get<Function_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
-            }
-        }
-        case 22:
-        {
-            if constexpr (std::is_same_v<Event_data, std::string_view>)
-            {
-                if (event == Event::Key && event_data == "value")
-                {
-                    state = 23;
-                    return true;
-                }
-            }
-        }
-        case 23:
-        {
-            state = 24;
-            return read_object(std::get<Integer_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
-        }
-        case 24:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
-            {
-                if (!read_object(std::get<Integer_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1))
-                {
-                    return false;
-                }
-
-                state = 4;
-                return true;
-            }
-            else
-            {
-                return read_object(std::get<Integer_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
-            }
-        }
-        case 25:
-        {
-            if constexpr (std::is_same_v<Event_data, std::string_view>)
-            {
-                if (event == Event::Key && event_data == "value")
-                {
-                    state = 26;
-                    return true;
-                }
-            }
-        }
-        case 26:
-        {
-            state = 27;
-            return read_object(std::get<Pointer_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
-        }
-        case 27:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
-            {
-                if (!read_object(std::get<Pointer_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1))
-                {
-                    return false;
-                }
-
-                state = 4;
-                return true;
-            }
-            else
-            {
-                return read_object(std::get<Pointer_type>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
-            }
-        }
+                .pointer = &parent->size,
+                .type = "std::uint64_t",
+                .get_next_state = nullptr,
+            };
         }
 
-        std::cerr << "Error while reading 'Type_reference'.\n";
-        return false;
+        return {};
     }
 
-    export template<typename Event_data>
-        bool read_object(
-            Alias_type_declaration& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    export std::optional<Stack_state> get_next_state_custom_type_reference(Stack_state* state, std::string_view const key)
     {
-        if (state_stack_position >= state_stack.size())
+        h::Custom_type_reference* parent = static_cast<h::Custom_type_reference*>(state->pointer);
+
+        if (key == "module_reference")
         {
-            return false;
+
+            return Stack_state
+            {
+                .pointer = &parent->module_reference,
+                .type = "Module_reference",
+                .get_next_state = get_next_state_module_reference,
+            };
         }
 
-        int& state = state_stack[state_stack_position];
+        if (key == "name")
+        {
 
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
+            return Stack_state
             {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "name")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "type")
-                    {
-                        state = 4;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            default:
-                break;
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Alias_type_declaration' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 1;
-            return read_value(output.name, "name", event_data);
-        }
-        case 4:
-        {
-            state = 5;
-            return read_object(output.type, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 5:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.type, event, event_data, state_stack, state_stack_position + 1 + 0))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.type, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
+                .pointer = &parent->name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
         }
 
-        std::cerr << "Error while reading 'Alias_type_declaration'.\n";
-        return false;
+        return {};
     }
 
-    export template<typename Event_data>
-        bool read_object(
-            Enum_value& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    export std::optional<Stack_state> get_next_state_type_reference(Stack_state* state, std::string_view const key)
     {
-        if (state_stack_position >= state_stack.size())
-        {
-            return false;
-        }
+        h::Type_reference* parent = static_cast<h::Type_reference*>(state->pointer);
 
-        int& state = state_stack[state_stack_position];
+        if (key == "data")
+        {
+            auto const set_variant_type = [](Stack_state* state, std::string_view const type) -> void
+            {
+                using Variant_type = std::variant<h::Builtin_type_reference, h::Constant_array_type, h::Custom_type_reference, h::Fundamental_type, h::Function_type, h::Integer_type, h::Pointer_type>;
+                Variant_type* pointer = static_cast<Variant_type*>(state->pointer);
 
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
-            {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
+                if (type == "Builtin_type_reference")
                 {
-                    if (event_data == "name")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "value")
-                    {
-                        state = 4;
-                        return true;
-                    }
+                    *pointer = Builtin_type_reference{};
+                    state->type = "Builtin_type_reference";
+                    return;
                 }
-                break;
-            }
-            case Event::End_object:
+                if (type == "Constant_array_type")
+                {
+                    *pointer = Constant_array_type{};
+                    state->type = "Constant_array_type";
+                    return;
+                }
+                if (type == "Custom_type_reference")
+                {
+                    *pointer = Custom_type_reference{};
+                    state->type = "Custom_type_reference";
+                    return;
+                }
+                if (type == "Fundamental_type")
+                {
+                    *pointer = Fundamental_type{};
+                    state->type = "Fundamental_type";
+                    return;
+                }
+                if (type == "Function_type")
+                {
+                    *pointer = Function_type{};
+                    state->type = "Function_type";
+                    return;
+                }
+                if (type == "Integer_type")
+                {
+                    *pointer = Integer_type{};
+                    state->type = "Integer_type";
+                    return;
+                }
+                if (type == "Pointer_type")
+                {
+                    *pointer = Pointer_type{};
+                    state->type = "Pointer_type";
+                    return;
+                }
+            };
+
+            auto const get_next_state = [](Stack_state* state, std::string_view const key) -> std::optional<Stack_state>
             {
-                state = 2;
-                return true;
-            }
-            default:
-                break;
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Enum_value' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 1;
-            return read_value(output.name, "name", event_data);
-        }
-        case 4:
-        {
-            state = 1;
-            return read_value(output.value, "value", event_data);
-        }
+                if (key == "type")
+                {
+                    return Stack_state
+                    {
+                        .pointer = state->pointer,
+                        .type = "variant_type",
+                        .get_next_state = nullptr
+                    };
+                }
+
+                if (key == "value")
+                {
+                    auto const get_next_state_function = [&]() -> std::optional<Stack_state>(*)(Stack_state* state, std::string_view key)
+                    {
+                        if (state->type == "Builtin_type_reference")
+                        {
+                            return get_next_state_builtin_type_reference;
+                        }
+
+                        if (state->type == "Constant_array_type")
+                        {
+                            return get_next_state_constant_array_type;
+                        }
+
+                        if (state->type == "Custom_type_reference")
+                        {
+                            return get_next_state_custom_type_reference;
+                        }
+
+                        if (state->type == "Fundamental_type")
+                        {
+                            return nullptr;
+                        }
+
+                        if (state->type == "Function_type")
+                        {
+                            return get_next_state_function_type;
+                        }
+
+                        if (state->type == "Integer_type")
+                        {
+                            return get_next_state_integer_type;
+                        }
+
+                        if (state->type == "Pointer_type")
+                        {
+                            return get_next_state_pointer_type;
+                        }
+
+                        return nullptr;
+                    };
+
+                    return Stack_state
+                    {
+                        .pointer = state->pointer,
+                        .type = "variant_value",
+                        .get_next_state = get_next_state_function()
+                    };
+                }
+
+                return {};
+            };
+
+
+            return Stack_state
+            {
+                .pointer = &parent->data,
+                .type = "std::variant<Builtin_type_reference,Constant_array_type,Custom_type_reference,Fundamental_type,Function_type,Integer_type,Pointer_type>",
+                .get_next_state = get_next_state,
+                .set_variant_type = set_variant_type,
+            };
         }
 
-        std::cerr << "Error while reading 'Enum_value'.\n";
-        return false;
+        return {};
     }
 
-    export template<typename Event_data>
-        bool read_object(
-            Enum_declaration& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    export std::optional<Stack_state> get_next_state_alias_type_declaration(Stack_state* state, std::string_view const key)
     {
-        if (state_stack_position >= state_stack.size())
+        h::Alias_type_declaration* parent = static_cast<h::Alias_type_declaration*>(state->pointer);
+
+        if (key == "name")
         {
-            return false;
+
+            return Stack_state
+            {
+                .pointer = &parent->name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
         }
 
-        int& state = state_stack[state_stack_position];
+        if (key == "type")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Type_reference>* parent = static_cast<std::pmr::vector<Type_reference>*>(state->pointer);
+                parent->resize(size);
+            };
 
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
             {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "name")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "values")
-                    {
-                        state = 4;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            default:
-                break;
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Enum_declaration' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 1;
-            return read_value(output.name, "name", event_data);
-        }
-        case 4:
-        {
-            state = 5;
-            return read_object(output.values, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 5:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.values, event, event_data, state_stack, state_stack_position + 1 + 0))
-                {
-                    return false;
-                }
+                std::pmr::vector<Type_reference>* parent = static_cast<std::pmr::vector<Type_reference>*>(state->pointer);
+                return &((*parent)[index]);
+            };
 
-                state = 1;
-                return true;
-            }
-            else
+            return Stack_state
             {
-                return read_object(output.values, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
+                .pointer = &parent->type,
+                .type = "std::pmr::vector<Type_reference>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_type_reference
+            };
         }
 
-        std::cerr << "Error while reading 'Enum_declaration'.\n";
-        return false;
+        return {};
     }
 
-    export template<typename Event_data>
-        bool read_object(
-            Struct_declaration& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    export std::optional<Stack_state> get_next_state_enum_value(Stack_state* state, std::string_view const key)
     {
-        if (state_stack_position >= state_stack.size())
+        h::Enum_value* parent = static_cast<h::Enum_value*>(state->pointer);
+
+        if (key == "name")
         {
-            return false;
+
+            return Stack_state
+            {
+                .pointer = &parent->name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
         }
 
-        int& state = state_stack[state_stack_position];
+        if (key == "value")
+        {
 
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
+            return Stack_state
             {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "name")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "member_types")
-                    {
-                        state = 4;
-                        return true;
-                    }
-                    else if (event_data == "member_names")
-                    {
-                        state = 6;
-                        return true;
-                    }
-                    else if (event_data == "is_packed")
-                    {
-                        state = 8;
-                        return true;
-                    }
-                    else if (event_data == "is_literal")
-                    {
-                        state = 9;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            default:
-                break;
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Struct_declaration' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 1;
-            return read_value(output.name, "name", event_data);
-        }
-        case 4:
-        {
-            state = 5;
-            return read_object(output.member_types, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 5:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.member_types, event, event_data, state_stack, state_stack_position + 1 + 0))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.member_types, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
-        case 6:
-        {
-            state = 7;
-            return read_object(output.member_names, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 7:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.member_names, event, event_data, state_stack, state_stack_position + 1 + 0))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.member_names, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
-        case 8:
-        {
-            state = 1;
-            return read_value(output.is_packed, "is_packed", event_data);
-        }
-        case 9:
-        {
-            state = 1;
-            return read_value(output.is_literal, "is_literal", event_data);
-        }
+                .pointer = &parent->value,
+                .type = "std::uint64_t",
+                .get_next_state = nullptr,
+            };
         }
 
-        std::cerr << "Error while reading 'Struct_declaration'.\n";
-        return false;
+        return {};
     }
 
-    export template<typename Event_data>
-        bool read_object(
-            Variable_expression& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    export std::optional<Stack_state> get_next_state_enum_declaration(Stack_state* state, std::string_view const key)
     {
-        if (state_stack_position >= state_stack.size())
+        h::Enum_declaration* parent = static_cast<h::Enum_declaration*>(state->pointer);
+
+        if (key == "name")
         {
-            return false;
+
+            return Stack_state
+            {
+                .pointer = &parent->name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
         }
 
-        int& state = state_stack[state_stack_position];
+        if (key == "values")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Enum_value>* parent = static_cast<std::pmr::vector<Enum_value>*>(state->pointer);
+                parent->resize(size);
+            };
 
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
             {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
+                std::pmr::vector<Enum_value>* parent = static_cast<std::pmr::vector<Enum_value>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
             {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "name")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            default:
-                break;
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Variable_expression' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 1;
-            return read_value(output.name, "name", event_data);
-        }
+                .pointer = &parent->values,
+                .type = "std::pmr::vector<Enum_value>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_enum_value
+            };
         }
 
-        std::cerr << "Error while reading 'Variable_expression'.\n";
-        return false;
+        return {};
     }
 
-    export template<typename Event_data>
-        bool read_object(
-            Expression_index& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    export std::optional<Stack_state> get_next_state_struct_declaration(Stack_state* state, std::string_view const key)
     {
-        if (state_stack_position >= state_stack.size())
+        h::Struct_declaration* parent = static_cast<h::Struct_declaration*>(state->pointer);
+
+        if (key == "name")
         {
-            return false;
+
+            return Stack_state
+            {
+                .pointer = &parent->name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
         }
 
-        int& state = state_stack[state_stack_position];
+        if (key == "member_types")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Type_reference>* parent = static_cast<std::pmr::vector<Type_reference>*>(state->pointer);
+                parent->resize(size);
+            };
 
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
             {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
+                std::pmr::vector<Type_reference>* parent = static_cast<std::pmr::vector<Type_reference>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
             {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "expression_index")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            default:
-                break;
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Expression_index' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 1;
-            return read_value(output.expression_index, "expression_index", event_data);
-        }
+                .pointer = &parent->member_types,
+                .type = "std::pmr::vector<Type_reference>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_type_reference
+            };
         }
 
-        std::cerr << "Error while reading 'Expression_index'.\n";
-        return false;
+        if (key == "member_names")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<std::pmr::string>* parent = static_cast<std::pmr::vector<std::pmr::string>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<std::pmr::string>* parent = static_cast<std::pmr::vector<std::pmr::string>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->member_names,
+                .type = "std::pmr::vector<std::pmr::string>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = nullptr
+            };
+        }
+
+        if (key == "is_packed")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->is_packed,
+                .type = "bool",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "is_literal")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->is_literal,
+                .type = "bool",
+                .get_next_state = nullptr,
+            };
+        }
+
+        return {};
     }
 
-    export template<typename Event_data>
-        bool read_object(
-            Binary_expression& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    export std::optional<Stack_state> get_next_state_variable_expression(Stack_state* state, std::string_view const key)
     {
-        if (state_stack_position >= state_stack.size())
+        h::Variable_expression* parent = static_cast<h::Variable_expression*>(state->pointer);
+
+        if (key == "name")
         {
-            return false;
+
+            return Stack_state
+            {
+                .pointer = &parent->name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
         }
 
-        int& state = state_stack[state_stack_position];
-
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
-            {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "left_hand_side")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "right_hand_side")
-                    {
-                        state = 5;
-                        return true;
-                    }
-                    else if (event_data == "operation")
-                    {
-                        state = 7;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            default:
-                break;
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Binary_expression' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 4;
-            return read_object(output.left_hand_side, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 4:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.left_hand_side, event, event_data, state_stack, state_stack_position + 1 + 0))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.left_hand_side, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
-        case 5:
-        {
-            state = 6;
-            return read_object(output.right_hand_side, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 6:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.right_hand_side, event, event_data, state_stack, state_stack_position + 1 + 0))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.right_hand_side, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
-        case 7:
-        {
-            state = 1;
-            return read_enum(output.operation, event_data);
-        }
-        }
-
-        std::cerr << "Error while reading 'Binary_expression'.\n";
-        return false;
+        return {};
     }
 
-    export template<typename Event_data>
-        bool read_object(
-            Call_expression& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    export std::optional<Stack_state> get_next_state_expression_index(Stack_state* state, std::string_view const key)
     {
-        if (state_stack_position >= state_stack.size())
+        h::Expression_index* parent = static_cast<h::Expression_index*>(state->pointer);
+
+        if (key == "expression_index")
         {
-            return false;
+
+            return Stack_state
+            {
+                .pointer = &parent->expression_index,
+                .type = "std::uint64_t",
+                .get_next_state = nullptr,
+            };
         }
 
-        int& state = state_stack[state_stack_position];
-
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
-            {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "module_reference")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "function_name")
-                    {
-                        state = 5;
-                        return true;
-                    }
-                    else if (event_data == "arguments")
-                    {
-                        state = 6;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            default:
-                break;
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Call_expression' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 4;
-            return read_object(output.module_reference, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 4:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.module_reference, event, event_data, state_stack, state_stack_position + 1 + 0))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.module_reference, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
-        case 5:
-        {
-            state = 1;
-            return read_value(output.function_name, "function_name", event_data);
-        }
-        case 6:
-        {
-            state = 7;
-            return read_object(output.arguments, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 7:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.arguments, event, event_data, state_stack, state_stack_position + 1 + 0))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.arguments, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
-        }
-
-        std::cerr << "Error while reading 'Call_expression'.\n";
-        return false;
+        return {};
     }
 
-    export template<typename Event_data>
-        bool read_object(
-            Constant_expression& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    export std::optional<Stack_state> get_next_state_binary_expression(Stack_state* state, std::string_view const key)
     {
-        if (state_stack_position >= state_stack.size())
+        h::Binary_expression* parent = static_cast<h::Binary_expression*>(state->pointer);
+
+        if (key == "left_hand_side")
         {
-            return false;
+
+            return Stack_state
+            {
+                .pointer = &parent->left_hand_side,
+                .type = "Expression_index",
+                .get_next_state = get_next_state_expression_index,
+            };
         }
 
-        int& state = state_stack[state_stack_position];
+        if (key == "right_hand_side")
+        {
 
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
+            return Stack_state
             {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "data")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "data")
-                    {
-                        state = 4;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            default:
-                break;
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Constant_expression' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            if (event == Event::Start_object)
-            {
-                state = 5;
-                return true;
-            }
-        }
-        case 4:
-        {
-            if (event == Event::End_object)
-            {
-                state = 1;
-                return true;
-            }
-        }
-        case 5:
-        {
-            if constexpr (std::is_same_v<Event_data, std::string_view>)
-            {
-                if (event == Event::Key && event_data == "type")
-                {
-                    state = 6;
-                    return true;
-                }
-            }
-        }
-        case 6:
-        {
-            if constexpr (std::is_same_v<Event_data, std::string_view>)
-            {
-                if (event_data == "Fundamental_type")
-                {
-                    output.type = Fundamental_type{};
-                    state = 7;
-                    return true;
-                }
-                else if (event_data == "Integer_type")
-                {
-                    output.type = Integer_type{};
-                    state = 10;
-                    return true;
-                }
-            }
-        }
-        case 7:
-        {
-            if constexpr (std::is_same_v<Event_data, std::string_view>)
-            {
-                if (event == Event::Key && event_data == "value")
-                {
-                    state = 8;
-                    return true;
-                }
-            }
-        }
-        case 8:
-        {
-            state = 4;
-            return read_enum(std::get<Fundamental_type>(output.type), event_data);
-        }
-        case 10:
-        {
-            if constexpr (std::is_same_v<Event_data, std::string_view>)
-            {
-                if (event == Event::Key && event_data == "value")
-                {
-                    state = 11;
-                    return true;
-                }
-            }
-        }
-        case 11:
-        {
-            state = 12;
-            return read_object(std::get<Integer_type>(output.type), event, event_data, state_stack, state_stack_position + 1 + 1);
-        }
-        case 12:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
-            {
-                if (!read_object(std::get<Integer_type>(output.type), event, event_data, state_stack, state_stack_position + 1 + 1))
-                {
-                    return false;
-                }
-
-                state = 4;
-                return true;
-            }
-            else
-            {
-                return read_object(std::get<Integer_type>(output.type), event, event_data, state_stack, state_stack_position + 1 + 1);
-            }
-        }
-        case 13:
-        {
-            state = 1;
-            return read_value(output.data, "data", event_data);
-        }
+                .pointer = &parent->right_hand_side,
+                .type = "Expression_index",
+                .get_next_state = get_next_state_expression_index,
+            };
         }
 
-        std::cerr << "Error while reading 'Constant_expression'.\n";
-        return false;
+        if (key == "operation")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->operation,
+                .type = "Binary_operation",
+                .get_next_state = nullptr,
+            };
+        }
+
+        return {};
     }
 
-    export template<typename Event_data>
-        bool read_object(
-            Invalid_expression& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    export std::optional<Stack_state> get_next_state_call_expression(Stack_state* state, std::string_view const key)
     {
-        if (state_stack_position >= state_stack.size())
+        h::Call_expression* parent = static_cast<h::Call_expression*>(state->pointer);
+
+        if (key == "module_reference")
         {
-            return false;
+
+            return Stack_state
+            {
+                .pointer = &parent->module_reference,
+                .type = "Module_reference",
+                .get_next_state = get_next_state_module_reference,
+            };
         }
 
-        int& state = state_stack[state_stack_position];
+        if (key == "function_name")
+        {
 
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
+            return Stack_state
             {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "value")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            default:
-                break;
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Invalid_expression' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 1;
-            return read_value(output.value, "value", event_data);
-        }
+                .pointer = &parent->function_name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
         }
 
-        std::cerr << "Error while reading 'Invalid_expression'.\n";
-        return false;
+        if (key == "arguments")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Expression_index>* parent = static_cast<std::pmr::vector<Expression_index>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Expression_index>* parent = static_cast<std::pmr::vector<Expression_index>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->arguments,
+                .type = "std::pmr::vector<Expression_index>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_expression_index
+            };
+        }
+
+        return {};
     }
 
-    export template<typename Event_data>
-        bool read_object(
-            Return_expression& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    export std::optional<Stack_state> get_next_state_constant_expression(Stack_state* state, std::string_view const key)
     {
-        if (state_stack_position >= state_stack.size())
-        {
-            return false;
-        }
+        h::Constant_expression* parent = static_cast<h::Constant_expression*>(state->pointer);
 
-        int& state = state_stack[state_stack_position];
+        if (key == "type")
+        {
+            auto const set_variant_type = [](Stack_state* state, std::string_view const type) -> void
+            {
+                using Variant_type = std::variant<h::Fundamental_type, h::Integer_type>;
+                Variant_type* pointer = static_cast<Variant_type*>(state->pointer);
 
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
-            {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
+                if (type == "Fundamental_type")
                 {
-                    if (event_data == "expression")
+                    *pointer = Fundamental_type{};
+                    state->type = "Fundamental_type";
+                    return;
+                }
+                if (type == "Integer_type")
+                {
+                    *pointer = Integer_type{};
+                    state->type = "Integer_type";
+                    return;
+                }
+            };
+
+            auto const get_next_state = [](Stack_state* state, std::string_view const key) -> std::optional<Stack_state>
+            {
+                if (key == "type")
+                {
+                    return Stack_state
                     {
-                        state = 3;
-                        return true;
-                    }
+                        .pointer = state->pointer,
+                        .type = "variant_type",
+                        .get_next_state = nullptr
+                    };
                 }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            default:
-                break;
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Return_expression' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 4;
-            return read_object(output.expression, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 4:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.expression, event, event_data, state_stack, state_stack_position + 1 + 0))
+
+                if (key == "value")
                 {
-                    return false;
+                    auto const get_next_state_function = [&]() -> std::optional<Stack_state>(*)(Stack_state* state, std::string_view key)
+                    {
+                        if (state->type == "Fundamental_type")
+                        {
+                            return nullptr;
+                        }
+
+                        if (state->type == "Integer_type")
+                        {
+                            return get_next_state_integer_type;
+                        }
+
+                        return nullptr;
+                    };
+
+                    return Stack_state
+                    {
+                        .pointer = state->pointer,
+                        .type = "variant_value",
+                        .get_next_state = get_next_state_function()
+                    };
                 }
 
-                state = 1;
-                return true;
-            }
-            else
+                return {};
+            };
+
+
+            return Stack_state
             {
-                return read_object(output.expression, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
+                .pointer = &parent->type,
+                .type = "std::variant<Fundamental_type,Integer_type>",
+                .get_next_state = get_next_state,
+                .set_variant_type = set_variant_type,
+            };
         }
 
-        std::cerr << "Error while reading 'Return_expression'.\n";
-        return false;
+        if (key == "data")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->data,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        return {};
     }
 
-    export template<typename Event_data>
-        bool read_object(
-            Struct_member_expression& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    export std::optional<Stack_state> get_next_state_invalid_expression(Stack_state* state, std::string_view const key)
     {
-        if (state_stack_position >= state_stack.size())
+        h::Invalid_expression* parent = static_cast<h::Invalid_expression*>(state->pointer);
+
+        if (key == "value")
         {
-            return false;
+
+            return Stack_state
+            {
+                .pointer = &parent->value,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
         }
 
-        int& state = state_stack[state_stack_position];
-
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
-            {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "instance")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "member_name")
-                    {
-                        state = 5;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            default:
-                break;
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Struct_member_expression' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 4;
-            return read_object(output.instance, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 4:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.instance, event, event_data, state_stack, state_stack_position + 1 + 0))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.instance, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
-        case 5:
-        {
-            state = 1;
-            return read_value(output.member_name, "member_name", event_data);
-        }
-        }
-
-        std::cerr << "Error while reading 'Struct_member_expression'.\n";
-        return false;
+        return {};
     }
 
-    export template<typename Event_data>
-        bool read_object(
-            Expression& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    export std::optional<Stack_state> get_next_state_return_expression(Stack_state* state, std::string_view const key)
     {
-        if (state_stack_position >= state_stack.size())
+        h::Return_expression* parent = static_cast<h::Return_expression*>(state->pointer);
+
+        if (key == "expression")
         {
-            return false;
+
+            return Stack_state
+            {
+                .pointer = &parent->expression,
+                .type = "Expression_index",
+                .get_next_state = get_next_state_expression_index,
+            };
         }
 
-        int& state = state_stack[state_stack_position];
-
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
-            {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "data")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            default:
-                break;
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Expression' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            if (event == Event::Start_object)
-            {
-                state = 5;
-                return true;
-            }
-        }
-        case 4:
-        {
-            if (event == Event::End_object)
-            {
-                state = 1;
-                return true;
-            }
-        }
-        case 5:
-        {
-            if constexpr (std::is_same_v<Event_data, std::string_view>)
-            {
-                if (event == Event::Key && event_data == "type")
-                {
-                    state = 6;
-                    return true;
-                }
-            }
-        }
-        case 6:
-        {
-            if constexpr (std::is_same_v<Event_data, std::string_view>)
-            {
-                if (event_data == "Binary_expression")
-                {
-                    output.data = Binary_expression{};
-                    state = 7;
-                    return true;
-                }
-                else if (event_data == "Call_expression")
-                {
-                    output.data = Call_expression{};
-                    state = 10;
-                    return true;
-                }
-                else if (event_data == "Constant_expression")
-                {
-                    output.data = Constant_expression{};
-                    state = 13;
-                    return true;
-                }
-                else if (event_data == "Invalid_expression")
-                {
-                    output.data = Invalid_expression{};
-                    state = 16;
-                    return true;
-                }
-                else if (event_data == "Return_expression")
-                {
-                    output.data = Return_expression{};
-                    state = 19;
-                    return true;
-                }
-                else if (event_data == "Struct_member_expression")
-                {
-                    output.data = Struct_member_expression{};
-                    state = 22;
-                    return true;
-                }
-                else if (event_data == "Variable_expression")
-                {
-                    output.data = Variable_expression{};
-                    state = 25;
-                    return true;
-                }
-            }
-        }
-        case 7:
-        {
-            if constexpr (std::is_same_v<Event_data, std::string_view>)
-            {
-                if (event == Event::Key && event_data == "value")
-                {
-                    state = 8;
-                    return true;
-                }
-            }
-        }
-        case 8:
-        {
-            state = 9;
-            return read_object(std::get<Binary_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
-        }
-        case 9:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
-            {
-                if (!read_object(std::get<Binary_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1))
-                {
-                    return false;
-                }
-
-                state = 4;
-                return true;
-            }
-            else
-            {
-                return read_object(std::get<Binary_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
-            }
-        }
-        case 10:
-        {
-            if constexpr (std::is_same_v<Event_data, std::string_view>)
-            {
-                if (event == Event::Key && event_data == "value")
-                {
-                    state = 11;
-                    return true;
-                }
-            }
-        }
-        case 11:
-        {
-            state = 12;
-            return read_object(std::get<Call_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
-        }
-        case 12:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
-            {
-                if (!read_object(std::get<Call_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1))
-                {
-                    return false;
-                }
-
-                state = 4;
-                return true;
-            }
-            else
-            {
-                return read_object(std::get<Call_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
-            }
-        }
-        case 13:
-        {
-            if constexpr (std::is_same_v<Event_data, std::string_view>)
-            {
-                if (event == Event::Key && event_data == "value")
-                {
-                    state = 14;
-                    return true;
-                }
-            }
-        }
-        case 14:
-        {
-            state = 15;
-            return read_object(std::get<Constant_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
-        }
-        case 15:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
-            {
-                if (!read_object(std::get<Constant_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1))
-                {
-                    return false;
-                }
-
-                state = 4;
-                return true;
-            }
-            else
-            {
-                return read_object(std::get<Constant_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
-            }
-        }
-        case 16:
-        {
-            if constexpr (std::is_same_v<Event_data, std::string_view>)
-            {
-                if (event == Event::Key && event_data == "value")
-                {
-                    state = 17;
-                    return true;
-                }
-            }
-        }
-        case 17:
-        {
-            state = 18;
-            return read_object(std::get<Invalid_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
-        }
-        case 18:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
-            {
-                if (!read_object(std::get<Invalid_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1))
-                {
-                    return false;
-                }
-
-                state = 4;
-                return true;
-            }
-            else
-            {
-                return read_object(std::get<Invalid_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
-            }
-        }
-        case 19:
-        {
-            if constexpr (std::is_same_v<Event_data, std::string_view>)
-            {
-                if (event == Event::Key && event_data == "value")
-                {
-                    state = 20;
-                    return true;
-                }
-            }
-        }
-        case 20:
-        {
-            state = 21;
-            return read_object(std::get<Return_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
-        }
-        case 21:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
-            {
-                if (!read_object(std::get<Return_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1))
-                {
-                    return false;
-                }
-
-                state = 4;
-                return true;
-            }
-            else
-            {
-                return read_object(std::get<Return_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
-            }
-        }
-        case 22:
-        {
-            if constexpr (std::is_same_v<Event_data, std::string_view>)
-            {
-                if (event == Event::Key && event_data == "value")
-                {
-                    state = 23;
-                    return true;
-                }
-            }
-        }
-        case 23:
-        {
-            state = 24;
-            return read_object(std::get<Struct_member_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
-        }
-        case 24:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
-            {
-                if (!read_object(std::get<Struct_member_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1))
-                {
-                    return false;
-                }
-
-                state = 4;
-                return true;
-            }
-            else
-            {
-                return read_object(std::get<Struct_member_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
-            }
-        }
-        case 25:
-        {
-            if constexpr (std::is_same_v<Event_data, std::string_view>)
-            {
-                if (event == Event::Key && event_data == "value")
-                {
-                    state = 26;
-                    return true;
-                }
-            }
-        }
-        case 26:
-        {
-            state = 27;
-            return read_object(std::get<Variable_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
-        }
-        case 27:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 1 == state_stack.size()))
-            {
-                if (!read_object(std::get<Variable_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1))
-                {
-                    return false;
-                }
-
-                state = 4;
-                return true;
-            }
-            else
-            {
-                return read_object(std::get<Variable_expression>(output.data), event, event_data, state_stack, state_stack_position + 1 + 1);
-            }
-        }
-        }
-
-        std::cerr << "Error while reading 'Expression'.\n";
-        return false;
+        return {};
     }
 
-    export template<typename Event_data>
-        bool read_object(
-            Statement& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    export std::optional<Stack_state> get_next_state_struct_member_expression(Stack_state* state, std::string_view const key)
     {
-        if (state_stack_position >= state_stack.size())
+        h::Struct_member_expression* parent = static_cast<h::Struct_member_expression*>(state->pointer);
+
+        if (key == "instance")
         {
-            return false;
+
+            return Stack_state
+            {
+                .pointer = &parent->instance,
+                .type = "Expression_index",
+                .get_next_state = get_next_state_expression_index,
+            };
         }
 
-        int& state = state_stack[state_stack_position];
+        if (key == "member_name")
+        {
 
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
+            return Stack_state
             {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "name")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "expressions")
-                    {
-                        state = 4;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            default:
-                break;
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Statement' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 1;
-            return read_value(output.name, "name", event_data);
-        }
-        case 4:
-        {
-            state = 5;
-            return read_object(output.expressions, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 5:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.expressions, event, event_data, state_stack, state_stack_position + 1 + 0))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.expressions, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
+                .pointer = &parent->member_name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
         }
 
-        std::cerr << "Error while reading 'Statement'.\n";
-        return false;
+        return {};
     }
 
-    export template<typename Event_data>
-        bool read_object(
-            Function_declaration& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    export std::optional<Stack_state> get_next_state_expression(Stack_state* state, std::string_view const key)
     {
-        if (state_stack_position >= state_stack.size())
-        {
-            return false;
-        }
+        h::Expression* parent = static_cast<h::Expression*>(state->pointer);
 
-        int& state = state_stack[state_stack_position];
+        if (key == "data")
+        {
+            auto const set_variant_type = [](Stack_state* state, std::string_view const type) -> void
+            {
+                using Variant_type = std::variant<h::Binary_expression, h::Call_expression, h::Constant_expression, h::Invalid_expression, h::Return_expression, h::Struct_member_expression, h::Variable_expression>;
+                Variant_type* pointer = static_cast<Variant_type*>(state->pointer);
 
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
-            {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
+                if (type == "Binary_expression")
                 {
-                    if (event_data == "name")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "type")
-                    {
-                        state = 4;
-                        return true;
-                    }
-                    else if (event_data == "input_parameter_names")
-                    {
-                        state = 6;
-                        return true;
-                    }
-                    else if (event_data == "output_parameter_names")
-                    {
-                        state = 8;
-                        return true;
-                    }
-                    else if (event_data == "linkage")
-                    {
-                        state = 10;
-                        return true;
-                    }
+                    *pointer = Binary_expression{};
+                    state->type = "Binary_expression";
+                    return;
                 }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            default:
-                break;
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Function_declaration' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 1;
-            return read_value(output.name, "name", event_data);
-        }
-        case 4:
-        {
-            state = 5;
-            return read_object(output.type, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 5:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.type, event, event_data, state_stack, state_stack_position + 1 + 0))
+                if (type == "Call_expression")
                 {
-                    return false;
+                    *pointer = Call_expression{};
+                    state->type = "Call_expression";
+                    return;
+                }
+                if (type == "Constant_expression")
+                {
+                    *pointer = Constant_expression{};
+                    state->type = "Constant_expression";
+                    return;
+                }
+                if (type == "Invalid_expression")
+                {
+                    *pointer = Invalid_expression{};
+                    state->type = "Invalid_expression";
+                    return;
+                }
+                if (type == "Return_expression")
+                {
+                    *pointer = Return_expression{};
+                    state->type = "Return_expression";
+                    return;
+                }
+                if (type == "Struct_member_expression")
+                {
+                    *pointer = Struct_member_expression{};
+                    state->type = "Struct_member_expression";
+                    return;
+                }
+                if (type == "Variable_expression")
+                {
+                    *pointer = Variable_expression{};
+                    state->type = "Variable_expression";
+                    return;
+                }
+            };
+
+            auto const get_next_state = [](Stack_state* state, std::string_view const key) -> std::optional<Stack_state>
+            {
+                if (key == "type")
+                {
+                    return Stack_state
+                    {
+                        .pointer = state->pointer,
+                        .type = "variant_type",
+                        .get_next_state = nullptr
+                    };
                 }
 
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.type, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
-        case 6:
-        {
-            state = 7;
-            return read_object(output.input_parameter_names, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 7:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.input_parameter_names, event, event_data, state_stack, state_stack_position + 1 + 0))
+                if (key == "value")
                 {
-                    return false;
+                    auto const get_next_state_function = [&]() -> std::optional<Stack_state>(*)(Stack_state* state, std::string_view key)
+                    {
+                        if (state->type == "Binary_expression")
+                        {
+                            return get_next_state_binary_expression;
+                        }
+
+                        if (state->type == "Call_expression")
+                        {
+                            return get_next_state_call_expression;
+                        }
+
+                        if (state->type == "Constant_expression")
+                        {
+                            return get_next_state_constant_expression;
+                        }
+
+                        if (state->type == "Invalid_expression")
+                        {
+                            return get_next_state_invalid_expression;
+                        }
+
+                        if (state->type == "Return_expression")
+                        {
+                            return get_next_state_return_expression;
+                        }
+
+                        if (state->type == "Struct_member_expression")
+                        {
+                            return get_next_state_struct_member_expression;
+                        }
+
+                        if (state->type == "Variable_expression")
+                        {
+                            return get_next_state_variable_expression;
+                        }
+
+                        return nullptr;
+                    };
+
+                    return Stack_state
+                    {
+                        .pointer = state->pointer,
+                        .type = "variant_value",
+                        .get_next_state = get_next_state_function()
+                    };
                 }
 
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.input_parameter_names, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
-        case 8:
-        {
-            state = 9;
-            return read_object(output.output_parameter_names, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 9:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.output_parameter_names, event, event_data, state_stack, state_stack_position + 1 + 0))
-                {
-                    return false;
-                }
+                return {};
+            };
 
-                state = 1;
-                return true;
-            }
-            else
+
+            return Stack_state
             {
-                return read_object(output.output_parameter_names, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
-        case 10:
-        {
-            state = 1;
-            return read_enum(output.linkage, event_data);
-        }
+                .pointer = &parent->data,
+                .type = "std::variant<Binary_expression,Call_expression,Constant_expression,Invalid_expression,Return_expression,Struct_member_expression,Variable_expression>",
+                .get_next_state = get_next_state,
+                .set_variant_type = set_variant_type,
+            };
         }
 
-        std::cerr << "Error while reading 'Function_declaration'.\n";
-        return false;
+        return {};
     }
 
-    export template<typename Event_data>
-        bool read_object(
-            Function_definition& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    export std::optional<Stack_state> get_next_state_statement(Stack_state* state, std::string_view const key)
     {
-        if (state_stack_position >= state_stack.size())
+        h::Statement* parent = static_cast<h::Statement*>(state->pointer);
+
+        if (key == "name")
         {
-            return false;
+
+            return Stack_state
+            {
+                .pointer = &parent->name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
         }
 
-        int& state = state_stack[state_stack_position];
+        if (key == "expressions")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Expression>* parent = static_cast<std::pmr::vector<Expression>*>(state->pointer);
+                parent->resize(size);
+            };
 
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
             {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "name")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "statements")
-                    {
-                        state = 4;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            default:
-                break;
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Function_definition' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 1;
-            return read_value(output.name, "name", event_data);
-        }
-        case 4:
-        {
-            state = 5;
-            return read_object(output.statements, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 5:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.statements, event, event_data, state_stack, state_stack_position + 1 + 0))
-                {
-                    return false;
-                }
+                std::pmr::vector<Expression>* parent = static_cast<std::pmr::vector<Expression>*>(state->pointer);
+                return &((*parent)[index]);
+            };
 
-                state = 1;
-                return true;
-            }
-            else
+            return Stack_state
             {
-                return read_object(output.statements, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
+                .pointer = &parent->expressions,
+                .type = "std::pmr::vector<Expression>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_expression
+            };
         }
 
-        std::cerr << "Error while reading 'Function_definition'.\n";
-        return false;
+        return {};
     }
 
-    export template<typename Event_data>
-        bool read_object(
-            Language_version& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    export std::optional<Stack_state> get_next_state_function_declaration(Stack_state* state, std::string_view const key)
     {
-        if (state_stack_position >= state_stack.size())
+        h::Function_declaration* parent = static_cast<h::Function_declaration*>(state->pointer);
+
+        if (key == "name")
         {
-            return false;
+
+            return Stack_state
+            {
+                .pointer = &parent->name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
         }
 
-        int& state = state_stack[state_stack_position];
+        if (key == "type")
+        {
 
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
+            return Stack_state
             {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "major")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "minor")
-                    {
-                        state = 4;
-                        return true;
-                    }
-                    else if (event_data == "patch")
-                    {
-                        state = 5;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            default:
-                break;
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Language_version' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 1;
-            return read_value(output.major, "major", event_data);
-        }
-        case 4:
-        {
-            state = 1;
-            return read_value(output.minor, "minor", event_data);
-        }
-        case 5:
-        {
-            state = 1;
-            return read_value(output.patch, "patch", event_data);
-        }
+                .pointer = &parent->type,
+                .type = "Function_type",
+                .get_next_state = get_next_state_function_type,
+            };
         }
 
-        std::cerr << "Error while reading 'Language_version'.\n";
-        return false;
+        if (key == "input_parameter_names")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<std::pmr::string>* parent = static_cast<std::pmr::vector<std::pmr::string>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<std::pmr::string>* parent = static_cast<std::pmr::vector<std::pmr::string>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->input_parameter_names,
+                .type = "std::pmr::vector<std::pmr::string>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = nullptr
+            };
+        }
+
+        if (key == "output_parameter_names")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<std::pmr::string>* parent = static_cast<std::pmr::vector<std::pmr::string>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<std::pmr::string>* parent = static_cast<std::pmr::vector<std::pmr::string>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->output_parameter_names,
+                .type = "std::pmr::vector<std::pmr::string>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = nullptr
+            };
+        }
+
+        if (key == "linkage")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->linkage,
+                .type = "Linkage",
+                .get_next_state = nullptr,
+            };
+        }
+
+        return {};
     }
 
-    export template<typename Event_data>
-        bool read_object(
-            Import_module_with_alias& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    export std::optional<Stack_state> get_next_state_function_definition(Stack_state* state, std::string_view const key)
     {
-        if (state_stack_position >= state_stack.size())
+        h::Function_definition* parent = static_cast<h::Function_definition*>(state->pointer);
+
+        if (key == "name")
         {
-            return false;
+
+            return Stack_state
+            {
+                .pointer = &parent->name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
         }
 
-        int& state = state_stack[state_stack_position];
+        if (key == "statements")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Statement>* parent = static_cast<std::pmr::vector<Statement>*>(state->pointer);
+                parent->resize(size);
+            };
 
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
             {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
+                std::pmr::vector<Statement>* parent = static_cast<std::pmr::vector<Statement>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
             {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "module_name")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "alias")
-                    {
-                        state = 4;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            default:
-                break;
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Import_module_with_alias' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 1;
-            return read_value(output.module_name, "module_name", event_data);
-        }
-        case 4:
-        {
-            state = 1;
-            return read_value(output.alias, "alias", event_data);
-        }
+                .pointer = &parent->statements,
+                .type = "std::pmr::vector<Statement>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_statement
+            };
         }
 
-        std::cerr << "Error while reading 'Import_module_with_alias'.\n";
-        return false;
+        return {};
     }
 
-    export template<typename Event_data>
-        bool read_object(
-            Module_dependencies& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    export std::optional<Stack_state> get_next_state_language_version(Stack_state* state, std::string_view const key)
     {
-        if (state_stack_position >= state_stack.size())
+        h::Language_version* parent = static_cast<h::Language_version*>(state->pointer);
+
+        if (key == "major")
         {
-            return false;
+
+            return Stack_state
+            {
+                .pointer = &parent->major,
+                .type = "std::uint32_t",
+                .get_next_state = nullptr,
+            };
         }
 
-        int& state = state_stack[state_stack_position];
+        if (key == "minor")
+        {
 
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
+            return Stack_state
             {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "alias_imports")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            default:
-                break;
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Module_dependencies' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 4;
-            return read_object(output.alias_imports, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 4:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.alias_imports, event, event_data, state_stack, state_stack_position + 1 + 0))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.alias_imports, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
+                .pointer = &parent->minor,
+                .type = "std::uint32_t",
+                .get_next_state = nullptr,
+            };
         }
 
-        std::cerr << "Error while reading 'Module_dependencies'.\n";
-        return false;
+        if (key == "patch")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->patch,
+                .type = "std::uint32_t",
+                .get_next_state = nullptr,
+            };
+        }
+
+        return {};
     }
 
-    export template<typename Event_data>
-        bool read_object(
-            Module_declarations& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    export std::optional<Stack_state> get_next_state_import_module_with_alias(Stack_state* state, std::string_view const key)
     {
-        if (state_stack_position >= state_stack.size())
+        h::Import_module_with_alias* parent = static_cast<h::Import_module_with_alias*>(state->pointer);
+
+        if (key == "module_name")
         {
-            return false;
+
+            return Stack_state
+            {
+                .pointer = &parent->module_name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
         }
 
-        int& state = state_stack[state_stack_position];
+        if (key == "alias")
+        {
 
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
+            return Stack_state
             {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "alias_type_declarations")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "enum_declarations")
-                    {
-                        state = 5;
-                        return true;
-                    }
-                    else if (event_data == "struct_declarations")
-                    {
-                        state = 7;
-                        return true;
-                    }
-                    else if (event_data == "function_declarations")
-                    {
-                        state = 9;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            default:
-                break;
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Module_declarations' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 4;
-            return read_object(output.alias_type_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 4:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.alias_type_declarations, event, event_data, state_stack, state_stack_position + 1 + 0))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.alias_type_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
-        case 5:
-        {
-            state = 6;
-            return read_object(output.enum_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 6:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.enum_declarations, event, event_data, state_stack, state_stack_position + 1 + 0))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.enum_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
-        case 7:
-        {
-            state = 8;
-            return read_object(output.struct_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 8:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.struct_declarations, event, event_data, state_stack, state_stack_position + 1 + 0))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.struct_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
-        case 9:
-        {
-            state = 10;
-            return read_object(output.function_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 10:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.function_declarations, event, event_data, state_stack, state_stack_position + 1 + 0))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.function_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
+                .pointer = &parent->alias,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
         }
 
-        std::cerr << "Error while reading 'Module_declarations'.\n";
-        return false;
+        return {};
     }
 
-    export template<typename Event_data>
-        bool read_object(
-            Module_definitions& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    export std::optional<Stack_state> get_next_state_module_dependencies(Stack_state* state, std::string_view const key)
     {
-        if (state_stack_position >= state_stack.size())
+        h::Module_dependencies* parent = static_cast<h::Module_dependencies*>(state->pointer);
+
+        if (key == "alias_imports")
         {
-            return false;
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Import_module_with_alias>* parent = static_cast<std::pmr::vector<Import_module_with_alias>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Import_module_with_alias>* parent = static_cast<std::pmr::vector<Import_module_with_alias>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->alias_imports,
+                .type = "std::pmr::vector<Import_module_with_alias>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_import_module_with_alias
+            };
         }
 
-        int& state = state_stack[state_stack_position];
-
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
-            {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "function_definitions")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            default:
-                break;
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Module_definitions' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 4;
-            return read_object(output.function_definitions, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 4:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.function_definitions, event, event_data, state_stack, state_stack_position + 1 + 0))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.function_definitions, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
-        }
-
-        std::cerr << "Error while reading 'Module_definitions'.\n";
-        return false;
+        return {};
     }
 
-    export template<typename Event_data>
-        bool read_object(
-            Module& output,
-            Event const event,
-            Event_data const event_data,
-            std::pmr::vector<int>& state_stack,
-            std::size_t const state_stack_position
-        )
+    export std::optional<Stack_state> get_next_state_module_declarations(Stack_state* state, std::string_view const key)
     {
-        if (state_stack_position >= state_stack.size())
+        h::Module_declarations* parent = static_cast<h::Module_declarations*>(state->pointer);
+
+        if (key == "alias_type_declarations")
         {
-            return false;
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Alias_type_declaration>* parent = static_cast<std::pmr::vector<Alias_type_declaration>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Alias_type_declaration>* parent = static_cast<std::pmr::vector<Alias_type_declaration>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->alias_type_declarations,
+                .type = "std::pmr::vector<Alias_type_declaration>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_alias_type_declaration
+            };
         }
 
-        int& state = state_stack[state_stack_position];
+        if (key == "enum_declarations")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Enum_declaration>* parent = static_cast<std::pmr::vector<Enum_declaration>*>(state->pointer);
+                parent->resize(size);
+            };
 
-        switch (state)
-        {
-        case 0:
-        {
-            if (event == Event::Start_object)
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
             {
-                state = 1;
-                return true;
-            }
-            break;
-        }
-        case 1:
-        {
-            switch (event)
-            {
-            case Event::Key:
-            {
-                if constexpr (std::is_same_v<Event_data, std::string_view>)
-                {
-                    if (event_data == "language_version")
-                    {
-                        state = 3;
-                        return true;
-                    }
-                    else if (event_data == "name")
-                    {
-                        state = 5;
-                        return true;
-                    }
-                    else if (event_data == "dependencies")
-                    {
-                        state = 6;
-                        return true;
-                    }
-                    else if (event_data == "export_declarations")
-                    {
-                        state = 8;
-                        return true;
-                    }
-                    else if (event_data == "internal_declarations")
-                    {
-                        state = 10;
-                        return true;
-                    }
-                    else if (event_data == "definitions")
-                    {
-                        state = 12;
-                        return true;
-                    }
-                }
-                break;
-            }
-            case Event::End_object:
-            {
-                state = 2;
-                return true;
-            }
-            default:
-                break;
-            }
-            break;
-        }
-        case 2:
-        {
-            std::cerr << "While parsing 'Module' unexpected '}' found.\n";
-            return false;
-        }
-        case 3:
-        {
-            state = 4;
-            return read_object(output.language_version, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 4:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.language_version, event, event_data, state_stack, state_stack_position + 1 + 0))
-                {
-                    return false;
-                }
+                std::pmr::vector<Enum_declaration>* parent = static_cast<std::pmr::vector<Enum_declaration>*>(state->pointer);
+                return &((*parent)[index]);
+            };
 
-                state = 1;
-                return true;
-            }
-            else
+            return Stack_state
             {
-                return read_object(output.language_version, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
-        case 5:
-        {
-            state = 1;
-            return read_value(output.name, "name", event_data);
-        }
-        case 6:
-        {
-            state = 7;
-            return read_object(output.dependencies, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 7:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.dependencies, event, event_data, state_stack, state_stack_position + 1 + 0))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.dependencies, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
-        case 8:
-        {
-            state = 9;
-            return read_object(output.export_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 9:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.export_declarations, event, event_data, state_stack, state_stack_position + 1 + 0))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.export_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
-        case 10:
-        {
-            state = 11;
-            return read_object(output.internal_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 11:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.internal_declarations, event, event_data, state_stack, state_stack_position + 1 + 0))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.internal_declarations, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
-        case 12:
-        {
-            state = 13;
-            return read_object(output.definitions, event, event_data, state_stack, state_stack_position + 1 + 0);
-        }
-        case 13:
-        {
-            if ((event == Event::End_object) && (state_stack_position + 2 + 0 == state_stack.size()))
-            {
-                if (!read_object(output.definitions, event, event_data, state_stack, state_stack_position + 1 + 0))
-                {
-                    return false;
-                }
-
-                state = 1;
-                return true;
-            }
-            else
-            {
-                return read_object(output.definitions, event, event_data, state_stack, state_stack_position + 1 + 0);
-            }
-        }
+                .pointer = &parent->enum_declarations,
+                .type = "std::pmr::vector<Enum_declaration>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_enum_declaration
+            };
         }
 
-        std::cerr << "Error while reading 'Module'.\n";
-        return false;
+        if (key == "struct_declarations")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Struct_declaration>* parent = static_cast<std::pmr::vector<Struct_declaration>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Struct_declaration>* parent = static_cast<std::pmr::vector<Struct_declaration>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->struct_declarations,
+                .type = "std::pmr::vector<Struct_declaration>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_struct_declaration
+            };
+        }
+
+        if (key == "function_declarations")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Function_declaration>* parent = static_cast<std::pmr::vector<Function_declaration>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Function_declaration>* parent = static_cast<std::pmr::vector<Function_declaration>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->function_declarations,
+                .type = "std::pmr::vector<Function_declaration>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_function_declaration
+            };
+        }
+
+        return {};
     }
 
+    export std::optional<Stack_state> get_next_state_module_definitions(Stack_state* state, std::string_view const key)
+    {
+        h::Module_definitions* parent = static_cast<h::Module_definitions*>(state->pointer);
+
+        if (key == "function_definitions")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Function_definition>* parent = static_cast<std::pmr::vector<Function_definition>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Function_definition>* parent = static_cast<std::pmr::vector<Function_definition>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->function_definitions,
+                .type = "std::pmr::vector<Function_definition>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_function_definition
+            };
+        }
+
+        return {};
+    }
+
+    export std::optional<Stack_state> get_next_state_module(Stack_state* state, std::string_view const key)
+    {
+        h::Module* parent = static_cast<h::Module*>(state->pointer);
+
+        if (key == "language_version")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->language_version,
+                .type = "Language_version",
+                .get_next_state = get_next_state_language_version,
+            };
+        }
+
+        if (key == "name")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "dependencies")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->dependencies,
+                .type = "Module_dependencies",
+                .get_next_state = get_next_state_module_dependencies,
+            };
+        }
+
+        if (key == "export_declarations")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->export_declarations,
+                .type = "Module_declarations",
+                .get_next_state = get_next_state_module_declarations,
+            };
+        }
+
+        if (key == "internal_declarations")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->internal_declarations,
+                .type = "Module_declarations",
+                .get_next_state = get_next_state_module_declarations,
+            };
+        }
+
+        if (key == "definitions")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->definitions,
+                .type = "Module_definitions",
+                .get_next_state = get_next_state_module_definitions,
+            };
+        }
+
+        return {};
+    }
+
+    export template<typename Struct_type>
+        Stack_state get_first_state(Struct_type* output)
+    {
+        if constexpr (std::is_same_v<Struct_type, h::Integer_type>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Integer_type",
+                .get_next_state = get_next_state_integer_type
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Builtin_type_reference>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Builtin_type_reference",
+                .get_next_state = get_next_state_builtin_type_reference
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Function_type>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Function_type",
+                .get_next_state = get_next_state_function_type
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Pointer_type>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Pointer_type",
+                .get_next_state = get_next_state_pointer_type
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Module_reference>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Module_reference",
+                .get_next_state = get_next_state_module_reference
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Constant_array_type>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Constant_array_type",
+                .get_next_state = get_next_state_constant_array_type
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Custom_type_reference>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Custom_type_reference",
+                .get_next_state = get_next_state_custom_type_reference
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Type_reference>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Type_reference",
+                .get_next_state = get_next_state_type_reference
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Alias_type_declaration>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Alias_type_declaration",
+                .get_next_state = get_next_state_alias_type_declaration
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Enum_value>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Enum_value",
+                .get_next_state = get_next_state_enum_value
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Enum_declaration>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Enum_declaration",
+                .get_next_state = get_next_state_enum_declaration
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Struct_declaration>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Struct_declaration",
+                .get_next_state = get_next_state_struct_declaration
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Variable_expression>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Variable_expression",
+                .get_next_state = get_next_state_variable_expression
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Expression_index>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Expression_index",
+                .get_next_state = get_next_state_expression_index
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Binary_expression>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Binary_expression",
+                .get_next_state = get_next_state_binary_expression
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Call_expression>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Call_expression",
+                .get_next_state = get_next_state_call_expression
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Constant_expression>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Constant_expression",
+                .get_next_state = get_next_state_constant_expression
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Invalid_expression>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Invalid_expression",
+                .get_next_state = get_next_state_invalid_expression
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Return_expression>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Return_expression",
+                .get_next_state = get_next_state_return_expression
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Struct_member_expression>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Struct_member_expression",
+                .get_next_state = get_next_state_struct_member_expression
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Expression>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Expression",
+                .get_next_state = get_next_state_expression
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Statement>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Statement",
+                .get_next_state = get_next_state_statement
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Function_declaration>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Function_declaration",
+                .get_next_state = get_next_state_function_declaration
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Function_definition>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Function_definition",
+                .get_next_state = get_next_state_function_definition
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Language_version>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Language_version",
+                .get_next_state = get_next_state_language_version
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Import_module_with_alias>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Import_module_with_alias",
+                .get_next_state = get_next_state_import_module_with_alias
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Module_dependencies>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Module_dependencies",
+                .get_next_state = get_next_state_module_dependencies
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Module_declarations>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Module_declarations",
+                .get_next_state = get_next_state_module_declarations
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Module_definitions>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Module_definitions",
+                .get_next_state = get_next_state_module_definitions
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Module>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Module",
+                .get_next_state = get_next_state_module
+            };
+        }
+
+    }
 }

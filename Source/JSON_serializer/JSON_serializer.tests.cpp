@@ -531,6 +531,16 @@ namespace h
             .patch = 3
         };
 
+        Module_dependencies dependencies
+        {
+            .alias_imports = {
+                {
+                    .module_name = "C.Standard_library",
+                    .alias = "Cstl"
+                }
+            }
+        };
+
         Module_declarations export_declarations
         {
             .function_declarations = create_expected_function_declaration()
@@ -545,6 +555,7 @@ namespace h
         {
             .language_version = language_version,
             .name = "module_name",
+            .dependencies = std::move(dependencies),
             .export_declarations = std::move(export_declarations),
             .internal_declarations = Module_declarations{},
             .definitions = std::move(definitions),
@@ -563,8 +574,13 @@ namespace h
             "name": "module_name",
             "dependencies": {
                 "alias_imports": {
-                    "size": 0,
-                    "elements": []
+                    "size": 1,
+                    "elements": [
+                        {
+                            "module_name": "C.Standard_library",
+                            "alias": "Cstl"
+                        }
+                    ]
                 }
             },
             "export_declarations": {
