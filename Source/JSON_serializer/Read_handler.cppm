@@ -21,7 +21,7 @@ import h.json_serializer.read_json;
 
 namespace h::json
 {
-    static constexpr bool g_debug = true;
+    static constexpr bool g_debug = false;
 
     bool is_array(Stack_state const& state)
     {
