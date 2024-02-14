@@ -1,4 +1,5 @@
 add_subdirectory("Core")
+add_subdirectory("Parser")
 add_subdirectory("Compiler")
 add_subdirectory("Editor")
 add_subdirectory("Interoperability")
