@@ -12,6 +12,7 @@ add_subdirectory("Tools/code_generator")
 add_subdirectory("Source")
 add_subdirectory("Application")
 add_subdirectory("Tests")
+add_subdirectory("Examples")
 
 add_custom_target(
     Generate_code_after_core_update DEPENDS

@@ -1,0 +1,9 @@
+module hello_world;
+
+import C.Standard_library as Cstl;
+
+export function main() -> (result: Int32)
+{
+    Cstl.puts("Hello world!");
+    return 0;
+}
