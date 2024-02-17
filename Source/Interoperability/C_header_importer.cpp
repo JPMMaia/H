@@ -18,7 +18,7 @@ module h.c_header_converter;
 
 namespace h::c
 {
-    static constexpr bool g_debug = true;
+    static constexpr bool g_debug = false;
 
     struct String
     {
