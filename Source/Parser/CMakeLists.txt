@@ -19,6 +19,7 @@ add_custom_command(
         "-p" "${PARSER_SOURCE_PATH}/application/tsconfig.json"
         "--outDir" "${CMAKE_CURRENT_BINARY_DIR}"
     VERBATIM
+    DEPENDS "${PARSER_SOURCE_PATH}/application/*.ts" "${PARSER_SOURCE_PATH}/core/*.ts"
     COMMENT "Compiling Parser from Typescript to Javascript"
 )
 
