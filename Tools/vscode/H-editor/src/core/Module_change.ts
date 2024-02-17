@@ -1,5 +1,3 @@
-import type * as Core from './Core_interface';
-
 export enum Type {
     Add_element_to_vector,
     Remove_element_of_vector,
