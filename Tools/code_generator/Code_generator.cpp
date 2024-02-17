@@ -563,10 +563,6 @@ namespace h::tools::code_generator
 
         constexpr int first_member_parse_state = 3;
 
-        if (struct_type.name == "Constant_expression") {
-            int i = 0;
-        }
-
         {
             int current_state = first_member_parse_state;
 
@@ -1949,10 +1945,6 @@ namespace h::tools::code_generator
         {
             return std::pmr::string{ "Expression_enum" };
         }
-        else if (parent_type_name == "Constant_expression")
-        {
-            return std::pmr::string{ "Constant_expression_enum" };
-        }
         else
         {
             return join(variant_type_names, "_") + "_enum";
@@ -2555,6 +2547,10 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
                             output_stream << "                    elements: []\n";
                             output_stream << "                }\n";
                         }
+                        else if (is_struct_type(member.type, struct_map))
+                        {
+                            output_stream << std::format("                {}: intermediate_to_core_{}(intermediate_value.{}),\n", member.name, to_lowercase(member.type.name), member.name);
+                        }
                         else
                         {
                             output_stream << std::format("                {}: intermediate_value.{},\n", member.name, member.name);
@@ -2577,8 +2573,7 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
                         else if (is_vector_type(member.type) && get_vector_value_type(member.type) == "Expression_index")
                         {
                             output_stream << "\n";
-                            output_stream << std::format("    for (const element of intermediate_value.{})\n", member.name);
-                            output_stream << "    {\n";
+                            output_stream << std::format("    for (const element of intermediate_value.{}) {{\n", member.name);
                             output_stream << std::format("        (core_value.data.value as Core.{}).{}.elements.push({{expression_index: expressions.length}});\n", struct_info.name, member.name);
                             output_stream << "        intermediate_to_core_expression(element, expressions);\n";
                             output_stream << "    }\n";
