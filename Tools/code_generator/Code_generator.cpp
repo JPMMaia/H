@@ -2141,7 +2141,7 @@ namespace h::tools::code_generator
 
             if (is_expression_type(variant_type))
             {
-                output_stream << std::format("                    value: core_to_intermediate_{}(core_value.data.value as Core.{}, statement)\n", variant_type, variant_type);
+                output_stream << std::format("                    value: core_to_intermediate_{}(core_value.data.value as Core.{}, statement)\n", to_lowercase(variant_type), variant_type);
             }
             else if (is_enum_type(Type{ .name = variant_type }, enum_map))
             {
@@ -2149,7 +2149,7 @@ namespace h::tools::code_generator
             }
             else
             {
-                output_stream << std::format("                    value: core_to_intermediate_{}(core_value.data.value as Core.{})\n", variant_type, variant_type);
+                output_stream << std::format("                    value: core_to_intermediate_{}(core_value.data.value as Core.{})\n", to_lowercase(variant_type), variant_type);
             }
 
             output_stream << "                }\n";
@@ -2172,7 +2172,7 @@ namespace h::tools::code_generator
             for (std::pmr::string const& variant_type : variant_types)
             {
                 output_stream << std::format("        case {}.{}: {{\n", variant_type_enum_name, variant_type);
-                output_stream << std::format("            intermediate_to_core_{}(intermediate_value.data.value as {}, expressions);\n", variant_type, variant_type);
+                output_stream << std::format("            intermediate_to_core_{}(intermediate_value.data.value as {}, expressions);\n", to_lowercase(variant_type), variant_type);
                 output_stream << "            break;\n";
                 output_stream << "        }\n";
             }
@@ -2192,7 +2192,7 @@ namespace h::tools::code_generator
                 }
                 else
                 {
-                    output_stream << std::format("                    value: intermediate_to_core_{}(intermediate_value.data.value as {})\n", variant_type, variant_type);
+                    output_stream << std::format("                    value: intermediate_to_core_{}(intermediate_value.data.value as {})\n", to_lowercase(variant_type), variant_type);
                 }
 
                 output_stream << "                }\n";
@@ -2467,11 +2467,11 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
             {
                 if (is_expression_type(struct_info.name))
                 {
-                    output_stream << std::format("function core_to_intermediate_{}(core_value: Core.{}, statement: Core.Statement): {} {{\n", struct_info.name, struct_info.name, struct_info.name);
+                    output_stream << std::format("function core_to_intermediate_{}(core_value: Core.{}, statement: Core.Statement): {} {{\n", to_lowercase(struct_info.name), struct_info.name, struct_info.name);
                 }
                 else
                 {
-                    output_stream << std::format("function core_to_intermediate_{}(core_value: Core.{}): {} {{\n", struct_info.name, struct_info.name, struct_info.name);
+                    output_stream << std::format("function core_to_intermediate_{}(core_value: Core.{}): {} {{\n", to_lowercase(struct_info.name), struct_info.name, struct_info.name);
                 }
 
                 {
@@ -2497,7 +2497,7 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
                                 }
                                 else if (is_struct_type(vector_value_type, struct_map))
                                 {
-                                    output_stream << std::format("        {}: core_value.{}.elements.map(value => core_to_intermediate_{}(value)),\n", member.name, member.name, vector_value_type.name);
+                                    output_stream << std::format("        {}: core_value.{}.elements.map(value => core_to_intermediate_{}(value)),\n", member.name, member.name, to_lowercase(vector_value_type.name));
                                 }
                                 else
                                 {
@@ -2506,7 +2506,7 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
                             }
                             else if (is_struct_type(member.type, struct_map))
                             {
-                                output_stream << std::format("        {}: core_to_intermediate_{}(core_value.{}),\n", member.name, member.type.name, member.name);
+                                output_stream << std::format("        {}: core_to_intermediate_{}(core_value.{}),\n", member.name, to_lowercase(member.type.name), member.name);
                             }
                             else
                             {
@@ -2523,11 +2523,11 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
             {
                 if (is_expression_type(struct_info.name))
                 {
-                    output_stream << std::format("function intermediate_to_core_{}(intermediate_value: {}, expressions: Core.Expression[]): void {{\n", struct_info.name, struct_info.name, struct_info.name);
+                    output_stream << std::format("function intermediate_to_core_{}(intermediate_value: {}, expressions: Core.Expression[]): void {{\n", to_lowercase(struct_info.name), struct_info.name, struct_info.name);
                 }
                 else
                 {
-                    output_stream << std::format("function intermediate_to_core_{}(intermediate_value: {}): Core.{} {{\n", struct_info.name, struct_info.name, struct_info.name);
+                    output_stream << std::format("function intermediate_to_core_{}(intermediate_value: {}): Core.{} {{\n", to_lowercase(struct_info.name), struct_info.name, struct_info.name);
                 }
 
                 if (struct_info.members.size() == 1 && is_variant_type(struct_info.members[0].type))
@@ -2608,7 +2608,7 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
                             {
                                 output_stream << std::format("        {}: {{\n", member.name);
                                 output_stream << std::format("            size: intermediate_value.{}.length,\n", member.name);
-                                output_stream << std::format("            elements: intermediate_value.{}.map(value => intermediate_to_core_{}(value)),\n", member.name, vector_value_type.name);
+                                output_stream << std::format("            elements: intermediate_value.{}.map(value => intermediate_to_core_{}(value)),\n", member.name, to_lowercase(vector_value_type.name));
                                 output_stream << "        },\n";
                             }
                             else
@@ -2621,7 +2621,7 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
                         }
                         else if (is_struct_type(member.type, struct_map))
                         {
-                            output_stream << std::format("        {}: intermediate_to_core_{}(intermediate_value.{}),\n", member.name, member.type.name, member.name);
+                            output_stream << std::format("        {}: intermediate_to_core_{}(intermediate_value.{}),\n", member.name, to_lowercase(member.type.name), member.name);
                         }
                         else
                         {
