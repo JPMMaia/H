@@ -4,6 +4,7 @@ module;
 #include <cassert>
 #include <concepts>
 #include <cstddef>
+#include <filesystem>
 #include <format>
 #include <iostream>
 #include <memory_resource>
@@ -14,7 +15,9 @@ module;
 #include <variant>
 #include <vector>
 
+#include <rapidjson/filewritestream.h>
 #include <rapidjson/reader.h>
+#include <rapidjson/writer.h>
 
 export module h.json_serializer;
 
@@ -86,6 +89,22 @@ namespace h::json
             Input_type const& value
         )
     {
+        write_object(writer, value);
+    }
+
+    export template<typename Input_type>
+        void write(
+            std::filesystem::path const& file_path,
+            Input_type const& value
+        )
+    {
+        std::string const file_path_string = file_path.generic_string();
+        std::FILE* file = std::fopen(file_path_string.c_str(), "wb");
+
+        char write_buffer[65536];
+        rapidjson::FileWriteStream output_stream{ file, write_buffer, sizeof(write_buffer) };
+
+        rapidjson::Writer<rapidjson::FileWriteStream> writer{ output_stream };
         write_object(writer, value);
     }
 }
