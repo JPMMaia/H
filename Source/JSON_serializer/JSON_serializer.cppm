@@ -15,6 +15,7 @@ module;
 #include <variant>
 #include <vector>
 
+#include <rapidjson/filereadstream.h>
 #include <rapidjson/filewritestream.h>
 #include <rapidjson/reader.h>
 #include <rapidjson/writer.h>
@@ -53,7 +54,7 @@ namespace h::json
             Input_stream& input_stream
         )
     {
-        Handler<Type> handler;
+        Handler<Type, false> handler;
 
         constexpr unsigned int parse_flags =
             rapidjson::kParseStopWhenDoneFlag |
@@ -81,6 +82,45 @@ namespace h::json
         rapidjson::Reader reader;
         rapidjson::StringStream input_stream{ json_data };
         return h::json::read<Type>(reader, input_stream);
+    }
+
+    export std::optional<Module> read_module_export_declarations(
+        std::filesystem::path const& file_path
+    )
+    {
+        std::string const file_path_string = file_path.generic_string();
+        std::FILE* file = std::fopen(file_path_string.c_str(), "rb");
+        if (file == nullptr)
+        {
+            return std::nullopt;
+        }
+
+        char read_buffer[65536];
+        rapidjson::FileReadStream input_stream{ file, read_buffer, sizeof(read_buffer) };
+
+        Handler<Module, true> handler;
+
+        constexpr unsigned int parse_flags =
+            rapidjson::kParseStopWhenDoneFlag |
+            rapidjson::kParseFullPrecisionFlag;
+
+        rapidjson::Reader reader;
+
+        while (!reader.IterativeParseComplete())
+        {
+            if (!reader.IterativeParseNext<parse_flags>(input_stream, handler))
+            {
+                if (reader.HasParseError() && reader.GetParseErrorCode() != rapidjson::ParseErrorCode::kParseErrorTermination)
+                {
+                    std::cout << "Parse error!\n";
+                    return std::nullopt;
+                }
+
+                break;
+            }
+        }
+
+        return handler.output;
     }
 
     export template<typename Writer_type, typename Input_type>

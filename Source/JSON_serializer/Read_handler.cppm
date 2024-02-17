@@ -100,8 +100,8 @@ namespace h::json
         }
     }
 
-    export template<typename Struct_type>
-        struct Handler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Handler<Struct_type>>
+    export template<typename Struct_type, bool export_declarations_only>
+        struct Handler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Handler<Struct_type, export_declarations_only>>
     {
         Struct_type output = {};
         std::pmr::vector<Stack_state> state_stack;
@@ -150,6 +150,14 @@ namespace h::json
             if constexpr (g_debug)
             {
                 print_debug(std::format("Key({})", key), this->state_stack, false);
+            }
+
+            if constexpr (export_declarations_only)
+            {
+                if (key == "internal_declarations")
+                {
+                    return false;
+                }
             }
 
             Stack_state& current_state = this->state_stack.back();
