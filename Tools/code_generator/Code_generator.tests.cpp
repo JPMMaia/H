@@ -22,7 +22,7 @@ namespace h::tools::code_generator
             }
         };
 
-        std::pmr::string const code = generate_read_enum_json_code(operation);
+        std::pmr::string const code = generate_read_enum_json_code(operation, 0);
         std::cout << code << std::endl;
     }
 
@@ -38,7 +38,7 @@ namespace h::tools::code_generator
             }
         };
 
-        std::pmr::string const code = generate_write_enum_json_code(operation);
+        std::pmr::string const code = generate_write_enum_json_code(operation, 0);
         std::cout << code << std::endl;
     }
 
@@ -73,7 +73,7 @@ namespace h::tools::code_generator
             }
         };
 
-        std::pmr::string const code = generate_read_struct_json_code(struct_type, enum_types, struct_types);
+        std::pmr::string const code = generate_read_struct_json_code(struct_type, enum_types, struct_types, 0);
         std::cout << code << std::endl;
     }
 
@@ -122,7 +122,7 @@ namespace h::tools::code_generator
             }
         };
 
-        std::pmr::string const code = generate_read_struct_json_code(struct_type, enum_types, struct_types);
+        std::pmr::string const code = generate_read_struct_json_code(struct_type, enum_types, struct_types, 0);
         std::cout << code << std::endl;
     }
 
