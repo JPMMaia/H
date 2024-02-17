@@ -888,6 +888,8 @@ namespace h::json
         writer.String(output.module_name.data(), output.module_name.size());
         writer.Key("alias");
         writer.String(output.alias.data(), output.alias.size());
+        writer.Key("usages");
+        write_object(writer, output.usages);
         writer.EndObject();
     }
 

@@ -287,6 +287,7 @@ namespace h
     {
         std::pmr::string module_name;
         std::pmr::string alias;
+        std::pmr::vector<std::pmr::string> usages;
 
         friend auto operator<=>(Import_module_with_alias const&, Import_module_with_alias const&) = default;
     };

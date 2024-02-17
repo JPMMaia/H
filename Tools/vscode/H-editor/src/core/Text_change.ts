@@ -76,6 +76,7 @@ export function update(
 
                 Parser.apply_changes(state.parse_tree, parse_result.changes);
                 Module_change.update_module(state.module, module_changes);
+                Parse_tree_convertor.update_import_module_usages(state.module);
             }
 
             state.text = text_after_changes;

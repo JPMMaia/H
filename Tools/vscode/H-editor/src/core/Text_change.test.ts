@@ -620,11 +620,11 @@ describe("Text_change.update", () => {
         const hello_world_program = `
 module Hello_world;
 
-import C.Standard_library as Cstl;
+import C.stdio as stdio;
 
 export function hello() -> ()
 {
-    Cstl.puts("Hello world!");
+    stdio.puts("Hello world!");
 }
 `;
 
@@ -644,7 +644,11 @@ export function hello() -> ()
         assert.equal(new_document_state.module.name, "Hello_world");
 
         const expected_imports: Core_intermediate_representation.Import_module_with_alias[] = [
-            { module_name: "C.Standard_library", alias: "Cstl" }
+            {
+                module_name: "C.stdio",
+                alias: "stdio",
+                usages: ["puts"]
+            }
         ];
         assert.deepEqual(new_document_state.module.imports, expected_imports);
 
@@ -675,7 +679,7 @@ export function hello() -> ()
                                         type: Core_intermediate_representation.Expression_enum.Call_expression,
                                         value: {
                                             module_reference: {
-                                                name: "Cstl"
+                                                name: "stdio"
                                             },
                                             function_name: "puts",
                                             arguments: [

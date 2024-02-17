@@ -1007,12 +1007,14 @@ function intermediate_to_core_language_version(intermediate_value: Language_vers
 export interface Import_module_with_alias {
     module_name: string;
     alias: string;
+    usages: string[];
 }
 
 function core_to_intermediate_import_module_with_alias(core_value: Core.Import_module_with_alias): Import_module_with_alias {
     return {
         module_name: core_value.module_name,
         alias: core_value.alias,
+        usages: core_value.usages.elements,
     };
 }
 
@@ -1020,6 +1022,10 @@ function intermediate_to_core_import_module_with_alias(intermediate_value: Impor
     return {
         module_name: intermediate_value.module_name,
         alias: intermediate_value.alias,
+        usages: {
+            size: intermediate_value.usages.length,
+            elements: intermediate_value.usages,
+        },
     };
 }
 

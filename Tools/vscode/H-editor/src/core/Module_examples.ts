@@ -716,7 +716,14 @@ export function create_function_calling_module_function_example(): core.Module {
     module.dependencies.alias_imports = {
         size: 1,
         elements: [
-            { module_name: "C.Standard_library", alias: "Cstl" }
+            {
+                module_name: "C.stdio",
+                alias: "stdio",
+                usages: {
+                    size: 1,
+                    elements: ["printf"]
+                }
+            }
         ]
     };
     module.export_declarations.function_declarations = {
@@ -759,7 +766,7 @@ export function create_function_calling_module_function_example(): core.Module {
                                             type: core.Expression_enum.Call_expression,
                                             value: {
                                                 module_reference: {
-                                                    name: "Cstl"
+                                                    name: "stdio"
                                                 },
                                                 function_name: "printf",
                                                 arguments: {
@@ -800,12 +807,20 @@ export function create_module_with_dependencies(): core.Module {
     module.name = "Module_with_dependencies";
     module.dependencies.alias_imports.elements = [
         {
-            module_name: "C.Standard_library",
-            alias: "Cstl"
+            module_name: "C.stdio",
+            alias: "stdio",
+            usages: {
+                size: 0,
+                elements: []
+            }
         },
         {
             module_name: "My_library",
-            alias: "ml"
+            alias: "ml",
+            usages: {
+                size: 0,
+                elements: []
+            }
         }
     ];
     module.dependencies.alias_imports.size = module.dependencies.alias_imports.elements.length;
@@ -817,8 +832,9 @@ export function create_hello_world(): Core_intermediate_representation.Module {
         name: "Hello_world",
         imports: [
             {
-                module_name: "C.Standard_library",
-                alias: "Cstl"
+                module_name: "C.stdio",
+                alias: "stdio",
+                usages: ["puts"]
             }
         ],
         declarations: [
@@ -856,7 +872,7 @@ export function create_hello_world(): Core_intermediate_representation.Module {
                                         type: Core_intermediate_representation.Expression_enum.Call_expression,
                                         value: {
                                             module_reference: {
-                                                name: "Cstl"
+                                                name: "stdio"
                                             },
                                             function_name: "puts",
                                             arguments: [

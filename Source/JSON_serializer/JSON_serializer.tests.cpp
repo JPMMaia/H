@@ -536,7 +536,8 @@ namespace h
             .alias_imports = {
                 {
                     .module_name = "C.Standard_library",
-                    .alias = "Cstl"
+                    .alias = "Cstl",
+                    .usages = { "puts" }
                 }
             }
         };
@@ -578,7 +579,13 @@ namespace h
                     "elements": [
                         {
                             "module_name": "C.Standard_library",
-                            "alias": "Cstl"
+                            "alias": "Cstl",
+                            "usages": {
+                                "size": 1,
+                                "elements": [
+                                    "puts"
+                                ]
+                            }
                         }
                     ]
                 }

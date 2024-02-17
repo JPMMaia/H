@@ -125,7 +125,7 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
         order_index_nodes: order_index_nodes,
         choose_production_rule: choose_production_rule,
         create_module_changes_map: create_module_changes_map,
-        node_to_core_object_map
+        node_to_core_object_map: node_to_core_object_map
     };
 }
 
@@ -770,7 +770,8 @@ function node_to_import_module_with_alias(
     const alias = find_node_value(node, "Import_alias", key_to_production_rule_indices);
     return {
         module_name: module_name,
-        alias: alias
+        alias: alias,
+        usages: []
     };
 }
 

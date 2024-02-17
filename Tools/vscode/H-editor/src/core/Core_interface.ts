@@ -199,6 +199,7 @@ export interface Language_version {
 export interface Import_module_with_alias {
     module_name: string;
     alias: string;
+    usages: Vector<string>;
 }
 
 export interface Module_dependencies {

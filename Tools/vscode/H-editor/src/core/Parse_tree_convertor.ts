@@ -730,6 +730,8 @@ export function parse_tree_to_module(
     const new_changes = parse_tree_to_core_object(module, root, root, [], production_rules, mappings, key_to_production_rule_indices, reflection_info, false);
     Module_change.update_module(module, new_changes);
 
+    update_import_module_usages(module);
+
     return module;
 }
 
@@ -792,4 +794,73 @@ function node_to_core_object(
 ): any {
     const map = mappings.node_to_core_object_map.get(node.word.value) as Node_to_core_object_handler;
     return map(node, key_to_production_rule_indices);
+}
+
+function visit_expressions(expression: Core_intermediate_representation.Expression, predicate: (expression: Core_intermediate_representation.Expression) => void) {
+
+    predicate(expression);
+
+    switch (expression.data.type) {
+        case Core_intermediate_representation.Expression_enum.Binary_expression: {
+            const value = expression.data.value as Core_intermediate_representation.Binary_expression;
+            visit_expressions(value.left_hand_side, predicate);
+            visit_expressions(value.right_hand_side, predicate);
+            break;
+        }
+        case Core_intermediate_representation.Expression_enum.Call_expression: {
+            const value = expression.data.value as Core_intermediate_representation.Call_expression;
+            for (const argument of value.arguments) {
+                visit_expressions(argument, predicate);
+            }
+            break;
+        }
+        case Core_intermediate_representation.Expression_enum.Return_expression: {
+            const value = expression.data.value as Core_intermediate_representation.Return_expression;
+            visit_expressions(value.expression, predicate);
+            break;
+        }
+        case Core_intermediate_representation.Expression_enum.Struct_member_expression: {
+            const value = expression.data.value as Core_intermediate_representation.Struct_member_expression;
+            visit_expressions(value.instance, predicate);
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+}
+
+export function update_import_module_usages(module: Core_intermediate_representation.Module): void {
+
+    for (const import_module of module.imports) {
+        import_module.usages = [];
+    }
+
+    const process_expression = (expression: Core_intermediate_representation.Expression): void => {
+        switch (expression.data.type) {
+            case Core_intermediate_representation.Expression_enum.Call_expression: {
+                const value = expression.data.value as Core_intermediate_representation.Call_expression;
+                if (value.module_reference.name.length > 0) {
+                    const import_module = module.imports.find(element => element.alias === value.module_reference.name);
+                    if (import_module !== undefined) {
+                        import_module.usages.push(value.function_name);
+                    }
+                }
+                break;
+            }
+            default: {
+                break;
+            }
+        }
+    };
+
+    for (const declaration of module.declarations) {
+        if (declaration.type === Core_intermediate_representation.Declaration_type.Function) {
+            const function_value = declaration.value as Core_intermediate_representation.Function;
+
+            for (const statement of function_value.definition.statements) {
+                visit_expressions(statement.expression, process_expression);
+            }
+        }
+    }
 }

@@ -83,7 +83,7 @@ describe("Text_formatter.to_string", () => {
 
         const actual_text = Text_formatter.to_string(parse_tree, text_cache, []);
 
-        const expected_text = "module Module_with_dependencies;\n\nimport C.Standard_library as Cstl;\nimport My_library as ml;\n\n";
+        const expected_text = "module Module_with_dependencies;\n\nimport C.stdio as stdio;\nimport My_library as ml;\n\n";
 
         assert.equal(actual_text, expected_text);
     });
@@ -98,7 +98,7 @@ describe("Text_formatter.to_string", () => {
 
         const actual_text = Text_formatter.to_string(parse_tree, text_cache, []);
 
-        const expected_text = "module Hello_world;\n\nimport C.Standard_library as Cstl;\n\nexport function main() -> (result: Int32)\n{\n    Cstl.puts(\"Hello world!\");\n    return 0;\n}\n\n";
+        const expected_text = "module Hello_world;\n\nimport C.stdio as stdio;\n\nexport function main() -> (result: Int32)\n{\n    stdio.puts(\"Hello world!\");\n    return 0;\n}\n\n";
 
         assert.equal(actual_text, expected_text);
     });

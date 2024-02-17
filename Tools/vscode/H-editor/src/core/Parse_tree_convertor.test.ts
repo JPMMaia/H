@@ -452,7 +452,7 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
 
                 {
                     const identifier_node = identifier_with_dots_node.children[2];
-                    assert.equal(identifier_node.word.value, "Standard_library");
+                    assert.equal(identifier_node.word.value, "stdio");
                     assert.equal(identifier_node.children.length, 0);
                 }
             }
@@ -469,7 +469,7 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                 assert.equal(alias_node.children.length, 1);
 
                 const identifier_node = alias_node.children[0];
-                assert.equal(identifier_node.word.value, "Cstl");
+                assert.equal(identifier_node.word.value, "stdio");
                 assert.equal(identifier_node.children.length, 0);
             }
 
@@ -874,7 +874,7 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
 
                 {
                     const identifier_node = identifier_with_dots_node.children[2];
-                    assert.equal(identifier_node.word.value, "Standard_library");
+                    assert.equal(identifier_node.word.value, "stdio");
                     assert.equal(identifier_node.children.length, 0);
                 }
             }
@@ -891,7 +891,7 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                 assert.equal(alias_node.children.length, 1);
 
                 const identifier_node = alias_node.children[0];
-                assert.equal(identifier_node.word.value, "Cstl");
+                assert.equal(identifier_node.word.value, "stdio");
                 assert.equal(identifier_node.children.length, 0);
             }
 
@@ -922,7 +922,7 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                 assert.equal(module_name_expression_node.word.value, "Expression_call_module_name");
 
                 const module_name_node = module_name_expression_node.children[0];
-                assert.equal(module_name_node.word.value, "Cstl");
+                assert.equal(module_name_node.word.value, "stdio");
             }
 
             {
@@ -1788,7 +1788,8 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
             const value: Core_intermediate_representation.Import_module_with_alias = {
                 module_name: "My_library",
-                alias: "ml"
+                alias: "ml",
+                usages: []
             };
             assert.deepEqual(add_change.value, value);
         }
@@ -1826,7 +1827,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
         const module_changes = create_module_changes(
             module,
             { line: 2, column: 7 },
-            { line: 2, column: 25 },
+            { line: 2, column: 14 },
             "Another_name"
         );
 
@@ -1844,7 +1845,8 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
             const value: Core_intermediate_representation.Import_module_with_alias = {
                 module_name: "Another_name",
-                alias: "Cstl"
+                alias: "stdio",
+                usages: []
             };
             assert.deepEqual(set_change.value, value);
         }
@@ -1856,8 +1858,8 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
         const module_changes = create_module_changes(
             module,
-            { line: 2, column: 29 },
-            { line: 2, column: 33 },
+            { line: 2, column: 18 },
+            { line: 2, column: 23 },
             "Another_alias"
         );
 
@@ -1874,8 +1876,9 @@ describe("Parse_tree_convertor.create_module_changes", () => {
             assert.equal(set_change.index, 0);
 
             const value: Core_intermediate_representation.Import_module_with_alias = {
-                module_name: "C.Standard_library",
-                alias: "Another_alias"
+                module_name: "C.stdio",
+                alias: "Another_alias",
+                usages: []
             };
             assert.deepEqual(set_change.value, value);
         }
