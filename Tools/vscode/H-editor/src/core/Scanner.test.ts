@@ -13,12 +13,34 @@ describe("Scanner.scan", () => {
         assert.equal(scanned_words[0].type, Grammar.Word_type.Number);
     });
 
+    it("Scans integers with suffix", () => {
+        const input = "1234i32";
+        const scanned_words = Scanner.scan(input, 0, input.length);
+        assert.equal(scanned_words.length, 1);
+        assert.equal(scanned_words[0].value, input);
+        assert.equal(scanned_words[0].type, Grammar.Word_type.Number);
+
+        const suffix = Scanner.get_suffix(scanned_words[0]);
+        assert.equal(suffix, "i32");
+    });
+
     it("Scans floats", () => {
         const input = "12.34";
         const scanned_words = Scanner.scan(input, 0, input.length);
         assert.equal(scanned_words.length, 1);
         assert.equal(scanned_words[0].value, input);
         assert.equal(scanned_words[0].type, Grammar.Word_type.Number);
+    });
+
+    it("Scans floats with suffix", () => {
+        const input = "12.34f32";
+        const scanned_words = Scanner.scan(input, 0, input.length);
+        assert.equal(scanned_words.length, 1);
+        assert.equal(scanned_words[0].value, input);
+        assert.equal(scanned_words[0].type, Grammar.Word_type.Number);
+
+        const suffix = Scanner.get_suffix(scanned_words[0]);
+        assert.equal(suffix, "f32");
     });
 
     it("Scans invalid numbers", () => {
@@ -50,6 +72,19 @@ describe("Scanner.scan", () => {
 
         assert.equal(scanned_words[1].value, '"\\\""');
         assert.equal(scanned_words[1].type, Grammar.Word_type.String);
+    });
+
+    it("Scans strings with suffix", () => {
+        const input = '"my c string"c';
+        const scanned_words = Scanner.scan(input, 0, input.length);
+
+        assert.equal(scanned_words.length, 1);
+
+        assert.equal(scanned_words[0].value, input);
+        assert.equal(scanned_words[0].type, Grammar.Word_type.String);
+
+        const suffix = Scanner.get_suffix(scanned_words[0]);
+        assert.equal(suffix, "c");
     });
 
     it("Scans symbols", () => {

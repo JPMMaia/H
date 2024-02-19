@@ -73,6 +73,22 @@ function is_quote(character: string): boolean {
     return character === "\"";
 }
 
+function get_suffix_size(code: string, start_offset: number): number {
+    let current_offset = start_offset;
+
+    while (current_offset < code.length) {
+        const character = code[current_offset];
+
+        if (!is_alphanumeric(character)) {
+            break;
+        }
+
+        current_offset += 1;
+    }
+
+    return current_offset - start_offset;
+}
+
 function scan_number(code: string, start_offset: number): { word: string, type: Grammar.Word_type, processed_characters: number } {
 
     let current_offset = start_offset;
@@ -94,6 +110,8 @@ function scan_number(code: string, start_offset: number): { word: string, type: 
 
         current_offset += 1;
     }
+
+    current_offset += get_suffix_size(code, current_offset);
 
     return {
         word: code.substring(start_offset, current_offset),
@@ -167,6 +185,8 @@ function scan_string(code: string, start_offset: number): { word: string, proces
             break;
         }
     }
+
+    current_offset += get_suffix_size(code, current_offset);
 
     return {
         word: code.substring(start_offset, current_offset),
@@ -322,4 +342,21 @@ export function get_next_word_range(text: string, offset: number): { start: numb
         start: start,
         end: end
     };
+}
+
+export function get_suffix(word: Grammar.Word): string {
+    if (word.type === Grammar.Word_type.String) {
+        const end = word.value.lastIndexOf('"');
+        return word.value.substring(end + 1, word.value.length);
+    }
+    else if (word.type === Grammar.Word_type.Number) {
+        for (let index = 1; index < word.value.length; ++index) {
+            const character = word.value.charAt(index);
+            if (is_letter(character)) {
+                return word.value.substring(index, word.value.length);
+            }
+        }
+    }
+
+    return "";
 }
