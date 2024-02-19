@@ -147,6 +147,19 @@ function map_identifier_with_dots_to_word(
     return { value: split[index / 2], type: Grammar.Word_type.Alphanumeric };
 }
 
+function is_c_string(type_reference: Core_intermediate_representation.Type_reference): boolean {
+
+    if (type_reference.data.type === Core_intermediate_representation.Type_reference_enum.Pointer_type) {
+        const pointer_type = type_reference.data.value as Core_intermediate_representation.Pointer_type;
+        if (pointer_type.element_type.length > 0 && pointer_type.element_type[0].data.type === Core_intermediate_representation.Type_reference_enum.Fundamental_type) {
+            const element_type = pointer_type.element_type[0].data.value as Core_intermediate_representation.Fundamental_type;
+            return element_type === Core_intermediate_representation.Fundamental_type.C_char;
+        }
+    }
+
+    return false;
+}
+
 function map_expression_constant_to_word(
     module: Core_intermediate_representation.Module,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
@@ -159,9 +172,11 @@ function map_expression_constant_to_word(
     const expression = top.state.value as Core_intermediate_representation.Expression;
     const constant_expression = expression.data.value as Core_intermediate_representation.Constant_expression;
 
-    switch (constant_expression.type.type) {
-        case Core_intermediate_representation.Constant_expression_enum.Fundamental_type: {
-            const type = constant_expression.type.value as Core_intermediate_representation.Fundamental_type;
+    const type_reference = constant_expression.type.data;
+
+    switch (type_reference.type) {
+        case Core_intermediate_representation.Type_reference_enum.Fundamental_type: {
+            const type = type_reference.value as Core_intermediate_representation.Fundamental_type;
             switch (type) {
                 case Core_intermediate_representation.Fundamental_type.String: {
                     return { value: `"${constant_expression.data}"`, type: Grammar.Word_type.String };
@@ -171,10 +186,21 @@ function map_expression_constant_to_word(
                 }
             }
         }
-        case Core_intermediate_representation.Constant_expression_enum.Integer_type: {
+        case Core_intermediate_representation.Type_reference_enum.Integer_type: {
             return { value: constant_expression.data, type: Grammar.Word_type.Number };
         }
+        case Core_intermediate_representation.Type_reference_enum.Pointer_type: {
+            if (is_c_string(constant_expression.type)) {
+                return { value: `"${constant_expression.data}"c`, type: Grammar.Word_type.String };
+            }
+        }
+        default:
+            break;
     }
+
+    const message = `Did not expect '${type_reference.type}' as a constant expression`;
+    onThrowError(message);
+    throw Error(message);
 }
 
 function map_expression_call_function_name_to_word(
@@ -397,9 +423,11 @@ function choose_production_rule_expression_constant(
     const expression = top.state.value as Core_intermediate_representation.Expression;
     const constant_expression = expression.data.value as Core_intermediate_representation.Constant_expression;
 
-    switch (constant_expression.type.type) {
-        case Core_intermediate_representation.Constant_expression_enum.Fundamental_type: {
-            const fundamental_type = constant_expression.type.value as Core_intermediate_representation.Fundamental_type;
+    const type_reference = constant_expression.type;
+
+    switch (type_reference.data.type) {
+        case Core_intermediate_representation.Type_reference_enum.Fundamental_type: {
+            const fundamental_type = type_reference.data.value as Core_intermediate_representation.Fundamental_type;
             const rhs_to_find = fundamental_type === Core_intermediate_representation.Fundamental_type.String ? "string" : "number";
 
             const index = production_rule_indices.findIndex(index => production_rules[index].rhs[0] === rhs_to_find);
@@ -411,7 +439,7 @@ function choose_production_rule_expression_constant(
                 next_production_rule_index: production_rule_indices[index]
             };
         }
-        case Core_intermediate_representation.Constant_expression_enum.Integer_type: {
+        case Core_intermediate_representation.Type_reference_enum.Integer_type: {
             const index = production_rule_indices.findIndex(index => production_rules[index].rhs[0] === "number");
             return {
                 next_state: {
@@ -421,7 +449,24 @@ function choose_production_rule_expression_constant(
                 next_production_rule_index: production_rule_indices[index]
             };
         }
+        case Core_intermediate_representation.Type_reference_enum.Pointer_type: {
+            if (is_c_string(type_reference)) {
+                const rhs_to_find = "string";
+                const index = production_rule_indices.findIndex(index => production_rules[index].rhs[0] === rhs_to_find);
+                return {
+                    next_state: {
+                        index: 0,
+                        value: expression
+                    },
+                    next_production_rule_index: production_rule_indices[index]
+                };
+            }
+        }
     }
+
+    const message = `Did not expect constant expression with type '${type_reference.data.type}'`;
+    onThrowError(message);
+    throw Error(message);
 }
 
 function choose_production_rule_expression_return(
@@ -973,26 +1018,59 @@ function node_to_expression_constant(node: Parser_node.Node): Core_intermediate_
             // TODO only supports 32-bit signed integers
             return {
                 type: {
-                    type: Core_intermediate_representation.Constant_expression_enum.Integer_type,
-                    value: {
-                        number_of_bits: 32,
-                        is_signed: true
+                    data: {
+                        type: Core_intermediate_representation.Type_reference_enum.Integer_type,
+                        value: {
+                            number_of_bits: 32,
+                            is_signed: true
+                        }
                     }
                 },
                 data: terminal_node.word.value
             };
         }
-        case Grammar.Word_type.String:
-        default: {
-            return {
-                type: {
-                    type: Core_intermediate_representation.Constant_expression_enum.Fundamental_type,
-                    value: Core_intermediate_representation.Fundamental_type.String
-                },
-                data: terminal_node.word.value.slice(1, -1)
-            };
+        case Grammar.Word_type.String: {
+            const suffix = Scanner.get_suffix(terminal_node.word);
+            if (suffix === "c") {
+                return {
+                    type: {
+                        data: {
+                            type: Core_intermediate_representation.Type_reference_enum.Pointer_type,
+                            value: {
+                                element_type: [
+                                    {
+                                        data: {
+                                            type: Core_intermediate_representation.Type_reference_enum.Fundamental_type,
+                                            value: Core_intermediate_representation.Fundamental_type.C_char
+                                        }
+                                    }
+                                ],
+                                is_mutable: false
+                            }
+                        }
+                    },
+                    data: terminal_node.word.value.slice(1, -2)
+                };
+            }
+            else if (suffix.length === 0) {
+                return {
+                    type: {
+                        data: {
+                            type: Core_intermediate_representation.Type_reference_enum.Fundamental_type,
+                            value: Core_intermediate_representation.Fundamental_type.String
+                        }
+                    },
+                    data: terminal_node.word.value.slice(1, -1)
+                };
+            }
         }
+        default:
+            break;
     }
+
+    const message = `Parse_tree_convertor_mappings.node_to_expression_constant(): Constant expression '${terminal_node.word.value}' of type '${terminal_node.word.type}' not handled!`;
+    onThrowError(message);
+    throw Error(message);
 }
 
 function node_to_expression_variable_name(node: Parser_node.Node): Core_intermediate_representation.Variable_expression {

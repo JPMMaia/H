@@ -995,72 +995,12 @@ namespace h::json
 
         if (key == "type")
         {
-            auto const set_variant_type = [](Stack_state* state, std::string_view const type) -> void
-            {
-                using Variant_type = std::variant<h::Fundamental_type, h::Integer_type>;
-                Variant_type* pointer = static_cast<Variant_type*>(state->pointer);
-
-                if (type == "Fundamental_type")
-                {
-                    *pointer = Fundamental_type{};
-                    state->type = "Fundamental_type";
-                    return;
-                }
-                if (type == "Integer_type")
-                {
-                    *pointer = Integer_type{};
-                    state->type = "Integer_type";
-                    return;
-                }
-            };
-
-            auto const get_next_state = [](Stack_state* state, std::string_view const key) -> std::optional<Stack_state>
-            {
-                if (key == "type")
-                {
-                    return Stack_state
-                    {
-                        .pointer = state->pointer,
-                        .type = "variant_type",
-                        .get_next_state = nullptr
-                    };
-                }
-
-                if (key == "value")
-                {
-                    auto const get_next_state_function = [&]() -> std::optional<Stack_state>(*)(Stack_state* state, std::string_view key)
-                    {
-                        if (state->type == "Fundamental_type")
-                        {
-                            return nullptr;
-                        }
-
-                        if (state->type == "Integer_type")
-                        {
-                            return get_next_state_integer_type;
-                        }
-
-                        return nullptr;
-                    };
-
-                    return Stack_state
-                    {
-                        .pointer = state->pointer,
-                        .type = "variant_value",
-                        .get_next_state = get_next_state_function()
-                    };
-                }
-
-                return {};
-            };
-
 
             return Stack_state
             {
                 .pointer = &parent->type,
-                .type = "std::variant<Fundamental_type,Integer_type>",
-                .get_next_state = get_next_state,
-                .set_variant_type = set_variant_type,
+                .type = "Type_reference",
+                .get_next_state = get_next_state_type_reference,
             };
         }
 

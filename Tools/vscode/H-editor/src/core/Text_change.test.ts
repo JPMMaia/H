@@ -688,8 +688,10 @@ export function hello() -> ()
                                                         type: Core_intermediate_representation.Expression_enum.Constant_expression,
                                                         value: {
                                                             type: {
-                                                                type: Core_intermediate_representation.Constant_expression_enum.Fundamental_type,
-                                                                value: Core_intermediate_representation.Fundamental_type.String
+                                                                data: {
+                                                                    type: Core_intermediate_representation.Type_reference_enum.Fundamental_type,
+                                                                    value: Core_intermediate_representation.Fundamental_type.String
+                                                                }
                                                             },
                                                             data: "Hello world!"
                                                         }

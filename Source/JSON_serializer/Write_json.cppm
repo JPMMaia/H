@@ -672,30 +672,8 @@ namespace h::json
         )
     {
         writer.StartObject();
-        writer.Key("data");
-
-        writer.StartObject();
-        if (std::holds_alternative<Fundamental_type>(output.type))
-        {
-            writer.Key("type");
-            writer.String("Fundamental_type");
-            writer.Key("value");
-            {
-                Fundamental_type const& value = std::get<Fundamental_type>(output.type);
-                std::string_view const enum_value_string = write_enum(value);
-                writer.String(enum_value_string.data(), enum_value_string.size());
-            }
-        }
-        else if (std::holds_alternative<Integer_type>(output.type))
-        {
-            writer.Key("type");
-            writer.String("Integer_type");
-            writer.Key("value");
-            Integer_type const& value = std::get<Integer_type>(output.type);
-            write_object(writer, value);
-        }
-        writer.EndObject();
-
+        writer.Key("type");
+        write_object(writer, output.type);
         writer.Key("data");
         writer.String(output.data.data(), output.data.size());
         writer.EndObject();

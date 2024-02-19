@@ -350,28 +350,8 @@ export function get_type_of_expression(module: Core.Module, function_declaration
     }
     else if (expression.data.type === Core.Expression_enum.Constant_expression) {
         const constant_expression = expression.data.value as Core.Constant_expression;
-        switch (constant_expression.type.type) {
-            case Core.Constant_expression_enum.Fundamental_type: {
-                return [
-                    {
-                        data: {
-                            type: Core.Type_reference_enum.Fundamental_type,
-                            value: constant_expression.type.value as Core.Fundamental_type
-                        }
-                    }
-                ];
-            }
-            case Core.Constant_expression_enum.Integer_type: {
-                return [
-                    {
-                        data: {
-                            type: Core.Type_reference_enum.Integer_type,
-                            value: constant_expression.type.value as Core.Integer_type
-                        }
-                    }
-                ];
-            }
-        }
+        const type_reference = constant_expression.type;
+        return [type_reference];
     }
     else if (expression.data.type === Core.Expression_enum.Variable_expression) {
         const variable_expression = expression.data.value as Core.Variable_expression;

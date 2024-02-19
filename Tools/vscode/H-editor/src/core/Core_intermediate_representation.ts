@@ -239,11 +239,6 @@ export enum Type_reference_enum {
     Pointer_type = "Pointer_type",
 }
 
-export enum Constant_expression_enum {
-    Fundamental_type = "Fundamental_type",
-    Integer_type = "Integer_type",
-}
-
 export enum Expression_enum {
     Binary_expression = "Binary_expression",
     Call_expression = "Call_expression",
@@ -700,7 +695,7 @@ function intermediate_to_core_call_expression(intermediate_value: Call_expressio
         data: {
             type: Core.Expression_enum.Call_expression,
             value: {
-                module_reference: intermediate_value.module_reference,
+                module_reference: intermediate_to_core_module_reference(intermediate_value.module_reference),
                 function_name: intermediate_value.function_name,
                 arguments: {
                     size: 0,
@@ -712,8 +707,7 @@ function intermediate_to_core_call_expression(intermediate_value: Call_expressio
 
     expressions.push(core_value);
 
-    for (const element of intermediate_value.arguments)
-    {
+    for (const element of intermediate_value.arguments) {
         (core_value.data.value as Core.Call_expression).arguments.elements.push({expression_index: expressions.length});
         intermediate_to_core_expression(element, expressions);
     }
@@ -721,13 +715,13 @@ function intermediate_to_core_call_expression(intermediate_value: Call_expressio
 }
 
 export interface Constant_expression {
-    type: Variant<Constant_expression_enum, Fundamental_type | Integer_type>;
+    type: Type_reference;
     data: string;
 }
 
 function core_to_intermediate_constant_expression(core_value: Core.Constant_expression, statement: Core.Statement): Constant_expression {
     return {
-        type: core_value.type,
+        type: core_to_intermediate_type_reference(core_value.type),
         data: core_value.data,
     };
 }
@@ -737,7 +731,7 @@ function intermediate_to_core_constant_expression(intermediate_value: Constant_e
         data: {
             type: Core.Expression_enum.Constant_expression,
             value: {
-                type: intermediate_value.type,
+                type: intermediate_to_core_type_reference(intermediate_value.type),
                 data: intermediate_value.data,
             }
         }

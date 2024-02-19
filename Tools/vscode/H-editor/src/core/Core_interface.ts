@@ -54,11 +54,6 @@ export enum Type_reference_enum {
     Pointer_type = "Pointer_type",
 }
 
-export enum Constant_expression_enum {
-    Fundamental_type = "Fundamental_type",
-    Integer_type = "Integer_type",
-}
-
 export enum Expression_enum {
     Binary_expression = "Binary_expression",
     Call_expression = "Call_expression",
@@ -151,7 +146,7 @@ export interface Call_expression {
 }
 
 export interface Constant_expression {
-    type: Variant<Constant_expression_enum, Fundamental_type | Integer_type>;
+    type: Type_reference;
     data: string;
 }
 

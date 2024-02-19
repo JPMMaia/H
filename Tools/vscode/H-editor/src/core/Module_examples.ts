@@ -783,8 +783,23 @@ export function create_function_calling_module_function_example(): core.Module {
                                             type: core.Expression_enum.Constant_expression,
                                             value: {
                                                 type: {
-                                                    type: core.Constant_expression_enum.Fundamental_type,
-                                                    value: core.Fundamental_type.String
+                                                    data: {
+                                                        type: core.Type_reference_enum.Pointer_type,
+                                                        value: {
+                                                            element_type: {
+                                                                size: 1,
+                                                                elements: [
+                                                                    {
+                                                                        data: {
+                                                                            type: core.Type_reference_enum.Fundamental_type,
+                                                                            value: core.Fundamental_type.C_char
+                                                                        }
+                                                                    }
+                                                                ]
+                                                            },
+                                                            is_mutable: false
+                                                        }
+                                                    }
                                                 },
                                                 data: "Hello world!"
                                             },
@@ -881,8 +896,20 @@ export function create_hello_world(): Core_intermediate_representation.Module {
                                                         type: Core_intermediate_representation.Expression_enum.Constant_expression,
                                                         value: {
                                                             type: {
-                                                                type: core.Constant_expression_enum.Fundamental_type,
-                                                                value: core.Fundamental_type.String
+                                                                data: {
+                                                                    type: core.Type_reference_enum.Pointer_type,
+                                                                    value: {
+                                                                        element_type: [
+                                                                            {
+                                                                                data: {
+                                                                                    type: core.Type_reference_enum.Fundamental_type,
+                                                                                    value: core.Fundamental_type.C_char
+                                                                                }
+                                                                            }
+                                                                        ],
+                                                                        is_mutable: false
+                                                                    }
+                                                                }
                                                             },
                                                             data: "Hello world!"
                                                         }
@@ -904,10 +931,12 @@ export function create_hello_world(): Core_intermediate_representation.Module {
                                                     type: Core_intermediate_representation.Expression_enum.Constant_expression,
                                                     value: {
                                                         type: {
-                                                            type: core.Constant_expression_enum.Integer_type,
-                                                            value: {
-                                                                number_of_bits: 32,
-                                                                is_signed: true
+                                                            data: {
+                                                                type: core.Type_reference_enum.Integer_type,
+                                                                value: {
+                                                                    number_of_bits: 32,
+                                                                    is_signed: true
+                                                                }
                                                             }
                                                         },
                                                         data: "0"

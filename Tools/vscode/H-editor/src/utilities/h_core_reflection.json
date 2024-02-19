@@ -327,7 +327,7 @@
             "members": [
                 {
                     "type": {
-                        "name": "std::variant<Fundamental_type,Integer_type>"
+                        "name": "Type_reference"
                     },
                     "name": "type"
                 },

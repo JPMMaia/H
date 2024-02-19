@@ -954,7 +954,7 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                 assert.equal(constant_expression_node.word.value, "Expression_constant");
 
                 const identifier_node = constant_expression_node.children[0];
-                assert.equal(identifier_node.word.value, '"Hello world!"');
+                assert.equal(identifier_node.word.value, '"Hello world!"c');
             }
 
             {
