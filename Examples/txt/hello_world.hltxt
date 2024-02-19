@@ -1,9 +1,9 @@
 module hello_world;
 
-import C.Standard_library as Cstl;
+import C.stdio as stdio;
 
 export function main() -> (result: Int32)
 {
-    Cstl.puts("Hello world!");
+    stdio.puts("Hello world!"c);
     return 0;
 }
