@@ -34,13 +34,10 @@ if(BUILD_TESTING)
    find_package(Catch2 CONFIG REQUIRED)
    target_link_libraries(H_compiler_tests PRIVATE Catch2::Catch2 Catch2::Catch2WithMain)
 
-   file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test_binaries")
-
    target_compile_definitions(
       H_compiler_tests
       PRIVATE
          TEST_FILES_PATH="${CMAKE_SOURCE_DIR}/Examples/hl"
-         OUTPUT_BINARY_PATH="${CMAKE_CURRENT_BINARY_DIR}/test_binaries"
          C_STANDARD_LIBRARY_PATH="${CMAKE_BINARY_DIR}/C_standard_library"
    )
 

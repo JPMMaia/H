@@ -36,13 +36,6 @@ import h.json_serializer;
 
 namespace h::compiler
 {
-    struct Module_pair
-    {
-        Module core_module;
-        std::unique_ptr<llvm::Module> llvm_module;
-    };
-
-
     std::optional<Module_pair const*> get_module(std::span<Module_pair const> const modules, std::string_view const name)
     {
         auto const location = std::find_if(modules.begin(), modules.end(), [name](Module_pair const& module) { return module.core_module.name == name; });
@@ -79,11 +72,6 @@ namespace h::compiler
 
         return {};
     }
-
-    struct Struct_types
-    {
-        llvm::StructType* string;
-    };
 
     Struct_types create_struct_types(llvm::LLVMContext& llvm_context)
     {
@@ -977,11 +965,7 @@ namespace h::compiler
         return modules;
     }
 
-    void generate_code(
-        std::filesystem::path const& output_file_path,
-        Module const& core_module,
-        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map
-    )
+    LLVM_data initialize_llvm()
     {
         // Initialize the target registry:
         llvm::InitializeAllTargetInfos();
@@ -990,7 +974,7 @@ namespace h::compiler
         llvm::InitializeAllAsmParsers();
         llvm::InitializeAllAsmPrinters();
 
-        std::string const target_triple = llvm::sys::getDefaultTargetTriple();
+        std::string target_triple = llvm::sys::getDefaultTargetTriple();
 
         llvm::Target const& target = [&]() -> llvm::Target const&
         {
@@ -1009,42 +993,91 @@ namespace h::compiler
             return *target;
         }();
 
-        char const* const cpu = "x86-64";
+        char const* const cpu = "generic";
         char const* const features = "";
         llvm::TargetOptions const target_options;
         llvm::Optional<llvm::Reloc::Model> const code_model;
         llvm::TargetMachine* target_machine = target.createTargetMachine(target_triple, cpu, features, target_options, code_model);
-        llvm::DataLayout const llvm_data_layout = target_machine->createDataLayout();
+        llvm::DataLayout llvm_data_layout = target_machine->createDataLayout();
 
-        llvm::LLVMContext llvm_context;
-        Struct_types const struct_types = create_struct_types(llvm_context);
+        std::unique_ptr<llvm::LLVMContext> llvm_context = std::make_unique<llvm::LLVMContext>();
+        Struct_types struct_types = create_struct_types(*llvm_context);
 
-        std::pmr::vector<Module_pair> const module_dependencies = create_dependency_modules(llvm_context, target_triple, llvm_data_layout, core_module, struct_types, module_name_to_file_path_map);
-        std::unique_ptr<llvm::Module> llvm_module = create_module(llvm_context, target_triple, llvm_data_layout, core_module, module_dependencies, struct_types);
-
-        llvm_module->print(llvm::errs(), nullptr);
-
+        return LLVM_data
         {
-            llvm::legacy::PassManager pass_manager;
+            .target_triple = std::move(target_triple),
+            .target = &target,
+            .target_machine = target_machine,
+            .data_layout = std::move(llvm_data_layout),
+            .context = std::move(llvm_context),
+            .struct_types = std::move(struct_types),
+        };
+    }
 
-            std::error_code error_code;
-            llvm::raw_fd_ostream output_stream(output_file_path.generic_string(), error_code, llvm::sys::fs::OF_None);
+    LLVM_module_data create_llvm_module(
+        LLVM_data& llvm_data,
+        Module const& core_module,
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map
+    )
+    {
+        std::pmr::vector<Module_pair> module_dependencies = create_dependency_modules(*llvm_data.context, llvm_data.target_triple, llvm_data.data_layout, core_module, llvm_data.struct_types, module_name_to_file_path_map);
+        std::unique_ptr<llvm::Module> llvm_module = create_module(*llvm_data.context, llvm_data.target_triple, llvm_data.data_layout, core_module, module_dependencies, llvm_data.struct_types);
 
-            if (error_code)
-            {
-                std::string const error_message = error_code.message();
-                llvm::errs() << "Could not open file: " << error_message;
-                throw std::runtime_error{ error_message };
-            }
+        return {
+            .dependencies = std::move(module_dependencies),
+            .module = std::move(llvm_module)
+        };
+    }
 
-            if (target_machine->addPassesToEmitFile(pass_manager, output_stream, nullptr, llvm::CGFT_ObjectFile))
-            {
-                std::string const error_message = error_code.message();
-                llvm::errs() << "Target machine can't emit a file of this type: " << error_message;
-                throw std::runtime_error{ error_message };
-            }
+    std::string to_string(
+        llvm::Module const& llvm_module
+    )
+    {
+        std::string output;
+        llvm::raw_string_ostream stream{ output };
+        llvm_module.print(stream, nullptr);
+        return output;
+    }
 
-            pass_manager.run(*llvm_module);
+    void write_to_file(
+        LLVM_data const& llvm_data,
+        LLVM_module_data const& llvm_module_data,
+        std::filesystem::path const& output_file_path
+    )
+    {
+        llvm::legacy::PassManager pass_manager;
+
+        std::error_code error_code;
+        llvm::raw_fd_ostream output_stream(output_file_path.generic_string(), error_code, llvm::sys::fs::OF_None);
+
+        if (error_code)
+        {
+            std::string const error_message = error_code.message();
+            llvm::errs() << "Could not open file: " << error_message;
+            throw std::runtime_error{ error_message };
         }
+
+        if (llvm_data.target_machine->addPassesToEmitFile(pass_manager, output_stream, nullptr, llvm::CGFT_ObjectFile))
+        {
+            std::string const error_message = error_code.message();
+            llvm::errs() << "Target machine can't emit a file of this type: " << error_message;
+            throw std::runtime_error{ error_message };
+        }
+
+        pass_manager.run(*llvm_module_data.module);
+    }
+
+    void generate_object_file(
+        std::filesystem::path const& output_file_path,
+        Module const& core_module,
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map
+    )
+    {
+        LLVM_data llvm_data = initialize_llvm();
+        LLVM_module_data llvm_module_data = create_llvm_module(llvm_data, core_module, module_name_to_file_path_map);
+
+        llvm_module_data.module->print(llvm::errs(), nullptr);
+
+        write_to_file(llvm_data, llvm_module_data, output_file_path);
     }
 }

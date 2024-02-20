@@ -17,7 +17,6 @@ using h::json::operators::operator<<;
 namespace h
 {
     static std::filesystem::path const g_test_files_path = std::filesystem::path{ TEST_FILES_PATH };
-    static std::filesystem::path const g_output_binary_path = std::filesystem::path{ OUTPUT_BINARY_PATH };
     static std::filesystem::path const g_standard_library_path = std::filesystem::path{ C_STANDARD_LIBRARY_PATH };
 
     std::optional<std::pmr::string> get_file_contents(char const* const path)
@@ -43,6 +42,17 @@ namespace h
         return file_contents;
     }
 
+    std::string_view exclude_header(std::string_view const llvm_ir)
+    {
+        std::size_t current_index = 0;
+
+        std::size_t const location = llvm_ir.find("\n\n", current_index);
+        if (location != std::string_view::npos)
+            current_index = location + 1;
+
+        return llvm_ir.substr(current_index, llvm_ir.size());
+    }
+
     TEST_CASE("Compile hello world!")
     {
         std::optional<std::pmr::string> const json_data = get_file_contents(g_test_files_path / "hello_world.hl");
@@ -56,9 +66,22 @@ namespace h
             { "C.stdio", g_standard_library_path / "C_stdio.hl" }
         };
 
-        std::filesystem::path const output = g_output_binary_path / "hello_world.o";
-        compiler::generate_code(output, module.value(), module_name_to_file_path_map);
+        h::compiler::LLVM_data llvm_data = h::compiler::initialize_llvm();
+        h::compiler::LLVM_module_data llvm_module_data = h::compiler::create_llvm_module(llvm_data, module.value(), module_name_to_file_path_map);
+        std::string const llvm_ir = h::compiler::to_string(*llvm_module_data.module);
 
-        CHECK(std::filesystem::exists(output));
+        std::string_view const llvm_ir_body = exclude_header(llvm_ir);
+
+        char const* const expected_llvm_ir = R"(
+@global_0 = internal constant [13 x i8] c"Hello world!\00"
+
+define i32 @main() {
+entry:
+  %call_puts = call i32 @puts(ptr @global_0)
+  ret i32 0
+}
+)";
+
+        CHECK(llvm_ir_body == expected_llvm_ir);
     }
 }
