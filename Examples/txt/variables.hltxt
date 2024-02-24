@@ -1,0 +1,9 @@
+module Variables;
+
+export function main() -> (result: Int32)
+{
+    var my_constant_variable = 1;
+    mutable my_mutable_variable = 2;
+    my_mutable_variable = 3;
+    return 0;
+}

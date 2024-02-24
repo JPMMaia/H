@@ -360,12 +360,15 @@ namespace h::compiler
     );
 
     llvm::Value* create_value(
-        Variable_expression const& expression,
-        std::span<llvm::Value* const> const local_variables,
+        Assignment_expression const& expression,
+        llvm::IRBuilder<>& llvm_builder,
         std::span<llvm::Value* const> const temporaries
     )
     {
-        throw std::runtime_error{ "Not implemented." };
+        llvm::Value* const left_hand_side = temporaries[expression.left_hand_side.expression_index];
+        llvm::Value* const right_hand_side = temporaries[expression.right_hand_side.expression_index];
+
+        return llvm_builder.CreateStore(right_hand_side, left_hand_side);
     }
 
     llvm::Value* create_value(
@@ -572,6 +575,49 @@ namespace h::compiler
     }
 
     llvm::Value* create_value(
+        Variable_declaration_expression const& expression,
+        llvm::IRBuilder<>& llvm_builder,
+        std::span<llvm::Value* const> const temporaries
+    )
+    {
+        llvm::Value* const right_hand_side = temporaries[expression.right_hand_side.expression_index];
+
+        llvm::Value* const alloca = llvm_builder.CreateAlloca(right_hand_side->getType(), nullptr, expression.name.c_str());
+
+        llvm_builder.CreateStore(right_hand_side, alloca);
+
+        return alloca;
+    }
+
+    llvm::Value* create_value(
+        Variable_expression const& expression,
+        std::span<llvm::Value* const> const function_arguments,
+        std::span<llvm::Value* const> const local_variables
+    )
+    {
+        char const* const variable_name = expression.name.c_str();
+
+        auto const is_variable = [variable_name](llvm::Value const* const value) -> bool
+        {
+            return value->getName() == variable_name;
+        };
+
+        {
+            auto const location = std::find_if(local_variables.rbegin(), local_variables.rend(), is_variable);
+            if (location != local_variables.rend())
+                return *location;
+        }
+
+        {
+            auto const location = std::find_if(function_arguments.begin(), function_arguments.end(), is_variable);
+            if (location != function_arguments.end())
+                return *location;
+        }
+
+        throw std::runtime_error{ std::format("Undefined variable '{}'", variable_name) };
+    }
+
+    llvm::Value* create_value(
         Module const& core_module,
         Expression const& expression,
         llvm::LLVMContext& llvm_context,
@@ -592,7 +638,11 @@ namespace h::compiler
         {
             using Expression_type = std::decay_t<decltype(data)>;
 
-            if constexpr (std::is_same_v<Expression_type, Binary_expression>)
+            if constexpr (std::is_same_v<Expression_type, Assignment_expression>)
+            {
+                output = create_value(data, llvm_builder, temporaries);
+            }
+            else if constexpr (std::is_same_v<Expression_type, Binary_expression>)
             {
                 //output = create_value(data, llvm_builder, function_argument_id_to_index, local_variable_id_to_index, function_arguments, local_variables, temporaries);
             }
@@ -610,7 +660,11 @@ namespace h::compiler
             }
             else if constexpr (std::is_same_v<Expression_type, Variable_expression>)
             {
-                //output = create_value(data, function_argument_id_to_index, local_variable_id_to_index, function_arguments, local_variables, temporaries);
+                output = create_value(data, function_arguments, local_variables);
+            }
+            else if constexpr (std::is_same_v<Expression_type, Variable_declaration_expression>)
+            {
+                output = create_value(data, llvm_builder, temporaries);
             }
             else
             {
@@ -743,7 +797,7 @@ namespace h::compiler
                     temporaries[expression_index] = value;
                 }
 
-                local_variables.push_back(temporaries.back());
+                local_variables.push_back(temporaries.front());
             }
         }
 

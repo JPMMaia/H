@@ -954,3 +954,163 @@ export function create_hello_world(): Core_intermediate_representation.Module {
         ]
     };
 }
+
+export function create_variables(): Core_intermediate_representation.Module {
+    return {
+        name: "Variables",
+        imports: [],
+        declarations: [
+            {
+                name: "main",
+                type: Core_intermediate_representation.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "main",
+                        type: {
+                            input_parameter_types: [],
+                            output_parameter_types: [{
+                                data: {
+                                    type: Core_intermediate_representation.Type_reference_enum.Integer_type,
+                                    value: {
+                                        number_of_bits: 32,
+                                        is_signed: true
+                                    }
+                                }
+                            }],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: [],
+                        output_parameter_names: ["result"],
+                        linkage: Core_intermediate_representation.Linkage.External
+                    },
+                    definition: {
+                        name: "main",
+                        statements: [
+                            {
+                                name: "",
+                                expression: {
+                                    data: {
+                                        type: Core_intermediate_representation.Expression_enum.Variable_declaration_expression,
+                                        value: {
+                                            name: "my_constant_variable",
+                                            is_mutable: false,
+                                            right_hand_side: {
+                                                data: {
+                                                    type: Core_intermediate_representation.Expression_enum.Constant_expression,
+                                                    value: {
+                                                        type: {
+                                                            data: {
+                                                                type: core.Type_reference_enum.Integer_type,
+                                                                value: {
+                                                                    number_of_bits: 32,
+                                                                    is_signed: true
+                                                                }
+                                                            }
+                                                        },
+                                                        data: "1"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                name: "",
+                                expression: {
+                                    data: {
+                                        type: Core_intermediate_representation.Expression_enum.Variable_declaration_expression,
+                                        value: {
+                                            name: "my_mutable_variable",
+                                            is_mutable: true,
+                                            right_hand_side: {
+                                                data: {
+                                                    type: Core_intermediate_representation.Expression_enum.Constant_expression,
+                                                    value: {
+                                                        type: {
+                                                            data: {
+                                                                type: core.Type_reference_enum.Integer_type,
+                                                                value: {
+                                                                    number_of_bits: 32,
+                                                                    is_signed: true
+                                                                }
+                                                            }
+                                                        },
+                                                        data: "2"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                name: "",
+                                expression: {
+                                    data: {
+                                        type: Core_intermediate_representation.Expression_enum.Assignment_expression,
+                                        value: {
+                                            left_hand_side: {
+                                                data: {
+                                                    type: Core_intermediate_representation.Expression_enum.Variable_expression,
+                                                    value: {
+                                                        name: "my_mutable_variable"
+                                                    }
+                                                }
+                                            },
+                                            right_hand_side: {
+                                                data: {
+                                                    type: Core_intermediate_representation.Expression_enum.Constant_expression,
+                                                    value: {
+                                                        type: {
+                                                            data: {
+                                                                type: core.Type_reference_enum.Integer_type,
+                                                                value: {
+                                                                    number_of_bits: 32,
+                                                                    is_signed: true
+                                                                }
+                                                            }
+                                                        },
+                                                        data: "3"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                name: "",
+                                expression: {
+                                    data: {
+                                        type: Core_intermediate_representation.Expression_enum.Return_expression,
+                                        value: {
+                                            expression: {
+                                                data: {
+                                                    type: Core_intermediate_representation.Expression_enum.Constant_expression,
+                                                    value: {
+                                                        type: {
+                                                            data: {
+                                                                type: core.Type_reference_enum.Integer_type,
+                                                                value: {
+                                                                    number_of_bits: 32,
+                                                                    is_signed: true
+                                                                }
+                                                            }
+                                                        },
+                                                        data: "0"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        ]
+    };
+}

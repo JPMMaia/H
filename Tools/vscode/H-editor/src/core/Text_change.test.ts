@@ -5,6 +5,7 @@ import * as Core from "./Core_interface";
 import * as Core_intermediate_representation from "./Core_intermediate_representation";
 import * as Document from "./Document";
 import * as Language from "./Language";
+import * as Module_examples from "./Module_examples";
 import * as Text_change from "./Text_change";
 import * as Type_utilities from "./Type_utilities";
 
@@ -763,6 +764,40 @@ export function hello() -> ()
         const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, hello_world_program_2);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
     });
+
+    it("Handles variable declaration expressions", () => {
+
+        const document_state = Document.create_empty_state(language_description.production_rules);
+
+        const program = `
+module Variables;
+
+export function main() -> (result: Int32)
+{
+    var my_constant_variable = 1;
+    mutable my_mutable_variable = 2;
+    my_mutable_variable = 3;
+    return 0;
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_variables();
+        assert.deepEqual(new_document_state.module, expected_module);
+    });
+
 });
 
 describe("Text_change.aggregate_changes", () => {

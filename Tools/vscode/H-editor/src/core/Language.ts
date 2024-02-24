@@ -44,7 +44,7 @@ export function create_default_description(): Description {
     const grammar_description = Default_grammar.create_description();
 
     const map_word_to_terminal = (word: Grammar.Word): string => {
-        if (word.value === "as" || word.value === "enum" || word.value === "export" || word.value === "function" || word.value === "import" || word.value === "module" || word.value === "return" || word.value === "struct" || word.value === "using") {
+        if (word.value === "as" || word.value === "enum" || word.value === "export" || word.value === "function" || word.value === "import" || word.value === "module" || word.value === "mutable" || word.value === "return" || word.value === "struct" || word.value === "using" || word.value === "var") {
             return word.value;
         }
 

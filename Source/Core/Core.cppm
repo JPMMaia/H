@@ -161,6 +161,14 @@ namespace h
         friend auto operator<=>(Expression_index const&, Expression_index const&) = default;
     };
 
+    export struct Assignment_expression
+    {
+        Expression_index left_hand_side;
+        Expression_index right_hand_side;
+
+        friend auto operator<=>(Assignment_expression const&, Assignment_expression const&) = default;
+    };
+
     export enum class Binary_operation
     {
         Add,
@@ -219,15 +227,26 @@ namespace h
         friend auto operator<=>(Struct_member_expression const&, Struct_member_expression const&) = default;
     };
 
+    export struct Variable_declaration_expression
+    {
+        std::pmr::string name;
+        bool is_mutable;
+        Expression_index right_hand_side;
+
+        friend auto operator<=>(Variable_declaration_expression const&, Variable_declaration_expression const&) = default;
+    };
+
     export struct Expression
     {
         using Data_type = std::variant<
+            Assignment_expression,
             Binary_expression,
             Call_expression,
             Constant_expression,
             Invalid_expression,
             Return_expression,
             Struct_member_expression,
+            Variable_declaration_expression,
             Variable_expression
         >;
 

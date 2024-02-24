@@ -55,12 +55,14 @@ export enum Type_reference_enum {
 }
 
 export enum Expression_enum {
+    Assignment_expression = "Assignment_expression",
     Binary_expression = "Binary_expression",
     Call_expression = "Call_expression",
     Constant_expression = "Constant_expression",
     Invalid_expression = "Invalid_expression",
     Return_expression = "Return_expression",
     Struct_member_expression = "Struct_member_expression",
+    Variable_declaration_expression = "Variable_declaration_expression",
     Variable_expression = "Variable_expression",
 }
 
@@ -133,6 +135,11 @@ export interface Expression_index {
     expression_index: number;
 }
 
+export interface Assignment_expression {
+    left_hand_side: Expression_index;
+    right_hand_side: Expression_index;
+}
+
 export interface Binary_expression {
     left_hand_side: Expression_index;
     right_hand_side: Expression_index;
@@ -163,8 +170,14 @@ export interface Struct_member_expression {
     member_name: string;
 }
 
+export interface Variable_declaration_expression {
+    name: string;
+    is_mutable: boolean;
+    right_hand_side: Expression_index;
+}
+
 export interface Expression {
-    data: Variant<Expression_enum, Binary_expression | Call_expression | Constant_expression | Invalid_expression | Return_expression | Struct_member_expression | Variable_expression>;
+    data: Variant<Expression_enum, Assignment_expression | Binary_expression | Call_expression | Constant_expression | Invalid_expression | Return_expression | Struct_member_expression | Variable_declaration_expression | Variable_expression>;
 }
 
 export interface Statement {

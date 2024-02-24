@@ -416,7 +416,7 @@ function choose_production_rule_index(
         }
     }
 
-    const message = "Not implemented! Got: " + label;
+    const message = `Parse_tree_convertor.choose_production_rule_index(): not implemented for '${label}'`;
     onThrowError(message);
     throw Error(message);
 }
@@ -746,6 +746,8 @@ function parse_tree_to_core_object(
     reflection_info: Core_reflection.Reflection_info,
     modify_change: boolean
 ): { position: any[], change: Module_change.Change }[] {
+
+    const nodes_to_parse_later = ["Function_definition"];
 
     const new_changes: { position: any[], change: Module_change.Change }[] = [];
 

@@ -225,6 +225,12 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Assignment_expression const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Binary_expression const& input
         );
 
@@ -256,6 +262,12 @@ namespace h::json
         void write_object(
             Writer_type& writer,
             Struct_member_expression const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Variable_declaration_expression const& input
         );
 
     export template<typename Writer_type>
@@ -633,6 +645,20 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Assignment_expression const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("left_hand_side");
+        write_object(writer, output.left_hand_side);
+        writer.Key("right_hand_side");
+        write_object(writer, output.right_hand_side);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Binary_expression const& output
         )
     {
@@ -720,6 +746,22 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Variable_declaration_expression const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("name");
+        writer.String(output.name.data(), output.name.size());
+        writer.Key("is_mutable");
+        writer.Bool(output.is_mutable);
+        writer.Key("right_hand_side");
+        write_object(writer, output.right_hand_side);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Expression const& output
         )
     {
@@ -727,7 +769,15 @@ namespace h::json
         writer.Key("data");
 
         writer.StartObject();
-        if (std::holds_alternative<Binary_expression>(output.data))
+        if (std::holds_alternative<Assignment_expression>(output.data))
+        {
+            writer.Key("type");
+            writer.String("Assignment_expression");
+            writer.Key("value");
+            Assignment_expression const& value = std::get<Assignment_expression>(output.data);
+            write_object(writer, value);
+        }
+        else if (std::holds_alternative<Binary_expression>(output.data))
         {
             writer.Key("type");
             writer.String("Binary_expression");
@@ -773,6 +823,14 @@ namespace h::json
             writer.String("Struct_member_expression");
             writer.Key("value");
             Struct_member_expression const& value = std::get<Struct_member_expression>(output.data);
+            write_object(writer, value);
+        }
+        else if (std::holds_alternative<Variable_declaration_expression>(output.data))
+        {
+            writer.Key("type");
+            writer.String("Variable_declaration_expression");
+            writer.Key("value");
+            Variable_declaration_expression const& value = std::get<Variable_declaration_expression>(output.data);
             write_object(writer, value);
         }
         else if (std::holds_alternative<Variable_expression>(output.data))

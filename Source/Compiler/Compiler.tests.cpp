@@ -53,24 +53,35 @@ namespace h
         return llvm_ir.substr(current_index, llvm_ir.size());
     }
 
-    TEST_CASE("Compile hello world!")
+    void test_create_llvm_module(
+        std::string_view const input_file,
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map,
+        std::string_view const expected_llvm_ir
+    )
     {
-        std::optional<std::pmr::string> const json_data = get_file_contents(g_test_files_path / "hello_world.hl");
+        std::optional<std::pmr::string> const json_data = get_file_contents(g_test_files_path / input_file);
         REQUIRE(json_data.has_value());
 
         std::optional<h::Module> const module = h::json::read<h::Module>(json_data.value().c_str());
         REQUIRE(module.has_value());
-
-        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
-        {
-            { "C.stdio", g_standard_library_path / "C_stdio.hl" }
-        };
 
         h::compiler::LLVM_data llvm_data = h::compiler::initialize_llvm();
         h::compiler::LLVM_module_data llvm_module_data = h::compiler::create_llvm_module(llvm_data, module.value(), module_name_to_file_path_map);
         std::string const llvm_ir = h::compiler::to_string(*llvm_module_data.module);
 
         std::string_view const llvm_ir_body = exclude_header(llvm_ir);
+
+        CHECK(llvm_ir_body == expected_llvm_ir);
+    }
+
+    TEST_CASE("Compile hello world!")
+    {
+        char const* const input_file = "hello_world.hl";
+
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+        {
+            { "C.stdio", g_standard_library_path / "C_stdio.hl" }
+        };
 
         char const* const expected_llvm_ir = R"(
 @global_0 = internal constant [13 x i8] c"Hello world!\00"
@@ -82,6 +93,29 @@ entry:
 }
 )";
 
-        CHECK(llvm_ir_body == expected_llvm_ir);
+        test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+    }
+
+    TEST_CASE("Compile Variables")
+    {
+        char const* const input_file = "variables.hl";
+
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+        {
+        };
+
+        char const* const expected_llvm_ir = R"(
+define i32 @main() {
+entry:
+  %my_constant_variable = alloca i32, align 4
+  store i32 1, ptr %my_constant_variable, align 4
+  %my_mutable_variable = alloca i32, align 4
+  store i32 2, ptr %my_mutable_variable, align 4
+  store i32 3, ptr %my_mutable_variable, align 4
+  ret i32 0
+}
+)";
+
+        test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
     }
 }

@@ -277,6 +277,23 @@
             ]
         },
         {
+            "name": "Assignment_expression",
+            "members": [
+                {
+                    "type": {
+                        "name": "Expression_index"
+                    },
+                    "name": "left_hand_side"
+                },
+                {
+                    "type": {
+                        "name": "Expression_index"
+                    },
+                    "name": "right_hand_side"
+                }
+            ]
+        },
+        {
             "name": "Binary_expression",
             "members": [
                 {
@@ -379,11 +396,34 @@
             ]
         },
         {
+            "name": "Variable_declaration_expression",
+            "members": [
+                {
+                    "type": {
+                        "name": "std::pmr::string"
+                    },
+                    "name": "name"
+                },
+                {
+                    "type": {
+                        "name": "bool"
+                    },
+                    "name": "is_mutable"
+                },
+                {
+                    "type": {
+                        "name": "Expression_index"
+                    },
+                    "name": "right_hand_side"
+                }
+            ]
+        },
+        {
             "name": "Expression",
             "members": [
                 {
                     "type": {
-                        "name": "std::variant<Binary_expression,Call_expression,Constant_expression,Invalid_expression,Return_expression,Struct_member_expression,Variable_expression>"
+                        "name": "std::variant<Assignment_expression,Binary_expression,Call_expression,Constant_expression,Invalid_expression,Return_expression,Struct_member_expression,Variable_declaration_expression,Variable_expression>"
                     },
                     "name": "data"
                 }
