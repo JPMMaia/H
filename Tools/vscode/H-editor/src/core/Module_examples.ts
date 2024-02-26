@@ -1114,3 +1114,144 @@ export function create_variables(): Core_intermediate_representation.Module {
         ]
     };
 }
+
+export function create_numbers(): Core_intermediate_representation.Module {
+
+    const create_integer_expression = (number_of_bits: number, is_signed: boolean): Core_intermediate_representation.Expression => {
+        const constant_expression: Core_intermediate_representation.Constant_expression = {
+            type: {
+                data: {
+                    type: Core_intermediate_representation.Type_reference_enum.Integer_type,
+                    value: {
+                        number_of_bits: number_of_bits,
+                        is_signed: is_signed
+                    }
+                }
+            },
+            data: "1"
+        };
+        return {
+            data: {
+                type: Core_intermediate_representation.Expression_enum.Constant_expression,
+                value: constant_expression
+            }
+        };
+    };
+
+    const create_fundamental_type_expression = (fundamental_type: Core_intermediate_representation.Fundamental_type): Core_intermediate_representation.Expression => {
+        const constant_expression: Core_intermediate_representation.Constant_expression = {
+            type: {
+                data: {
+                    type: Core_intermediate_representation.Type_reference_enum.Fundamental_type,
+                    value: fundamental_type
+                }
+            },
+            data: "1"
+        };
+        return {
+            data: {
+                type: Core_intermediate_representation.Expression_enum.Constant_expression,
+                value: constant_expression
+            }
+        };
+    };
+
+    const constant_expressions: [string, Core_intermediate_representation.Expression][] = [
+        ["my_int8", create_integer_expression(8, true)],
+        ["my_int16", create_integer_expression(16, true)],
+        ["my_int32", create_integer_expression(32, true)],
+        ["my_int64", create_integer_expression(64, true)],
+        ["my_uint8", create_integer_expression(8, false)],
+        ["my_uint16", create_integer_expression(16, false)],
+        ["my_uint32", create_integer_expression(32, false)],
+        ["my_uint64", create_integer_expression(64, false)],
+        ["my_float16", create_fundamental_type_expression(Core_intermediate_representation.Fundamental_type.Float16)],
+        ["my_float32", create_fundamental_type_expression(Core_intermediate_representation.Fundamental_type.Float32)],
+        ["my_float64", create_fundamental_type_expression(Core_intermediate_representation.Fundamental_type.Float64)],
+    ];
+
+    const statements: Core_intermediate_representation.Statement[] = [];
+
+    for (const constant_expression of constant_expressions) {
+        const statement: Core_intermediate_representation.Statement = {
+            name: "",
+            expression: {
+                data: {
+                    type: Core_intermediate_representation.Expression_enum.Variable_declaration_expression,
+                    value: {
+                        name: constant_expression[0],
+                        is_mutable: false,
+                        right_hand_side: constant_expression[1]
+                    }
+                }
+            }
+        };
+        statements.push(statement);
+    }
+
+    return {
+        name: "Numbers",
+        imports: [],
+        declarations: [
+            {
+                name: "main",
+                type: Core_intermediate_representation.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "main",
+                        type: {
+                            input_parameter_types: [],
+                            output_parameter_types: [{
+                                data: {
+                                    type: Core_intermediate_representation.Type_reference_enum.Integer_type,
+                                    value: {
+                                        number_of_bits: 32,
+                                        is_signed: true
+                                    }
+                                }
+                            }],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: [],
+                        output_parameter_names: ["result"],
+                        linkage: Core_intermediate_representation.Linkage.External
+                    },
+                    definition: {
+                        name: "main",
+                        statements: [
+                            ...statements,
+                            {
+                                name: "",
+                                expression: {
+                                    data: {
+                                        type: Core_intermediate_representation.Expression_enum.Return_expression,
+                                        value: {
+                                            expression: {
+                                                data: {
+                                                    type: Core_intermediate_representation.Expression_enum.Constant_expression,
+                                                    value: {
+                                                        type: {
+                                                            data: {
+                                                                type: core.Type_reference_enum.Integer_type,
+                                                                value: {
+                                                                    number_of_bits: 32,
+                                                                    is_signed: true
+                                                                }
+                                                            }
+                                                        },
+                                                        data: "0"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        ]
+    };
+}

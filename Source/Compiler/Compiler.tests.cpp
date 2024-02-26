@@ -96,6 +96,46 @@ entry:
         test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
     }
 
+    TEST_CASE("Compile Numbers")
+    {
+        char const* const input_file = "numbers.hl";
+
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+        {
+        };
+
+        char const* const expected_llvm_ir = R"(
+define i32 @main() {
+entry:
+  %my_int8 = alloca i8, align 1
+  store i8 1, ptr %my_int8, align 1
+  %my_int16 = alloca i16, align 2
+  store i16 1, ptr %my_int16, align 2
+  %my_int32 = alloca i32, align 4
+  store i32 1, ptr %my_int32, align 4
+  %my_int64 = alloca i64, align 8
+  store i64 1, ptr %my_int64, align 8
+  %my_uint8 = alloca i8, align 1
+  store i8 1, ptr %my_uint8, align 1
+  %my_uint16 = alloca i16, align 2
+  store i16 1, ptr %my_uint16, align 2
+  %my_uint32 = alloca i32, align 4
+  store i32 1, ptr %my_uint32, align 4
+  %my_uint64 = alloca i64, align 8
+  store i64 1, ptr %my_uint64, align 8
+  %my_float16 = alloca half, align 2
+  store half 0xH3C00, ptr %my_float16, align 2
+  %my_float32 = alloca float, align 4
+  store float 1.000000e+00, ptr %my_float32, align 4
+  %my_float64 = alloca double, align 8
+  store double 1.000000e+00, ptr %my_float64, align 8
+  ret i32 0
+}
+)";
+
+        test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+    }
+
     TEST_CASE("Compile Variables")
     {
         char const* const input_file = "variables.hl";

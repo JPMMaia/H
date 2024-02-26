@@ -179,6 +179,18 @@ function map_expression_constant_to_word(
         case Core_intermediate_representation.Type_reference_enum.Fundamental_type: {
             const type = type_reference.value as Core_intermediate_representation.Fundamental_type;
             switch (type) {
+                case Core_intermediate_representation.Fundamental_type.Float16: {
+                    const value = `${constant_expression.data}f16`;
+                    return { value: value, type: Grammar.Word_type.Number };
+                }
+                case Core_intermediate_representation.Fundamental_type.Float32: {
+                    const value = `${constant_expression.data}f32`;
+                    return { value: value, type: Grammar.Word_type.Number };
+                }
+                case Core_intermediate_representation.Fundamental_type.Float64: {
+                    const value = `${constant_expression.data}f64`;
+                    return { value: value, type: Grammar.Word_type.Number };
+                }
                 case Core_intermediate_representation.Fundamental_type.String: {
                     return { value: `"${constant_expression.data}"`, type: Grammar.Word_type.String };
                 }
@@ -188,7 +200,16 @@ function map_expression_constant_to_word(
             }
         }
         case Core_intermediate_representation.Type_reference_enum.Integer_type: {
-            return { value: constant_expression.data, type: Grammar.Word_type.Number };
+            const integer_type = type_reference.value as Core_intermediate_representation.Integer_type;
+            const is_int_32 = integer_type.is_signed && integer_type.number_of_bits === 32;
+            if (is_int_32) {
+                return { value: constant_expression.data, type: Grammar.Word_type.Number };
+            }
+
+            const signed_suffix = integer_type.is_signed ? "i" : "u";
+            const suffix = `${signed_suffix}${integer_type.number_of_bits}`;
+            const value = constant_expression.data + suffix;
+            return { value: value, type: Grammar.Word_type.Number };
         }
         case Core_intermediate_representation.Type_reference_enum.Pointer_type: {
             if (is_c_string(constant_expression.type)) {
@@ -1102,19 +1123,63 @@ function node_to_expression_constant(node: Parser_node.Node): Core_intermediate_
 
     switch (terminal_node.word.type) {
         case Grammar.Word_type.Number: {
-            // TODO only supports 32-bit signed integers
-            return {
-                type: {
-                    data: {
-                        type: Core_intermediate_representation.Type_reference_enum.Integer_type,
-                        value: {
-                            number_of_bits: 32,
-                            is_signed: true
+            const suffix = Scanner.get_suffix(terminal_node.word);
+            const value = terminal_node.word.value.substring(0, terminal_node.word.value.length - suffix.length);
+
+            const first_character = suffix.charAt(0);
+            const is_integer = suffix.length === 0 || first_character === "i" || first_character === "u";
+            if (is_integer) {
+                const is_signed = first_character !== "u";
+                const number_of_bits = suffix.length !== 0 ? Number(suffix.substring(1, suffix.length)) : 32;
+                return {
+                    type: {
+                        data: {
+                            type: Core_intermediate_representation.Type_reference_enum.Integer_type,
+                            value: {
+                                number_of_bits: number_of_bits,
+                                is_signed: is_signed
+                            }
+                        }
+                    },
+                    data: value
+                };
+            }
+
+            const is_float = first_character === "f";
+            if (is_float) {
+                const number_of_bits = Number(suffix.substring(1, suffix.length));
+
+                const get_fundamental_type = (): Core_intermediate_representation.Fundamental_type => {
+                    switch (number_of_bits) {
+                        case 16:
+                            return Core_intermediate_representation.Fundamental_type.Float16;
+                        case 32:
+                            return Core_intermediate_representation.Fundamental_type.Float32;
+                        case 64:
+                            return Core_intermediate_representation.Fundamental_type.Float64;
+                        default: {
+                            const message = `${suffix} is not supported. Only f16, f32 or f64 are supported!`;
+                            onThrowError(message);
+                            throw message;
                         }
                     }
-                },
-                data: terminal_node.word.value
-            };
+                };
+
+                const fundamental_type = get_fundamental_type();
+                return {
+                    type: {
+                        data: {
+                            type: Core_intermediate_representation.Type_reference_enum.Fundamental_type,
+                            value: fundamental_type
+                        }
+                    },
+                    data: value
+                };
+            }
+
+            const message = `Could not convert number '${terminal_node.word.value}' to constant expression`;
+            onThrowError(message);
+            throw Error(message);
         }
         case Grammar.Word_type.String: {
             const suffix = Scanner.get_suffix(terminal_node.word);

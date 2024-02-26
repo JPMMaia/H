@@ -40,5 +40,6 @@ Convert_hltxt_to_hl(
     TARGET Generate_examples
     TEXT_FILES
         "${CMAKE_CURRENT_LIST_DIR}/txt/hello_world.hltxt"
+        "${CMAKE_CURRENT_LIST_DIR}/txt/numbers.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/variables.hltxt"
 )

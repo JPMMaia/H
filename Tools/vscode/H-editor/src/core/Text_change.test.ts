@@ -798,6 +798,50 @@ export function main() -> (result: Int32)
         assert.deepEqual(new_document_state.module, expected_module);
     });
 
+    it("Handles numbers", () => {
+
+        const document_state = Document.create_empty_state(language_description.production_rules);
+
+        const program = `
+module Numbers;
+
+export function main() -> (result: Int32)
+{
+    var my_int8 = 1i8;
+    var my_int16 = 1i16;
+    var my_int32 = 1i32;
+    var my_int64 = 1i64;
+
+    var my_uint8 = 1u8;
+    var my_uint16 = 1u16;
+    var my_uint32 = 1u32;
+    var my_uint64 = 1u64;
+
+    var my_float16 = 1f16;
+    var my_float32 = 1f32;
+    var my_float64 = 1f64;
+
+    return 0;
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_numbers();
+        assert.deepEqual(new_document_state.module, expected_module);
+    });
+
 });
 
 describe("Text_change.aggregate_changes", () => {

@@ -502,12 +502,19 @@ namespace h::compiler
 
             switch (fundamental_type)
             {
+            case Fundamental_type::Float16: {
+                llvm::Type* const llvm_type = to_type(llvm_context, llvm_data_layout, expression.type, struct_types);
+
+                char* end;
+                float const value = std::strtof(expression.data.c_str(), &end);
+
+                return llvm::ConstantFP::get(llvm_type, value);
+            }
             case Fundamental_type::Float32: {
                 llvm::Type* const llvm_type = to_type(llvm_context, llvm_data_layout, expression.type, struct_types);
 
                 char* end;
-                float const data = std::strtof(expression.data.c_str(), &end);
-                llvm::APFloat const value{ data };
+                float const value = std::strtof(expression.data.c_str(), &end);
 
                 return llvm::ConstantFP::get(llvm_type, value);
             }
@@ -515,8 +522,7 @@ namespace h::compiler
                 llvm::Type* const llvm_type = to_type(llvm_context, llvm_data_layout, expression.type, struct_types);
 
                 char* end;
-                double const data = std::strtod(expression.data.c_str(), &end);
-                llvm::APFloat const value{ data };
+                double const value = std::strtod(expression.data.c_str(), &end);
 
                 return llvm::ConstantFP::get(llvm_type, value);
             }
