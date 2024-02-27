@@ -817,9 +817,9 @@ export function main() -> (result: Int32)
     var my_uint32 = 1u32;
     var my_uint64 = 1u64;
 
-    var my_float16 = 1f16;
-    var my_float32 = 1f32;
-    var my_float64 = 1f64;
+    var my_float16 = 1.0f16;
+    var my_float32 = 1.0f32;
+    var my_float64 = 1.0f64;
 
     return 0;
 }

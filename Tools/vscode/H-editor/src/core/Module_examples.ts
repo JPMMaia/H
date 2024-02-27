@@ -1146,7 +1146,7 @@ export function create_numbers(): Core_intermediate_representation.Module {
                     value: fundamental_type
                 }
             },
-            data: "1"
+            data: "1.0"
         };
         return {
             data: {
