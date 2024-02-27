@@ -32,6 +32,7 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
     const value_transforms = new Map<string, (value: any) => string>(
         [
             ["Alias_type", vector => Type_utilities.get_type_name(vector)],
+            ["Expression_cast_destination_type", value => Type_utilities.get_type_name([value])],
             ["Function_parameter_type", value => Type_utilities.get_type_name([value])],
             ["Struct_member_type", value => Type_utilities.get_type_name([value])],
         ]
@@ -43,6 +44,7 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Expression_constant", map_expression_constant_to_word],
             ["Expression_call_function_name", map_expression_call_function_name_to_word],
             ["Expression_call_module_name", map_expression_call_module_name_to_word],
+            ["Expression_cast_destination_type", map_expression_cast_destination_type_to_word],
             ["Variable_name", map_variable_name_to_word],
         ]
     );
@@ -251,6 +253,21 @@ function map_expression_call_module_name_to_word(
     const expression = top.state.value as Core_intermediate_representation.Expression;
     const call_expression = expression.data.value as Core_intermediate_representation.Call_expression;
     return { value: call_expression.module_reference.name, type: Grammar.Word_type.Alphanumeric };
+}
+
+function map_expression_cast_destination_type_to_word(
+    module: Core_intermediate_representation.Module,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    production_rules: Grammar.Production_rule[],
+    key_to_production_rule_indices: Map<string, number[]>,
+    terminal: string,
+    mappings: Parse_tree_convertor.Parse_tree_mappings
+): Scanner.Scanned_word {
+    const top = stack[stack.length - 1];
+    const expression = top.state.value as Core_intermediate_representation.Expression;
+    const cast_expression = expression.data.value as Core_intermediate_representation.Cast_expression;
+    const destination_type_name = Type_utilities.get_type_name([cast_expression.destination_type]);
+    return { value: destination_type_name, type: Grammar.Word_type.Alphanumeric };
 }
 
 function map_variable_name_to_word(
@@ -578,6 +595,14 @@ function choose_production_rule_generic_expression(
                     label: call_expression.module_reference.name.length > 0 ? "Expression_dot" : "Expression_variable"
                 };
             }
+            case "Expression_cast": {
+                const cast_expression = expression.data.value as Core_intermediate_representation.Cast_expression;
+                const next_expression = cast_expression.source;
+                return {
+                    value: next_expression,
+                    label: map_expression_type_to_production_rule_label(next_expression.data.type)
+                };
+            }
             case "Expression_call_arguments": {
                 const call_expression = expression.data.value as Core_intermediate_representation.Call_expression;
                 const argument_index = top.current_child_index / 2;
@@ -619,7 +644,7 @@ function choose_production_rule_generic_expression(
                 };
             }
             default: {
-                const message = `Parse_tree_convertor_mappings.choose_production_rule_expression.get_expression(): expression type not handled: '${top.node.word.value}'`;
+                const message = `Parse_tree_convertor_mappings.choose_production_rule_generic_expression.get_expression(): expression type not handled: '${top.node.word.value}'`;
                 onThrowError(message);
                 throw message;
             }
@@ -645,6 +670,8 @@ function map_expression_type_to_production_rule_label(type: Core_intermediate_re
             return "Expression_binary";
         case Core_intermediate_representation.Expression_enum.Call_expression:
             return "Expression_call";
+        case Core_intermediate_representation.Expression_enum.Cast_expression:
+            return "Expression_cast";
         case Core_intermediate_representation.Expression_enum.Constant_expression:
             return "Expression_constant";
         case Core_intermediate_representation.Expression_enum.Invalid_expression:
@@ -979,6 +1006,15 @@ function node_to_expression(node: Parser_node.Node, key_to_production_rule_indic
                 }
             };
         }
+        case "Expression_cast": {
+            const expression = node_to_expression_cast(node, key_to_production_rule_indices);
+            return {
+                data: {
+                    type: Core_intermediate_representation.Expression_enum.Cast_expression,
+                    value: expression
+                }
+            };
+        }
         case "Expression_constant": {
             const expression = node_to_expression_constant(node);
             return {
@@ -1116,6 +1152,28 @@ function node_to_expression_call(node: Parser_node.Node, key_to_production_rule_
     };
 
     return call_expression;
+}
+
+function node_to_expression_cast(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Cast_expression {
+
+    const source_node = find_node(node, "Generic_expression", key_to_production_rule_indices) as Parser_node.Node;
+    const source_expression = node_to_expression(source_node, key_to_production_rule_indices);
+
+    const destination_type_name = find_node_value(node, "Expression_cast_destination_type", key_to_production_rule_indices);
+    const destination_type = Type_utilities.parse_type_name(destination_type_name);
+    if (destination_type.length === 0) {
+        const message = `Cannot cast to 'void' type.`;
+        onThrowError(message);
+        throw Error(message);
+    }
+
+    const cast_expression: Core_intermediate_representation.Cast_expression = {
+        source: source_expression,
+        destination_type: destination_type[0],
+        cast_type: Core_intermediate_representation.Cast_type.Numeric
+    };
+
+    return cast_expression;
 }
 
 function node_to_expression_constant(node: Parser_node.Node): Core_intermediate_representation.Constant_expression {

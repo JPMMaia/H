@@ -197,6 +197,21 @@ namespace h
         friend auto operator<=>(Call_expression const&, Call_expression const&) = default;
     };
 
+    export enum class Cast_type
+    {
+        Numeric,
+        BitCast
+    };
+
+    export struct Cast_expression
+    {
+        Expression_index source;
+        Type_reference destination_type;
+        Cast_type cast_type;
+
+        friend auto operator<=>(Cast_expression const&, Cast_expression const&) = default;
+    };
+
     export struct Constant_expression
     {
         Type_reference type;
@@ -242,6 +257,7 @@ namespace h
             Assignment_expression,
             Binary_expression,
             Call_expression,
+            Cast_expression,
             Constant_expression,
             Invalid_expression,
             Return_expression,

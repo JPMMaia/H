@@ -124,6 +124,20 @@ namespace h::json
         throw std::runtime_error{ "Failed to write enum 'Binary_operation'!\n" };
     }
 
+    export std::string_view write_enum(Cast_type const value)
+    {
+        if (value == Cast_type::Numeric)
+        {
+            return "Numeric";
+        }
+        else if (value == Cast_type::BitCast)
+        {
+            return "BitCast";
+        }
+
+        throw std::runtime_error{ "Failed to write enum 'Cast_type'!\n" };
+    }
+
     export std::string_view write_enum(Linkage const value)
     {
         if (value == Linkage::External)
@@ -238,6 +252,12 @@ namespace h::json
         void write_object(
             Writer_type& writer,
             Call_expression const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Cast_expression const& input
         );
 
     export template<typename Writer_type>
@@ -694,6 +714,25 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Cast_expression const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("source");
+        write_object(writer, output.source);
+        writer.Key("destination_type");
+        write_object(writer, output.destination_type);
+        writer.Key("cast_type");
+        {
+            std::string_view const enum_value_string = write_enum(output.cast_type);
+            writer.String(enum_value_string.data(), enum_value_string.size());
+        }
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Constant_expression const& output
         )
     {
@@ -791,6 +830,14 @@ namespace h::json
             writer.String("Call_expression");
             writer.Key("value");
             Call_expression const& value = std::get<Call_expression>(output.data);
+            write_object(writer, value);
+        }
+        else if (std::holds_alternative<Cast_expression>(output.data))
+        {
+            writer.Key("type");
+            writer.String("Cast_expression");
+            writer.Key("value");
+            Cast_expression const& value = std::get<Cast_expression>(output.data);
             write_object(writer, value);
         }
         else if (std::holds_alternative<Constant_expression>(output.data))

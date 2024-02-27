@@ -22,6 +22,7 @@ module;
 #include <filesystem>
 #include <memory>
 #include <memory_resource>
+#include <optional>
 #include <ranges>
 #include <span>
 #include <string_view>
@@ -342,7 +343,13 @@ namespace h::compiler
         return *llvm_function;
     }
 
-    llvm::Value* create_value(
+    struct Value_and_type
+    {
+        llvm::Value* value;
+        std::optional<Type_reference const*> type;
+    };
+
+    Value_and_type create_value(
         std::string_view name,
         Module const& core_module,
         Statement const& statement,
@@ -351,34 +358,40 @@ namespace h::compiler
         llvm::DataLayout const& llvm_data_layout,
         llvm::Module& llvm_module,
         llvm::IRBuilder<>& llvm_builder,
-        std::span<llvm::Value* const> function_arguments,
-        std::span<llvm::Value* const> local_variables,
-        std::span<llvm::Value* const> temporaries,
+        std::span<Value_and_type const> function_arguments,
+        std::span<Value_and_type const> local_variables,
+        std::span<Value_and_type const> temporaries,
         std::span<Module_pair const> module_dependencies,
         Struct_types const& struct_types,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
-    llvm::Value* create_value(
+    Value_and_type create_value(
         Assignment_expression const& expression,
         llvm::IRBuilder<>& llvm_builder,
-        std::span<llvm::Value* const> const temporaries
+        std::span<Value_and_type const> const temporaries
     )
     {
-        llvm::Value* const left_hand_side = temporaries[expression.left_hand_side.expression_index];
-        llvm::Value* const right_hand_side = temporaries[expression.right_hand_side.expression_index];
+        Value_and_type const left_hand_side = temporaries[expression.left_hand_side.expression_index];
+        Value_and_type const right_hand_side = temporaries[expression.right_hand_side.expression_index];
 
-        return llvm_builder.CreateStore(right_hand_side, left_hand_side);
+        llvm::Value* store_instruction = llvm_builder.CreateStore(right_hand_side.value, left_hand_side.value);
+
+        return
+        {
+            .value = store_instruction,
+            .type = std::nullopt
+        };
     }
 
-    llvm::Value* create_value(
+    Value_and_type create_value(
         Binary_expression const& expression,
         llvm::IRBuilder<>& llvm_builder,
         std::pmr::unordered_map<std::uint64_t, std::size_t> const& function_argument_id_to_index,
         std::pmr::unordered_map<std::uint64_t, std::size_t> const& local_variable_id_to_index,
-        std::span<llvm::Value* const> const function_arguments,
-        std::span<llvm::Value* const> const local_variables,
-        std::span<llvm::Value* const> const temporaries
+        std::span<Value_and_type const> const function_arguments,
+        std::span<Value_and_type const> const local_variables,
+        std::span<Value_and_type const> const temporaries
     )
     {
         throw std::runtime_error{ "Not implemented." };
@@ -423,11 +436,11 @@ namespace h::compiler
         }*/
     }
 
-    llvm::Value* create_value(
+    Value_and_type create_value(
         Module const& core_module,
         Call_expression const& expression,
         llvm::IRBuilder<>& llvm_builder,
-        std::span<llvm::Value* const> const temporaries,
+        std::span<Value_and_type const> const temporaries,
         std::span<Module_pair const> const module_dependencies,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
@@ -455,14 +468,124 @@ namespace h::compiler
         for (unsigned i = 0; i < expression.arguments.size(); ++i)
         {
             std::uint64_t const expression_index = expression.arguments[i].expression_index;
-            llvm::Value* const value = temporaries[expression_index];
+            Value_and_type const temporary = temporaries[expression_index];
 
-            llvm_arguments[i] = value;
+            llvm_arguments[i] = temporary.value;
         }
 
         std::string const call_name = std::format("call_{}", expression.function_name);
+        llvm::Value* call_instruction = llvm_builder.CreateCall(llvm_function, llvm_arguments, call_name);
 
-        return llvm_builder.CreateCall(llvm_function, llvm_arguments, call_name);
+        std::optional<Function_declaration const*> function_declaration = find_function_declaration(function_module.value()->core_module, expression.function_name);
+        std::pmr::vector<Type_reference> const& output_parameter_types = function_declaration.value()->type.output_parameter_types;
+
+        return
+        {
+            .value = call_instruction,
+            .type = output_parameter_types.empty() ? std::optional<Type_reference const*>{} : output_parameter_types.data()
+        };
+    }
+
+    llvm::Instruction::CastOps get_cast_type(
+        Type_reference const& source_core_type,
+        llvm::Type const& source_llvm_type,
+        Type_reference const& destination_core_type,
+        llvm::Type const& destination_llvm_type
+    )
+    {
+        if (source_llvm_type.isIntegerTy())
+        {
+            if (destination_llvm_type.isIntegerTy())
+            {
+                // Both are integers
+
+                bool const is_source_larger = source_llvm_type.getIntegerBitWidth() > destination_llvm_type.getIntegerBitWidth();
+
+                if (is_source_larger)
+                {
+                    return llvm::Instruction::CastOps::Trunc;
+                }
+                else
+                {
+                    Integer_type const& source_integer_type = std::get<Integer_type>(source_core_type.data);
+                    Integer_type const& destination_integer_type = std::get<Integer_type>(destination_core_type.data);
+
+                    if (source_integer_type.is_signed && destination_integer_type.is_signed)
+                        return llvm::Instruction::CastOps::SExt;
+                    else
+                        return llvm::Instruction::CastOps::ZExt;
+                }
+            }
+            else if (destination_llvm_type.isHalfTy() || destination_llvm_type.isFloatTy() || destination_llvm_type.isDoubleTy())
+            {
+                // Source is integer, destination is floating point
+
+                Integer_type const& source_integer_type = std::get<Integer_type>(source_core_type.data);
+
+                if (source_integer_type.is_signed)
+                    return llvm::Instruction::CastOps::SIToFP;
+                else
+                    return llvm::Instruction::CastOps::UIToFP;
+            }
+        }
+        else if (source_llvm_type.isHalfTy() || source_llvm_type.isFloatTy() || source_llvm_type.isDoubleTy())
+        {
+            if (destination_llvm_type.isIntegerTy())
+            {
+                // Source is floating point, destination is integer
+
+                Integer_type const& destination_integer_type = std::get<Integer_type>(destination_core_type.data);
+
+                if (destination_integer_type.is_signed)
+                    return llvm::Instruction::CastOps::FPToSI;
+                else
+                    return llvm::Instruction::CastOps::FPToUI;
+            }
+            else if (destination_llvm_type.isHalfTy() || destination_llvm_type.isFloatTy() || destination_llvm_type.isDoubleTy())
+            {
+                // Both are floating point
+
+                bool const is_source_larger = source_llvm_type.getFPMantissaWidth() > destination_llvm_type.getFPMantissaWidth();
+
+                if (is_source_larger)
+                    return llvm::Instruction::CastOps::FPTrunc;
+                else
+                    return llvm::Instruction::CastOps::FPExt;
+            }
+        }
+
+        throw std::runtime_error{ std::format("Invalid cast!") };
+    }
+
+    Value_and_type create_value(
+        Module const& core_module,
+        Cast_expression const& expression,
+        llvm::LLVMContext& llvm_context,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::IRBuilder<>& llvm_builder,
+        std::span<Value_and_type const> const temporaries,
+        std::span<Module_pair const> const module_dependencies,
+        Struct_types const& struct_types
+    )
+    {
+        Value_and_type const source = temporaries[expression.source.expression_index];
+
+        llvm::Type* const source_llvm_type = source.value->getType();
+        llvm::Type* const destination_llvm_type = to_type(llvm_context, llvm_data_layout, expression.destination_type, struct_types);
+
+        // If types are equal, then ignore the cast:
+        if (source_llvm_type == destination_llvm_type)
+            return source;
+
+        llvm::Instruction::CastOps const cast_type = get_cast_type(*source.type.value(), *source_llvm_type, expression.destination_type, *destination_llvm_type);
+
+        llvm::Value* const cast_instruction = llvm_builder.CreateCast(cast_type, source.value, destination_llvm_type);
+
+        return
+        {
+            .value = cast_instruction,
+            .type = &expression.destination_type
+        };
     }
 
     bool is_c_string(Type_reference const& type_reference)
@@ -488,7 +611,7 @@ namespace h::compiler
         return false;
     }
 
-    llvm::Value* create_value(
+    Value_and_type create_value(
         Constant_expression const& expression,
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
@@ -508,7 +631,13 @@ namespace h::compiler
                 char* end;
                 float const value = std::strtof(expression.data.c_str(), &end);
 
-                return llvm::ConstantFP::get(llvm_type, value);
+                llvm::Value* const instruction = llvm::ConstantFP::get(llvm_type, value);
+
+                return
+                {
+                    .value = instruction,
+                    .type = &expression.type
+                };
             }
             case Fundamental_type::Float32: {
                 llvm::Type* const llvm_type = to_type(llvm_context, llvm_data_layout, expression.type, struct_types);
@@ -516,7 +645,13 @@ namespace h::compiler
                 char* end;
                 float const value = std::strtof(expression.data.c_str(), &end);
 
-                return llvm::ConstantFP::get(llvm_type, value);
+                llvm::Value* const instruction = llvm::ConstantFP::get(llvm_type, value);
+
+                return
+                {
+                    .value = instruction,
+                    .type = &expression.type
+                };
             }
             case Fundamental_type::Float64: {
                 llvm::Type* const llvm_type = to_type(llvm_context, llvm_data_layout, expression.type, struct_types);
@@ -524,7 +659,13 @@ namespace h::compiler
                 char* end;
                 double const value = std::strtod(expression.data.c_str(), &end);
 
-                return llvm::ConstantFP::get(llvm_type, value);
+                llvm::Value* const instruction = llvm::ConstantFP::get(llvm_type, value);
+
+                return
+                {
+                    .value = instruction,
+                    .type = &expression.type
+                };
             }
             default:
                 break;
@@ -540,7 +681,13 @@ namespace h::compiler
             std::uint64_t const data = std::strtoull(expression.data.c_str(), &end, 10);
             llvm::APInt const value{ integer_type.number_of_bits, data, integer_type.is_signed };
 
-            return llvm::ConstantInt::get(llvm_type, value);
+            llvm::Value* const instruction = llvm::ConstantInt::get(llvm_type, value);
+
+            return
+            {
+                .value = instruction,
+                .type = &expression.type
+            };
         }
         else if (is_c_string(expression.type))
         {
@@ -561,51 +708,65 @@ namespace h::compiler
                 global_variable_name
             );
 
-            llvm::Value* const value = global_variable;
+            llvm::Value* const instruction = global_variable;
 
-            return value;
+            return
+            {
+                .value = instruction,
+                .type = &expression.type
+            };
         }
 
         throw std::runtime_error{ "Constant expression not handled!" };
     }
 
-    llvm::Value* create_value(
+    Value_and_type create_value(
         Return_expression const& expression,
         llvm::IRBuilder<>& llvm_builder,
-        std::span<llvm::Value* const> const temporaries
+        std::span<Value_and_type const> const temporaries
     )
     {
-        llvm::Value* const value = temporaries[expression.expression.expression_index];
+        Value_and_type const temporary = temporaries[expression.expression.expression_index];
 
-        return llvm_builder.CreateRet(value);
+        llvm::Value* const instruction = llvm_builder.CreateRet(temporary.value);
+
+        return
+        {
+            .value = instruction,
+            .type = std::nullopt
+        };
     }
 
-    llvm::Value* create_value(
+    Value_and_type create_value(
         Variable_declaration_expression const& expression,
         llvm::IRBuilder<>& llvm_builder,
-        std::span<llvm::Value* const> const temporaries
+        std::span<Value_and_type const> const temporaries
     )
     {
-        llvm::Value* const right_hand_side = temporaries[expression.right_hand_side.expression_index];
+        Value_and_type const right_hand_side = temporaries[expression.right_hand_side.expression_index];
 
-        llvm::Value* const alloca = llvm_builder.CreateAlloca(right_hand_side->getType(), nullptr, expression.name.c_str());
+        llvm::Value* const alloca = llvm_builder.CreateAlloca(right_hand_side.value->getType(), nullptr, expression.name.c_str());
 
-        llvm_builder.CreateStore(right_hand_side, alloca);
+        llvm_builder.CreateStore(right_hand_side.value, alloca);
 
-        return alloca;
+        return
+        {
+            .value = alloca,
+            .type = std::nullopt
+        };
     }
 
-    llvm::Value* create_value(
+    Value_and_type create_value(
         Variable_expression const& expression,
-        std::span<llvm::Value* const> const function_arguments,
-        std::span<llvm::Value* const> const local_variables
+        std::span<Value_and_type const> const function_arguments,
+        std::span<Value_and_type const> const local_variables
     )
     {
         char const* const variable_name = expression.name.c_str();
 
-        auto const is_variable = [variable_name](llvm::Value const* const value) -> bool
+        auto const is_variable = [variable_name](Value_and_type const& element) -> bool
         {
-            return value->getName() == variable_name;
+            return element.value->getName() == variable_name;
         };
 
         {
@@ -623,22 +784,22 @@ namespace h::compiler
         throw std::runtime_error{ std::format("Undefined variable '{}'", variable_name) };
     }
 
-    llvm::Value* create_value(
+    Value_and_type create_value(
         Module const& core_module,
         Expression const& expression,
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
         llvm::Module& llvm_module,
         llvm::IRBuilder<>& llvm_builder,
-        std::span<llvm::Value* const> const function_arguments,
-        std::span<llvm::Value* const> const local_variables,
-        std::span<llvm::Value* const> const temporaries,
+        std::span<Value_and_type const> const function_arguments,
+        std::span<Value_and_type const> const local_variables,
+        std::span<Value_and_type const> const temporaries,
         std::span<Module_pair const> const module_dependencies,
         Struct_types const& struct_types,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        llvm::Value* output = nullptr;
+        Value_and_type output = {};
 
         auto const forward_call = [&](auto&& data)
         {
@@ -655,6 +816,10 @@ namespace h::compiler
             else if constexpr (std::is_same_v<Expression_type, Call_expression>)
             {
                 output = create_value(core_module, data, llvm_builder, temporaries, module_dependencies, temporaries_allocator);
+            }
+            else if constexpr (std::is_same_v<Expression_type, Cast_expression>)
+            {
+                output = create_value(core_module, data, llvm_context, llvm_data_layout, llvm_builder, temporaries, module_dependencies, struct_types);
             }
             else if constexpr (std::is_same_v<Expression_type, Constant_expression>)
             {
@@ -681,42 +846,6 @@ namespace h::compiler
         std::visit(forward_call, expression.data);
 
         return output;
-    }
-
-    std::pmr::unordered_map<std::uint64_t, std::size_t> create_function_argument_id_to_index_map(
-        std::span<std::uint64_t const> const argument_ids,
-        std::pmr::polymorphic_allocator<> const& output_allocator
-    )
-    {
-        std::pmr::unordered_map<std::uint64_t, std::size_t> map{ output_allocator };
-        map.reserve(argument_ids.size());
-
-        for (std::size_t index = 0; index < argument_ids.size(); ++index)
-        {
-            std::uint64_t const& id = argument_ids[index];
-
-            map[id] = index;
-        }
-
-        return map;
-    }
-
-    std::pmr::unordered_map<std::uint64_t, std::size_t> create_local_variable_id_to_index_map(
-        std::span<Statement const> const statements,
-        std::pmr::polymorphic_allocator<> const& output_allocator
-    )
-    {
-        std::pmr::unordered_map<std::uint64_t, std::size_t> map{ output_allocator };
-        map.reserve(statements.size());
-
-        for (std::size_t index = 0; index < statements.size(); ++index)
-        {
-            //Statement const& statement = statements[index];
-
-            //map[statement.id] = index;
-        }
-
-        return map;
     }
 
     llvm::Function& create_function_declaration(
@@ -762,22 +891,25 @@ namespace h::compiler
         llvm::IRBuilder<> llvm_builder{ block };
 
         {
-            std::pmr::vector<llvm::Value*> function_arguments{ temporaries_allocator };
+            std::pmr::vector<Value_and_type> function_arguments{ temporaries_allocator };
             function_arguments.reserve(llvm_function.arg_size());
 
-            for (auto& argument : llvm_function.args())
+            for (std::size_t argument_index = 0; argument_index < function_declaration.type.input_parameter_types.size(); ++argument_index)
             {
-                function_arguments.push_back(&argument);
+                llvm::Argument* const llvm_argument = llvm_function.getArg(argument_index);
+                Type_reference const& core_type = function_declaration.type.input_parameter_types[argument_index];
+
+                function_arguments.push_back({ .value = llvm_argument, .type = &core_type });
             }
 
-            std::pmr::vector<llvm::Value*> local_variables{ temporaries_allocator };
+            std::pmr::vector<Value_and_type> local_variables{ temporaries_allocator };
             local_variables.reserve(function_definition.statements.size());
 
             for (std::size_t statement_index = 0; statement_index < function_definition.statements.size(); ++statement_index)
             {
                 Statement const& statement = function_definition.statements[statement_index];
 
-                std::pmr::vector<llvm::Value*> temporaries{ temporaries_allocator };
+                std::pmr::vector<Value_and_type> temporaries{ temporaries_allocator };
                 temporaries.resize(statement.expressions.size());
 
                 for (std::size_t index = 0; index < statement.expressions.size(); ++index)
@@ -785,7 +917,7 @@ namespace h::compiler
                     std::size_t const expression_index = statement.expressions.size() - 1 - index;
                     Expression const& expression = statement.expressions[expression_index];
 
-                    llvm::Value* const value = create_value(
+                    Value_and_type const instruction = create_value(
                         core_module,
                         expression,
                         llvm_context,
@@ -800,7 +932,7 @@ namespace h::compiler
                         temporaries_allocator
                     );
 
-                    temporaries[expression_index] = value;
+                    temporaries[expression_index] = instruction;
                 }
 
                 local_variables.push_back(temporaries.front());

@@ -174,6 +174,24 @@ namespace h::json
     }
 
     export template<>
+        bool read_enum(Cast_type& output, std::string_view const value)
+    {
+        if (value == "Numeric")
+        {
+            output = Cast_type::Numeric;
+            return true;
+        }
+        else if (value == "BitCast")
+        {
+            output = Cast_type::BitCast;
+            return true;
+        }
+
+        std::cerr << std::format("Failed to read enum 'Cast_type' with value '{}'\n", value);
+        return false;
+    }
+
+    export template<>
         bool read_enum(Linkage& output, std::string_view const value)
     {
         if (value == "External")
@@ -203,6 +221,13 @@ namespace h::json
         if (type == "Binary_operation")
         {
             Binary_operation enum_value;
+            read_enum(enum_value, value);
+            return static_cast<int>(enum_value);
+        }
+
+        if (type == "Cast_type")
+        {
+            Cast_type enum_value;
             read_enum(enum_value, value);
             return static_cast<int>(enum_value);
         }
@@ -260,6 +285,7 @@ namespace h::json
     export std::optional<Stack_state> get_next_state_assignment_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_binary_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_call_expression(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_cast_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_constant_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_invalid_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_return_expression(Stack_state* state, std::string_view const key);
@@ -1020,6 +1046,46 @@ namespace h::json
         return {};
     }
 
+    export std::optional<Stack_state> get_next_state_cast_expression(Stack_state* state, std::string_view const key)
+    {
+        h::Cast_expression* parent = static_cast<h::Cast_expression*>(state->pointer);
+
+        if (key == "source")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->source,
+                .type = "Expression_index",
+                .get_next_state = get_next_state_expression_index,
+            };
+        }
+
+        if (key == "destination_type")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->destination_type,
+                .type = "Type_reference",
+                .get_next_state = get_next_state_type_reference,
+            };
+        }
+
+        if (key == "cast_type")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->cast_type,
+                .type = "Cast_type",
+                .get_next_state = nullptr,
+            };
+        }
+
+        return {};
+    }
+
     export std::optional<Stack_state> get_next_state_constant_expression(Stack_state* state, std::string_view const key)
     {
         h::Constant_expression* parent = static_cast<h::Constant_expression*>(state->pointer);
@@ -1162,7 +1228,7 @@ namespace h::json
         {
             auto const set_variant_type = [](Stack_state* state, std::string_view const type) -> void
             {
-                using Variant_type = std::variant<h::Assignment_expression, h::Binary_expression, h::Call_expression, h::Constant_expression, h::Invalid_expression, h::Return_expression, h::Struct_member_expression, h::Variable_declaration_expression, h::Variable_expression>;
+                using Variant_type = std::variant<h::Assignment_expression, h::Binary_expression, h::Call_expression, h::Cast_expression, h::Constant_expression, h::Invalid_expression, h::Return_expression, h::Struct_member_expression, h::Variable_declaration_expression, h::Variable_expression>;
                 Variant_type* pointer = static_cast<Variant_type*>(state->pointer);
 
                 if (type == "Assignment_expression")
@@ -1181,6 +1247,12 @@ namespace h::json
                 {
                     *pointer = Call_expression{};
                     state->type = "Call_expression";
+                    return;
+                }
+                if (type == "Cast_expression")
+                {
+                    *pointer = Cast_expression{};
+                    state->type = "Cast_expression";
                     return;
                 }
                 if (type == "Constant_expression")
@@ -1252,6 +1324,11 @@ namespace h::json
                             return get_next_state_call_expression;
                         }
 
+                        if (state->type == "Cast_expression")
+                        {
+                            return get_next_state_cast_expression;
+                        }
+
                         if (state->type == "Constant_expression")
                         {
                             return get_next_state_constant_expression;
@@ -1300,7 +1377,7 @@ namespace h::json
             return Stack_state
             {
                 .pointer = &parent->data,
-                .type = "std::variant<Assignment_expression,Binary_expression,Call_expression,Constant_expression,Invalid_expression,Return_expression,Struct_member_expression,Variable_declaration_expression,Variable_expression>",
+                .type = "std::variant<Assignment_expression,Binary_expression,Call_expression,Cast_expression,Constant_expression,Invalid_expression,Return_expression,Struct_member_expression,Variable_declaration_expression,Variable_expression>",
                 .get_next_state = get_next_state,
                 .set_variant_type = set_variant_type,
             };
@@ -1993,6 +2070,16 @@ namespace h::json
                 .pointer = output,
                 .type = "Call_expression",
                 .get_next_state = get_next_state_call_expression
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Cast_expression>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Cast_expression",
+                .get_next_state = get_next_state_cast_expression
             };
         }
 

@@ -39,6 +39,11 @@ export enum Binary_operation {
     Less_than = "Less_than",
 }
 
+export enum Cast_type {
+    Numeric = "Numeric",
+    BitCast = "BitCast",
+}
+
 export enum Linkage {
     External = "External",
     Private = "Private",
@@ -58,6 +63,7 @@ export enum Expression_enum {
     Assignment_expression = "Assignment_expression",
     Binary_expression = "Binary_expression",
     Call_expression = "Call_expression",
+    Cast_expression = "Cast_expression",
     Constant_expression = "Constant_expression",
     Invalid_expression = "Invalid_expression",
     Return_expression = "Return_expression",
@@ -152,6 +158,12 @@ export interface Call_expression {
     arguments: Vector<Expression_index>;
 }
 
+export interface Cast_expression {
+    source: Expression_index;
+    destination_type: Type_reference;
+    cast_type: Cast_type;
+}
+
 export interface Constant_expression {
     type: Type_reference;
     data: string;
@@ -177,7 +189,7 @@ export interface Variable_declaration_expression {
 }
 
 export interface Expression {
-    data: Variant<Expression_enum, Assignment_expression | Binary_expression | Call_expression | Constant_expression | Invalid_expression | Return_expression | Struct_member_expression | Variable_declaration_expression | Variable_expression>;
+    data: Variant<Expression_enum, Assignment_expression | Binary_expression | Call_expression | Cast_expression | Constant_expression | Invalid_expression | Return_expression | Struct_member_expression | Variable_declaration_expression | Variable_expression>;
 }
 
 export interface Statement {

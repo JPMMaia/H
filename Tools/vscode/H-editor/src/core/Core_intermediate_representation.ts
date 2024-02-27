@@ -224,6 +224,11 @@ export enum Binary_operation {
     Less_than = "Less_than",
 }
 
+export enum Cast_type {
+    Numeric = "Numeric",
+    BitCast = "BitCast",
+}
+
 export enum Linkage {
     External = "External",
     Private = "Private",
@@ -243,6 +248,7 @@ export enum Expression_enum {
     Assignment_expression = "Assignment_expression",
     Binary_expression = "Binary_expression",
     Call_expression = "Call_expression",
+    Cast_expression = "Cast_expression",
     Constant_expression = "Constant_expression",
     Invalid_expression = "Invalid_expression",
     Return_expression = "Return_expression",
@@ -752,6 +758,40 @@ function intermediate_to_core_call_expression(intermediate_value: Call_expressio
     (core_value.data.value as Core.Call_expression).arguments.size = (core_value.data.value as Core.Call_expression).arguments.elements.length;
 }
 
+export interface Cast_expression {
+    source: Expression;
+    destination_type: Type_reference;
+    cast_type: Cast_type;
+}
+
+function core_to_intermediate_cast_expression(core_value: Core.Cast_expression, statement: Core.Statement): Cast_expression {
+    return {
+        source: core_to_intermediate_expression(statement.expressions.elements[core_value.source.expression_index], statement),
+        destination_type: core_to_intermediate_type_reference(core_value.destination_type),
+        cast_type: core_value.cast_type,
+    };
+}
+
+function intermediate_to_core_cast_expression(intermediate_value: Cast_expression, expressions: Core.Expression[]): void {
+    const core_value: Core.Expression = {
+        data: {
+            type: Core.Expression_enum.Cast_expression,
+            value: {
+                source: {
+                    expression_index: -1
+                },
+                destination_type: intermediate_to_core_type_reference(intermediate_value.destination_type),
+                cast_type: intermediate_value.cast_type,
+            }
+        }
+    };
+
+    expressions.push(core_value);
+
+    (core_value.data.value as Core.Cast_expression).source.expression_index = expressions.length;
+    intermediate_to_core_expression(intermediate_value.source, expressions);
+}
+
 export interface Constant_expression {
     type: Type_reference;
     data: string;
@@ -895,7 +935,7 @@ function intermediate_to_core_variable_declaration_expression(intermediate_value
 }
 
 export interface Expression {
-    data: Variant<Expression_enum, Assignment_expression | Binary_expression | Call_expression | Constant_expression | Invalid_expression | Return_expression | Struct_member_expression | Variable_declaration_expression | Variable_expression>;
+    data: Variant<Expression_enum, Assignment_expression | Binary_expression | Call_expression | Cast_expression | Constant_expression | Invalid_expression | Return_expression | Struct_member_expression | Variable_declaration_expression | Variable_expression>;
 }
 
 function core_to_intermediate_expression(core_value: Core.Expression, statement: Core.Statement): Expression {
@@ -921,6 +961,14 @@ function core_to_intermediate_expression(core_value: Core.Expression, statement:
                 data: {
                     type: core_value.data.type,
                     value: core_to_intermediate_call_expression(core_value.data.value as Core.Call_expression, statement)
+                }
+            };
+        }
+        case Core.Expression_enum.Cast_expression: {
+            return {
+                data: {
+                    type: core_value.data.type,
+                    value: core_to_intermediate_cast_expression(core_value.data.value as Core.Cast_expression, statement)
                 }
             };
         }
@@ -987,6 +1035,10 @@ function intermediate_to_core_expression(intermediate_value: Expression, express
         }
         case Expression_enum.Call_expression: {
             intermediate_to_core_call_expression(intermediate_value.data.value as Call_expression, expressions);
+            break;
+        }
+        case Expression_enum.Cast_expression: {
+            intermediate_to_core_cast_expression(intermediate_value.data.value as Cast_expression, expressions);
             break;
         }
         case Expression_enum.Constant_expression: {

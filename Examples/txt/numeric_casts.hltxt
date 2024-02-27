@@ -1,0 +1,35 @@
+module Numeric_casts;
+
+export function do_casts(
+    uint32_argument: Uint32,
+    uint64_argument: Uint64,
+    int32_argument: Int32,
+    int64_argument: Int64,
+    float16_argument: Float16,
+    float32_argument: Float32,
+    float64_argument: Float64
+) ->
+(result: Int32)
+{
+    var u64_to_u32 = uint64_argument as Uint32;
+    var u64_to_i32 = uint64_argument as Int32;
+    var i64_to_u32 = int64_argument as Uint32;
+    var i64_to_i32 = int64_argument as Int32;
+
+    var u32_to_u64 = uint32_argument as Uint64;
+    var u32_to_i64 = uint32_argument as Int64;
+    var i32_to_u64 = int32_argument as Uint64;
+    var i32_to_i64 = int32_argument as Int64;
+
+    var u32_to_f32 = uint32_argument as Float32;
+    var i32_to_f32 = int32_argument as Float32;
+    var f32_to_u32 = float32_argument as Uint32;
+    var f32_to_i32 = float32_argument as Int32;
+
+    var f16_to_f32 = float16_argument as Float32;
+    var f32_to_f64 = float32_argument as Float64;
+    var f64_to_f32 = float64_argument as Float32;
+    var f32_to_f16 = float32_argument as Float16;
+
+    return 0;
+}

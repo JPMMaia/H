@@ -136,6 +136,72 @@ entry:
         test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
     }
 
+    TEST_CASE("Compile Numeric_casts")
+    {
+        char const* const input_file = "numeric_casts.hl";
+
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+        {
+        };
+
+        char const* const expected_llvm_ir = R"(
+define i32 @do_casts(i32 %uint32_argument, i64 %uint64_argument, i32 %int32_argument, i64 %int64_argument, half %float16_argument, float %float32_argument, double %float64_argument) {
+entry:
+  %0 = trunc i64 %uint64_argument to i32
+  %u64_to_u32 = alloca i32, align 4
+  store i32 %0, ptr %u64_to_u32, align 4
+  %1 = trunc i64 %uint64_argument to i32
+  %u64_to_i32 = alloca i32, align 4
+  store i32 %1, ptr %u64_to_i32, align 4
+  %2 = trunc i64 %int64_argument to i32
+  %i64_to_u32 = alloca i32, align 4
+  store i32 %2, ptr %i64_to_u32, align 4
+  %3 = trunc i64 %int64_argument to i32
+  %i64_to_i32 = alloca i32, align 4
+  store i32 %3, ptr %i64_to_i32, align 4
+  %4 = zext i32 %uint32_argument to i64
+  %u32_to_u64 = alloca i64, align 8
+  store i64 %4, ptr %u32_to_u64, align 8
+  %5 = zext i32 %uint32_argument to i64
+  %u32_to_i64 = alloca i64, align 8
+  store i64 %5, ptr %u32_to_i64, align 8
+  %6 = zext i32 %int32_argument to i64
+  %i32_to_u64 = alloca i64, align 8
+  store i64 %6, ptr %i32_to_u64, align 8
+  %7 = sext i32 %int32_argument to i64
+  %i32_to_i64 = alloca i64, align 8
+  store i64 %7, ptr %i32_to_i64, align 8
+  %8 = uitofp i32 %uint32_argument to float
+  %u32_to_f32 = alloca float, align 4
+  store float %8, ptr %u32_to_f32, align 4
+  %9 = sitofp i32 %int32_argument to float
+  %i32_to_f32 = alloca float, align 4
+  store float %9, ptr %i32_to_f32, align 4
+  %10 = fptoui float %float32_argument to i32
+  %f32_to_u32 = alloca i32, align 4
+  store i32 %10, ptr %f32_to_u32, align 4
+  %11 = fptosi float %float32_argument to i32
+  %f32_to_i32 = alloca i32, align 4
+  store i32 %11, ptr %f32_to_i32, align 4
+  %12 = fpext half %float16_argument to float
+  %f16_to_f32 = alloca float, align 4
+  store float %12, ptr %f16_to_f32, align 4
+  %13 = fpext float %float32_argument to double
+  %f32_to_f64 = alloca double, align 8
+  store double %13, ptr %f32_to_f64, align 8
+  %14 = fptrunc double %float64_argument to float
+  %f64_to_f32 = alloca float, align 4
+  store float %14, ptr %f64_to_f32, align 4
+  %15 = fptrunc float %float32_argument to half
+  %f32_to_f16 = alloca half, align 2
+  store half %15, ptr %f32_to_f16, align 2
+  ret i32 0
+}
+)";
+
+        test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+    }
+
     TEST_CASE("Compile Variables")
     {
         char const* const input_file = "variables.hl";

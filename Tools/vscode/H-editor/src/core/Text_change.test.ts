@@ -842,6 +842,58 @@ export function main() -> (result: Int32)
         assert.deepEqual(new_document_state.module, expected_module);
     });
 
+    it("Handles numeric casts", () => {
+
+        const document_state = Document.create_empty_state(language_description.production_rules);
+
+        const program = `
+module Numeric_casts;
+
+export function main() -> (result: Int32)
+{
+    var i64_to_i8 = 1i64 as Int8;
+    var i64_to_i16 = 1i64 as Int16;
+    var i64_to_i32 = 1i64 as Int32;
+
+    var u64_to_u8 = 1u64 as Uint8;
+    var u64_to_u16 = 1u64 as Uint16;
+    var u64_to_u32 = 1u64 as Uint32;
+
+    var i8_to_i16 = 1i8 as Int16;
+    var u8_to_u16 = 1u8 as Uint16;
+    
+    var i32_to_u32 = 1i32 as Uint32;
+    var u32_to_i32 = 1u32 as Int32;
+
+    var i32_to_f16 = 1i32 as Float16;
+    var i32_to_f32 = 1i32 as Float32;
+    var i32_to_f64 = 1i32 as Float64;
+
+    var f16_to_i32 = 1.0f16 as Int32;
+    var f32_to_i32 = 1.0f32 as Int32;
+    var f64_to_i32 = 1.0f64 as Int32;
+
+    return 0;
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_numeric_casts();
+        assert.deepEqual(new_document_state.module, expected_module);
+    });
+
 });
 
 describe("Text_change.aggregate_changes", () => {
