@@ -129,6 +129,13 @@ namespace h::tools::code_generator
             return type.name.starts_with("std::vector") || type.name.starts_with("std::pmr::vector");
         }
 
+        bool is_optional_type(
+            Type const& type
+        )
+        {
+            return type.name.starts_with("std::optional");
+        }
+
         bool is_struct_type(
             Type const& type,
             std::pmr::unordered_map<std::pmr::string, Struct> const& struct_types
@@ -205,6 +212,17 @@ namespace h::tools::code_generator
             return
                 type.name == "std::string" ||
                 type.name == "std::pmr::string";
+        }
+
+        std::pmr::string get_optional_value_type(
+            Type const& type
+        )
+        {
+            auto const open_location = type.name.find_first_of('<');
+            auto const close_location = type.name.find_last_of('>');
+            auto const count = close_location - open_location - 1;
+
+            return std::pmr::string{ type.name.substr(open_location + 1, count) };
         }
 
         std::pmr::string get_vector_value_type(
@@ -775,25 +793,32 @@ namespace h::tools::code_generator
             }
             else
             {
-                output_stream << indent(indentation) << "    writer.Key(\"" << member.name << "\");\n";
-
-                if (is_struct_type(member.type, struct_types) || is_vector_type(member.type))
+                if (is_optional_type(member.type))
                 {
-                    output_stream << indent(indentation) << "    write_object(writer, output." << member.name << ");\n";
-                }
-                else if (is_enum_type(member.type, enum_types))
-                {
-                    output_stream << indent(indentation) << "    {\n";
-                    output_stream << indent(indentation) << "        std::string_view const enum_value_string = write_enum(output." << member.name << ");\n";
-                    output_stream << indent(indentation) << "        writer.String(enum_value_string.data(), enum_value_string.size());\n";
-                    output_stream << indent(indentation) << "    }\n";
+                    output_stream << indent(indentation) << "    write_optional(writer, \"" << member.name << "\", output." << member.name << ");\n";
                 }
                 else
                 {
-                    output_stream << indent(indentation) << "    ";
-                    std::pmr::string const name = "output." + member.name;
-                    generate_write_value_json_code(output_stream, member.type, name);
-                    output_stream << '\n';
+                    output_stream << indent(indentation) << "    writer.Key(\"" << member.name << "\");\n";
+
+                    if (is_struct_type(member.type, struct_types) || is_vector_type(member.type))
+                    {
+                        output_stream << indent(indentation) << "    write_object(writer, output." << member.name << ");\n";
+                    }
+                    else if (is_enum_type(member.type, enum_types))
+                    {
+                        output_stream << indent(indentation) << "    {\n";
+                        output_stream << indent(indentation) << "        std::string_view const enum_value_string = write_enum(output." << member.name << ");\n";
+                        output_stream << indent(indentation) << "        writer.String(enum_value_string.data(), enum_value_string.size());\n";
+                        output_stream << indent(indentation) << "    }\n";
+                    }
+                    else
+                    {
+                        output_stream << indent(indentation) << "    ";
+                        std::pmr::string const name = "output." + member.name;
+                        generate_write_value_json_code(output_stream, member.type, name);
+                        output_stream << '\n';
+                    }
                 }
             }
         }
@@ -1351,12 +1376,27 @@ namespace h::tools::code_generator
                     output_stream << "            };\n";
                     output_stream << "\n";
                 }
+                else if (is_optional_type(member.type))
+                {
+                    std::pmr::string const value_type = get_optional_value_type(member.type);
+                    output_stream << std::format("            parent->{} = h::{}{};", member.name, value_type, "{}");
+                }
                 output_stream << "\n";
 
                 output_stream << "            return Stack_state\n";
                 output_stream << "            {\n";
-                output_stream << std::format("                .pointer = &parent->{},\n", member.name);
-                output_stream << std::format("                .type = \"{}\",\n", member.type.name);
+
+                if (is_optional_type(member.type))
+                {
+                    std::pmr::string const value_type = get_optional_value_type(member.type);
+                    output_stream << std::format("                .pointer = &parent->{}.value(),\n", member.name);
+                    output_stream << std::format("                .type = \"{}\",\n", value_type);
+                }
+                else
+                {
+                    output_stream << std::format("                .pointer = &parent->{},\n", member.name);
+                    output_stream << std::format("                .type = \"{}\",\n", member.type.name);
+                }
 
                 if (is_struct_type(member.type, struct_map))
                 {
@@ -1662,6 +1702,7 @@ namespace h::tools::code_generator
         output_stream << '\n';
         output_stream << "#include <iostream>\n";
         output_stream << "#include <memory_resource>\n";
+        output_stream << "#include <optional>\n";
         output_stream << "#include <string_view>\n";
         output_stream << "#include <variant>\n";
         output_stream << "#include <vector>\n";
@@ -1681,6 +1722,64 @@ namespace h::tools::code_generator
 
         generate_write_forward_declarations(output_stream, file_types.structs, 4);
 
+        output_stream << "    template <typename C> struct Is_optional : std::false_type {};\n";
+        output_stream << "    template <typename T> struct Is_optional< std::optional<T> > : std::true_type {};\n";
+        output_stream << "    template <typename C> inline constexpr bool Is_optional_v = Is_optional<C>::value;\n";
+        output_stream << "\n";
+        output_stream << "    export template <typename Writer_type, typename Value_type>\n";
+        output_stream << "        void write_value(\n";
+        output_stream << "            Writer_type& writer,\n";
+        output_stream << "            Value_type const& value\n";
+        output_stream << "        )\n";
+        output_stream << "    {\n";
+        output_stream << "        if constexpr (std::is_unsigned_v<Value_type> && sizeof(Value_type) <= 4)\n";
+        output_stream << "        {\n";
+        output_stream << "            writer.Uint(value);\n";
+        output_stream << "        }\n";
+        output_stream << "        else if constexpr (std::is_unsigned_v<Value_type>)\n";
+        output_stream << "        {\n";
+        output_stream << "            writer.Uint64(value);\n";
+        output_stream << "        }\n";
+        output_stream << "        else if constexpr (std::is_signed_v<Value_type> && sizeof(Value_type) <= 4)\n";
+        output_stream << "        {\n";
+        output_stream << "            writer.Int(value);\n";
+        output_stream << "        }\n";
+        output_stream << "        else if constexpr (std::is_signed_v<Value_type>)\n";
+        output_stream << "        {\n";
+        output_stream << "            writer.Int64(value);\n";
+        output_stream << "        }\n";
+        output_stream << "        else if constexpr (std::is_floating_point_v<Value_type>)\n";
+        output_stream << "        {\n";
+        output_stream << "            writer.Double(value);\n";
+        output_stream << "        }\n";
+        output_stream << "        else if constexpr (std::is_same_v<Value_type, std::string> || std::is_same_v<Value_type, std::pmr::string> || std::is_same_v<Value_type, std::string_view>)\n";
+        output_stream << "        {\n";
+        output_stream << "            writer.String(value.data(), value.size());\n";
+        output_stream << "        }\n";
+        output_stream << "        else if constexpr (std::is_enum_v<Value_type>)\n";
+        output_stream << "        {\n";
+        output_stream << "            {\n";
+        output_stream << "                std::string_view const enum_value_string = write_enum(value);\n";
+        output_stream << "                writer.String(enum_value_string.data(), enum_value_string.size());\n";
+        output_stream << "            }\n";
+        output_stream << "        }\n";
+        output_stream << "        else if constexpr (Is_optional_v<Value_type>)\n";
+        output_stream << "        {\n";
+        output_stream << "            if (value.has_value())\n";
+        output_stream << "            {\n";
+        output_stream << "                write_value(writer, value.value());\n";
+        output_stream << "            }\n";
+        output_stream << "            else\n";
+        output_stream << "            {\n";
+        output_stream << "                writer.Null();\n";
+        output_stream << "            }\n";
+        output_stream << "        }\n";
+        output_stream << "        else if constexpr (std::is_class_v<Value_type>)\n";
+        output_stream << "        {\n";
+        output_stream << "            write_object(writer, value);\n";
+        output_stream << "        }\n";
+        output_stream << "    }\n";
+        output_stream << "\n";
         output_stream << "    export template <typename Writer_type, typename Value_type>\n";
         output_stream << "        void write_object(\n";
         output_stream << "            Writer_type& writer,\n";
@@ -1696,47 +1795,26 @@ namespace h::tools::code_generator
         output_stream << "        writer.StartArray();\n";
         output_stream << "        for (Value_type const& value : values)\n";
         output_stream << "        {\n";
-        output_stream << "            if constexpr (std::is_unsigned_v<Value_type> && sizeof(Value_type) <= 4)\n";
-        output_stream << "            {\n";
-        output_stream << "                writer.Uint(value);\n";
-        output_stream << "            }\n";
-        output_stream << "            else if constexpr (std::is_unsigned_v<Value_type>)\n";
-        output_stream << "            {\n";
-        output_stream << "                writer.Uint64(value);\n";
-        output_stream << "            }\n";
-        output_stream << "            else if constexpr (std::is_signed_v<Value_type> && sizeof(Value_type) <= 4)\n";
-        output_stream << "            {\n";
-        output_stream << "                writer.Int(value);\n";
-        output_stream << "            }\n";
-        output_stream << "            else if constexpr (std::is_signed_v<Value_type>)\n";
-        output_stream << "            {\n";
-        output_stream << "                writer.Int64(value);\n";
-        output_stream << "            }\n";
-        output_stream << "            else if constexpr (std::is_floating_point_v<Value_type>)\n";
-        output_stream << "            {\n";
-        output_stream << "                writer.Double(value);\n";
-        output_stream << "            }\n";
-        output_stream << "            else if constexpr (std::is_same_v<Value_type, std::string> || std::is_same_v<Value_type, std::pmr::string> || std::is_same_v<Value_type, std::string_view>)\n";
-        output_stream << "            {\n";
-        output_stream << "                writer.String(value.data(), value.size());\n";
-        output_stream << "            }\n";
-        output_stream << "            else if constexpr (std::is_enum_v<Value_type>)\n";
-        output_stream << "            {\n";
-        output_stream << "                {\n";
-        output_stream << "                    std::string_view const enum_value_string = write_enum(value);\n";
-        output_stream << "                    writer.String(enum_value_string.data(), enum_value_string.size());\n";
-        output_stream << "                }\n";
-        output_stream << "            }\n";
-        output_stream << "            else if constexpr (std::is_class_v<Value_type>)\n";
-        output_stream << "            {\n";
-        output_stream << "                write_object(writer, value);\n";
-        output_stream << "            }\n";
+        output_stream << "            write_value(writer, value);\n";
         output_stream << "        }\n";
         output_stream << "        writer.EndArray(values.size());\n";
         output_stream << "\n";
         output_stream << "        writer.EndObject();\n";
         output_stream << "    }\n";
         output_stream << "\n";
+        output_stream << "    export template <typename Writer_type, typename Value_type>\n";
+        output_stream << "        void write_optional(\n";
+        output_stream << "            Writer_type& writer,\n";
+        output_stream << "            char const* const key,\n";
+        output_stream << "            std::optional<Value_type> const& value\n";
+        output_stream << "        )\n";
+        output_stream << "    {\n";
+        output_stream << "        if (value.has_value())\n";
+        output_stream << "        {\n";
+        output_stream << "            writer.Key(key);\n";
+        output_stream << "            write_value(writer, value);\n";
+        output_stream << "        }\n";
+        output_stream << "    }\n";
 
         std::pmr::unordered_map<std::pmr::string, Enum> const enum_map = create_name_map<Enum>(
             file_types.enums
@@ -2015,6 +2093,11 @@ namespace h::tools::code_generator
 
             return std::pmr::string{ std::format("Variant<{}, {}>", variant_type_enum_name, typescript_variant_type) };
         }
+        else if (is_optional_type(type))
+        {
+            std::pmr::string const value_type = get_optional_value_type(type);
+            return value_type;
+        }
         else
         {
             throw std::runtime_error{ "Type not handled!" };
@@ -2110,7 +2193,7 @@ namespace h::tools::code_generator
             {
                 for (Member const& member : struct_info.members)
                 {
-                    output_stream << std::format("    {}: {};\n", member.name, to_typescript_type(member.type, struct_info.name, enum_map, struct_map, {}, false));
+                    output_stream << std::format("    {}{}: {};\n", member.name, is_optional_type(member.type) ? "?" : "", to_typescript_type(member.type, struct_info.name, enum_map, struct_map, {}, false));
                 }
             }
             output_stream << "}\n\n";
@@ -2451,7 +2534,7 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
             {
                 for (Member const& member : struct_info.members)
                 {
-                    output_stream << std::format("    {}: {};\n", member.name, to_typescript_type(member.type, struct_info.name, enum_map, struct_map, replace_type_map, true));
+                    output_stream << std::format("    {}{}: {};\n", member.name, is_optional_type(member.type) ? "?" : "", to_typescript_type(member.type, struct_info.name, enum_map, struct_map, replace_type_map, true));
                 }
             }
             output_stream << "}\n\n";
