@@ -467,7 +467,19 @@ function choose_production_rule_expression_constant(
     switch (type_reference.data.type) {
         case Core_intermediate_representation.Type_reference_enum.Fundamental_type: {
             const fundamental_type = type_reference.data.value as Core_intermediate_representation.Fundamental_type;
-            const rhs_to_find = fundamental_type === Core_intermediate_representation.Fundamental_type.String ? "string" : "number";
+
+            const get_rhs_to_find = (): string => {
+                switch (fundamental_type) {
+                    case Core_intermediate_representation.Fundamental_type.Bool:
+                        return "boolean";
+                    case Core_intermediate_representation.Fundamental_type.String:
+                        return "string";
+                    default:
+                        return "number";
+                }
+            };
+
+            const rhs_to_find = get_rhs_to_find();
 
             const index = production_rule_indices.findIndex(index => production_rules[index].rhs[0] === rhs_to_find);
             return {
@@ -1180,6 +1192,19 @@ function node_to_expression_constant(node: Parser_node.Node): Core_intermediate_
     const terminal_node = node.children[0];
 
     switch (terminal_node.word.type) {
+        case Grammar.Word_type.Alphanumeric: {
+            if (terminal_node.word.value === "true" || terminal_node.word.value === "false") {
+                return {
+                    type: {
+                        data: {
+                            type: Core_intermediate_representation.Type_reference_enum.Fundamental_type,
+                            value: Core_intermediate_representation.Fundamental_type.Bool
+                        }
+                    },
+                    data: terminal_node.word.value
+                };
+            }
+        }
         case Grammar.Word_type.Number: {
             const suffix = Scanner.get_suffix(terminal_node.word);
             const value = terminal_node.word.value.substring(0, terminal_node.word.value.length - suffix.length);

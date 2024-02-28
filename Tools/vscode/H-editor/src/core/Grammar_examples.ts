@@ -174,6 +174,7 @@ export function create_test_grammar_9_description(): string[] {
         "Expression_call_arguments -> Generic_expression , $0_or_more",
         "Expression_cast -> Generic_expression as Expression_cast_destination_type",
         "Expression_cast_destination_type -> identifier",
+        "Expression_constant -> boolean",
         "Expression_constant -> number",
         "Expression_constant -> string",
         "Expression_binary -> Generic_expression Expression_binary_symbol Generic_expression",

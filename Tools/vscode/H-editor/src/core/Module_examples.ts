@@ -1329,6 +1329,64 @@ export function create_numeric_casts(): Core_intermediate_representation.Module 
     };
 }
 
+export function create_booleans(): Core_intermediate_representation.Module {
+
+    const constant_expressions: [string, Core_intermediate_representation.Expression][] = [
+        ["my_true_boolean", create_constant_expression(create_fundamental_type(Core_intermediate_representation.Fundamental_type.Bool), "true")],
+        ["my_false_boolean", create_constant_expression(create_fundamental_type(Core_intermediate_representation.Fundamental_type.Bool), "false")]
+    ];
+
+    const statements: Core_intermediate_representation.Statement[] = [];
+
+    for (const constant_expression of constant_expressions) {
+        const statement: Core_intermediate_representation.Statement = {
+            name: "",
+            expression: {
+                data: {
+                    type: Core_intermediate_representation.Expression_enum.Variable_declaration_expression,
+                    value: {
+                        name: constant_expression[0],
+                        is_mutable: false,
+                        right_hand_side: constant_expression[1]
+                    }
+                }
+            }
+        };
+        statements.push(statement);
+    }
+
+    return {
+        name: "Booleans",
+        imports: [],
+        declarations: [
+            {
+                name: "foo",
+                type: Core_intermediate_representation.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "foo",
+                        type: {
+                            input_parameter_types: [],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: [],
+                        output_parameter_names: [],
+                        linkage: Core_intermediate_representation.Linkage.External
+                    },
+                    definition: {
+                        name: "foo",
+                        statements: [
+                            ...statements
+                        ]
+                    }
+                }
+            }
+        ]
+    };
+}
+
 function create_integer_type(number_of_bits: number, is_signed: boolean): Core_intermediate_representation.Type_reference {
     return {
         data: {

@@ -49,6 +49,10 @@ export function create_default_description(): Description {
         }
 
         if (word.type === Grammar.Word_type.Alphanumeric) {
+            if (word.value === "true" || word.value === "false") {
+                return "boolean";
+            }
+
             return "identifier";
         }
 

@@ -2046,4 +2046,12 @@ describe("Parse_tree_convertor.parse_tree_to_module", () => {
 
         assert.deepEqual(actual_module.declarations, expected_module.declarations);
     });
+
+    it("Handles booleans", () => {
+        const grammar_description = Grammar_examples.create_test_grammar_9_description();
+        const expected_module = Module_examples.create_booleans();
+        const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
+
+        assert.deepEqual(actual_module.declarations, expected_module.declarations);
+    });
 });

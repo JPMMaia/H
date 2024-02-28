@@ -625,6 +625,20 @@ namespace h::compiler
 
             switch (fundamental_type)
             {
+            case Fundamental_type::Bool: {
+                llvm::Type* const llvm_type = to_type(llvm_context, llvm_data_layout, expression.type, struct_types);
+
+                std::uint8_t const data = expression.data == "true" ? 1 : 0;
+                llvm::APInt const value{ 8, data, false };
+
+                llvm::Value* const instruction = llvm::ConstantInt::get(llvm_type, value);
+
+                return
+                {
+                    .value = instruction,
+                    .type = &expression.type
+                };
+            }
             case Fundamental_type::Float16: {
                 llvm::Type* const llvm_type = to_type(llvm_context, llvm_data_layout, expression.type, struct_types);
 
