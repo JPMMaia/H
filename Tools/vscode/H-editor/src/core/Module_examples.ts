@@ -1117,57 +1117,18 @@ export function create_variables(): Core_intermediate_representation.Module {
 
 export function create_numbers(): Core_intermediate_representation.Module {
 
-    const create_integer_expression = (number_of_bits: number, is_signed: boolean): Core_intermediate_representation.Expression => {
-        const constant_expression: Core_intermediate_representation.Constant_expression = {
-            type: {
-                data: {
-                    type: Core_intermediate_representation.Type_reference_enum.Integer_type,
-                    value: {
-                        number_of_bits: number_of_bits,
-                        is_signed: is_signed
-                    }
-                }
-            },
-            data: "1"
-        };
-        return {
-            data: {
-                type: Core_intermediate_representation.Expression_enum.Constant_expression,
-                value: constant_expression
-            }
-        };
-    };
-
-    const create_fundamental_type_expression = (fundamental_type: Core_intermediate_representation.Fundamental_type): Core_intermediate_representation.Expression => {
-        const constant_expression: Core_intermediate_representation.Constant_expression = {
-            type: {
-                data: {
-                    type: Core_intermediate_representation.Type_reference_enum.Fundamental_type,
-                    value: fundamental_type
-                }
-            },
-            data: "1.0"
-        };
-        return {
-            data: {
-                type: Core_intermediate_representation.Expression_enum.Constant_expression,
-                value: constant_expression
-            }
-        };
-    };
-
     const constant_expressions: [string, Core_intermediate_representation.Expression][] = [
-        ["my_int8", create_integer_expression(8, true)],
-        ["my_int16", create_integer_expression(16, true)],
-        ["my_int32", create_integer_expression(32, true)],
-        ["my_int64", create_integer_expression(64, true)],
-        ["my_uint8", create_integer_expression(8, false)],
-        ["my_uint16", create_integer_expression(16, false)],
-        ["my_uint32", create_integer_expression(32, false)],
-        ["my_uint64", create_integer_expression(64, false)],
-        ["my_float16", create_fundamental_type_expression(Core_intermediate_representation.Fundamental_type.Float16)],
-        ["my_float32", create_fundamental_type_expression(Core_intermediate_representation.Fundamental_type.Float32)],
-        ["my_float64", create_fundamental_type_expression(Core_intermediate_representation.Fundamental_type.Float64)],
+        ["my_int8", create_constant_expression(create_integer_type(8, true), "1")],
+        ["my_int16", create_constant_expression(create_integer_type(16, true), "1")],
+        ["my_int32", create_constant_expression(create_integer_type(32, true), "1")],
+        ["my_int64", create_constant_expression(create_integer_type(64, true), "1")],
+        ["my_uint8", create_constant_expression(create_integer_type(8, false), "1")],
+        ["my_uint16", create_constant_expression(create_integer_type(16, false), "1")],
+        ["my_uint32", create_constant_expression(create_integer_type(32, false), "1")],
+        ["my_uint64", create_constant_expression(create_integer_type(64, false), "1")],
+        ["my_float16", create_constant_expression(create_fundamental_type(Core_intermediate_representation.Fundamental_type.Float16), "1.0")],
+        ["my_float32", create_constant_expression(create_fundamental_type(Core_intermediate_representation.Fundamental_type.Float32), "1.0")],
+        ["my_float64", create_constant_expression(create_fundamental_type(Core_intermediate_representation.Fundamental_type.Float64), "1.0")],
     ];
 
     const statements: Core_intermediate_representation.Statement[] = [];
@@ -1257,54 +1218,6 @@ export function create_numbers(): Core_intermediate_representation.Module {
 }
 
 export function create_numeric_casts(): Core_intermediate_representation.Module {
-
-    const create_integer_type = (number_of_bits: number, is_signed: boolean): Core_intermediate_representation.Type_reference => {
-        return {
-            data: {
-                type: Core_intermediate_representation.Type_reference_enum.Integer_type,
-                value: {
-                    number_of_bits: number_of_bits,
-                    is_signed: is_signed
-                }
-            }
-        };
-    };
-
-    const create_fundamental_type = (fundamental_type: Core_intermediate_representation.Fundamental_type): Core_intermediate_representation.Type_reference => {
-        return {
-            data: {
-                type: Core_intermediate_representation.Type_reference_enum.Fundamental_type,
-                value: fundamental_type
-            }
-        };
-    };
-
-    const create_constant_expression = (type: Core_intermediate_representation.Type_reference, data: string): Core_intermediate_representation.Expression => {
-        const constant_expression: Core_intermediate_representation.Constant_expression = {
-            type: type,
-            data: data
-        };
-        return {
-            data: {
-                type: Core_intermediate_representation.Expression_enum.Constant_expression,
-                value: constant_expression
-            }
-        };
-    };
-
-    const create_numeric_cast_expression = (source: Core_intermediate_representation.Expression, destination_type: Core_intermediate_representation.Type_reference): Core_intermediate_representation.Expression => {
-        const cast_expression: Core_intermediate_representation.Cast_expression = {
-            source: source,
-            destination_type: destination_type,
-            cast_type: Core_intermediate_representation.Cast_type.Numeric
-        };
-        return {
-            data: {
-                type: Core_intermediate_representation.Expression_enum.Cast_expression,
-                value: cast_expression
-            }
-        };
-    };
 
     const constant_expressions: [string, Core_intermediate_representation.Expression][] = [
         ["i64_to_i8", create_numeric_cast_expression(create_constant_expression(create_integer_type(64, true), "1"), create_integer_type(8, true))],
@@ -1413,5 +1326,53 @@ export function create_numeric_casts(): Core_intermediate_representation.Module 
                 }
             }
         ]
+    };
+}
+
+function create_integer_type(number_of_bits: number, is_signed: boolean): Core_intermediate_representation.Type_reference {
+    return {
+        data: {
+            type: Core_intermediate_representation.Type_reference_enum.Integer_type,
+            value: {
+                number_of_bits: number_of_bits,
+                is_signed: is_signed
+            }
+        }
+    };
+}
+
+function create_fundamental_type(fundamental_type: Core_intermediate_representation.Fundamental_type): Core_intermediate_representation.Type_reference {
+    return {
+        data: {
+            type: Core_intermediate_representation.Type_reference_enum.Fundamental_type,
+            value: fundamental_type
+        }
+    };
+}
+
+function create_constant_expression(type: Core_intermediate_representation.Type_reference, data: string): Core_intermediate_representation.Expression {
+    const constant_expression: Core_intermediate_representation.Constant_expression = {
+        type: type,
+        data: data
+    };
+    return {
+        data: {
+            type: Core_intermediate_representation.Expression_enum.Constant_expression,
+            value: constant_expression
+        }
+    };
+}
+
+function create_numeric_cast_expression(source: Core_intermediate_representation.Expression, destination_type: Core_intermediate_representation.Type_reference): Core_intermediate_representation.Expression {
+    const cast_expression: Core_intermediate_representation.Cast_expression = {
+        source: source,
+        destination_type: destination_type,
+        cast_type: Core_intermediate_representation.Cast_type.Numeric
+    };
+    return {
+        data: {
+            type: Core_intermediate_representation.Expression_enum.Cast_expression,
+            value: cast_expression
+        }
     };
 }
