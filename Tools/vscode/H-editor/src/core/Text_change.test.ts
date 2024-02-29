@@ -925,7 +925,197 @@ export function foo() -> ()
         assert.deepEqual(new_document_state.module, expected_module);
     });
 
+    it("Handles binary expressions", () => {
 
+        const document_state = Document.create_empty_state(language_description.production_rules);
+
+        const program = `
+module Binary_expressions;
+
+export function foo(
+    first_integer: Int32,
+    second_integer: Int32,
+    first_boolean: Bool,
+    second_boolean: Bool
+) -> ()
+{
+    var add = first_integer + second_integer;
+    var subtract = first_integer - second_integer;
+    var multiply = first_integer * second_integer;
+    var divide = first_integer / second_integer;
+    var modulus = first_integer % second_integer;
+
+    var equal = first_integer == second_integer;
+    var not_equal = first_integer != second_integer;
+    
+    var less_than = first_integer < second_integer;
+    var less_than_or_equal_to = first_integer <= second_integer;
+    var greater_than = first_integer > second_integer;
+    var greater_than_or_equal_to = first_integer >= second_integer;
+    
+    var logical_and = first_boolean && second_boolean;
+    var logical_or = first_boolean || second_boolean;
+    
+    var bitwise_and = first_integer & second_integer;
+    var bitwise_or = first_integer | second_integer;
+    var bitwise_xor = first_integer ^ second_integer;
+    var bit_shift_left = first_integer << second_integer;
+    var bit_shift_right = first_integer >> second_integer;
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_binary_expressions();
+        assert.deepEqual(new_document_state.module, expected_module);
+    });
+
+    it("Handles binary expressions operator precedence", () => {
+
+        const document_state = Document.create_empty_state(language_description.production_rules);
+
+        const program = `
+module Binary_expressions_operator_precedence;
+
+export function foo(
+    a: Int32,
+    b: Int32
+    c: Int32
+) -> ()
+{
+    var case_1 = a + b * c;
+    var case_2 = a * b + c;
+    var case_3 = a / b * c;
+    var case_4 = a * b / c;
+
+    var case_5 = a * function_call() + b;
+    var case_6 = sizeof(a) * b;
+    
+    var case_7 = (a + b) * c;
+    var case_8 = a * (b + c);
+
+    var case_9 = a == 0 && b == 1;
+    var case_10 = (a & b) == (b & a);
+    var case_11 = a < b && b < c;
+    var case_12 = a + b == b + c;
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_binary_expressions_operator_precedence();
+        assert.deepEqual(new_document_state.module, expected_module);
+    });
+
+    it("Handles assignment expressions", () => {
+
+        const document_state = Document.create_empty_state(language_description.production_rules);
+
+        const program = `
+module Assignment_expressions;
+
+export function foo(
+    other_integer: Int32
+) -> ()
+{
+    mutable my_integer = 1;
+
+    my_integer = 2;
+    
+    my_integer  += other_integer;
+    my_integer  -= other_integer;
+    my_integer  *= other_integer;
+    my_integer  /= other_integer;
+    my_integer  %= other_integer;
+    
+    my_integer  &= other_integer;
+    my_integer  |= other_integer;
+    my_integer  ^= other_integer;
+    my_integer  <<= other_integer;
+    my_integer  >>= other_integer;
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_assignment_expressions();
+        assert.deepEqual(new_document_state.module, expected_module);
+    });
+
+    it("Handles unary expressions", () => {
+
+        const document_state = Document.create_empty_state(language_description.production_rules);
+
+        const program = `
+module Unary_expressions;
+
+export function foo(
+    my_integer: Int32,
+    my_boolean: Bool
+) -> ()
+{
+    var not_variable = !my_boolean;
+    var bitwise_not_variable = ~my_integer;
+    var minus_variable = -my_integer;
+    var pre_increment_variable = ++my_integer;
+    var post_increment_variable = my_integer++;
+    var pre_decrement_variable = --my_integer;
+    var post_decrement_variable = my_integer++;
+    var address_of_variable = &my_integer;
+    var indirection_variable = *address_of_variable;
+    var size_of_variable = size_of(my_integer);
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_unary_expressions();
+        assert.deepEqual(new_document_state.module, expected_module);
+    });
 });
 
 describe("Text_change.aggregate_changes", () => {

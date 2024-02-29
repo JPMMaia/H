@@ -2,6 +2,7 @@ module;
 
 #include <compare>
 #include <memory_resource>
+#include <optional>
 #include <ostream>
 #include <string>
 #include <unordered_map>
@@ -161,22 +162,39 @@ namespace h
         friend auto operator<=>(Expression_index const&, Expression_index const&) = default;
     };
 
-    export struct Assignment_expression
-    {
-        Expression_index left_hand_side;
-        Expression_index right_hand_side;
-
-        friend auto operator<=>(Assignment_expression const&, Assignment_expression const&) = default;
-    };
-
     export enum class Binary_operation
     {
         Add,
         Subtract,
         Multiply,
-        Signed_divide,
-        Unsigned_divide,
-        Less_than
+        Divide,
+        Modulus,
+
+        Equal,
+        Not_equal,
+        Less_than,
+        Less_than_or_equal_to,
+        Greater_than,
+        Greater_than_or_equal_to,
+
+        Logical_and,
+        Logical_or,
+
+        Bitwise_and,
+        Bitwise_or,
+        Bitwise_xor,
+
+        Bit_shift_left,
+        Bit_shift_right
+    };
+
+    export struct Assignment_expression
+    {
+        Expression_index left_hand_side;
+        Expression_index right_hand_side;
+        std::optional<Binary_operation> additional_operation;
+
+        friend auto operator<=>(Assignment_expression const&, Assignment_expression const&) = default;
     };
 
     export struct Binary_expression
@@ -227,6 +245,13 @@ namespace h
         friend auto operator<=>(Invalid_expression const&, Invalid_expression const&) = default;
     };
 
+    export struct Parenthesis_expression
+    {
+        Expression_index expression;
+
+        friend auto operator<=>(Parenthesis_expression const&, Parenthesis_expression const&) = default;
+    };
+
     export struct Return_expression
     {
         Expression_index expression;
@@ -240,6 +265,28 @@ namespace h
         std::pmr::string member_name;
 
         friend auto operator<=>(Struct_member_expression const&, Struct_member_expression const&) = default;
+    };
+
+    export enum class Unary_operation
+    {
+        Not,
+        Bitwise_not,
+        Minus,
+        Pre_increment,
+        Post_increment,
+        Pre_decrement,
+        Post_decrement,
+        Indirection,
+        Address_of,
+        Size_of
+    };
+
+    export struct Unary_expression
+    {
+        Expression_index expression;
+        Unary_operation operation;
+
+        friend auto operator<=>(Unary_expression const&, Unary_expression const&) = default;
     };
 
     export struct Variable_declaration_expression
@@ -260,8 +307,10 @@ namespace h
             Cast_expression,
             Constant_expression,
             Invalid_expression,
+            Parenthesis_expression,
             Return_expression,
             Struct_member_expression,
+            Unary_expression,
             Variable_declaration_expression,
             Variable_expression
         >;

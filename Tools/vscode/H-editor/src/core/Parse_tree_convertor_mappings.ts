@@ -690,6 +690,8 @@ function map_expression_type_to_production_rule_label(type: Core_intermediate_re
             return "Expression_invalid";
         case Core_intermediate_representation.Expression_enum.Return_expression:
             return "Expression_return";
+        case Core_intermediate_representation.Expression_enum.Unary_expression:
+            return "Expression_unary_expression";
         case Core_intermediate_representation.Expression_enum.Variable_expression:
             return "Expression_variable";
         case Core_intermediate_representation.Expression_enum.Variable_declaration_expression:

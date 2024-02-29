@@ -2,6 +2,7 @@ module;
 
 #include <iostream>
 #include <memory_resource>
+#include <optional>
 #include <string_view>
 #include <variant>
 #include <vector>
@@ -108,17 +109,65 @@ namespace h::json
         {
             return "Multiply";
         }
-        else if (value == Binary_operation::Signed_divide)
+        else if (value == Binary_operation::Divide)
         {
-            return "Signed_divide";
+            return "Divide";
         }
-        else if (value == Binary_operation::Unsigned_divide)
+        else if (value == Binary_operation::Modulus)
         {
-            return "Unsigned_divide";
+            return "Modulus";
+        }
+        else if (value == Binary_operation::Equal)
+        {
+            return "Equal";
+        }
+        else if (value == Binary_operation::Not_equal)
+        {
+            return "Not_equal";
         }
         else if (value == Binary_operation::Less_than)
         {
             return "Less_than";
+        }
+        else if (value == Binary_operation::Less_than_or_equal_to)
+        {
+            return "Less_than_or_equal_to";
+        }
+        else if (value == Binary_operation::Greater_than)
+        {
+            return "Greater_than";
+        }
+        else if (value == Binary_operation::Greater_than_or_equal_to)
+        {
+            return "Greater_than_or_equal_to";
+        }
+        else if (value == Binary_operation::Logical_and)
+        {
+            return "Logical_and";
+        }
+        else if (value == Binary_operation::Logical_or)
+        {
+            return "Logical_or";
+        }
+        else if (value == Binary_operation::Bitwise_and)
+        {
+            return "Bitwise_and";
+        }
+        else if (value == Binary_operation::Bitwise_or)
+        {
+            return "Bitwise_or";
+        }
+        else if (value == Binary_operation::Bitwise_xor)
+        {
+            return "Bitwise_xor";
+        }
+        else if (value == Binary_operation::Bit_shift_left)
+        {
+            return "Bit_shift_left";
+        }
+        else if (value == Binary_operation::Bit_shift_right)
+        {
+            return "Bit_shift_right";
         }
 
         throw std::runtime_error{ "Failed to write enum 'Binary_operation'!\n" };
@@ -136,6 +185,52 @@ namespace h::json
         }
 
         throw std::runtime_error{ "Failed to write enum 'Cast_type'!\n" };
+    }
+
+    export std::string_view write_enum(Unary_operation const value)
+    {
+        if (value == Unary_operation::Not)
+        {
+            return "Not";
+        }
+        else if (value == Unary_operation::Bitwise_not)
+        {
+            return "Bitwise_not";
+        }
+        else if (value == Unary_operation::Minus)
+        {
+            return "Minus";
+        }
+        else if (value == Unary_operation::Pre_increment)
+        {
+            return "Pre_increment";
+        }
+        else if (value == Unary_operation::Post_increment)
+        {
+            return "Post_increment";
+        }
+        else if (value == Unary_operation::Pre_decrement)
+        {
+            return "Pre_decrement";
+        }
+        else if (value == Unary_operation::Post_decrement)
+        {
+            return "Post_decrement";
+        }
+        else if (value == Unary_operation::Indirection)
+        {
+            return "Indirection";
+        }
+        else if (value == Unary_operation::Address_of)
+        {
+            return "Address_of";
+        }
+        else if (value == Unary_operation::Size_of)
+        {
+            return "Size_of";
+        }
+
+        throw std::runtime_error{ "Failed to write enum 'Unary_operation'!\n" };
     }
 
     export std::string_view write_enum(Linkage const value)
@@ -275,6 +370,12 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Parenthesis_expression const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Return_expression const& input
         );
 
@@ -282,6 +383,12 @@ namespace h::json
         void write_object(
             Writer_type& writer,
             Struct_member_expression const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Unary_expression const& input
         );
 
     export template<typename Writer_type>
@@ -350,6 +457,64 @@ namespace h::json
             Module const& input
         );
 
+    template <typename C> struct Is_optional : std::false_type {};
+    template <typename T> struct Is_optional< std::optional<T> > : std::true_type {};
+    template <typename C> inline constexpr bool Is_optional_v = Is_optional<C>::value;
+
+    export template <typename Writer_type, typename Value_type>
+        void write_value(
+            Writer_type& writer,
+            Value_type const& value
+        )
+    {
+        if constexpr (std::is_unsigned_v<Value_type> && sizeof(Value_type) <= 4)
+        {
+            writer.Uint(value);
+        }
+        else if constexpr (std::is_unsigned_v<Value_type>)
+        {
+            writer.Uint64(value);
+        }
+        else if constexpr (std::is_signed_v<Value_type> && sizeof(Value_type) <= 4)
+        {
+            writer.Int(value);
+        }
+        else if constexpr (std::is_signed_v<Value_type>)
+        {
+            writer.Int64(value);
+        }
+        else if constexpr (std::is_floating_point_v<Value_type>)
+        {
+            writer.Double(value);
+        }
+        else if constexpr (std::is_same_v<Value_type, std::string> || std::is_same_v<Value_type, std::pmr::string> || std::is_same_v<Value_type, std::string_view>)
+        {
+            writer.String(value.data(), value.size());
+        }
+        else if constexpr (std::is_enum_v<Value_type>)
+        {
+            {
+                std::string_view const enum_value_string = write_enum(value);
+                writer.String(enum_value_string.data(), enum_value_string.size());
+            }
+        }
+        else if constexpr (Is_optional_v<Value_type>)
+        {
+            if (value.has_value())
+            {
+                write_value(writer, value.value());
+            }
+            else
+            {
+                writer.Null();
+            }
+        }
+        else if constexpr (std::is_class_v<Value_type>)
+        {
+            write_object(writer, value);
+        }
+    }
+
     export template <typename Writer_type, typename Value_type>
         void write_object(
             Writer_type& writer,
@@ -365,47 +530,26 @@ namespace h::json
         writer.StartArray();
         for (Value_type const& value : values)
         {
-            if constexpr (std::is_unsigned_v<Value_type> && sizeof(Value_type) <= 4)
-            {
-                writer.Uint(value);
-            }
-            else if constexpr (std::is_unsigned_v<Value_type>)
-            {
-                writer.Uint64(value);
-            }
-            else if constexpr (std::is_signed_v<Value_type> && sizeof(Value_type) <= 4)
-            {
-                writer.Int(value);
-            }
-            else if constexpr (std::is_signed_v<Value_type>)
-            {
-                writer.Int64(value);
-            }
-            else if constexpr (std::is_floating_point_v<Value_type>)
-            {
-                writer.Double(value);
-            }
-            else if constexpr (std::is_same_v<Value_type, std::string> || std::is_same_v<Value_type, std::pmr::string> || std::is_same_v<Value_type, std::string_view>)
-            {
-                writer.String(value.data(), value.size());
-            }
-            else if constexpr (std::is_enum_v<Value_type>)
-            {
-                {
-                    std::string_view const enum_value_string = write_enum(value);
-                    writer.String(enum_value_string.data(), enum_value_string.size());
-                }
-            }
-            else if constexpr (std::is_class_v<Value_type>)
-            {
-                write_object(writer, value);
-            }
+            write_value(writer, value);
         }
         writer.EndArray(values.size());
 
         writer.EndObject();
     }
 
+    export template <typename Writer_type, typename Value_type>
+        void write_optional(
+            Writer_type& writer,
+            char const* const key,
+            std::optional<Value_type> const& value
+        )
+    {
+        if (value.has_value())
+        {
+            writer.Key(key);
+            write_value(writer, value);
+        }
+    }
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
@@ -673,6 +817,7 @@ namespace h::json
         write_object(writer, output.left_hand_side);
         writer.Key("right_hand_side");
         write_object(writer, output.right_hand_side);
+        write_optional(writer, "additional_operation", output.additional_operation);
         writer.EndObject();
     }
 
@@ -759,6 +904,18 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Parenthesis_expression const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("expression");
+        write_object(writer, output.expression);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Return_expression const& output
         )
     {
@@ -779,6 +936,23 @@ namespace h::json
         write_object(writer, output.instance);
         writer.Key("member_name");
         writer.String(output.member_name.data(), output.member_name.size());
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Unary_expression const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("expression");
+        write_object(writer, output.expression);
+        writer.Key("operation");
+        {
+            std::string_view const enum_value_string = write_enum(output.operation);
+            writer.String(enum_value_string.data(), enum_value_string.size());
+        }
         writer.EndObject();
     }
 
@@ -856,6 +1030,14 @@ namespace h::json
             Invalid_expression const& value = std::get<Invalid_expression>(output.data);
             write_object(writer, value);
         }
+        else if (std::holds_alternative<Parenthesis_expression>(output.data))
+        {
+            writer.Key("type");
+            writer.String("Parenthesis_expression");
+            writer.Key("value");
+            Parenthesis_expression const& value = std::get<Parenthesis_expression>(output.data);
+            write_object(writer, value);
+        }
         else if (std::holds_alternative<Return_expression>(output.data))
         {
             writer.Key("type");
@@ -870,6 +1052,14 @@ namespace h::json
             writer.String("Struct_member_expression");
             writer.Key("value");
             Struct_member_expression const& value = std::get<Struct_member_expression>(output.data);
+            write_object(writer, value);
+        }
+        else if (std::holds_alternative<Unary_expression>(output.data))
+        {
+            writer.Key("type");
+            writer.String("Unary_expression");
+            writer.Key("value");
+            Unary_expression const& value = std::get<Unary_expression>(output.data);
             write_object(writer, value);
         }
         else if (std::holds_alternative<Variable_declaration_expression>(output.data))
