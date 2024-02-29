@@ -216,3 +216,12 @@ export function create_test_grammar_12_description(): string[] {
         "List -> number number number number number number"
     ];
 }
+
+export function create_test_grammar_13_description(): string[] {
+    return [
+        "S -> E",
+        "E -> A | B",
+        "A -> id $single_or id",
+        "B -> id || id"
+    ];
+}
