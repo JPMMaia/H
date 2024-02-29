@@ -1075,7 +1075,8 @@ export function create_variables(): Core_intermediate_representation.Module {
                                                         data: "3"
                                                     }
                                                 }
-                                            }
+                                            },
+                                            additional_operation: undefined
                                         }
                                     }
                                 }
@@ -1477,7 +1478,7 @@ export function create_binary_expressions_operator_precedence(): Core_intermedia
         ["case_4", create_binary_expression(create_binary_expression(a, b, Core_intermediate_representation.Binary_operation.Multiply), c, Core_intermediate_representation.Binary_operation.Divide)],
 
         ["case_5", create_binary_expression(create_binary_expression(a, function_call, Core_intermediate_representation.Binary_operation.Multiply), b, Core_intermediate_representation.Binary_operation.Add)],
-        ["case_6", create_binary_expression(create_unary_expression(a, Core_intermediate_representation.Unary_operation.Size_of), b, Core_intermediate_representation.Binary_operation.Multiply)],
+        ["case_6", create_binary_expression(create_unary_expression(a, Core_intermediate_representation.Unary_operation.Indirection), create_unary_expression(b, Core_intermediate_representation.Unary_operation.Indirection), Core_intermediate_representation.Binary_operation.Multiply)],
 
         ["case_7", create_binary_expression(create_parenthesis_expression(create_binary_expression(a, b, Core_intermediate_representation.Binary_operation.Add)), c, Core_intermediate_representation.Binary_operation.Multiply)],
         ["case_8", create_binary_expression(a, create_parenthesis_expression(create_binary_expression(b, c, Core_intermediate_representation.Binary_operation.Add)), Core_intermediate_representation.Binary_operation.Multiply)],
@@ -1609,8 +1610,7 @@ export function create_unary_expressions(): Core_intermediate_representation.Mod
         ["pre_decrement_variable", create_unary_expression(create_variable_expression("my_integer"), Core_intermediate_representation.Unary_operation.Pre_decrement)],
         ["post_decrement_variable", create_unary_expression(create_variable_expression("my_integer"), Core_intermediate_representation.Unary_operation.Post_decrement)],
         ["address_of_variable", create_unary_expression(create_variable_expression("my_integer"), Core_intermediate_representation.Unary_operation.Address_of)],
-        ["indirection_variable", create_unary_expression(create_variable_expression("address_of_variable"), Core_intermediate_representation.Unary_operation.Indirection)],
-        ["size_of_variable", create_unary_expression(create_variable_expression("my_integer"), Core_intermediate_representation.Unary_operation.Size_of)],
+        ["indirection_variable", create_unary_expression(create_variable_expression("address_of_variable"), Core_intermediate_representation.Unary_operation.Indirection)]
     ];
 
     const statements: Core_intermediate_representation.Statement[] = [];

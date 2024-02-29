@@ -89,10 +89,14 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Declaration", choose_production_rule_declaration],
             ["Export", choose_production_rule_export],
             ["Statement", choose_production_rule_statement],
+            ["Expression_assignment_symbol", choose_production_rule_expression_assignment_symbol],
             ["Expression_binary_symbol", choose_production_rule_expression_binary_symbol],
             ["Expression_call", choose_production_rule_expression_call],
             ["Expression_constant", choose_production_rule_expression_constant],
             ["Expression_return", choose_production_rule_expression_return],
+            ["Expression_unary", choose_production_rule_expression_unary],
+            ["Expression_unary_previous_symbol", choose_production_rule_expression_unary_previous_symbol],
+            ["Expression_unary_after_symbol", choose_production_rule_expression_unary_after_symbol],
             ["Expression_variable_mutability", choose_production_rule_expression_variable_mutability],
             ["Generic_expression", choose_production_rule_generic_expression],
         ]
@@ -396,6 +400,53 @@ function choose_production_rule_statement(
     };
 }
 
+function choose_production_rule_expression_assignment_symbol(
+    module: Core_intermediate_representation.Module,
+    production_rules: Grammar.Production_rule[],
+    production_rule_indices: number[],
+    label: string,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    mappings: Parse_tree_convertor.Parse_tree_mappings,
+    key_to_production_rule_indices: Map<string, number[]>
+): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
+
+    const top = stack[stack.length - 1];
+
+    const expression = top.state.value as Core_intermediate_representation.Expression;
+    const assignment_expression = expression.data.value as Core_intermediate_representation.Assignment_expression;
+
+    const get_rhs_label = (): string => {
+        switch (assignment_expression.additional_operation) {
+            case undefined: return "=";
+            case Core_intermediate_representation.Binary_operation.Add: return "+=";
+            case Core_intermediate_representation.Binary_operation.Subtract: return "-=";
+            case Core_intermediate_representation.Binary_operation.Multiply: return "*=";
+            case Core_intermediate_representation.Binary_operation.Divide: return "/=";
+            case Core_intermediate_representation.Binary_operation.Modulus: return "%=";
+            case Core_intermediate_representation.Binary_operation.Bitwise_and: return "&=";
+            case Core_intermediate_representation.Binary_operation.Bitwise_or: return "|=";
+            case Core_intermediate_representation.Binary_operation.Bitwise_xor: return "^=";
+            case Core_intermediate_representation.Binary_operation.Bit_shift_left: return "<<=";
+            case Core_intermediate_representation.Binary_operation.Bit_shift_right: return ">>=";
+            default: {
+                const message = `Parse_tree_convertor_mappings.choose_production_rule_expression_assignment_symbol() did not expect '${assignment_expression.additional_operation}'`;
+                onThrowError(message);
+                throw Error(message);
+            }
+        }
+    };
+
+    const rhs_label = get_rhs_label();
+    const index = production_rule_indices.findIndex(index => contains(production_rules[index].rhs, rhs_label));
+    return {
+        next_state: {
+            index: 0,
+            value: expression
+        },
+        next_production_rule_index: production_rule_indices[index]
+    };
+}
+
 function choose_production_rule_expression_binary_symbol(
     module: Core_intermediate_representation.Module,
     production_rules: Grammar.Production_rule[],
@@ -410,7 +461,31 @@ function choose_production_rule_expression_binary_symbol(
 
     const expression = top.state.value as Core_intermediate_representation.Expression;
     const binary_expression = expression.data.value as Core_intermediate_representation.Binary_expression;
-    const rhs_label = "Expression_binary_symbol_" + binary_expression.operation.toLocaleLowerCase();
+
+    const get_rhs_label = (): string => {
+        switch (binary_expression.operation) {
+            case Core_intermediate_representation.Binary_operation.Add: return "+";
+            case Core_intermediate_representation.Binary_operation.Subtract: return "-";
+            case Core_intermediate_representation.Binary_operation.Multiply: return "*";
+            case Core_intermediate_representation.Binary_operation.Divide: return "/";
+            case Core_intermediate_representation.Binary_operation.Modulus: return "%";
+            case Core_intermediate_representation.Binary_operation.Equal: return "==";
+            case Core_intermediate_representation.Binary_operation.Not_equal: return "!=";
+            case Core_intermediate_representation.Binary_operation.Less_than: return "<";
+            case Core_intermediate_representation.Binary_operation.Less_than_or_equal_to: return "<=";
+            case Core_intermediate_representation.Binary_operation.Greater_than: return ">";
+            case Core_intermediate_representation.Binary_operation.Greater_than_or_equal_to: return ">=";
+            case Core_intermediate_representation.Binary_operation.Logical_and: return "&&";
+            case Core_intermediate_representation.Binary_operation.Logical_or: return "||";
+            case Core_intermediate_representation.Binary_operation.Bitwise_and: return "&";
+            case Core_intermediate_representation.Binary_operation.Bitwise_or: return "|";
+            case Core_intermediate_representation.Binary_operation.Bitwise_xor: return "^";
+            case Core_intermediate_representation.Binary_operation.Bit_shift_left: return "<<";
+            case Core_intermediate_representation.Binary_operation.Bit_shift_right: return ">>";
+        }
+    };
+
+    const rhs_label = get_rhs_label();
     const index = production_rule_indices.findIndex(index => contains(production_rules[index].rhs, rhs_label));
     return {
         next_state: {
@@ -545,6 +620,114 @@ function choose_production_rule_expression_return(
     };
 }
 
+function choose_production_rule_expression_unary(
+    module: Core_intermediate_representation.Module,
+    production_rules: Grammar.Production_rule[],
+    production_rule_indices: number[],
+    label: string,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    mappings: Parse_tree_convertor.Parse_tree_mappings,
+    key_to_production_rule_indices: Map<string, number[]>
+): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
+
+    const top = stack[stack.length - 1];
+
+    const expression = top.state.value as Core_intermediate_representation.Expression;
+    const unary_expression = expression.data.value as Core_intermediate_representation.Unary_expression;
+    const is_post_operator = unary_expression.operation === Core_intermediate_representation.Unary_operation.Post_increment || unary_expression.operation === Core_intermediate_representation.Unary_operation.Post_decrement;
+    const index = is_post_operator ? 1 : 0;
+    return {
+        next_state: {
+            index: 0,
+            value: expression
+        },
+        next_production_rule_index: production_rule_indices[index]
+    };
+}
+
+function choose_production_rule_expression_unary_previous_symbol(
+    module: Core_intermediate_representation.Module,
+    production_rules: Grammar.Production_rule[],
+    production_rule_indices: number[],
+    label: string,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    mappings: Parse_tree_convertor.Parse_tree_mappings,
+    key_to_production_rule_indices: Map<string, number[]>
+): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
+
+    const top = stack[stack.length - 1];
+
+    const expression = top.state.value as Core_intermediate_representation.Expression;
+    const unary_expression = expression.data.value as Core_intermediate_representation.Unary_expression;
+
+    const get_rhs_label = (): string => {
+        switch (unary_expression.operation) {
+            case Core_intermediate_representation.Unary_operation.Not: return "!";
+            case Core_intermediate_representation.Unary_operation.Bitwise_not: return "~";
+            case Core_intermediate_representation.Unary_operation.Minus: return "-";
+            case Core_intermediate_representation.Unary_operation.Pre_increment: return "++";
+            case Core_intermediate_representation.Unary_operation.Pre_decrement: return "--";
+            case Core_intermediate_representation.Unary_operation.Indirection: return "*";
+            case Core_intermediate_representation.Unary_operation.Address_of: return "&";
+            default: {
+                const message = `Parse_tree_convertor_mappings.choose_production_rule_expression_unary_previous_symbol() did not expect '${unary_expression.operation}'`;
+                onThrowError(message);
+                throw Error(message);
+            }
+        }
+    };
+
+    const rhs_label = get_rhs_label();
+    const index = production_rule_indices.findIndex(index => contains(production_rules[index].rhs, rhs_label));
+
+    return {
+        next_state: {
+            index: 0,
+            value: expression
+        },
+        next_production_rule_index: production_rule_indices[index]
+    };
+}
+
+function choose_production_rule_expression_unary_after_symbol(
+    module: Core_intermediate_representation.Module,
+    production_rules: Grammar.Production_rule[],
+    production_rule_indices: number[],
+    label: string,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    mappings: Parse_tree_convertor.Parse_tree_mappings,
+    key_to_production_rule_indices: Map<string, number[]>
+): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
+
+    const top = stack[stack.length - 1];
+
+    const expression = top.state.value as Core_intermediate_representation.Expression;
+    const unary_expression = expression.data.value as Core_intermediate_representation.Unary_expression;
+
+    const get_rhs_label = (): string => {
+        switch (unary_expression.operation) {
+            case Core_intermediate_representation.Unary_operation.Post_increment: return "++";
+            case Core_intermediate_representation.Unary_operation.Post_decrement: return "--";
+            default: {
+                const message = `Parse_tree_convertor_mappings.choose_production_rule_expression_unary_previous_symbol() did not expect '${unary_expression.operation}'`;
+                onThrowError(message);
+                throw Error(message);
+            }
+        }
+    };
+
+    const rhs_label = get_rhs_label();
+    const index = production_rule_indices.findIndex(index => contains(production_rules[index].rhs, rhs_label));
+
+    return {
+        next_state: {
+            index: 0,
+            value: expression
+        },
+        next_production_rule_index: production_rule_indices[index]
+    };
+}
+
 function choose_production_rule_expression_variable_mutability(
     module: Core_intermediate_representation.Module,
     production_rules: Grammar.Production_rule[],
@@ -648,6 +831,14 @@ function choose_production_rule_generic_expression(
                     label: map_expression_type_to_production_rule_label(return_expression.expression.data.type)
                 };
             }
+            case "Expression_unary_previous":
+            case "Expression_unary_after": {
+                const unary_expression = expression.data.value as Core_intermediate_representation.Unary_expression;
+                return {
+                    value: unary_expression.expression,
+                    label: map_expression_type_to_production_rule_label(unary_expression.expression.data.type)
+                };
+            }
             case "Expression_variable_declaration": {
                 const variable_declaration_expression = expression.data.value as Core_intermediate_representation.Variable_declaration_expression;
                 return {
@@ -688,10 +879,12 @@ function map_expression_type_to_production_rule_label(type: Core_intermediate_re
             return "Expression_constant";
         case Core_intermediate_representation.Expression_enum.Invalid_expression:
             return "Expression_invalid";
+        case Core_intermediate_representation.Expression_enum.Parenthesis_expression:
+            return "Expression_parenthesis";
         case Core_intermediate_representation.Expression_enum.Return_expression:
             return "Expression_return";
         case Core_intermediate_representation.Expression_enum.Unary_expression:
-            return "Expression_unary_expression";
+            return "Expression_unary";
         case Core_intermediate_representation.Expression_enum.Variable_expression:
             return "Expression_variable";
         case Core_intermediate_representation.Expression_enum.Variable_declaration_expression:
@@ -1047,6 +1240,15 @@ function node_to_expression(node: Parser_node.Node, key_to_production_rule_indic
                 }
             };
         }
+        case "Expression_unary": {
+            const expression = node_to_expression_unary(node, key_to_production_rule_indices);
+            return {
+                data: {
+                    type: Core_intermediate_representation.Expression_enum.Unary_expression,
+                    value: expression
+                }
+            };
+        }
         case "Expression_variable": {
             const expression = node_to_expression_variable_name(node);
             return {
@@ -1105,12 +1307,37 @@ function node_to_expression_assignment(node: Parser_node.Node, key_to_production
     const right_hand_side_node = generic_expressions[1];
     const right_hand_side_expression = node_to_expression(right_hand_side_node, key_to_production_rule_indices);
 
+    const symbol = find_node_value(node, "Expression_assignment_symbol", key_to_production_rule_indices);
+    const additional_operation = map_production_rule_label_to_assignment_binary_operation(symbol);
+
     const assignment_expression: Core_intermediate_representation.Assignment_expression = {
         left_hand_side: left_hand_side_expression,
-        right_hand_side: right_hand_side_expression
+        right_hand_side: right_hand_side_expression,
+        additional_operation: additional_operation
     };
 
     return assignment_expression;
+}
+
+function map_production_rule_label_to_assignment_binary_operation(label: string): Core_intermediate_representation.Binary_operation | undefined {
+    switch (label) {
+        case "=": return undefined;
+        case "+=": return Core_intermediate_representation.Binary_operation.Add;
+        case "-=": return Core_intermediate_representation.Binary_operation.Subtract;
+        case "*=": return Core_intermediate_representation.Binary_operation.Multiply;
+        case "/=": return Core_intermediate_representation.Binary_operation.Divide;
+        case "%=": return Core_intermediate_representation.Binary_operation.Modulus;
+        case "&=": return Core_intermediate_representation.Binary_operation.Bitwise_and;
+        case "|=": return Core_intermediate_representation.Binary_operation.Bitwise_or;
+        case "^=": return Core_intermediate_representation.Binary_operation.Bitwise_xor;
+        case "<<=": return Core_intermediate_representation.Binary_operation.Bit_shift_left;
+        case ">>=": return Core_intermediate_representation.Binary_operation.Bit_shift_right;
+        default: {
+            const message = `Unexpected assignment binary expression symbol '${label}'`;
+            onThrowError(message);
+            throw Error(message);
+        }
+    }
 }
 
 function node_to_expression_binary(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Binary_expression {
@@ -1143,10 +1370,31 @@ function node_to_expression_binary(node: Parser_node.Node, key_to_production_rul
 }
 
 function map_production_rule_label_to_binary_operation(label: string): Core_intermediate_representation.Binary_operation {
-    const value = label.substring(26, label.length);
-    const str = label[25].toLocaleUpperCase() + value;
-    const operation = str as keyof typeof Core_intermediate_representation.Binary_operation;
-    return Core_intermediate_representation.Binary_operation[operation];
+    switch (label) {
+        case "+": return Core_intermediate_representation.Binary_operation.Add;
+        case "-": return Core_intermediate_representation.Binary_operation.Subtract;
+        case "*": return Core_intermediate_representation.Binary_operation.Multiply;
+        case "/": return Core_intermediate_representation.Binary_operation.Divide;
+        case "%": return Core_intermediate_representation.Binary_operation.Modulus;
+        case "==": return Core_intermediate_representation.Binary_operation.Equal;
+        case "!=": return Core_intermediate_representation.Binary_operation.Not_equal;
+        case "<": return Core_intermediate_representation.Binary_operation.Less_than;
+        case "<=": return Core_intermediate_representation.Binary_operation.Less_than_or_equal_to;
+        case ">": return Core_intermediate_representation.Binary_operation.Greater_than;
+        case ">=": return Core_intermediate_representation.Binary_operation.Greater_than_or_equal_to;
+        case "&&": return Core_intermediate_representation.Binary_operation.Logical_and;
+        case "||": return Core_intermediate_representation.Binary_operation.Logical_or;
+        case "&": return Core_intermediate_representation.Binary_operation.Bitwise_and;
+        case "|": return Core_intermediate_representation.Binary_operation.Bitwise_or;
+        case "^": return Core_intermediate_representation.Binary_operation.Bitwise_xor;
+        case "<<": return Core_intermediate_representation.Binary_operation.Bit_shift_left;
+        case ">>": return Core_intermediate_representation.Binary_operation.Bit_shift_right;
+        default: {
+            const message = `Unexpected binary expression symbol '${label}'`;
+            onThrowError(message);
+            throw Error(message);
+        }
+    }
 }
 
 function node_to_expression_call(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Call_expression {
@@ -1308,6 +1556,73 @@ function node_to_expression_constant(node: Parser_node.Node): Core_intermediate_
     const message = `Parse_tree_convertor_mappings.node_to_expression_constant(): Constant expression '${terminal_node.word.value}' of type '${terminal_node.word.type}' not handled!`;
     onThrowError(message);
     throw Error(message);
+}
+
+function node_to_expression_unary(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Return_expression {
+
+    const child = node.children[0];
+
+    const generic_expression_node = find_node(child, "Generic_expression", key_to_production_rule_indices) as Parser_node.Node;
+    const generic_expression = node_to_expression(generic_expression_node, key_to_production_rule_indices);
+
+    if (child.word.value === "Expression_unary_previous") {
+        const symbol = find_node_value(child, "Expression_unary_previous_symbol", key_to_production_rule_indices);
+
+        const get_operation = (): Core_intermediate_representation.Unary_operation => {
+            switch (symbol) {
+                case "!": return Core_intermediate_representation.Unary_operation.Not;
+                case "~": return Core_intermediate_representation.Unary_operation.Bitwise_not;
+                case "-": return Core_intermediate_representation.Unary_operation.Minus;
+                case "++": return Core_intermediate_representation.Unary_operation.Pre_increment;
+                case "--": return Core_intermediate_representation.Unary_operation.Pre_decrement;
+                case "&": return Core_intermediate_representation.Unary_operation.Address_of;
+                case "*": return Core_intermediate_representation.Unary_operation.Indirection;
+                default: {
+                    const message = `Parse_tree_convertor_mappings.node_to_expression_unary(): Did not expect '${symbol}' as Expression_unary_previous_symbol`;
+                    onThrowError(message);
+                    throw Error(message);
+                }
+            }
+        };
+
+        const operation = get_operation();
+
+        const unary_expression: Core_intermediate_representation.Unary_expression = {
+            expression: generic_expression,
+            operation: operation
+        };
+
+        return unary_expression;
+    }
+    else if (child.word.value === "Expression_unary_after") {
+        const symbol = find_node_value(child, "Expression_unary_after_symbol", key_to_production_rule_indices);
+
+        const get_operation = (): Core_intermediate_representation.Unary_operation => {
+            switch (symbol) {
+                case "++": return Core_intermediate_representation.Unary_operation.Post_increment;
+                case "--": return Core_intermediate_representation.Unary_operation.Post_decrement;
+                default: {
+                    const message = `Parse_tree_convertor_mappings.node_to_expression_unary(): Did not expect '${symbol}' as Expression_unary_after_symbol`;
+                    onThrowError(message);
+                    throw Error(message);
+                }
+            }
+        };
+
+        const operation = get_operation();
+
+        const unary_expression: Core_intermediate_representation.Unary_expression = {
+            expression: generic_expression,
+            operation: operation
+        };
+
+        return unary_expression;
+    }
+    else {
+        const message = `Parse_tree_convertor_mappings.node_to_expression_unary(): Did not expect '${child.word.value}'`;
+        onThrowError(message);
+        throw Error(message);
+    }
 }
 
 function node_to_expression_variable_name(node: Parser_node.Node): Core_intermediate_representation.Variable_expression {

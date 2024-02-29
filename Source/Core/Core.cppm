@@ -277,8 +277,7 @@ namespace h
         Pre_decrement,
         Post_decrement,
         Indirection,
-        Address_of,
-        Size_of
+        Address_of
     };
 
     export struct Unary_expression

@@ -240,6 +240,11 @@ export function module_to_parse_tree(
 
             const { next_state, next_production_rule_index } = choose_production_rule_index(module, production_rules, next_production_rule_indices, label, stack, mappings, key_to_production_rule_indices);
             const next_production_rule = production_rules[next_production_rule_index];
+            if (next_production_rule === undefined) {
+                const message = `Parse_tree_convertor.module_to_parse_tree(): choose_production_rule_index for label '${label}' returned an undefined production rule!`;
+                onThrowError(message);
+                throw Error(message);
+            }
 
             const is_next_production_rule_array = (next_production_rule.flags & (Grammar.Production_rule_flags.Is_array | Grammar.Production_rule_flags.Is_array_set)) !== 0;
             const rhs_length = is_next_production_rule_array ? get_production_rule_array_rhs_length(module, production_rules, next_production_rule, stack, mappings, key_to_production_rule_indices) : next_production_rule.rhs.length;

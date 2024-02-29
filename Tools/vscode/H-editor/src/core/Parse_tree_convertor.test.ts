@@ -308,12 +308,8 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                                             assert.equal(binary_symbol.children.length, 1);
 
                                             const symbol = binary_symbol.children[0];
-                                            assert.equal(symbol.word.value, "Expression_binary_symbol_add");
-                                            assert.equal(symbol.children.length, 1);
-
-                                            const identifier = symbol.children[0];
-                                            assert.equal(identifier.word.value, "+");
-                                            assert.equal(identifier.children.length, 0);
+                                            assert.equal(symbol.word.value, "+");
+                                            assert.equal(symbol.children.length, 0);
                                         }
 
                                         {
@@ -782,12 +778,8 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                             assert.equal(binary_symbol.children.length, 1);
 
                             const symbol = binary_symbol.children[0];
-                            assert.equal(symbol.word.value, "Expression_binary_symbol_add");
-                            assert.equal(symbol.children.length, 1);
-
-                            const identifier = symbol.children[0];
-                            assert.equal(identifier.word.value, "+");
-                            assert.equal(identifier.children.length, 0);
+                            assert.equal(symbol.word.value, "+");
+                            assert.equal(symbol.children.length, 0);
                         }
 
                         {
