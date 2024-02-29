@@ -225,10 +225,6 @@ namespace h::json
         {
             return "Address_of";
         }
-        else if (value == Unary_operation::Size_of)
-        {
-            return "Size_of";
-        }
 
         throw std::runtime_error{ "Failed to write enum 'Unary_operation'!\n" };
     }

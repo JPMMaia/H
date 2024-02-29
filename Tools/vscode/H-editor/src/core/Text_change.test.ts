@@ -1000,7 +1000,7 @@ export function foo(
     var case_4 = a * b / c;
 
     var case_5 = a * function_call() + b;
-    var case_6 = sizeof(a) * b;
+    var case_6 = *a * *b;
     
     var case_7 = (a + b) * c;
     var case_8 = a * (b + c);
@@ -1044,17 +1044,17 @@ export function foo(
 
     my_integer = 2;
     
-    my_integer  += other_integer;
-    my_integer  -= other_integer;
-    my_integer  *= other_integer;
-    my_integer  /= other_integer;
-    my_integer  %= other_integer;
+    my_integer += other_integer;
+    my_integer -= other_integer;
+    my_integer *= other_integer;
+    my_integer /= other_integer;
+    my_integer %= other_integer;
     
-    my_integer  &= other_integer;
-    my_integer  |= other_integer;
-    my_integer  ^= other_integer;
-    my_integer  <<= other_integer;
-    my_integer  >>= other_integer;
+    my_integer &= other_integer;
+    my_integer |= other_integer;
+    my_integer ^= other_integer;
+    my_integer <<= other_integer;
+    my_integer >>= other_integer;
 }
 `;
 
@@ -1093,10 +1093,9 @@ export function foo(
     var pre_increment_variable = ++my_integer;
     var post_increment_variable = my_integer++;
     var pre_decrement_variable = --my_integer;
-    var post_decrement_variable = my_integer++;
+    var post_decrement_variable = my_integer--;
     var address_of_variable = &my_integer;
     var indirection_variable = *address_of_variable;
-    var size_of_variable = size_of(my_integer);
 }
 `;
 

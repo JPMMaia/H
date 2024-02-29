@@ -299,11 +299,6 @@ namespace h::json
             output = Unary_operation::Address_of;
             return true;
         }
-        else if (value == "Size_of")
-        {
-            output = Unary_operation::Size_of;
-            return true;
-        }
 
         std::cerr << std::format("Failed to read enum 'Unary_operation' with value '{}'\n", value);
         return false;

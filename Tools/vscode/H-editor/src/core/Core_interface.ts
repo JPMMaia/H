@@ -66,7 +66,6 @@ export enum Unary_operation {
     Post_decrement = "Post_decrement",
     Indirection = "Indirection",
     Address_of = "Address_of",
-    Size_of = "Size_of",
 }
 
 export enum Linkage {
