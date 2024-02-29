@@ -153,19 +153,79 @@ namespace h::json
             output = Binary_operation::Multiply;
             return true;
         }
-        else if (value == "Signed_divide")
+        else if (value == "Divide")
         {
-            output = Binary_operation::Signed_divide;
+            output = Binary_operation::Divide;
             return true;
         }
-        else if (value == "Unsigned_divide")
+        else if (value == "Modulus")
         {
-            output = Binary_operation::Unsigned_divide;
+            output = Binary_operation::Modulus;
+            return true;
+        }
+        else if (value == "Equal")
+        {
+            output = Binary_operation::Equal;
+            return true;
+        }
+        else if (value == "Not_equal")
+        {
+            output = Binary_operation::Not_equal;
             return true;
         }
         else if (value == "Less_than")
         {
             output = Binary_operation::Less_than;
+            return true;
+        }
+        else if (value == "Less_than_or_equal_to")
+        {
+            output = Binary_operation::Less_than_or_equal_to;
+            return true;
+        }
+        else if (value == "Greater_than")
+        {
+            output = Binary_operation::Greater_than;
+            return true;
+        }
+        else if (value == "Greater_than_or_equal_to")
+        {
+            output = Binary_operation::Greater_than_or_equal_to;
+            return true;
+        }
+        else if (value == "Logical_and")
+        {
+            output = Binary_operation::Logical_and;
+            return true;
+        }
+        else if (value == "Logical_or")
+        {
+            output = Binary_operation::Logical_or;
+            return true;
+        }
+        else if (value == "Bitwise_and")
+        {
+            output = Binary_operation::Bitwise_and;
+            return true;
+        }
+        else if (value == "Bitwise_or")
+        {
+            output = Binary_operation::Bitwise_or;
+            return true;
+        }
+        else if (value == "Bitwise_xor")
+        {
+            output = Binary_operation::Bitwise_xor;
+            return true;
+        }
+        else if (value == "Bit_shift_left")
+        {
+            output = Binary_operation::Bit_shift_left;
+            return true;
+        }
+        else if (value == "Bit_shift_right")
+        {
+            output = Binary_operation::Bit_shift_right;
             return true;
         }
 
@@ -188,6 +248,64 @@ namespace h::json
         }
 
         std::cerr << std::format("Failed to read enum 'Cast_type' with value '{}'\n", value);
+        return false;
+    }
+
+    export template<>
+        bool read_enum(Unary_operation& output, std::string_view const value)
+    {
+        if (value == "Not")
+        {
+            output = Unary_operation::Not;
+            return true;
+        }
+        else if (value == "Bitwise_not")
+        {
+            output = Unary_operation::Bitwise_not;
+            return true;
+        }
+        else if (value == "Minus")
+        {
+            output = Unary_operation::Minus;
+            return true;
+        }
+        else if (value == "Pre_increment")
+        {
+            output = Unary_operation::Pre_increment;
+            return true;
+        }
+        else if (value == "Post_increment")
+        {
+            output = Unary_operation::Post_increment;
+            return true;
+        }
+        else if (value == "Pre_decrement")
+        {
+            output = Unary_operation::Pre_decrement;
+            return true;
+        }
+        else if (value == "Post_decrement")
+        {
+            output = Unary_operation::Post_decrement;
+            return true;
+        }
+        else if (value == "Indirection")
+        {
+            output = Unary_operation::Indirection;
+            return true;
+        }
+        else if (value == "Address_of")
+        {
+            output = Unary_operation::Address_of;
+            return true;
+        }
+        else if (value == "Size_of")
+        {
+            output = Unary_operation::Size_of;
+            return true;
+        }
+
+        std::cerr << std::format("Failed to read enum 'Unary_operation' with value '{}'\n", value);
         return false;
     }
 
@@ -228,6 +346,13 @@ namespace h::json
         if (type == "Cast_type")
         {
             Cast_type enum_value;
+            read_enum(enum_value, value);
+            return static_cast<int>(enum_value);
+        }
+
+        if (type == "Unary_operation")
+        {
+            Unary_operation enum_value;
             read_enum(enum_value, value);
             return static_cast<int>(enum_value);
         }
@@ -288,8 +413,10 @@ namespace h::json
     export std::optional<Stack_state> get_next_state_cast_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_constant_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_invalid_expression(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_parenthesis_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_return_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_struct_member_expression(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_unary_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_variable_declaration_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_statement(Stack_state* state, std::string_view const key);
@@ -949,6 +1076,17 @@ namespace h::json
             };
         }
 
+        if (key == "additional_operation")
+        {
+            parent->additional_operation = h::Binary_operation{};
+            return Stack_state
+            {
+                .pointer = &parent->additional_operation.value(),
+                .type = "Binary_operation",
+                .get_next_state = nullptr,
+            };
+        }
+
         return {};
     }
 
@@ -1133,6 +1271,24 @@ namespace h::json
         return {};
     }
 
+    export std::optional<Stack_state> get_next_state_parenthesis_expression(Stack_state* state, std::string_view const key)
+    {
+        h::Parenthesis_expression* parent = static_cast<h::Parenthesis_expression*>(state->pointer);
+
+        if (key == "expression")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->expression,
+                .type = "Expression_index",
+                .get_next_state = get_next_state_expression_index,
+            };
+        }
+
+        return {};
+    }
+
     export std::optional<Stack_state> get_next_state_return_expression(Stack_state* state, std::string_view const key)
     {
         h::Return_expression* parent = static_cast<h::Return_expression*>(state->pointer);
@@ -1173,6 +1329,35 @@ namespace h::json
             {
                 .pointer = &parent->member_name,
                 .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        return {};
+    }
+
+    export std::optional<Stack_state> get_next_state_unary_expression(Stack_state* state, std::string_view const key)
+    {
+        h::Unary_expression* parent = static_cast<h::Unary_expression*>(state->pointer);
+
+        if (key == "expression")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->expression,
+                .type = "Expression_index",
+                .get_next_state = get_next_state_expression_index,
+            };
+        }
+
+        if (key == "operation")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->operation,
+                .type = "Unary_operation",
                 .get_next_state = nullptr,
             };
         }
@@ -1228,7 +1413,7 @@ namespace h::json
         {
             auto const set_variant_type = [](Stack_state* state, std::string_view const type) -> void
             {
-                using Variant_type = std::variant<h::Assignment_expression, h::Binary_expression, h::Call_expression, h::Cast_expression, h::Constant_expression, h::Invalid_expression, h::Return_expression, h::Struct_member_expression, h::Variable_declaration_expression, h::Variable_expression>;
+                using Variant_type = std::variant<h::Assignment_expression, h::Binary_expression, h::Call_expression, h::Cast_expression, h::Constant_expression, h::Invalid_expression, h::Parenthesis_expression, h::Return_expression, h::Struct_member_expression, h::Unary_expression, h::Variable_declaration_expression, h::Variable_expression>;
                 Variant_type* pointer = static_cast<Variant_type*>(state->pointer);
 
                 if (type == "Assignment_expression")
@@ -1267,6 +1452,12 @@ namespace h::json
                     state->type = "Invalid_expression";
                     return;
                 }
+                if (type == "Parenthesis_expression")
+                {
+                    *pointer = Parenthesis_expression{};
+                    state->type = "Parenthesis_expression";
+                    return;
+                }
                 if (type == "Return_expression")
                 {
                     *pointer = Return_expression{};
@@ -1277,6 +1468,12 @@ namespace h::json
                 {
                     *pointer = Struct_member_expression{};
                     state->type = "Struct_member_expression";
+                    return;
+                }
+                if (type == "Unary_expression")
+                {
+                    *pointer = Unary_expression{};
+                    state->type = "Unary_expression";
                     return;
                 }
                 if (type == "Variable_declaration_expression")
@@ -1339,6 +1536,11 @@ namespace h::json
                             return get_next_state_invalid_expression;
                         }
 
+                        if (state->type == "Parenthesis_expression")
+                        {
+                            return get_next_state_parenthesis_expression;
+                        }
+
                         if (state->type == "Return_expression")
                         {
                             return get_next_state_return_expression;
@@ -1347,6 +1549,11 @@ namespace h::json
                         if (state->type == "Struct_member_expression")
                         {
                             return get_next_state_struct_member_expression;
+                        }
+
+                        if (state->type == "Unary_expression")
+                        {
+                            return get_next_state_unary_expression;
                         }
 
                         if (state->type == "Variable_declaration_expression")
@@ -1377,7 +1584,7 @@ namespace h::json
             return Stack_state
             {
                 .pointer = &parent->data,
-                .type = "std::variant<Assignment_expression,Binary_expression,Call_expression,Cast_expression,Constant_expression,Invalid_expression,Return_expression,Struct_member_expression,Variable_declaration_expression,Variable_expression>",
+                .type = "std::variant<Assignment_expression,Binary_expression,Call_expression,Cast_expression,Constant_expression,Invalid_expression,Parenthesis_expression,Return_expression,Struct_member_expression,Unary_expression,Variable_declaration_expression,Variable_expression>",
                 .get_next_state = get_next_state,
                 .set_variant_type = set_variant_type,
             };
@@ -2103,6 +2310,16 @@ namespace h::json
             };
         }
 
+        if constexpr (std::is_same_v<Struct_type, h::Parenthesis_expression>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Parenthesis_expression",
+                .get_next_state = get_next_state_parenthesis_expression
+            };
+        }
+
         if constexpr (std::is_same_v<Struct_type, h::Return_expression>)
         {
             return Stack_state
@@ -2120,6 +2337,16 @@ namespace h::json
                 .pointer = output,
                 .type = "Struct_member_expression",
                 .get_next_state = get_next_state_struct_member_expression
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Unary_expression>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Unary_expression",
+                .get_next_state = get_next_state_unary_expression
             };
         }
 

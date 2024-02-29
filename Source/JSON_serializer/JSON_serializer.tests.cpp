@@ -165,6 +165,105 @@ namespace h
         CHECK(actual == expected);
     }
 
+    TEST_CASE("Read Assignment_expression with optional value")
+    {
+        std::pmr::string const json_data = R"JSON(
+            {
+                "left_hand_side": {
+                    "expression_index": 1
+                },
+                "right_hand_side": {
+                    "expression_index": 2
+                },
+                "additional_operation": "Add"
+            }
+        )JSON";
+
+        Assignment_expression const expected
+        {
+            .left_hand_side = {.expression_index = 1},
+            .right_hand_side = {.expression_index = 2},
+            .additional_operation = Binary_operation::Add
+        };
+
+        rapidjson::Reader reader;
+        rapidjson::StringStream input_stream{ json_data.c_str() };
+        std::optional<Assignment_expression> const output = h::json::read<Assignment_expression>(reader, input_stream);
+
+        REQUIRE(output.has_value());
+
+        Assignment_expression const& actual = output.value();
+        CHECK(actual == expected);
+    }
+
+    TEST_CASE("Write Assignment_expression with optional value")
+    {
+        Assignment_expression const input
+        {
+            .left_hand_side = {.expression_index = 1},
+            .right_hand_side = {.expression_index = 2},
+            .additional_operation = Binary_operation::Add
+        };
+
+        std::string const expected = "{\"left_hand_side\":{\"expression_index\":1},\"right_hand_side\":{\"expression_index\":2},\"additional_operation\":\"Add\"}";
+
+        rapidjson::StringBuffer output_stream;
+        rapidjson::Writer<rapidjson::StringBuffer> writer{ output_stream };
+        h::json::write(writer, input);
+
+        std::string const actual = output_stream.GetString();
+        CHECK(actual == expected);
+    }
+
+    TEST_CASE("Read Assignment_expression without optional value")
+    {
+        std::pmr::string const json_data = R"JSON(
+            {
+                "left_hand_side": {
+                    "expression_index": 1
+                },
+                "right_hand_side": {
+                    "expression_index": 2
+                }
+            }
+        )JSON";
+
+        Assignment_expression const expected
+        {
+            .left_hand_side = {.expression_index = 1},
+            .right_hand_side = {.expression_index = 2},
+            .additional_operation = std::nullopt
+        };
+
+        rapidjson::Reader reader;
+        rapidjson::StringStream input_stream{ json_data.c_str() };
+        std::optional<Assignment_expression> const output = h::json::read<Assignment_expression>(reader, input_stream);
+
+        REQUIRE(output.has_value());
+
+        Assignment_expression const& actual = output.value();
+        CHECK(actual == expected);
+    }
+
+    TEST_CASE("Write Assignment_expression without optional value")
+    {
+        Assignment_expression const input
+        {
+            .left_hand_side = {.expression_index = 1},
+            .right_hand_side = {.expression_index = 2},
+            .additional_operation = std::nullopt
+        };
+
+        std::string const expected = "{\"left_hand_side\":{\"expression_index\":1},\"right_hand_side\":{\"expression_index\":2}}";
+
+        rapidjson::StringBuffer output_stream;
+        rapidjson::Writer<rapidjson::StringBuffer> writer{ output_stream };
+        h::json::write(writer, input);
+
+        std::string const actual = output_stream.GetString();
+        CHECK(actual == expected);
+    }
+
     TEST_CASE("Read Variable_expression")
     {
         std::pmr::string const json_data = R"JSON(
@@ -194,8 +293,7 @@ namespace h
         CHECK(h::json::read_enum<Binary_operation>("Add") == Binary_operation::Add);
         CHECK(h::json::read_enum<Binary_operation>("Subtract") == Binary_operation::Subtract);
         CHECK(h::json::read_enum<Binary_operation>("Multiply") == Binary_operation::Multiply);
-        CHECK(h::json::read_enum<Binary_operation>("Signed_divide") == Binary_operation::Signed_divide);
-        CHECK(h::json::read_enum<Binary_operation>("Unsigned_divide") == Binary_operation::Unsigned_divide);
+        CHECK(h::json::read_enum<Binary_operation>("Divide") == Binary_operation::Divide);
         CHECK(h::json::read_enum<Binary_operation>("Less_than") == Binary_operation::Less_than);
     }
 

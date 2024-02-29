@@ -1387,6 +1387,283 @@ export function create_booleans(): Core_intermediate_representation.Module {
     };
 }
 
+export function create_binary_expressions(): Core_intermediate_representation.Module {
+
+    const binary_expressions: [string, Core_intermediate_representation.Expression][] = [
+        ["add", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Add)],
+        ["subtract", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Subtract)],
+        ["multiply", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Multiply)],
+        ["divide", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Divide)],
+        ["modulus", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Modulus)],
+        ["equal", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Equal)],
+        ["not_equal", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Not_equal)],
+        ["less_than", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Less_than)],
+        ["less_than_or_equal_to", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Less_than_or_equal_to)],
+        ["greater_than", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Greater_than)],
+        ["greater_than_or_equal_to", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Greater_than_or_equal_to)],
+        ["logical_and", create_binary_expression(create_variable_expression("first_boolean"), create_variable_expression("second_boolean"), Core_intermediate_representation.Binary_operation.Logical_and)],
+        ["logical_or", create_binary_expression(create_variable_expression("first_boolean"), create_variable_expression("second_boolean"), Core_intermediate_representation.Binary_operation.Logical_or)],
+        ["bitwise_and", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Bitwise_and)],
+        ["bitwise_or", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Bitwise_or)],
+        ["bitwise_xor", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Bitwise_xor)],
+        ["bit_shift_left", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Bit_shift_left)],
+        ["bit_shift_right", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Bit_shift_right)],
+    ];
+
+    const statements: Core_intermediate_representation.Statement[] = [];
+
+    for (const binary_expression of binary_expressions) {
+        const statement: Core_intermediate_representation.Statement = {
+            name: "",
+            expression: {
+                data: {
+                    type: Core_intermediate_representation.Expression_enum.Variable_declaration_expression,
+                    value: {
+                        name: binary_expression[0],
+                        is_mutable: false,
+                        right_hand_side: binary_expression[1]
+                    }
+                }
+            }
+        };
+        statements.push(statement);
+    }
+
+    return {
+        name: "Binary_expressions",
+        imports: [],
+        declarations: [
+            {
+                name: "foo",
+                type: Core_intermediate_representation.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "foo",
+                        type: {
+                            input_parameter_types: [create_integer_type(32, true), create_integer_type(32, true), create_fundamental_type(Core_intermediate_representation.Fundamental_type.Bool), create_fundamental_type(Core_intermediate_representation.Fundamental_type.Bool)],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: ["first_integer", "second_integer", "first_boolean", "second_boolean"],
+                        output_parameter_names: [],
+                        linkage: Core_intermediate_representation.Linkage.External
+                    },
+                    definition: {
+                        name: "foo",
+                        statements: [
+                            ...statements
+                        ]
+                    }
+                }
+            }
+        ]
+    };
+}
+
+export function create_binary_expressions_operator_precedence(): Core_intermediate_representation.Module {
+
+    const a = create_variable_expression("a");
+    const b = create_variable_expression("b");
+    const c = create_variable_expression("c");
+    const function_call = create_call_expression("", "function_call", []);
+    const value_0 = create_constant_expression(create_integer_type(32, true), "0");
+    const value_1 = create_constant_expression(create_integer_type(32, true), "1");
+
+    const binary_expressions: [string, Core_intermediate_representation.Expression][] = [
+        ["case_1", create_binary_expression(a, create_binary_expression(b, c, Core_intermediate_representation.Binary_operation.Multiply), Core_intermediate_representation.Binary_operation.Add)],
+        ["case_2", create_binary_expression(create_binary_expression(a, b, Core_intermediate_representation.Binary_operation.Multiply), c, Core_intermediate_representation.Binary_operation.Add)],
+        ["case_3", create_binary_expression(create_binary_expression(a, b, Core_intermediate_representation.Binary_operation.Divide), c, Core_intermediate_representation.Binary_operation.Multiply)],
+        ["case_4", create_binary_expression(create_binary_expression(a, b, Core_intermediate_representation.Binary_operation.Multiply), c, Core_intermediate_representation.Binary_operation.Divide)],
+
+        ["case_5", create_binary_expression(create_binary_expression(a, function_call, Core_intermediate_representation.Binary_operation.Multiply), b, Core_intermediate_representation.Binary_operation.Add)],
+        ["case_6", create_binary_expression(create_unary_expression(a, Core_intermediate_representation.Unary_operation.Size_of), b, Core_intermediate_representation.Binary_operation.Multiply)],
+
+        ["case_7", create_binary_expression(create_parenthesis_expression(create_binary_expression(a, b, Core_intermediate_representation.Binary_operation.Add)), c, Core_intermediate_representation.Binary_operation.Multiply)],
+        ["case_8", create_binary_expression(a, create_parenthesis_expression(create_binary_expression(b, c, Core_intermediate_representation.Binary_operation.Add)), Core_intermediate_representation.Binary_operation.Multiply)],
+
+        ["case_9", create_binary_expression(create_binary_expression(a, value_0, Core_intermediate_representation.Binary_operation.Equal), create_binary_expression(b, value_1, Core_intermediate_representation.Binary_operation.Equal), Core_intermediate_representation.Binary_operation.Logical_and)],
+        ["case_10", create_binary_expression(create_parenthesis_expression(create_binary_expression(a, b, Core_intermediate_representation.Binary_operation.Bitwise_and)), create_parenthesis_expression(create_binary_expression(b, a, Core_intermediate_representation.Binary_operation.Bitwise_and)), Core_intermediate_representation.Binary_operation.Equal)],
+        ["case_11", create_binary_expression(create_binary_expression(a, b, Core_intermediate_representation.Binary_operation.Less_than), create_binary_expression(b, c, Core_intermediate_representation.Binary_operation.Less_than), Core_intermediate_representation.Binary_operation.Logical_and)],
+        ["case_12", create_binary_expression(create_binary_expression(a, b, Core_intermediate_representation.Binary_operation.Add), create_binary_expression(b, c, Core_intermediate_representation.Binary_operation.Add), Core_intermediate_representation.Binary_operation.Equal)],
+    ];
+
+    const statements: Core_intermediate_representation.Statement[] = [];
+
+    for (const binary_expression of binary_expressions) {
+        const statement: Core_intermediate_representation.Statement = {
+            name: "",
+            expression: {
+                data: {
+                    type: Core_intermediate_representation.Expression_enum.Variable_declaration_expression,
+                    value: {
+                        name: binary_expression[0],
+                        is_mutable: false,
+                        right_hand_side: binary_expression[1]
+                    }
+                }
+            }
+        };
+        statements.push(statement);
+    }
+
+    return {
+        name: "Binary_expressions_operator_precedence",
+        imports: [],
+        declarations: [
+            {
+                name: "foo",
+                type: Core_intermediate_representation.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "foo",
+                        type: {
+                            input_parameter_types: [create_integer_type(32, true), create_integer_type(32, true), create_integer_type(32, true)],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: ["a", "b", "c"],
+                        output_parameter_names: [],
+                        linkage: Core_intermediate_representation.Linkage.External
+                    },
+                    definition: {
+                        name: "foo",
+                        statements: [
+                            ...statements
+                        ]
+                    }
+                }
+            }
+        ]
+    };
+}
+
+export function create_assignment_expressions(): Core_intermediate_representation.Module {
+
+    const expressions: Core_intermediate_representation.Expression[] = [
+        create_variable_declaration_expression("my_integer", true, create_constant_expression(create_integer_type(32, true), "1")),
+        create_assignment_expression(create_variable_expression("my_integer"), create_constant_expression(create_integer_type(32, true), "2")),
+        create_assignment_expression(create_variable_expression("my_integer"), create_variable_expression("other_integer"), Core_intermediate_representation.Binary_operation.Add),
+        create_assignment_expression(create_variable_expression("my_integer"), create_variable_expression("other_integer"), Core_intermediate_representation.Binary_operation.Subtract),
+        create_assignment_expression(create_variable_expression("my_integer"), create_variable_expression("other_integer"), Core_intermediate_representation.Binary_operation.Multiply),
+        create_assignment_expression(create_variable_expression("my_integer"), create_variable_expression("other_integer"), Core_intermediate_representation.Binary_operation.Divide),
+        create_assignment_expression(create_variable_expression("my_integer"), create_variable_expression("other_integer"), Core_intermediate_representation.Binary_operation.Modulus),
+        create_assignment_expression(create_variable_expression("my_integer"), create_variable_expression("other_integer"), Core_intermediate_representation.Binary_operation.Bitwise_and),
+        create_assignment_expression(create_variable_expression("my_integer"), create_variable_expression("other_integer"), Core_intermediate_representation.Binary_operation.Bitwise_or),
+        create_assignment_expression(create_variable_expression("my_integer"), create_variable_expression("other_integer"), Core_intermediate_representation.Binary_operation.Bitwise_xor),
+        create_assignment_expression(create_variable_expression("my_integer"), create_variable_expression("other_integer"), Core_intermediate_representation.Binary_operation.Bit_shift_left),
+        create_assignment_expression(create_variable_expression("my_integer"), create_variable_expression("other_integer"), Core_intermediate_representation.Binary_operation.Bit_shift_right),
+    ];
+
+    const statements: Core_intermediate_representation.Statement[] = [];
+
+    for (const binary_expression of expressions) {
+        const statement: Core_intermediate_representation.Statement = {
+            name: "",
+            expression: binary_expression
+        };
+        statements.push(statement);
+    }
+
+    return {
+        name: "Assignment_expressions",
+        imports: [],
+        declarations: [
+            {
+                name: "foo",
+                type: Core_intermediate_representation.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "foo",
+                        type: {
+                            input_parameter_types: [create_integer_type(32, true)],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: ["other_integer"],
+                        output_parameter_names: [],
+                        linkage: Core_intermediate_representation.Linkage.External
+                    },
+                    definition: {
+                        name: "foo",
+                        statements: [
+                            ...statements
+                        ]
+                    }
+                }
+            }
+        ]
+    };
+}
+
+export function create_unary_expressions(): Core_intermediate_representation.Module {
+
+    const unary_expressions: [string, Core_intermediate_representation.Expression][] = [
+        ["not_variable", create_unary_expression(create_variable_expression("my_boolean"), Core_intermediate_representation.Unary_operation.Not)],
+        ["bitwise_not_variable", create_unary_expression(create_variable_expression("my_integer"), Core_intermediate_representation.Unary_operation.Bitwise_not)],
+        ["minus_variable", create_unary_expression(create_variable_expression("my_integer"), Core_intermediate_representation.Unary_operation.Minus)],
+        ["pre_increment_variable", create_unary_expression(create_variable_expression("my_integer"), Core_intermediate_representation.Unary_operation.Pre_increment)],
+        ["post_increment_variable", create_unary_expression(create_variable_expression("my_integer"), Core_intermediate_representation.Unary_operation.Post_increment)],
+        ["pre_decrement_variable", create_unary_expression(create_variable_expression("my_integer"), Core_intermediate_representation.Unary_operation.Pre_decrement)],
+        ["post_decrement_variable", create_unary_expression(create_variable_expression("my_integer"), Core_intermediate_representation.Unary_operation.Post_decrement)],
+        ["address_of_variable", create_unary_expression(create_variable_expression("my_integer"), Core_intermediate_representation.Unary_operation.Address_of)],
+        ["indirection_variable", create_unary_expression(create_variable_expression("address_of_variable"), Core_intermediate_representation.Unary_operation.Indirection)],
+        ["size_of_variable", create_unary_expression(create_variable_expression("my_integer"), Core_intermediate_representation.Unary_operation.Size_of)],
+    ];
+
+    const statements: Core_intermediate_representation.Statement[] = [];
+
+    for (const unary_expression of unary_expressions) {
+        const statement: Core_intermediate_representation.Statement = {
+            name: "",
+            expression: {
+                data: {
+                    type: Core_intermediate_representation.Expression_enum.Variable_declaration_expression,
+                    value: {
+                        name: unary_expression[0],
+                        is_mutable: false,
+                        right_hand_side: unary_expression[1]
+                    }
+                }
+            }
+        };
+        statements.push(statement);
+    }
+
+    return {
+        name: "Unary_expressions",
+        imports: [],
+        declarations: [
+            {
+                name: "foo",
+                type: Core_intermediate_representation.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "foo",
+                        type: {
+                            input_parameter_types: [create_integer_type(32, true), create_fundamental_type(Core_intermediate_representation.Fundamental_type.Bool)],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: ["my_integer", "my_boolean"],
+                        output_parameter_names: [],
+                        linkage: Core_intermediate_representation.Linkage.External
+                    },
+                    definition: {
+                        name: "foo",
+                        statements: [
+                            ...statements
+                        ]
+                    }
+                }
+            }
+        ]
+    };
+}
+
 function create_integer_type(number_of_bits: number, is_signed: boolean): Core_intermediate_representation.Type_reference {
     return {
         data: {
@@ -1404,6 +1681,50 @@ function create_fundamental_type(fundamental_type: Core_intermediate_representat
         data: {
             type: Core_intermediate_representation.Type_reference_enum.Fundamental_type,
             value: fundamental_type
+        }
+    };
+}
+
+function create_assignment_expression(left_hand_side: Core_intermediate_representation.Expression, right_hand_side: Core_intermediate_representation.Expression, additional_operation?: Core_intermediate_representation.Binary_operation): Core_intermediate_representation.Expression {
+    const assignment_expression: Core_intermediate_representation.Assignment_expression = {
+        left_hand_side: left_hand_side,
+        right_hand_side: right_hand_side,
+        additional_operation: additional_operation
+    };
+    return {
+        data: {
+            type: Core_intermediate_representation.Expression_enum.Assignment_expression,
+            value: assignment_expression
+        }
+    };
+}
+
+function create_binary_expression(left_hand_side: Core_intermediate_representation.Expression, right_hand_side: Core_intermediate_representation.Expression, operation: Core_intermediate_representation.Binary_operation): Core_intermediate_representation.Expression {
+    const binary_expression: Core_intermediate_representation.Binary_expression = {
+        left_hand_side: left_hand_side,
+        right_hand_side: right_hand_side,
+        operation: operation
+    };
+    return {
+        data: {
+            type: Core_intermediate_representation.Expression_enum.Binary_expression,
+            value: binary_expression
+        }
+    };
+}
+
+function create_call_expression(module_name: string, function_name: string, function_arguments: Core_intermediate_representation.Expression[]): Core_intermediate_representation.Expression {
+    const call_expression: Core_intermediate_representation.Call_expression = {
+        module_reference: {
+            name: module_name
+        },
+        function_name: function_name,
+        arguments: function_arguments
+    };
+    return {
+        data: {
+            type: Core_intermediate_representation.Expression_enum.Call_expression,
+            value: call_expression
         }
     };
 }
@@ -1431,6 +1752,57 @@ function create_numeric_cast_expression(source: Core_intermediate_representation
         data: {
             type: Core_intermediate_representation.Expression_enum.Cast_expression,
             value: cast_expression
+        }
+    };
+}
+
+function create_parenthesis_expression(expression: Core_intermediate_representation.Expression): Core_intermediate_representation.Expression {
+    const parenthesis_expression: Core_intermediate_representation.Parenthesis_expression = {
+        expression: expression
+    };
+    return {
+        data: {
+            type: Core_intermediate_representation.Expression_enum.Parenthesis_expression,
+            value: parenthesis_expression
+        }
+    };
+}
+
+function create_unary_expression(expression: Core_intermediate_representation.Expression, operation: Core_intermediate_representation.Unary_operation): Core_intermediate_representation.Expression {
+    const unary_expression: Core_intermediate_representation.Unary_expression = {
+        expression: expression,
+        operation: operation
+    };
+    return {
+        data: {
+            type: Core_intermediate_representation.Expression_enum.Unary_expression,
+            value: unary_expression
+        }
+    };
+}
+
+function create_variable_declaration_expression(variable_name: string, is_mutable: boolean, right_hand_side: Core_intermediate_representation.Expression): Core_intermediate_representation.Expression {
+    const variable_declaration_expression: Core_intermediate_representation.Variable_declaration_expression = {
+        name: variable_name,
+        is_mutable: is_mutable,
+        right_hand_side: right_hand_side
+    };
+    return {
+        data: {
+            type: Core_intermediate_representation.Expression_enum.Variable_declaration_expression,
+            value: variable_declaration_expression
+        }
+    };
+}
+
+function create_variable_expression(variable_name: string): Core_intermediate_representation.Expression {
+    const variable_expression: Core_intermediate_representation.Variable_expression = {
+        name: variable_name
+    };
+    return {
+        data: {
+            type: Core_intermediate_representation.Expression_enum.Variable_expression,
+            value: variable_expression
         }
     };
 }

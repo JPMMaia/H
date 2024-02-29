@@ -30,9 +30,21 @@
                 "Add",
                 "Subtract",
                 "Multiply",
-                "Signed_divide",
-                "Unsigned_divide",
-                "Less_than"
+                "Divide",
+                "Modulus",
+                "Equal",
+                "Not_equal",
+                "Less_than",
+                "Less_than_or_equal_to",
+                "Greater_than",
+                "Greater_than_or_equal_to",
+                "Logical_and",
+                "Logical_or",
+                "Bitwise_and",
+                "Bitwise_or",
+                "Bitwise_xor",
+                "Bit_shift_left",
+                "Bit_shift_right"
             ]
         },
         {
@@ -40,6 +52,21 @@
             "values": [
                 "Numeric",
                 "BitCast"
+            ]
+        },
+        {
+            "name": "Unary_operation",
+            "values": [
+                "Not",
+                "Bitwise_not",
+                "Minus",
+                "Pre_increment",
+                "Post_increment",
+                "Pre_decrement",
+                "Post_decrement",
+                "Indirection",
+                "Address_of",
+                "Size_of"
             ]
         },
         {
@@ -297,6 +324,12 @@
                         "name": "Expression_index"
                     },
                     "name": "right_hand_side"
+                },
+                {
+                    "type": {
+                        "name": "std::optional<Binary_operation>"
+                    },
+                    "name": "additional_operation"
                 }
             ]
         },
@@ -398,6 +431,17 @@
             ]
         },
         {
+            "name": "Parenthesis_expression",
+            "members": [
+                {
+                    "type": {
+                        "name": "Expression_index"
+                    },
+                    "name": "expression"
+                }
+            ]
+        },
+        {
             "name": "Return_expression",
             "members": [
                 {
@@ -422,6 +466,23 @@
                         "name": "std::pmr::string"
                     },
                     "name": "member_name"
+                }
+            ]
+        },
+        {
+            "name": "Unary_expression",
+            "members": [
+                {
+                    "type": {
+                        "name": "Expression_index"
+                    },
+                    "name": "expression"
+                },
+                {
+                    "type": {
+                        "name": "Unary_operation"
+                    },
+                    "name": "operation"
                 }
             ]
         },
@@ -453,7 +514,7 @@
             "members": [
                 {
                     "type": {
-                        "name": "std::variant<Assignment_expression,Binary_expression,Call_expression,Cast_expression,Constant_expression,Invalid_expression,Return_expression,Struct_member_expression,Variable_declaration_expression,Variable_expression>"
+                        "name": "std::variant<Assignment_expression,Binary_expression,Call_expression,Cast_expression,Constant_expression,Invalid_expression,Parenthesis_expression,Return_expression,Struct_member_expression,Unary_expression,Variable_declaration_expression,Variable_expression>"
                     },
                     "name": "data"
                 }

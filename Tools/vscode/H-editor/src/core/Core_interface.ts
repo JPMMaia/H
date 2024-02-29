@@ -34,14 +34,39 @@ export enum Binary_operation {
     Add = "Add",
     Subtract = "Subtract",
     Multiply = "Multiply",
-    Signed_divide = "Signed_divide",
-    Unsigned_divide = "Unsigned_divide",
+    Divide = "Divide",
+    Modulus = "Modulus",
+    Equal = "Equal",
+    Not_equal = "Not_equal",
     Less_than = "Less_than",
+    Less_than_or_equal_to = "Less_than_or_equal_to",
+    Greater_than = "Greater_than",
+    Greater_than_or_equal_to = "Greater_than_or_equal_to",
+    Logical_and = "Logical_and",
+    Logical_or = "Logical_or",
+    Bitwise_and = "Bitwise_and",
+    Bitwise_or = "Bitwise_or",
+    Bitwise_xor = "Bitwise_xor",
+    Bit_shift_left = "Bit_shift_left",
+    Bit_shift_right = "Bit_shift_right",
 }
 
 export enum Cast_type {
     Numeric = "Numeric",
     BitCast = "BitCast",
+}
+
+export enum Unary_operation {
+    Not = "Not",
+    Bitwise_not = "Bitwise_not",
+    Minus = "Minus",
+    Pre_increment = "Pre_increment",
+    Post_increment = "Post_increment",
+    Pre_decrement = "Pre_decrement",
+    Post_decrement = "Post_decrement",
+    Indirection = "Indirection",
+    Address_of = "Address_of",
+    Size_of = "Size_of",
 }
 
 export enum Linkage {
@@ -66,8 +91,10 @@ export enum Expression_enum {
     Cast_expression = "Cast_expression",
     Constant_expression = "Constant_expression",
     Invalid_expression = "Invalid_expression",
+    Parenthesis_expression = "Parenthesis_expression",
     Return_expression = "Return_expression",
     Struct_member_expression = "Struct_member_expression",
+    Unary_expression = "Unary_expression",
     Variable_declaration_expression = "Variable_declaration_expression",
     Variable_expression = "Variable_expression",
 }
@@ -144,6 +171,7 @@ export interface Expression_index {
 export interface Assignment_expression {
     left_hand_side: Expression_index;
     right_hand_side: Expression_index;
+    additional_operation?: Binary_operation;
 }
 
 export interface Binary_expression {
@@ -173,6 +201,10 @@ export interface Invalid_expression {
     value: string;
 }
 
+export interface Parenthesis_expression {
+    expression: Expression_index;
+}
+
 export interface Return_expression {
     expression: Expression_index;
 }
@@ -182,6 +214,11 @@ export interface Struct_member_expression {
     member_name: string;
 }
 
+export interface Unary_expression {
+    expression: Expression_index;
+    operation: Unary_operation;
+}
+
 export interface Variable_declaration_expression {
     name: string;
     is_mutable: boolean;
@@ -189,7 +226,7 @@ export interface Variable_declaration_expression {
 }
 
 export interface Expression {
-    data: Variant<Expression_enum, Assignment_expression | Binary_expression | Call_expression | Cast_expression | Constant_expression | Invalid_expression | Return_expression | Struct_member_expression | Variable_declaration_expression | Variable_expression>;
+    data: Variant<Expression_enum, Assignment_expression | Binary_expression | Call_expression | Cast_expression | Constant_expression | Invalid_expression | Parenthesis_expression | Return_expression | Struct_member_expression | Unary_expression | Variable_declaration_expression | Variable_expression>;
 }
 
 export interface Statement {
