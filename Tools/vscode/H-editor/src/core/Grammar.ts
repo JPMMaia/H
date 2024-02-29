@@ -114,7 +114,12 @@ export function create_production_rules(grammar_description: string[]): Producti
                 rhs.splice(0, rhs.length);
             }
             else if (word !== "" && word !== "$0_or_more" && word !== "$1_or_more") {
-                rhs.push(word);
+                if (word === "$single_or") {
+                    rhs.push("|");
+                }
+                else {
+                    rhs.push(word);
+                }
             }
 
             word_index += 1;

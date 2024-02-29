@@ -245,6 +245,48 @@ describe("Grammar.create_production_rules", () => {
             assert.deepEqual(production_rule.rhs, ["id"]);
         }
     });
+
+    it("Creates production rules for description 13", () => {
+        const grammar_description = Grammar_examples.create_test_grammar_13_description();
+        const production_rules = Grammar.create_production_rules(grammar_description);
+
+        assert.equal(production_rules.length, 5);
+
+        {
+            const production_rule = production_rules[0];
+            assert.equal(production_rule.lhs, "S");
+            assert.deepEqual(production_rule.rhs, ["E"]);
+            assert.equal(production_rule.flags, Grammar.Production_rule_flags.None);
+        }
+
+        {
+            const production_rule = production_rules[1];
+            assert.equal(production_rule.lhs, "E");
+            assert.deepEqual(production_rule.rhs, ["A"]);
+            assert.equal(production_rule.flags, Grammar.Production_rule_flags.None);
+        }
+
+        {
+            const production_rule = production_rules[2];
+            assert.equal(production_rule.lhs, "E");
+            assert.deepEqual(production_rule.rhs, ["B"]);
+            assert.equal(production_rule.flags, Grammar.Production_rule_flags.None);
+        }
+
+        {
+            const production_rule = production_rules[3];
+            assert.equal(production_rule.lhs, "A");
+            assert.deepEqual(production_rule.rhs, ["id", "|", "id"]);
+            assert.equal(production_rule.flags, Grammar.Production_rule_flags.None);
+        }
+
+        {
+            const production_rule = production_rules[4];
+            assert.equal(production_rule.lhs, "B");
+            assert.deepEqual(production_rule.rhs, ["id", "||", "id"]);
+            assert.equal(production_rule.flags, Grammar.Production_rule_flags.None);
+        }
+    });
 });
 
 describe("Grammar.get_non_terminals", () => {
