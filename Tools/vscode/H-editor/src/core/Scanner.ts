@@ -43,10 +43,18 @@ function is_parenthesis(character: string): boolean {
     }
 }
 
+function is_colon(character: string): boolean {
+    switch (character) {
+        case ",":
+        case ";":
+            return true;
+        default:
+            return false;
+    }
+}
+
 function is_symbol(character: string): boolean {
     switch (character) {
-        case '"':
-        case '\'':
         case '&':
         case '|':
         case '^':
@@ -61,8 +69,6 @@ function is_symbol(character: string): boolean {
         case '<':
         case '>':
         case '.':
-        case ',':
-        case ';':
             return true;
         default:
             return false;
@@ -142,6 +148,13 @@ function scan_alphanumeric(code: string, start_offset: number): { word: string, 
 }
 
 function scan_parenthesis(code: string, start_offset: number): { word: string, processed_characters: number } {
+    return {
+        word: code.substring(start_offset, start_offset + 1),
+        processed_characters: 1
+    };
+}
+
+function scan_colon(code: string, start_offset: number): { word: string, processed_characters: number } {
     return {
         word: code.substring(start_offset, start_offset + 1),
         processed_characters: 1
@@ -231,6 +244,15 @@ function scan_word(code: string, current_offset: number): { word: string, type: 
     // If it starts by parenthesis, then it only read one character at a time
     else if (is_parenthesis(first_character)) {
         const scan_result = scan_parenthesis(code, current_offset);
+        return {
+            word: scan_result.word,
+            type: Grammar.Word_type.Symbol,
+            processed_characters: ignored_characters + scan_result.processed_characters
+        };
+    }
+    // If it is a colon, don't join with other symbols:
+    else if (is_colon(first_character)) {
+        const scan_result = scan_colon(code, current_offset);
         return {
             word: scan_result.word,
             type: Grammar.Word_type.Symbol,

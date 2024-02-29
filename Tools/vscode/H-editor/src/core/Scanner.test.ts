@@ -109,6 +109,44 @@ describe("Scanner.scan", () => {
         assert.equal(scanned_words[4].type, Grammar.Word_type.Symbol);
     });
 
+    it("Scans symbols 2", () => {
+        const input = "++;--,++";
+        const scanned_words = Scanner.scan(input, 0, input.length);
+
+        assert.equal(scanned_words.length, 5);
+
+        assert.equal(scanned_words[0].value, "++");
+        assert.equal(scanned_words[0].type, Grammar.Word_type.Symbol);
+
+        assert.equal(scanned_words[1].value, ";");
+        assert.equal(scanned_words[1].type, Grammar.Word_type.Symbol);
+
+        assert.equal(scanned_words[2].value, "--");
+        assert.equal(scanned_words[2].type, Grammar.Word_type.Symbol);
+
+        assert.equal(scanned_words[3].value, ",");
+        assert.equal(scanned_words[3].type, Grammar.Word_type.Symbol);
+
+        assert.equal(scanned_words[4].value, "++");
+        assert.equal(scanned_words[4].type, Grammar.Word_type.Symbol);
+    });
+
+    it("Scans symbols 3", () => {
+        const input = '"string"+"string"';
+        const scanned_words = Scanner.scan(input, 0, input.length);
+
+        assert.equal(scanned_words.length, 3);
+
+        assert.equal(scanned_words[0].value, '"string"');
+        assert.equal(scanned_words[0].type, Grammar.Word_type.String);
+
+        assert.equal(scanned_words[1].value, "+");
+        assert.equal(scanned_words[1].type, Grammar.Word_type.Symbol);
+
+        assert.equal(scanned_words[2].value, '"string"');
+        assert.equal(scanned_words[2].type, Grammar.Word_type.String);
+    });
+
     it("Scans parenthesis", () => {
         const input = "() {} []";
         const scanned_words = Scanner.scan(input, 0, input.length);
