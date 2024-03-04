@@ -330,6 +330,12 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Access_expression const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Assignment_expression const& input
         );
 
@@ -373,12 +379,6 @@ namespace h::json
         void write_object(
             Writer_type& writer,
             Return_expression const& input
-        );
-
-    export template<typename Writer_type>
-        void write_object(
-            Writer_type& writer,
-            Struct_member_expression const& input
         );
 
     export template<typename Writer_type>
@@ -805,6 +805,20 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Access_expression const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("expression");
+        write_object(writer, output.expression);
+        writer.Key("member_name");
+        writer.String(output.member_name.data(), output.member_name.size());
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Assignment_expression const& output
         )
     {
@@ -843,10 +857,8 @@ namespace h::json
         )
     {
         writer.StartObject();
-        writer.Key("module_reference");
-        write_object(writer, output.module_reference);
-        writer.Key("function_name");
-        writer.String(output.function_name.data(), output.function_name.size());
+        writer.Key("expression");
+        write_object(writer, output.expression);
         writer.Key("arguments");
         write_object(writer, output.arguments);
         writer.EndObject();
@@ -924,20 +936,6 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
-            Struct_member_expression const& output
-        )
-    {
-        writer.StartObject();
-        writer.Key("instance");
-        write_object(writer, output.instance);
-        writer.Key("member_name");
-        writer.String(output.member_name.data(), output.member_name.size());
-        writer.EndObject();
-    }
-
-    export template<typename Writer_type>
-        void write_object(
-            Writer_type& writer,
             Unary_expression const& output
         )
     {
@@ -978,7 +976,15 @@ namespace h::json
         writer.Key("data");
 
         writer.StartObject();
-        if (std::holds_alternative<Assignment_expression>(output.data))
+        if (std::holds_alternative<Access_expression>(output.data))
+        {
+            writer.Key("type");
+            writer.String("Access_expression");
+            writer.Key("value");
+            Access_expression const& value = std::get<Access_expression>(output.data);
+            write_object(writer, value);
+        }
+        else if (std::holds_alternative<Assignment_expression>(output.data))
         {
             writer.Key("type");
             writer.String("Assignment_expression");
@@ -1040,14 +1046,6 @@ namespace h::json
             writer.String("Return_expression");
             writer.Key("value");
             Return_expression const& value = std::get<Return_expression>(output.data);
-            write_object(writer, value);
-        }
-        else if (std::holds_alternative<Struct_member_expression>(output.data))
-        {
-            writer.Key("type");
-            writer.String("Struct_member_expression");
-            writer.Key("value");
-            Struct_member_expression const& value = std::get<Struct_member_expression>(output.data);
             write_object(writer, value);
         }
         else if (std::holds_alternative<Unary_expression>(output.data))

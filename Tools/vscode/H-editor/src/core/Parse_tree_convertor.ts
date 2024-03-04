@@ -808,6 +808,17 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
     predicate(expression);
 
     switch (expression.data.type) {
+        case Core_intermediate_representation.Expression_enum.Access_expression: {
+            const value = expression.data.value as Core_intermediate_representation.Access_expression;
+            visit_expressions(value.expression, predicate);
+            break;
+        }
+        case Core_intermediate_representation.Expression_enum.Assignment_expression: {
+            const value = expression.data.value as Core_intermediate_representation.Assignment_expression;
+            visit_expressions(value.left_hand_side, predicate);
+            visit_expressions(value.right_hand_side, predicate);
+            break;
+        }
         case Core_intermediate_representation.Expression_enum.Binary_expression: {
             const value = expression.data.value as Core_intermediate_representation.Binary_expression;
             visit_expressions(value.left_hand_side, predicate);
@@ -816,9 +827,20 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
         }
         case Core_intermediate_representation.Expression_enum.Call_expression: {
             const value = expression.data.value as Core_intermediate_representation.Call_expression;
+            visit_expressions(value.expression, predicate);
             for (const argument of value.arguments) {
                 visit_expressions(argument, predicate);
             }
+            break;
+        }
+        case Core_intermediate_representation.Expression_enum.Cast_expression: {
+            const value = expression.data.value as Core_intermediate_representation.Cast_expression;
+            visit_expressions(value.source, predicate);
+            break;
+        }
+        case Core_intermediate_representation.Expression_enum.Parenthesis_expression: {
+            const value = expression.data.value as Core_intermediate_representation.Parenthesis_expression;
+            visit_expressions(value.expression, predicate);
             break;
         }
         case Core_intermediate_representation.Expression_enum.Return_expression: {
@@ -826,13 +848,25 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
             visit_expressions(value.expression, predicate);
             break;
         }
-        case Core_intermediate_representation.Expression_enum.Struct_member_expression: {
-            const value = expression.data.value as Core_intermediate_representation.Struct_member_expression;
-            visit_expressions(value.instance, predicate);
+        case Core_intermediate_representation.Expression_enum.Unary_expression: {
+            const value = expression.data.value as Core_intermediate_representation.Unary_expression;
+            visit_expressions(value.expression, predicate);
+            break;
+        }
+        case Core_intermediate_representation.Expression_enum.Variable_declaration_expression: {
+            const value = expression.data.value as Core_intermediate_representation.Variable_declaration_expression;
+            visit_expressions(value.right_hand_side, predicate);
+            break;
+        }
+        case Core_intermediate_representation.Expression_enum.Constant_expression:
+        case Core_intermediate_representation.Expression_enum.Invalid_expression:
+        case Core_intermediate_representation.Expression_enum.Variable_expression: {
             break;
         }
         default: {
-            break;
+            const message = `Parse_tree_convertor.visit_expressions(): Expression type ${expression.data.type} not handled!`;
+            onThrowError(message);
+            throw Error(message);
         }
     }
 }
@@ -845,12 +879,13 @@ export function update_import_module_usages(module: Core_intermediate_representa
 
     const process_expression = (expression: Core_intermediate_representation.Expression): void => {
         switch (expression.data.type) {
-            case Core_intermediate_representation.Expression_enum.Call_expression: {
-                const value = expression.data.value as Core_intermediate_representation.Call_expression;
-                if (value.module_reference.name.length > 0) {
-                    const import_module = module.imports.find(element => element.alias === value.module_reference.name);
+            case Core_intermediate_representation.Expression_enum.Access_expression: {
+                const access_expression = expression.data.value as Core_intermediate_representation.Access_expression;
+                if (access_expression.expression.data.type === Core_intermediate_representation.Expression_enum.Variable_expression) {
+                    const variable_expression = access_expression.expression.data.value as Core_intermediate_representation.Variable_expression;
+                    const import_module = module.imports.find(element => element.alias === variable_expression.name);
                     if (import_module !== undefined) {
-                        import_module.usages.push(value.function_name);
+                        import_module.usages.push(access_expression.member_name);
                     }
                 }
                 break;

@@ -679,10 +679,22 @@ export function hello() -> ()
                                     data: {
                                         type: Core_intermediate_representation.Expression_enum.Call_expression,
                                         value: {
-                                            module_reference: {
-                                                name: "stdio"
+                                            expression: {
+                                                data: {
+                                                    type: Core_intermediate_representation.Expression_enum.Access_expression,
+                                                    value: {
+                                                        expression: {
+                                                            data: {
+                                                                type: Core_intermediate_representation.Expression_enum.Variable_expression,
+                                                                value: {
+                                                                    name: "stdio"
+                                                                }
+                                                            }
+                                                        },
+                                                        member_name: "puts"
+                                                    }
+                                                }
                                             },
-                                            function_name: "puts",
                                             arguments: [
                                                 {
                                                     data: {
@@ -990,25 +1002,27 @@ module Binary_expressions_operator_precedence;
 
 export function foo(
     a: Int32,
-    b: Int32
+    b: Int32,
     c: Int32
 ) -> ()
 {
-    var case_1 = a + b * c;
-    var case_2 = a * b + c;
-    var case_3 = a / b * c;
-    var case_4 = a * b / c;
+    var case_0 = a + b * c;
+    var case_1 = a * b + c;
+    var case_2 = a / b * c;
+    var case_3 = a * b / c;
 
-    var case_5 = a * function_call() + b;
-    var case_6 = *a * *b;
+    var case_4 = a * function_call() + b;
+    var case_5 = *a * *b;
     
-    var case_7 = (a + b) * c;
-    var case_8 = a * (b + c);
+    var case_6 = (a + b) * c;
+    var case_7 = a * (b + c);
 
-    var case_9 = a == 0 && b == 1;
-    var case_10 = (a & b) == (b & a);
-    var case_11 = a < b && b < c;
-    var case_12 = a + b == b + c;
+    var case_8 = a == 0 && b == 1;
+    var case_9 = (a & b) == (b & a);
+    var case_10 = a < b && b < c;
+    var case_11 = a + b == b + c;
+
+    var case_12 = -a + (-b);
 }
 `;
 
@@ -1026,6 +1040,20 @@ export function foo(
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_binary_expressions_operator_precedence();
+        const expected_function_value = expected_module.declarations[0].value as Core_intermediate_representation.Function;
+        const expected_statements = expected_function_value.definition.statements;
+
+        const actual_module = new_document_state.module;
+        const actual_function_value = actual_module.declarations[0].value as Core_intermediate_representation.Function;
+        const actual_statements = actual_function_value.definition.statements;
+
+        for (let statement_index = 0; statement_index < expected_statements.length; ++statement_index) {
+            const expected_statement = expected_statements[statement_index];
+            const actual_statement = actual_statements[statement_index];
+
+            assert.deepEqual(actual_statement, expected_statement, `case_${statement_index} did not match`);
+        }
+
         assert.deepEqual(new_document_state.module, expected_module);
     });
 

@@ -84,6 +84,7 @@ export enum Type_reference_enum {
 }
 
 export enum Expression_enum {
+    Access_expression = "Access_expression",
     Assignment_expression = "Assignment_expression",
     Binary_expression = "Binary_expression",
     Call_expression = "Call_expression",
@@ -92,7 +93,6 @@ export enum Expression_enum {
     Invalid_expression = "Invalid_expression",
     Parenthesis_expression = "Parenthesis_expression",
     Return_expression = "Return_expression",
-    Struct_member_expression = "Struct_member_expression",
     Unary_expression = "Unary_expression",
     Variable_declaration_expression = "Variable_declaration_expression",
     Variable_expression = "Variable_expression",
@@ -167,6 +167,11 @@ export interface Expression_index {
     expression_index: number;
 }
 
+export interface Access_expression {
+    expression: Expression_index;
+    member_name: string;
+}
+
 export interface Assignment_expression {
     left_hand_side: Expression_index;
     right_hand_side: Expression_index;
@@ -180,8 +185,7 @@ export interface Binary_expression {
 }
 
 export interface Call_expression {
-    module_reference: Module_reference;
-    function_name: string;
+    expression: Expression_index;
     arguments: Vector<Expression_index>;
 }
 
@@ -208,11 +212,6 @@ export interface Return_expression {
     expression: Expression_index;
 }
 
-export interface Struct_member_expression {
-    instance: Expression_index;
-    member_name: string;
-}
-
 export interface Unary_expression {
     expression: Expression_index;
     operation: Unary_operation;
@@ -225,7 +224,7 @@ export interface Variable_declaration_expression {
 }
 
 export interface Expression {
-    data: Variant<Expression_enum, Assignment_expression | Binary_expression | Call_expression | Cast_expression | Constant_expression | Invalid_expression | Parenthesis_expression | Return_expression | Struct_member_expression | Unary_expression | Variable_declaration_expression | Variable_expression>;
+    data: Variant<Expression_enum, Access_expression | Assignment_expression | Binary_expression | Call_expression | Cast_expression | Constant_expression | Invalid_expression | Parenthesis_expression | Return_expression | Unary_expression | Variable_declaration_expression | Variable_expression>;
 }
 
 export interface Statement {
