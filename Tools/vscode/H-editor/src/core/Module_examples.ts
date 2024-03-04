@@ -710,111 +710,52 @@ export function create_function_example(): core.Module {
     return module;
 }
 
-export function create_function_calling_module_function_example(): core.Module {
-    const module = create_empty();
-    module.name = "function_calling_module_function_example";
-    module.dependencies.alias_imports = {
-        size: 1,
-        elements: [
+export function create_function_calling_module_function_example(): Core_intermediate_representation.Module {
+
+    return {
+        name: "function_calling_module_function_example",
+        imports: [
             {
                 module_name: "C.stdio",
                 alias: "stdio",
-                usages: {
-                    size: 1,
-                    elements: ["printf"]
+                usages: ["printf"]
+            }
+        ],
+        declarations: [
+            {
+                name: "My_function",
+                type: Core_intermediate_representation.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "My_function",
+                        type: {
+                            input_parameter_types: [],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: [],
+                        output_parameter_names: [],
+                        linkage: core.Linkage.External,
+                    },
+                    definition: {
+                        name: "My_function",
+                        statements: [
+                            {
+                                name: "",
+                                expression: create_call_expression(
+                                    create_access_expression(create_variable_expression("stdio"), "printf"),
+                                    [
+                                        create_constant_expression(create_pointer_type([create_fundamental_type(Core_intermediate_representation.Fundamental_type.C_char)], false), "Hello world!")
+                                    ]
+                                ),
+                            },
+                        ],
+                    },
                 }
             }
         ]
     };
-    module.export_declarations.function_declarations = {
-        size: 1,
-        elements: [
-            {
-                name: "My_function",
-                type: {
-                    input_parameter_types: {
-                        size: 0,
-                        elements: [],
-                    },
-                    output_parameter_types: {
-                        size: 0,
-                        elements: [],
-                    },
-                    is_variadic: false,
-                },
-                input_parameter_names: { size: 0, elements: [] },
-                output_parameter_names: { size: 0, elements: [] },
-                linkage: core.Linkage.External,
-            }
-        ]
-    };
-    module.definitions.function_definitions = {
-        size: 1,
-        elements: [
-            {
-                name: "My_function",
-                statements: {
-                    size: 1,
-                    elements: [
-                        {
-                            name: "",
-                            expressions: {
-                                size: 4,
-                                elements: [
-                                    {
-                                        data: {
-                                            type: core.Expression_enum.Call_expression,
-                                            value: {
-                                                module_reference: {
-                                                    name: "stdio"
-                                                },
-                                                function_name: "printf",
-                                                arguments: {
-                                                    size: 1,
-                                                    elements: [
-                                                        { expression_index: 1 }
-                                                    ]
-                                                }
-                                            },
-                                        },
-                                    },
-                                    {
-                                        data: {
-                                            type: core.Expression_enum.Constant_expression,
-                                            value: {
-                                                type: {
-                                                    data: {
-                                                        type: core.Type_reference_enum.Pointer_type,
-                                                        value: {
-                                                            element_type: {
-                                                                size: 1,
-                                                                elements: [
-                                                                    {
-                                                                        data: {
-                                                                            type: core.Type_reference_enum.Fundamental_type,
-                                                                            value: core.Fundamental_type.C_char
-                                                                        }
-                                                                    }
-                                                                ]
-                                                            },
-                                                            is_mutable: false
-                                                        }
-                                                    }
-                                                },
-                                                data: "Hello world!"
-                                            },
-                                        },
-                                    },
-                                ],
-                            },
-                        },
-                    ],
-                },
-            },
-        ]
-    };
-
-    return module;
 }
 
 export function create_module_with_dependencies(): core.Module {
@@ -882,43 +823,32 @@ export function create_hello_world(): Core_intermediate_representation.Module {
                         statements: [
                             {
                                 name: "",
-                                expression: {
-                                    data: {
-                                        type: Core_intermediate_representation.Expression_enum.Call_expression,
-                                        value: {
-                                            module_reference: {
-                                                name: "stdio"
-                                            },
-                                            function_name: "puts",
-                                            arguments: [
-                                                {
+                                expression: create_call_expression(create_access_expression(create_variable_expression("stdio"), "puts"), [
+                                    {
+                                        data: {
+                                            type: Core_intermediate_representation.Expression_enum.Constant_expression,
+                                            value: {
+                                                type: {
                                                     data: {
-                                                        type: Core_intermediate_representation.Expression_enum.Constant_expression,
+                                                        type: core.Type_reference_enum.Pointer_type,
                                                         value: {
-                                                            type: {
-                                                                data: {
-                                                                    type: core.Type_reference_enum.Pointer_type,
-                                                                    value: {
-                                                                        element_type: [
-                                                                            {
-                                                                                data: {
-                                                                                    type: core.Type_reference_enum.Fundamental_type,
-                                                                                    value: core.Fundamental_type.C_char
-                                                                                }
-                                                                            }
-                                                                        ],
-                                                                        is_mutable: false
+                                                            element_type: [
+                                                                {
+                                                                    data: {
+                                                                        type: core.Type_reference_enum.Fundamental_type,
+                                                                        value: core.Fundamental_type.C_char
                                                                     }
                                                                 }
-                                                            },
-                                                            data: "Hello world!"
+                                                            ],
+                                                            is_mutable: false
                                                         }
                                                     }
-                                                }
-                                            ]
+                                                },
+                                                data: "Hello world!"
+                                            }
                                         }
                                     }
-                                }
+                                ])
                             },
                             {
                                 name: "",
@@ -1467,26 +1397,28 @@ export function create_binary_expressions_operator_precedence(): Core_intermedia
     const a = create_variable_expression("a");
     const b = create_variable_expression("b");
     const c = create_variable_expression("c");
-    const function_call = create_call_expression("", "function_call", []);
+    const function_call = create_call_expression(create_variable_expression("function_call"), []);
     const value_0 = create_constant_expression(create_integer_type(32, true), "0");
     const value_1 = create_constant_expression(create_integer_type(32, true), "1");
 
     const binary_expressions: [string, Core_intermediate_representation.Expression][] = [
-        ["case_1", create_binary_expression(a, create_binary_expression(b, c, Core_intermediate_representation.Binary_operation.Multiply), Core_intermediate_representation.Binary_operation.Add)],
-        ["case_2", create_binary_expression(create_binary_expression(a, b, Core_intermediate_representation.Binary_operation.Multiply), c, Core_intermediate_representation.Binary_operation.Add)],
-        ["case_3", create_binary_expression(create_binary_expression(a, b, Core_intermediate_representation.Binary_operation.Divide), c, Core_intermediate_representation.Binary_operation.Multiply)],
-        ["case_4", create_binary_expression(create_binary_expression(a, b, Core_intermediate_representation.Binary_operation.Multiply), c, Core_intermediate_representation.Binary_operation.Divide)],
+        ["case_0", create_binary_expression(a, create_binary_expression(b, c, Core_intermediate_representation.Binary_operation.Multiply), Core_intermediate_representation.Binary_operation.Add)],
+        ["case_1", create_binary_expression(create_binary_expression(a, b, Core_intermediate_representation.Binary_operation.Multiply), c, Core_intermediate_representation.Binary_operation.Add)],
+        ["case_2", create_binary_expression(create_binary_expression(a, b, Core_intermediate_representation.Binary_operation.Divide), c, Core_intermediate_representation.Binary_operation.Multiply)],
+        ["case_3", create_binary_expression(create_binary_expression(a, b, Core_intermediate_representation.Binary_operation.Multiply), c, Core_intermediate_representation.Binary_operation.Divide)],
 
-        ["case_5", create_binary_expression(create_binary_expression(a, function_call, Core_intermediate_representation.Binary_operation.Multiply), b, Core_intermediate_representation.Binary_operation.Add)],
-        ["case_6", create_binary_expression(create_unary_expression(a, Core_intermediate_representation.Unary_operation.Indirection), create_unary_expression(b, Core_intermediate_representation.Unary_operation.Indirection), Core_intermediate_representation.Binary_operation.Multiply)],
+        ["case_4", create_binary_expression(create_binary_expression(a, function_call, Core_intermediate_representation.Binary_operation.Multiply), b, Core_intermediate_representation.Binary_operation.Add)],
+        ["case_5", create_binary_expression(create_unary_expression(a, Core_intermediate_representation.Unary_operation.Indirection), create_unary_expression(b, Core_intermediate_representation.Unary_operation.Indirection), Core_intermediate_representation.Binary_operation.Multiply)],
 
-        ["case_7", create_binary_expression(create_parenthesis_expression(create_binary_expression(a, b, Core_intermediate_representation.Binary_operation.Add)), c, Core_intermediate_representation.Binary_operation.Multiply)],
-        ["case_8", create_binary_expression(a, create_parenthesis_expression(create_binary_expression(b, c, Core_intermediate_representation.Binary_operation.Add)), Core_intermediate_representation.Binary_operation.Multiply)],
+        ["case_6", create_binary_expression(create_parenthesis_expression(create_binary_expression(a, b, Core_intermediate_representation.Binary_operation.Add)), c, Core_intermediate_representation.Binary_operation.Multiply)],
+        ["case_7", create_binary_expression(a, create_parenthesis_expression(create_binary_expression(b, c, Core_intermediate_representation.Binary_operation.Add)), Core_intermediate_representation.Binary_operation.Multiply)],
 
-        ["case_9", create_binary_expression(create_binary_expression(a, value_0, Core_intermediate_representation.Binary_operation.Equal), create_binary_expression(b, value_1, Core_intermediate_representation.Binary_operation.Equal), Core_intermediate_representation.Binary_operation.Logical_and)],
-        ["case_10", create_binary_expression(create_parenthesis_expression(create_binary_expression(a, b, Core_intermediate_representation.Binary_operation.Bitwise_and)), create_parenthesis_expression(create_binary_expression(b, a, Core_intermediate_representation.Binary_operation.Bitwise_and)), Core_intermediate_representation.Binary_operation.Equal)],
-        ["case_11", create_binary_expression(create_binary_expression(a, b, Core_intermediate_representation.Binary_operation.Less_than), create_binary_expression(b, c, Core_intermediate_representation.Binary_operation.Less_than), Core_intermediate_representation.Binary_operation.Logical_and)],
-        ["case_12", create_binary_expression(create_binary_expression(a, b, Core_intermediate_representation.Binary_operation.Add), create_binary_expression(b, c, Core_intermediate_representation.Binary_operation.Add), Core_intermediate_representation.Binary_operation.Equal)],
+        ["case_8", create_binary_expression(create_binary_expression(a, value_0, Core_intermediate_representation.Binary_operation.Equal), create_binary_expression(b, value_1, Core_intermediate_representation.Binary_operation.Equal), Core_intermediate_representation.Binary_operation.Logical_and)],
+        ["case_9", create_binary_expression(create_parenthesis_expression(create_binary_expression(a, b, Core_intermediate_representation.Binary_operation.Bitwise_and)), create_parenthesis_expression(create_binary_expression(b, a, Core_intermediate_representation.Binary_operation.Bitwise_and)), Core_intermediate_representation.Binary_operation.Equal)],
+        ["case_10", create_binary_expression(create_binary_expression(a, b, Core_intermediate_representation.Binary_operation.Less_than), create_binary_expression(b, c, Core_intermediate_representation.Binary_operation.Less_than), Core_intermediate_representation.Binary_operation.Logical_and)],
+        ["case_11", create_binary_expression(create_binary_expression(a, b, Core_intermediate_representation.Binary_operation.Add), create_binary_expression(b, c, Core_intermediate_representation.Binary_operation.Add), Core_intermediate_representation.Binary_operation.Equal)],
+
+        ["case_12", create_binary_expression(create_unary_expression(a, Core_intermediate_representation.Unary_operation.Minus), create_parenthesis_expression(create_unary_expression(b, Core_intermediate_representation.Unary_operation.Minus)), Core_intermediate_representation.Binary_operation.Add)],
     ];
 
     const statements: Core_intermediate_representation.Statement[] = [];
@@ -1685,6 +1617,31 @@ function create_fundamental_type(fundamental_type: Core_intermediate_representat
     };
 }
 
+function create_pointer_type(element_type: Core_intermediate_representation.Type_reference[], is_mutable: boolean): Core_intermediate_representation.Type_reference {
+    return {
+        data: {
+            type: Core_intermediate_representation.Type_reference_enum.Pointer_type,
+            value: {
+                element_type: element_type,
+                is_mutable: is_mutable
+            }
+        }
+    };
+}
+
+function create_access_expression(expression: Core_intermediate_representation.Expression, member_name: string): Core_intermediate_representation.Expression {
+    const access_expression: Core_intermediate_representation.Access_expression = {
+        expression: expression,
+        member_name: member_name
+    };
+    return {
+        data: {
+            type: Core_intermediate_representation.Expression_enum.Access_expression,
+            value: access_expression
+        }
+    };
+}
+
 function create_assignment_expression(left_hand_side: Core_intermediate_representation.Expression, right_hand_side: Core_intermediate_representation.Expression, additional_operation?: Core_intermediate_representation.Binary_operation): Core_intermediate_representation.Expression {
     const assignment_expression: Core_intermediate_representation.Assignment_expression = {
         left_hand_side: left_hand_side,
@@ -1713,12 +1670,9 @@ function create_binary_expression(left_hand_side: Core_intermediate_representati
     };
 }
 
-function create_call_expression(module_name: string, function_name: string, function_arguments: Core_intermediate_representation.Expression[]): Core_intermediate_representation.Expression {
+function create_call_expression(expression: Core_intermediate_representation.Expression, function_arguments: Core_intermediate_representation.Expression[]): Core_intermediate_representation.Expression {
     const call_expression: Core_intermediate_representation.Call_expression = {
-        module_reference: {
-            name: module_name
-        },
-        function_name: function_name,
+        expression: expression,
         arguments: function_arguments
     };
     return {

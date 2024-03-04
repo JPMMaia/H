@@ -188,6 +188,14 @@ namespace h
         Bit_shift_right
     };
 
+    export struct Access_expression
+    {
+        Expression_index expression;
+        std::pmr::string member_name;
+
+        friend auto operator<=>(Access_expression const&, Access_expression const&) = default;
+    };
+
     export struct Assignment_expression
     {
         Expression_index left_hand_side;
@@ -208,8 +216,7 @@ namespace h
 
     export struct Call_expression
     {
-        Module_reference module_reference;
-        std::pmr::string function_name;
+        Expression_index expression;
         std::pmr::vector<Expression_index> arguments;
 
         friend auto operator<=>(Call_expression const&, Call_expression const&) = default;
@@ -259,14 +266,6 @@ namespace h
         friend auto operator<=>(Return_expression const&, Return_expression const&) = default;
     };
 
-    export struct Struct_member_expression
-    {
-        Expression_index instance;
-        std::pmr::string member_name;
-
-        friend auto operator<=>(Struct_member_expression const&, Struct_member_expression const&) = default;
-    };
-
     export enum class Unary_operation
     {
         Not,
@@ -300,6 +299,7 @@ namespace h
     export struct Expression
     {
         using Data_type = std::variant<
+            Access_expression,
             Assignment_expression,
             Binary_expression,
             Call_expression,
@@ -308,7 +308,6 @@ namespace h
             Invalid_expression,
             Parenthesis_expression,
             Return_expression,
-            Struct_member_expression,
             Unary_expression,
             Variable_declaration_expression,
             Variable_expression

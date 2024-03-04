@@ -269,6 +269,7 @@ export enum Type_reference_enum {
 }
 
 export enum Expression_enum {
+    Access_expression = "Access_expression",
     Assignment_expression = "Assignment_expression",
     Binary_expression = "Binary_expression",
     Call_expression = "Call_expression",
@@ -277,7 +278,6 @@ export enum Expression_enum {
     Invalid_expression = "Invalid_expression",
     Parenthesis_expression = "Parenthesis_expression",
     Return_expression = "Return_expression",
-    Struct_member_expression = "Struct_member_expression",
     Unary_expression = "Unary_expression",
     Variable_declaration_expression = "Variable_declaration_expression",
     Variable_expression = "Variable_expression",
@@ -671,6 +671,37 @@ function intermediate_to_core_variable_expression(intermediate_value: Variable_e
     expressions.push(core_value);
 }
 
+export interface Access_expression {
+    expression: Expression;
+    member_name: string;
+}
+
+function core_to_intermediate_access_expression(core_value: Core.Access_expression, statement: Core.Statement): Access_expression {
+    return {
+        expression: core_to_intermediate_expression(statement.expressions.elements[core_value.expression.expression_index], statement),
+        member_name: core_value.member_name,
+    };
+}
+
+function intermediate_to_core_access_expression(intermediate_value: Access_expression, expressions: Core.Expression[]): void {
+    const core_value: Core.Expression = {
+        data: {
+            type: Core.Expression_enum.Access_expression,
+            value: {
+                expression: {
+                    expression_index: -1
+                },
+                member_name: intermediate_value.member_name,
+            }
+        }
+    };
+
+    expressions.push(core_value);
+
+    (core_value.data.value as Core.Access_expression).expression.expression_index = expressions.length;
+    intermediate_to_core_expression(intermediate_value.expression, expressions);
+}
+
 export interface Assignment_expression {
     left_hand_side: Expression;
     right_hand_side: Expression;
@@ -750,15 +781,13 @@ function intermediate_to_core_binary_expression(intermediate_value: Binary_expre
 }
 
 export interface Call_expression {
-    module_reference: Module_reference;
-    function_name: string;
+    expression: Expression;
     arguments: Expression[];
 }
 
 function core_to_intermediate_call_expression(core_value: Core.Call_expression, statement: Core.Statement): Call_expression {
     return {
-        module_reference: core_to_intermediate_module_reference(core_value.module_reference),
-        function_name: core_value.function_name,
+        expression: core_to_intermediate_expression(statement.expressions.elements[core_value.expression.expression_index], statement),
         arguments: core_value.arguments.elements.map(value => core_to_intermediate_expression(statement.expressions.elements[value.expression_index], statement)),
     };
 }
@@ -768,8 +797,9 @@ function intermediate_to_core_call_expression(intermediate_value: Call_expressio
         data: {
             type: Core.Expression_enum.Call_expression,
             value: {
-                module_reference: intermediate_to_core_module_reference(intermediate_value.module_reference),
-                function_name: intermediate_value.function_name,
+                expression: {
+                    expression_index: -1
+                },
                 arguments: {
                     size: 0,
                     elements: []
@@ -779,6 +809,9 @@ function intermediate_to_core_call_expression(intermediate_value: Call_expressio
     };
 
     expressions.push(core_value);
+
+    (core_value.data.value as Core.Call_expression).expression.expression_index = expressions.length;
+    intermediate_to_core_expression(intermediate_value.expression, expressions);
 
     for (const element of intermediate_value.arguments) {
         (core_value.data.value as Core.Call_expression).arguments.elements.push({expression_index: expressions.length});
@@ -926,37 +959,6 @@ function intermediate_to_core_return_expression(intermediate_value: Return_expre
     intermediate_to_core_expression(intermediate_value.expression, expressions);
 }
 
-export interface Struct_member_expression {
-    instance: Expression;
-    member_name: string;
-}
-
-function core_to_intermediate_struct_member_expression(core_value: Core.Struct_member_expression, statement: Core.Statement): Struct_member_expression {
-    return {
-        instance: core_to_intermediate_expression(statement.expressions.elements[core_value.instance.expression_index], statement),
-        member_name: core_value.member_name,
-    };
-}
-
-function intermediate_to_core_struct_member_expression(intermediate_value: Struct_member_expression, expressions: Core.Expression[]): void {
-    const core_value: Core.Expression = {
-        data: {
-            type: Core.Expression_enum.Struct_member_expression,
-            value: {
-                instance: {
-                    expression_index: -1
-                },
-                member_name: intermediate_value.member_name,
-            }
-        }
-    };
-
-    expressions.push(core_value);
-
-    (core_value.data.value as Core.Struct_member_expression).instance.expression_index = expressions.length;
-    intermediate_to_core_expression(intermediate_value.instance, expressions);
-}
-
 export interface Unary_expression {
     expression: Expression;
     operation: Unary_operation;
@@ -1023,11 +1025,19 @@ function intermediate_to_core_variable_declaration_expression(intermediate_value
 }
 
 export interface Expression {
-    data: Variant<Expression_enum, Assignment_expression | Binary_expression | Call_expression | Cast_expression | Constant_expression | Invalid_expression | Parenthesis_expression | Return_expression | Struct_member_expression | Unary_expression | Variable_declaration_expression | Variable_expression>;
+    data: Variant<Expression_enum, Access_expression | Assignment_expression | Binary_expression | Call_expression | Cast_expression | Constant_expression | Invalid_expression | Parenthesis_expression | Return_expression | Unary_expression | Variable_declaration_expression | Variable_expression>;
 }
 
 function core_to_intermediate_expression(core_value: Core.Expression, statement: Core.Statement): Expression {
     switch (core_value.data.type) {
+        case Core.Expression_enum.Access_expression: {
+            return {
+                data: {
+                    type: core_value.data.type,
+                    value: core_to_intermediate_access_expression(core_value.data.value as Core.Access_expression, statement)
+                }
+            };
+        }
         case Core.Expression_enum.Assignment_expression: {
             return {
                 data: {
@@ -1092,14 +1102,6 @@ function core_to_intermediate_expression(core_value: Core.Expression, statement:
                 }
             };
         }
-        case Core.Expression_enum.Struct_member_expression: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_struct_member_expression(core_value.data.value as Core.Struct_member_expression, statement)
-                }
-            };
-        }
         case Core.Expression_enum.Unary_expression: {
             return {
                 data: {
@@ -1129,6 +1131,10 @@ function core_to_intermediate_expression(core_value: Core.Expression, statement:
 
 function intermediate_to_core_expression(intermediate_value: Expression, expressions: Core.Expression[]): void {
     switch (intermediate_value.data.type) {
+        case Expression_enum.Access_expression: {
+            intermediate_to_core_access_expression(intermediate_value.data.value as Access_expression, expressions);
+            break;
+        }
         case Expression_enum.Assignment_expression: {
             intermediate_to_core_assignment_expression(intermediate_value.data.value as Assignment_expression, expressions);
             break;
@@ -1159,10 +1165,6 @@ function intermediate_to_core_expression(intermediate_value: Expression, express
         }
         case Expression_enum.Return_expression: {
             intermediate_to_core_return_expression(intermediate_value.data.value as Return_expression, expressions);
-            break;
-        }
-        case Expression_enum.Struct_member_expression: {
-            intermediate_to_core_struct_member_expression(intermediate_value.data.value as Struct_member_expression, expressions);
             break;
         }
         case Expression_enum.Unary_expression: {

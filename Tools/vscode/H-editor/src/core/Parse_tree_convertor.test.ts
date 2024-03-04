@@ -53,6 +53,28 @@ function test_module_to_parse_tree(grammar_description: string[], module: Core_i
     return parse_tree;
 }
 
+function assert_expression_level_node(node: Node, start_level: number, end_level: number): void {
+
+    let current_node = node;
+
+    for (let level = start_level; level >= end_level; --level) {
+        const current_label = `Expression_level_${level}`;
+        assert.equal(current_node.word.value, current_label);
+        current_node = current_node.children[0];
+    }
+}
+
+function get_expression_level_node(node: Node, level: number): Node {
+
+    const label = `Expression_level_${level}`;
+
+    while (node.word.value !== label) {
+        node = node.children[0];
+    }
+
+    return node;
+}
+
 describe("Parse_tree_convertor.module_to_parse_tree", () => {
 
     it("Creates module parse tree from grammar 9", () => {
@@ -280,16 +302,20 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                                         assert.equal(generic_expression_0.word.value, "Generic_expression");
                                         assert.equal(generic_expression_0.children.length, 1);
 
-                                        const binary_expression = generic_expression_0.children[0];
-                                        assert.equal(binary_expression.word.value, "Expression_binary");
+                                        const expression_level_node_0 = generic_expression_0.children[0];
+                                        assert_expression_level_node(expression_level_node_0, 11, 4);
+                                        const expression_level_node_1 = get_expression_level_node(expression_level_node_0, 4);
+
+                                        const binary_expression = expression_level_node_1.children[0];
+                                        assert.equal(binary_expression.word.value, "Expression_binary_addition");
                                         assert.equal(binary_expression.children.length, 3);
 
                                         {
-                                            const generic_expression_1 = binary_expression.children[0];
-                                            assert.equal(generic_expression_1.word.value, "Generic_expression");
-                                            assert.equal(generic_expression_1.children.length, 1);
+                                            const expression_level_node_2 = binary_expression.children[0];
+                                            assert_expression_level_node(expression_level_node_2, 4, 0);
+                                            const expression_level_node_3 = get_expression_level_node(expression_level_node_2, 0);
 
-                                            const variable_expression = generic_expression_1.children[0];
+                                            const variable_expression = expression_level_node_3.children[0];
                                             assert.equal(variable_expression.word.value, "Expression_variable");
                                             assert.equal(variable_expression.children.length, 1);
 
@@ -304,7 +330,7 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
 
                                         {
                                             const binary_symbol = binary_expression.children[1];
-                                            assert.equal(binary_symbol.word.value, "Expression_binary_symbol");
+                                            assert.equal(binary_symbol.word.value, "Expression_binary_addition_symbol");
                                             assert.equal(binary_symbol.children.length, 1);
 
                                             const symbol = binary_symbol.children[0];
@@ -313,11 +339,11 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                                         }
 
                                         {
-                                            const generic_expression_2 = binary_expression.children[2];
-                                            assert.equal(generic_expression_2.word.value, "Generic_expression");
-                                            assert.equal(generic_expression_2.children.length, 1);
+                                            const expression_level_node_2 = binary_expression.children[2];
+                                            assert_expression_level_node(expression_level_node_2, 3, 0);
+                                            const expression_level_node_3 = get_expression_level_node(expression_level_node_2, 0);
 
-                                            const variable_expression = generic_expression_2.children[0];
+                                            const variable_expression = expression_level_node_3.children[0];
                                             assert.equal(variable_expression.word.value, "Expression_variable");
                                             assert.equal(variable_expression.children.length, 1);
 
@@ -750,16 +776,20 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                         assert.equal(generic_expression_0.word.value, "Generic_expression");
                         assert.equal(generic_expression_0.children.length, 1);
 
-                        const binary_expression = generic_expression_0.children[0];
-                        assert.equal(binary_expression.word.value, "Expression_binary");
+                        const expression_level_11_node = generic_expression_0.children[0];
+                        assert_expression_level_node(expression_level_11_node, 11, 4);
+                        const expression_level_4_node = get_expression_level_node(expression_level_11_node, 4);
+
+                        const binary_expression = expression_level_4_node.children[0];
+                        assert.equal(binary_expression.word.value, "Expression_binary_addition");
                         assert.equal(binary_expression.children.length, 3);
 
                         {
                             const generic_expression_1 = binary_expression.children[0];
-                            assert.equal(generic_expression_1.word.value, "Generic_expression");
-                            assert.equal(generic_expression_1.children.length, 1);
+                            assert_expression_level_node(generic_expression_1, 4, 0);
+                            const expression_level_0_node = get_expression_level_node(generic_expression_1, 0);
 
-                            const variable_expression = generic_expression_1.children[0];
+                            const variable_expression = expression_level_0_node.children[0];
                             assert.equal(variable_expression.word.value, "Expression_variable");
                             assert.equal(variable_expression.children.length, 1);
 
@@ -774,7 +804,7 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
 
                         {
                             const binary_symbol = binary_expression.children[1];
-                            assert.equal(binary_symbol.word.value, "Expression_binary_symbol");
+                            assert.equal(binary_symbol.word.value, "Expression_binary_addition_symbol");
                             assert.equal(binary_symbol.children.length, 1);
 
                             const symbol = binary_symbol.children[0];
@@ -784,10 +814,10 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
 
                         {
                             const generic_expression_2 = binary_expression.children[2];
-                            assert.equal(generic_expression_2.word.value, "Generic_expression");
-                            assert.equal(generic_expression_2.children.length, 1);
+                            assert_expression_level_node(generic_expression_2, 3, 0);
+                            const expression_level_0_node = get_expression_level_node(generic_expression_2, 0);
 
-                            const variable_expression = generic_expression_2.children[0];
+                            const variable_expression = expression_level_0_node.children[0];
                             assert.equal(variable_expression.word.value, "Expression_variable");
                             assert.equal(variable_expression.children.length, 1);
 
@@ -818,7 +848,7 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
     });
 
     it("Creates function call nodes", () => {
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_function_calling_module_function_example());
+        const module = Module_examples.create_function_calling_module_function_example();
         const parse_tree = test_module_to_parse_tree(Grammar_examples.create_test_grammar_9_description(), module);
 
         assert.equal(parse_tree.word.value, "Module");
@@ -910,39 +940,60 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
 
         {
             {
-                const module_name_expression_node = expression_call_node.children[0];
-                assert.equal(module_name_expression_node.word.value, "Expression_call_module_name");
+                const expression_level_1_node = expression_call_node.children[0];
+                assert.equal(expression_level_1_node.word.value, "Expression_level_1");
 
-                const module_name_node = module_name_expression_node.children[0];
-                assert.equal(module_name_node.word.value, "stdio");
+                const access_expression_node = expression_level_1_node.children[0];
+                assert.equal(access_expression_node.word.value, "Expression_access");
+
+                {
+                    const expression_level_1_node_2 = access_expression_node.children[0];
+                    assert.equal(expression_level_1_node_2.word.value, "Expression_level_1");
+
+                    const expression_level_0_node = expression_level_1_node_2.children[0];
+                    assert.equal(expression_level_0_node.word.value, "Expression_level_0");
+
+                    const expression_variable_node = expression_level_0_node.children[0];
+                    assert.equal(expression_variable_node.word.value, "Expression_variable");
+
+                    const variable_name_node = expression_variable_node.children[0];
+                    assert.equal(variable_name_node.word.value, "Variable_name");
+
+                    const identifier_node = variable_name_node.children[0];
+                    assert.equal(identifier_node.word.value, "stdio");
+                }
+
+                {
+                    const dot_node = access_expression_node.children[1];
+                    assert.equal(dot_node.word.value, ".");
+                }
+
+                {
+                    const member_name_node = access_expression_node.children[2];
+                    assert.equal(member_name_node.word.value, "Expression_access_member_name");
+
+                    const identifier_node = member_name_node.children[0];
+                    assert.equal(identifier_node.word.value, "printf");
+                }
             }
 
             {
-                const dot_node = expression_call_node.children[1];
-                assert.equal(dot_node.word.value, ".");
-            }
-
-            {
-                const function_name_node = expression_call_node.children[2];
-                assert.equal(function_name_node.word.value, "Expression_call_function_name");
-
-                const identifier_node = function_name_node.children[0];
-                assert.equal(identifier_node.word.value, "printf");
-            }
-
-            {
-                const open_parenthesis_node = expression_call_node.children[3];
+                const open_parenthesis_node = expression_call_node.children[1];
                 assert.equal(open_parenthesis_node.word.value, "(");
             }
 
             {
-                const arguments_node = expression_call_node.children[4];
+                const arguments_node = expression_call_node.children[2];
                 assert.equal(arguments_node.children.length, 1);
 
                 const argument_node = arguments_node.children[0];
                 assert.equal(argument_node.word.value, "Generic_expression");
 
-                const constant_expression_node = argument_node.children[0];
+                const expression_level_11_node = argument_node.children[0];
+                assert_expression_level_node(expression_level_11_node, 11, 0);
+                const expression_level_0_node = get_expression_level_node(expression_level_11_node, 0);
+
+                const constant_expression_node = expression_level_0_node.children[0];
                 assert.equal(constant_expression_node.word.value, "Expression_constant");
 
                 const identifier_node = constant_expression_node.children[0];
@@ -950,7 +1001,7 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
             }
 
             {
-                const close_parenthesis_node = expression_call_node.children[5];
+                const close_parenthesis_node = expression_call_node.children[3];
                 assert.equal(close_parenthesis_node.word.value, ")");
             }
         }
@@ -1976,7 +2027,7 @@ describe("Parse_tree_convertor.parse_tree_to_module", () => {
     it("Handles function calling library function", () => {
 
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
-        const expected_module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_function_calling_module_function_example());
+        const expected_module = Module_examples.create_function_calling_module_function_example();
         const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
 
         assert_declarations(actual_module.declarations, expected_module.declarations);
