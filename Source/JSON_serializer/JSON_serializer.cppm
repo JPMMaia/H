@@ -64,7 +64,8 @@ namespace h::json
         {
             if (reader.HasParseError())
             {
-                std::cout << "Parse error!\n";
+                rapidjson::ParseErrorCode const error_code = reader.GetParseErrorCode();
+                std::cout << "Parse error! Code: " << error_code << "\n";
                 return std::nullopt;
             }
 
