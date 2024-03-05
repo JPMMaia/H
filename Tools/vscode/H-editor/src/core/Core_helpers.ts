@@ -342,11 +342,11 @@ export function get_type_of_expression(module: Core.Module, function_declaration
     else if (expression.data.type === Core.Expression_enum.Call_expression) {
         const call_expression = expression.data.value as Core.Call_expression;
         // TODO assuming the same module
-        const call_function_module = module;
+        /*const call_function_module = module;
         const call_function_declaration = find_function_declaration(call_function_module, call_expression.function_name);
         if (call_function_declaration !== undefined) {
             return call_function_declaration.type.output_parameter_types.elements;
-        }
+        }*/
     }
     else if (expression.data.type === Core.Expression_enum.Constant_expression) {
         const constant_expression = expression.data.value as Core.Constant_expression;
