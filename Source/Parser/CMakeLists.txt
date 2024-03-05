@@ -6,6 +6,7 @@ add_custom_command(
     ARGS
         "install"
         "fast-array-diff"
+        "object-hash"
         "--prefix" "${CMAKE_CURRENT_BINARY_DIR}"
     WORKING_DIRECTORY "${PARSER_SOURCE_PATH}/application"
     VERBATIM
