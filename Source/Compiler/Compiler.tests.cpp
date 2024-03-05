@@ -109,7 +109,7 @@ entry:
 
 define i32 @main() {
 entry:
-  %call_puts = call i32 @puts(ptr @global_0)
+  %0 = call i32 @puts(ptr @global_0)
   ret i32 0
 }
 )";
