@@ -350,21 +350,56 @@ namespace h::compiler
     };
 
     Value_and_type create_value(
-        std::string_view name,
         Module const& core_module,
         Statement const& statement,
-        Expression const& expression,
-        llvm::LLVMContext& llvm_context,
-        llvm::DataLayout const& llvm_data_layout,
-        llvm::Module& llvm_module,
-        llvm::IRBuilder<>& llvm_builder,
-        std::span<Value_and_type const> function_arguments,
-        std::span<Value_and_type const> local_variables,
-        std::span<Value_and_type const> temporaries,
-        std::span<Module_pair const> module_dependencies,
-        Struct_types const& struct_types,
-        std::pmr::polymorphic_allocator<> const& temporaries_allocator
-    );
+        Access_expression const& expression,
+        std::span<Value_and_type const> const temporaries,
+        std::span<Module_pair const> const module_dependencies
+    )
+    {
+        Value_and_type const& left_hand_side = temporaries[expression.expression.expression_index];
+
+        // Check if left hand side corresponds to a module name:
+        if (left_hand_side.value == nullptr)
+        {
+            Expression const& left_hand_side_expression = statement.expressions[expression.expression.expression_index];
+
+            if (std::holds_alternative<Variable_expression>(left_hand_side_expression.data))
+            {
+                Variable_expression const& variable_expression = std::get<Variable_expression>(left_hand_side_expression.data);
+                std::string_view const module_alias_name = variable_expression.name;
+
+                std::optional<std::string_view> const module_name = get_module_name_from_alias(core_module, module_alias_name);
+                if (!module_name.has_value())
+                    throw std::runtime_error{ std::format("Undefined variable '{}'", module_alias_name) };
+
+                std::optional<Module_pair const*> external_module = get_module(module_dependencies, module_name.value());
+                if (!external_module.has_value())
+                    throw std::runtime_error{ std::format("Module '{}' does not exist", module_name.value()) };
+
+                // TODO try to find alias/enum/struct:
+                llvm::Function* const llvm_function = external_module.value()->llvm_module->getFunction(expression.member_name.c_str());
+                if (!llvm_function)
+                    throw std::runtime_error{ std::format("Unknown function '{}.{}' referenced.", module_name.value(), expression.member_name.c_str()) };
+
+                std::optional<Function_declaration const*> function_declaration = find_function_declaration(external_module.value()->core_module, expression.member_name.c_str());
+                std::pmr::vector<Type_reference> const& output_parameter_types = function_declaration.value()->type.output_parameter_types;
+
+                return Value_and_type
+                {
+                    .value = llvm_function,
+                    .type = output_parameter_types.empty() ? std::optional<Type_reference const*>{} : output_parameter_types.data()
+                };
+            }
+        }
+
+        // TODO enum / struct access
+        return
+        {
+            .value = nullptr,
+            .type = std::nullopt
+        };
+    }
 
     Value_and_type create_value(
         Assignment_expression const& expression,
@@ -445,17 +480,12 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        std::optional<std::string_view> const function_module_name = get_module_name_from_alias(core_module, expression.module_reference.name);
-        if (!function_module_name.has_value())
-            throw std::runtime_error{ std::format("Module alias '{}' does not correspond to any imported module", expression.module_reference.name) };
+        Value_and_type const& left_hand_side = temporaries[expression.expression.expression_index];
 
-        std::optional<Module_pair const*> function_module = get_module(module_dependencies, function_module_name.value());
-        if (!function_module.has_value())
-            throw std::runtime_error{ std::format("Module '{}' does not exist", function_module_name.value()) };
+        if (!llvm::Function::classof(left_hand_side.value))
+            throw std::runtime_error{ std::format("Left hand side of call expression is not a function!") };
 
-        llvm::Function* const llvm_function = function_module.value()->llvm_module->getFunction(expression.function_name.c_str());
-        if (!llvm_function)
-            throw std::runtime_error{ std::format("Unknown function '{}.{}' referenced.", function_module_name.value(), expression.function_name) };
+        llvm::Function* const llvm_function = static_cast<llvm::Function*>(left_hand_side.value);
 
         if (expression.arguments.size() != llvm_function->arg_size())
         {
@@ -473,16 +503,12 @@ namespace h::compiler
             llvm_arguments[i] = temporary.value;
         }
 
-        std::string const call_name = std::format("call_{}", expression.function_name);
-        llvm::Value* call_instruction = llvm_builder.CreateCall(llvm_function, llvm_arguments, call_name);
-
-        std::optional<Function_declaration const*> function_declaration = find_function_declaration(function_module.value()->core_module, expression.function_name);
-        std::pmr::vector<Type_reference> const& output_parameter_types = function_declaration.value()->type.output_parameter_types;
+        llvm::Value* call_instruction = llvm_builder.CreateCall(llvm_function, llvm_arguments);
 
         return
         {
             .value = call_instruction,
-            .type = output_parameter_types.empty() ? std::optional<Type_reference const*>{} : output_parameter_types.data()
+            .type = left_hand_side.type
         };
     }
 
@@ -771,7 +797,9 @@ namespace h::compiler
     }
 
     Value_and_type create_value(
+        Module const& core_module,
         Variable_expression const& expression,
+        llvm::Module& llvm_module,
         std::span<Value_and_type const> const function_arguments,
         std::span<Value_and_type const> const local_variables
     )
@@ -783,16 +811,48 @@ namespace h::compiler
             return element.value->getName() == variable_name;
         };
 
+        // Search in local variables:
         {
             auto const location = std::find_if(local_variables.rbegin(), local_variables.rend(), is_variable);
             if (location != local_variables.rend())
                 return *location;
         }
 
+        // Search in function arguments:
         {
             auto const location = std::find_if(function_arguments.begin(), function_arguments.end(), is_variable);
             if (location != function_arguments.end())
                 return *location;
+        }
+
+        // Search for functions in this module:
+        {
+            llvm::Function* const llvm_function = llvm_module.getFunction(variable_name);
+            if (llvm_function != nullptr)
+            {
+                std::optional<Function_declaration const*> const function_declaration = find_function_declaration(core_module, variable_name);
+
+                return Value_and_type
+                {
+                    .value = llvm_function,
+                    .type = std::nullopt
+                };
+            }
+        }
+
+        // TODO search for alias or enums
+
+        // Search for module dependencies:
+        {
+            std::optional<std::string_view> const module_name = get_module_name_from_alias(core_module, variable_name);
+            if (module_name.has_value())
+            {
+                return Value_and_type
+                {
+                    .value = nullptr,
+                    .type = std::nullopt
+                };
+            }
         }
 
         throw std::runtime_error{ std::format("Undefined variable '{}'", variable_name) };
@@ -800,6 +860,7 @@ namespace h::compiler
 
     Value_and_type create_value(
         Module const& core_module,
+        Statement const& statement,
         Expression const& expression,
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
@@ -813,53 +874,57 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        Value_and_type output = {};
-
-        auto const forward_call = [&](auto&& data)
+        if (std::holds_alternative<Access_expression>(expression.data))
         {
-            using Expression_type = std::decay_t<decltype(data)>;
-
-            if constexpr (std::is_same_v<Expression_type, Assignment_expression>)
-            {
-                output = create_value(data, llvm_builder, temporaries);
-            }
-            else if constexpr (std::is_same_v<Expression_type, Binary_expression>)
-            {
-                //output = create_value(data, llvm_builder, function_argument_id_to_index, local_variable_id_to_index, function_arguments, local_variables, temporaries);
-            }
-            else if constexpr (std::is_same_v<Expression_type, Call_expression>)
-            {
-                output = create_value(core_module, data, llvm_builder, temporaries, module_dependencies, temporaries_allocator);
-            }
-            else if constexpr (std::is_same_v<Expression_type, Cast_expression>)
-            {
-                output = create_value(core_module, data, llvm_context, llvm_data_layout, llvm_builder, temporaries, module_dependencies, struct_types);
-            }
-            else if constexpr (std::is_same_v<Expression_type, Constant_expression>)
-            {
-                output = create_value(data, llvm_context, llvm_data_layout, llvm_module, struct_types);
-            }
-            else if constexpr (std::is_same_v<Expression_type, Return_expression>)
-            {
-                output = create_value(data, llvm_builder, temporaries);
-            }
-            else if constexpr (std::is_same_v<Expression_type, Variable_expression>)
-            {
-                output = create_value(data, function_arguments, local_variables);
-            }
-            else if constexpr (std::is_same_v<Expression_type, Variable_declaration_expression>)
-            {
-                output = create_value(data, llvm_builder, temporaries);
-            }
-            else
-            {
-                //static_assert(always_false_v<Expression_type>, "non-exhaustive visitor!");
-            }
-        };
-
-        std::visit(forward_call, expression.data);
-
-        return output;
+            Access_expression const& data = std::get<Access_expression>(expression.data);
+            return create_value(core_module, statement, data, temporaries, module_dependencies);
+        }
+        else if (std::holds_alternative<Assignment_expression>(expression.data))
+        {
+            Assignment_expression const& data = std::get<Assignment_expression>(expression.data);
+            return create_value(data, llvm_builder, temporaries);
+        }
+        else if (std::holds_alternative<Binary_expression>(expression.data))
+        {
+            Binary_expression const& data = std::get<Binary_expression>(expression.data);
+            //return create_value(data, llvm_builder, function_argument_id_to_index, local_variable_id_to_index, function_arguments, local_variables, temporaries);
+            return {};
+        }
+        else if (std::holds_alternative<Call_expression>(expression.data))
+        {
+            Call_expression const& data = std::get<Call_expression>(expression.data);
+            return create_value(core_module, data, llvm_builder, temporaries, module_dependencies, temporaries_allocator);
+        }
+        else if (std::holds_alternative<Cast_expression>(expression.data))
+        {
+            Cast_expression const& data = std::get<Cast_expression>(expression.data);
+            return create_value(core_module, data, llvm_context, llvm_data_layout, llvm_builder, temporaries, module_dependencies, struct_types);
+        }
+        else if (std::holds_alternative<Constant_expression>(expression.data))
+        {
+            Constant_expression const& data = std::get<Constant_expression>(expression.data);
+            return create_value(data, llvm_context, llvm_data_layout, llvm_module, struct_types);
+        }
+        else if (std::holds_alternative<Return_expression>(expression.data))
+        {
+            Return_expression const& data = std::get<Return_expression>(expression.data);
+            return create_value(data, llvm_builder, temporaries);
+        }
+        else if (std::holds_alternative<Variable_expression>(expression.data))
+        {
+            Variable_expression const& data = std::get<Variable_expression>(expression.data);
+            return create_value(core_module, data, llvm_module, function_arguments, local_variables);
+        }
+        else if (std::holds_alternative<Variable_declaration_expression>(expression.data))
+        {
+            Variable_declaration_expression const& data = std::get<Variable_declaration_expression>(expression.data);
+            return create_value(data, llvm_builder, temporaries);
+        }
+        else
+        {
+            //static_assert(always_false_v<Expression_type>, "non-exhaustive visitor!");
+            throw std::runtime_error{ "Did not handle expression type!" };
+        }
     }
 
     llvm::Function& create_function_declaration(
@@ -933,6 +998,7 @@ namespace h::compiler
 
                     Value_and_type const instruction = create_value(
                         core_module,
+                        statement,
                         expression,
                         llvm_context,
                         llvm_data_layout,
