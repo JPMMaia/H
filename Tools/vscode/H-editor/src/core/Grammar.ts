@@ -616,7 +616,12 @@ export interface Action_column {
     action: Action;
 }
 
-export function create_parsing_tables(production_rules: Production_rule[], terminals: string[], states: LR1_item[][], edges: Edge[]): { action_table: Action_column[][], go_to_table: Go_to_column[][] } {
+export interface Parsing_tables {
+    action_table: Action_column[][];
+    go_to_table: Go_to_column[][];
+}
+
+export function create_parsing_tables(production_rules: Production_rule[], terminals: string[], states: LR1_item[][], edges: Edge[]): Parsing_tables {
 
     const action_table: Action_column[][] = [];
     const go_to_table: Go_to_column[][] = [];
