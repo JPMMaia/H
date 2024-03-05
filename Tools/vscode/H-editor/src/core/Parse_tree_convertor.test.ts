@@ -1099,38 +1099,15 @@ function text_position_to_offset(text: string, position: Text_position): number 
 }
 
 function create_module_changes(
+    language_description: Language.Description,
     module: Core_intermediate_representation.Module,
     start_text_position: Text_position,
     end_text_position: Text_position,
     new_text: string
 ): { position: any[], change: Module_change.Change }[] {
 
-    const grammar_description = Grammar_examples.create_test_grammar_9_description();
-    const production_rules = Grammar.create_production_rules(grammar_description);
-    const non_terminals = Grammar.get_non_terminals(production_rules);
-    const terminals = Grammar.get_terminals(production_rules, non_terminals);
-    const terminals_set = new Set<string>(terminals);
-
-    const map_word_to_terminal = (word: Grammar.Word): string => {
-
-        if (terminals_set.has(word.value)) {
-            return word.value;
-        }
-
-        if (word.type === Grammar.Word_type.Number) {
-            return "number";
-        }
-
-        if (word.type === Grammar.Word_type.Alphanumeric) {
-            return "identifier";
-        }
-
-        return word.value;
-    };
-
-    const key_to_production_rule_indices = Parse_tree_convertor.create_key_to_production_rule_indices_map(production_rules);
     const mappings = Parse_tree_convertor_mappings.create_mapping();
-    const initial_parse_tree = Parse_tree_convertor.module_to_parse_tree(module, production_rules, mappings);
+    const initial_parse_tree = Parse_tree_convertor.module_to_parse_tree(module, language_description.production_rules, mappings);
     const text_cache = Parse_tree_text_position_cache.create_cache();
 
     const initial_parse_tree_text = Text_formatter.to_string(initial_parse_tree, text_cache, []);
@@ -1140,9 +1117,7 @@ function create_module_changes(
     }
     const scanned_words = Scanner.scan(initial_parse_tree_text, 0, initial_parse_tree_text.length);
 
-    const parsing_tables = Grammar.create_parsing_tables_from_production_rules(production_rules);
-    const array_infos = Grammar.create_array_infos(production_rules);
-    const parse_tree = Parser.parse(scanned_words, parsing_tables.action_table, parsing_tables.go_to_table, array_infos, map_word_to_terminal);
+    const parse_tree = Parser.parse(scanned_words, language_description.actions_table, language_description.go_to_table, language_description.array_infos, language_description.map_word_to_terminal);
 
     assert.notEqual(parse_tree, undefined);
     if (parse_tree === undefined) {
@@ -1174,10 +1149,10 @@ function create_module_changes(
         start_change_position,
         scanned_input_change.new_words,
         after_change_position,
-        parsing_tables.action_table,
-        parsing_tables.go_to_table,
-        array_infos,
-        map_word_to_terminal
+        language_description.actions_table,
+        language_description.go_to_table,
+        language_description.array_infos,
+        language_description.map_word_to_terminal
     );
 
     assert.equal(parse_result.status, Parser.Parse_status.Accept);
@@ -1186,11 +1161,11 @@ function create_module_changes(
 
     const module_changes = Parse_tree_convertor.create_module_changes(
         module,
-        production_rules,
+        language_description.production_rules,
         parse_tree,
         simplified_changes,
         mappings,
-        key_to_production_rule_indices
+        language_description.key_to_production_rule_indices
     );
 
     return module_changes;
@@ -1198,11 +1173,18 @@ function create_module_changes(
 
 describe("Parse_tree_convertor.create_module_changes", () => {
 
+    let language_description: any;
+
+    before(() => {
+        language_description = Language.create_default_description();
+    });
+
     it("Sets name of module", () => {
 
         const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
+            language_description,
             module,
             { line: 0, column: 18 },
             { line: 0, column: 18 },
@@ -1228,6 +1210,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
         const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
+            language_description,
             module,
             { line: 0, column: 19 },
             { line: 0, column: 19 },
@@ -1280,6 +1263,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
         const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
+            language_description,
             module,
             { line: 11, column: 0 },
             { line: 15, column: 0 },
@@ -1305,6 +1289,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
         const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
+            language_description,
             module,
             { line: 11, column: 16 },
             { line: 11, column: 29 },
@@ -1346,6 +1331,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
         const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
+            language_description,
             module,
             { line: 16, column: 30 },
             { line: 16, column: 30 },
@@ -1383,6 +1369,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
         const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
+            language_description,
             module,
             { line: 16, column: 30 },
             { line: 16, column: 44 },
@@ -1420,6 +1407,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
         const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
+            language_description,
             module,
             { line: 16, column: 30 },
             { line: 16, column: 33 },
@@ -1456,6 +1444,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
         const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
+            language_description,
             module,
             { line: 16, column: 35 },
             { line: 16, column: 42 },
@@ -1492,6 +1481,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
         const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
+            language_description,
             module,
             { line: 1, column: 0 },
             { line: 1, column: 0 },
@@ -1529,6 +1519,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
         const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
+            language_description,
             module,
             { line: 30, column: 0 },
             { line: 36, column: 0 },
@@ -1554,6 +1545,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
         const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
+            language_description,
             module,
             { line: 30, column: 14 },
             { line: 30, column: 25 },
@@ -1588,6 +1580,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
         const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
+            language_description,
             module,
             { line: 1, column: 0 },
             { line: 1, column: 0 },
@@ -1622,6 +1615,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
         const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
+            language_description,
             module,
             { line: 4, column: 0 },
             { line: 10, column: 0 },
@@ -1647,6 +1641,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
         const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
+            language_description,
             module,
             { line: 4, column: 12 },
             { line: 4, column: 21 },
@@ -1681,6 +1676,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
         const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
+            language_description,
             module,
             { line: 1, column: 0 },
             { line: 1, column: 0 },
@@ -1717,6 +1713,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
         const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
+            language_description,
             module,
             { line: 1, column: 0 },
             { line: 3, column: 0 },
@@ -1742,6 +1739,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
         const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
+            language_description,
             module,
             { line: 2, column: 13 },
             { line: 2, column: 21 },
@@ -1776,6 +1774,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
         const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
+            language_description,
             module,
             { line: 2, column: 24 },
             { line: 2, column: 31 },
@@ -1811,6 +1810,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
         const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
 
         const module_changes = create_module_changes(
+            language_description,
             module,
             { line: 0, column: 19 },
             { line: 0, column: 19 },
@@ -1843,6 +1843,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
         const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_module_with_dependencies());
 
         const module_changes = create_module_changes(
+            language_description,
             module,
             { line: 2, column: 0 },
             { line: 3, column: 0 },
@@ -1868,6 +1869,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
         const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_module_with_dependencies());
 
         const module_changes = create_module_changes(
+            language_description,
             module,
             { line: 2, column: 7 },
             { line: 2, column: 14 },
@@ -1900,6 +1902,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
         const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_module_with_dependencies());
 
         const module_changes = create_module_changes(
+            language_description,
             module,
             { line: 2, column: 18 },
             { line: 2, column: 23 },
