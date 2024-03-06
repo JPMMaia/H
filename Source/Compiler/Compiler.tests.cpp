@@ -85,10 +85,10 @@ namespace h
         char const* const expected_llvm_ir = R"(
 define void @foo() {
 entry:
-  %my_true_boolean = alloca i8, align 1
-  store i8 1, ptr %my_true_boolean, align 1
-  %my_false_boolean = alloca i8, align 1
-  store i8 0, ptr %my_false_boolean, align 1
+  %my_true_boolean = alloca i1, align 1
+  store i1 true, ptr %my_true_boolean, align 1
+  %my_false_boolean = alloca i1, align 1
+  store i1 false, ptr %my_false_boolean, align 1
 }
 )";
 

@@ -139,7 +139,7 @@ namespace h::compiler
         switch (type)
         {
         case Fundamental_type::Bool:
-            return llvm::Type::getInt8Ty(llvm_context);
+            return llvm::Type::getInt1Ty(llvm_context);
         case Fundamental_type::Byte:
             return llvm::Type::getInt8Ty(llvm_context);
         case Fundamental_type::Float16:
@@ -655,7 +655,7 @@ namespace h::compiler
                 llvm::Type* const llvm_type = to_type(llvm_context, llvm_data_layout, expression.type, struct_types);
 
                 std::uint8_t const data = expression.data == "true" ? 1 : 0;
-                llvm::APInt const value{ 8, data, false };
+                llvm::APInt const value{ 1, data, false };
 
                 llvm::Value* const instruction = llvm::ConstantInt::get(llvm_type, value);
 
