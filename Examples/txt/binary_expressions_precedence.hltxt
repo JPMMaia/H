@@ -1,0 +1,26 @@
+module Binary_expressions_operator_precedence;
+
+export function foo(
+    a: Int32,
+    b: Int32,
+    c: Int32
+) -> ()
+{
+    var case_0 = a + b * c;
+    var case_1 = a * b + c;
+    var case_2 = a / b * c;
+    var case_3 = a * b / c;
+
+    var case_4 = a * function_call() + b;
+    var case_5 = *a * *b;
+    
+    var case_6 = (a + b) * c;
+    var case_7 = a * (b + c);
+
+    var case_8 = a == 0 && b == 1;
+    var case_9 = (a & b) == (b & a);
+    var case_10 = a < b && b < c;
+    var case_11 = a + b == b + c;
+
+    var case_12 = -a + (-b);
+}

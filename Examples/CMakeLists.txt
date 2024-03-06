@@ -39,9 +39,13 @@ endmacro()
 Convert_hltxt_to_hl(
     TARGET Generate_examples
     TEXT_FILES
+        "${CMAKE_CURRENT_LIST_DIR}/txt/assignment_expressions.hltxt"
+        "${CMAKE_CURRENT_LIST_DIR}/txt/binary_expressions_precedence.hltxt"
+        "${CMAKE_CURRENT_LIST_DIR}/txt/binary_expressions.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/booleans.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/hello_world.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/numbers.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/numeric_casts.hltxt"
+        "${CMAKE_CURRENT_LIST_DIR}/txt/unary_expressions.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/variables.hltxt"
 )

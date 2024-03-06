@@ -266,6 +266,77 @@ namespace h::compiler
         return output;
     }
 
+    Type_reference create_pointer_type_type_reference(std::pmr::vector<Type_reference> element_type, bool const is_mutable)
+    {
+        Pointer_type pointer_type
+        {
+            .element_type = std::move(element_type),
+            .is_mutable = is_mutable
+        };
+
+        return Type_reference
+        {
+            .data = std::move(pointer_type)
+        };
+    }
+
+    std::optional<Type_reference> remove_pointer(Type_reference const& type)
+    {
+        if (std::holds_alternative<Pointer_type>(type.data))
+        {
+            Pointer_type const& pointer_type = std::get<Pointer_type>(type.data);
+            if (pointer_type.element_type.empty())
+                return {};
+
+            return pointer_type.element_type.front();
+        }
+
+        throw std::runtime_error("Type is not a pointer type!");
+    }
+
+    bool is_integer(Type_reference const& type)
+    {
+        return std::holds_alternative<Integer_type>(type.data);
+    }
+
+    bool is_signed_integer(Type_reference const& type)
+    {
+        if (std::holds_alternative<Integer_type>(type.data))
+        {
+            Integer_type const& data = std::get<Integer_type>(type.data);
+            return data.is_signed;
+        }
+
+        return false;
+    }
+
+    bool is_unsigned_integer(Type_reference const& type)
+    {
+        return !is_signed_integer(type);
+    }
+
+    bool is_bool(Type_reference const& type)
+    {
+        if (std::holds_alternative<Fundamental_type>(type.data))
+        {
+            Fundamental_type const data = std::get<Fundamental_type>(type.data);
+            return data == Fundamental_type::Bool;
+        }
+
+        return false;
+    }
+
+    bool is_floating_point(Type_reference const& type)
+    {
+        if (std::holds_alternative<Fundamental_type>(type.data))
+        {
+            Fundamental_type const data = std::get<Fundamental_type>(type.data);
+            return (data == Fundamental_type::Float16) || (data == Fundamental_type::Float32) || (data == Fundamental_type::Float64);
+        }
+
+        return false;
+    }
+
     llvm::GlobalValue::LinkageTypes to_linkage(
         Linkage const linkage
     )
@@ -346,7 +417,7 @@ namespace h::compiler
     struct Value_and_type
     {
         llvm::Value* value;
-        std::optional<Type_reference const*> type;
+        std::optional<Type_reference> type;
     };
 
     Value_and_type create_value(
@@ -388,7 +459,7 @@ namespace h::compiler
                 return Value_and_type
                 {
                     .value = llvm_function,
-                    .type = output_parameter_types.empty() ? std::optional<Type_reference const*>{} : output_parameter_types.data()
+                    .type = output_parameter_types.empty() ? std::optional<Type_reference>{} : output_parameter_types.front() // TODO type is function type, not output of function
                 };
             }
         }
@@ -401,74 +472,450 @@ namespace h::compiler
         };
     }
 
+    Value_and_type create_binary_operation_instruction(
+        llvm::IRBuilder<>& llvm_builder,
+        Value_and_type const& left_hand_side,
+        Value_and_type const& right_hand_side,
+        Binary_operation operation
+    );
+
     Value_and_type create_value(
         Assignment_expression const& expression,
+        llvm::LLVMContext& llvm_context,
+        llvm::DataLayout const& llvm_data_layout,
         llvm::IRBuilder<>& llvm_builder,
-        std::span<Value_and_type const> const temporaries
+        std::span<Value_and_type const> const temporaries,
+        Struct_types const& struct_types
     )
     {
         Value_and_type const left_hand_side = temporaries[expression.left_hand_side.expression_index];
         Value_and_type const right_hand_side = temporaries[expression.right_hand_side.expression_index];
 
-        llvm::Value* store_instruction = llvm_builder.CreateStore(right_hand_side.value, left_hand_side.value);
-
-        return
+        if (expression.additional_operation.has_value())
         {
-            .value = store_instruction,
-            .type = std::nullopt
-        };
+            Binary_operation const additional_operation = expression.additional_operation.value();
+
+            Type_reference const core_element_type = remove_pointer(left_hand_side.type.value()).value();
+            llvm::Type* llvm_element_type = to_type(llvm_context, llvm_data_layout, core_element_type, struct_types);
+            llvm::Value* const loaded_value_value = llvm_builder.CreateLoad(llvm_element_type, left_hand_side.value);
+
+            Value_and_type const loaded_value
+            {
+                .value = loaded_value_value,
+                .type = remove_pointer(left_hand_side.type.value()).value()
+            };
+
+            Value_and_type const result = create_binary_operation_instruction(llvm_builder, loaded_value, right_hand_side, additional_operation);
+
+            llvm::Value* store_instruction = llvm_builder.CreateStore(result.value, left_hand_side.value);
+
+            return
+            {
+                .value = store_instruction,
+                .type = std::nullopt
+            };
+        }
+        else
+        {
+            llvm::Value* store_instruction = llvm_builder.CreateStore(right_hand_side.value, left_hand_side.value);
+
+            return
+            {
+                .value = store_instruction,
+                .type = std::nullopt
+            };
+        }
+    }
+
+    Value_and_type create_binary_operation_instruction(
+        llvm::IRBuilder<>& llvm_builder,
+        Value_and_type const& left_hand_side,
+        Value_and_type const& right_hand_side,
+        Binary_operation const operation
+    )
+    {
+        if (!left_hand_side.type.has_value() || !right_hand_side.type.has_value())
+            throw std::runtime_error{ "Left or right side type is null!" };
+
+        if (left_hand_side.type.value() != right_hand_side.type.value())
+            throw std::runtime_error{ "Left and right side types do not match!" };
+
+        Type_reference const& type = left_hand_side.type.value();
+
+        switch (operation)
+        {
+        case Binary_operation::Add: {
+            if (is_integer(type))
+            {
+                return Value_and_type
+                {
+                    .value = llvm_builder.CreateAdd(left_hand_side.value, right_hand_side.value),
+                    .type = type
+                };
+            }
+            else if (is_floating_point(type))
+            {
+                return Value_and_type
+                {
+                    .value = llvm_builder.CreateFAdd(left_hand_side.value, right_hand_side.value),
+                    .type = type
+                };
+            }
+            break;
+        }
+        case Binary_operation::Subtract: {
+            if (is_integer(type))
+            {
+                return Value_and_type
+                {
+                    .value = llvm_builder.CreateSub(left_hand_side.value, right_hand_side.value),
+                    .type = type
+                };
+            }
+            else if (is_floating_point(type))
+            {
+                return Value_and_type
+                {
+                    .value = llvm_builder.CreateFSub(left_hand_side.value, right_hand_side.value),
+                    .type = type
+                };
+            }
+            break;
+        }
+        case Binary_operation::Multiply: {
+            if (is_integer(type))
+            {
+                return Value_and_type
+                {
+                    .value = llvm_builder.CreateMul(left_hand_side.value, right_hand_side.value),
+                    .type = type
+                };
+            }
+            else if (is_floating_point(type))
+            {
+                return Value_and_type
+                {
+                    .value = llvm_builder.CreateFMul(left_hand_side.value, right_hand_side.value),
+                    .type = type
+                };
+            }
+            break;
+        }
+        case Binary_operation::Divide: {
+            if (is_integer(type))
+            {
+                if (is_signed_integer(type))
+                {
+                    return Value_and_type
+                    {
+                        .value = llvm_builder.CreateSDiv(left_hand_side.value, right_hand_side.value),
+                        .type = type
+                    };
+                }
+                else
+                {
+                    return Value_and_type
+                    {
+                        .value = llvm_builder.CreateUDiv(left_hand_side.value, right_hand_side.value),
+                        .type = type
+                    };
+                }
+            }
+            else if (is_floating_point(type))
+            {
+                return Value_and_type
+                {
+                    .value = llvm_builder.CreateFDiv(left_hand_side.value, right_hand_side.value),
+                    .type = type
+                };
+            }
+            break;
+        }
+        case Binary_operation::Modulus: {
+            if (is_integer(type))
+            {
+                if (is_signed_integer(type))
+                {
+                    return Value_and_type
+                    {
+                        .value = llvm_builder.CreateSRem(left_hand_side.value, right_hand_side.value),
+                        .type = type
+                    };
+                }
+                else
+                {
+                    return Value_and_type
+                    {
+                        .value = llvm_builder.CreateURem(left_hand_side.value, right_hand_side.value),
+                        .type = type
+                    };
+                }
+            }
+            else if (is_floating_point(type))
+            {
+                return Value_and_type
+                {
+                    .value = llvm_builder.CreateFRem(left_hand_side.value, right_hand_side.value),
+                    .type = type
+                };
+            }
+            break;
+        }
+        case Binary_operation::Equal: {
+            if (is_integer(type))
+            {
+                return Value_and_type
+                {
+                    .value = llvm_builder.CreateICmpEQ(left_hand_side.value, right_hand_side.value),
+                    .type = type
+                };
+            }
+            else if (is_floating_point(type))
+            {
+                return Value_and_type
+                {
+                    .value = llvm_builder.CreateFCmpOEQ(left_hand_side.value, right_hand_side.value),
+                    .type = type
+                };
+            }
+            break;
+        }
+        case Binary_operation::Not_equal: {
+            if (is_integer(type))
+            {
+                return Value_and_type
+                {
+                    .value = llvm_builder.CreateICmpNE(left_hand_side.value, right_hand_side.value),
+                    .type = type
+                };
+            }
+            else if (is_floating_point(type))
+            {
+                return Value_and_type
+                {
+                    .value = llvm_builder.CreateFCmpONE(left_hand_side.value, right_hand_side.value),
+                    .type = type
+                };
+            }
+            break;
+        }
+        case Binary_operation::Less_than: {
+            if (is_integer(type))
+            {
+                if (is_signed_integer(type))
+                {
+                    return Value_and_type
+                    {
+                        .value = llvm_builder.CreateICmpSLT(left_hand_side.value, right_hand_side.value),
+                        .type = type
+                    };
+                }
+                else
+                {
+                    return Value_and_type
+                    {
+                        .value = llvm_builder.CreateICmpULT(left_hand_side.value, right_hand_side.value),
+                        .type = type
+                    };
+                }
+            }
+            else if (is_floating_point(type))
+            {
+                return Value_and_type
+                {
+                    .value = llvm_builder.CreateFCmpOLT(left_hand_side.value, right_hand_side.value),
+                    .type = type
+                };
+            }
+            break;
+        }
+        case Binary_operation::Less_than_or_equal_to: {
+            if (is_integer(type))
+            {
+                if (is_signed_integer(type))
+                {
+                    return Value_and_type
+                    {
+                        .value = llvm_builder.CreateICmpSLE(left_hand_side.value, right_hand_side.value),
+                        .type = type
+                    };
+                }
+                else
+                {
+                    return Value_and_type
+                    {
+                        .value = llvm_builder.CreateICmpULE(left_hand_side.value, right_hand_side.value),
+                        .type = type
+                    };
+                }
+            }
+            else if (is_floating_point(type))
+            {
+                return Value_and_type
+                {
+                    .value = llvm_builder.CreateFCmpOLE(left_hand_side.value, right_hand_side.value),
+                    .type = type
+                };
+            }
+            break;
+        }
+        case Binary_operation::Greater_than: {
+            if (is_integer(type))
+            {
+                if (is_signed_integer(type))
+                {
+                    return Value_and_type
+                    {
+                        .value = llvm_builder.CreateICmpSGT(left_hand_side.value, right_hand_side.value),
+                        .type = type
+                    };
+                }
+                else
+                {
+                    return Value_and_type
+                    {
+                        .value = llvm_builder.CreateICmpUGT(left_hand_side.value, right_hand_side.value),
+                        .type = type
+                    };
+                }
+            }
+            else if (is_floating_point(type))
+            {
+                return Value_and_type
+                {
+                    .value = llvm_builder.CreateFCmpOGT(left_hand_side.value, right_hand_side.value),
+                    .type = type
+                };
+            }
+            break;
+        }
+        case Binary_operation::Greater_than_or_equal_to: {
+            if (is_integer(type))
+            {
+                if (is_signed_integer(type))
+                {
+                    return Value_and_type
+                    {
+                        .value = llvm_builder.CreateICmpSGE(left_hand_side.value, right_hand_side.value),
+                        .type = type
+                    };
+                }
+                else
+                {
+                    return Value_and_type
+                    {
+                        .value = llvm_builder.CreateICmpUGE(left_hand_side.value, right_hand_side.value),
+                        .type = type
+                    };
+                }
+            }
+            else if (is_floating_point(type))
+            {
+                return Value_and_type
+                {
+                    .value = llvm_builder.CreateFCmpOGE(left_hand_side.value, right_hand_side.value),
+                    .type = type
+                };
+            }
+            break;
+        }
+        case Binary_operation::Logical_and: {
+            return Value_and_type
+            {
+                .value = llvm_builder.CreateAnd(left_hand_side.value, right_hand_side.value),
+                .type = type
+            };
+        }
+        case Binary_operation::Logical_or: {
+            return Value_and_type
+            {
+                .value = llvm_builder.CreateOr(left_hand_side.value, right_hand_side.value),
+                .type = type
+            };
+        }
+        case Binary_operation::Bitwise_and: {
+            if (is_integer(type))
+            {
+                return Value_and_type
+                {
+                    .value = llvm_builder.CreateAnd(left_hand_side.value, right_hand_side.value),
+                    .type = type
+                };
+            }
+            break;
+        }
+        case Binary_operation::Bitwise_or: {
+            if (is_integer(type))
+            {
+                return Value_and_type
+                {
+                    .value = llvm_builder.CreateOr(left_hand_side.value, right_hand_side.value),
+                    .type = type
+                };
+            }
+            break;
+        }
+        case Binary_operation::Bitwise_xor: {
+            if (is_integer(type))
+            {
+                return Value_and_type
+                {
+                    .value = llvm_builder.CreateXor(left_hand_side.value, right_hand_side.value),
+                    .type = type
+                };
+            }
+            break;
+        }
+        case Binary_operation::Bit_shift_left: {
+            if (is_integer(type))
+            {
+                return Value_and_type
+                {
+                    .value = llvm_builder.CreateShl(left_hand_side.value, right_hand_side.value),
+                    .type = type
+                };
+            }
+            break;
+        }
+        case Binary_operation::Bit_shift_right: {
+            if (is_integer(type))
+            {
+                if (is_signed_integer(type))
+                {
+                    return Value_and_type
+                    {
+                        .value = llvm_builder.CreateAShr(left_hand_side.value, right_hand_side.value),
+                        .type = type
+                    };
+                }
+                else
+                {
+                    return Value_and_type
+                    {
+                        .value = llvm_builder.CreateLShr(left_hand_side.value, right_hand_side.value),
+                        .type = type
+                    };
+                }
+            }
+            break;
+        }
+        }
+
+        throw std::runtime_error{ std::format("Binary operation '{}' not implemented!", static_cast<std::uint32_t>(operation)) };
     }
 
     Value_and_type create_value(
         Binary_expression const& expression,
         llvm::IRBuilder<>& llvm_builder,
-        std::pmr::unordered_map<std::uint64_t, std::size_t> const& function_argument_id_to_index,
-        std::pmr::unordered_map<std::uint64_t, std::size_t> const& local_variable_id_to_index,
-        std::span<Value_and_type const> const function_arguments,
-        std::span<Value_and_type const> const local_variables,
         std::span<Value_and_type const> const temporaries
     )
     {
-        throw std::runtime_error{ "Not implemented." };
+        Value_and_type const& left_hand_side = temporaries[expression.left_hand_side.expression_index];
+        Value_and_type const& right_hand_side = temporaries[expression.right_hand_side.expression_index];
+        Binary_operation const operation = expression.operation;
 
-        /*llvm::Value* const left_hand_side_value = create_value(
-            expression.left_hand_side,
-            function_argument_id_to_index,
-            local_variable_id_to_index,
-            function_arguments,
-            local_variables,
-            temporaries
-        );
-
-        llvm::Value* const right_hand_side_value = create_value(
-            expression.right_hand_side,
-            function_argument_id_to_index,
-            local_variable_id_to_index,
-            function_arguments,
-            local_variables,
-            temporaries
-        );
-
-        if (left_hand_side_value->getType() != right_hand_side_value->getType())
-        {
-            throw std::runtime_error{ "Left and right side types must match!" };
-        }
-
-        switch (expression.operation)
-        {
-        case Binary_operation::Add:
-            return llvm_builder.CreateAdd(left_hand_side_value, right_hand_side_value, "addtmp");
-        case Binary_operation::Subtract:
-            return llvm_builder.CreateSub(left_hand_side_value, right_hand_side_value, "subtmp");
-        case Binary_operation::Multiply:
-            return llvm_builder.CreateMul(left_hand_side_value, right_hand_side_value, "multmp");
-        case Binary_operation::Signed_divide:
-            return llvm_builder.CreateSDiv(left_hand_side_value, right_hand_side_value, "sdivtmp");
-        case Binary_operation::Unsigned_divide:
-            return llvm_builder.CreateUDiv(left_hand_side_value, right_hand_side_value, "udivtmp");
-        default:
-            throw std::runtime_error{ "Not implemented." };
-        }*/
+        Value_and_type value = create_binary_operation_instruction(llvm_builder, left_hand_side, right_hand_side, operation);
+        return value;
     }
 
     Value_and_type create_value(
@@ -508,7 +955,7 @@ namespace h::compiler
         return
         {
             .value = call_instruction,
-            .type = left_hand_side.type
+            .type = left_hand_side.type // TODO get output type
         };
     }
 
@@ -603,14 +1050,14 @@ namespace h::compiler
         if (source_llvm_type == destination_llvm_type)
             return source;
 
-        llvm::Instruction::CastOps const cast_type = get_cast_type(*source.type.value(), *source_llvm_type, expression.destination_type, *destination_llvm_type);
+        llvm::Instruction::CastOps const cast_type = get_cast_type(source.type.value(), *source_llvm_type, expression.destination_type, *destination_llvm_type);
 
         llvm::Value* const cast_instruction = llvm_builder.CreateCast(cast_type, source.value, destination_llvm_type);
 
         return
         {
             .value = cast_instruction,
-            .type = &expression.destination_type
+            .type = expression.destination_type
         };
     }
 
@@ -662,7 +1109,7 @@ namespace h::compiler
                 return
                 {
                     .value = instruction,
-                    .type = &expression.type
+                    .type = expression.type
                 };
             }
             case Fundamental_type::Float16: {
@@ -676,7 +1123,7 @@ namespace h::compiler
                 return
                 {
                     .value = instruction,
-                    .type = &expression.type
+                    .type = expression.type
                 };
             }
             case Fundamental_type::Float32: {
@@ -690,7 +1137,7 @@ namespace h::compiler
                 return
                 {
                     .value = instruction,
-                    .type = &expression.type
+                    .type = expression.type
                 };
             }
             case Fundamental_type::Float64: {
@@ -704,7 +1151,7 @@ namespace h::compiler
                 return
                 {
                     .value = instruction,
-                    .type = &expression.type
+                    .type = expression.type
                 };
             }
             default:
@@ -726,7 +1173,7 @@ namespace h::compiler
             return
             {
                 .value = instruction,
-                .type = &expression.type
+                .type = expression.type
             };
         }
         else if (is_c_string(expression.type))
@@ -753,7 +1200,7 @@ namespace h::compiler
             return
             {
                 .value = instruction,
-                .type = &expression.type
+                .type = expression.type
             };
         }
 
@@ -789,10 +1236,10 @@ namespace h::compiler
 
         llvm_builder.CreateStore(right_hand_side.value, alloca);
 
-        return
+        return Value_and_type
         {
             .value = alloca,
-            .type = std::nullopt
+            .type = create_pointer_type_type_reference({ right_hand_side.type.value() }, expression.is_mutable)
         };
     }
 
@@ -835,7 +1282,7 @@ namespace h::compiler
                 return Value_and_type
                 {
                     .value = llvm_function,
-                    .type = std::nullopt
+                    .type = std::nullopt // TODO create type
                 };
             }
         }
@@ -882,13 +1329,12 @@ namespace h::compiler
         else if (std::holds_alternative<Assignment_expression>(expression.data))
         {
             Assignment_expression const& data = std::get<Assignment_expression>(expression.data);
-            return create_value(data, llvm_builder, temporaries);
+            return create_value(data, llvm_context, llvm_data_layout, llvm_builder, temporaries, struct_types);
         }
         else if (std::holds_alternative<Binary_expression>(expression.data))
         {
             Binary_expression const& data = std::get<Binary_expression>(expression.data);
-            //return create_value(data, llvm_builder, function_argument_id_to_index, local_variable_id_to_index, function_arguments, local_variables, temporaries);
-            return {};
+            return create_value(data, llvm_builder, temporaries);
         }
         else if (std::holds_alternative<Call_expression>(expression.data))
         {
@@ -978,7 +1424,7 @@ namespace h::compiler
                 llvm::Argument* const llvm_argument = llvm_function.getArg(argument_index);
                 Type_reference const& core_type = function_declaration.type.input_parameter_types[argument_index];
 
-                function_arguments.push_back({ .value = llvm_argument, .type = &core_type });
+                function_arguments.push_back({ .value = llvm_argument, .type = core_type });
             }
 
             std::pmr::vector<Value_and_type> local_variables{ temporaries_allocator };
