@@ -74,6 +74,240 @@ namespace h
         CHECK(llvm_ir_body == expected_llvm_ir);
     }
 
+    TEST_CASE("Compile Assignments")
+    {
+        char const* const input_file = "assignment_expressions.hl";
+
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+        {
+        };
+
+        char const* const expected_llvm_ir = R"(
+define void @integer_operations(i32 %other_signed_integer, i32 %other_unsigned_integer) {
+entry:
+  %my_signed_integer = alloca i32, align 4
+  store i32 1, ptr %my_signed_integer, align 4
+  %my_unsigned_integer = alloca i32, align 4
+  store i32 1, ptr %my_unsigned_integer, align 4
+  store i32 2, ptr %my_signed_integer, align 4
+  store i32 2, ptr %my_unsigned_integer, align 4
+  %0 = load i32, ptr %my_signed_integer, align 4
+  %1 = add i32 %0, %other_signed_integer
+  store i32 %1, ptr %my_signed_integer, align 4
+  %2 = load i32, ptr %my_signed_integer, align 4
+  %3 = sub i32 %2, %other_signed_integer
+  store i32 %3, ptr %my_signed_integer, align 4
+  %4 = load i32, ptr %my_signed_integer, align 4
+  %5 = mul i32 %4, %other_signed_integer
+  store i32 %5, ptr %my_signed_integer, align 4
+  %6 = load i32, ptr %my_signed_integer, align 4
+  %7 = sdiv i32 %6, %other_signed_integer
+  store i32 %7, ptr %my_signed_integer, align 4
+  %8 = load i32, ptr %my_unsigned_integer, align 4
+  %9 = udiv i32 %8, %other_unsigned_integer
+  store i32 %9, ptr %my_unsigned_integer, align 4
+  %10 = load i32, ptr %my_signed_integer, align 4
+  %11 = srem i32 %10, %other_signed_integer
+  store i32 %11, ptr %my_signed_integer, align 4
+  %12 = load i32, ptr %my_unsigned_integer, align 4
+  %13 = urem i32 %12, %other_unsigned_integer
+  store i32 %13, ptr %my_unsigned_integer, align 4
+  %14 = load i32, ptr %my_signed_integer, align 4
+  %15 = and i32 %14, %other_signed_integer
+  store i32 %15, ptr %my_signed_integer, align 4
+  %16 = load i32, ptr %my_signed_integer, align 4
+  %17 = or i32 %16, %other_signed_integer
+  store i32 %17, ptr %my_signed_integer, align 4
+  %18 = load i32, ptr %my_signed_integer, align 4
+  %19 = xor i32 %18, %other_signed_integer
+  store i32 %19, ptr %my_signed_integer, align 4
+  %20 = load i32, ptr %my_signed_integer, align 4
+  %21 = shl i32 %20, %other_signed_integer
+  store i32 %21, ptr %my_signed_integer, align 4
+  %22 = load i32, ptr %my_signed_integer, align 4
+  %23 = ashr i32 %22, %other_signed_integer
+  store i32 %23, ptr %my_signed_integer, align 4
+  %24 = load i32, ptr %my_unsigned_integer, align 4
+  %25 = lshr i32 %24, %other_unsigned_integer
+  store i32 %25, ptr %my_unsigned_integer, align 4
+}
+
+define void @float32_operations(float %other_float) {
+entry:
+  %my_float = alloca float, align 4
+  store float 1.000000e+00, ptr %my_float, align 4
+  store i32 2, ptr %my_float, align 4
+  %0 = load float, ptr %my_float, align 4
+  %1 = fadd float %0, %other_float
+  store float %1, ptr %my_float, align 4
+  %2 = load float, ptr %my_float, align 4
+  %3 = fsub float %2, %other_float
+  store float %3, ptr %my_float, align 4
+  %4 = load float, ptr %my_float, align 4
+  %5 = fmul float %4, %other_float
+  store float %5, ptr %my_float, align 4
+  %6 = load float, ptr %my_float, align 4
+  %7 = fdiv float %6, %other_float
+  store float %7, ptr %my_float, align 4
+  %8 = load float, ptr %my_float, align 4
+  %9 = frem float %8, %other_float
+  store float %9, ptr %my_float, align 4
+}
+)";
+
+        test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+    }
+
+    TEST_CASE("Compile Binary Expressions Precedence")
+    {
+        char const* const input_file = "binary_expressions_precedence.hl";
+
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+        {
+        };
+
+        char const* const expected_llvm_ir = R"(
+define void @foo() {
+entry:
+}
+)";
+
+        test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+    }
+
+    TEST_CASE("Compile Binary Expressions")
+    {
+        char const* const input_file = "binary_expressions.hl";
+
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+        {
+        };
+
+        char const* const expected_llvm_ir = R"(
+define void @integer_operations(i32 %first_signed_integer, i32 %second_signed_integer, i32 %first_unsigned_integer, i32 %second_unsigned_integer) {
+entry:
+  %0 = add i32 %first_signed_integer, %second_signed_integer
+  %add = alloca i32, align 4
+  store i32 %0, ptr %add, align 4
+  %1 = sub i32 %first_signed_integer, %second_signed_integer
+  %subtract = alloca i32, align 4
+  store i32 %1, ptr %subtract, align 4
+  %2 = mul i32 %first_signed_integer, %second_signed_integer
+  %multiply = alloca i32, align 4
+  store i32 %2, ptr %multiply, align 4
+  %3 = sdiv i32 %first_signed_integer, %second_signed_integer
+  %signed_divide = alloca i32, align 4
+  store i32 %3, ptr %signed_divide, align 4
+  %4 = udiv i32 %first_unsigned_integer, %second_unsigned_integer
+  %unsigned_divide = alloca i32, align 4
+  store i32 %4, ptr %unsigned_divide, align 4
+  %5 = srem i32 %first_signed_integer, %second_signed_integer
+  %signed_modulus = alloca i32, align 4
+  store i32 %5, ptr %signed_modulus, align 4
+  %6 = urem i32 %first_unsigned_integer, %second_unsigned_integer
+  %unsigned_modulus = alloca i32, align 4
+  store i32 %6, ptr %unsigned_modulus, align 4
+  %7 = icmp eq i32 %first_signed_integer, %second_signed_integer
+  %equal = alloca i1, align 1
+  store i1 %7, ptr %equal, align 1
+  %8 = icmp ne i32 %first_signed_integer, %second_signed_integer
+  %not_equal = alloca i1, align 1
+  store i1 %8, ptr %not_equal, align 1
+  %9 = icmp slt i32 %first_signed_integer, %second_signed_integer
+  %signed_less_than = alloca i1, align 1
+  store i1 %9, ptr %signed_less_than, align 1
+  %10 = icmp ult i32 %first_unsigned_integer, %second_unsigned_integer
+  %unsigned_less_than = alloca i1, align 1
+  store i1 %10, ptr %unsigned_less_than, align 1
+  %11 = icmp sle i32 %first_signed_integer, %second_signed_integer
+  %signed_less_than_or_equal_to = alloca i1, align 1
+  store i1 %11, ptr %signed_less_than_or_equal_to, align 1
+  %12 = icmp ule i32 %first_unsigned_integer, %second_unsigned_integer
+  %unsigned_less_than_or_equal_to = alloca i1, align 1
+  store i1 %12, ptr %unsigned_less_than_or_equal_to, align 1
+  %13 = icmp sgt i32 %first_signed_integer, %second_signed_integer
+  %signed_greater_than = alloca i1, align 1
+  store i1 %13, ptr %signed_greater_than, align 1
+  %14 = icmp ugt i32 %first_unsigned_integer, %second_unsigned_integer
+  %unsigned_greater_than = alloca i1, align 1
+  store i1 %14, ptr %unsigned_greater_than, align 1
+  %15 = icmp sge i32 %first_signed_integer, %second_signed_integer
+  %signed_greater_than_or_equal_to = alloca i1, align 1
+  store i1 %15, ptr %signed_greater_than_or_equal_to, align 1
+  %16 = icmp uge i32 %first_unsigned_integer, %second_unsigned_integer
+  %unsigned_greater_than_or_equal_to = alloca i1, align 1
+  store i1 %16, ptr %unsigned_greater_than_or_equal_to, align 1
+  %17 = and i32 %first_signed_integer, %second_signed_integer
+  %bitwise_and = alloca i32, align 4
+  store i32 %17, ptr %bitwise_and, align 4
+  %18 = or i32 %first_signed_integer, %second_signed_integer
+  %bitwise_or = alloca i32, align 4
+  store i32 %18, ptr %bitwise_or, align 4
+  %19 = xor i32 %first_signed_integer, %second_signed_integer
+  %bitwise_xor = alloca i32, align 4
+  store i32 %19, ptr %bitwise_xor, align 4
+  %20 = shl i32 %first_signed_integer, %second_signed_integer
+  %bit_shift_left = alloca i32, align 4
+  store i32 %20, ptr %bit_shift_left, align 4
+  %21 = ashr i32 %first_signed_integer, %second_signed_integer
+  %signed_bit_shift_right = alloca i32, align 4
+  store i32 %21, ptr %signed_bit_shift_right, align 4
+  %22 = lshr i32 %first_unsigned_integer, %second_unsigned_integer
+  %unsigned_bit_shift_right = alloca i32, align 4
+  store i32 %22, ptr %unsigned_bit_shift_right, align 4
+}
+
+define void @boolean_operations(i1 %first_boolean, i1 %second_boolean) {
+entry:
+  %0 = and i1 %first_boolean, %second_boolean
+  %logical_and = alloca i1, align 1
+  store i1 %0, ptr %logical_and, align 1
+  %1 = or i1 %first_boolean, %second_boolean
+  %logical_or = alloca i1, align 1
+  store i1 %1, ptr %logical_or, align 1
+}
+
+define void @float32_operations(float %first_float, float %second_float) {
+entry:
+  %0 = fadd float %first_float, %second_float
+  %add = alloca float, align 4
+  store float %0, ptr %add, align 4
+  %1 = fsub float %first_float, %second_float
+  %subtract = alloca float, align 4
+  store float %1, ptr %subtract, align 4
+  %2 = fmul float %first_float, %second_float
+  %multiply = alloca float, align 4
+  store float %2, ptr %multiply, align 4
+  %3 = fdiv float %first_float, %second_float
+  %divide = alloca float, align 4
+  store float %3, ptr %divide, align 4
+  %4 = frem float %first_float, %second_float
+  %modulus = alloca float, align 4
+  store float %4, ptr %modulus, align 4
+  %5 = fcmp oeq float %first_float, %second_float
+  %equal = alloca i1, align 1
+  store i1 %5, ptr %equal, align 1
+  %6 = fcmp one float %first_float, %second_float
+  %not_equal = alloca i1, align 1
+  store i1 %6, ptr %not_equal, align 1
+  %7 = fcmp olt float %first_float, %second_float
+  %less_than = alloca i1, align 1
+  store i1 %7, ptr %less_than, align 1
+  %8 = fcmp ole float %first_float, %second_float
+  %less_than_or_equal_to = alloca i1, align 1
+  store i1 %8, ptr %less_than_or_equal_to, align 1
+  %9 = fcmp ogt float %first_float, %second_float
+  %greater_than = alloca i1, align 1
+  store i1 %9, ptr %greater_than, align 1
+  %10 = fcmp oge float %first_float, %second_float
+  %greater_than_or_equal_to = alloca i1, align 1
+  store i1 %10, ptr %greater_than_or_equal_to, align 1
+}
+)";
+
+        test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+    }
+
     TEST_CASE("Compile Booleans")
     {
         char const* const input_file = "booleans.hl";
@@ -217,6 +451,23 @@ entry:
   %f32_to_f16 = alloca half, align 2
   store half %15, ptr %f32_to_f16, align 2
   ret i32 0
+}
+)";
+
+        test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+    }
+
+    TEST_CASE("Compile Unary Expressions")
+    {
+        char const* const input_file = "unary_expressions.hl";
+
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+        {
+        };
+
+        char const* const expected_llvm_ir = R"(
+define void @foo() {
+entry:
 }
 )";
 

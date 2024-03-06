@@ -1,0 +1,43 @@
+module Assignment_expressions;
+
+export function integer_operations(
+    other_signed_integer: Int32,
+    other_unsigned_integer: Uint32
+) -> ()
+{
+    mutable my_signed_integer = 1i32;
+    mutable my_unsigned_integer = 1u32;
+
+    my_signed_integer = 2i32;
+    my_unsigned_integer = 2u32;
+    
+    my_signed_integer += other_signed_integer;
+    my_signed_integer -= other_signed_integer;
+    my_signed_integer *= other_signed_integer;
+    my_signed_integer /= other_signed_integer;
+    my_unsigned_integer /= other_unsigned_integer;
+    my_signed_integer %= other_signed_integer;
+    my_unsigned_integer %= other_unsigned_integer;
+    
+    my_signed_integer &= other_signed_integer;
+    my_signed_integer |= other_signed_integer;
+    my_signed_integer ^= other_signed_integer;
+    my_signed_integer <<= other_signed_integer;
+    my_signed_integer >>= other_signed_integer;
+    my_unsigned_integer >>= other_unsigned_integer;
+}
+
+export function float32_operations(
+    other_float: Float32
+) -> ()
+{
+    mutable my_float = 1f32;
+
+    my_float = 2i32;
+    
+    my_float += other_float;
+    my_float -= other_float;
+    my_float *= other_float;
+    my_float /= other_float;
+    my_float %= other_float;
+}
