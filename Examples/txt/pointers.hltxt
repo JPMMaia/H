@@ -1,0 +1,8 @@
+module Pointers;
+
+export function pointers() -> ()
+{
+    var a = 1i32;
+    var pointer_a = &a;
+    var dereferenced_a = *pointer_a;
+}

@@ -1,5 +1,10 @@
 module Binary_expressions_operator_precedence;
 
+function other_function() -> (result: Int32)
+{
+    return 1i32;
+}
+
 export function foo(
     a: Int32,
     b: Int32,
@@ -11,16 +16,19 @@ export function foo(
     var case_2 = a / b * c;
     var case_3 = a * b / c;
 
-    var case_4 = a * function_call() + b;
-    var case_5 = *a * *b;
+    var case_4 = a * other_function() + b;
+
+    var pointer_a = &case_0;
+    var pointer_b = &case_1;
+    var case_7 = *pointer_a * *pointer_b;
     
-    var case_6 = (a + b) * c;
-    var case_7 = a * (b + c);
+    var case_8 = (a + b) * c;
+    var case_9 = a * (b + c);
 
-    var case_8 = a == 0 && b == 1;
-    var case_9 = (a & b) == (b & a);
-    var case_10 = a < b && b < c;
-    var case_11 = a + b == b + c;
+    var case_10 = a == 0 && b == 1;
+    var case_11 = (a & b) == (b & a);
+    var case_12 = a < b && b < c;
+    var case_13 = a + b == b + c;
 
-    var case_12 = -a + (-b);
+    var case_14 = -a + (-b);
 }
