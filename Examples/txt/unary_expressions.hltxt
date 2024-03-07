@@ -1,6 +1,6 @@
 module Unary_expressions;
 
-export function foo(
+export function unary_operations(
     my_integer: Int32,
     my_boolean: Bool
 ) -> ()
@@ -8,10 +8,12 @@ export function foo(
     var not_variable = !my_boolean;
     var bitwise_not_variable = ~my_integer;
     var minus_variable = -my_integer;
-    var pre_increment_variable = ++my_integer;
-    var post_increment_variable = my_integer++;
-    var pre_decrement_variable = --my_integer;
-    var post_decrement_variable = my_integer--;
-    var address_of_variable = &my_integer;
+
+    mutable my_mutable_integer = 1i32;
+    var pre_increment_variable = ++my_mutable_integer;
+    var post_increment_variable = my_mutable_integer++;
+    var pre_decrement_variable = --my_mutable_integer;
+    var post_decrement_variable = my_mutable_integer--;
+    var address_of_variable = &my_mutable_integer;
     var indirection_variable = *address_of_variable;
 }
