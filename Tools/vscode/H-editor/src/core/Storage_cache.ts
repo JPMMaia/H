@@ -7,7 +7,7 @@ export interface Storage_cache {
 
 function create_directory(path: string): void {
     if (!fs.existsSync(path)) {
-        fs.mkdirSync(path);
+        fs.mkdirSync(path, { recursive: true });
     }
 }
 

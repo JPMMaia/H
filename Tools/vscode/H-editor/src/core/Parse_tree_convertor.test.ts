@@ -16,6 +16,7 @@ import * as Parser from "./Parser";
 import { Node } from "./Parser_node";
 import * as Scanner from "./Scanner";
 import { scan_new_change } from "./Scan_new_changes";
+import * as Storage_cache from "./Storage_cache";
 import * as Text_formatter from "./Text_formatter";
 import * as Type_utilities from "./Type_utilities";
 
@@ -1176,7 +1177,8 @@ describe("Parse_tree_convertor.create_module_changes", () => {
     let language_description: any;
 
     before(() => {
-        language_description = Language.create_default_description();
+        const cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
+        language_description = Language.create_default_description(cache);
     });
 
     it("Sets name of module", () => {

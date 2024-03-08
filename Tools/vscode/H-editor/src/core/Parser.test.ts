@@ -4,8 +4,10 @@ import * as assert from "assert";
 
 import * as Grammar from "./Grammar";
 import * as Grammar_examples from "./Grammar_examples";
+import * as Language from "./Language";
 import * as Parser from "./Parser";
 import * as Scanner from "./Scanner";
+import * as Storage_cache from "./Storage_cache";
 
 describe("Parser.parse", () => {
     it("Parses '1 + 1' with a parsing table", () => {
@@ -733,27 +735,8 @@ describe("Parser.parse_incrementally", () => {
 
     it("Parses 'module module_name;' and subsequent change", () => {
 
-        const grammar_description = Grammar_examples.create_test_grammar_9_description();
-        const production_rules = Grammar.create_production_rules(grammar_description);
-        const non_terminals = Grammar.get_non_terminals(production_rules);
-        const terminals = Grammar.get_terminals(production_rules, non_terminals);
-        const lr1_item_set_0 = Grammar.create_start_lr1_item_set(production_rules, terminals);
-        const graph = Grammar.create_lr1_graph(production_rules, terminals, lr1_item_set_0);
-        const parsing_tables = Grammar.create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
-        const array_infos = Grammar.create_array_infos(production_rules);
-
-        const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
-
-            if (word.value === "enum" || word.value === "export" || word.value === "function" || word.value === "module" || word.value === "struct" || word.value === "using") {
-                return word.value;
-            }
-
-            if (word.type === Grammar.Word_type.Alphanumeric) {
-                return "identifier";
-            }
-
-            return word.value;
-        };
+        const cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
+        const language_description = Language.create_default_description(cache);
 
         const first_input = "module module_name;";
         const first_scanned_words = Scanner.scan(first_input, 0, first_input.length);
@@ -762,10 +745,10 @@ describe("Parser.parse_incrementally", () => {
             [],
             first_scanned_words,
             [],
-            parsing_tables.action_table,
-            parsing_tables.go_to_table,
-            array_infos,
-            map_word_to_terminal
+            language_description.actions_table,
+            language_description.go_to_table,
+            language_description.array_infos,
+            language_description.map_word_to_terminal
         );
 
         assert.equal(first_parse_result.status, Parser.Parse_status.Accept);
@@ -785,10 +768,10 @@ describe("Parser.parse_incrementally", () => {
             start_change_node_position,
             second_scanned_words,
             after_change_node_position,
-            parsing_tables.action_table,
-            parsing_tables.go_to_table,
-            array_infos,
-            map_word_to_terminal
+            language_description.actions_table,
+            language_description.go_to_table,
+            language_description.array_infos,
+            language_description.map_word_to_terminal
         );
 
         assert.equal(second_parse_result.status, Parser.Parse_status.Accept);
