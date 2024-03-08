@@ -273,9 +273,11 @@ export enum Expression_enum {
     Assignment_expression = "Assignment_expression",
     Binary_expression = "Binary_expression",
     Block_expression = "Block_expression",
+    Break_expression = "Break_expression",
     Call_expression = "Call_expression",
     Cast_expression = "Cast_expression",
     Constant_expression = "Constant_expression",
+    Continue_expression = "Continue_expression",
     For_loop_expression = "For_loop_expression",
     If_expression = "If_expression",
     Invalid_expression = "Invalid_expression",
@@ -812,6 +814,29 @@ function intermediate_to_core_block_expression(intermediate_value: Block_express
     expressions.push(core_value);
 }
 
+export interface Break_expression {
+    loop_count: number;
+}
+
+function core_to_intermediate_break_expression(core_value: Core.Break_expression, statement: Core.Statement): Break_expression {
+    return {
+        loop_count: core_value.loop_count,
+    };
+}
+
+function intermediate_to_core_break_expression(intermediate_value: Break_expression, expressions: Core.Expression[]): void {
+    const core_value: Core.Expression = {
+        data: {
+            type: Core.Expression_enum.Break_expression,
+            value: {
+                loop_count: intermediate_value.loop_count,
+            }
+        }
+    };
+
+    expressions.push(core_value);
+}
+
 export interface Call_expression {
     expression: Expression;
     arguments: Expression[];
@@ -912,11 +937,32 @@ function intermediate_to_core_constant_expression(intermediate_value: Constant_e
     expressions.push(core_value);
 }
 
+export interface Continue_expression {
+}
+
+function core_to_intermediate_continue_expression(core_value: Core.Continue_expression, statement: Core.Statement): Continue_expression {
+    return {
+    };
+}
+
+function intermediate_to_core_continue_expression(intermediate_value: Continue_expression, expressions: Core.Expression[]): void {
+    const core_value: Core.Expression = {
+        data: {
+            type: Core.Expression_enum.Continue_expression,
+            value: {
+            }
+        }
+    };
+
+    expressions.push(core_value);
+}
+
 export interface For_loop_expression {
     variable_name: string;
     range_type: Type_reference;
-    range_begin: number;
-    range_end: number;
+    range_begin: Expression;
+    range_end: Expression;
+    step_by: Expression;
     then_expression: Expression;
 }
 
@@ -924,8 +970,9 @@ function core_to_intermediate_for_loop_expression(core_value: Core.For_loop_expr
     return {
         variable_name: core_value.variable_name,
         range_type: core_to_intermediate_type_reference(core_value.range_type),
-        range_begin: core_value.range_begin,
-        range_end: core_value.range_end,
+        range_begin: core_to_intermediate_expression(statement.expressions.elements[core_value.range_begin.expression_index], statement),
+        range_end: core_to_intermediate_expression(statement.expressions.elements[core_value.range_end.expression_index], statement),
+        step_by: core_to_intermediate_expression(statement.expressions.elements[core_value.step_by.expression_index], statement),
         then_expression: core_to_intermediate_expression(statement.expressions.elements[core_value.then_expression.expression_index], statement),
     };
 }
@@ -937,8 +984,15 @@ function intermediate_to_core_for_loop_expression(intermediate_value: For_loop_e
             value: {
                 variable_name: intermediate_value.variable_name,
                 range_type: intermediate_to_core_type_reference(intermediate_value.range_type),
-                range_begin: intermediate_value.range_begin,
-                range_end: intermediate_value.range_end,
+                range_begin: {
+                    expression_index: -1
+                },
+                range_end: {
+                    expression_index: -1
+                },
+                step_by: {
+                    expression_index: -1
+                },
                 then_expression: {
                     expression_index: -1
                 },
@@ -947,6 +1001,15 @@ function intermediate_to_core_for_loop_expression(intermediate_value: For_loop_e
     };
 
     expressions.push(core_value);
+
+    (core_value.data.value as Core.For_loop_expression).range_begin.expression_index = expressions.length;
+    intermediate_to_core_expression(intermediate_value.range_begin, expressions);
+
+    (core_value.data.value as Core.For_loop_expression).range_end.expression_index = expressions.length;
+    intermediate_to_core_expression(intermediate_value.range_end, expressions);
+
+    (core_value.data.value as Core.For_loop_expression).step_by.expression_index = expressions.length;
+    intermediate_to_core_expression(intermediate_value.step_by, expressions);
 
     (core_value.data.value as Core.For_loop_expression).then_expression.expression_index = expressions.length;
     intermediate_to_core_expression(intermediate_value.then_expression, expressions);
@@ -1307,7 +1370,7 @@ function intermediate_to_core_while_loop_expression(intermediate_value: While_lo
 }
 
 export interface Expression {
-    data: Variant<Expression_enum, Access_expression | Assignment_expression | Binary_expression | Block_expression | Call_expression | Cast_expression | Constant_expression | For_loop_expression | If_expression | Invalid_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_expression | While_loop_expression>;
+    data: Variant<Expression_enum, Access_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Constant_expression | Continue_expression | For_loop_expression | If_expression | Invalid_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_expression | While_loop_expression>;
 }
 
 function core_to_intermediate_expression(core_value: Core.Expression, statement: Core.Statement): Expression {
@@ -1344,6 +1407,14 @@ function core_to_intermediate_expression(core_value: Core.Expression, statement:
                 }
             };
         }
+        case Core.Expression_enum.Break_expression: {
+            return {
+                data: {
+                    type: core_value.data.type,
+                    value: core_to_intermediate_break_expression(core_value.data.value as Core.Break_expression, statement)
+                }
+            };
+        }
         case Core.Expression_enum.Call_expression: {
             return {
                 data: {
@@ -1365,6 +1436,14 @@ function core_to_intermediate_expression(core_value: Core.Expression, statement:
                 data: {
                     type: core_value.data.type,
                     value: core_to_intermediate_constant_expression(core_value.data.value as Core.Constant_expression, statement)
+                }
+            };
+        }
+        case Core.Expression_enum.Continue_expression: {
+            return {
+                data: {
+                    type: core_value.data.type,
+                    value: core_to_intermediate_continue_expression(core_value.data.value as Core.Continue_expression, statement)
                 }
             };
         }
@@ -1477,6 +1556,10 @@ function intermediate_to_core_expression(intermediate_value: Expression, express
             intermediate_to_core_block_expression(intermediate_value.data.value as Block_expression, expressions);
             break;
         }
+        case Expression_enum.Break_expression: {
+            intermediate_to_core_break_expression(intermediate_value.data.value as Break_expression, expressions);
+            break;
+        }
         case Expression_enum.Call_expression: {
             intermediate_to_core_call_expression(intermediate_value.data.value as Call_expression, expressions);
             break;
@@ -1487,6 +1570,10 @@ function intermediate_to_core_expression(intermediate_value: Expression, express
         }
         case Expression_enum.Constant_expression: {
             intermediate_to_core_constant_expression(intermediate_value.data.value as Constant_expression, expressions);
+            break;
+        }
+        case Expression_enum.Continue_expression: {
+            intermediate_to_core_continue_expression(intermediate_value.data.value as Continue_expression, expressions);
             break;
         }
         case Expression_enum.For_loop_expression: {

@@ -906,18 +906,32 @@ function map_expression_type_to_production_rule_label(expression: Core_intermedi
                     return "Expression_binary_bitwise_shift";
             }
         }
+        case Core_intermediate_representation.Expression_enum.Block_expression:
+            return "Expression_block";
+        case Core_intermediate_representation.Expression_enum.Break_expression:
+            return "Expression_break";
         case Core_intermediate_representation.Expression_enum.Call_expression:
             return "Expression_call";
         case Core_intermediate_representation.Expression_enum.Cast_expression:
             return "Expression_cast";
         case Core_intermediate_representation.Expression_enum.Constant_expression:
             return "Expression_constant";
+        case Core_intermediate_representation.Expression_enum.Continue_expression:
+            return "Expression_continue";
+        case Core_intermediate_representation.Expression_enum.For_loop_expression:
+            return "Expression_for_loop";
+        case Core_intermediate_representation.Expression_enum.If_expression:
+            return "Expression_if";
         case Core_intermediate_representation.Expression_enum.Invalid_expression:
             return "Expression_invalid";
         case Core_intermediate_representation.Expression_enum.Parenthesis_expression:
             return "Expression_parenthesis";
         case Core_intermediate_representation.Expression_enum.Return_expression:
             return "Expression_return";
+        case Core_intermediate_representation.Expression_enum.Switch_expression:
+            return "Expression_switch";
+        case Core_intermediate_representation.Expression_enum.Ternary_condition_expression:
+            return "Expression_ternary_condition";
         case Core_intermediate_representation.Expression_enum.Unary_expression: {
             const unary_expression = expression.data.value as Core_intermediate_representation.Unary_expression;
             switch (unary_expression.operation) {
@@ -932,6 +946,8 @@ function map_expression_type_to_production_rule_label(expression: Core_intermedi
             return "Expression_variable";
         case Core_intermediate_representation.Expression_enum.Variable_declaration_expression:
             return "Expression_variable_declaration";
+        case Core_intermediate_representation.Expression_enum.While_loop_expression:
+            return "Expression_while_loop";
     }
 }
 

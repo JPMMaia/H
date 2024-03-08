@@ -354,6 +354,12 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Break_expression const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Call_expression const& input
         );
 
@@ -367,6 +373,12 @@ namespace h::json
         void write_object(
             Writer_type& writer,
             Constant_expression const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Continue_expression const& input
         );
 
     export template<typename Writer_type>
@@ -913,6 +925,18 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Break_expression const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("loop_count");
+        writer.Uint64(output.loop_count);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Call_expression const& output
         )
     {
@@ -960,6 +984,16 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Continue_expression const& output
+        )
+    {
+        writer.StartObject();
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             For_loop_expression const& output
         )
     {
@@ -969,9 +1003,11 @@ namespace h::json
         writer.Key("range_type");
         write_object(writer, output.range_type);
         writer.Key("range_begin");
-        writer.Uint64(output.range_begin);
+        write_object(writer, output.range_begin);
         writer.Key("range_end");
-        writer.Uint64(output.range_end);
+        write_object(writer, output.range_end);
+        writer.Key("step_by");
+        write_object(writer, output.step_by);
         writer.Key("then_expression");
         write_object(writer, output.then_expression);
         writer.EndObject();
@@ -1172,6 +1208,14 @@ namespace h::json
             Block_expression const& value = std::get<Block_expression>(output.data);
             write_object(writer, value);
         }
+        else if (std::holds_alternative<Break_expression>(output.data))
+        {
+            writer.Key("type");
+            writer.String("Break_expression");
+            writer.Key("value");
+            Break_expression const& value = std::get<Break_expression>(output.data);
+            write_object(writer, value);
+        }
         else if (std::holds_alternative<Call_expression>(output.data))
         {
             writer.Key("type");
@@ -1194,6 +1238,14 @@ namespace h::json
             writer.String("Constant_expression");
             writer.Key("value");
             Constant_expression const& value = std::get<Constant_expression>(output.data);
+            write_object(writer, value);
+        }
+        else if (std::holds_alternative<Continue_expression>(output.data))
+        {
+            writer.Key("type");
+            writer.String("Continue_expression");
+            writer.Key("value");
+            Continue_expression const& value = std::get<Continue_expression>(output.data);
             write_object(writer, value);
         }
         else if (std::holds_alternative<For_loop_expression>(output.data))

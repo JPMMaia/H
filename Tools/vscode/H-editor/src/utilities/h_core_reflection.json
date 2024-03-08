@@ -384,6 +384,17 @@
             ]
         },
         {
+            "name": "Break_expression",
+            "members": [
+                {
+                    "type": {
+                        "name": "std::uint64_t"
+                    },
+                    "name": "loop_count"
+                }
+            ]
+        },
+        {
             "name": "Call_expression",
             "members": [
                 {
@@ -441,6 +452,10 @@
             ]
         },
         {
+            "name": "Continue_expression",
+            "members": []
+        },
+        {
             "name": "For_loop_expression",
             "members": [
                 {
@@ -457,15 +472,21 @@
                 },
                 {
                     "type": {
-                        "name": "std::uint64_t"
+                        "name": "Expression_index"
                     },
                     "name": "range_begin"
                 },
                 {
                     "type": {
-                        "name": "std::uint64_t"
+                        "name": "Expression_index"
                     },
                     "name": "range_end"
+                },
+                {
+                    "type": {
+                        "name": "Expression_index"
+                    },
+                    "name": "step_by"
                 },
                 {
                     "type": {
@@ -661,7 +682,7 @@
             "members": [
                 {
                     "type": {
-                        "name": "std::variant<Access_expression,Assignment_expression,Binary_expression,Block_expression,Call_expression,Cast_expression,Constant_expression,For_loop_expression,If_expression,Invalid_expression,Parenthesis_expression,Return_expression,Switch_expression,Ternary_condition_expression,Unary_expression,Variable_declaration_expression,Variable_expression,While_loop_expression>"
+                        "name": "std::variant<Access_expression,Assignment_expression,Binary_expression,Block_expression,Break_expression,Call_expression,Cast_expression,Constant_expression,Continue_expression,For_loop_expression,If_expression,Invalid_expression,Parenthesis_expression,Return_expression,Switch_expression,Ternary_condition_expression,Unary_expression,Variable_declaration_expression,Variable_expression,While_loop_expression>"
                     },
                     "name": "data"
                 }
