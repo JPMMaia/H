@@ -223,6 +223,13 @@ namespace h
         friend auto operator<=>(Block_expression const&, Block_expression const&) = default;
     };
 
+    export struct Break_expression
+    {
+        std::uint64_t loop_count;
+
+        friend auto operator<=>(Break_expression const&, Break_expression const&) = default;
+    };
+
     export struct Call_expression
     {
         Expression_index expression;
@@ -254,12 +261,18 @@ namespace h
         friend auto operator<=>(Constant_expression const&, Constant_expression const&) = default;
     };
 
+    export struct Continue_expression
+    {
+        friend auto operator<=>(Continue_expression const&, Continue_expression const&) = default;
+    };
+
     export struct For_loop_expression
     {
         std::pmr::string variable_name;
         Type_reference range_type;
-        std::uint64_t range_begin;
-        std::uint64_t range_end;
+        Expression_index range_begin;
+        Expression_index range_end;
+        Expression_index step_by;
         Expression_index then_expression;
 
         friend auto operator<=>(For_loop_expression const&, For_loop_expression const&) = default;
@@ -367,14 +380,16 @@ namespace h
 
     export struct Expression
     {
-        using Data_type = std::variant<
+        using Data_type = std::variant <
             Access_expression,
             Assignment_expression,
             Binary_expression,
             Block_expression,
+            Break_expression,
             Call_expression,
             Cast_expression,
             Constant_expression,
+            Continue_expression,
             For_loop_expression,
             If_expression,
             Invalid_expression,
@@ -386,7 +401,7 @@ namespace h
             Variable_declaration_expression,
             Variable_expression,
             While_loop_expression
-        >;
+        > ;
 
         Data_type data;
 

@@ -88,9 +88,11 @@ export enum Expression_enum {
     Assignment_expression = "Assignment_expression",
     Binary_expression = "Binary_expression",
     Block_expression = "Block_expression",
+    Break_expression = "Break_expression",
     Call_expression = "Call_expression",
     Cast_expression = "Cast_expression",
     Constant_expression = "Constant_expression",
+    Continue_expression = "Continue_expression",
     For_loop_expression = "For_loop_expression",
     If_expression = "If_expression",
     Invalid_expression = "Invalid_expression",
@@ -194,6 +196,10 @@ export interface Block_expression {
     statements: Vector<Statement>;
 }
 
+export interface Break_expression {
+    loop_count: number;
+}
+
 export interface Call_expression {
     expression: Expression_index;
     arguments: Vector<Expression_index>;
@@ -210,11 +216,15 @@ export interface Constant_expression {
     data: string;
 }
 
+export interface Continue_expression {
+}
+
 export interface For_loop_expression {
     variable_name: string;
     range_type: Type_reference;
-    range_begin: number;
-    range_end: number;
+    range_begin: Expression_index;
+    range_end: Expression_index;
+    step_by: Expression_index;
     then_expression: Expression_index;
 }
 
@@ -273,7 +283,7 @@ export interface While_loop_expression {
 }
 
 export interface Expression {
-    data: Variant<Expression_enum, Access_expression | Assignment_expression | Binary_expression | Block_expression | Call_expression | Cast_expression | Constant_expression | For_loop_expression | If_expression | Invalid_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_expression | While_loop_expression>;
+    data: Variant<Expression_enum, Access_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Constant_expression | Continue_expression | For_loop_expression | If_expression | Invalid_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_expression | While_loop_expression>;
 }
 
 export interface Statement {
