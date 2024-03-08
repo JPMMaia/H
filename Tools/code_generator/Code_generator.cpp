@@ -2096,7 +2096,24 @@ namespace h::tools::code_generator
         else if (is_optional_type(type))
         {
             std::pmr::string const value_type = get_optional_value_type(type);
-            return value_type;
+
+            if (intermediate_representation)
+            {
+                auto const location = replace_map.find(value_type);
+                if (location != replace_map.end())
+                {
+                    std::pmr::string const& new_type = location->second;
+                    return to_typescript_type(Type{ .name = new_type.c_str() }, parent_type_name, enum_map, struct_map, replace_map, true);
+                }
+                else
+                {
+                    return value_type;
+                }
+            }
+            else
+            {
+                return value_type;
+            }
         }
         else
         {
@@ -2139,6 +2156,11 @@ namespace h::tools::code_generator
     bool is_expression_type(std::string_view const type_name)
     {
         return type_name.starts_with("Expression") || type_name.ends_with("expression");
+    }
+
+    bool contains_expressions(std::string_view const type_name)
+    {
+        return is_expression_type(type_name) || type_name.ends_with("expression_pair");
     }
 
     void generate_typescript_interface(
@@ -2214,7 +2236,7 @@ namespace h::tools::code_generator
             output_stream << "                data: {\n";
             output_stream << "                    type: core_value.data.type,\n";
 
-            if (is_expression_type(variant_type))
+            if (contains_expressions(variant_type))
             {
                 output_stream << std::format("                    value: core_to_intermediate_{}(core_value.data.value as Core.{}, statement)\n", to_lowercase(variant_type), variant_type);
             }
@@ -2540,7 +2562,7 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
             output_stream << "}\n\n";
 
             {
-                if (is_expression_type(struct_info.name))
+                if (contains_expressions(struct_info.name))
                 {
                     output_stream << std::format("function core_to_intermediate_{}(core_value: Core.{}, statement: Core.Statement): {} {{\n", to_lowercase(struct_info.name), struct_info.name, struct_info.name);
                 }
@@ -2563,6 +2585,10 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
                             {
                                 output_stream << std::format("        {}: core_to_intermediate_expression(statement.expressions.elements[core_value.{}.expression_index], statement),\n", member.name, member.name);
                             }
+                            else if (member.type.name == "std::optional<Expression_index>")
+                            {
+                                output_stream << std::format("        {}: core_value.{} !== undefined ? core_to_intermediate_expression(statement.expressions.elements[core_value.{}.expression_index], statement) : undefined,\n", member.name, member.name, member.name);
+                            }
                             else if (is_vector_type(member.type))
                             {
                                 Type const vector_value_type = Type{ .name = get_vector_value_type(member.type) };
@@ -2572,7 +2598,14 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
                                 }
                                 else if (is_struct_type(vector_value_type, struct_map))
                                 {
-                                    output_stream << std::format("        {}: core_value.{}.elements.map(value => core_to_intermediate_{}(value)),\n", member.name, member.name, to_lowercase(vector_value_type.name));
+                                    if (contains_expressions(vector_value_type.name))
+                                    {
+                                        output_stream << std::format("        {}: core_value.{}.elements.map(value => core_to_intermediate_{}(value, statement)),\n", member.name, member.name, to_lowercase(vector_value_type.name));
+                                    }
+                                    else
+                                    {
+                                        output_stream << std::format("        {}: core_value.{}.elements.map(value => core_to_intermediate_{}(value)),\n", member.name, member.name, to_lowercase(vector_value_type.name));
+                                    }
                                 }
                                 else
                                 {
@@ -2596,9 +2629,10 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
             }
 
             {
-                if (is_expression_type(struct_info.name))
+                if (contains_expressions(struct_info.name))
                 {
-                    output_stream << std::format("function intermediate_to_core_{}(intermediate_value: {}, expressions: Core.Expression[]): void {{\n", to_lowercase(struct_info.name), struct_info.name, struct_info.name);
+                    std::string const return_type = is_expression_type(struct_info.name) ? "void" : std::format("Core.{}", struct_info.name);
+                    output_stream << std::format("function intermediate_to_core_{}(intermediate_value: {}, expressions: Core.Expression[]): {} {{\n", to_lowercase(struct_info.name), struct_info.name, return_type);
                 }
                 else
                 {
@@ -2609,59 +2643,116 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
                 {
                     generate_variant_intermediate_to_core_representation(output_stream, struct_info.members[0].type, struct_info.name, enum_map);
                 }
-                else if (is_expression_type(struct_info.name))
+                else if (contains_expressions(struct_info.name))
                 {
-                    output_stream << "    const core_value: Core.Expression = {\n";
-                    output_stream << "        data: {\n";
-                    output_stream << std::format("            type: Core.Expression_enum.{},\n", struct_info.name);
-                    output_stream << "            value: {\n";
+                    bool const is_expression = is_expression_type(struct_info.name);
+
+                    std::pmr::string const core_value_type = is_expression ? "Expression" : struct_info.name;
+
+                    if (is_expression)
+                    {
+                        output_stream << "    const core_value: Core.Expression = {\n";
+                        output_stream << "        data: {\n";
+                        output_stream << std::format("            type: Core.Expression_enum.{},\n", struct_info.name);
+                        output_stream << "            value: {\n";
+                    }
+                    else
+                    {
+                        output_stream << std::format("    const core_value: Core.{} = {{\n", core_value_type);
+                    }
+
+                    int const indentation = is_expression ? 8 : 0;
+
                     for (Member const& member : struct_info.members)
                     {
                         if (member.type.name == "Expression_index")
                         {
-                            output_stream << std::format("                {}: {{\n", member.name);
-                            output_stream << "                    expression_index: -1\n";
-                            output_stream << "                },\n";
+                            output_stream << indent(indentation) << std::format("        {}: {{\n", member.name);
+                            output_stream << indent(indentation) << "            expression_index: -1\n";
+                            output_stream << indent(indentation) << "        },\n";
+                        }
+                        else if (member.type.name == "std::optional<Expression_index>")
+                        {
+                            output_stream << indent(indentation) << std::format("        {}: intermediate_value.{} !== undefined ? {{ expression_index: -1 }} : undefined\n", member.name, member.name);
                         }
                         else if (is_vector_type(member.type) && get_vector_value_type(member.type) == "Expression_index")
                         {
-                            output_stream << std::format("                {}: {{\n", member.name);
-                            output_stream << "                    size: 0,\n";
-                            output_stream << "                    elements: []\n";
-                            output_stream << "                }\n";
+                            output_stream << indent(indentation) << std::format("        {}: {{\n", member.name);
+                            output_stream << indent(indentation) << "            size: 0,\n";
+                            output_stream << indent(indentation) << "            elements: []\n";
+                            output_stream << indent(indentation) << "        }\n";
+                        }
+                        else if (is_vector_type(member.type))
+                        {
+                            std::pmr::string const value_type = get_vector_value_type(member.type);
+                            output_stream << indent(indentation) << std::format("        {}: {{\n", member.name);
+                            output_stream << indent(indentation) << std::format("            size: intermediate_value.{}.length,\n", member.name);
+
+                            if (contains_expressions(value_type))
+                            {
+                                output_stream << indent(indentation) << std::format("            elements: intermediate_value.{}.map(value => intermediate_to_core_{}(value, expressions))\n", member.name, to_lowercase(value_type));
+                            }
+                            else
+                            {
+                                output_stream << indent(indentation) << std::format("            elements: intermediate_value.{}.map(value => intermediate_to_core_{}(value))\n", member.name, to_lowercase(value_type));
+                            }
+
+                            output_stream << indent(indentation) << "        },\n";
                         }
                         else if (is_struct_type(member.type, struct_map))
                         {
-                            output_stream << std::format("                {}: intermediate_to_core_{}(intermediate_value.{}),\n", member.name, to_lowercase(member.type.name), member.name);
+                            output_stream << indent(indentation) << std::format("        {}: intermediate_to_core_{}(intermediate_value.{}),\n", member.name, to_lowercase(member.type.name), member.name);
                         }
                         else
                         {
-                            output_stream << std::format("                {}: intermediate_value.{},\n", member.name, member.name);
+                            output_stream << indent(indentation) << std::format("        {}: intermediate_value.{},\n", member.name, member.name);
                         }
                     }
-                    output_stream << "            }\n";
-                    output_stream << "        }\n";
-                    output_stream << "    };\n\n";
 
-                    output_stream << "    expressions.push(core_value);\n";
+                    if (is_expression)
+                    {
+                        output_stream << "            }\n";
+                        output_stream << "        }\n";
+                    }
+                    output_stream << "    };\n";
+
+                    if (is_expression)
+                    {
+                        output_stream << "\n    expressions.push(core_value);\n";
+                    }
 
                     for (Member const& member : struct_info.members)
                     {
+                        std::string const core_value_member = is_expression ? std::format("(core_value.data.value as Core.{}).{}", struct_info.name, member.name) : std::format("core_value.{}", member.name);
+
                         if (member.type.name == "Expression_index")
                         {
                             output_stream << "\n";
-                            output_stream << std::format("    (core_value.data.value as Core.{}).{}.expression_index = expressions.length;\n", struct_info.name, member.name);
+                            output_stream << std::format("    {}.expression_index = expressions.length;\n", core_value_member);
                             output_stream << std::format("    intermediate_to_core_expression(intermediate_value.{}, expressions);\n", member.name);
+                        }
+                        else if (member.type.name == "std::optional<Expression_index>")
+                        {
+                            output_stream << "\n";
+                            output_stream << std::format("    if (intermediate_value.{} !== undefined) {{\n", member.name);
+                            output_stream << std::format("        {} = {{ expression_index: expressions.length }};\n", core_value_member);
+                            output_stream << std::format("        intermediate_to_core_expression(intermediate_value.{}, expressions);\n", member.name);
+                            output_stream << "    }\n";
                         }
                         else if (is_vector_type(member.type) && get_vector_value_type(member.type) == "Expression_index")
                         {
                             output_stream << "\n";
                             output_stream << std::format("    for (const element of intermediate_value.{}) {{\n", member.name);
-                            output_stream << std::format("        (core_value.data.value as Core.{}).{}.elements.push({{expression_index: expressions.length}});\n", struct_info.name, member.name);
+                            output_stream << std::format("        {}.elements.push({{ expression_index: expressions.length }});\n", core_value_member);
                             output_stream << "        intermediate_to_core_expression(element, expressions);\n";
                             output_stream << "    }\n";
-                            output_stream << std::format("    (core_value.data.value as Core.{}).{}.size = (core_value.data.value as Core.{}).{}.elements.length;\n", struct_info.name, member.name, struct_info.name, member.name);
+                            output_stream << std::format("    {}.size = {}.elements.length;\n", core_value_member, core_value_member);
                         }
+                    }
+
+                    if (!is_expression)
+                    {
+                        output_stream << "\n    return core_value;\n";
                     }
                 }
                 else
@@ -2674,13 +2765,10 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
                             Type const vector_value_type = Type{ .name = get_vector_value_type(member.type) };
                             if (vector_value_type.name == "Expression_index")
                             {
-                                // TODO
-                                output_stream << std::format("        {}: {{\n", member.name);
-                                output_stream << std::format("            size: intermediate_value.{}.length,\n", member.name);
-                                output_stream << std::format("            elements: intermediate_value.{}.map(value => intermediate_to_core_expression(TODO, statement)),\n", member.name, vector_value_type.name);
-                                output_stream << "        },\n";
-
-                                output_stream << std::format("        {}: intermediate_value.{}.elements.map(value => intermediate_to_core_expression(statement.expressions.elements[value.expression_index], statement)),\n", member.name, member.name);
+                                output_stream << std::format("                {}: {{\n", member.name);
+                                output_stream << "                    size: 0,\n";
+                                output_stream << "                    elements: []\n";
+                                output_stream << "                }\n";
                             }
                             else if (is_struct_type(vector_value_type, struct_map))
                             {
@@ -2696,6 +2784,12 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
                                 output_stream << std::format("            elements: intermediate_value.{},\n", member.name);
                                 output_stream << "        },\n";
                             }
+                        }
+                        else if (member.type.name == "Expression_index")
+                        {
+                            output_stream << std::format("                {}: {{\n", member.name);
+                            output_stream << "                    expression_index: -1\n";
+                            output_stream << "                },\n";
                         }
                         else if (is_struct_type(member.type, struct_map))
                         {
