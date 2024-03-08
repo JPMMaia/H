@@ -348,6 +348,12 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Block_expression const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Call_expression const& input
         );
 
@@ -361,6 +367,24 @@ namespace h::json
         void write_object(
             Writer_type& writer,
             Constant_expression const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            For_loop_expression const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Condition_expression_pair const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            If_expression const& input
         );
 
     export template<typename Writer_type>
@@ -384,6 +408,24 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Switch_case_expression_pair const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Switch_expression const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Ternary_condition_expression const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Unary_expression const& input
         );
 
@@ -391,6 +433,12 @@ namespace h::json
         void write_object(
             Writer_type& writer,
             Variable_declaration_expression const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            While_loop_expression const& input
         );
 
     export template<typename Writer_type>
@@ -853,6 +901,18 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Block_expression const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("statements");
+        write_object(writer, output.statements);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Call_expression const& output
         )
     {
@@ -900,6 +960,51 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            For_loop_expression const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("variable_name");
+        writer.String(output.variable_name.data(), output.variable_name.size());
+        writer.Key("range_type");
+        write_object(writer, output.range_type);
+        writer.Key("range_begin");
+        writer.Uint64(output.range_begin);
+        writer.Key("range_end");
+        writer.Uint64(output.range_end);
+        writer.Key("then_expression");
+        write_object(writer, output.then_expression);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Condition_expression_pair const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("expression");
+        write_object(writer, output.expression);
+        write_optional(writer, "condition", output.condition);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            If_expression const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("series");
+        write_object(writer, output.series);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Invalid_expression const& output
         )
     {
@@ -930,6 +1035,51 @@ namespace h::json
         writer.StartObject();
         writer.Key("expression");
         write_object(writer, output.expression);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Switch_case_expression_pair const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("case_value");
+        write_object(writer, output.case_value);
+        writer.Key("then_expression");
+        write_object(writer, output.then_expression);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Switch_expression const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("value");
+        write_object(writer, output.value);
+        writer.Key("cases");
+        write_object(writer, output.cases);
+        write_optional(writer, "default_case_expression", output.default_case_expression);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Ternary_condition_expression const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("condition");
+        write_object(writer, output.condition);
+        writer.Key("then_expression");
+        write_object(writer, output.then_expression);
+        writer.Key("else_expression");
+        write_object(writer, output.else_expression);
         writer.EndObject();
     }
 
@@ -969,6 +1119,20 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            While_loop_expression const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("condition");
+        write_object(writer, output.condition);
+        writer.Key("then_expression");
+        write_object(writer, output.then_expression);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Expression const& output
         )
     {
@@ -1000,6 +1164,14 @@ namespace h::json
             Binary_expression const& value = std::get<Binary_expression>(output.data);
             write_object(writer, value);
         }
+        else if (std::holds_alternative<Block_expression>(output.data))
+        {
+            writer.Key("type");
+            writer.String("Block_expression");
+            writer.Key("value");
+            Block_expression const& value = std::get<Block_expression>(output.data);
+            write_object(writer, value);
+        }
         else if (std::holds_alternative<Call_expression>(output.data))
         {
             writer.Key("type");
@@ -1022,6 +1194,22 @@ namespace h::json
             writer.String("Constant_expression");
             writer.Key("value");
             Constant_expression const& value = std::get<Constant_expression>(output.data);
+            write_object(writer, value);
+        }
+        else if (std::holds_alternative<For_loop_expression>(output.data))
+        {
+            writer.Key("type");
+            writer.String("For_loop_expression");
+            writer.Key("value");
+            For_loop_expression const& value = std::get<For_loop_expression>(output.data);
+            write_object(writer, value);
+        }
+        else if (std::holds_alternative<If_expression>(output.data))
+        {
+            writer.Key("type");
+            writer.String("If_expression");
+            writer.Key("value");
+            If_expression const& value = std::get<If_expression>(output.data);
             write_object(writer, value);
         }
         else if (std::holds_alternative<Invalid_expression>(output.data))
@@ -1048,6 +1236,22 @@ namespace h::json
             Return_expression const& value = std::get<Return_expression>(output.data);
             write_object(writer, value);
         }
+        else if (std::holds_alternative<Switch_expression>(output.data))
+        {
+            writer.Key("type");
+            writer.String("Switch_expression");
+            writer.Key("value");
+            Switch_expression const& value = std::get<Switch_expression>(output.data);
+            write_object(writer, value);
+        }
+        else if (std::holds_alternative<Ternary_condition_expression>(output.data))
+        {
+            writer.Key("type");
+            writer.String("Ternary_condition_expression");
+            writer.Key("value");
+            Ternary_condition_expression const& value = std::get<Ternary_condition_expression>(output.data);
+            write_object(writer, value);
+        }
         else if (std::holds_alternative<Unary_expression>(output.data))
         {
             writer.Key("type");
@@ -1070,6 +1274,14 @@ namespace h::json
             writer.String("Variable_expression");
             writer.Key("value");
             Variable_expression const& value = std::get<Variable_expression>(output.data);
+            write_object(writer, value);
+        }
+        else if (std::holds_alternative<While_loop_expression>(output.data))
+        {
+            writer.Key("type");
+            writer.String("While_loop_expression");
+            writer.Key("value");
+            While_loop_expression const& value = std::get<While_loop_expression>(output.data);
             write_object(writer, value);
         }
         writer.EndObject();

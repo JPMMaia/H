@@ -87,15 +87,21 @@ export enum Expression_enum {
     Access_expression = "Access_expression",
     Assignment_expression = "Assignment_expression",
     Binary_expression = "Binary_expression",
+    Block_expression = "Block_expression",
     Call_expression = "Call_expression",
     Cast_expression = "Cast_expression",
     Constant_expression = "Constant_expression",
+    For_loop_expression = "For_loop_expression",
+    If_expression = "If_expression",
     Invalid_expression = "Invalid_expression",
     Parenthesis_expression = "Parenthesis_expression",
     Return_expression = "Return_expression",
+    Switch_expression = "Switch_expression",
+    Ternary_condition_expression = "Ternary_condition_expression",
     Unary_expression = "Unary_expression",
     Variable_declaration_expression = "Variable_declaration_expression",
     Variable_expression = "Variable_expression",
+    While_loop_expression = "While_loop_expression",
 }
 
 export interface Integer_type {
@@ -184,6 +190,10 @@ export interface Binary_expression {
     operation: Binary_operation;
 }
 
+export interface Block_expression {
+    statements: Vector<Statement>;
+}
+
 export interface Call_expression {
     expression: Expression_index;
     arguments: Vector<Expression_index>;
@@ -200,6 +210,23 @@ export interface Constant_expression {
     data: string;
 }
 
+export interface For_loop_expression {
+    variable_name: string;
+    range_type: Type_reference;
+    range_begin: number;
+    range_end: number;
+    then_expression: Expression_index;
+}
+
+export interface Condition_expression_pair {
+    expression: Expression_index;
+    condition?: Expression_index;
+}
+
+export interface If_expression {
+    series: Vector<Condition_expression_pair>;
+}
+
 export interface Invalid_expression {
     value: string;
 }
@@ -210,6 +237,23 @@ export interface Parenthesis_expression {
 
 export interface Return_expression {
     expression: Expression_index;
+}
+
+export interface Switch_case_expression_pair {
+    case_value: Expression_index;
+    then_expression: Expression_index;
+}
+
+export interface Switch_expression {
+    value: Expression_index;
+    cases: Vector<Switch_case_expression_pair>;
+    default_case_expression?: Expression_index;
+}
+
+export interface Ternary_condition_expression {
+    condition: Expression_index;
+    then_expression: Expression_index;
+    else_expression: Expression_index;
 }
 
 export interface Unary_expression {
@@ -223,8 +267,13 @@ export interface Variable_declaration_expression {
     right_hand_side: Expression_index;
 }
 
+export interface While_loop_expression {
+    condition: Expression_index;
+    then_expression: Expression_index;
+}
+
 export interface Expression {
-    data: Variant<Expression_enum, Access_expression | Assignment_expression | Binary_expression | Call_expression | Cast_expression | Constant_expression | Invalid_expression | Parenthesis_expression | Return_expression | Unary_expression | Variable_declaration_expression | Variable_expression>;
+    data: Variant<Expression_enum, Access_expression | Assignment_expression | Binary_expression | Block_expression | Call_expression | Cast_expression | Constant_expression | For_loop_expression | If_expression | Invalid_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_expression | While_loop_expression>;
 }
 
 export interface Statement {

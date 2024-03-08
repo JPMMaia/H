@@ -148,6 +148,8 @@ namespace h
         friend auto operator<=>(Struct_declaration const&, Struct_declaration const&) = default;
     };
 
+    struct Statement;
+
     export struct Variable_expression
     {
         std::pmr::string name;
@@ -214,6 +216,13 @@ namespace h
         friend auto operator<=>(Binary_expression const&, Binary_expression const&) = default;
     };
 
+    export struct Block_expression
+    {
+        std::pmr::vector<Statement> statements;
+
+        friend auto operator<=>(Block_expression const&, Block_expression const&) = default;
+    };
+
     export struct Call_expression
     {
         Expression_index expression;
@@ -245,6 +254,32 @@ namespace h
         friend auto operator<=>(Constant_expression const&, Constant_expression const&) = default;
     };
 
+    export struct For_loop_expression
+    {
+        std::pmr::string variable_name;
+        Type_reference range_type;
+        std::uint64_t range_begin;
+        std::uint64_t range_end;
+        Expression_index then_expression;
+
+        friend auto operator<=>(For_loop_expression const&, For_loop_expression const&) = default;
+    };
+
+    export struct Condition_expression_pair
+    {
+        Expression_index expression;
+        std::optional<Expression_index> condition;
+
+        friend auto operator<=>(Condition_expression_pair const&, Condition_expression_pair const&) = default;
+    };
+
+    export struct If_expression
+    {
+        std::pmr::vector<Condition_expression_pair> series;
+
+        friend auto operator<=>(If_expression const&, If_expression const&) = default;
+    };
+
     export struct Invalid_expression
     {
         std::pmr::string value;
@@ -264,6 +299,32 @@ namespace h
         Expression_index expression;
 
         friend auto operator<=>(Return_expression const&, Return_expression const&) = default;
+    };
+
+    export struct Switch_case_expression_pair
+    {
+        Expression_index case_value;
+        Expression_index then_expression;
+
+        friend auto operator<=>(Switch_case_expression_pair const&, Switch_case_expression_pair const&) = default;
+    };
+
+    export struct Switch_expression
+    {
+        Expression_index value;
+        std::pmr::vector<Switch_case_expression_pair> cases;
+        std::optional<Expression_index> default_case_expression;
+
+        friend auto operator<=>(Switch_expression const&, Switch_expression const&) = default;
+    };
+
+    export struct Ternary_condition_expression
+    {
+        Expression_index condition;
+        Expression_index then_expression;
+        Expression_index else_expression;
+
+        friend auto operator<=>(Ternary_condition_expression const&, Ternary_condition_expression const&) = default;
     };
 
     export enum class Unary_operation
@@ -296,21 +357,35 @@ namespace h
         friend auto operator<=>(Variable_declaration_expression const&, Variable_declaration_expression const&) = default;
     };
 
+    export struct While_loop_expression
+    {
+        Expression_index condition;
+        Expression_index then_expression;
+
+        friend auto operator<=>(While_loop_expression const&, While_loop_expression const&) = default;
+    };
+
     export struct Expression
     {
         using Data_type = std::variant<
             Access_expression,
             Assignment_expression,
             Binary_expression,
+            Block_expression,
             Call_expression,
             Cast_expression,
             Constant_expression,
+            For_loop_expression,
+            If_expression,
             Invalid_expression,
             Parenthesis_expression,
             Return_expression,
+            Switch_expression,
+            Ternary_condition_expression,
             Unary_expression,
             Variable_declaration_expression,
-            Variable_expression
+            Variable_expression,
+            While_loop_expression
         >;
 
         Data_type data;

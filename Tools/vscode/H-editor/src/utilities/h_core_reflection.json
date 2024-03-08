@@ -373,6 +373,17 @@
             ]
         },
         {
+            "name": "Block_expression",
+            "members": [
+                {
+                    "type": {
+                        "name": "std::pmr::vector<Statement>"
+                    },
+                    "name": "statements"
+                }
+            ]
+        },
+        {
             "name": "Call_expression",
             "members": [
                 {
@@ -430,6 +441,69 @@
             ]
         },
         {
+            "name": "For_loop_expression",
+            "members": [
+                {
+                    "type": {
+                        "name": "std::pmr::string"
+                    },
+                    "name": "variable_name"
+                },
+                {
+                    "type": {
+                        "name": "Type_reference"
+                    },
+                    "name": "range_type"
+                },
+                {
+                    "type": {
+                        "name": "std::uint64_t"
+                    },
+                    "name": "range_begin"
+                },
+                {
+                    "type": {
+                        "name": "std::uint64_t"
+                    },
+                    "name": "range_end"
+                },
+                {
+                    "type": {
+                        "name": "Expression_index"
+                    },
+                    "name": "then_expression"
+                }
+            ]
+        },
+        {
+            "name": "Condition_expression_pair",
+            "members": [
+                {
+                    "type": {
+                        "name": "Expression_index"
+                    },
+                    "name": "expression"
+                },
+                {
+                    "type": {
+                        "name": "std::optional<Expression_index>"
+                    },
+                    "name": "condition"
+                }
+            ]
+        },
+        {
+            "name": "If_expression",
+            "members": [
+                {
+                    "type": {
+                        "name": "std::pmr::vector<Condition_expression_pair>"
+                    },
+                    "name": "series"
+                }
+            ]
+        },
+        {
             "name": "Invalid_expression",
             "members": [
                 {
@@ -459,6 +533,69 @@
                         "name": "Expression_index"
                     },
                     "name": "expression"
+                }
+            ]
+        },
+        {
+            "name": "Switch_case_expression_pair",
+            "members": [
+                {
+                    "type": {
+                        "name": "Expression_index"
+                    },
+                    "name": "case_value"
+                },
+                {
+                    "type": {
+                        "name": "Expression_index"
+                    },
+                    "name": "then_expression"
+                }
+            ]
+        },
+        {
+            "name": "Switch_expression",
+            "members": [
+                {
+                    "type": {
+                        "name": "Expression_index"
+                    },
+                    "name": "value"
+                },
+                {
+                    "type": {
+                        "name": "std::pmr::vector<Switch_case_expression_pair>"
+                    },
+                    "name": "cases"
+                },
+                {
+                    "type": {
+                        "name": "std::optional<Expression_index>"
+                    },
+                    "name": "default_case_expression"
+                }
+            ]
+        },
+        {
+            "name": "Ternary_condition_expression",
+            "members": [
+                {
+                    "type": {
+                        "name": "Expression_index"
+                    },
+                    "name": "condition"
+                },
+                {
+                    "type": {
+                        "name": "Expression_index"
+                    },
+                    "name": "then_expression"
+                },
+                {
+                    "type": {
+                        "name": "Expression_index"
+                    },
+                    "name": "else_expression"
                 }
             ]
         },
@@ -503,11 +640,28 @@
             ]
         },
         {
+            "name": "While_loop_expression",
+            "members": [
+                {
+                    "type": {
+                        "name": "Expression_index"
+                    },
+                    "name": "condition"
+                },
+                {
+                    "type": {
+                        "name": "Expression_index"
+                    },
+                    "name": "then_expression"
+                }
+            ]
+        },
+        {
             "name": "Expression",
             "members": [
                 {
                     "type": {
-                        "name": "std::variant<Access_expression,Assignment_expression,Binary_expression,Call_expression,Cast_expression,Constant_expression,Invalid_expression,Parenthesis_expression,Return_expression,Unary_expression,Variable_declaration_expression,Variable_expression>"
+                        "name": "std::variant<Access_expression,Assignment_expression,Binary_expression,Block_expression,Call_expression,Cast_expression,Constant_expression,For_loop_expression,If_expression,Invalid_expression,Parenthesis_expression,Return_expression,Switch_expression,Ternary_condition_expression,Unary_expression,Variable_declaration_expression,Variable_expression,While_loop_expression>"
                     },
                     "name": "data"
                 }
