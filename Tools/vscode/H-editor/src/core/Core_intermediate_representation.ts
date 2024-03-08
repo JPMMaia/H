@@ -272,15 +272,21 @@ export enum Expression_enum {
     Access_expression = "Access_expression",
     Assignment_expression = "Assignment_expression",
     Binary_expression = "Binary_expression",
+    Block_expression = "Block_expression",
     Call_expression = "Call_expression",
     Cast_expression = "Cast_expression",
     Constant_expression = "Constant_expression",
+    For_loop_expression = "For_loop_expression",
+    If_expression = "If_expression",
     Invalid_expression = "Invalid_expression",
     Parenthesis_expression = "Parenthesis_expression",
     Return_expression = "Return_expression",
+    Switch_expression = "Switch_expression",
+    Ternary_condition_expression = "Ternary_condition_expression",
     Unary_expression = "Unary_expression",
     Variable_declaration_expression = "Variable_declaration_expression",
     Variable_expression = "Variable_expression",
+    While_loop_expression = "While_loop_expression",
 }
 
 export interface Integer_type {
@@ -780,6 +786,32 @@ function intermediate_to_core_binary_expression(intermediate_value: Binary_expre
     intermediate_to_core_expression(intermediate_value.right_hand_side, expressions);
 }
 
+export interface Block_expression {
+    statements: Statement[];
+}
+
+function core_to_intermediate_block_expression(core_value: Core.Block_expression, statement: Core.Statement): Block_expression {
+    return {
+        statements: core_value.statements.elements.map(value => core_to_intermediate_statement(value)),
+    };
+}
+
+function intermediate_to_core_block_expression(intermediate_value: Block_expression, expressions: Core.Expression[]): void {
+    const core_value: Core.Expression = {
+        data: {
+            type: Core.Expression_enum.Block_expression,
+            value: {
+                statements: {
+                    size: intermediate_value.statements.length,
+                    elements: intermediate_value.statements.map(value => intermediate_to_core_statement(value))
+                },
+            }
+        }
+    };
+
+    expressions.push(core_value);
+}
+
 export interface Call_expression {
     expression: Expression;
     arguments: Expression[];
@@ -814,7 +846,7 @@ function intermediate_to_core_call_expression(intermediate_value: Call_expressio
     intermediate_to_core_expression(intermediate_value.expression, expressions);
 
     for (const element of intermediate_value.arguments) {
-        (core_value.data.value as Core.Call_expression).arguments.elements.push({expression_index: expressions.length});
+        (core_value.data.value as Core.Call_expression).arguments.elements.push({ expression_index: expressions.length });
         intermediate_to_core_expression(element, expressions);
     }
     (core_value.data.value as Core.Call_expression).arguments.size = (core_value.data.value as Core.Call_expression).arguments.elements.length;
@@ -873,6 +905,103 @@ function intermediate_to_core_constant_expression(intermediate_value: Constant_e
             value: {
                 type: intermediate_to_core_type_reference(intermediate_value.type),
                 data: intermediate_value.data,
+            }
+        }
+    };
+
+    expressions.push(core_value);
+}
+
+export interface For_loop_expression {
+    variable_name: string;
+    range_type: Type_reference;
+    range_begin: number;
+    range_end: number;
+    then_expression: Expression;
+}
+
+function core_to_intermediate_for_loop_expression(core_value: Core.For_loop_expression, statement: Core.Statement): For_loop_expression {
+    return {
+        variable_name: core_value.variable_name,
+        range_type: core_to_intermediate_type_reference(core_value.range_type),
+        range_begin: core_value.range_begin,
+        range_end: core_value.range_end,
+        then_expression: core_to_intermediate_expression(statement.expressions.elements[core_value.then_expression.expression_index], statement),
+    };
+}
+
+function intermediate_to_core_for_loop_expression(intermediate_value: For_loop_expression, expressions: Core.Expression[]): void {
+    const core_value: Core.Expression = {
+        data: {
+            type: Core.Expression_enum.For_loop_expression,
+            value: {
+                variable_name: intermediate_value.variable_name,
+                range_type: intermediate_to_core_type_reference(intermediate_value.range_type),
+                range_begin: intermediate_value.range_begin,
+                range_end: intermediate_value.range_end,
+                then_expression: {
+                    expression_index: -1
+                },
+            }
+        }
+    };
+
+    expressions.push(core_value);
+
+    (core_value.data.value as Core.For_loop_expression).then_expression.expression_index = expressions.length;
+    intermediate_to_core_expression(intermediate_value.then_expression, expressions);
+}
+
+export interface Condition_expression_pair {
+    expression: Expression;
+    condition?: Expression;
+}
+
+function core_to_intermediate_condition_expression_pair(core_value: Core.Condition_expression_pair, statement: Core.Statement): Condition_expression_pair {
+    return {
+        expression: core_to_intermediate_expression(statement.expressions.elements[core_value.expression.expression_index], statement),
+        condition: core_value.condition !== undefined ? core_to_intermediate_expression(statement.expressions.elements[core_value.condition.expression_index], statement) : undefined,
+    };
+}
+
+function intermediate_to_core_condition_expression_pair(intermediate_value: Condition_expression_pair, expressions: Core.Expression[]): Core.Condition_expression_pair {
+    const core_value: Core.Condition_expression_pair = {
+        expression: {
+            expression_index: -1
+        },
+        condition: intermediate_value.condition !== undefined ? { expression_index: -1 } : undefined
+    };
+
+    core_value.expression.expression_index = expressions.length;
+    intermediate_to_core_expression(intermediate_value.expression, expressions);
+
+    if (intermediate_value.condition !== undefined) {
+        core_value.condition = { expression_index: expressions.length };
+        intermediate_to_core_expression(intermediate_value.condition, expressions);
+    }
+
+    return core_value;
+}
+
+export interface If_expression {
+    series: Condition_expression_pair[];
+}
+
+function core_to_intermediate_if_expression(core_value: Core.If_expression, statement: Core.Statement): If_expression {
+    return {
+        series: core_value.series.elements.map(value => core_to_intermediate_condition_expression_pair(value, statement)),
+    };
+}
+
+function intermediate_to_core_if_expression(intermediate_value: If_expression, expressions: Core.Expression[]): void {
+    const core_value: Core.Expression = {
+        data: {
+            type: Core.Expression_enum.If_expression,
+            value: {
+                series: {
+                    size: intermediate_value.series.length,
+                    elements: intermediate_value.series.map(value => intermediate_to_core_condition_expression_pair(value, expressions))
+                },
             }
         }
     };
@@ -959,6 +1088,123 @@ function intermediate_to_core_return_expression(intermediate_value: Return_expre
     intermediate_to_core_expression(intermediate_value.expression, expressions);
 }
 
+export interface Switch_case_expression_pair {
+    case_value: Expression;
+    then_expression: Expression;
+}
+
+function core_to_intermediate_switch_case_expression_pair(core_value: Core.Switch_case_expression_pair, statement: Core.Statement): Switch_case_expression_pair {
+    return {
+        case_value: core_to_intermediate_expression(statement.expressions.elements[core_value.case_value.expression_index], statement),
+        then_expression: core_to_intermediate_expression(statement.expressions.elements[core_value.then_expression.expression_index], statement),
+    };
+}
+
+function intermediate_to_core_switch_case_expression_pair(intermediate_value: Switch_case_expression_pair, expressions: Core.Expression[]): Core.Switch_case_expression_pair {
+    const core_value: Core.Switch_case_expression_pair = {
+        case_value: {
+            expression_index: -1
+        },
+        then_expression: {
+            expression_index: -1
+        },
+    };
+
+    core_value.case_value.expression_index = expressions.length;
+    intermediate_to_core_expression(intermediate_value.case_value, expressions);
+
+    core_value.then_expression.expression_index = expressions.length;
+    intermediate_to_core_expression(intermediate_value.then_expression, expressions);
+
+    return core_value;
+}
+
+export interface Switch_expression {
+    value: Expression;
+    cases: Switch_case_expression_pair[];
+    default_case_expression?: Expression;
+}
+
+function core_to_intermediate_switch_expression(core_value: Core.Switch_expression, statement: Core.Statement): Switch_expression {
+    return {
+        value: core_to_intermediate_expression(statement.expressions.elements[core_value.value.expression_index], statement),
+        cases: core_value.cases.elements.map(value => core_to_intermediate_switch_case_expression_pair(value, statement)),
+        default_case_expression: core_value.default_case_expression !== undefined ? core_to_intermediate_expression(statement.expressions.elements[core_value.default_case_expression.expression_index], statement) : undefined,
+    };
+}
+
+function intermediate_to_core_switch_expression(intermediate_value: Switch_expression, expressions: Core.Expression[]): void {
+    const core_value: Core.Expression = {
+        data: {
+            type: Core.Expression_enum.Switch_expression,
+            value: {
+                value: {
+                    expression_index: -1
+                },
+                cases: {
+                    size: intermediate_value.cases.length,
+                    elements: intermediate_value.cases.map(value => intermediate_to_core_switch_case_expression_pair(value, expressions))
+                },
+                default_case_expression: intermediate_value.default_case_expression !== undefined ? { expression_index: -1 } : undefined
+            }
+        }
+    };
+
+    expressions.push(core_value);
+
+    (core_value.data.value as Core.Switch_expression).value.expression_index = expressions.length;
+    intermediate_to_core_expression(intermediate_value.value, expressions);
+
+    if (intermediate_value.default_case_expression !== undefined) {
+        (core_value.data.value as Core.Switch_expression).default_case_expression = { expression_index: expressions.length };
+        intermediate_to_core_expression(intermediate_value.default_case_expression, expressions);
+    }
+}
+
+export interface Ternary_condition_expression {
+    condition: Expression;
+    then_expression: Expression;
+    else_expression: Expression;
+}
+
+function core_to_intermediate_ternary_condition_expression(core_value: Core.Ternary_condition_expression, statement: Core.Statement): Ternary_condition_expression {
+    return {
+        condition: core_to_intermediate_expression(statement.expressions.elements[core_value.condition.expression_index], statement),
+        then_expression: core_to_intermediate_expression(statement.expressions.elements[core_value.then_expression.expression_index], statement),
+        else_expression: core_to_intermediate_expression(statement.expressions.elements[core_value.else_expression.expression_index], statement),
+    };
+}
+
+function intermediate_to_core_ternary_condition_expression(intermediate_value: Ternary_condition_expression, expressions: Core.Expression[]): void {
+    const core_value: Core.Expression = {
+        data: {
+            type: Core.Expression_enum.Ternary_condition_expression,
+            value: {
+                condition: {
+                    expression_index: -1
+                },
+                then_expression: {
+                    expression_index: -1
+                },
+                else_expression: {
+                    expression_index: -1
+                },
+            }
+        }
+    };
+
+    expressions.push(core_value);
+
+    (core_value.data.value as Core.Ternary_condition_expression).condition.expression_index = expressions.length;
+    intermediate_to_core_expression(intermediate_value.condition, expressions);
+
+    (core_value.data.value as Core.Ternary_condition_expression).then_expression.expression_index = expressions.length;
+    intermediate_to_core_expression(intermediate_value.then_expression, expressions);
+
+    (core_value.data.value as Core.Ternary_condition_expression).else_expression.expression_index = expressions.length;
+    intermediate_to_core_expression(intermediate_value.else_expression, expressions);
+}
+
 export interface Unary_expression {
     expression: Expression;
     operation: Unary_operation;
@@ -1024,8 +1270,44 @@ function intermediate_to_core_variable_declaration_expression(intermediate_value
     intermediate_to_core_expression(intermediate_value.right_hand_side, expressions);
 }
 
+export interface While_loop_expression {
+    condition: Expression;
+    then_expression: Expression;
+}
+
+function core_to_intermediate_while_loop_expression(core_value: Core.While_loop_expression, statement: Core.Statement): While_loop_expression {
+    return {
+        condition: core_to_intermediate_expression(statement.expressions.elements[core_value.condition.expression_index], statement),
+        then_expression: core_to_intermediate_expression(statement.expressions.elements[core_value.then_expression.expression_index], statement),
+    };
+}
+
+function intermediate_to_core_while_loop_expression(intermediate_value: While_loop_expression, expressions: Core.Expression[]): void {
+    const core_value: Core.Expression = {
+        data: {
+            type: Core.Expression_enum.While_loop_expression,
+            value: {
+                condition: {
+                    expression_index: -1
+                },
+                then_expression: {
+                    expression_index: -1
+                },
+            }
+        }
+    };
+
+    expressions.push(core_value);
+
+    (core_value.data.value as Core.While_loop_expression).condition.expression_index = expressions.length;
+    intermediate_to_core_expression(intermediate_value.condition, expressions);
+
+    (core_value.data.value as Core.While_loop_expression).then_expression.expression_index = expressions.length;
+    intermediate_to_core_expression(intermediate_value.then_expression, expressions);
+}
+
 export interface Expression {
-    data: Variant<Expression_enum, Access_expression | Assignment_expression | Binary_expression | Call_expression | Cast_expression | Constant_expression | Invalid_expression | Parenthesis_expression | Return_expression | Unary_expression | Variable_declaration_expression | Variable_expression>;
+    data: Variant<Expression_enum, Access_expression | Assignment_expression | Binary_expression | Block_expression | Call_expression | Cast_expression | Constant_expression | For_loop_expression | If_expression | Invalid_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_expression | While_loop_expression>;
 }
 
 function core_to_intermediate_expression(core_value: Core.Expression, statement: Core.Statement): Expression {
@@ -1054,6 +1336,14 @@ function core_to_intermediate_expression(core_value: Core.Expression, statement:
                 }
             };
         }
+        case Core.Expression_enum.Block_expression: {
+            return {
+                data: {
+                    type: core_value.data.type,
+                    value: core_to_intermediate_block_expression(core_value.data.value as Core.Block_expression, statement)
+                }
+            };
+        }
         case Core.Expression_enum.Call_expression: {
             return {
                 data: {
@@ -1075,6 +1365,22 @@ function core_to_intermediate_expression(core_value: Core.Expression, statement:
                 data: {
                     type: core_value.data.type,
                     value: core_to_intermediate_constant_expression(core_value.data.value as Core.Constant_expression, statement)
+                }
+            };
+        }
+        case Core.Expression_enum.For_loop_expression: {
+            return {
+                data: {
+                    type: core_value.data.type,
+                    value: core_to_intermediate_for_loop_expression(core_value.data.value as Core.For_loop_expression, statement)
+                }
+            };
+        }
+        case Core.Expression_enum.If_expression: {
+            return {
+                data: {
+                    type: core_value.data.type,
+                    value: core_to_intermediate_if_expression(core_value.data.value as Core.If_expression, statement)
                 }
             };
         }
@@ -1102,6 +1408,22 @@ function core_to_intermediate_expression(core_value: Core.Expression, statement:
                 }
             };
         }
+        case Core.Expression_enum.Switch_expression: {
+            return {
+                data: {
+                    type: core_value.data.type,
+                    value: core_to_intermediate_switch_expression(core_value.data.value as Core.Switch_expression, statement)
+                }
+            };
+        }
+        case Core.Expression_enum.Ternary_condition_expression: {
+            return {
+                data: {
+                    type: core_value.data.type,
+                    value: core_to_intermediate_ternary_condition_expression(core_value.data.value as Core.Ternary_condition_expression, statement)
+                }
+            };
+        }
         case Core.Expression_enum.Unary_expression: {
             return {
                 data: {
@@ -1126,6 +1448,14 @@ function core_to_intermediate_expression(core_value: Core.Expression, statement:
                 }
             };
         }
+        case Core.Expression_enum.While_loop_expression: {
+            return {
+                data: {
+                    type: core_value.data.type,
+                    value: core_to_intermediate_while_loop_expression(core_value.data.value as Core.While_loop_expression, statement)
+                }
+            };
+        }
     }
 }
 
@@ -1143,6 +1473,10 @@ function intermediate_to_core_expression(intermediate_value: Expression, express
             intermediate_to_core_binary_expression(intermediate_value.data.value as Binary_expression, expressions);
             break;
         }
+        case Expression_enum.Block_expression: {
+            intermediate_to_core_block_expression(intermediate_value.data.value as Block_expression, expressions);
+            break;
+        }
         case Expression_enum.Call_expression: {
             intermediate_to_core_call_expression(intermediate_value.data.value as Call_expression, expressions);
             break;
@@ -1153,6 +1487,14 @@ function intermediate_to_core_expression(intermediate_value: Expression, express
         }
         case Expression_enum.Constant_expression: {
             intermediate_to_core_constant_expression(intermediate_value.data.value as Constant_expression, expressions);
+            break;
+        }
+        case Expression_enum.For_loop_expression: {
+            intermediate_to_core_for_loop_expression(intermediate_value.data.value as For_loop_expression, expressions);
+            break;
+        }
+        case Expression_enum.If_expression: {
+            intermediate_to_core_if_expression(intermediate_value.data.value as If_expression, expressions);
             break;
         }
         case Expression_enum.Invalid_expression: {
@@ -1167,6 +1509,14 @@ function intermediate_to_core_expression(intermediate_value: Expression, express
             intermediate_to_core_return_expression(intermediate_value.data.value as Return_expression, expressions);
             break;
         }
+        case Expression_enum.Switch_expression: {
+            intermediate_to_core_switch_expression(intermediate_value.data.value as Switch_expression, expressions);
+            break;
+        }
+        case Expression_enum.Ternary_condition_expression: {
+            intermediate_to_core_ternary_condition_expression(intermediate_value.data.value as Ternary_condition_expression, expressions);
+            break;
+        }
         case Expression_enum.Unary_expression: {
             intermediate_to_core_unary_expression(intermediate_value.data.value as Unary_expression, expressions);
             break;
@@ -1177,6 +1527,10 @@ function intermediate_to_core_expression(intermediate_value: Expression, express
         }
         case Expression_enum.Variable_expression: {
             intermediate_to_core_variable_expression(intermediate_value.data.value as Variable_expression, expressions);
+            break;
+        }
+        case Expression_enum.While_loop_expression: {
+            intermediate_to_core_while_loop_expression(intermediate_value.data.value as While_loop_expression, expressions);
             break;
         }
     }
