@@ -1,5 +1,5 @@
 import * as core from "./Core_interface";
-import * as Core_intermediate_representation from "./Core_intermediate_representation";
+import * as IR from "./Core_intermediate_representation";
 import * as core_reflection from "./Core_reflection";
 
 export function create_empty(): core.Module {
@@ -710,7 +710,7 @@ export function create_function_example(): core.Module {
     return module;
 }
 
-export function create_function_calling_module_function_example(): Core_intermediate_representation.Module {
+export function create_function_calling_module_function_example(): IR.Module {
 
     return {
         name: "function_calling_module_function_example",
@@ -724,7 +724,7 @@ export function create_function_calling_module_function_example(): Core_intermed
         declarations: [
             {
                 name: "My_function",
-                type: Core_intermediate_representation.Declaration_type.Function,
+                type: IR.Declaration_type.Function,
                 is_export: true,
                 value: {
                     declaration: {
@@ -743,10 +743,10 @@ export function create_function_calling_module_function_example(): Core_intermed
                         statements: [
                             {
                                 name: "",
-                                expression: create_call_expression(
-                                    create_access_expression(create_variable_expression("stdio"), "printf"),
+                                expression: IR.create_call_expression(
+                                    IR.create_access_expression(IR.create_variable_expression("stdio"), "printf"),
                                     [
-                                        create_constant_expression(create_pointer_type([create_fundamental_type(Core_intermediate_representation.Fundamental_type.C_char)], false), "Hello world!")
+                                        IR.create_constant_expression(create_pointer_type([create_fundamental_type(IR.Fundamental_type.C_char)], false), "Hello world!")
                                     ]
                                 ),
                             },
@@ -783,7 +783,7 @@ export function create_module_with_dependencies(): core.Module {
     return module;
 }
 
-export function create_hello_world(): Core_intermediate_representation.Module {
+export function create_hello_world(): IR.Module {
     return {
         name: "Hello_world",
         imports: [
@@ -796,7 +796,7 @@ export function create_hello_world(): Core_intermediate_representation.Module {
         declarations: [
             {
                 name: "main",
-                type: Core_intermediate_representation.Declaration_type.Function,
+                type: IR.Declaration_type.Function,
                 is_export: true,
                 value: {
                     declaration: {
@@ -805,7 +805,7 @@ export function create_hello_world(): Core_intermediate_representation.Module {
                             input_parameter_types: [],
                             output_parameter_types: [{
                                 data: {
-                                    type: Core_intermediate_representation.Type_reference_enum.Integer_type,
+                                    type: IR.Type_reference_enum.Integer_type,
                                     value: {
                                         number_of_bits: 32,
                                         is_signed: true
@@ -816,17 +816,17 @@ export function create_hello_world(): Core_intermediate_representation.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: ["result"],
-                        linkage: Core_intermediate_representation.Linkage.External
+                        linkage: IR.Linkage.External
                     },
                     definition: {
                         name: "main",
                         statements: [
                             {
                                 name: "",
-                                expression: create_call_expression(create_access_expression(create_variable_expression("stdio"), "puts"), [
+                                expression: IR.create_call_expression(IR.create_access_expression(IR.create_variable_expression("stdio"), "puts"), [
                                     {
                                         data: {
-                                            type: Core_intermediate_representation.Expression_enum.Constant_expression,
+                                            type: IR.Expression_enum.Constant_expression,
                                             value: {
                                                 type: {
                                                     data: {
@@ -854,11 +854,11 @@ export function create_hello_world(): Core_intermediate_representation.Module {
                                 name: "",
                                 expression: {
                                     data: {
-                                        type: Core_intermediate_representation.Expression_enum.Return_expression,
+                                        type: IR.Expression_enum.Return_expression,
                                         value: {
                                             expression: {
                                                 data: {
-                                                    type: Core_intermediate_representation.Expression_enum.Constant_expression,
+                                                    type: IR.Expression_enum.Constant_expression,
                                                     value: {
                                                         type: {
                                                             data: {
@@ -885,14 +885,14 @@ export function create_hello_world(): Core_intermediate_representation.Module {
     };
 }
 
-export function create_variables(): Core_intermediate_representation.Module {
+export function create_variables(): IR.Module {
     return {
         name: "Variables",
         imports: [],
         declarations: [
             {
                 name: "main",
-                type: Core_intermediate_representation.Declaration_type.Function,
+                type: IR.Declaration_type.Function,
                 is_export: true,
                 value: {
                     declaration: {
@@ -901,7 +901,7 @@ export function create_variables(): Core_intermediate_representation.Module {
                             input_parameter_types: [],
                             output_parameter_types: [{
                                 data: {
-                                    type: Core_intermediate_representation.Type_reference_enum.Integer_type,
+                                    type: IR.Type_reference_enum.Integer_type,
                                     value: {
                                         number_of_bits: 32,
                                         is_signed: true
@@ -912,7 +912,7 @@ export function create_variables(): Core_intermediate_representation.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: ["result"],
-                        linkage: Core_intermediate_representation.Linkage.External
+                        linkage: IR.Linkage.External
                     },
                     definition: {
                         name: "main",
@@ -921,13 +921,13 @@ export function create_variables(): Core_intermediate_representation.Module {
                                 name: "",
                                 expression: {
                                     data: {
-                                        type: Core_intermediate_representation.Expression_enum.Variable_declaration_expression,
+                                        type: IR.Expression_enum.Variable_declaration_expression,
                                         value: {
                                             name: "my_constant_variable",
                                             is_mutable: false,
                                             right_hand_side: {
                                                 data: {
-                                                    type: Core_intermediate_representation.Expression_enum.Constant_expression,
+                                                    type: IR.Expression_enum.Constant_expression,
                                                     value: {
                                                         type: {
                                                             data: {
@@ -950,13 +950,13 @@ export function create_variables(): Core_intermediate_representation.Module {
                                 name: "",
                                 expression: {
                                     data: {
-                                        type: Core_intermediate_representation.Expression_enum.Variable_declaration_expression,
+                                        type: IR.Expression_enum.Variable_declaration_expression,
                                         value: {
                                             name: "my_mutable_variable",
                                             is_mutable: true,
                                             right_hand_side: {
                                                 data: {
-                                                    type: Core_intermediate_representation.Expression_enum.Constant_expression,
+                                                    type: IR.Expression_enum.Constant_expression,
                                                     value: {
                                                         type: {
                                                             data: {
@@ -979,11 +979,11 @@ export function create_variables(): Core_intermediate_representation.Module {
                                 name: "",
                                 expression: {
                                     data: {
-                                        type: Core_intermediate_representation.Expression_enum.Assignment_expression,
+                                        type: IR.Expression_enum.Assignment_expression,
                                         value: {
                                             left_hand_side: {
                                                 data: {
-                                                    type: Core_intermediate_representation.Expression_enum.Variable_expression,
+                                                    type: IR.Expression_enum.Variable_expression,
                                                     value: {
                                                         name: "my_mutable_variable"
                                                     }
@@ -991,7 +991,7 @@ export function create_variables(): Core_intermediate_representation.Module {
                                             },
                                             right_hand_side: {
                                                 data: {
-                                                    type: Core_intermediate_representation.Expression_enum.Constant_expression,
+                                                    type: IR.Expression_enum.Constant_expression,
                                                     value: {
                                                         type: {
                                                             data: {
@@ -1015,11 +1015,11 @@ export function create_variables(): Core_intermediate_representation.Module {
                                 name: "",
                                 expression: {
                                     data: {
-                                        type: Core_intermediate_representation.Expression_enum.Return_expression,
+                                        type: IR.Expression_enum.Return_expression,
                                         value: {
                                             expression: {
                                                 data: {
-                                                    type: Core_intermediate_representation.Expression_enum.Constant_expression,
+                                                    type: IR.Expression_enum.Constant_expression,
                                                     value: {
                                                         type: {
                                                             data: {
@@ -1046,30 +1046,30 @@ export function create_variables(): Core_intermediate_representation.Module {
     };
 }
 
-export function create_numbers(): Core_intermediate_representation.Module {
+export function create_numbers(): IR.Module {
 
-    const constant_expressions: [string, Core_intermediate_representation.Expression][] = [
-        ["my_int8", create_constant_expression(create_integer_type(8, true), "1")],
-        ["my_int16", create_constant_expression(create_integer_type(16, true), "1")],
-        ["my_int32", create_constant_expression(create_integer_type(32, true), "1")],
-        ["my_int64", create_constant_expression(create_integer_type(64, true), "1")],
-        ["my_uint8", create_constant_expression(create_integer_type(8, false), "1")],
-        ["my_uint16", create_constant_expression(create_integer_type(16, false), "1")],
-        ["my_uint32", create_constant_expression(create_integer_type(32, false), "1")],
-        ["my_uint64", create_constant_expression(create_integer_type(64, false), "1")],
-        ["my_float16", create_constant_expression(create_fundamental_type(Core_intermediate_representation.Fundamental_type.Float16), "1.0")],
-        ["my_float32", create_constant_expression(create_fundamental_type(Core_intermediate_representation.Fundamental_type.Float32), "1.0")],
-        ["my_float64", create_constant_expression(create_fundamental_type(Core_intermediate_representation.Fundamental_type.Float64), "1.0")],
+    const constant_expressions: [string, IR.Expression][] = [
+        ["my_int8", IR.create_constant_expression(create_integer_type(8, true), "1")],
+        ["my_int16", IR.create_constant_expression(create_integer_type(16, true), "1")],
+        ["my_int32", IR.create_constant_expression(create_integer_type(32, true), "1")],
+        ["my_int64", IR.create_constant_expression(create_integer_type(64, true), "1")],
+        ["my_uint8", IR.create_constant_expression(create_integer_type(8, false), "1")],
+        ["my_uint16", IR.create_constant_expression(create_integer_type(16, false), "1")],
+        ["my_uint32", IR.create_constant_expression(create_integer_type(32, false), "1")],
+        ["my_uint64", IR.create_constant_expression(create_integer_type(64, false), "1")],
+        ["my_float16", IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float16), "1.0")],
+        ["my_float32", IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float32), "1.0")],
+        ["my_float64", IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float64), "1.0")],
     ];
 
-    const statements: Core_intermediate_representation.Statement[] = [];
+    const statements: IR.Statement[] = [];
 
     for (const constant_expression of constant_expressions) {
-        const statement: Core_intermediate_representation.Statement = {
+        const statement: IR.Statement = {
             name: "",
             expression: {
                 data: {
-                    type: Core_intermediate_representation.Expression_enum.Variable_declaration_expression,
+                    type: IR.Expression_enum.Variable_declaration_expression,
                     value: {
                         name: constant_expression[0],
                         is_mutable: false,
@@ -1087,7 +1087,7 @@ export function create_numbers(): Core_intermediate_representation.Module {
         declarations: [
             {
                 name: "main",
-                type: Core_intermediate_representation.Declaration_type.Function,
+                type: IR.Declaration_type.Function,
                 is_export: true,
                 value: {
                     declaration: {
@@ -1096,7 +1096,7 @@ export function create_numbers(): Core_intermediate_representation.Module {
                             input_parameter_types: [],
                             output_parameter_types: [{
                                 data: {
-                                    type: Core_intermediate_representation.Type_reference_enum.Integer_type,
+                                    type: IR.Type_reference_enum.Integer_type,
                                     value: {
                                         number_of_bits: 32,
                                         is_signed: true
@@ -1107,7 +1107,7 @@ export function create_numbers(): Core_intermediate_representation.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: ["result"],
-                        linkage: Core_intermediate_representation.Linkage.External
+                        linkage: IR.Linkage.External
                     },
                     definition: {
                         name: "main",
@@ -1117,11 +1117,11 @@ export function create_numbers(): Core_intermediate_representation.Module {
                                 name: "",
                                 expression: {
                                     data: {
-                                        type: Core_intermediate_representation.Expression_enum.Return_expression,
+                                        type: IR.Expression_enum.Return_expression,
                                         value: {
                                             expression: {
                                                 data: {
-                                                    type: Core_intermediate_representation.Expression_enum.Constant_expression,
+                                                    type: IR.Expression_enum.Constant_expression,
                                                     value: {
                                                         type: {
                                                             data: {
@@ -1148,40 +1148,40 @@ export function create_numbers(): Core_intermediate_representation.Module {
     };
 }
 
-export function create_numeric_casts(): Core_intermediate_representation.Module {
+export function create_numeric_casts(): IR.Module {
 
-    const constant_expressions: [string, Core_intermediate_representation.Expression][] = [
-        ["i64_to_i8", create_numeric_cast_expression(create_constant_expression(create_integer_type(64, true), "1"), create_integer_type(8, true))],
-        ["i64_to_i16", create_numeric_cast_expression(create_constant_expression(create_integer_type(64, true), "1"), create_integer_type(16, true))],
-        ["i64_to_i32", create_numeric_cast_expression(create_constant_expression(create_integer_type(64, true), "1"), create_integer_type(32, true))],
+    const constant_expressions: [string, IR.Expression][] = [
+        ["i64_to_i8", IR.create_cast_expression(IR.create_constant_expression(create_integer_type(64, true), "1"), create_integer_type(8, true), IR.Cast_type.Numeric)],
+        ["i64_to_i16", IR.create_cast_expression(IR.create_constant_expression(create_integer_type(64, true), "1"), create_integer_type(16, true), IR.Cast_type.Numeric)],
+        ["i64_to_i32", IR.create_cast_expression(IR.create_constant_expression(create_integer_type(64, true), "1"), create_integer_type(32, true), IR.Cast_type.Numeric)],
 
-        ["u64_to_u8", create_numeric_cast_expression(create_constant_expression(create_integer_type(64, false), "1"), create_integer_type(8, false))],
-        ["u64_to_u16", create_numeric_cast_expression(create_constant_expression(create_integer_type(64, false), "1"), create_integer_type(16, false))],
-        ["u64_to_u32", create_numeric_cast_expression(create_constant_expression(create_integer_type(64, false), "1"), create_integer_type(32, false))],
+        ["u64_to_u8", IR.create_cast_expression(IR.create_constant_expression(create_integer_type(64, false), "1"), create_integer_type(8, false), IR.Cast_type.Numeric)],
+        ["u64_to_u16", IR.create_cast_expression(IR.create_constant_expression(create_integer_type(64, false), "1"), create_integer_type(16, false), IR.Cast_type.Numeric)],
+        ["u64_to_u32", IR.create_cast_expression(IR.create_constant_expression(create_integer_type(64, false), "1"), create_integer_type(32, false), IR.Cast_type.Numeric)],
 
-        ["i8_to_i16", create_numeric_cast_expression(create_constant_expression(create_integer_type(8, true), "1"), create_integer_type(16, true))],
-        ["u8_to_u16", create_numeric_cast_expression(create_constant_expression(create_integer_type(8, false), "1"), create_integer_type(16, false))],
+        ["i8_to_i16", IR.create_cast_expression(IR.create_constant_expression(create_integer_type(8, true), "1"), create_integer_type(16, true), IR.Cast_type.Numeric)],
+        ["u8_to_u16", IR.create_cast_expression(IR.create_constant_expression(create_integer_type(8, false), "1"), create_integer_type(16, false), IR.Cast_type.Numeric)],
 
-        ["i32_to_u32", create_numeric_cast_expression(create_constant_expression(create_integer_type(32, true), "1"), create_integer_type(32, false))],
-        ["u32_to_i32", create_numeric_cast_expression(create_constant_expression(create_integer_type(32, false), "1"), create_integer_type(32, true))],
+        ["i32_to_u32", IR.create_cast_expression(IR.create_constant_expression(create_integer_type(32, true), "1"), create_integer_type(32, false), IR.Cast_type.Numeric)],
+        ["u32_to_i32", IR.create_cast_expression(IR.create_constant_expression(create_integer_type(32, false), "1"), create_integer_type(32, true), IR.Cast_type.Numeric)],
 
-        ["i32_to_f16", create_numeric_cast_expression(create_constant_expression(create_integer_type(32, true), "1"), create_fundamental_type(Core_intermediate_representation.Fundamental_type.Float16))],
-        ["i32_to_f32", create_numeric_cast_expression(create_constant_expression(create_integer_type(32, true), "1"), create_fundamental_type(Core_intermediate_representation.Fundamental_type.Float32))],
-        ["i32_to_f64", create_numeric_cast_expression(create_constant_expression(create_integer_type(32, true), "1"), create_fundamental_type(Core_intermediate_representation.Fundamental_type.Float64))],
+        ["i32_to_f16", IR.create_cast_expression(IR.create_constant_expression(create_integer_type(32, true), "1"), create_fundamental_type(IR.Fundamental_type.Float16), IR.Cast_type.Numeric)],
+        ["i32_to_f32", IR.create_cast_expression(IR.create_constant_expression(create_integer_type(32, true), "1"), create_fundamental_type(IR.Fundamental_type.Float32), IR.Cast_type.Numeric)],
+        ["i32_to_f64", IR.create_cast_expression(IR.create_constant_expression(create_integer_type(32, true), "1"), create_fundamental_type(IR.Fundamental_type.Float64), IR.Cast_type.Numeric)],
 
-        ["f16_to_i32", create_numeric_cast_expression(create_constant_expression(create_fundamental_type(Core_intermediate_representation.Fundamental_type.Float16), "1.0"), create_integer_type(32, true))],
-        ["f32_to_i32", create_numeric_cast_expression(create_constant_expression(create_fundamental_type(Core_intermediate_representation.Fundamental_type.Float32), "1.0"), create_integer_type(32, true))],
-        ["f64_to_i32", create_numeric_cast_expression(create_constant_expression(create_fundamental_type(Core_intermediate_representation.Fundamental_type.Float64), "1.0"), create_integer_type(32, true))],
+        ["f16_to_i32", IR.create_cast_expression(IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float16), "1.0"), create_integer_type(32, true), IR.Cast_type.Numeric)],
+        ["f32_to_i32", IR.create_cast_expression(IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float32), "1.0"), create_integer_type(32, true), IR.Cast_type.Numeric)],
+        ["f64_to_i32", IR.create_cast_expression(IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float64), "1.0"), create_integer_type(32, true), IR.Cast_type.Numeric)],
     ];
 
-    const statements: Core_intermediate_representation.Statement[] = [];
+    const statements: IR.Statement[] = [];
 
     for (const constant_expression of constant_expressions) {
-        const statement: Core_intermediate_representation.Statement = {
+        const statement: IR.Statement = {
             name: "",
             expression: {
                 data: {
-                    type: Core_intermediate_representation.Expression_enum.Variable_declaration_expression,
+                    type: IR.Expression_enum.Variable_declaration_expression,
                     value: {
                         name: constant_expression[0],
                         is_mutable: false,
@@ -1199,7 +1199,7 @@ export function create_numeric_casts(): Core_intermediate_representation.Module 
         declarations: [
             {
                 name: "main",
-                type: Core_intermediate_representation.Declaration_type.Function,
+                type: IR.Declaration_type.Function,
                 is_export: true,
                 value: {
                     declaration: {
@@ -1208,7 +1208,7 @@ export function create_numeric_casts(): Core_intermediate_representation.Module 
                             input_parameter_types: [],
                             output_parameter_types: [{
                                 data: {
-                                    type: Core_intermediate_representation.Type_reference_enum.Integer_type,
+                                    type: IR.Type_reference_enum.Integer_type,
                                     value: {
                                         number_of_bits: 32,
                                         is_signed: true
@@ -1219,7 +1219,7 @@ export function create_numeric_casts(): Core_intermediate_representation.Module 
                         },
                         input_parameter_names: [],
                         output_parameter_names: ["result"],
-                        linkage: Core_intermediate_representation.Linkage.External
+                        linkage: IR.Linkage.External
                     },
                     definition: {
                         name: "main",
@@ -1229,11 +1229,11 @@ export function create_numeric_casts(): Core_intermediate_representation.Module 
                                 name: "",
                                 expression: {
                                     data: {
-                                        type: Core_intermediate_representation.Expression_enum.Return_expression,
+                                        type: IR.Expression_enum.Return_expression,
                                         value: {
                                             expression: {
                                                 data: {
-                                                    type: Core_intermediate_representation.Expression_enum.Constant_expression,
+                                                    type: IR.Expression_enum.Constant_expression,
                                                     value: {
                                                         type: {
                                                             data: {
@@ -1260,21 +1260,21 @@ export function create_numeric_casts(): Core_intermediate_representation.Module 
     };
 }
 
-export function create_booleans(): Core_intermediate_representation.Module {
+export function create_booleans(): IR.Module {
 
-    const constant_expressions: [string, Core_intermediate_representation.Expression][] = [
-        ["my_true_boolean", create_constant_expression(create_fundamental_type(Core_intermediate_representation.Fundamental_type.Bool), "true")],
-        ["my_false_boolean", create_constant_expression(create_fundamental_type(Core_intermediate_representation.Fundamental_type.Bool), "false")]
+    const constant_expressions: [string, IR.Expression][] = [
+        ["my_true_boolean", IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Bool), "true")],
+        ["my_false_boolean", IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Bool), "false")]
     ];
 
-    const statements: Core_intermediate_representation.Statement[] = [];
+    const statements: IR.Statement[] = [];
 
     for (const constant_expression of constant_expressions) {
-        const statement: Core_intermediate_representation.Statement = {
+        const statement: IR.Statement = {
             name: "",
             expression: {
                 data: {
-                    type: Core_intermediate_representation.Expression_enum.Variable_declaration_expression,
+                    type: IR.Expression_enum.Variable_declaration_expression,
                     value: {
                         name: constant_expression[0],
                         is_mutable: false,
@@ -1292,7 +1292,7 @@ export function create_booleans(): Core_intermediate_representation.Module {
         declarations: [
             {
                 name: "foo",
-                type: Core_intermediate_representation.Declaration_type.Function,
+                type: IR.Declaration_type.Function,
                 is_export: true,
                 value: {
                     declaration: {
@@ -1304,7 +1304,7 @@ export function create_booleans(): Core_intermediate_representation.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: [],
-                        linkage: Core_intermediate_representation.Linkage.External
+                        linkage: IR.Linkage.External
                     },
                     definition: {
                         name: "foo",
@@ -1318,37 +1318,37 @@ export function create_booleans(): Core_intermediate_representation.Module {
     };
 }
 
-export function create_binary_expressions(): Core_intermediate_representation.Module {
+export function create_binary_expressions(): IR.Module {
 
-    const binary_expressions: [string, Core_intermediate_representation.Expression][] = [
-        ["add", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Add)],
-        ["subtract", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Subtract)],
-        ["multiply", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Multiply)],
-        ["divide", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Divide)],
-        ["modulus", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Modulus)],
-        ["equal", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Equal)],
-        ["not_equal", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Not_equal)],
-        ["less_than", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Less_than)],
-        ["less_than_or_equal_to", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Less_than_or_equal_to)],
-        ["greater_than", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Greater_than)],
-        ["greater_than_or_equal_to", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Greater_than_or_equal_to)],
-        ["logical_and", create_binary_expression(create_variable_expression("first_boolean"), create_variable_expression("second_boolean"), Core_intermediate_representation.Binary_operation.Logical_and)],
-        ["logical_or", create_binary_expression(create_variable_expression("first_boolean"), create_variable_expression("second_boolean"), Core_intermediate_representation.Binary_operation.Logical_or)],
-        ["bitwise_and", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Bitwise_and)],
-        ["bitwise_or", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Bitwise_or)],
-        ["bitwise_xor", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Bitwise_xor)],
-        ["bit_shift_left", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Bit_shift_left)],
-        ["bit_shift_right", create_binary_expression(create_variable_expression("first_integer"), create_variable_expression("second_integer"), Core_intermediate_representation.Binary_operation.Bit_shift_right)],
+    const binary_expressions: [string, IR.Expression][] = [
+        ["add", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Add)],
+        ["subtract", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Subtract)],
+        ["multiply", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Multiply)],
+        ["divide", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Divide)],
+        ["modulus", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Modulus)],
+        ["equal", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Equal)],
+        ["not_equal", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Not_equal)],
+        ["less_than", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Less_than)],
+        ["less_than_or_equal_to", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Less_than_or_equal_to)],
+        ["greater_than", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Greater_than)],
+        ["greater_than_or_equal_to", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Greater_than_or_equal_to)],
+        ["logical_and", IR.create_binary_expression(IR.create_variable_expression("first_boolean"), IR.create_variable_expression("second_boolean"), IR.Binary_operation.Logical_and)],
+        ["logical_or", IR.create_binary_expression(IR.create_variable_expression("first_boolean"), IR.create_variable_expression("second_boolean"), IR.Binary_operation.Logical_or)],
+        ["bitwise_and", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Bitwise_and)],
+        ["bitwise_or", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Bitwise_or)],
+        ["bitwise_xor", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Bitwise_xor)],
+        ["bit_shift_left", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Bit_shift_left)],
+        ["bit_shift_right", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Bit_shift_right)],
     ];
 
-    const statements: Core_intermediate_representation.Statement[] = [];
+    const statements: IR.Statement[] = [];
 
     for (const binary_expression of binary_expressions) {
-        const statement: Core_intermediate_representation.Statement = {
+        const statement: IR.Statement = {
             name: "",
             expression: {
                 data: {
-                    type: Core_intermediate_representation.Expression_enum.Variable_declaration_expression,
+                    type: IR.Expression_enum.Variable_declaration_expression,
                     value: {
                         name: binary_expression[0],
                         is_mutable: false,
@@ -1366,19 +1366,19 @@ export function create_binary_expressions(): Core_intermediate_representation.Mo
         declarations: [
             {
                 name: "foo",
-                type: Core_intermediate_representation.Declaration_type.Function,
+                type: IR.Declaration_type.Function,
                 is_export: true,
                 value: {
                     declaration: {
                         name: "foo",
                         type: {
-                            input_parameter_types: [create_integer_type(32, true), create_integer_type(32, true), create_fundamental_type(Core_intermediate_representation.Fundamental_type.Bool), create_fundamental_type(Core_intermediate_representation.Fundamental_type.Bool)],
+                            input_parameter_types: [create_integer_type(32, true), create_integer_type(32, true), create_fundamental_type(IR.Fundamental_type.Bool), create_fundamental_type(IR.Fundamental_type.Bool)],
                             output_parameter_types: [],
                             is_variadic: false,
                         },
                         input_parameter_names: ["first_integer", "second_integer", "first_boolean", "second_boolean"],
                         output_parameter_names: [],
-                        linkage: Core_intermediate_representation.Linkage.External
+                        linkage: IR.Linkage.External
                     },
                     definition: {
                         name: "foo",
@@ -1392,43 +1392,43 @@ export function create_binary_expressions(): Core_intermediate_representation.Mo
     };
 }
 
-export function create_binary_expressions_operator_precedence(): Core_intermediate_representation.Module {
+export function create_binary_expressions_operator_precedence(): IR.Module {
 
-    const a = create_variable_expression("a");
-    const b = create_variable_expression("b");
-    const c = create_variable_expression("c");
-    const function_call = create_call_expression(create_variable_expression("function_call"), []);
-    const value_0 = create_constant_expression(create_integer_type(32, true), "0");
-    const value_1 = create_constant_expression(create_integer_type(32, true), "1");
+    const a = IR.create_variable_expression("a");
+    const b = IR.create_variable_expression("b");
+    const c = IR.create_variable_expression("c");
+    const function_call = IR.create_call_expression(IR.create_variable_expression("function_call"), []);
+    const value_0 = IR.create_constant_expression(create_integer_type(32, true), "0");
+    const value_1 = IR.create_constant_expression(create_integer_type(32, true), "1");
 
-    const binary_expressions: [string, Core_intermediate_representation.Expression][] = [
-        ["case_0", create_binary_expression(a, create_binary_expression(b, c, Core_intermediate_representation.Binary_operation.Multiply), Core_intermediate_representation.Binary_operation.Add)],
-        ["case_1", create_binary_expression(create_binary_expression(a, b, Core_intermediate_representation.Binary_operation.Multiply), c, Core_intermediate_representation.Binary_operation.Add)],
-        ["case_2", create_binary_expression(create_binary_expression(a, b, Core_intermediate_representation.Binary_operation.Divide), c, Core_intermediate_representation.Binary_operation.Multiply)],
-        ["case_3", create_binary_expression(create_binary_expression(a, b, Core_intermediate_representation.Binary_operation.Multiply), c, Core_intermediate_representation.Binary_operation.Divide)],
+    const binary_expressions: [string, IR.Expression][] = [
+        ["case_0", IR.create_binary_expression(a, IR.create_binary_expression(b, c, IR.Binary_operation.Multiply), IR.Binary_operation.Add)],
+        ["case_1", IR.create_binary_expression(IR.create_binary_expression(a, b, IR.Binary_operation.Multiply), c, IR.Binary_operation.Add)],
+        ["case_2", IR.create_binary_expression(IR.create_binary_expression(a, b, IR.Binary_operation.Divide), c, IR.Binary_operation.Multiply)],
+        ["case_3", IR.create_binary_expression(IR.create_binary_expression(a, b, IR.Binary_operation.Multiply), c, IR.Binary_operation.Divide)],
 
-        ["case_4", create_binary_expression(create_binary_expression(a, function_call, Core_intermediate_representation.Binary_operation.Multiply), b, Core_intermediate_representation.Binary_operation.Add)],
-        ["case_5", create_binary_expression(create_unary_expression(a, Core_intermediate_representation.Unary_operation.Indirection), create_unary_expression(b, Core_intermediate_representation.Unary_operation.Indirection), Core_intermediate_representation.Binary_operation.Multiply)],
+        ["case_4", IR.create_binary_expression(IR.create_binary_expression(a, function_call, IR.Binary_operation.Multiply), b, IR.Binary_operation.Add)],
+        ["case_5", IR.create_binary_expression(IR.create_unary_expression(a, IR.Unary_operation.Indirection), IR.create_unary_expression(b, IR.Unary_operation.Indirection), IR.Binary_operation.Multiply)],
 
-        ["case_6", create_binary_expression(create_parenthesis_expression(create_binary_expression(a, b, Core_intermediate_representation.Binary_operation.Add)), c, Core_intermediate_representation.Binary_operation.Multiply)],
-        ["case_7", create_binary_expression(a, create_parenthesis_expression(create_binary_expression(b, c, Core_intermediate_representation.Binary_operation.Add)), Core_intermediate_representation.Binary_operation.Multiply)],
+        ["case_6", IR.create_binary_expression(IR.create_parenthesis_expression(IR.create_binary_expression(a, b, IR.Binary_operation.Add)), c, IR.Binary_operation.Multiply)],
+        ["case_7", IR.create_binary_expression(a, IR.create_parenthesis_expression(IR.create_binary_expression(b, c, IR.Binary_operation.Add)), IR.Binary_operation.Multiply)],
 
-        ["case_8", create_binary_expression(create_binary_expression(a, value_0, Core_intermediate_representation.Binary_operation.Equal), create_binary_expression(b, value_1, Core_intermediate_representation.Binary_operation.Equal), Core_intermediate_representation.Binary_operation.Logical_and)],
-        ["case_9", create_binary_expression(create_parenthesis_expression(create_binary_expression(a, b, Core_intermediate_representation.Binary_operation.Bitwise_and)), create_parenthesis_expression(create_binary_expression(b, a, Core_intermediate_representation.Binary_operation.Bitwise_and)), Core_intermediate_representation.Binary_operation.Equal)],
-        ["case_10", create_binary_expression(create_binary_expression(a, b, Core_intermediate_representation.Binary_operation.Less_than), create_binary_expression(b, c, Core_intermediate_representation.Binary_operation.Less_than), Core_intermediate_representation.Binary_operation.Logical_and)],
-        ["case_11", create_binary_expression(create_binary_expression(a, b, Core_intermediate_representation.Binary_operation.Add), create_binary_expression(b, c, Core_intermediate_representation.Binary_operation.Add), Core_intermediate_representation.Binary_operation.Equal)],
+        ["case_8", IR.create_binary_expression(IR.create_binary_expression(a, value_0, IR.Binary_operation.Equal), IR.create_binary_expression(b, value_1, IR.Binary_operation.Equal), IR.Binary_operation.Logical_and)],
+        ["case_9", IR.create_binary_expression(IR.create_parenthesis_expression(IR.create_binary_expression(a, b, IR.Binary_operation.Bitwise_and)), IR.create_parenthesis_expression(IR.create_binary_expression(b, a, IR.Binary_operation.Bitwise_and)), IR.Binary_operation.Equal)],
+        ["case_10", IR.create_binary_expression(IR.create_binary_expression(a, b, IR.Binary_operation.Less_than), IR.create_binary_expression(b, c, IR.Binary_operation.Less_than), IR.Binary_operation.Logical_and)],
+        ["case_11", IR.create_binary_expression(IR.create_binary_expression(a, b, IR.Binary_operation.Add), IR.create_binary_expression(b, c, IR.Binary_operation.Add), IR.Binary_operation.Equal)],
 
-        ["case_12", create_binary_expression(create_unary_expression(a, Core_intermediate_representation.Unary_operation.Minus), create_parenthesis_expression(create_unary_expression(b, Core_intermediate_representation.Unary_operation.Minus)), Core_intermediate_representation.Binary_operation.Add)],
+        ["case_12", IR.create_binary_expression(IR.create_unary_expression(a, IR.Unary_operation.Minus), IR.create_parenthesis_expression(IR.create_unary_expression(b, IR.Unary_operation.Minus)), IR.Binary_operation.Add)],
     ];
 
-    const statements: Core_intermediate_representation.Statement[] = [];
+    const statements: IR.Statement[] = [];
 
     for (const binary_expression of binary_expressions) {
-        const statement: Core_intermediate_representation.Statement = {
+        const statement: IR.Statement = {
             name: "",
             expression: {
                 data: {
-                    type: Core_intermediate_representation.Expression_enum.Variable_declaration_expression,
+                    type: IR.Expression_enum.Variable_declaration_expression,
                     value: {
                         name: binary_expression[0],
                         is_mutable: false,
@@ -1446,7 +1446,7 @@ export function create_binary_expressions_operator_precedence(): Core_intermedia
         declarations: [
             {
                 name: "foo",
-                type: Core_intermediate_representation.Declaration_type.Function,
+                type: IR.Declaration_type.Function,
                 is_export: true,
                 value: {
                     declaration: {
@@ -1458,7 +1458,7 @@ export function create_binary_expressions_operator_precedence(): Core_intermedia
                         },
                         input_parameter_names: ["a", "b", "c"],
                         output_parameter_names: [],
-                        linkage: Core_intermediate_representation.Linkage.External
+                        linkage: IR.Linkage.External
                     },
                     definition: {
                         name: "foo",
@@ -1472,27 +1472,27 @@ export function create_binary_expressions_operator_precedence(): Core_intermedia
     };
 }
 
-export function create_assignment_expressions(): Core_intermediate_representation.Module {
+export function create_assignment_expressions(): IR.Module {
 
-    const expressions: Core_intermediate_representation.Expression[] = [
-        create_variable_declaration_expression("my_integer", true, create_constant_expression(create_integer_type(32, true), "1")),
-        create_assignment_expression(create_variable_expression("my_integer"), create_constant_expression(create_integer_type(32, true), "2")),
-        create_assignment_expression(create_variable_expression("my_integer"), create_variable_expression("other_integer"), Core_intermediate_representation.Binary_operation.Add),
-        create_assignment_expression(create_variable_expression("my_integer"), create_variable_expression("other_integer"), Core_intermediate_representation.Binary_operation.Subtract),
-        create_assignment_expression(create_variable_expression("my_integer"), create_variable_expression("other_integer"), Core_intermediate_representation.Binary_operation.Multiply),
-        create_assignment_expression(create_variable_expression("my_integer"), create_variable_expression("other_integer"), Core_intermediate_representation.Binary_operation.Divide),
-        create_assignment_expression(create_variable_expression("my_integer"), create_variable_expression("other_integer"), Core_intermediate_representation.Binary_operation.Modulus),
-        create_assignment_expression(create_variable_expression("my_integer"), create_variable_expression("other_integer"), Core_intermediate_representation.Binary_operation.Bitwise_and),
-        create_assignment_expression(create_variable_expression("my_integer"), create_variable_expression("other_integer"), Core_intermediate_representation.Binary_operation.Bitwise_or),
-        create_assignment_expression(create_variable_expression("my_integer"), create_variable_expression("other_integer"), Core_intermediate_representation.Binary_operation.Bitwise_xor),
-        create_assignment_expression(create_variable_expression("my_integer"), create_variable_expression("other_integer"), Core_intermediate_representation.Binary_operation.Bit_shift_left),
-        create_assignment_expression(create_variable_expression("my_integer"), create_variable_expression("other_integer"), Core_intermediate_representation.Binary_operation.Bit_shift_right),
+    const expressions: IR.Expression[] = [
+        IR.create_variable_declaration_expression("my_integer", true, IR.create_constant_expression(create_integer_type(32, true), "1")),
+        IR.create_assignment_expression(IR.create_variable_expression("my_integer"), IR.create_constant_expression(create_integer_type(32, true), "2")),
+        IR.create_assignment_expression(IR.create_variable_expression("my_integer"), IR.create_variable_expression("other_integer"), IR.Binary_operation.Add),
+        IR.create_assignment_expression(IR.create_variable_expression("my_integer"), IR.create_variable_expression("other_integer"), IR.Binary_operation.Subtract),
+        IR.create_assignment_expression(IR.create_variable_expression("my_integer"), IR.create_variable_expression("other_integer"), IR.Binary_operation.Multiply),
+        IR.create_assignment_expression(IR.create_variable_expression("my_integer"), IR.create_variable_expression("other_integer"), IR.Binary_operation.Divide),
+        IR.create_assignment_expression(IR.create_variable_expression("my_integer"), IR.create_variable_expression("other_integer"), IR.Binary_operation.Modulus),
+        IR.create_assignment_expression(IR.create_variable_expression("my_integer"), IR.create_variable_expression("other_integer"), IR.Binary_operation.Bitwise_and),
+        IR.create_assignment_expression(IR.create_variable_expression("my_integer"), IR.create_variable_expression("other_integer"), IR.Binary_operation.Bitwise_or),
+        IR.create_assignment_expression(IR.create_variable_expression("my_integer"), IR.create_variable_expression("other_integer"), IR.Binary_operation.Bitwise_xor),
+        IR.create_assignment_expression(IR.create_variable_expression("my_integer"), IR.create_variable_expression("other_integer"), IR.Binary_operation.Bit_shift_left),
+        IR.create_assignment_expression(IR.create_variable_expression("my_integer"), IR.create_variable_expression("other_integer"), IR.Binary_operation.Bit_shift_right),
     ];
 
-    const statements: Core_intermediate_representation.Statement[] = [];
+    const statements: IR.Statement[] = [];
 
     for (const binary_expression of expressions) {
-        const statement: Core_intermediate_representation.Statement = {
+        const statement: IR.Statement = {
             name: "",
             expression: binary_expression
         };
@@ -1505,7 +1505,7 @@ export function create_assignment_expressions(): Core_intermediate_representatio
         declarations: [
             {
                 name: "foo",
-                type: Core_intermediate_representation.Declaration_type.Function,
+                type: IR.Declaration_type.Function,
                 is_export: true,
                 value: {
                     declaration: {
@@ -1517,7 +1517,7 @@ export function create_assignment_expressions(): Core_intermediate_representatio
                         },
                         input_parameter_names: ["other_integer"],
                         output_parameter_names: [],
-                        linkage: Core_intermediate_representation.Linkage.External
+                        linkage: IR.Linkage.External
                     },
                     definition: {
                         name: "foo",
@@ -1531,28 +1531,28 @@ export function create_assignment_expressions(): Core_intermediate_representatio
     };
 }
 
-export function create_unary_expressions(): Core_intermediate_representation.Module {
+export function create_unary_expressions(): IR.Module {
 
-    const unary_expressions: [string, Core_intermediate_representation.Expression][] = [
-        ["not_variable", create_unary_expression(create_variable_expression("my_boolean"), Core_intermediate_representation.Unary_operation.Not)],
-        ["bitwise_not_variable", create_unary_expression(create_variable_expression("my_integer"), Core_intermediate_representation.Unary_operation.Bitwise_not)],
-        ["minus_variable", create_unary_expression(create_variable_expression("my_integer"), Core_intermediate_representation.Unary_operation.Minus)],
-        ["pre_increment_variable", create_unary_expression(create_variable_expression("my_integer"), Core_intermediate_representation.Unary_operation.Pre_increment)],
-        ["post_increment_variable", create_unary_expression(create_variable_expression("my_integer"), Core_intermediate_representation.Unary_operation.Post_increment)],
-        ["pre_decrement_variable", create_unary_expression(create_variable_expression("my_integer"), Core_intermediate_representation.Unary_operation.Pre_decrement)],
-        ["post_decrement_variable", create_unary_expression(create_variable_expression("my_integer"), Core_intermediate_representation.Unary_operation.Post_decrement)],
-        ["address_of_variable", create_unary_expression(create_variable_expression("my_integer"), Core_intermediate_representation.Unary_operation.Address_of)],
-        ["indirection_variable", create_unary_expression(create_variable_expression("address_of_variable"), Core_intermediate_representation.Unary_operation.Indirection)]
+    const unary_expressions: [string, IR.Expression][] = [
+        ["not_variable", IR.create_unary_expression(IR.create_variable_expression("my_boolean"), IR.Unary_operation.Not)],
+        ["bitwise_not_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer"), IR.Unary_operation.Bitwise_not)],
+        ["minus_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer"), IR.Unary_operation.Minus)],
+        ["pre_increment_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer"), IR.Unary_operation.Pre_increment)],
+        ["post_increment_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer"), IR.Unary_operation.Post_increment)],
+        ["pre_decrement_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer"), IR.Unary_operation.Pre_decrement)],
+        ["post_decrement_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer"), IR.Unary_operation.Post_decrement)],
+        ["address_of_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer"), IR.Unary_operation.Address_of)],
+        ["indirection_variable", IR.create_unary_expression(IR.create_variable_expression("address_of_variable"), IR.Unary_operation.Indirection)]
     ];
 
-    const statements: Core_intermediate_representation.Statement[] = [];
+    const statements: IR.Statement[] = [];
 
     for (const unary_expression of unary_expressions) {
-        const statement: Core_intermediate_representation.Statement = {
+        const statement: IR.Statement = {
             name: "",
             expression: {
                 data: {
-                    type: Core_intermediate_representation.Expression_enum.Variable_declaration_expression,
+                    type: IR.Expression_enum.Variable_declaration_expression,
                     value: {
                         name: unary_expression[0],
                         is_mutable: false,
@@ -1570,19 +1570,19 @@ export function create_unary_expressions(): Core_intermediate_representation.Mod
         declarations: [
             {
                 name: "foo",
-                type: Core_intermediate_representation.Declaration_type.Function,
+                type: IR.Declaration_type.Function,
                 is_export: true,
                 value: {
                     declaration: {
                         name: "foo",
                         type: {
-                            input_parameter_types: [create_integer_type(32, true), create_fundamental_type(Core_intermediate_representation.Fundamental_type.Bool)],
+                            input_parameter_types: [create_integer_type(32, true), create_fundamental_type(IR.Fundamental_type.Bool)],
                             output_parameter_types: [],
                             is_variadic: false,
                         },
                         input_parameter_names: ["my_integer", "my_boolean"],
                         output_parameter_names: [],
-                        linkage: Core_intermediate_representation.Linkage.External
+                        linkage: IR.Linkage.External
                     },
                     definition: {
                         name: "foo",
@@ -1596,10 +1596,75 @@ export function create_unary_expressions(): Core_intermediate_representation.Mod
     };
 }
 
-function create_integer_type(number_of_bits: number, is_signed: boolean): Core_intermediate_representation.Type_reference {
+export function create_block_expressions(): IR.Module {
+
+    const block_expressions: [string, IR.Expression][] = [
+        ["not_variable", IR.create_unary_expression(IR.create_variable_expression("my_boolean"), IR.Unary_operation.Not)],
+        ["bitwise_not_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer"), IR.Unary_operation.Bitwise_not)],
+        ["minus_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer"), IR.Unary_operation.Minus)],
+        ["pre_increment_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer"), IR.Unary_operation.Pre_increment)],
+        ["post_increment_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer"), IR.Unary_operation.Post_increment)],
+        ["pre_decrement_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer"), IR.Unary_operation.Pre_decrement)],
+        ["post_decrement_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer"), IR.Unary_operation.Post_decrement)],
+        ["address_of_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer"), IR.Unary_operation.Address_of)],
+        ["indirection_variable", IR.create_unary_expression(IR.create_variable_expression("address_of_variable"), IR.Unary_operation.Indirection)]
+    ];
+
+    const statements: IR.Statement[] = [];
+
+    for (const unary_expression of block_expressions) {
+        const statement: IR.Statement = {
+            name: "",
+            expression: {
+                data: {
+                    type: IR.Expression_enum.Variable_declaration_expression,
+                    value: {
+                        name: unary_expression[0],
+                        is_mutable: false,
+                        right_hand_side: unary_expression[1]
+                    }
+                }
+            }
+        };
+        statements.push(statement);
+    }
+
+    return {
+        name: "Unary_expressions",
+        imports: [],
+        declarations: [
+            {
+                name: "foo",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "foo",
+                        type: {
+                            input_parameter_types: [create_integer_type(32, true), create_fundamental_type(IR.Fundamental_type.Bool)],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: ["my_integer", "my_boolean"],
+                        output_parameter_names: [],
+                        linkage: IR.Linkage.External
+                    },
+                    definition: {
+                        name: "foo",
+                        statements: [
+                            ...statements
+                        ]
+                    }
+                }
+            }
+        ]
+    };
+}
+
+function create_integer_type(number_of_bits: number, is_signed: boolean): IR.Type_reference {
     return {
         data: {
-            type: Core_intermediate_representation.Type_reference_enum.Integer_type,
+            type: IR.Type_reference_enum.Integer_type,
             value: {
                 number_of_bits: number_of_bits,
                 is_signed: is_signed
@@ -1608,155 +1673,23 @@ function create_integer_type(number_of_bits: number, is_signed: boolean): Core_i
     };
 }
 
-function create_fundamental_type(fundamental_type: Core_intermediate_representation.Fundamental_type): Core_intermediate_representation.Type_reference {
+function create_fundamental_type(fundamental_type: IR.Fundamental_type): IR.Type_reference {
     return {
         data: {
-            type: Core_intermediate_representation.Type_reference_enum.Fundamental_type,
+            type: IR.Type_reference_enum.Fundamental_type,
             value: fundamental_type
         }
     };
 }
 
-function create_pointer_type(element_type: Core_intermediate_representation.Type_reference[], is_mutable: boolean): Core_intermediate_representation.Type_reference {
+function create_pointer_type(element_type: IR.Type_reference[], is_mutable: boolean): IR.Type_reference {
     return {
         data: {
-            type: Core_intermediate_representation.Type_reference_enum.Pointer_type,
+            type: IR.Type_reference_enum.Pointer_type,
             value: {
                 element_type: element_type,
                 is_mutable: is_mutable
             }
-        }
-    };
-}
-
-function create_access_expression(expression: Core_intermediate_representation.Expression, member_name: string): Core_intermediate_representation.Expression {
-    const access_expression: Core_intermediate_representation.Access_expression = {
-        expression: expression,
-        member_name: member_name
-    };
-    return {
-        data: {
-            type: Core_intermediate_representation.Expression_enum.Access_expression,
-            value: access_expression
-        }
-    };
-}
-
-function create_assignment_expression(left_hand_side: Core_intermediate_representation.Expression, right_hand_side: Core_intermediate_representation.Expression, additional_operation?: Core_intermediate_representation.Binary_operation): Core_intermediate_representation.Expression {
-    const assignment_expression: Core_intermediate_representation.Assignment_expression = {
-        left_hand_side: left_hand_side,
-        right_hand_side: right_hand_side,
-        additional_operation: additional_operation
-    };
-    return {
-        data: {
-            type: Core_intermediate_representation.Expression_enum.Assignment_expression,
-            value: assignment_expression
-        }
-    };
-}
-
-function create_binary_expression(left_hand_side: Core_intermediate_representation.Expression, right_hand_side: Core_intermediate_representation.Expression, operation: Core_intermediate_representation.Binary_operation): Core_intermediate_representation.Expression {
-    const binary_expression: Core_intermediate_representation.Binary_expression = {
-        left_hand_side: left_hand_side,
-        right_hand_side: right_hand_side,
-        operation: operation
-    };
-    return {
-        data: {
-            type: Core_intermediate_representation.Expression_enum.Binary_expression,
-            value: binary_expression
-        }
-    };
-}
-
-function create_call_expression(expression: Core_intermediate_representation.Expression, function_arguments: Core_intermediate_representation.Expression[]): Core_intermediate_representation.Expression {
-    const call_expression: Core_intermediate_representation.Call_expression = {
-        expression: expression,
-        arguments: function_arguments
-    };
-    return {
-        data: {
-            type: Core_intermediate_representation.Expression_enum.Call_expression,
-            value: call_expression
-        }
-    };
-}
-
-function create_constant_expression(type: Core_intermediate_representation.Type_reference, data: string): Core_intermediate_representation.Expression {
-    const constant_expression: Core_intermediate_representation.Constant_expression = {
-        type: type,
-        data: data
-    };
-    return {
-        data: {
-            type: Core_intermediate_representation.Expression_enum.Constant_expression,
-            value: constant_expression
-        }
-    };
-}
-
-function create_numeric_cast_expression(source: Core_intermediate_representation.Expression, destination_type: Core_intermediate_representation.Type_reference): Core_intermediate_representation.Expression {
-    const cast_expression: Core_intermediate_representation.Cast_expression = {
-        source: source,
-        destination_type: destination_type,
-        cast_type: Core_intermediate_representation.Cast_type.Numeric
-    };
-    return {
-        data: {
-            type: Core_intermediate_representation.Expression_enum.Cast_expression,
-            value: cast_expression
-        }
-    };
-}
-
-function create_parenthesis_expression(expression: Core_intermediate_representation.Expression): Core_intermediate_representation.Expression {
-    const parenthesis_expression: Core_intermediate_representation.Parenthesis_expression = {
-        expression: expression
-    };
-    return {
-        data: {
-            type: Core_intermediate_representation.Expression_enum.Parenthesis_expression,
-            value: parenthesis_expression
-        }
-    };
-}
-
-function create_unary_expression(expression: Core_intermediate_representation.Expression, operation: Core_intermediate_representation.Unary_operation): Core_intermediate_representation.Expression {
-    const unary_expression: Core_intermediate_representation.Unary_expression = {
-        expression: expression,
-        operation: operation
-    };
-    return {
-        data: {
-            type: Core_intermediate_representation.Expression_enum.Unary_expression,
-            value: unary_expression
-        }
-    };
-}
-
-function create_variable_declaration_expression(variable_name: string, is_mutable: boolean, right_hand_side: Core_intermediate_representation.Expression): Core_intermediate_representation.Expression {
-    const variable_declaration_expression: Core_intermediate_representation.Variable_declaration_expression = {
-        name: variable_name,
-        is_mutable: is_mutable,
-        right_hand_side: right_hand_side
-    };
-    return {
-        data: {
-            type: Core_intermediate_representation.Expression_enum.Variable_declaration_expression,
-            value: variable_declaration_expression
-        }
-    };
-}
-
-function create_variable_expression(variable_name: string): Core_intermediate_representation.Expression {
-    const variable_expression: Core_intermediate_representation.Variable_expression = {
-        name: variable_name
-    };
-    return {
-        data: {
-            type: Core_intermediate_representation.Expression_enum.Variable_expression,
-            value: variable_expression
         }
     };
 }
