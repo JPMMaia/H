@@ -117,6 +117,7 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Expression_level_9", choose_production_rule_generic_expression],
             ["Expression_level_10", choose_production_rule_generic_expression],
             ["Expression_level_11", choose_production_rule_generic_expression],
+            ["Expression_level_12", choose_production_rule_generic_expression],
             ["Generic_expression", choose_production_rule_generic_expression],
         ]
     );
