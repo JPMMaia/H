@@ -2806,6 +2806,35 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
 
                 output_stream << "}\n\n";
             }
+
+            if (is_expression_type(struct_info.name))
+            {
+                output_stream << std::format("function create_{}(", to_lowercase(struct_info.name));
+                for (std::size_t member_index = 0; member_index < struct_info.members.size(); ++member_index)
+                {
+                    Member const& member = struct_info.members[member_index];
+
+                    output_stream << std::format("{}: {}", member.name, to_typescript_type(member.type, struct_info.name, enum_map, struct_map, replace_type_map, true));
+
+                    if ((member_index + 1) < struct_info.members.size())
+                        output_stream << ", ";
+                }
+                output_stream << "): Expression {\n";
+                output_stream << std::format("    const {}: {} = {{\n", to_lowercase(struct_info.name), struct_info.name);
+                for (std::size_t member_index = 0; member_index < struct_info.members.size(); ++member_index)
+                {
+                    Member const& member = struct_info.members[member_index];
+                    output_stream << std::format("        {}: {},\n", member.name, member.name);
+                }
+                output_stream << "    };\n";
+                output_stream << "    return {\n";
+                output_stream << "        data: {\n";
+                output_stream << std::format("            type: Expression_enum.{},\n", struct_info.name);
+                output_stream << std::format("            value: {}\n", to_lowercase(struct_info.name));
+                output_stream << "        }\n";
+                output_stream << "    };\n";
+                output_stream << "}\n";
+            }
         }
     }
 }
