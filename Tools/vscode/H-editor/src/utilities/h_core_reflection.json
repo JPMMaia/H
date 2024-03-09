@@ -466,12 +466,6 @@
                 },
                 {
                     "type": {
-                        "name": "Type_reference"
-                    },
-                    "name": "range_type"
-                },
-                {
-                    "type": {
                         "name": "Expression_index"
                     },
                     "name": "range_begin"
@@ -484,7 +478,7 @@
                 },
                 {
                     "type": {
-                        "name": "Expression_index"
+                        "name": "std::optional<Expression_index>"
                     },
                     "name": "step_by"
                 },
@@ -562,15 +556,15 @@
             "members": [
                 {
                     "type": {
-                        "name": "Expression_index"
+                        "name": "std::optional<Expression_index>"
                     },
                     "name": "case_value"
                 },
                 {
                     "type": {
-                        "name": "Expression_index"
+                        "name": "std::pmr::vector<Statement>"
                     },
-                    "name": "then_expression"
+                    "name": "statements"
                 }
             ]
         },
@@ -588,12 +582,6 @@
                         "name": "std::pmr::vector<Switch_case_expression_pair>"
                     },
                     "name": "cases"
-                },
-                {
-                    "type": {
-                        "name": "std::optional<Expression_index>"
-                    },
-                    "name": "default_case_expression"
                 }
             ]
         },

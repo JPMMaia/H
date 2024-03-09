@@ -2673,7 +2673,7 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
                         }
                         else if (member.type.name == "std::optional<Expression_index>")
                         {
-                            output_stream << indent(indentation) << std::format("        {}: intermediate_value.{} !== undefined ? {{ expression_index: -1 }} : undefined\n", member.name, member.name);
+                            output_stream << indent(indentation) << std::format("        {}: intermediate_value.{} !== undefined ? {{ expression_index: -1 }} : undefined,\n", member.name, member.name);
                         }
                         else if (is_vector_type(member.type) && get_vector_value_type(member.type) == "Expression_index")
                         {
@@ -2822,7 +2822,8 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
                 {
                     Member const& member = struct_info.members[member_index];
 
-                    output_stream << std::format("{}{}: {}", replace_by_valid_name(member.name), is_optional_type(member.type) ? "?" : "", to_typescript_type(member.type, struct_info.name, enum_map, struct_map, replace_type_map, true));
+                    std::pmr::string const transformed_member_type = to_typescript_type(member.type, struct_info.name, enum_map, struct_map, replace_type_map, true);
+                    output_stream << std::format("{}: {}{}", replace_by_valid_name(member.name), transformed_member_type, is_optional_type(member.type) ? " | undefined" : "");
 
                     if ((member_index + 1) < struct_info.members.size())
                         output_stream << ", ";

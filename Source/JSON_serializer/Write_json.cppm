@@ -1000,14 +1000,11 @@ namespace h::json
         writer.StartObject();
         writer.Key("variable_name");
         writer.String(output.variable_name.data(), output.variable_name.size());
-        writer.Key("range_type");
-        write_object(writer, output.range_type);
         writer.Key("range_begin");
         write_object(writer, output.range_begin);
         writer.Key("range_end");
         write_object(writer, output.range_end);
-        writer.Key("step_by");
-        write_object(writer, output.step_by);
+        write_optional(writer, "step_by", output.step_by);
         writer.Key("then_expression");
         write_object(writer, output.then_expression);
         writer.EndObject();
@@ -1081,10 +1078,9 @@ namespace h::json
         )
     {
         writer.StartObject();
-        writer.Key("case_value");
-        write_object(writer, output.case_value);
-        writer.Key("then_expression");
-        write_object(writer, output.then_expression);
+        write_optional(writer, "case_value", output.case_value);
+        writer.Key("statements");
+        write_object(writer, output.statements);
         writer.EndObject();
     }
 
@@ -1099,7 +1095,6 @@ namespace h::json
         write_object(writer, output.value);
         writer.Key("cases");
         write_object(writer, output.cases);
-        write_optional(writer, "default_case_expression", output.default_case_expression);
         writer.EndObject();
     }
 
