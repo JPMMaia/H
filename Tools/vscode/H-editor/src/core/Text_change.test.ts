@@ -1143,6 +1143,293 @@ export function foo(
         const expected_module = Module_examples.create_unary_expressions();
         assert.deepEqual(new_document_state.module, expected_module);
     });
+
+    it("Handles block expressions", () => {
+
+        const document_state = Document.create_empty_state(language_description.production_rules);
+
+        const program = `
+module Block_expressions;
+
+export function run_blocks() -> ()
+{
+    var a = 0;
+
+    {
+        var b = a;
+    }
+
+    var b = a;
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_block_expressions();
+        assert.deepEqual(new_document_state.module, expected_module);
+    });
+
+    it("Handles for loop expressions", () => {
+
+        const document_state = Document.create_empty_state(language_description.production_rules);
+
+        const program = `
+module For_loop_expressions;
+
+import C.stdio as stdio;
+
+function print_integer(value: Int32) -> ()
+{
+    stdio.printf("%d"c, value);
+}
+
+export function run_for_loops() -> ()
+{
+    for index in 0 to 3:
+    {
+        print_integer(index);
+    }
+
+    for index in 0 to 3:
+        print_integer(index);
+
+    for index in 0 to 4 step_by 1:
+    {
+        print_integer(index);
+    }
+
+    for index in 4 to 0 step_by -1:
+    {
+        print_integer(index);
+    }
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_for_loop_expressions();
+        assert.deepEqual(new_document_state.module, expected_module);
+    });
+
+    it("Handles if expressions", () => {
+
+        const document_state = Document.create_empty_state(language_description.production_rules);
+
+        const program = `
+module If_expressions;
+
+import C.stdio as stdio;
+
+function print_message(message: C_string) -> ()
+{
+    stdio.printf("%s\n"c, message);
+}
+
+export function run_ifs(value: Int32) -> (result: Int32)
+{
+    if value == 0:
+    {
+        print_message("zero");
+    }
+
+    if value < 0:
+    {
+        print_message("negative");
+    }
+    else
+    {
+        print_message("non-negative");
+    }
+
+    if value < 0:
+    {
+        print_message("negative");
+    }
+    else if value > 0:
+    {
+        print_message("positive");
+    }
+    else
+    {
+        print_message("zero");
+    }
+
+    if value < 0:
+        print_message("negative");
+    else if value > 0:
+        print_message("positive");
+    else
+        print_message("zero");
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_if_expressions();
+        assert.deepEqual(new_document_state.module, expected_module);
+    });
+
+    it("Handles switch expressions", () => {
+
+        const document_state = Document.create_empty_state(language_description.production_rules);
+
+        const program = `
+module Switch_expressions;
+
+export function run_switch(value: Int32) -> (result: Int32)
+{
+    switch value
+    {
+    case 0:
+        return 0;
+    }
+
+    switch value
+    {
+    case 1:
+        return 1;
+    case 2:
+    case 3:
+        return 2;
+    case 4:
+        break;
+    case 5:
+    default:
+        return 3;
+    }
+
+    switch value
+    {
+    default:
+    case 6:
+        return 4;
+    }
+
+    return 5;
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_switch_expressions();
+        assert.deepEqual(new_document_state.module, expected_module);
+    });
+
+    it("Handles ternary condition expressions", () => {
+
+        const document_state = Document.create_empty_state(language_description.production_rules);
+
+        const program = `
+module Block_expressions;
+
+export function foo() -> ()
+{
+    var a = 0;
+
+    {
+        var b = a;
+    }
+
+    var b = a;
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_ternary_condition_expressions();
+        assert.deepEqual(new_document_state.module, expected_module);
+    });
+
+    it("Handles while loop expressions", () => {
+
+        const document_state = Document.create_empty_state(language_description.production_rules);
+
+        const program = `
+module Block_expressions;
+
+export function foo() -> ()
+{
+    var a = 0;
+
+    {
+        var b = a;
+    }
+
+    var b = a;
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_while_loop_expressions();
+        assert.deepEqual(new_document_state.module, expected_module);
+    });
 });
 
 describe("Text_change.aggregate_changes", () => {

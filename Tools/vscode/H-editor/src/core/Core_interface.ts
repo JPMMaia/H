@@ -221,10 +221,9 @@ export interface Continue_expression {
 
 export interface For_loop_expression {
     variable_name: string;
-    range_type: Type_reference;
     range_begin: Expression_index;
     range_end: Expression_index;
-    step_by: Expression_index;
+    step_by?: Expression_index;
     then_expression: Expression_index;
 }
 
@@ -250,14 +249,13 @@ export interface Return_expression {
 }
 
 export interface Switch_case_expression_pair {
-    case_value: Expression_index;
-    then_expression: Expression_index;
+    case_value?: Expression_index;
+    statements: Vector<Statement>;
 }
 
 export interface Switch_expression {
     value: Expression_index;
     cases: Vector<Switch_case_expression_pair>;
-    default_case_expression?: Expression_index;
 }
 
 export interface Ternary_condition_expression {

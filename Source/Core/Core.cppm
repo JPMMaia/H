@@ -269,10 +269,9 @@ namespace h
     export struct For_loop_expression
     {
         std::pmr::string variable_name;
-        Type_reference range_type;
         Expression_index range_begin;
         Expression_index range_end;
-        Expression_index step_by;
+        std::optional<Expression_index> step_by;
         Expression_index then_expression;
 
         friend auto operator<=>(For_loop_expression const&, For_loop_expression const&) = default;
@@ -316,8 +315,8 @@ namespace h
 
     export struct Switch_case_expression_pair
     {
-        Expression_index case_value;
-        Expression_index then_expression;
+        std::optional<Expression_index> case_value;
+        std::pmr::vector<Statement> statements;
 
         friend auto operator<=>(Switch_case_expression_pair const&, Switch_case_expression_pair const&) = default;
     };
@@ -326,7 +325,6 @@ namespace h
     {
         Expression_index value;
         std::pmr::vector<Switch_case_expression_pair> cases;
-        std::optional<Expression_index> default_case_expression;
 
         friend auto operator<=>(Switch_expression const&, Switch_expression const&) = default;
     };

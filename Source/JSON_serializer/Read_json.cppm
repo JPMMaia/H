@@ -1348,17 +1348,6 @@ namespace h::json
             };
         }
 
-        if (key == "range_type")
-        {
-
-            return Stack_state
-            {
-                .pointer = &parent->range_type,
-                .type = "Type_reference",
-                .get_next_state = get_next_state_type_reference,
-            };
-        }
-
         if (key == "range_begin")
         {
 
@@ -1383,12 +1372,12 @@ namespace h::json
 
         if (key == "step_by")
         {
-
+            parent->step_by = h::Expression_index{};
             return Stack_state
             {
-                .pointer = &parent->step_by,
+                .pointer = &parent->step_by.value(),
                 .type = "Expression_index",
-                .get_next_state = get_next_state_expression_index,
+                .get_next_state = nullptr,
             };
         }
 
@@ -1527,23 +1516,37 @@ namespace h::json
 
         if (key == "case_value")
         {
-
+            parent->case_value = h::Expression_index{};
             return Stack_state
             {
-                .pointer = &parent->case_value,
+                .pointer = &parent->case_value.value(),
                 .type = "Expression_index",
-                .get_next_state = get_next_state_expression_index,
+                .get_next_state = nullptr,
             };
         }
 
-        if (key == "then_expression")
+        if (key == "statements")
         {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Statement>* parent = static_cast<std::pmr::vector<Statement>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Statement>* parent = static_cast<std::pmr::vector<Statement>*>(state->pointer);
+                return &((*parent)[index]);
+            };
 
             return Stack_state
             {
-                .pointer = &parent->then_expression,
-                .type = "Expression_index",
-                .get_next_state = get_next_state_expression_index,
+                .pointer = &parent->statements,
+                .type = "std::pmr::vector<Statement>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_statement
             };
         }
 
@@ -1587,17 +1590,6 @@ namespace h::json
                 .set_vector_size = set_vector_size,
                 .get_element = get_element,
                 .get_next_state_element = get_next_state_switch_case_expression_pair
-            };
-        }
-
-        if (key == "default_case_expression")
-        {
-            parent->default_case_expression = h::Expression_index{};
-            return Stack_state
-            {
-                .pointer = &parent->default_case_expression.value(),
-                .type = "Expression_index",
-                .get_next_state = nullptr,
             };
         }
 
