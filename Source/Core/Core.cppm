@@ -272,22 +272,22 @@ namespace h
         Expression_index range_begin;
         Expression_index range_end;
         std::optional<Expression_index> step_by;
-        Expression_index then_expression;
+        Statement then_statement;
 
         friend auto operator<=>(For_loop_expression const&, For_loop_expression const&) = default;
     };
 
-    export struct Condition_expression_pair
+    export struct Condition_statement_pair
     {
-        Expression_index expression;
+        Statement statement;
         std::optional<Expression_index> condition;
 
-        friend auto operator<=>(Condition_expression_pair const&, Condition_expression_pair const&) = default;
+        friend auto operator<=>(Condition_statement_pair const&, Condition_statement_pair const&) = default;
     };
 
     export struct If_expression
     {
-        std::pmr::vector<Condition_expression_pair> series;
+        std::pmr::vector<Condition_statement_pair> series;
 
         friend auto operator<=>(If_expression const&, If_expression const&) = default;
     };
@@ -371,7 +371,7 @@ namespace h
     export struct While_loop_expression
     {
         Expression_index condition;
-        Expression_index then_expression;
+        Statement then_statement;
 
         friend auto operator<=>(While_loop_expression const&, While_loop_expression const&) = default;
     };

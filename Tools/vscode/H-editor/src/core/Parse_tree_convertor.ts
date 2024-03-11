@@ -307,7 +307,9 @@ function get_production_rule_array_rhs_length(
         const array_position = array_position_with_placeholders[0].slice(1, array_position_with_placeholders[0].length);
         const array_reference = Object_reference.get_object_reference_at_position(state_value, array_position);
         const length = array_reference.value.length;
-        return length;
+        const has_separator = production_rule.rhs.length === 3;
+        const array_rhs_length = has_separator ? length * 2 - 1 : length;
+        return array_rhs_length;
     }
 
     const vector_position = replace_placeholders_by_values(
@@ -843,6 +845,16 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
         case Core_intermediate_representation.Expression_enum.Cast_expression: {
             const value = expression.data.value as Core_intermediate_representation.Cast_expression;
             visit_expressions(value.source, predicate);
+            break;
+        }
+        case Core_intermediate_representation.Expression_enum.For_loop_expression: {
+            const value = expression.data.value as Core_intermediate_representation.For_loop_expression;
+            visit_expressions(value.range_begin, predicate);
+            visit_expressions(value.range_end, predicate);
+            if (value.step_by !== undefined) {
+                visit_expressions(value.step_by, predicate);
+            }
+            visit_expressions(value.then_statement.expression, predicate);
             break;
         }
         case Core_intermediate_representation.Expression_enum.Parenthesis_expression: {

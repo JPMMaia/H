@@ -390,7 +390,7 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
-            Condition_expression_pair const& input
+            Condition_statement_pair const& input
         );
 
     export template<typename Writer_type>
@@ -1005,20 +1005,20 @@ namespace h::json
         writer.Key("range_end");
         write_object(writer, output.range_end);
         write_optional(writer, "step_by", output.step_by);
-        writer.Key("then_expression");
-        write_object(writer, output.then_expression);
+        writer.Key("then_statement");
+        write_object(writer, output.then_statement);
         writer.EndObject();
     }
 
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
-            Condition_expression_pair const& output
+            Condition_statement_pair const& output
         )
     {
         writer.StartObject();
-        writer.Key("expression");
-        write_object(writer, output.expression);
+        writer.Key("statement");
+        write_object(writer, output.statement);
         write_optional(writer, "condition", output.condition);
         writer.EndObject();
     }
@@ -1156,8 +1156,8 @@ namespace h::json
         writer.StartObject();
         writer.Key("condition");
         write_object(writer, output.condition);
-        writer.Key("then_expression");
-        write_object(writer, output.then_expression);
+        writer.Key("then_statement");
+        write_object(writer, output.then_statement);
         writer.EndObject();
     }
 

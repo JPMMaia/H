@@ -484,20 +484,20 @@
                 },
                 {
                     "type": {
-                        "name": "Expression_index"
+                        "name": "Statement"
                     },
-                    "name": "then_expression"
+                    "name": "then_statement"
                 }
             ]
         },
         {
-            "name": "Condition_expression_pair",
+            "name": "Condition_statement_pair",
             "members": [
                 {
                     "type": {
-                        "name": "Expression_index"
+                        "name": "Statement"
                     },
-                    "name": "expression"
+                    "name": "statement"
                 },
                 {
                     "type": {
@@ -512,7 +512,7 @@
             "members": [
                 {
                     "type": {
-                        "name": "std::pmr::vector<Condition_expression_pair>"
+                        "name": "std::pmr::vector<Condition_statement_pair>"
                     },
                     "name": "series"
                 }
@@ -659,9 +659,9 @@
                 },
                 {
                     "type": {
-                        "name": "Expression_index"
+                        "name": "Statement"
                     },
-                    "name": "then_expression"
+                    "name": "then_statement"
                 }
             ]
         },

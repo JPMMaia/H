@@ -2005,6 +2005,9 @@ function test_parse_tree_to_module(grammar_description: string[], expected_modul
     const mappings = Parse_tree_convertor_mappings.create_mapping();
     const parse_tree = Parse_tree_convertor.module_to_parse_tree(expected_module, production_rules, mappings);
 
+    const generated_text = Text_formatter.to_string(parse_tree, undefined, []);
+    console.log(generated_text);
+
     const actual_module = Parse_tree_convertor.parse_tree_to_module(parse_tree, production_rules, mappings, key_to_production_rule_indices);
 
     return actual_module;

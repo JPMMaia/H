@@ -224,16 +224,16 @@ export interface For_loop_expression {
     range_begin: Expression_index;
     range_end: Expression_index;
     step_by?: Expression_index;
-    then_expression: Expression_index;
+    then_statement: Statement;
 }
 
-export interface Condition_expression_pair {
-    expression: Expression_index;
+export interface Condition_statement_pair {
+    statement: Statement;
     condition?: Expression_index;
 }
 
 export interface If_expression {
-    series: Vector<Condition_expression_pair>;
+    series: Vector<Condition_statement_pair>;
 }
 
 export interface Invalid_expression {
@@ -277,7 +277,7 @@ export interface Variable_declaration_expression {
 
 export interface While_loop_expression {
     condition: Expression_index;
-    then_expression: Expression_index;
+    then_statement: Statement;
 }
 
 export interface Expression {

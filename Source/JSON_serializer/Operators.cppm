@@ -653,11 +653,11 @@ namespace h::json::operators
         return output_stream;
     }
 
-    export std::istream& operator>>(std::istream& input_stream, Condition_expression_pair& value)
+    export std::istream& operator>>(std::istream& input_stream, Condition_statement_pair& value)
     {
         rapidjson::Reader reader;
         rapidjson::IStreamWrapper stream_wrapper{ input_stream };
-        std::optional<Condition_expression_pair> const output = h::json::read<Condition_expression_pair>(reader, stream_wrapper);
+        std::optional<Condition_statement_pair> const output = h::json::read<Condition_statement_pair>(reader, stream_wrapper);
 
         if (output)
         {
@@ -667,7 +667,7 @@ namespace h::json::operators
         return input_stream;
     }
 
-    export std::ostream& operator<<(std::ostream& output_stream, Condition_expression_pair const& value)
+    export std::ostream& operator<<(std::ostream& output_stream, Condition_statement_pair const& value)
     {
         rapidjson::OStreamWrapper stream_wrapper{ output_stream };
         rapidjson::Writer<rapidjson::OStreamWrapper> writer{ stream_wrapper };
