@@ -66,6 +66,7 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
                 ["declarations", "$declaration_index", "value", "member_types"]
             ]],
             ["Statements", [["declarations", "$order_index", "value", "definition", "statements"]]],
+            ["Expression_block_statements", [["$top.state.value", "data", "value", "statements"]]],
             ["Expression_call_arguments", [["$top.state.value", "data", "value", "arguments"]]],
         ]
     );
@@ -389,7 +390,10 @@ function choose_production_rule_statement(
 
     const top = stack[stack.length - 1];
 
-    const statements_array = top.state.value as Core_intermediate_representation.Statement[];
+    const statements_array = top.node.word.value === "Expression_block_statements" ?
+        (top.state.value.data.value as Core_intermediate_representation.Block_expression).statements :
+        top.state.value as Core_intermediate_representation.Statement[];
+
     const statement_index = Parse_tree_convertor.calculate_array_index(production_rules[top.production_rule_index], top.current_child_index);
     const statement = statements_array[statement_index];
 
@@ -1284,6 +1288,15 @@ function node_to_expression(node: Parser_node.Node, key_to_production_rule_indic
                 }
             };
         }
+        case "Expression_block": {
+            const expression = node_to_expression_block(node, key_to_production_rule_indices);
+            return {
+                data: {
+                    type: Core_intermediate_representation.Expression_enum.Block_expression,
+                    value: expression
+                }
+            };
+        }
         case "Expression_call": {
             const expression = node_to_expression_call(node, key_to_production_rule_indices);
             return {
@@ -1486,6 +1499,18 @@ function map_production_rule_label_to_binary_operation(label: string): Core_inte
             throw Error(message);
         }
     }
+}
+
+function node_to_expression_block(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Block_expression {
+
+    const statements_node = node.children[1];
+    const statements = statements_node.children.map(node => node_to_statement(node, key_to_production_rule_indices));
+
+    const block_expression: Core_intermediate_representation.Block_expression = {
+        statements: statements
+    };
+
+    return block_expression;
 }
 
 function node_to_expression_call(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Call_expression {

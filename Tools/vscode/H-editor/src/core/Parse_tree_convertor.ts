@@ -825,6 +825,13 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
             visit_expressions(value.right_hand_side, predicate);
             break;
         }
+        case Core_intermediate_representation.Expression_enum.Block_expression: {
+            const value = expression.data.value as Core_intermediate_representation.Block_expression;
+            for (const statement of value.statements) {
+                visit_expressions(statement.expression, predicate);
+            }
+            break;
+        }
         case Core_intermediate_representation.Expression_enum.Call_expression: {
             const value = expression.data.value as Core_intermediate_representation.Call_expression;
             visit_expressions(value.expression, predicate);
