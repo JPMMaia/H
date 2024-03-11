@@ -2148,12 +2148,57 @@ export function create_switch_expressions(): IR.Module {
 
 export function create_ternary_condition_expressions(): IR.Module {
 
+    const bool_type = create_fundamental_type(IR.Fundamental_type.Bool);
+    const int32_type = create_integer_type(32, true);
+
     const statements: IR.Statement[] = [
-        create_statement(IR.create_variable_declaration_expression("a", false, IR.create_constant_expression(create_integer_type(32, true), "0"))),
-        create_statement(IR.create_block_expression([
-            create_statement(IR.create_variable_declaration_expression("b", false, IR.create_variable_expression("a"))),
-        ])),
-        create_statement(IR.create_variable_declaration_expression("b", false, IR.create_variable_expression("a"))),
+        create_statement(
+            IR.create_variable_declaration_expression("a", false,
+                IR.create_ternary_condition_expression(
+                    IR.create_variable_expression("first_boolean"),
+                    IR.create_constant_expression(int32_type, "1"),
+                    IR.create_constant_expression(int32_type, "0")
+                )
+            )
+        ),
+        create_statement(
+            IR.create_variable_declaration_expression("b", false,
+                IR.create_ternary_condition_expression(
+                    IR.create_binary_expression(
+                        IR.create_variable_expression("first_boolean"),
+                        IR.create_constant_expression(bool_type, "false"),
+                        IR.Binary_operation.Equal
+                    ),
+                    IR.create_constant_expression(int32_type, "1"),
+                    IR.create_constant_expression(int32_type, "0")
+                )
+            )
+        ),
+        create_statement(
+            IR.create_variable_declaration_expression("c", false,
+                IR.create_ternary_condition_expression(
+                    IR.create_unary_expression(
+                        IR.create_variable_expression("first_boolean"),
+                        IR.Unary_operation.Not
+                    ),
+                    IR.create_constant_expression(int32_type, "1"),
+                    IR.create_constant_expression(int32_type, "0")
+                )
+            )
+        ),
+        create_statement(
+            IR.create_variable_declaration_expression("d", false,
+                IR.create_ternary_condition_expression(
+                    IR.create_variable_expression("first_boolean"),
+                    IR.create_ternary_condition_expression(
+                        IR.create_variable_expression("second_boolean"),
+                        IR.create_constant_expression(int32_type, "2"),
+                        IR.create_constant_expression(int32_type, "1")
+                    ),
+                    IR.create_constant_expression(int32_type, "0")
+                )
+            )
+        )
     ];
 
     return {
@@ -2161,23 +2206,23 @@ export function create_ternary_condition_expressions(): IR.Module {
         imports: [],
         declarations: [
             {
-                name: "foo",
+                name: "run_ternary_conditions",
                 type: IR.Declaration_type.Function,
                 is_export: true,
                 value: {
                     declaration: {
-                        name: "foo",
+                        name: "run_ternary_conditions",
                         type: {
-                            input_parameter_types: [create_integer_type(32, true), create_fundamental_type(IR.Fundamental_type.Bool)],
+                            input_parameter_types: [bool_type, bool_type],
                             output_parameter_types: [],
                             is_variadic: false,
                         },
-                        input_parameter_names: ["my_integer", "my_boolean"],
+                        input_parameter_names: ["first_boolean", "second_boolean"],
                         output_parameter_names: [],
                         linkage: IR.Linkage.External
                     },
                     definition: {
-                        name: "foo",
+                        name: "run_ternary_conditions",
                         statements: statements
                     }
                 }
@@ -2188,36 +2233,430 @@ export function create_ternary_condition_expressions(): IR.Module {
 
 export function create_while_loop_expressions(): IR.Module {
 
+    const c_string_type = create_pointer_type([create_fundamental_type(IR.Fundamental_type.C_char)], false);
+    const int32_type = create_integer_type(32, true);
+
     const statements: IR.Statement[] = [
-        create_statement(IR.create_variable_declaration_expression("a", false, IR.create_constant_expression(create_integer_type(32, true), "0"))),
-        create_statement(IR.create_block_expression([
-            create_statement(IR.create_variable_declaration_expression("b", false, IR.create_variable_expression("a"))),
-        ])),
-        create_statement(IR.create_variable_declaration_expression("b", false, IR.create_variable_expression("a"))),
+        create_statement(
+            IR.create_block_expression(
+                [
+                    create_statement(
+                        IR.create_variable_declaration_expression("index", true,
+                            IR.create_constant_expression(int32_type, "0")
+                        )
+                    ),
+                    create_statement(
+                        IR.create_while_loop_expression(
+                            IR.create_binary_expression(
+                                IR.create_variable_expression("index"),
+                                IR.create_variable_expression("size"),
+                                IR.Binary_operation.Less_than
+                            ),
+                            IR.create_block_expression(
+                                [
+                                    create_statement(
+                                        IR.create_call_expression(
+                                            IR.create_variable_expression("print_integer"),
+                                            [
+                                                IR.create_variable_expression("index")
+                                            ]
+                                        )
+                                    ),
+                                    create_statement(
+                                        IR.create_assignment_expression(
+                                            IR.create_variable_expression("index"),
+                                            IR.create_constant_expression(int32_type, "1"),
+                                            IR.Binary_operation.Add
+                                        )
+                                    ),
+                                ]
+                            )
+                        )
+                    )
+                ]
+            )
+        ),
+        create_statement(
+            IR.create_block_expression(
+                [
+                    create_statement(
+                        IR.create_variable_declaration_expression("index", true,
+                            IR.create_constant_expression(int32_type, "0")
+                        )
+                    ),
+                    create_statement(
+                        IR.create_while_loop_expression(
+                            IR.create_binary_expression(
+                                IR.create_variable_expression("index"),
+                                IR.create_variable_expression("size"),
+                                IR.Binary_operation.Less_than
+                            ),
+                            IR.create_block_expression(
+                                [
+                                    create_statement(
+                                        IR.create_if_expression(
+                                            [
+                                                {
+                                                    expression: IR.create_continue_expression(),
+                                                    condition: IR.create_binary_expression(
+                                                        IR.create_binary_expression(
+                                                            IR.create_variable_expression("index"),
+                                                            IR.create_constant_expression(int32_type, "2"),
+                                                            IR.Binary_operation.Modulus
+                                                        ),
+                                                        IR.create_constant_expression(int32_type, "0"),
+                                                        IR.Binary_operation.Equal
+                                                    )
+                                                }
+                                            ]
+                                        )
+                                    ),
+                                    create_statement(
+                                        IR.create_if_expression(
+                                            [
+                                                {
+                                                    expression: IR.create_break_expression(0),
+                                                    condition: IR.create_binary_expression(
+                                                        IR.create_variable_expression("index"),
+                                                        IR.create_constant_expression(int32_type, "5"),
+                                                        IR.Binary_operation.Greater_than
+                                                    )
+                                                }
+                                            ]
+                                        )
+                                    ),
+                                    create_statement(
+                                        IR.create_call_expression(
+                                            IR.create_variable_expression("print_integer"),
+                                            [
+                                                IR.create_variable_expression("index")
+                                            ]
+                                        )
+                                    ),
+                                    create_statement(
+                                        IR.create_assignment_expression(
+                                            IR.create_variable_expression("index"),
+                                            IR.create_constant_expression(int32_type, "1"),
+                                            IR.Binary_operation.Add
+                                        )
+                                    ),
+                                ]
+                            )
+                        )
+                    )
+                ]
+            )
+        )
     ];
 
     return {
         name: "While_loop_expressions",
-        imports: [],
+        imports: [
+            {
+                module_name: "C.stdio",
+                alias: "stdio",
+                usages: ["printf"]
+            }
+        ],
         declarations: [
             {
-                name: "foo",
+                name: "print_integer",
                 type: IR.Declaration_type.Function,
                 is_export: true,
                 value: {
                     declaration: {
-                        name: "foo",
+                        name: "print_integer",
                         type: {
-                            input_parameter_types: [create_integer_type(32, true), create_fundamental_type(IR.Fundamental_type.Bool)],
+                            input_parameter_types: [create_integer_type(32, true)],
                             output_parameter_types: [],
                             is_variadic: false,
                         },
-                        input_parameter_names: ["my_integer", "my_boolean"],
+                        input_parameter_names: ["value"],
+                        output_parameter_names: [],
+                        linkage: IR.Linkage.Private
+                    },
+                    definition: {
+                        name: "print_integer",
+                        statements: [
+                            create_statement(
+                                IR.create_call_expression(
+                                    IR.create_access_expression(IR.create_variable_expression("stdio"), "printf"),
+                                    [
+                                        IR.create_constant_expression(c_string_type, "%d"),
+                                        IR.create_variable_expression("value")
+                                    ]
+                                )
+                            )
+                        ]
+                    }
+                }
+            },
+            {
+                name: "run_while_loops",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "run_while_loops",
+                        type: {
+                            input_parameter_types: [int32_type],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: ["size"],
                         output_parameter_names: [],
                         linkage: IR.Linkage.External
                     },
                     definition: {
-                        name: "foo",
+                        name: "run_while_loops",
+                        statements: statements
+                    }
+                }
+            }
+        ]
+    };
+}
+
+export function create_break_expressions(): IR.Module {
+
+    const c_string_type = create_pointer_type([create_fundamental_type(IR.Fundamental_type.C_char)], false);
+    const int32_type = create_integer_type(32, true);
+
+    const statements: IR.Statement[] = [
+        create_statement(
+            IR.create_for_loop_expression(
+                "index",
+                IR.create_constant_expression(int32_type, "0"),
+                IR.create_variable_expression("size"),
+                undefined,
+                IR.create_block_expression(
+                    [
+                        create_statement(
+                            IR.create_if_expression(
+                                [
+                                    {
+                                        expression: IR.create_break_expression(0),
+                                        condition: IR.create_binary_expression(
+                                            IR.create_variable_expression("index"),
+                                            IR.create_constant_expression(int32_type, "4"),
+                                            IR.Binary_operation.Greater_than
+                                        )
+                                    }
+                                ]
+                            )
+                        ),
+                        create_statement(
+                            IR.create_call_expression(
+                                IR.create_variable_expression("print_integer"),
+                                [
+                                    IR.create_variable_expression("index")
+                                ]
+                            )
+                        ),
+                    ]
+                )
+            )
+        ),
+        create_statement(
+            IR.create_for_loop_expression(
+                "index",
+                IR.create_constant_expression(int32_type, "0"),
+                IR.create_variable_expression("size"),
+                undefined,
+                IR.create_block_expression(
+                    [
+                        create_statement(
+                            IR.create_variable_declaration_expression(
+                                "index_2",
+                                true,
+                                IR.create_constant_expression(int32_type, "0")
+                            )
+                        ),
+                        create_statement(
+                            IR.create_while_loop_expression(
+                                IR.create_binary_expression(
+                                    IR.create_variable_expression("index_2"),
+                                    IR.create_variable_expression("size"),
+                                    IR.Binary_operation.Less_than
+                                ),
+                                IR.create_block_expression(
+                                    [
+                                        create_statement(
+                                            IR.create_if_expression(
+                                                [
+                                                    {
+                                                        expression: IR.create_break_expression(0),
+                                                        condition: IR.create_binary_expression(
+                                                            IR.create_variable_expression("index"),
+                                                            IR.create_constant_expression(int32_type, "3"),
+                                                            IR.Binary_operation.Greater_than
+                                                        )
+                                                    }
+                                                ]
+                                            )
+                                        ),
+                                        create_statement(
+                                            IR.create_call_expression(
+                                                IR.create_variable_expression("print_integer"),
+                                                [
+                                                    IR.create_variable_expression("index_2")
+                                                ]
+                                            )
+                                        ),
+                                        create_statement(
+                                            IR.create_assignment_expression(
+                                                IR.create_variable_expression("index"),
+                                                IR.create_constant_expression(int32_type, "1"),
+                                                IR.Binary_operation.Add
+                                            )
+                                        )
+                                    ]
+                                )
+                            )
+                        ),
+                        create_statement(
+                            IR.create_call_expression(
+                                IR.create_variable_expression("print_integer"),
+                                [
+                                    IR.create_variable_expression("index")
+                                ]
+                            )
+                        ),
+                    ]
+                )
+            )
+        ),
+        create_statement(
+            IR.create_for_loop_expression(
+                "index",
+                IR.create_constant_expression(int32_type, "0"),
+                IR.create_variable_expression("size"),
+                undefined,
+                IR.create_block_expression(
+                    [
+                        create_statement(
+                            IR.create_variable_declaration_expression(
+                                "index_2",
+                                true,
+                                IR.create_constant_expression(int32_type, "0")
+                            )
+                        ),
+                        create_statement(
+                            IR.create_while_loop_expression(
+                                IR.create_binary_expression(
+                                    IR.create_variable_expression("index_2"),
+                                    IR.create_variable_expression("size"),
+                                    IR.Binary_operation.Less_than
+                                ),
+                                IR.create_block_expression(
+                                    [
+                                        create_statement(
+                                            IR.create_if_expression(
+                                                [
+                                                    {
+                                                        expression: IR.create_break_expression(2),
+                                                        condition: IR.create_binary_expression(
+                                                            IR.create_variable_expression("index"),
+                                                            IR.create_constant_expression(int32_type, "3"),
+                                                            IR.Binary_operation.Greater_than
+                                                        )
+                                                    }
+                                                ]
+                                            )
+                                        ),
+                                        create_statement(
+                                            IR.create_call_expression(
+                                                IR.create_variable_expression("print_integer"),
+                                                [
+                                                    IR.create_variable_expression("index_2")
+                                                ]
+                                            )
+                                        ),
+                                        create_statement(
+                                            IR.create_assignment_expression(
+                                                IR.create_variable_expression("index"),
+                                                IR.create_constant_expression(int32_type, "1"),
+                                                IR.Binary_operation.Add
+                                            )
+                                        )
+                                    ]
+                                )
+                            )
+                        ),
+                        create_statement(
+                            IR.create_call_expression(
+                                IR.create_variable_expression("print_integer"),
+                                [
+                                    IR.create_variable_expression("index")
+                                ]
+                            )
+                        ),
+                    ]
+                )
+            )
+        )
+    ];
+
+    return {
+        name: "Break_expressions",
+        imports: [
+            {
+                module_name: "C.stdio",
+                alias: "stdio",
+                usages: ["printf"]
+            }
+        ],
+        declarations: [
+            {
+                name: "print_integer",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "print_integer",
+                        type: {
+                            input_parameter_types: [create_integer_type(32, true)],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: ["value"],
+                        output_parameter_names: [],
+                        linkage: IR.Linkage.Private
+                    },
+                    definition: {
+                        name: "print_integer",
+                        statements: [
+                            create_statement(
+                                IR.create_call_expression(
+                                    IR.create_access_expression(IR.create_variable_expression("stdio"), "printf"),
+                                    [
+                                        IR.create_constant_expression(c_string_type, "%d"),
+                                        IR.create_variable_expression("value")
+                                    ]
+                                )
+                            )
+                        ]
+                    }
+                }
+            },
+            {
+                name: "run_breaks",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "run_breaks",
+                        type: {
+                            input_parameter_types: [int32_type],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: ["size"],
+                        output_parameter_names: [],
+                        linkage: IR.Linkage.External
+                    },
+                    definition: {
+                        name: "run_breaks",
                         statements: statements
                     }
                 }

@@ -1311,13 +1311,13 @@ module Switch_expressions;
 
 export function run_switch(value: Int32) -> (result: Int32)
 {
-    switch value
+    switch value:
     {
     case 0:
         return 0;
     }
 
-    switch value
+    switch value:
     {
     case 1:
         return 1;
@@ -1331,7 +1331,7 @@ export function run_switch(value: Int32) -> (result: Int32)
         return 3;
     }
 
-    switch value
+    switch value:
     {
     default:
     case 6:
@@ -1364,17 +1364,14 @@ export function run_switch(value: Int32) -> (result: Int32)
         const document_state = Document.create_empty_state(language_description.production_rules);
 
         const program = `
-module Block_expressions;
+module Ternary_condition_expressions;
 
-export function foo() -> ()
+export function run_ternary_conditions(first_boolean: Bool, second_boolean: Bool) -> ()
 {
-    var a = 0;
-
-    {
-        var b = a;
-    }
-
-    var b = a;
+    var a = first_boolean ? 1 : 0;
+    var b = first_boolean == false ? 1 : 0;
+    var c = !first_boolean ? 1 : 0;
+    var d = first_boolean ? second_boolean ? 2 : 1 : 0;
 }
 `;
 
@@ -1400,17 +1397,40 @@ export function foo() -> ()
         const document_state = Document.create_empty_state(language_description.production_rules);
 
         const program = `
-module Block_expressions;
+module While_loop_expressions;
 
-export function foo() -> ()
+import C.stdio as stdio;
+
+function print_integer(value: Int32) -> ()
 {
-    var a = 0;
+    stdio.printf("%d"c, value);
+}
 
+export function run_while_loops(size: Int32) -> ()
+{
     {
-        var b = a;
+        mutable index = 0;
+        while index < size:
+        {
+            print_integer(index);
+            index += 1;
+        }
     }
 
-    var b = a;
+    {
+        mutable index = 0;
+        while index < size:
+        {
+            if (index % 2 == 0)
+                continue;
+
+            if (index > 5)
+                break;
+            
+            print_integer(index);
+            index += 1;
+        }
+    }
 }
 `;
 
@@ -1428,6 +1448,81 @@ export function foo() -> ()
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_while_loop_expressions();
+        assert.deepEqual(new_document_state.module, expected_module);
+    });
+
+    it("Handles break expressions", () => {
+
+        const document_state = Document.create_empty_state(language_description.production_rules);
+
+        const program = `
+module Break_expressions;
+
+import C.stdio as stdio;
+
+function print_integer(value: Int32) -> ()
+{
+    stdio.printf("%d"c, value);
+}
+
+export function run_breaks(size: Int32) -> ()
+{
+    for index in 0 to size:
+    {
+        if index > 4:
+            break;
+
+        print_integer(index);
+    }
+
+    for index in 0 to size:
+    {
+        mutable index_2 = 0;
+
+        while index_2 < size:
+        {
+            if (index > 3)
+                break;
+
+            print_integer(index_2);
+            index += 1;
+        }
+
+        print_integer(index);
+    }
+
+    for index in 0 to size:
+    {
+        mutable index_2 = 0;
+
+        while index_2 < size:
+        {
+            if (index > 3)
+                break 2;
+
+            print_integer(index_2);
+            index += 1;
+        }
+
+        print_integer(index);
+    }
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_break_expressions();
         assert.deepEqual(new_document_state.module, expected_module);
     });
 });
