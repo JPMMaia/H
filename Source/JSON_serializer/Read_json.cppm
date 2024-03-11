@@ -412,7 +412,7 @@ namespace h::json
     export std::optional<Stack_state> get_next_state_constant_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_continue_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_for_loop_expression(Stack_state* state, std::string_view const key);
-    export std::optional<Stack_state> get_next_state_condition_expression_pair(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_condition_statement_pair(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_if_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_invalid_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_parenthesis_expression(Stack_state* state, std::string_view const key);
@@ -1381,32 +1381,32 @@ namespace h::json
             };
         }
 
-        if (key == "then_expression")
+        if (key == "then_statement")
         {
 
             return Stack_state
             {
-                .pointer = &parent->then_expression,
-                .type = "Expression_index",
-                .get_next_state = get_next_state_expression_index,
+                .pointer = &parent->then_statement,
+                .type = "Statement",
+                .get_next_state = get_next_state_statement,
             };
         }
 
         return {};
     }
 
-    export std::optional<Stack_state> get_next_state_condition_expression_pair(Stack_state* state, std::string_view const key)
+    export std::optional<Stack_state> get_next_state_condition_statement_pair(Stack_state* state, std::string_view const key)
     {
-        h::Condition_expression_pair* parent = static_cast<h::Condition_expression_pair*>(state->pointer);
+        h::Condition_statement_pair* parent = static_cast<h::Condition_statement_pair*>(state->pointer);
 
-        if (key == "expression")
+        if (key == "statement")
         {
 
             return Stack_state
             {
-                .pointer = &parent->expression,
-                .type = "Expression_index",
-                .get_next_state = get_next_state_expression_index,
+                .pointer = &parent->statement,
+                .type = "Statement",
+                .get_next_state = get_next_state_statement,
             };
         }
 
@@ -1432,24 +1432,24 @@ namespace h::json
         {
             auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
             {
-                std::pmr::vector<Condition_expression_pair>* parent = static_cast<std::pmr::vector<Condition_expression_pair>*>(state->pointer);
+                std::pmr::vector<Condition_statement_pair>* parent = static_cast<std::pmr::vector<Condition_statement_pair>*>(state->pointer);
                 parent->resize(size);
             };
 
             auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
             {
-                std::pmr::vector<Condition_expression_pair>* parent = static_cast<std::pmr::vector<Condition_expression_pair>*>(state->pointer);
+                std::pmr::vector<Condition_statement_pair>* parent = static_cast<std::pmr::vector<Condition_statement_pair>*>(state->pointer);
                 return &((*parent)[index]);
             };
 
             return Stack_state
             {
                 .pointer = &parent->series,
-                .type = "std::pmr::vector<Condition_expression_pair>",
+                .type = "std::pmr::vector<Condition_statement_pair>",
                 .get_next_state = get_next_state_vector,
                 .set_vector_size = set_vector_size,
                 .get_element = get_element,
-                .get_next_state_element = get_next_state_condition_expression_pair
+                .get_next_state_element = get_next_state_condition_statement_pair
             };
         }
 
@@ -1720,14 +1720,14 @@ namespace h::json
             };
         }
 
-        if (key == "then_expression")
+        if (key == "then_statement")
         {
 
             return Stack_state
             {
-                .pointer = &parent->then_expression,
-                .type = "Expression_index",
-                .get_next_state = get_next_state_expression_index,
+                .pointer = &parent->then_statement,
+                .type = "Statement",
+                .get_next_state = get_next_state_statement,
             };
         }
 
@@ -2767,13 +2767,13 @@ namespace h::json
             };
         }
 
-        if constexpr (std::is_same_v<Struct_type, h::Condition_expression_pair>)
+        if constexpr (std::is_same_v<Struct_type, h::Condition_statement_pair>)
         {
             return Stack_state
             {
                 .pointer = output,
-                .type = "Condition_expression_pair",
-                .get_next_state = get_next_state_condition_expression_pair
+                .type = "Condition_statement_pair",
+                .get_next_state = get_next_state_condition_statement_pair
             };
         }
 

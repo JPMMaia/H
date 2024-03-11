@@ -2158,9 +2158,41 @@ namespace h::tools::code_generator
         return type_name.starts_with("Expression") || type_name.ends_with("expression");
     }
 
-    bool contains_expressions(std::string_view const type_name)
+    bool contains_expressions(std::pmr::string const& type_name, std::pmr::unordered_map<std::pmr::string, Struct> const& struct_map)
     {
-        return is_expression_type(type_name) || type_name.ends_with("expression_pair");
+        if (type_name != "Statement")
+        {
+            auto const location = struct_map.find(type_name);
+            if (location != struct_map.end())
+            {
+                Struct const& struct_info = location->second;
+                for (Member const& member : struct_info.members)
+                {
+                    if (is_expression_type(member.type.name))
+                    {
+                        return true;
+                    }
+                    else if (is_vector_type(member.type))
+                    {
+                        std::pmr::string const value_type = get_vector_value_type(member.type);
+                        if (is_expression_type(value_type))
+                        {
+                            return true;
+                        }
+                    }
+                    else if (is_optional_type(member.type))
+                    {
+                        std::pmr::string const value_type = get_optional_value_type(member.type);
+                        if (is_expression_type(value_type))
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return is_expression_type(type_name);
     }
 
     void generate_typescript_interface(
@@ -2222,7 +2254,7 @@ namespace h::tools::code_generator
         }
     }
 
-    void generate_variant_core_to_intermediate_representation(std::ostream& output_stream, Type const& type, std::string_view const parent_type_name, std::pmr::unordered_map<std::pmr::string, Enum> const& enum_map)
+    void generate_variant_core_to_intermediate_representation(std::ostream& output_stream, Type const& type, std::string_view const parent_type_name, std::pmr::unordered_map<std::pmr::string, Enum> const& enum_map, std::pmr::unordered_map<std::pmr::string, Struct> const& struct_map)
     {
         std::pmr::vector<std::pmr::string> const variant_types = get_variadic_types(type.name);
         std::pmr::string const variant_type_enum_name = generate_variant_types_enum_name(parent_type_name, variant_types);
@@ -2236,7 +2268,7 @@ namespace h::tools::code_generator
             output_stream << "                data: {\n";
             output_stream << "                    type: core_value.data.type,\n";
 
-            if (contains_expressions(variant_type))
+            if (contains_expressions(variant_type, struct_map))
             {
                 output_stream << std::format("                    value: core_to_intermediate_{}(core_value.data.value as Core.{}, statement)\n", to_lowercase(variant_type), variant_type);
             }
@@ -2562,7 +2594,7 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
             output_stream << "}\n\n";
 
             {
-                if (contains_expressions(struct_info.name))
+                if (contains_expressions(struct_info.name, struct_map))
                 {
                     output_stream << std::format("function core_to_intermediate_{}(core_value: Core.{}, statement: Core.Statement): {} {{\n", to_lowercase(struct_info.name), struct_info.name, struct_info.name);
                 }
@@ -2574,7 +2606,7 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
                 {
                     if (struct_info.members.size() == 1 && is_variant_type(struct_info.members[0].type))
                     {
-                        generate_variant_core_to_intermediate_representation(output_stream, struct_info.members[0].type, struct_info.name, enum_map);
+                        generate_variant_core_to_intermediate_representation(output_stream, struct_info.members[0].type, struct_info.name, enum_map, struct_map);
                     }
                     else
                     {
@@ -2598,7 +2630,7 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
                                 }
                                 else if (is_struct_type(vector_value_type, struct_map))
                                 {
-                                    if (contains_expressions(vector_value_type.name))
+                                    if (contains_expressions(vector_value_type.name, struct_map))
                                     {
                                         output_stream << std::format("        {}: core_value.{}.elements.map(value => core_to_intermediate_{}(value, statement)),\n", member.name, member.name, to_lowercase(vector_value_type.name));
                                     }
@@ -2629,7 +2661,7 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
             }
 
             {
-                if (contains_expressions(struct_info.name))
+                if (contains_expressions(struct_info.name, struct_map))
                 {
                     std::string const return_type = is_expression_type(struct_info.name) ? "void" : std::format("Core.{}", struct_info.name);
                     output_stream << std::format("function intermediate_to_core_{}(intermediate_value: {}, expressions: Core.Expression[]): {} {{\n", to_lowercase(struct_info.name), struct_info.name, return_type);
@@ -2643,7 +2675,7 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
                 {
                     generate_variant_intermediate_to_core_representation(output_stream, struct_info.members[0].type, struct_info.name, enum_map);
                 }
-                else if (contains_expressions(struct_info.name))
+                else if (contains_expressions(struct_info.name, struct_map))
                 {
                     bool const is_expression = is_expression_type(struct_info.name);
 
@@ -2688,7 +2720,7 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
                             output_stream << indent(indentation) << std::format("        {}: {{\n", member.name);
                             output_stream << indent(indentation) << std::format("            size: intermediate_value.{}.length,\n", member.name);
 
-                            if (contains_expressions(value_type))
+                            if (contains_expressions(value_type, struct_map))
                             {
                                 output_stream << indent(indentation) << std::format("            elements: intermediate_value.{}.map(value => intermediate_to_core_{}(value, expressions))\n", member.name, to_lowercase(value_type));
                             }
