@@ -232,7 +232,7 @@ export function create_test_grammar_9_description(): string[] {
         "Expression_parenthesis -> ( Generic_expression )",
         "Expression_return -> return",
         "Expression_return -> return Generic_expression",
-        "Expression_switch -> switch Generic_expression { Expression_switch_cases }",
+        "Expression_switch -> switch Generic_expression : { Expression_switch_cases }",
         "Expression_switch_cases -> Expression_switch_case $0_or_more",
         "Expression_switch_case -> case Expression_switch_case_value : { Generic_expression }",
         "Expression_switch_case -> default: { Generic_expression }",
