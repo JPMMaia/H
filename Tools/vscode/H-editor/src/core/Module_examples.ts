@@ -1697,7 +1697,10 @@ export function create_for_loop_expressions(): IR.Module {
                 "index",
                 IR.create_constant_expression(int32_type, "4"),
                 IR.create_constant_expression(int32_type, "0"),
-                IR.create_constant_expression(int32_type, "-1"),
+                IR.create_unary_expression(
+                    IR.create_constant_expression(int32_type, "1"),
+                    IR.Unary_operation.Minus
+                ),
                 create_statement(
                     IR.create_block_expression([
                         create_statement(
