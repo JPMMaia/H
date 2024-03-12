@@ -903,14 +903,6 @@ function get_generic_expression(
                 label: map_expression_type_to_production_rule_label(next_expression)
             };
         }
-        /*case Core_intermediate_representation.Expression_enum.For_loop_expression: {
-            const for_loop_expression = expression.data.value as Core_intermediate_representation.For_loop_expression;
-            const next_expression = for_loop_expression.then_stament.expression;
-            return {
-                expression: next_expression,
-                label: map_expression_type_to_production_rule_label(next_expression)
-            };
-        }*/
         case Core_intermediate_representation.Expression_enum.Parenthesis_expression: {
             const parenthesis_expression = expression.data.value as Core_intermediate_representation.Parenthesis_expression;
             const next_expression = parenthesis_expression.expression;
