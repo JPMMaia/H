@@ -15,35 +15,30 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Import_name", ["imports", "$order_index", "module_name"]],
             ["Import_alias", ["imports", "$order_index", "alias"]],
             ["Alias_name", ["declarations", "$declaration_index", "value", "name"]],
-            ["Alias_type", ["declarations", "$declaration_index", "value", "type"]],
             ["Enum_name", ["declarations", "$declaration_index", "value", "name"]],
             ["Enum_value_name", ["declarations", "$declaration_index", "value", "values", "$order_index", "name"]],
             ["Enum_value_value", ["declarations", "$declaration_index", "value", "values", "$order_index", "value"]],
             ["Function_name", ["declarations", "$declaration_index", "value", "declaration", "name"]],
             ["Function_parameter_name", ["declarations", "$declaration_index", "value", "declaration", "$parameter_names", "$order_index"]],
-            ["Function_parameter_type", ["declarations", "$declaration_index", "value", "declaration", "type", "$parameter_types", "$order_index"]],
             ["Statement", ["declarations", "$declaration_index", "value", "definition", "statements", "$order_index"]],
             ["Struct_name", ["declarations", "$declaration_index", "value", "name"]],
             ["Struct_member_name", ["declarations", "$declaration_index", "value", "member_names", "$order_index"]],
-            ["Struct_member_type", ["declarations", "$declaration_index", "value", "member_types", "$order_index"]],
         ]
     );
 
     const value_transforms = new Map<string, (value: any) => string>(
         [
-            ["Alias_type", vector => Type_utilities.get_type_name(vector)],
-            ["Expression_cast_destination_type", value => Type_utilities.get_type_name([value])],
-            ["Function_parameter_type", value => Type_utilities.get_type_name([value])],
-            ["Struct_member_type", value => Type_utilities.get_type_name([value])],
         ]
     );
 
     const terminal_to_word_map = new Map<string, Parse_tree_convertor.Map_terminal_to_word_handler>(
         [
             ["Identifier_with_dots", map_identifier_with_dots_to_word],
+            ["Type_name", map_type_name_to_word],
+            ["Module_type_module_name", map_module_type_module_name_to_word],
+            ["Module_type_type_name", map_module_type_type_name_to_word],
             ["Expression_access_member_name", map_expression_access_member_name_to_word],
             ["Expression_constant", map_expression_constant_to_word],
-            ["Expression_cast_destination_type", map_expression_cast_destination_type_to_word],
             ["Expression_for_loop_variable", map_for_loop_variable_to_word],
             ["Variable_name", map_variable_name_to_word],
         ]
@@ -89,6 +84,8 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Identifier_with_dots", choose_production_rule_identifier_with_dots],
             ["Declaration", choose_production_rule_declaration],
             ["Export", choose_production_rule_export],
+            ["Type", choose_production_rule_type],
+            ["Pointer_type", choose_production_rule_pointer_type],
             ["Statement", choose_production_rule_statement],
             ["Expression_assignment_symbol", choose_production_rule_expression_assignment_symbol],
             ["Expression_binary_addition_symbol", choose_production_rule_expression_binary_symbol],
@@ -104,6 +101,7 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Expression_constant", choose_production_rule_expression_constant],
             ["Expression_for_loop_number_expression", choose_production_rule_expression_for_loop_number],
             ["Expression_for_loop_step", choose_production_rule_expression_for_loop_step],
+            ["Expression_if_else", choose_production_rule_expression_if_else],
             ["Expression_return", choose_production_rule_expression_return],
             ["Expression_unary", choose_production_rule_expression_unary],
             ["Expression_unary_0_symbol", choose_production_rule_expression_unary_0_symbol],
@@ -189,6 +187,48 @@ function is_c_string(type_reference: Core_intermediate_representation.Type_refer
     }
 
     return false;
+}
+
+function map_type_name_to_word(
+    module: Core_intermediate_representation.Module,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    production_rules: Grammar.Production_rule[],
+    key_to_production_rule_indices: Map<string, number[]>,
+    terminal: string,
+    mappings: Parse_tree_convertor.Parse_tree_mappings
+): Scanner.Scanned_word {
+    const top = stack[stack.length - 1];
+    const type_reference_array = top.state.value as Core_intermediate_representation.Type_reference[];
+    const value = Type_utilities.get_type_name(type_reference_array);
+    return { value: value, type: Grammar.Word_type.Alphanumeric };
+}
+
+function map_module_type_module_name_to_word(
+    module: Core_intermediate_representation.Module,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    production_rules: Grammar.Production_rule[],
+    key_to_production_rule_indices: Map<string, number[]>,
+    terminal: string,
+    mappings: Parse_tree_convertor.Parse_tree_mappings
+): Scanner.Scanned_word {
+    const top = stack[stack.length - 1];
+    const type_reference_array = top.state.value as Core_intermediate_representation.Type_reference[];
+    const custom_type_reference = type_reference_array[0].data.value as Core_intermediate_representation.Custom_type_reference;
+    return { value: custom_type_reference.module_reference.name, type: Grammar.Word_type.Alphanumeric };
+}
+
+function map_module_type_type_name_to_word(
+    module: Core_intermediate_representation.Module,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    production_rules: Grammar.Production_rule[],
+    key_to_production_rule_indices: Map<string, number[]>,
+    terminal: string,
+    mappings: Parse_tree_convertor.Parse_tree_mappings
+): Scanner.Scanned_word {
+    const top = stack[stack.length - 1];
+    const type_reference_array = top.state.value as Core_intermediate_representation.Type_reference[];
+    const custom_type_reference = type_reference_array[0].data.value as Core_intermediate_representation.Custom_type_reference;
+    return { value: custom_type_reference.name, type: Grammar.Word_type.Alphanumeric };
 }
 
 function map_expression_access_member_name_to_word(
@@ -395,6 +435,143 @@ function choose_production_rule_export(
     };
 }
 
+function choose_production_rule_type(
+    module: Core_intermediate_representation.Module,
+    production_rules: Grammar.Production_rule[],
+    production_rule_indices: number[],
+    label: string,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    mappings: Parse_tree_convertor.Parse_tree_mappings,
+    key_to_production_rule_indices: Map<string, number[]>
+): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
+    const top = stack[stack.length - 1];
+
+    const get_type_reference = (): Core_intermediate_representation.Type_reference[] => {
+        if (top.node.word.value === "Alias_type") {
+            const alias_type_state = stack[stack.length - 2];
+            const alias_type_declaration = alias_type_state.state.value.value as Core_intermediate_representation.Alias_type_declaration;
+            return alias_type_declaration.type;
+        }
+        else if (top.node.word.value === "Function_parameter_type") {
+            const function_declaration_state = stack[stack.length - 4];
+            const function_declaration = function_declaration_state.state.value.value.declaration as Core_intermediate_representation.Function_declaration;
+
+            const parameters_array_state = stack[stack.length - 3];
+            const parameter_index = (parameters_array_state.current_child_index - 1) / 2;
+            const is_input_parameters = parameters_array_state.node.word.value === "Function_input_parameters";
+
+            const parameter_type_array = is_input_parameters ? function_declaration.type.input_parameter_types : function_declaration.type.output_parameter_types;
+            const parameter_type = parameter_type_array[parameter_index];
+
+            return [parameter_type];
+        }
+        if (top.node.word.value === "Struct_member_type") {
+            const struct_state = stack[stack.length - 4];
+            const struct_declaration = struct_state.state.value.value as Core_intermediate_representation.Struct_declaration;
+
+            const member_types_array_state = stack[stack.length - 3];
+            const member_type_index = (member_types_array_state.current_child_index - 1);
+
+            const member_type = struct_declaration.member_types[member_type_index];
+            return [member_type];
+
+        }
+        else if (top.node.word.value === "Pointer_type") {
+            const type_reference_array = top.state.value as Core_intermediate_representation.Type_reference[];
+            const pointer_type = type_reference_array[0].data.value as Core_intermediate_representation.Pointer_type;
+            return pointer_type.element_type;
+        }
+
+        const message = `Parse_tree_convertor_mappings.choose_production_rule_type(): unhandled '${top.node.word.value}'`;
+        onThrowError(message);
+        throw Error(message);
+    };
+
+    const type_reference_array = get_type_reference();
+
+    if (type_reference_array.length === 0) {
+        const rhs_to_find = "Type_name";
+        const index = production_rule_indices.findIndex(index => contains(production_rules[index].rhs, rhs_to_find));
+        return {
+            next_state: {
+                index: 0,
+                value: type_reference_array
+            },
+            next_production_rule_index: production_rule_indices[index]
+        };
+    }
+
+    const type_reference = type_reference_array[0];
+
+    switch (type_reference.data.type) {
+        case Core_intermediate_representation.Type_reference_enum.Custom_type_reference: {
+            const value = type_reference.data.value as Core_intermediate_representation.Custom_type_reference;
+            const rhs_to_find = value.module_reference.name.length > 0 ? "Module_type" : "Type_name";
+            const index = production_rule_indices.findIndex(index => contains(production_rules[index].rhs, rhs_to_find));
+            return {
+                next_state: {
+                    index: 0,
+                    value: type_reference_array
+                },
+                next_production_rule_index: production_rule_indices[index]
+            };
+        }
+        case Core_intermediate_representation.Type_reference_enum.Pointer_type: {
+            const rhs_to_find = "Pointer_type";
+            const index = production_rule_indices.findIndex(index => contains(production_rules[index].rhs, rhs_to_find));
+            return {
+                next_state: {
+                    index: 0,
+                    value: type_reference_array
+                },
+                next_production_rule_index: production_rule_indices[index]
+            };
+        }
+        default: {
+            const rhs_to_find = "Type_name";
+            const index = production_rule_indices.findIndex(index => contains(production_rules[index].rhs, rhs_to_find));
+            return {
+                next_state: {
+                    index: 0,
+                    value: type_reference_array
+                },
+                next_production_rule_index: production_rule_indices[index]
+            };
+        }
+    }
+}
+
+function choose_production_rule_pointer_type(
+    module: Core_intermediate_representation.Module,
+    production_rules: Grammar.Production_rule[],
+    production_rule_indices: number[],
+    label: string,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    mappings: Parse_tree_convertor.Parse_tree_mappings,
+    key_to_production_rule_indices: Map<string, number[]>
+): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
+    const top = stack[stack.length - 1];
+    const type_reference_array = top.state.value as Core_intermediate_representation.Type_reference[];
+    const type_reference = type_reference_array[0];
+
+    if (type_reference.data.type !== Core_intermediate_representation.Type_reference_enum.Pointer_type) {
+        const message = `Parse_tree_convertor_mappings.choose_production_rule_pointer_type(): expected 'Pointer_type' but got '${type_reference.data.type}'`;
+        onThrowError(message);
+        throw Error(message);
+    }
+
+    const pointer_type = type_reference.data.value as Core_intermediate_representation.Pointer_type;
+
+    const index = pointer_type.is_mutable ? 1 : 0;
+    return {
+        next_state: {
+            index: 0,
+            value: type_reference_array
+        },
+        next_production_rule_index: production_rule_indices[index]
+    };
+}
+
 function choose_production_rule_statement(
     module: Core_intermediate_representation.Module,
     production_rules: Grammar.Production_rule[],
@@ -412,6 +589,12 @@ function choose_production_rule_statement(
         if (top.node.word.value === "Expression_for_loop") {
             const for_loop_expression = top.state.value.data.value as Core_intermediate_representation.For_loop_expression;
             return for_loop_expression.then_statement;
+        }
+        else if (top.node.word.value === "Expression_if" || top.node.word.value === "Expression_if_else") {
+            const if_expression = top.state.value.data.value as Core_intermediate_representation.If_expression;
+            const serie_index = get_if_serie_index(stack);
+            const serie = if_expression.series[serie_index];
+            return serie.statement;
         }
 
         const statements_array = top.node.word.value === "Expression_block_statements" ?
@@ -680,6 +863,35 @@ function choose_production_rule_expression_for_loop_step(
     };
 }
 
+function choose_production_rule_expression_if_else(
+    module: Core_intermediate_representation.Module,
+    production_rules: Grammar.Production_rule[],
+    production_rule_indices: number[],
+    label: string,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    mappings: Parse_tree_convertor.Parse_tree_mappings,
+    key_to_production_rule_indices: Map<string, number[]>
+): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
+
+    const top = stack[stack.length - 1];
+
+    const expression = top.state.value as Core_intermediate_representation.Expression;
+    const if_expression = expression.data.value as Core_intermediate_representation.If_expression;
+    const serie_index = get_if_serie_index(stack) + 1;
+
+    const index =
+        serie_index >= if_expression.series.length ? 0 :
+            (serie_index < if_expression.series.length - 1) ? 1 : 2;
+
+    return {
+        next_state: {
+            index: 0,
+            value: expression
+        },
+        next_production_rule_index: production_rule_indices[index]
+    };
+}
+
 function choose_production_rule_expression_return(
     module: Core_intermediate_representation.Module,
     production_rules: Grammar.Production_rule[],
@@ -837,11 +1049,34 @@ function choose_production_rule_expression_variable_mutability(
     };
 }
 
+function get_if_serie_index(
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[]
+): number {
+    let serie_index = 0;
+
+    for (let stack_index = 0; stack_index < stack.length; ++stack_index) {
+        const state_index = stack.length - 1 - stack_index;
+        const state = stack[state_index];
+
+        if (state.node.word.value === "Expression_if_else") {
+            serie_index += 1;
+        }
+        else if (state.node.word.value !== "Expression_if") {
+            break;
+        }
+    }
+
+    return serie_index;
+}
+
 function get_generic_expression(
-    node: Parser_node.Node,
-    current_child_index: number,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
     expression: Core_intermediate_representation.Expression
 ): { expression: Core_intermediate_representation.Expression, label: string } {
+
+    const top = stack[stack.length - 1];
+    const node = top.node;
+    const current_child_index = top.current_child_index;
 
     switch (expression.data.type) {
         case Core_intermediate_representation.Expression_enum.Access_expression: {
@@ -898,6 +1133,18 @@ function get_generic_expression(
         case Core_intermediate_representation.Expression_enum.Cast_expression: {
             const cast_expression = expression.data.value as Core_intermediate_representation.Cast_expression;
             const next_expression = cast_expression.source;
+            return {
+                expression: next_expression,
+                label: map_expression_type_to_production_rule_label(next_expression)
+            };
+        }
+        case Core_intermediate_representation.Expression_enum.If_expression: {
+            const if_expression = expression.data.value as Core_intermediate_representation.If_expression;
+
+            const serie_index = get_if_serie_index(stack);
+            const serie = if_expression.series[serie_index];
+
+            const next_expression = serie.condition as Core_intermediate_representation.Expression;
             return {
                 expression: next_expression,
                 label: map_expression_type_to_production_rule_label(next_expression)
@@ -968,7 +1215,7 @@ function choose_production_rule_generic_expression(
         };
     }
     else {
-        const next = get_generic_expression(top.node, top.current_child_index, expression);
+        const next = get_generic_expression(stack, expression);
 
         const next_production_rule_index = production_rule_indices.find(index => production_rules[index].rhs[0] === next.label);
 
@@ -1206,11 +1453,60 @@ function create_new_module_change(
     }
 }
 
+function node_to_type_reference(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Type_reference[] {
+
+    const child = node.children[0];
+
+    if (child.word.value === "Type_name") {
+        const identifier = child.children[0].word.value;
+        return Type_utilities.parse_type_name(identifier);
+    }
+    else if (child.word.value === "Module_type") {
+        const module_name = find_node_value(child, "Module_type_module_name", key_to_production_rule_indices);
+        const type_name = find_node_value(child, "Module_type_type_name", key_to_production_rule_indices);
+        const custom_type_reference: Core_intermediate_representation.Custom_type_reference = {
+            module_reference: {
+                name: module_name
+            },
+            name: type_name
+        };
+        return [
+            {
+                data: {
+                    type: Core_intermediate_representation.Type_reference_enum.Custom_type_reference,
+                    value: custom_type_reference
+                }
+            }
+        ];
+    }
+    else if (child.word.value === "Pointer_type") {
+        const type_node = find_node(child, "Type", key_to_production_rule_indices) as Parser_node.Node;
+        const element_type = node_to_type_reference(type_node, key_to_production_rule_indices);
+        const mutable_node = child.children.find(node => node.word.value === "mutable");
+        const pointer_type: Core_intermediate_representation.Pointer_type = {
+            element_type: element_type,
+            is_mutable: mutable_node !== undefined
+        };
+        return [
+            {
+                data: {
+                    type: Core_intermediate_representation.Type_reference_enum.Pointer_type,
+                    value: pointer_type
+                }
+            }
+        ];
+    }
+
+    const message = `Parse_tree_convertor_mapping.node_to_type_reference(): unhandled node '${child.word.value}'`;
+    onThrowError(message);
+    throw Error(message);
+}
+
 function node_to_alias_type_declaration(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Alias_type_declaration {
     const name = find_node_value(node, "Alias_name", key_to_production_rule_indices);
 
-    const type_name = find_node_value(node, "Alias_type", key_to_production_rule_indices);
-    const type_reference = Type_utilities.parse_type_name(type_name);
+    const alias_type_node = find_node(node, "Alias_type", key_to_production_rule_indices) as Parser_node.Node;
+    const type_reference = node_to_type_reference(alias_type_node.children[0], key_to_production_rule_indices);
 
     return {
         name: name,
@@ -1257,8 +1553,9 @@ function node_to_struct_declaration(node: Parser_node.Node, key_to_production_ru
         const member_node = member_nodes[index];
 
         const member_name = find_node_value(member_node, "Struct_member_name", key_to_production_rule_indices);
-        const member_type_name = find_node_value(member_node, "Struct_member_type", key_to_production_rule_indices);
-        const member_type = Type_utilities.parse_type_name(member_type_name);
+
+        const member_type_node = find_node(member_node, "Struct_member_type", key_to_production_rule_indices) as Parser_node.Node;
+        const member_type = node_to_type_reference(member_type_node.children[0], key_to_production_rule_indices);
 
         member_names.push(member_name);
         member_types.push(member_type[0]);
@@ -1302,11 +1599,11 @@ function node_to_function_declaration(node: Parser_node.Node, key_to_production_
 
     const input_parameter_nodes = find_nodes_inside_parent(node, "Function_input_parameters", "Function_parameter", key_to_production_rule_indices);
     const input_parameter_names = input_parameter_nodes.map(node => find_node_value(node, "Function_parameter_name", key_to_production_rule_indices));
-    const input_parameter_types = input_parameter_nodes.map(node => find_node_value(node, "Function_parameter_type", key_to_production_rule_indices)).map(name => Type_utilities.parse_type_name(name)[0]);
+    const input_parameter_types = input_parameter_nodes.map(node => find_node(node, "Function_parameter_type", key_to_production_rule_indices) as Parser_node.Node).map(node => node_to_type_reference(node.children[0], key_to_production_rule_indices)[0]);
 
     const output_parameter_nodes = find_nodes_inside_parent(node, "Function_output_parameters", "Function_parameter", key_to_production_rule_indices);
     const output_parameter_names = output_parameter_nodes.map(node => find_node_value(node, "Function_parameter_name", key_to_production_rule_indices));
-    const output_parameter_types = output_parameter_nodes.map(node => find_node_value(node, "Function_parameter_type", key_to_production_rule_indices)).map(name => Type_utilities.parse_type_name(name)[0]);
+    const output_parameter_types = output_parameter_nodes.map(node => find_node(node, "Function_parameter_type", key_to_production_rule_indices) as Parser_node.Node).map(node => node_to_type_reference(node.children[0], key_to_production_rule_indices)[0]);
 
     const export_value = find_node_value(node, "Export", key_to_production_rule_indices);
     const linkage = export_value.length > 0 ? Core_intermediate_representation.Linkage.External : Core_intermediate_representation.Linkage.Private;
@@ -1439,6 +1736,15 @@ function node_to_expression(node: Parser_node.Node, key_to_production_rule_indic
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.For_loop_expression,
+                    value: expression
+                }
+            };
+        }
+        case "Expression_if": {
+            const expression = node_to_expression_if(node, key_to_production_rule_indices);
+            return {
+                data: {
+                    type: Core_intermediate_representation.Expression_enum.If_expression,
                     value: expression
                 }
             };
@@ -1818,6 +2124,41 @@ function node_to_expression_for_loop(node: Parser_node.Node, key_to_production_r
     };
 
     return for_loop_expression;
+}
+
+function node_to_expression_if(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.If_expression {
+
+    const series: Core_intermediate_representation.Condition_statement_pair[] = [];
+
+    let current_node = node;
+    while (current_node.children.length > 0) {
+        const condition_node = current_node.word.value === "Expression_if" ? find_node(current_node, "Generic_expression", key_to_production_rule_indices) as Parser_node.Node : undefined;
+        const condition_expression = condition_node !== undefined ? node_to_expression(condition_node, key_to_production_rule_indices) : undefined;
+
+        const statement_node = find_node(current_node, "Statement", key_to_production_rule_indices) as Parser_node.Node;
+        const statement = node_to_statement(statement_node, key_to_production_rule_indices);
+
+        series.push({
+            condition: condition_expression,
+            statement: statement
+        });
+
+        current_node = current_node.children[current_node.children.length - 1];
+        if (current_node.children.length === 0) {
+            break;
+        }
+
+        const child = current_node.children[current_node.children.length - 1];
+        if (child.word.value === "Expression_if") {
+            current_node = child;
+        }
+    }
+
+    const if_expression: Core_intermediate_representation.If_expression = {
+        series: series
+    };
+
+    return if_expression;
 }
 
 function node_to_expression_parenthesis(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Parenthesis_expression {

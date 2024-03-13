@@ -857,6 +857,16 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
             visit_expressions(value.then_statement.expression, predicate);
             break;
         }
+        case Core_intermediate_representation.Expression_enum.If_expression: {
+            const value = expression.data.value as Core_intermediate_representation.If_expression;
+            for (const serie of value.series) {
+                if (serie.condition !== undefined) {
+                    visit_expressions(serie.condition, predicate);
+                }
+                visit_expressions(serie.statement.expression, predicate);
+            }
+            break;
+        }
         case Core_intermediate_representation.Expression_enum.Parenthesis_expression: {
             const value = expression.data.value as Core_intermediate_representation.Parenthesis_expression;
             visit_expressions(value.expression, predicate);
@@ -896,16 +906,23 @@ export function update_import_module_usages(module: Core_intermediate_representa
         import_module.usages = [];
     }
 
+    const add_unique_usage = (module_name: string, usage: string): void => {
+        const import_module = module.imports.find(element => element.alias === module_name);
+        if (import_module !== undefined) {
+            const index = import_module.usages.findIndex(value => value === usage);
+            if (index === -1) {
+                import_module.usages.push(usage);
+            }
+        }
+    };
+
     const process_expression = (expression: Core_intermediate_representation.Expression): void => {
         switch (expression.data.type) {
             case Core_intermediate_representation.Expression_enum.Access_expression: {
                 const access_expression = expression.data.value as Core_intermediate_representation.Access_expression;
                 if (access_expression.expression.data.type === Core_intermediate_representation.Expression_enum.Variable_expression) {
                     const variable_expression = access_expression.expression.data.value as Core_intermediate_representation.Variable_expression;
-                    const import_module = module.imports.find(element => element.alias === variable_expression.name);
-                    if (import_module !== undefined) {
-                        import_module.usages.push(access_expression.member_name);
-                    }
+                    add_unique_usage(variable_expression.name, access_expression.member_name);
                 }
                 break;
             }
@@ -915,13 +932,83 @@ export function update_import_module_usages(module: Core_intermediate_representa
         }
     };
 
+    const process_type = (type: Core_intermediate_representation.Type_reference): void => {
+        switch (type.data.type) {
+            case Core_intermediate_representation.Type_reference_enum.Constant_array_type: {
+                const value = type.data.value as Core_intermediate_representation.Constant_array_type;
+                if (value.value_type.length > 0) {
+                    process_type(value.value_type[0]);
+                }
+                break;
+            }
+            case Core_intermediate_representation.Type_reference_enum.Custom_type_reference: {
+                const value = type.data.value as Core_intermediate_representation.Custom_type_reference;
+                add_unique_usage(value.module_reference.name, value.name);
+                break;
+            }
+            case Core_intermediate_representation.Type_reference_enum.Function_type: {
+                const value = type.data.value as Core_intermediate_representation.Function_type;
+                for (const type of value.input_parameter_types) {
+                    process_type(type);
+                }
+                for (const type of value.output_parameter_types) {
+                    process_type(type);
+                }
+                break;
+            }
+            case Core_intermediate_representation.Type_reference_enum.Pointer_type: {
+                const value = type.data.value as Core_intermediate_representation.Pointer_type;
+                if (value.element_type.length > 0) {
+                    process_type(value.element_type[0]);
+                }
+                break;
+            }
+            case Core_intermediate_representation.Type_reference_enum.Builtin_type_reference:
+            case Core_intermediate_representation.Type_reference_enum.Fundamental_type:
+            case Core_intermediate_representation.Type_reference_enum.Integer_type: {
+                break;
+            }
+            default: {
+                const message = `Parse_tree_convertor.update_import_module_usages(): Type '${type.data.type}' not handled!`;
+                onThrowError(message);
+                throw Error(message);
+            }
+        }
+    };
+
     for (const declaration of module.declarations) {
-        if (declaration.type === Core_intermediate_representation.Declaration_type.Function) {
+        if (declaration.type === Core_intermediate_representation.Declaration_type.Alias) {
+            const alias_declaration = declaration.value as Core_intermediate_representation.Alias_type_declaration;
+
+            if (alias_declaration.type.length > 0) {
+                process_type(alias_declaration.type[0]);
+            }
+        }
+        else if (declaration.type === Core_intermediate_representation.Declaration_type.Function) {
             const function_value = declaration.value as Core_intermediate_representation.Function;
+
+            for (const type of function_value.declaration.type.input_parameter_types) {
+                process_type(type);
+            }
+
+            for (const type of function_value.declaration.type.output_parameter_types) {
+                process_type(type);
+            }
 
             for (const statement of function_value.definition.statements) {
                 visit_expressions(statement.expression, process_expression);
             }
         }
+        else if (declaration.type === Core_intermediate_representation.Declaration_type.Struct) {
+            const struct_declaration = declaration.value as Core_intermediate_representation.Struct_declaration;
+
+            for (const type of struct_declaration.member_types) {
+                process_type(type);
+            }
+        }
+    }
+
+    for (const import_module of module.imports) {
+        import_module.usages.sort();
     }
 }
