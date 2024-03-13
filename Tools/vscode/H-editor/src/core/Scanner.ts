@@ -53,6 +53,10 @@ function is_colon(character: string): boolean {
     }
 }
 
+function is_asterisc(character: string): boolean {
+    return character === "*";
+}
+
 function is_symbol(character: string): boolean {
     switch (character) {
         case '&':
@@ -161,6 +165,13 @@ function scan_colon(code: string, start_offset: number): { word: string, process
     };
 }
 
+function scan_asterisc(code: string, start_offset: number): { word: string, processed_characters: number } {
+    return {
+        word: code.substring(start_offset, start_offset + 1),
+        processed_characters: 1
+    };
+}
+
 function scan_symbol(code: string, start_offset: number): { word: string, processed_characters: number } {
 
     let current_offset = start_offset;
@@ -253,6 +264,15 @@ function scan_word(code: string, current_offset: number): { word: string, type: 
     // If it is a colon, don't join with other symbols:
     else if (is_colon(first_character)) {
         const scan_result = scan_colon(code, current_offset);
+        return {
+            word: scan_result.word,
+            type: Grammar.Word_type.Symbol,
+            processed_characters: ignored_characters + scan_result.processed_characters
+        };
+    }
+    // If it is an asterisc, don't join with other symbols:
+    else if (is_asterisc(first_character)) {
+        const scan_result = scan_asterisc(code, current_offset);
         return {
             word: scan_result.word,
             type: Grammar.Word_type.Symbol,

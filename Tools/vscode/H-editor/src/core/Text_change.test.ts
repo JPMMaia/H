@@ -1144,6 +1144,55 @@ export function foo(
         assert.deepEqual(new_document_state.module, expected_module);
     });
 
+    it("Handles pointer types", () => {
+
+        const document_state = Document.create_empty_state(language_description.production_rules);
+
+        const program = `
+module Pointer_types;
+
+import C.stdio as stdio;
+
+export using My_alias = stdio.FILE mutable*;
+
+export struct My_struct
+{
+    my_integer: Int32;
+    my_pointer_to_integer: Int32*;
+    file_stream: stdio.FILE mutable*;
+}
+
+export function run(
+    my_integer: Int32,
+    my_pointer_to_integer: Int32*,
+    my_pointer_to_mutable_integer: Int32 mutable*,
+    my_pointer_to_pointer_to_integer: Int32**,
+    my_pointer_to_pointer_to_mutable_integer: Int32 mutable**,
+    my_pointer_to_mutable_pointer_to_integer: Int32* mutable*,
+    my_pointer_to_mutable_pointer_to_mutable_integer: Int32 mutable* mutable*,
+    file_stream: stdio.FILE mutable* 
+) -> ()
+{
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_pointer_types();
+        assert.deepEqual(new_document_state.module, expected_module);
+    });
+
     it("Handles block expressions", () => {
 
         const document_state = Document.create_empty_state(language_description.production_rules);

@@ -1596,6 +1596,96 @@ export function create_unary_expressions(): IR.Module {
     };
 }
 
+export function create_pointer_types(): IR.Module {
+
+    const int32_type = create_integer_type(32, true);
+
+    const alias_type_declaration: IR.Alias_type_declaration = {
+        name: "My_alias",
+        type: [create_pointer_type([create_custom_type_reference("stdio", "FILE")], true)]
+    };
+
+    const alias_type_value_declaration: IR.Declaration = {
+        name: "My_alias",
+        type: IR.Declaration_type.Alias,
+        is_export: true,
+        value: alias_type_declaration
+    };
+
+    const struct_declaration: IR.Struct_declaration = {
+        name: "My_struct",
+        member_names: [
+            "my_integer",
+            "my_pointer_to_integer",
+            "file_stream"
+        ],
+        member_types: [
+            int32_type,
+            create_pointer_type([int32_type], false),
+            create_pointer_type([create_custom_type_reference("stdio", "FILE")], true)
+        ],
+        is_packed: false,
+        is_literal: false
+    };
+
+    const struct_value_declaration: IR.Declaration = {
+        name: "My_struct",
+        type: IR.Declaration_type.Struct,
+        is_export: true,
+        value: struct_declaration
+    };
+
+    const input_parameters: [string, IR.Type_reference][] = [
+        ["my_integer", int32_type],
+        ["my_pointer_to_integer", create_pointer_type([int32_type], false)],
+        ["my_pointer_to_mutable_integer", create_pointer_type([int32_type], true)],
+        ["my_pointer_to_pointer_to_integer", create_pointer_type([create_pointer_type([int32_type], false)], false)],
+        ["my_pointer_to_pointer_to_mutable_integer", create_pointer_type([create_pointer_type([int32_type], true)], false)],
+        ["my_pointer_to_mutable_pointer_to_integer", create_pointer_type([create_pointer_type([int32_type], false)], true)],
+        ["my_pointer_to_mutable_pointer_to_mutable_integer", create_pointer_type([create_pointer_type([int32_type], true)], true)],
+        ["file_stream", create_pointer_type([create_custom_type_reference("stdio", "FILE")], true)]
+    ];
+
+    const function_value_declaration: IR.Declaration = {
+        name: "run",
+        type: IR.Declaration_type.Function,
+        is_export: true,
+        value: {
+            declaration: {
+                name: "run",
+                type: {
+                    input_parameter_types: input_parameters.map(pair => pair[1]),
+                    output_parameter_types: [],
+                    is_variadic: false,
+                },
+                input_parameter_names: input_parameters.map(pair => pair[0]),
+                output_parameter_names: [],
+                linkage: IR.Linkage.External
+            },
+            definition: {
+                name: "run",
+                statements: []
+            }
+        }
+    };
+
+    return {
+        name: "Pointer_types",
+        imports: [
+            {
+                module_name: "C.stdio",
+                alias: "stdio",
+                usages: ["FILE"]
+            }
+        ],
+        declarations: [
+            alias_type_value_declaration,
+            struct_value_declaration,
+            function_value_declaration
+        ]
+    };
+}
+
 export function create_block_expressions(): IR.Module {
 
     const statements: IR.Statement[] = [
@@ -2715,6 +2805,20 @@ export function create_break_expressions(): IR.Module {
                 }
             }
         ]
+    };
+}
+
+function create_custom_type_reference(module_name: string, name: string): IR.Type_reference {
+    return {
+        data: {
+            type: IR.Type_reference_enum.Custom_type_reference,
+            value: {
+                module_reference: {
+                    name: module_name
+                },
+                name: name
+            }
+        }
     };
 }
 
