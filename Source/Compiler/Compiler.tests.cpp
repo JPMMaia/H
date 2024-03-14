@@ -378,6 +378,21 @@ entry:
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
+
+  TEST_CASE("Compile Block Expressions")
+  {
+    char const* const input_file = "block_expressions.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
   TEST_CASE("Compile Booleans")
   {
     char const* const input_file = "booleans.hl";
@@ -394,6 +409,34 @@ entry:
   %my_false_boolean = alloca i1, align 1
   store i1 false, ptr %my_false_boolean, align 1
 }
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
+  TEST_CASE("Compile Break Expressions")
+  {
+    char const* const input_file = "break_expressions.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
+  TEST_CASE("Compile For Loop Expressions")
+  {
+    char const* const input_file = "for_loop_expressions.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -416,6 +459,20 @@ entry:
   %0 = call i32 @puts(ptr @global_0)
   ret i32 0
 }
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
+  TEST_CASE("Compile If Expressions")
+  {
+    char const* const input_file = "if_expressions.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -552,6 +609,34 @@ entry:
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
+  TEST_CASE("Compile Switch Expressions")
+  {
+    char const* const input_file = "switch_expressions.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
+  TEST_CASE("Compile Ternary Condition Expressions")
+  {
+    char const* const input_file = "ternary_condition_expressions.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
   TEST_CASE("Compile Unary Expressions")
   {
     char const* const input_file = "unary_expressions.hl";
@@ -624,6 +709,20 @@ entry:
   store i32 3, ptr %my_mutable_variable, align 4
   ret i32 0
 }
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
+  TEST_CASE("Compile While Loop Expressions")
+  {
+    char const* const input_file = "while_loop_expressions.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);

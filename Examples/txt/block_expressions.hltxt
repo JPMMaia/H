@@ -1,0 +1,12 @@
+module Block_expressions;
+
+export function run_blocks() -> ()
+{
+    var a = 0;
+
+    {
+        var b = a;
+    }
+
+    var b = a;
+}
