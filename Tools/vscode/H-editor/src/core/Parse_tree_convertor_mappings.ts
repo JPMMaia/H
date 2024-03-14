@@ -465,7 +465,7 @@ function choose_production_rule_type(
 
             return [parameter_type];
         }
-        if (top.node.word.value === "Struct_member_type") {
+        else if (top.node.word.value === "Struct_member_type") {
             const struct_state = stack[stack.length - 4];
             const struct_declaration = struct_state.state.value.value as Core_intermediate_representation.Struct_declaration;
 
@@ -475,6 +475,11 @@ function choose_production_rule_type(
             const member_type = struct_declaration.member_types[member_type_index];
             return [member_type];
 
+        }
+        else if (top.node.word.value === "Expression_cast_destination_type") {
+            const expression = top.state.value as Core_intermediate_representation.Expression;
+            const cast_expression = expression.data.value as Core_intermediate_representation.Cast_expression;
+            return [cast_expression.destination_type];
         }
         else if (top.node.word.value === "Pointer_type") {
             const type_reference_array = top.state.value as Core_intermediate_representation.Type_reference[];
@@ -2144,7 +2149,7 @@ function node_to_expression_if(node: Parser_node.Node, key_to_production_rule_in
         });
 
         current_node = current_node.children[current_node.children.length - 1];
-        if (current_node.children.length === 0) {
+        if (current_node.children.length === 0 || current_node.word.value === "Statement") {
             break;
         }
 
