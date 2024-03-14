@@ -166,9 +166,26 @@ function scan_colon(code: string, start_offset: number): { word: string, process
 }
 
 function scan_asterisc(code: string, start_offset: number): { word: string, processed_characters: number } {
+    let current_offset = start_offset;
+
+    while (current_offset < code.length) {
+
+        const character = code[current_offset];
+
+        if (!is_symbol(character)) {
+            break;
+        }
+
+        if (current_offset > start_offset && character === "*") {
+            break;
+        }
+
+        current_offset += 1;
+    }
+
     return {
-        word: code.substring(start_offset, start_offset + 1),
-        processed_characters: 1
+        word: code.substring(start_offset, current_offset),
+        processed_characters: current_offset - start_offset
     };
 }
 
@@ -270,7 +287,7 @@ function scan_word(code: string, current_offset: number): { word: string, type: 
             processed_characters: ignored_characters + scan_result.processed_characters
         };
     }
-    // If it is an asterisc, don't join with other symbols:
+    // If it is an asterisc, don't join with another asterisc:
     else if (is_asterisc(first_character)) {
         const scan_result = scan_asterisc(code, current_offset);
         return {
