@@ -167,6 +167,11 @@ export interface Struct_declaration {
     is_literal: boolean;
 }
 
+export interface Statement {
+    name: string;
+    expressions: Vector<Expression>;
+}
+
 export interface Variable_expression {
     name: string;
 }
@@ -282,11 +287,6 @@ export interface While_loop_expression {
 
 export interface Expression {
     data: Variant<Expression_enum, Access_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Constant_expression | Continue_expression | For_loop_expression | If_expression | Invalid_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_expression | While_loop_expression>;
-}
-
-export interface Statement {
-    name: string;
-    expressions: Vector<Expression>;
 }
 
 export interface Function_declaration {
