@@ -2145,8 +2145,15 @@ export function create_switch_expressions(): IR.Module {
                         case_value: IR.create_constant_expression(int32_type, "0"),
                         statements: [
                             create_statement(
-                                IR.create_return_expression(
+                                IR.create_variable_declaration_expression(
+                                    "return_value",
+                                    false,
                                     IR.create_constant_expression(int32_type, "0")
+                                )
+                            ),
+                            create_statement(
+                                IR.create_return_expression(
+                                    IR.create_variable_expression("return_value")
                                 )
                             )
                         ]
@@ -2248,11 +2255,11 @@ export function create_switch_expressions(): IR.Module {
                         name: "run_switch",
                         type: {
                             input_parameter_types: [int32_type],
-                            output_parameter_types: [],
+                            output_parameter_types: [int32_type],
                             is_variadic: false,
                         },
                         input_parameter_names: ["value"],
-                        output_parameter_names: [],
+                        output_parameter_names: ["result"],
                         linkage: IR.Linkage.External
                     },
                     definition: {
