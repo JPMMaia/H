@@ -41,8 +41,16 @@ function assert_function_parameters(parameters_node: Node, parameter_names: stri
 
         {
             const parameter_type_node = parameter_node.children[2];
+            assert.equal(parameter_type_node.word.value, "Function_parameter_type");
+
+            const type_node = parameter_type_node.children[0];
+            assert.equal(type_node.word.value, "Type");
+
+            const type_name_node = type_node.children[0];
+            assert.equal(type_name_node.word.value, "Type_name");
+
             const expected_name = Type_utilities.get_type_name([parameter_type]);
-            assert.equal(parameter_type_node.children[0].word.value, expected_name);
+            assert.equal(type_name_node.children[0].word.value, expected_name);
         }
     }
 }
@@ -161,9 +169,17 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                     }
 
                     {
-                        const type_node = alias_node.children[4];
+                        const alias_type_node = alias_node.children[4];
+                        assert.equal(alias_type_node.word.value, "Alias_type");
+
+                        const type_node = alias_type_node.children[0];
+                        assert.equal(type_node.word.value, "Type");
+
+                        const type_name_node = type_node.children[0];
+                        assert.equal(type_name_node.word.value, "Type_name");
+
                         const expected_type = Type_utilities.get_type_name(alias_declaration.type);
-                        assert.equal(type_node.children[0].word.value, expected_type);
+                        assert.equal(type_name_node.children[0].word.value, expected_type);
                     }
                 }
                 else if (declaration.type === Core_intermediate_representation.Declaration_type.Enum) {
@@ -417,7 +433,15 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
 
                         {
                             const member_type_node = member_node.children[2];
-                            const identifier_node = member_type_node.children[0];
+                            assert.equal(member_type_node.word.value, "Struct_member_type");
+
+                            const type_node = member_type_node.children[0];
+                            assert.equal(type_node.word.value, "Type");
+
+                            const type_name_node = type_node.children[0];
+                            assert.equal(type_name_node.word.value, "Type_name");
+
+                            const identifier_node = type_name_node.children[0];
                             assert.equal(identifier_node.word.value, member_type_name);
                         }
                     }
@@ -599,9 +623,17 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
             }
 
             {
-                const type_node = alias_node.children[4];
+                const alias_type_node = alias_node.children[4];
+                assert.equal(alias_type_node.word.value, "Alias_type");
+
+                const type_node = alias_type_node.children[0];
+                assert.equal(type_node.word.value, "Type");
+
+                const type_name_node = type_node.children[0];
+                assert.equal(type_name_node.word.value, "Type_name");
+
                 const expected_type = Type_utilities.get_type_name(alias_declaration.type);
-                assert.equal(type_node.children[0].word.value, expected_type);
+                assert.equal(type_name_node.children[0].word.value, expected_type);
             }
         }
     });
@@ -1071,7 +1103,15 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
 
                 {
                     const member_type_node = member_node.children[2];
-                    const identifier_node = member_type_node.children[0];
+                    assert.equal(member_type_node.word.value, "Struct_member_type");
+
+                    const type_node = member_type_node.children[0];
+                    assert.equal(type_node.word.value, "Type");
+
+                    const type_name_node = type_node.children[0];
+                    assert.equal(type_name_node.word.value, "Type_name");
+
+                    const identifier_node = type_name_node.children[0];
                     assert.equal(identifier_node.word.value, member_type_name);
                 }
             }
