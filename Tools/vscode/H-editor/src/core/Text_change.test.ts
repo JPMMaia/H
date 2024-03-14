@@ -1291,46 +1291,46 @@ module If_expressions;
 
 import C.stdio as stdio;
 
-function print_message(message: C_string) -> ()
+function print_message(message: C_char*) -> ()
 {
     stdio.printf("%s\n"c, message);
 }
 
-export function run_ifs(value: Int32) -> (result: Int32)
+export function run_ifs(value: Int32) -> ()
 {
     if value == 0:
     {
-        print_message("zero");
+        print_message("zero"c);
     }
 
     if value < 0:
     {
-        print_message("negative");
+        print_message("negative"c);
     }
     else
     {
-        print_message("non-negative");
+        print_message("non-negative"c);
     }
 
     if value < 0:
     {
-        print_message("negative");
+        print_message("negative"c);
     }
     else if value > 0:
     {
-        print_message("positive");
+        print_message("positive"c);
     }
     else
     {
-        print_message("zero");
+        print_message("zero"c);
     }
 
     if value < 0:
-        print_message("negative");
+        print_message("negative"c);
     else if value > 0:
-        print_message("positive");
+        print_message("positive"c);
     else
-        print_message("zero");
+        print_message("zero"c);
 }
 `;
 
