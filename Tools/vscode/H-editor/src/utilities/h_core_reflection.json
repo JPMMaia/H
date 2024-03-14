@@ -288,6 +288,23 @@
             ]
         },
         {
+            "name": "Statement",
+            "members": [
+                {
+                    "type": {
+                        "name": "std::pmr::string"
+                    },
+                    "name": "name"
+                },
+                {
+                    "type": {
+                        "name": "std::pmr::vector<Expression>"
+                    },
+                    "name": "expressions"
+                }
+            ]
+        },
+        {
             "name": "Variable_expression",
             "members": [
                 {
@@ -673,23 +690,6 @@
                         "name": "std::variant<Access_expression,Assignment_expression,Binary_expression,Block_expression,Break_expression,Call_expression,Cast_expression,Constant_expression,Continue_expression,For_loop_expression,If_expression,Invalid_expression,Parenthesis_expression,Return_expression,Switch_expression,Ternary_condition_expression,Unary_expression,Variable_declaration_expression,Variable_expression,While_loop_expression>"
                     },
                     "name": "data"
-                }
-            ]
-        },
-        {
-            "name": "Statement",
-            "members": [
-                {
-                    "type": {
-                        "name": "std::pmr::string"
-                    },
-                    "name": "name"
-                },
-                {
-                    "type": {
-                        "name": "std::pmr::vector<Expression>"
-                    },
-                    "name": "expressions"
                 }
             ]
         },

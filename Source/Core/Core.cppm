@@ -148,7 +148,15 @@ namespace h
         friend auto operator<=>(Struct_declaration const&, Struct_declaration const&) = default;
     };
 
-    struct Statement;
+    struct Expression;
+
+    export struct Statement
+    {
+        std::pmr::string name;
+        std::pmr::vector<Expression> expressions;
+
+        friend auto operator<=>(Statement const&, Statement const&) = default;
+    };
 
     export struct Variable_expression
     {
@@ -404,14 +412,6 @@ namespace h
         Data_type data;
 
         friend auto operator<=>(Expression const&, Expression const&) = default;
-    };
-
-    export struct Statement
-    {
-        std::pmr::string name;
-        std::pmr::vector<Expression> expressions;
-
-        friend auto operator<=>(Statement const&, Statement const&) = default;
     };
 
     export enum class Linkage

@@ -377,6 +377,29 @@ namespace h::json::operators
         return output_stream;
     }
 
+    export std::istream& operator>>(std::istream& input_stream, Statement& value)
+    {
+        rapidjson::Reader reader;
+        rapidjson::IStreamWrapper stream_wrapper{ input_stream };
+        std::optional<Statement> const output = h::json::read<Statement>(reader, stream_wrapper);
+
+        if (output)
+        {
+            value = std::move(*output);
+        }
+
+        return input_stream;
+    }
+
+    export std::ostream& operator<<(std::ostream& output_stream, Statement const& value)
+    {
+        rapidjson::OStreamWrapper stream_wrapper{ output_stream };
+        rapidjson::Writer<rapidjson::OStreamWrapper> writer{ stream_wrapper };
+        h::json::write(writer, value);
+
+        return output_stream;
+    }
+
     export std::istream& operator>>(std::istream& input_stream, Variable_expression& value)
     {
         rapidjson::Reader reader;
@@ -921,29 +944,6 @@ namespace h::json::operators
     }
 
     export std::ostream& operator<<(std::ostream& output_stream, Expression const& value)
-    {
-        rapidjson::OStreamWrapper stream_wrapper{ output_stream };
-        rapidjson::Writer<rapidjson::OStreamWrapper> writer{ stream_wrapper };
-        h::json::write(writer, value);
-
-        return output_stream;
-    }
-
-    export std::istream& operator>>(std::istream& input_stream, Statement& value)
-    {
-        rapidjson::Reader reader;
-        rapidjson::IStreamWrapper stream_wrapper{ input_stream };
-        std::optional<Statement> const output = h::json::read<Statement>(reader, stream_wrapper);
-
-        if (output)
-        {
-            value = std::move(*output);
-        }
-
-        return input_stream;
-    }
-
-    export std::ostream& operator<<(std::ostream& output_stream, Statement const& value)
     {
         rapidjson::OStreamWrapper stream_wrapper{ output_stream };
         rapidjson::Writer<rapidjson::OStreamWrapper> writer{ stream_wrapper };

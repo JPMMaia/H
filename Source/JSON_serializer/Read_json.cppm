@@ -400,6 +400,7 @@ namespace h::json
     export std::optional<Stack_state> get_next_state_enum_value(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_enum_declaration(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_struct_declaration(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_statement(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_variable_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_expression_index(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_access_expression(Stack_state* state, std::string_view const key);
@@ -424,7 +425,6 @@ namespace h::json
     export std::optional<Stack_state> get_next_state_variable_declaration_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_while_loop_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_expression(Stack_state* state, std::string_view const key);
-    export std::optional<Stack_state> get_next_state_statement(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_function_declaration(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_function_definition(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_language_version(Stack_state* state, std::string_view const key);
@@ -1013,6 +1013,49 @@ namespace h::json
                 .pointer = &parent->is_literal,
                 .type = "bool",
                 .get_next_state = nullptr,
+            };
+        }
+
+        return {};
+    }
+
+    export std::optional<Stack_state> get_next_state_statement(Stack_state* state, std::string_view const key)
+    {
+        h::Statement* parent = static_cast<h::Statement*>(state->pointer);
+
+        if (key == "name")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "expressions")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Expression>* parent = static_cast<std::pmr::vector<Expression>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Expression>* parent = static_cast<std::pmr::vector<Expression>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->expressions,
+                .type = "std::pmr::vector<Expression>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_expression
             };
         }
 
@@ -2010,49 +2053,6 @@ namespace h::json
         return {};
     }
 
-    export std::optional<Stack_state> get_next_state_statement(Stack_state* state, std::string_view const key)
-    {
-        h::Statement* parent = static_cast<h::Statement*>(state->pointer);
-
-        if (key == "name")
-        {
-
-            return Stack_state
-            {
-                .pointer = &parent->name,
-                .type = "std::pmr::string",
-                .get_next_state = nullptr,
-            };
-        }
-
-        if (key == "expressions")
-        {
-            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
-            {
-                std::pmr::vector<Expression>* parent = static_cast<std::pmr::vector<Expression>*>(state->pointer);
-                parent->resize(size);
-            };
-
-            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
-            {
-                std::pmr::vector<Expression>* parent = static_cast<std::pmr::vector<Expression>*>(state->pointer);
-                return &((*parent)[index]);
-            };
-
-            return Stack_state
-            {
-                .pointer = &parent->expressions,
-                .type = "std::pmr::vector<Expression>",
-                .get_next_state = get_next_state_vector,
-                .set_vector_size = set_vector_size,
-                .get_element = get_element,
-                .get_next_state_element = get_next_state_expression
-            };
-        }
-
-        return {};
-    }
-
     export std::optional<Stack_state> get_next_state_function_declaration(Stack_state* state, std::string_view const key)
     {
         h::Function_declaration* parent = static_cast<h::Function_declaration*>(state->pointer);
@@ -2647,6 +2647,16 @@ namespace h::json
             };
         }
 
+        if constexpr (std::is_same_v<Struct_type, h::Statement>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Statement",
+                .get_next_state = get_next_state_statement
+            };
+        }
+
         if constexpr (std::is_same_v<Struct_type, h::Variable_expression>)
         {
             return Stack_state
@@ -2884,16 +2894,6 @@ namespace h::json
                 .pointer = output,
                 .type = "Expression",
                 .get_next_state = get_next_state_expression
-            };
-        }
-
-        if constexpr (std::is_same_v<Struct_type, h::Statement>)
-        {
-            return Stack_state
-            {
-                .pointer = output,
-                .type = "Statement",
-                .get_next_state = get_next_state_statement
             };
         }
 

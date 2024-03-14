@@ -318,6 +318,12 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Statement const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Variable_expression const& input
         );
 
@@ -457,12 +463,6 @@ namespace h::json
         void write_object(
             Writer_type& writer,
             Expression const& input
-        );
-
-    export template<typename Writer_type>
-        void write_object(
-            Writer_type& writer,
-            Statement const& input
         );
 
     export template<typename Writer_type>
@@ -835,6 +835,20 @@ namespace h::json
         writer.Bool(output.is_packed);
         writer.Key("is_literal");
         writer.Bool(output.is_literal);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Statement const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("name");
+        writer.String(output.name.data(), output.name.size());
+        writer.Key("expressions");
+        write_object(writer, output.expressions);
         writer.EndObject();
     }
 
@@ -1333,20 +1347,6 @@ namespace h::json
         }
         writer.EndObject();
 
-        writer.EndObject();
-    }
-
-    export template<typename Writer_type>
-        void write_object(
-            Writer_type& writer,
-            Statement const& output
-        )
-    {
-        writer.StartObject();
-        writer.Key("name");
-        writer.String(output.name.data(), output.name.size());
-        writer.Key("expressions");
-        write_object(writer, output.expressions);
         writer.EndObject();
     }
 
