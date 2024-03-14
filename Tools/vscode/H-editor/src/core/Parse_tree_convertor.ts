@@ -877,6 +877,19 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
             visit_expressions(value.expression, predicate);
             break;
         }
+        case Core_intermediate_representation.Expression_enum.Switch_expression: {
+            const value = expression.data.value as Core_intermediate_representation.Switch_expression;
+            visit_expressions(value.value, predicate);
+            for (const switch_case of value.cases) {
+                if (switch_case.case_value !== undefined) {
+                    visit_expressions(switch_case.case_value, predicate);
+                }
+                for (const statement of switch_case.statements) {
+                    visit_expressions(statement.expression, predicate);
+                }
+            }
+            break;
+        }
         case Core_intermediate_representation.Expression_enum.Unary_expression: {
             const value = expression.data.value as Core_intermediate_representation.Unary_expression;
             visit_expressions(value.expression, predicate);
@@ -889,6 +902,7 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
         }
         case Core_intermediate_representation.Expression_enum.Constant_expression:
         case Core_intermediate_representation.Expression_enum.Invalid_expression:
+        case Core_intermediate_representation.Expression_enum.Break_expression:
         case Core_intermediate_representation.Expression_enum.Variable_expression: {
             break;
         }

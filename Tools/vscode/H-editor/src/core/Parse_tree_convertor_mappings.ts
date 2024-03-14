@@ -64,6 +64,8 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Statements", [["declarations", "$order_index", "value", "definition", "statements"]]],
             ["Expression_block_statements", [["$top.state.value", "data", "value", "statements"]]],
             ["Expression_call_arguments", [["$top.state.value", "data", "value", "arguments"]]],
+            ["Expression_switch_cases", [["$top.state.value", "data", "value", "cases"]]],
+            ["Expression_switch_case_statements", [["$top.state.value", "statements"]]],
         ]
     );
 
@@ -98,11 +100,14 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Expression_binary_multiplication_symbol", choose_production_rule_expression_binary_symbol],
             ["Expression_binary_relational_symbol", choose_production_rule_expression_binary_symbol],
             ["Expression_binary_relational_equal_symbol", choose_production_rule_expression_binary_symbol],
+            ["Expression_break", choose_production_rule_expression_break],
             ["Expression_constant", choose_production_rule_expression_constant],
             ["Expression_for_loop_number_expression", choose_production_rule_expression_for_loop_number],
             ["Expression_for_loop_step", choose_production_rule_expression_for_loop_step],
             ["Expression_if_else", choose_production_rule_expression_if_else],
             ["Expression_return", choose_production_rule_expression_return],
+            ["Expression_switch_case", choose_production_rule_expression_switch_case],
+            ["Expression_switch_case_value", choose_production_rule_expression_switch_case_value],
             ["Expression_unary", choose_production_rule_expression_unary],
             ["Expression_unary_0_symbol", choose_production_rule_expression_unary_0_symbol],
             ["Expression_unary_1_symbol", choose_production_rule_expression_unary_1_symbol],
@@ -601,6 +606,13 @@ function choose_production_rule_statement(
             const serie = if_expression.series[serie_index];
             return serie.statement;
         }
+        else if (top.node.word.value === "Expression_switch_case_statements") {
+            const switch_case = top.state.value as Core_intermediate_representation.Switch_case_expression_pair;
+            const statements = switch_case.statements;
+            const statement_index = top.current_child_index;
+            const statement = statements[statement_index];
+            return statement;
+        }
 
         const statements_array = top.node.word.value === "Expression_block_statements" ?
             (top.state.value.data.value as Core_intermediate_representation.Block_expression).statements :
@@ -713,6 +725,31 @@ function choose_production_rule_expression_binary_symbol(
 
     const rhs_label = get_rhs_label();
     const index = production_rule_indices.findIndex(index => contains(production_rules[index].rhs, rhs_label));
+    return {
+        next_state: {
+            index: 0,
+            value: expression
+        },
+        next_production_rule_index: production_rule_indices[index]
+    };
+}
+
+function choose_production_rule_expression_break(
+    module: Core_intermediate_representation.Module,
+    production_rules: Grammar.Production_rule[],
+    production_rule_indices: number[],
+    label: string,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    mappings: Parse_tree_convertor.Parse_tree_mappings,
+    key_to_production_rule_indices: Map<string, number[]>
+): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
+
+    const top = stack[stack.length - 1];
+
+    const expression = top.state.value as Core_intermediate_representation.Expression;
+    const break_expression = expression.data.value as Core_intermediate_representation.Break_expression;
+
+    const index = break_expression.loop_count === 0 ? 0 : 1;
     return {
         next_state: {
             index: 0,
@@ -917,6 +954,63 @@ function choose_production_rule_expression_return(
         next_state: {
             index: 0,
             value: expression
+        },
+        next_production_rule_index: production_rule_indices[index]
+    };
+}
+
+function choose_production_rule_expression_switch_case(
+    module: Core_intermediate_representation.Module,
+    production_rules: Grammar.Production_rule[],
+    production_rule_indices: number[],
+    label: string,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    mappings: Parse_tree_convertor.Parse_tree_mappings,
+    key_to_production_rule_indices: Map<string, number[]>
+): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
+
+    const top = stack[stack.length - 1];
+
+    const expression = top.state.value as Core_intermediate_representation.Expression;
+    const switch_expression = expression.data.value as Core_intermediate_representation.Switch_expression;
+    const switch_case_index = top.current_child_index;
+    const switch_case = switch_expression.cases[switch_case_index];
+    const index = switch_case.case_value !== undefined ? 0 : 1;
+    return {
+        next_state: {
+            index: 0,
+            value: switch_case
+        },
+        next_production_rule_index: production_rule_indices[index]
+    };
+}
+
+function choose_production_rule_expression_switch_case_value(
+    module: Core_intermediate_representation.Module,
+    production_rules: Grammar.Production_rule[],
+    production_rule_indices: number[],
+    label: string,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    mappings: Parse_tree_convertor.Parse_tree_mappings,
+    key_to_production_rule_indices: Map<string, number[]>
+): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
+
+    const top = stack[stack.length - 1];
+
+    const switch_case = top.state.value as Core_intermediate_representation.Switch_case_expression_pair;
+
+    if (switch_case.case_value === undefined) {
+        const message = `Parse_tree_convertor_mappings.choose_production_rule_expression_switch_case_value(): unexpected undefined value!`;
+        onThrowError(message);
+        throw Error(message);
+    }
+
+    const rhs_to_find = map_expression_type_to_production_rule_label(switch_case.case_value);
+    const index = production_rule_indices.findIndex(index => production_rules[index].rhs[0] === rhs_to_find);
+    return {
+        next_state: {
+            index: 0,
+            value: switch_case.case_value
         },
         next_production_rule_index: production_rule_indices[index]
     };
@@ -1166,6 +1260,14 @@ function get_generic_expression(
         case Core_intermediate_representation.Expression_enum.Return_expression: {
             const return_expression = expression.data.value as Core_intermediate_representation.Return_expression;
             const next_expression = return_expression.expression;
+            return {
+                expression: next_expression,
+                label: map_expression_type_to_production_rule_label(next_expression)
+            };
+        }
+        case Core_intermediate_representation.Expression_enum.Switch_expression: {
+            const switch_expression = expression.data.value as Core_intermediate_representation.Switch_expression;
+            const next_expression = switch_expression.value;
             return {
                 expression: next_expression,
                 label: map_expression_type_to_production_rule_label(next_expression)
@@ -1709,6 +1811,15 @@ function node_to_expression(node: Parser_node.Node, key_to_production_rule_indic
                 }
             };
         }
+        case "Expression_break": {
+            const expression = node_to_expression_break(node, key_to_production_rule_indices);
+            return {
+                data: {
+                    type: Core_intermediate_representation.Expression_enum.Break_expression,
+                    value: expression
+                }
+            };
+        }
         case "Expression_call": {
             const expression = node_to_expression_call(node, key_to_production_rule_indices);
             return {
@@ -1768,6 +1879,15 @@ function node_to_expression(node: Parser_node.Node, key_to_production_rule_indic
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Return_expression,
+                    value: expression
+                }
+            };
+        }
+        case "Expression_switch": {
+            const expression = node_to_expression_switch(node, key_to_production_rule_indices);
+            return {
+                data: {
+                    type: Core_intermediate_representation.Expression_enum.Switch_expression,
                     value: expression
                 }
             };
@@ -1941,6 +2061,17 @@ function node_to_expression_block(node: Parser_node.Node, key_to_production_rule
     };
 
     return block_expression;
+}
+
+function node_to_expression_break(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Break_expression {
+
+    const loop_count = node.children.length > 1 ? Number(node.children[1].word.value) : 0;
+
+    const break_expression: Core_intermediate_representation.Break_expression = {
+        loop_count: loop_count
+    };
+
+    return break_expression;
 }
 
 function node_to_expression_call(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Call_expression {
@@ -2190,7 +2321,38 @@ function node_to_expression_return(node: Parser_node.Node, key_to_production_rul
     return return_expression;
 }
 
-function node_to_expression_unary_0(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Return_expression {
+function node_to_expression_switch_case(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Switch_case_expression_pair {
+
+    const is_default_case = node.children[0].word.value === "default";
+
+    const case_value = !is_default_case ? node_to_expression(node.children[1].children[0], key_to_production_rule_indices) : undefined;
+
+    const statement_nodes = find_nodes_inside_parent(node, "Expression_switch_case_statements", "Statement", key_to_production_rule_indices);
+    const statements = statement_nodes.map((statement_node: Parser_node.Node) => node_to_statement(statement_node, key_to_production_rule_indices));
+
+    return {
+        case_value: case_value,
+        statements: statements
+    };
+}
+
+function node_to_expression_switch(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Switch_expression {
+
+    const value_expression_node = find_node(node, "Generic_expression", key_to_production_rule_indices) as Parser_node.Node;
+    const value_expression = node_to_expression(value_expression_node, key_to_production_rule_indices);
+
+    const switch_case_nodes = find_nodes_inside_parent(node, "Expression_switch_cases", "Expression_switch_case", key_to_production_rule_indices);
+    const switch_cases = switch_case_nodes.map((switch_case_node: Parser_node.Node) => node_to_expression_switch_case(switch_case_node, key_to_production_rule_indices));
+
+    const switch_expression: Core_intermediate_representation.Switch_expression = {
+        value: value_expression,
+        cases: switch_cases
+    };
+
+    return switch_expression;
+}
+
+function node_to_expression_unary_0(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Unary_expression {
 
     const generic_expression_node = node.children[0];
     const generic_expression = node_to_expression(generic_expression_node, key_to_production_rule_indices);
@@ -2219,7 +2381,7 @@ function node_to_expression_unary_0(node: Parser_node.Node, key_to_production_ru
     return unary_expression;
 }
 
-function node_to_expression_unary_1(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Return_expression {
+function node_to_expression_unary_1(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Unary_expression {
 
     const generic_expression_node = node.children[1];
     const generic_expression = node_to_expression(generic_expression_node, key_to_production_rule_indices);

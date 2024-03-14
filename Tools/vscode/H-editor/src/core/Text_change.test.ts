@@ -1363,7 +1363,8 @@ export function run_switch(value: Int32) -> (result: Int32)
     switch value:
     {
     case 0:
-        return 0;
+        var return_value = 0;
+        return return_value;
     }
 
     switch value:
