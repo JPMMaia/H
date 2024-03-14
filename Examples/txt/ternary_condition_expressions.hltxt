@@ -1,0 +1,9 @@
+module Ternary_condition_expressions;
+
+export function run_ternary_conditions(first_boolean: Bool, second_boolean: Bool) -> ()
+{
+    var a = first_boolean ? 1 : 0;
+    var b = first_boolean == false ? 1 : 0;
+    var c = !first_boolean ? 1 : 0;
+    var d = first_boolean ? second_boolean ? 2 : 1 : 0;
+}
