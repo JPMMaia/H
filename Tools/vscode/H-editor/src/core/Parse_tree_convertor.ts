@@ -907,9 +907,16 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
             visit_expressions(value.right_hand_side, predicate);
             break;
         }
-        case Core_intermediate_representation.Expression_enum.Constant_expression:
-        case Core_intermediate_representation.Expression_enum.Invalid_expression:
+        case Core_intermediate_representation.Expression_enum.While_loop_expression: {
+            const value = expression.data.value as Core_intermediate_representation.While_loop_expression;
+            visit_expressions(value.condition, predicate);
+            visit_expressions(value.then_statement.expression, predicate);
+            break;
+        }
         case Core_intermediate_representation.Expression_enum.Break_expression:
+        case Core_intermediate_representation.Expression_enum.Constant_expression:
+        case Core_intermediate_representation.Expression_enum.Continue_expression:
+        case Core_intermediate_representation.Expression_enum.Invalid_expression:
         case Core_intermediate_representation.Expression_enum.Variable_expression: {
             break;
         }

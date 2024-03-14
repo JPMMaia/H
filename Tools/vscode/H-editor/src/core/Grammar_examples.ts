@@ -215,7 +215,8 @@ export function create_test_grammar_9_description(): string[] {
         "Expression_block -> { Expression_block_statements }",
         "Expression_block_statements -> Statement $0_or_more",
         "Expression_break -> break",
-        "Expression_break -> break number",
+        "Expression_break -> break Expression_break_loop_count",
+        "Expression_break_loop_count -> number",
         "Expression_call -> Expression_level_1 ( Expression_call_arguments )",
         "Expression_call_arguments -> Generic_expression , $0_or_more",
         "Expression_cast -> Expression_level_0 as Expression_cast_destination_type",
@@ -253,7 +254,7 @@ export function create_test_grammar_9_description(): string[] {
         "Expression_variable_declaration -> Expression_variable_mutability Variable_name = Generic_expression",
         "Expression_variable_mutability -> var",
         "Expression_variable_mutability -> mutable",
-        "Expression_while_loop -> while Generic_expression : Generic_expression",
+        "Expression_while_loop -> while Generic_expression : Statement",
         "Variable_name -> identifier",
     ];
 }

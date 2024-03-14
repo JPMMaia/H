@@ -1471,10 +1471,10 @@ export function run_while_loops(size: Int32) -> ()
         mutable index = 0;
         while index < size:
         {
-            if (index % 2 == 0)
+            if index % 2 == 0:
                 continue;
 
-            if (index > 5)
+            if index > 5:
                 break;
             
             print_integer(index);
@@ -1531,7 +1531,7 @@ export function run_breaks(size: Int32) -> ()
 
         while index_2 < size:
         {
-            if (index > 3)
+            if index > 3:
                 break;
 
             print_integer(index_2);
@@ -1547,7 +1547,7 @@ export function run_breaks(size: Int32) -> ()
 
         while index_2 < size:
         {
-            if (index > 3)
+            if index > 3:
                 break 2;
 
             print_integer(index_2);

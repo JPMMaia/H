@@ -38,6 +38,7 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Module_type_module_name", map_module_type_module_name_to_word],
             ["Module_type_type_name", map_module_type_type_name_to_word],
             ["Expression_access_member_name", map_expression_access_member_name_to_word],
+            ["Expression_break_loop_count", map_expression_break_loop_count_to_word],
             ["Expression_constant", map_expression_constant_to_word],
             ["Expression_for_loop_variable", map_for_loop_variable_to_word],
             ["Variable_name", map_variable_name_to_word],
@@ -248,6 +249,20 @@ function map_expression_access_member_name_to_word(
     const expression = top.state.value as Core_intermediate_representation.Expression;
     const access_expression = expression.data.value as Core_intermediate_representation.Access_expression;
     return { value: access_expression.member_name, type: Grammar.Word_type.Alphanumeric };
+}
+
+function map_expression_break_loop_count_to_word(
+    module: Core_intermediate_representation.Module,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    production_rules: Grammar.Production_rule[],
+    key_to_production_rule_indices: Map<string, number[]>,
+    terminal: string,
+    mappings: Parse_tree_convertor.Parse_tree_mappings
+): Scanner.Scanned_word {
+    const top = stack[stack.length - 1];
+    const expression = top.state.value as Core_intermediate_representation.Expression;
+    const break_expression = expression.data.value as Core_intermediate_representation.Break_expression;
+    return { value: break_expression.loop_count.toString(), type: Grammar.Word_type.Number };
 }
 
 function map_expression_constant_to_word(
@@ -611,6 +626,11 @@ function choose_production_rule_statement(
             const statements = switch_case.statements;
             const statement_index = top.current_child_index;
             const statement = statements[statement_index];
+            return statement;
+        }
+        else if (top.node.word.value === "Expression_while_loop") {
+            const while_loop_expression = top.state.value.data.value as Core_intermediate_representation.While_loop_expression;
+            const statement = while_loop_expression.then_statement;
             return statement;
         }
 
@@ -1302,6 +1322,14 @@ function get_generic_expression(
                 label: map_expression_type_to_production_rule_label(next_expression)
             };
         }
+        case Core_intermediate_representation.Expression_enum.While_loop_expression: {
+            const while_loop_expression = expression.data.value as Core_intermediate_representation.While_loop_expression;
+            const next_expression = top.current_child_index === 1 ? while_loop_expression.condition : while_loop_expression.then_statement.expression;
+            return {
+                expression: next_expression,
+                label: map_expression_type_to_production_rule_label(next_expression)
+            };
+        }
         default: {
             const message = `Parse_tree_convertor_mappings.get_generic_expression(): expression type not handled: '${expression.data.type}'`;
             onThrowError(message);
@@ -1860,6 +1888,15 @@ function node_to_expression(node: Parser_node.Node, key_to_production_rule_indic
                 }
             };
         }
+        case "Expression_continue": {
+            const expression = node_to_expression_continue(node, key_to_production_rule_indices);
+            return {
+                data: {
+                    type: Core_intermediate_representation.Expression_enum.Continue_expression,
+                    value: expression
+                }
+            };
+        }
         case "Expression_for_loop": {
             const expression = node_to_expression_for_loop(node, key_to_production_rule_indices);
             return {
@@ -1946,6 +1983,15 @@ function node_to_expression(node: Parser_node.Node, key_to_production_rule_indic
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Variable_declaration_expression,
+                    value: expression
+                }
+            };
+        }
+        case "Expression_while_loop": {
+            const expression = node_to_expression_while_loop(node, key_to_production_rule_indices);
+            return {
+                data: {
+                    type: Core_intermediate_representation.Expression_enum.While_loop_expression,
                     value: expression
                 }
             };
@@ -2087,7 +2133,7 @@ function node_to_expression_block(node: Parser_node.Node, key_to_production_rule
 
 function node_to_expression_break(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Break_expression {
 
-    const loop_count = node.children.length > 1 ? Number(node.children[1].word.value) : 0;
+    const loop_count = node.children.length > 1 ? Number(node.children[1].children[0].word.value) : 0;
 
     const break_expression: Core_intermediate_representation.Break_expression = {
         loop_count: loop_count
@@ -2252,6 +2298,14 @@ function node_to_expression_constant(node: Parser_node.Node): Core_intermediate_
     const message = `Parse_tree_convertor_mappings.node_to_expression_constant(): Constant expression '${terminal_node.word.value}' of type '${terminal_node.word.type}' not handled!`;
     onThrowError(message);
     throw Error(message);
+}
+
+function node_to_expression_continue(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Continue_expression {
+
+    const continue_expression: Core_intermediate_representation.Continue_expression = {
+    };
+
+    return continue_expression;
 }
 
 function node_to_expression_for_loop(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.For_loop_expression {
@@ -2480,6 +2534,21 @@ function node_to_expression_variable_declaration(node: Parser_node.Node, key_to_
         right_hand_side: right_hand_side,
     };
     return variable_declaration_expression;
+}
+
+function node_to_expression_while_loop(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.While_loop_expression {
+
+    const condition_node = find_node(node, "Generic_expression", key_to_production_rule_indices) as Parser_node.Node;
+    const then_statement_node = find_node(node, "Statement", key_to_production_rule_indices) as Parser_node.Node;
+
+    const condition_expression = node_to_expression(condition_node, key_to_production_rule_indices);
+    const then_statement = node_to_statement(then_statement_node, key_to_production_rule_indices);
+
+    const while_loop_expression: Core_intermediate_representation.While_loop_expression = {
+        condition: condition_expression,
+        then_statement: then_statement
+    };
+    return while_loop_expression;
 }
 
 function get_terminal_value(node: Parser_node.Node): string {
