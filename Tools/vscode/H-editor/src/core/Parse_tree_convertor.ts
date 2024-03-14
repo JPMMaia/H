@@ -890,6 +890,13 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
             }
             break;
         }
+        case Core_intermediate_representation.Expression_enum.Ternary_condition_expression: {
+            const value = expression.data.value as Core_intermediate_representation.Ternary_condition_expression;
+            visit_expressions(value.condition, predicate);
+            visit_expressions(value.then_expression, predicate);
+            visit_expressions(value.else_expression, predicate);
+            break;
+        }
         case Core_intermediate_representation.Expression_enum.Unary_expression: {
             const value = expression.data.value as Core_intermediate_representation.Unary_expression;
             visit_expressions(value.expression, predicate);

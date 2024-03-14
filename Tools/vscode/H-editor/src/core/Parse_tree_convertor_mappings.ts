@@ -1273,6 +1273,19 @@ function get_generic_expression(
                 label: map_expression_type_to_production_rule_label(next_expression)
             };
         }
+        case Core_intermediate_representation.Expression_enum.Ternary_condition_expression: {
+            const ternary_condition_expression = expression.data.value as Core_intermediate_representation.Ternary_condition_expression;
+            const next_expression =
+                top.current_child_index === 0 ?
+                    ternary_condition_expression.condition :
+                    top.current_child_index === 2 ?
+                        ternary_condition_expression.then_expression :
+                        ternary_condition_expression.else_expression;
+            return {
+                expression: next_expression,
+                label: map_expression_type_to_production_rule_label(next_expression)
+            };
+        }
         case Core_intermediate_representation.Expression_enum.Unary_expression: {
             const unary_expression = expression.data.value as Core_intermediate_representation.Unary_expression;
             const next_expression = unary_expression.expression;
@@ -1892,6 +1905,15 @@ function node_to_expression(node: Parser_node.Node, key_to_production_rule_indic
                 }
             };
         }
+        case "Expression_ternary_condition": {
+            const expression = node_to_expression_ternary_condition(node, key_to_production_rule_indices);
+            return {
+                data: {
+                    type: Core_intermediate_representation.Expression_enum.Ternary_condition_expression,
+                    value: expression
+                }
+            };
+        }
         case "Expression_unary_0": {
             const expression = node_to_expression_unary_0(node, key_to_production_rule_indices);
             return {
@@ -2350,6 +2372,25 @@ function node_to_expression_switch(node: Parser_node.Node, key_to_production_rul
     };
 
     return switch_expression;
+}
+
+function node_to_expression_ternary_condition(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Ternary_condition_expression {
+
+    const condition_node = node.children[0];
+    const then_node = node.children[2];
+    const else_node = node.children[4];
+
+    const condition_expression = node_to_expression(condition_node, key_to_production_rule_indices);
+    const then_expression = node_to_expression(then_node, key_to_production_rule_indices);
+    const else_expression = node_to_expression(else_node, key_to_production_rule_indices);
+
+    const ternary_condition_expression: Core_intermediate_representation.Ternary_condition_expression = {
+        condition: condition_expression,
+        then_expression: then_expression,
+        else_expression: else_expression
+    };
+
+    return ternary_condition_expression;
 }
 
 function node_to_expression_unary_0(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Unary_expression {
