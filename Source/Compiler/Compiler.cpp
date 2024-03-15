@@ -1090,8 +1090,9 @@ namespace h::compiler
         all_local_variables.reserve(local_variables.size() + statements.size());
         all_local_variables.insert(all_local_variables.begin(), local_variables.begin(), local_variables.end());
 
-        llvm::BasicBlock* const block = llvm::BasicBlock::Create(llvm_context, "", llvm_parent_function);
-        llvm_builder.SetInsertPoint(block);
+        llvm::BasicBlock* const begin_block = llvm::BasicBlock::Create(llvm_context, "begin_block", llvm_parent_function);
+        llvm_builder.CreateBr(begin_block);
+        llvm_builder.SetInsertPoint(begin_block);
 
         for (Statement const statement : statements)
         {
@@ -1126,9 +1127,13 @@ namespace h::compiler
             all_local_variables.push_back(temporaries.front());
         }
 
+        llvm::BasicBlock* const end_block = llvm::BasicBlock::Create(llvm_context, "end_block", llvm_parent_function);
+        llvm_builder.CreateBr(end_block);
+        llvm_builder.SetInsertPoint(end_block);
+
         return Value_and_type
         {
-            .value = block,
+            .value = begin_block,
             .type = std::nullopt
         };
     }
@@ -1837,8 +1842,10 @@ namespace h::compiler
             llvm_builder.CreateRetVoid();
         }
 
-        if (llvm::verifyFunction(llvm_function, &llvm::errs()))
+        if (llvm::verifyFunction(llvm_function, &llvm::errs())) {
+            llvm_function.dump();
             throw std::runtime_error{ std::format("Function '{}' from module '{}' is not valid!", function_declaration.name, core_module.name) };
+        }
     }
 
     void add_module_definitions(
@@ -2063,7 +2070,10 @@ namespace h::compiler
         add_module_definitions(llvm_context, llvm_data_layout, *llvm_module, core_module, core_module_dependencies, struct_types, {});
 
         if (llvm::verifyModule(*llvm_module, &llvm::errs()))
+        {
+            llvm_module->dump();
             throw std::runtime_error{ std::format("Module '{}' is not valid!", core_module.name) };
+        }
 
         return llvm_module;
     }
