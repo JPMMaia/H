@@ -1404,14 +1404,26 @@ namespace h::tools::code_generator
                 }
                 else if (is_vector_type(member.type))
                 {
-                    std::pmr::string const value_type = get_vector_value_type(member.type);
+                    Type const value_type = Type{ get_vector_value_type(member.type) };
                     output_stream << "                .get_next_state = get_next_state_vector,\n";
                     output_stream << "                .set_vector_size = set_vector_size,\n";
                     output_stream << "                .get_element = get_element,\n";
 
-                    if (is_struct_type(Type{ value_type }, struct_map))
+                    if (is_struct_type(value_type, struct_map))
                     {
-                        output_stream << std::format("                .get_next_state_element = get_next_state_{}\n", to_lowercase(value_type));
+                        output_stream << std::format("                .get_next_state_element = get_next_state_{}\n", to_lowercase(value_type.name));
+                    }
+                    else if (is_optional_type(value_type))
+                    {
+                        Type const optional_value_type = Type{ get_optional_value_type(value_type) };
+                        if (is_struct_type(optional_value_type, struct_map))
+                        {
+                            output_stream << std::format("                .get_next_state_element = get_next_state_{}\n", to_lowercase(optional_value_type.name));
+                        }
+                        else
+                        {
+                            output_stream << "                .get_next_state_element = nullptr,\n";
+                        }
                     }
                     else
                     {
@@ -1422,6 +1434,18 @@ namespace h::tools::code_generator
                 {
                     output_stream << "                .get_next_state = get_next_state,\n";
                     output_stream << "                .set_variant_type = set_variant_type,\n";
+                }
+                else if (is_optional_type(member.type))
+                {
+                    Type const value_type = Type{ get_optional_value_type(member.type) };
+                    if (is_struct_type(value_type, struct_map))
+                    {
+                        output_stream << std::format("                .get_next_state = get_next_state_{}\n", to_lowercase(value_type.name));
+                    }
+                    else
+                    {
+                        output_stream << "                .get_next_state = nullptr,\n";
+                    }
                 }
                 else
                 {
