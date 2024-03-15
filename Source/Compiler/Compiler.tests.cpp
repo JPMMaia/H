@@ -394,6 +394,22 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
+define void @run_blocks() {
+entry:
+  %a = alloca i32, align 4
+  store i32 0, ptr %a, align 4
+  br label %begin_block
+
+begin_block:                                      ; preds = %entry
+  %b = alloca ptr, align 8
+  store ptr %a, ptr %b, align 8
+  br label %end_block
+
+end_block:                                        ; preds = %begin_block
+  %b1 = alloca ptr, align 8
+  store ptr %a, ptr %b1, align 8
+  ret void
+}
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
