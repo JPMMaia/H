@@ -264,6 +264,223 @@ namespace h
         CHECK(actual == expected);
     }
 
+    TEST_CASE("Read If_expression")
+    {
+        std::pmr::string const json_data = R"JSON(
+            {
+                "series": {
+                    "size": 2,
+                    "elements": [
+                        {
+                            "statement": {
+                                "name": "",
+                                "expressions": {
+                                    "size": 2,
+                                    "elements": [
+                                        {
+                                            "data": {
+                                                "type": "Return_expression",
+                                                "value": {
+                                                    "expression": {
+                                                        "expression_index": 1
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "data": {
+                                                "type": "Variable_expression",
+                                                "value": {
+                                                    "name": "value"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            "condition": {
+                                "expression_index": 2
+                            }
+                        },
+                        {
+                            "statement": {
+                                "name": "",
+                                "expressions": {
+                                    "size": 2,
+                                    "elements": [
+                                        {
+                                            "data": {
+                                                "type": "Return_expression",
+                                                "value": {
+                                                    "expression": {
+                                                        "expression_index": 3
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "data": {
+                                                "type": "Variable_expression",
+                                                "value": {
+                                                    "name": "value"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        )JSON";
+
+        std::pmr::vector<Condition_statement_pair> expected_series
+        {
+            Condition_statement_pair
+            {
+                .statement = Statement
+                {
+                    .name = "",
+                    .expressions = std::pmr::vector<Expression>
+                    {
+                        {
+                            .data = Return_expression
+                            {
+                                .expression = {
+                                    .expression_index = 1
+                                }
+                            }
+                        },
+                        {
+                            .data = Variable_expression
+                            {
+                                .name = "value"
+                            }
+                        }
+                    }
+                },
+                .condition = Expression_index
+                {
+                    .expression_index = 2
+                }
+            },
+            Condition_statement_pair
+            {
+                .statement = Statement
+                {
+                    .name = "",
+                    .expressions = std::pmr::vector<Expression>
+                    {
+                        {
+                            .data = Return_expression
+                            {
+                                .expression = {
+                                    .expression_index = 3
+                                }
+                            }
+                        },
+                        {
+                            .data = Variable_expression
+                            {
+                                .name = "value"
+                            }
+                        }
+                    }
+                },
+                .condition = std::nullopt
+            }
+        };
+
+        If_expression const expected
+        {
+            .series = std::move(expected_series)
+        };
+
+        rapidjson::Reader reader;
+        rapidjson::StringStream input_stream{ json_data.c_str() };
+        std::optional<If_expression> const output = h::json::read<If_expression>(reader, input_stream);
+
+        REQUIRE(output.has_value());
+
+        If_expression const& actual = output.value();
+        CHECK(actual == expected);
+    }
+
+    TEST_CASE("Write If_expression")
+    {
+        std::pmr::vector<Condition_statement_pair> input_series
+        {
+            Condition_statement_pair
+            {
+                .statement = Statement
+                {
+                    .name = "",
+                    .expressions = std::pmr::vector<Expression>
+                    {
+                        {
+                            .data = Return_expression
+                            {
+                                .expression = {
+                                    .expression_index = 1
+                                }
+                            }
+                        },
+                        {
+                            .data = Variable_expression
+                            {
+                                .name = "value"
+                            }
+                        }
+                    }
+                },
+                .condition = Expression_index
+                {
+                    .expression_index = 2
+                }
+            },
+            Condition_statement_pair
+            {
+                .statement = Statement
+                {
+                    .name = "",
+                    .expressions = std::pmr::vector<Expression>
+                    {
+                        {
+                            .data = Return_expression
+                            {
+                                .expression = {
+                                    .expression_index = 3
+                                }
+                            }
+                        },
+                        {
+                            .data = Variable_expression
+                            {
+                                .name = "value"
+                            }
+                        }
+                    }
+                },
+                .condition = std::nullopt
+            }
+        };
+
+        If_expression const input
+        {
+            .series = std::move(input_series)
+        };
+
+        std::string const expected = "{\"series\":{\"size\":2,\"elements\":[{\"statement\":{\"name\":\"\",\"expressions\":{\"size\":2,\"elements\":[{\"data\":{\"type\":\"Return_expression\",\"value\":{\"expression\":{\"expression_index\":1}}}},{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"value\"}}}]}},\"condition\":{\"expression_index\":2}},{\"statement\":{\"name\":\"\",\"expressions\":{\"size\":2,\"elements\":[{\"data\":{\"type\":\"Return_expression\",\"value\":{\"expression\":{\"expression_index\":3}}}},{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"value\"}}}]}}}]}}";
+
+        rapidjson::StringBuffer output_stream;
+        rapidjson::Writer<rapidjson::StringBuffer> writer{ output_stream };
+        h::json::write(writer, input);
+
+        std::string const actual = output_stream.GetString();
+        CHECK(actual == expected);
+    }
+
     TEST_CASE("Read Variable_expression")
     {
         std::pmr::string const json_data = R"JSON(

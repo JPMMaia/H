@@ -1420,7 +1420,7 @@ namespace h::json
             {
                 .pointer = &parent->step_by.value(),
                 .type = "Expression_index",
-                .get_next_state = nullptr,
+                .get_next_state = get_next_state_expression_index
             };
         }
 
@@ -1460,7 +1460,7 @@ namespace h::json
             {
                 .pointer = &parent->condition.value(),
                 .type = "Expression_index",
-                .get_next_state = nullptr,
+                .get_next_state = get_next_state_expression_index
             };
         }
 
@@ -1564,7 +1564,7 @@ namespace h::json
             {
                 .pointer = &parent->case_value.value(),
                 .type = "Expression_index",
-                .get_next_state = nullptr,
+                .get_next_state = get_next_state_expression_index
             };
         }
 
