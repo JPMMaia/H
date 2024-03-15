@@ -42,10 +42,10 @@ namespace h::compiler
         return std::string_view{ string.data(), string.size() };
     }
 
-    std::optional<Module_pair const*> get_module(std::span<Module_pair const> const modules, std::string_view const name)
+    std::optional<Module const*> get_module(std::span<Module const> const core_modules, std::string_view const name)
     {
-        auto const location = std::find_if(modules.begin(), modules.end(), [name](Module_pair const& module) { return module.core_module.name == name; });
-        if (location == modules.end())
+        auto const location = std::find_if(core_modules.begin(), core_modules.end(), [name](Module const& module) { return module.name == name; });
+        if (location == core_modules.end())
             return std::nullopt;
 
         return &(*location);
@@ -126,6 +126,49 @@ namespace h::compiler
         return *location;
     }
 
+    enum class Mangle_name_strategy
+    {
+        Only_declaration_name,
+        Module_and_declaration_name
+    };
+
+    std::string mangle_name(
+        std::string_view const module_name,
+        std::string_view const declaration_name,
+        Mangle_name_strategy const strategy
+    )
+    {
+        switch (strategy)
+        {
+        case Mangle_name_strategy::Only_declaration_name:
+            return std::string{ declaration_name.begin(), declaration_name.end() };
+        case Mangle_name_strategy::Module_and_declaration_name:
+        default:
+            return std::format("{}_{}", module_name, declaration_name);
+        }
+    }
+
+    std::string mangle_name(
+        Module const& core_module,
+        std::string_view const declaration_name
+    )
+    {
+        // TODO decide which strategy to use per module?
+        Mangle_name_strategy const mangle_strategy = Mangle_name_strategy::Only_declaration_name;
+        std::string mangled_name = mangle_name(core_module.name, declaration_name, mangle_strategy);
+        return mangled_name;
+    }
+
+    llvm::Function* get_llvm_function(
+        Module const& core_module,
+        llvm::Module& llvm_module,
+        std::string_view const name
+    )
+    {
+        std::string const mangled_name = mangle_name(core_module, name);
+        llvm::Function* const llvm_function = llvm_module.getFunction(mangled_name);
+        return llvm_function;
+    }
 
     llvm::Type* to_type(
         llvm::LLVMContext& llvm_context,
@@ -439,16 +482,19 @@ namespace h::compiler
     }
 
     llvm::Function& to_function(
+        Module const& core_module,
         llvm::FunctionType& llvm_function_type,
         Function_declaration const& function_declaration
     )
     {
         llvm::GlobalValue::LinkageTypes const linkage = to_linkage(function_declaration.linkage);
 
+        std::string const mangled_name = mangle_name(core_module, function_declaration.name);
+
         llvm::Function* const llvm_function = llvm::Function::Create(
             &llvm_function_type,
             linkage,
-            function_declaration.name.c_str(),
+            mangled_name.c_str(),
             nullptr
         );
 
@@ -511,9 +557,27 @@ namespace h::compiler
     Value_and_type create_value(
         Module const& core_module,
         Statement const& statement,
+        Expression const& expression,
+        llvm::LLVMContext& llvm_context,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Module& llvm_module,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::Function* const llvm_parent_function,
+        std::span<Value_and_type const> function_arguments,
+        std::span<Value_and_type const> local_variables,
+        std::span<Value_and_type const> temporaries,
+        std::span<Module const> core_module_dependencies,
+        Struct_types const& struct_types,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
+    Value_and_type create_value(
+        Module const& core_module,
+        std::span<Module const> const core_module_dependencies,
+        Statement const& statement,
         Access_expression const& expression,
-        std::span<Value_and_type const> const temporaries,
-        std::span<Module_pair const> const module_dependencies
+        llvm::Module& llvm_module,
+        std::span<Value_and_type const> const temporaries
     )
     {
         Value_and_type const& left_hand_side = temporaries[expression.expression.expression_index];
@@ -528,20 +592,19 @@ namespace h::compiler
                 Variable_expression const& variable_expression = std::get<Variable_expression>(left_hand_side_expression.data);
                 std::string_view const module_alias_name = variable_expression.name;
 
-                std::optional<std::string_view> const module_name = get_module_name_from_alias(core_module, module_alias_name);
-                if (!module_name.has_value())
+                std::optional<std::string_view> const external_module_name = get_module_name_from_alias(core_module, module_alias_name);
+                if (!external_module_name.has_value())
                     throw std::runtime_error{ std::format("Undefined variable '{}'", module_alias_name) };
 
-                std::optional<Module_pair const*> external_module = get_module(module_dependencies, module_name.value());
-                if (!external_module.has_value())
-                    throw std::runtime_error{ std::format("Module '{}' does not exist", module_name.value()) };
+                Module const& external_module = *get_module(core_module_dependencies, external_module_name.value()).value();
+                std::string const mangled_name = mangle_name(external_module, expression.member_name);
 
                 // TODO try to find alias/enum/struct:
-                llvm::Function* const llvm_function = external_module.value()->llvm_module->getFunction(expression.member_name.c_str());
+                llvm::Function* const llvm_function = llvm_module.getFunction(mangled_name);
                 if (!llvm_function)
-                    throw std::runtime_error{ std::format("Unknown function '{}.{}' referenced.", module_name.value(), expression.member_name.c_str()) };
+                    throw std::runtime_error{ std::format("Unknown function '{}.{}' referenced. Mangled name is '{}'.", external_module_name.value(), expression.member_name, mangled_name) };
 
-                std::optional<Function_declaration const*> function_declaration = find_function_declaration(external_module.value()->core_module, expression.member_name.c_str());
+                std::optional<Function_declaration const*> function_declaration = find_function_declaration(external_module, expression.member_name.c_str());
                 Type_reference function_type = create_function_type_type_reference(function_declaration.value()->type);
 
                 return Value_and_type
@@ -1008,10 +1071,73 @@ namespace h::compiler
 
     Value_and_type create_value(
         Module const& core_module,
+        std::span<Module const> core_module_dependencies,
+        Block_expression const& block_expression,
+        llvm::LLVMContext& llvm_context,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Module& llvm_module,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::Function* const llvm_parent_function,
+        std::span<Value_and_type const> function_arguments,
+        std::span<Value_and_type const> local_variables,
+        Struct_types const& struct_types,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::span<Statement const> statements = block_expression.statements;
+
+        std::pmr::vector<Value_and_type> all_local_variables;
+        all_local_variables.reserve(local_variables.size() + statements.size());
+        all_local_variables.insert(all_local_variables.begin(), local_variables.begin(), local_variables.end());
+
+        llvm::BasicBlock* const block = llvm::BasicBlock::Create(llvm_context, "", llvm_parent_function);
+        llvm_builder.SetInsertPoint(block);
+
+        for (Statement const statement : statements)
+        {
+            std::pmr::vector<Value_and_type> temporaries;
+            temporaries.resize(statement.expressions.size());
+
+            for (std::size_t index = 0; index < statement.expressions.size(); ++index)
+            {
+                std::size_t const expression_index = statement.expressions.size() - 1 - index;
+                Expression const& current_expression = statement.expressions[expression_index];
+
+                Value_and_type const instruction = create_value(
+                    core_module,
+                    statement,
+                    current_expression,
+                    llvm_context,
+                    llvm_data_layout,
+                    llvm_module,
+                    llvm_builder,
+                    llvm_parent_function,
+                    function_arguments,
+                    all_local_variables,
+                    temporaries,
+                    core_module_dependencies,
+                    struct_types,
+                    temporaries_allocator
+                );
+
+                temporaries[expression_index] = instruction;
+            }
+
+            all_local_variables.push_back(temporaries.front());
+        }
+
+        return Value_and_type
+        {
+            .value = block,
+            .type = std::nullopt
+        };
+    }
+
+    Value_and_type create_value(
+        Module const& core_module,
         Call_expression const& expression,
         llvm::IRBuilder<>& llvm_builder,
         std::span<Value_and_type const> const temporaries,
-        std::span<Module_pair const> const module_dependencies,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
@@ -1127,7 +1253,6 @@ namespace h::compiler
         llvm::DataLayout const& llvm_data_layout,
         llvm::IRBuilder<>& llvm_builder,
         std::span<Value_and_type const> const temporaries,
-        std::span<Module_pair const> const module_dependencies,
         Struct_types const& struct_types
     )
     {
@@ -1479,7 +1604,7 @@ namespace h::compiler
 
         // Search for functions in this module:
         {
-            llvm::Function* const llvm_function = llvm_module.getFunction(variable_name);
+            llvm::Function* const llvm_function = get_llvm_function(core_module, llvm_module, variable_name);
             if (llvm_function != nullptr)
             {
                 std::optional<Function_declaration const*> const function_declaration = find_function_declaration(core_module, variable_name);
@@ -1520,10 +1645,11 @@ namespace h::compiler
         llvm::DataLayout const& llvm_data_layout,
         llvm::Module& llvm_module,
         llvm::IRBuilder<>& llvm_builder,
+        llvm::Function* const llvm_parent_function,
         std::span<Value_and_type const> const function_arguments,
         std::span<Value_and_type const> const local_variables,
         std::span<Value_and_type const> const temporaries,
-        std::span<Module_pair const> const module_dependencies,
+        std::span<Module const> const core_module_dependencies,
         Struct_types const& struct_types,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
@@ -1531,7 +1657,7 @@ namespace h::compiler
         if (std::holds_alternative<Access_expression>(expression.data))
         {
             Access_expression const& data = std::get<Access_expression>(expression.data);
-            return create_value(core_module, statement, data, temporaries, module_dependencies);
+            return create_value(core_module, core_module_dependencies, statement, data, llvm_module, temporaries);
         }
         else if (std::holds_alternative<Assignment_expression>(expression.data))
         {
@@ -1543,15 +1669,20 @@ namespace h::compiler
             Binary_expression const& data = std::get<Binary_expression>(expression.data);
             return create_value(data, llvm_builder, temporaries);
         }
+        else if (std::holds_alternative<Block_expression>(expression.data))
+        {
+            Block_expression const& data = std::get<Block_expression>(expression.data);
+            return create_value(core_module, core_module_dependencies, data, llvm_context, llvm_data_layout, llvm_module, llvm_builder, llvm_parent_function, function_arguments, local_variables, struct_types, temporaries_allocator);
+        }
         else if (std::holds_alternative<Call_expression>(expression.data))
         {
             Call_expression const& data = std::get<Call_expression>(expression.data);
-            return create_value(core_module, data, llvm_builder, temporaries, module_dependencies, temporaries_allocator);
+            return create_value(core_module, data, llvm_builder, temporaries, temporaries_allocator);
         }
         else if (std::holds_alternative<Cast_expression>(expression.data))
         {
             Cast_expression const& data = std::get<Cast_expression>(expression.data);
-            return create_value(core_module, data, llvm_context, llvm_data_layout, llvm_builder, temporaries, module_dependencies, struct_types);
+            return create_value(core_module, data, llvm_context, llvm_data_layout, llvm_builder, temporaries, struct_types);
         }
         else if (std::holds_alternative<Constant_expression>(expression.data))
         {
@@ -1593,6 +1724,7 @@ namespace h::compiler
     llvm::Function& create_function_declaration(
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
+        Module const& core_module,
         Function_declaration const& function_declaration,
         Struct_types const& struct_types,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
@@ -1608,6 +1740,7 @@ namespace h::compiler
         );
 
         llvm::Function& llvm_function = to_function(
+            core_module,
             *llvm_function_type,
             function_declaration
         );
@@ -1623,7 +1756,7 @@ namespace h::compiler
         Module const& core_module,
         Function_declaration const& function_declaration,
         Function_definition const& function_definition,
-        std::span<Module_pair const> const module_dependencies,
+        std::span<Module const> const core_module_dependencies,
         Struct_types const& struct_types,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
@@ -1640,9 +1773,6 @@ namespace h::compiler
             {
                 llvm::Argument* const llvm_argument = llvm_function.getArg(argument_index);
                 Type_reference const& core_type = function_declaration.type.input_parameter_types[argument_index];
-
-                llvm_argument->dump();
-                llvm_argument->getType()->dump();
 
                 function_arguments.push_back({ .value = llvm_argument, .type = core_type });
             }
@@ -1670,10 +1800,11 @@ namespace h::compiler
                         llvm_data_layout,
                         llvm_module,
                         llvm_builder,
+                        &llvm_function,
                         function_arguments,
                         local_variables,
                         temporaries,
-                        module_dependencies,
+                        core_module_dependencies,
                         struct_types,
                         temporaries_allocator
                     );
@@ -1685,47 +1816,37 @@ namespace h::compiler
             }
         }
 
-        llvm::verifyFunction(llvm_function);
-    }
-
-    void add_module_declarations(
-        llvm::LLVMContext& llvm_context,
-        llvm::DataLayout const& llvm_data_layout,
-        llvm::Module& llvm_module,
-        std::span<Function_declaration const> const function_declarations,
-        std::span<std::pmr::string const> const usages,
-        bool const filter_by_usages,
-        Struct_types const& struct_types,
-        std::pmr::polymorphic_allocator<> const& temporaries_allocator
-    )
-    {
+        auto const return_void_is_missing = [&]() -> bool
         {
-            auto& llvm_function_list = llvm_module.getFunctionList();
-
-            for (Function_declaration const& function_declaration : function_declarations)
+            if (!function_definition.statements.empty())
             {
-                if (!filter_by_usages || std::find(usages.begin(), usages.end(), function_declaration.name) != usages.end())
+                Statement const& statement = function_definition.statements.back();
+                if (!statement.expressions.empty())
                 {
-                    llvm::Function& llvm_function = create_function_declaration(
-                        llvm_context,
-                        llvm_data_layout,
-                        function_declaration,
-                        struct_types,
-                        temporaries_allocator
-                    );
-
-                    llvm_function_list.push_back(&llvm_function);
+                    Expression const& expression = statement.expressions[0];
+                    if (std::holds_alternative<Return_expression>(expression.data))
+                        return false;
                 }
             }
+
+            return true;
+        };
+
+        if (return_void_is_missing())
+        {
+            llvm_builder.CreateRetVoid();
         }
+
+        if (llvm::verifyFunction(llvm_function, &llvm::errs()))
+            throw std::runtime_error{ std::format("Function '{}' from module '{}' is not valid!", function_declaration.name, core_module.name) };
     }
 
     void add_module_definitions(
-        Module const& core_module,
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
         llvm::Module& llvm_module,
-        std::span<Module_pair const> const module_dependencies,
+        Module const& core_module,
+        std::span<Module const> const core_module_dependencies,
         Struct_types const& struct_types,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
@@ -1734,7 +1855,7 @@ namespace h::compiler
         {
             Function_declaration const& declaration = *find_function_declaration(core_module, definition.name).value();
 
-            llvm::Function* llvm_function = llvm_module.getFunction(definition.name.c_str());
+            llvm::Function* llvm_function = get_llvm_function(core_module, llvm_module, definition.name);
             if (!llvm_function)
             {
                 std::string_view const function_name = definition.name;
@@ -1750,7 +1871,7 @@ namespace h::compiler
                 core_module,
                 declaration,
                 definition,
-                module_dependencies,
+                core_module_dependencies,
                 struct_types,
                 temporaries_allocator
             );
@@ -1819,53 +1940,12 @@ namespace h::compiler
         }
     }
 
-    std::unique_ptr<llvm::Module> create_dependency_module(
-        llvm::LLVMContext& llvm_context,
-        std::string_view const target_triple,
-        llvm::DataLayout const& llvm_data_layout,
+    std::pmr::vector<Module> create_dependency_core_modules(
         Module const& core_module,
-        std::span<std::pmr::string const> const usages,
-        bool const filter_by_usages,
-        Struct_types const& struct_types
-    )
-    {
-        std::unique_ptr<llvm::Module> llvm_module = std::make_unique<llvm::Module>(core_module.name.c_str(), llvm_context);
-        llvm_module->setTargetTriple(target_triple);
-        llvm_module->setDataLayout(llvm_data_layout);
-
-        add_module_declarations(llvm_context, llvm_data_layout, *llvm_module, core_module.export_declarations.function_declarations, usages, filter_by_usages, struct_types, {});
-        add_module_declarations(llvm_context, llvm_data_layout, *llvm_module, core_module.internal_declarations.function_declarations, usages, filter_by_usages, struct_types, {});
-
-        return llvm_module;
-    }
-
-
-    std::unique_ptr<llvm::Module> create_module(
-        llvm::LLVMContext& llvm_context,
-        std::string_view const target_triple,
-        llvm::DataLayout const& llvm_data_layout,
-        Module const& core_module,
-        std::span<Module_pair const> const module_dependencies,
-        Struct_types const& struct_types
-    )
-    {
-        std::unique_ptr<llvm::Module> llvm_module = create_dependency_module(llvm_context, target_triple, llvm_data_layout, core_module, {}, false, struct_types);
-
-        add_module_definitions(core_module, llvm_context, llvm_data_layout, *llvm_module, module_dependencies, struct_types, {});
-
-        return llvm_module;
-    }
-
-    std::pmr::vector<Module_pair> create_dependency_modules(
-        llvm::LLVMContext& llvm_context,
-        std::string_view const target_triple,
-        llvm::DataLayout const& llvm_data_layout,
-        Module const& core_module,
-        Struct_types const& struct_types,
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map
     )
     {
-        std::pmr::vector<Module_pair> modules;
+        std::pmr::vector<Module> modules;
         modules.reserve(core_module.dependencies.alias_imports.size());
 
         for (Import_module_with_alias const& alias_import : core_module.dependencies.alias_imports)
@@ -1889,18 +1969,103 @@ namespace h::compiler
                 throw std::runtime_error{ std::format("Failed to read Module '{}' file '{}' as JSON.", alias_import.module_name, file_path.generic_string()) };
             }
 
-            std::unique_ptr<llvm::Module> llvm_module = create_dependency_module(llvm_context, target_triple, llvm_data_layout, import_core_module.value(), alias_import.usages, true, struct_types);
-
-            Module_pair pair
-            {
-                .core_module = std::move(import_core_module.value()),
-                .llvm_module = std::move(llvm_module)
-            };
-
-            modules.push_back(std::move(pair));
+            modules.push_back(std::move(import_core_module.value()));
         }
 
         return modules;
+    }
+
+    void add_dependency_module_declarations(
+        llvm::LLVMContext& llvm_context,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Module& llvm_module,
+        Struct_types const& struct_types,
+        Module const& core_module,
+        std::span<Module const> const core_module_dependencies,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        auto& llvm_function_list = llvm_module.getFunctionList();
+
+        for (std::size_t alias_import_index = 0; alias_import_index < core_module.dependencies.alias_imports.size(); ++alias_import_index)
+        {
+            Import_module_with_alias const& alias_import = core_module.dependencies.alias_imports[alias_import_index];
+            Module const& core_module_dependency = core_module_dependencies[alias_import_index];
+
+            // TODO alias, enums and structs
+
+            for (Function_declaration const& function_declaration : core_module_dependency.export_declarations.function_declarations)
+            {
+                auto const location = std::find_if(alias_import.usages.begin(), alias_import.usages.end(), [&](std::pmr::string const& usage) -> bool { return function_declaration.name == usage; });
+                if (location != alias_import.usages.end())
+                {
+                    llvm::Function& llvm_function = create_function_declaration(
+                        llvm_context,
+                        llvm_data_layout,
+                        core_module,
+                        function_declaration,
+                        struct_types,
+                        temporaries_allocator
+                    );
+
+                    llvm_function_list.push_back(&llvm_function);
+                }
+            }
+        }
+    }
+
+    void add_module_declarations(
+        llvm::LLVMContext& llvm_context,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Module& llvm_module,
+        Module const& core_module,
+        std::span<Function_declaration const> const function_declarations,
+        Struct_types const& struct_types,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        {
+            auto& llvm_function_list = llvm_module.getFunctionList();
+
+            for (Function_declaration const& function_declaration : function_declarations)
+            {
+                llvm::Function& llvm_function = create_function_declaration(
+                    llvm_context,
+                    llvm_data_layout,
+                    core_module,
+                    function_declaration,
+                    struct_types,
+                    temporaries_allocator
+                );
+
+                llvm_function_list.push_back(&llvm_function);
+            }
+        }
+    }
+
+    std::unique_ptr<llvm::Module> create_module(
+        llvm::LLVMContext& llvm_context,
+        std::string_view const target_triple,
+        llvm::DataLayout const& llvm_data_layout,
+        Module const& core_module,
+        std::span<Module const> const core_module_dependencies,
+        Struct_types const& struct_types
+    )
+    {
+        std::unique_ptr<llvm::Module> llvm_module = std::make_unique<llvm::Module>(core_module.name.c_str(), llvm_context);
+        llvm_module->setTargetTriple(target_triple);
+        llvm_module->setDataLayout(llvm_data_layout);
+
+        add_module_declarations(llvm_context, llvm_data_layout, *llvm_module, core_module, core_module.export_declarations.function_declarations, struct_types, {});
+        add_module_declarations(llvm_context, llvm_data_layout, *llvm_module, core_module, core_module.internal_declarations.function_declarations, struct_types, {});
+
+        add_dependency_module_declarations(llvm_context, llvm_data_layout, *llvm_module, struct_types, core_module, core_module_dependencies, {});
+        add_module_definitions(llvm_context, llvm_data_layout, *llvm_module, core_module, core_module_dependencies, struct_types, {});
+
+        if (llvm::verifyModule(*llvm_module, &llvm::errs()))
+            throw std::runtime_error{ std::format("Module '{}' is not valid!", core_module.name) };
+
+        return llvm_module;
     }
 
     LLVM_data initialize_llvm()
@@ -1958,11 +2123,11 @@ namespace h::compiler
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map
     )
     {
-        std::pmr::vector<Module_pair> module_dependencies = create_dependency_modules(*llvm_data.context, llvm_data.target_triple, llvm_data.data_layout, core_module, llvm_data.struct_types, module_name_to_file_path_map);
-        std::unique_ptr<llvm::Module> llvm_module = create_module(*llvm_data.context, llvm_data.target_triple, llvm_data.data_layout, core_module, module_dependencies, llvm_data.struct_types);
+        std::pmr::vector<Module> core_module_dependencies = create_dependency_core_modules(core_module, module_name_to_file_path_map);
+        std::unique_ptr<llvm::Module> llvm_module = create_module(*llvm_data.context, llvm_data.target_triple, llvm_data.data_layout, core_module, core_module_dependencies, llvm_data.struct_types);
 
         return {
-            .dependencies = std::move(module_dependencies),
+            .dependencies = std::move(core_module_dependencies),
             .module = std::move(llvm_module)
         };
     }

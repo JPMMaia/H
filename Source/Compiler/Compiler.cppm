@@ -31,15 +31,9 @@ namespace h::compiler
         Struct_types struct_types;
     };
 
-    export struct Module_pair
-    {
-        Module core_module;
-        std::unique_ptr<llvm::Module> llvm_module;
-    };
-
     export struct LLVM_module_data
     {
-        std::pmr::vector<Module_pair> dependencies;
+        std::pmr::vector<Module> dependencies;
         std::unique_ptr<llvm::Module> module;
     };
 

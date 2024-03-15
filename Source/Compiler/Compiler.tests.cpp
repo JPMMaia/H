@@ -130,6 +130,7 @@ entry:
   %24 = load i32, ptr %my_unsigned_integer, align 4
   %25 = lshr i32 %24, %other_unsigned_integer
   store i32 %25, ptr %my_unsigned_integer, align 4
+  ret void
 }
 
 define void @float32_operations(float %other_float) {
@@ -152,6 +153,7 @@ entry:
   %8 = load float, ptr %my_float, align 4
   %9 = frem float %8, %other_float
   store float %9, ptr %my_float, align 4
+  ret void
 }
 )";
 
@@ -234,6 +236,7 @@ entry:
   %34 = add i32 %33, %32
   %case_14 = alloca i32, align 4
   store i32 %34, ptr %case_14, align 4
+  ret void
 }
 
 define private i32 @other_function() {
@@ -325,6 +328,7 @@ entry:
   %22 = lshr i32 %first_unsigned_integer, %second_unsigned_integer
   %unsigned_bit_shift_right = alloca i32, align 4
   store i32 %22, ptr %unsigned_bit_shift_right, align 4
+  ret void
 }
 
 define void @boolean_operations(i1 %first_boolean, i1 %second_boolean) {
@@ -335,6 +339,7 @@ entry:
   %1 = or i1 %first_boolean, %second_boolean
   %logical_or = alloca i1, align 1
   store i1 %1, ptr %logical_or, align 1
+  ret void
 }
 
 define void @float32_operations(float %first_float, float %second_float) {
@@ -372,6 +377,7 @@ entry:
   %10 = fcmp oge float %first_float, %second_float
   %greater_than_or_equal_to = alloca i1, align 1
   store i1 %10, ptr %greater_than_or_equal_to, align 1
+  ret void
 }
 )";
 
@@ -408,6 +414,7 @@ entry:
   store i1 true, ptr %my_true_boolean, align 1
   %my_false_boolean = alloca i1, align 1
   store i1 false, ptr %my_false_boolean, align 1
+  ret void
 }
 )";
 
@@ -459,6 +466,8 @@ entry:
   %0 = call i32 @puts(ptr @global_0)
   ret i32 0
 }
+
+declare i32 @puts(ptr)
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -603,6 +612,7 @@ entry:
   %1 = load i32, ptr %0, align 4
   %dereferenced_a = alloca i32, align 4
   store i32 %1, ptr %dereferenced_a, align 4
+  ret void
 }
 )";
 
@@ -685,6 +695,7 @@ entry:
   %12 = load i32, ptr %11, align 4
   %indirection_variable = alloca i32, align 4
   store i32 %12, ptr %indirection_variable, align 4
+  ret void
 }
 )";
 
