@@ -8,12 +8,18 @@ module;
 #include <llvm/IR/Verifier.h>
 #include <llvm/MC/TargetRegistry.h>
 #include <llvm/Passes/PassBuilder.h>
+#include "llvm/Passes/StandardInstrumentations.h"
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Host.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Target/TargetOptions.h>
+#include "llvm/Transforms/InstCombine/InstCombine.h"
+#include "llvm/Transforms/Scalar.h"
+#include "llvm/Transforms/Scalar/GVN.h"
+#include "llvm/Transforms/Scalar/Reassociate.h"
+#include "llvm/Transforms/Scalar/SimplifyCFG.h"
 
 #include <bit>
 #include <cstdlib>
@@ -2116,6 +2122,39 @@ namespace h::compiler
         std::unique_ptr<llvm::LLVMContext> llvm_context = std::make_unique<llvm::LLVMContext>();
         Struct_types struct_types = create_struct_types(*llvm_context);
 
+        bool const debug_logging = true;
+
+        Optimization_managers optimization_managers
+        {
+            .function_pass_manager = std::make_unique<llvm::FunctionPassManager>(),
+            .loop_analysis_manager = std::make_unique<llvm::LoopAnalysisManager>(),
+            .function_analysis_manager = std::make_unique<llvm::FunctionAnalysisManager>(),
+            .cgscc_analysis_manager = std::make_unique<llvm::CGSCCAnalysisManager>(),
+            .module_analysis_manager = std::make_unique<llvm::ModuleAnalysisManager>(),
+            .pass_instrumentation_callbacks = std::make_unique<llvm::PassInstrumentationCallbacks>(),
+            .standard_instrumentations = std::make_unique<llvm::StandardInstrumentations>(debug_logging),
+        };
+
+        optimization_managers.standard_instrumentations->registerCallbacks(
+            *optimization_managers.pass_instrumentation_callbacks,
+            optimization_managers.function_analysis_manager.get()
+        );
+
+        optimization_managers.function_pass_manager->addPass(llvm::InstCombinePass());
+        optimization_managers.function_pass_manager->addPass(llvm::ReassociatePass());
+        optimization_managers.function_pass_manager->addPass(llvm::GVNPass());
+        optimization_managers.function_pass_manager->addPass(llvm::SimplifyCFGPass());
+
+        llvm::PassBuilder pass_builder;
+        pass_builder.registerModuleAnalyses(*optimization_managers.module_analysis_manager);
+        pass_builder.registerFunctionAnalyses(*optimization_managers.function_analysis_manager);
+        pass_builder.crossRegisterProxies(
+            *optimization_managers.loop_analysis_manager,
+            *optimization_managers.function_analysis_manager,
+            *optimization_managers.cgscc_analysis_manager,
+            *optimization_managers.module_analysis_manager
+        );
+
         return LLVM_data
         {
             .target_triple = std::move(target_triple),
@@ -2124,6 +2163,7 @@ namespace h::compiler
             .data_layout = std::move(llvm_data_layout),
             .context = std::move(llvm_context),
             .struct_types = std::move(struct_types),
+            .optimization_managers = std::move(optimization_managers)
         };
     }
 
