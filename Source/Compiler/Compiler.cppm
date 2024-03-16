@@ -1,7 +1,12 @@
 module;
 
+#include <llvm/Analysis/CGSCCPassManager.h>
+#include <llvm/Analysis/LoopAnalysisManager.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
+#include <llvm/IR/PassInstrumentation.h>
+#include <llvm/IR/PassManager.h>
+#include <llvm/Passes/StandardInstrumentations.h>
 #include <llvm/Target/TargetMachine.h>
 
 #include <filesystem>
@@ -21,6 +26,17 @@ namespace h::compiler
         llvm::StructType* string;
     };
 
+    export struct Optimization_managers
+    {
+        std::unique_ptr<llvm::FunctionPassManager> function_pass_manager;
+        std::unique_ptr<llvm::LoopAnalysisManager> loop_analysis_manager;
+        std::unique_ptr<llvm::FunctionAnalysisManager> function_analysis_manager;
+        std::unique_ptr<llvm::CGSCCAnalysisManager> cgscc_analysis_manager;
+        std::unique_ptr<llvm::ModuleAnalysisManager> module_analysis_manager;
+        std::unique_ptr<llvm::PassInstrumentationCallbacks> pass_instrumentation_callbacks;
+        std::unique_ptr<llvm::StandardInstrumentations> standard_instrumentations;
+    };
+
     export struct LLVM_data
     {
         std::string target_triple;
@@ -29,6 +45,7 @@ namespace h::compiler
         llvm::DataLayout data_layout;
         std::unique_ptr<llvm::LLVMContext> context;
         Struct_types struct_types;
+        Optimization_managers optimization_managers;
     };
 
     export struct LLVM_module_data
