@@ -8,11 +8,8 @@
             "name": "llvm",
             "features": [
                 "clang",
-                "disable-assertions",
-                "disable-clang-static-analyzer",
                 "enable-bindings",
                 "enable-terminfo",
-                "enable-threads",
                 "enable-zlib",
                 "enable-eh",
                 "target-x86"
