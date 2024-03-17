@@ -795,7 +795,15 @@ namespace h::tools::code_generator
             {
                 if (is_optional_type(member.type))
                 {
-                    output_stream << indent(indentation) << "    write_optional(writer, \"" << member.name << "\", output." << member.name << ");\n";
+                    Type const value_type = Type{ get_optional_value_type(member.type) };
+                    if (is_struct_type(value_type, struct_types))
+                    {
+                        output_stream << indent(indentation) << "    write_optional_object(writer, \"" << member.name << "\", output." << member.name << ");\n";
+                    }
+                    else
+                    {
+                        output_stream << indent(indentation) << "    write_optional(writer, \"" << member.name << "\", output." << member.name << ");\n";
+                    }
                 }
                 else
                 {
@@ -1839,6 +1847,21 @@ namespace h::tools::code_generator
         output_stream << "            write_value(writer, value);\n";
         output_stream << "        }\n";
         output_stream << "    }\n";
+        output_stream << "\n";
+        output_stream << "    export template <typename Writer_type, typename Value_type>\n";
+        output_stream << "        void write_optional_object(\n";
+        output_stream << "            Writer_type& writer,\n";
+        output_stream << "            char const* const key,\n";
+        output_stream << "            std::optional<Value_type> const& value\n";
+        output_stream << "        )\n";
+        output_stream << "    {\n";
+        output_stream << "        if (value.has_value())\n";
+        output_stream << "        {\n";
+        output_stream << "            writer.Key(key);\n";
+        output_stream << "            write_object(writer, value.value());\n";
+        output_stream << "        }\n";
+        output_stream << "    }\n";
+        output_stream << "\n";
 
         std::pmr::unordered_map<std::pmr::string, Enum> const enum_map = create_name_map<Enum>(
             file_types.enums
@@ -2672,6 +2695,18 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
                             {
                                 output_stream << std::format("        {}: core_to_intermediate_{}(core_value.{}),\n", member.name, to_lowercase(member.type.name), member.name);
                             }
+                            else if (is_optional_type(member.type))
+                            {
+                                Type const value_type = Type{ get_optional_value_type(member.type) };
+                                if (is_struct_type(value_type, struct_map))
+                                {
+                                    output_stream << std::format("        {}: core_value.{} !== undefined ? core_to_intermediate_{}(core_value.{}) : undefined,\n", member.name, member.name, to_lowercase(value_type.name), member.name);
+                                }
+                                else
+                                {
+                                    output_stream << std::format("        {}: core_value.{},\n", member.name, member.name);
+                                }
+                            }
                             else
                             {
                                 output_stream << std::format("        {}: core_value.{},\n", member.name, member.name);
@@ -2707,6 +2742,8 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
 
                     if (is_expression)
                     {
+                        output_stream << "    const index = expressions.length;\n";
+                        output_stream << "    expressions.push({} as Core.Expression);\n";
                         output_stream << "    const core_value: Core.Expression = {\n";
                         output_stream << "        data: {\n";
                         output_stream << std::format("            type: Core.Expression_enum.{},\n", struct_info.name);
@@ -2774,7 +2811,7 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
 
                     if (is_expression)
                     {
-                        output_stream << "\n    expressions.push(core_value);\n";
+                        output_stream << "\n    expressions[index] = core_value;\n";
                     }
 
                     for (Member const& member : struct_info.members)
@@ -2850,6 +2887,18 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
                         else if (is_struct_type(member.type, struct_map))
                         {
                             output_stream << std::format("        {}: intermediate_to_core_{}(intermediate_value.{}),\n", member.name, to_lowercase(member.type.name), member.name);
+                        }
+                        else if (is_optional_type(member.type))
+                        {
+                            Type const value_type = Type{ get_optional_value_type(member.type) };
+                            if (is_struct_type(value_type, struct_map))
+                            {
+                                output_stream << std::format("        {}: intermediate_value.{} !== undefined ? intermediate_to_core_{}(intermediate_value.{}) : undefined,\n", member.name, member.name, to_lowercase(value_type.name), member.name);
+                            }
+                            else
+                            {
+                                output_stream << std::format("        {}: intermediate_value.{},\n", member.name, member.name);
+                            }
                         }
                         else
                         {

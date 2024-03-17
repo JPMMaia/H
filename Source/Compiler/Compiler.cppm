@@ -28,13 +28,11 @@ namespace h::compiler
 
     export struct Optimization_managers
     {
-        std::unique_ptr<llvm::FunctionPassManager> function_pass_manager;
         std::unique_ptr<llvm::LoopAnalysisManager> loop_analysis_manager;
         std::unique_ptr<llvm::FunctionAnalysisManager> function_analysis_manager;
         std::unique_ptr<llvm::CGSCCAnalysisManager> cgscc_analysis_manager;
         std::unique_ptr<llvm::ModuleAnalysisManager> module_analysis_manager;
-        std::unique_ptr<llvm::PassInstrumentationCallbacks> pass_instrumentation_callbacks;
-        std::unique_ptr<llvm::StandardInstrumentations> standard_instrumentations;
+        llvm::ModulePassManager module_pass_manager;
     };
 
     export struct LLVM_data

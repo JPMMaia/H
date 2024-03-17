@@ -22,6 +22,7 @@ module;
 #include "llvm/Transforms/Scalar/SimplifyCFG.h"
 
 #include <bit>
+#include <cassert>
 #include <cstdlib>
 #include <format>
 #include <iostream>
@@ -466,6 +467,7 @@ namespace h::compiler
         llvm::DataLayout const& llvm_data_layout,
         std::span<Type_reference const> const input_parameter_types,
         std::span<Type_reference const> const output_parameter_types,
+        bool const is_var_arg,
         Struct_types const& struct_types,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
@@ -484,7 +486,7 @@ namespace h::compiler
             return llvm::StructType::create(llvm_output_parameter_types);
         }();
 
-        return llvm::FunctionType::get(llvm_return_type, llvm_input_parameter_types, false);
+        return llvm::FunctionType::get(llvm_return_type, llvm_input_parameter_types, is_var_arg);
     }
 
     llvm::Function& to_function(
@@ -1075,6 +1077,92 @@ namespace h::compiler
         return value;
     }
 
+    Value_and_type create_statement_value(
+        Statement const& statement,
+        Module const& core_module,
+        std::span<Module const> core_module_dependencies,
+        llvm::LLVMContext& llvm_context,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Module& llvm_module,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::Function* const llvm_parent_function,
+        std::span<Value_and_type const> function_arguments,
+        std::span<Value_and_type const> local_variables,
+        Struct_types const& struct_types,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::vector<Value_and_type> temporaries;
+        temporaries.resize(statement.expressions.size());
+
+        for (std::size_t index = 0; index < statement.expressions.size(); ++index)
+        {
+            std::size_t const expression_index = statement.expressions.size() - 1 - index;
+            Expression const& current_expression = statement.expressions[expression_index];
+
+            Value_and_type const instruction = create_value(
+                core_module,
+                statement,
+                current_expression,
+                llvm_context,
+                llvm_data_layout,
+                llvm_module,
+                llvm_builder,
+                llvm_parent_function,
+                function_arguments,
+                local_variables,
+                temporaries,
+                core_module_dependencies,
+                struct_types,
+                temporaries_allocator
+            );
+
+            temporaries[expression_index] = instruction;
+        }
+
+        return temporaries.front();
+    }
+
+    void create_statement_values(
+        std::span<Statement const> const statements,
+        Module const& core_module,
+        std::span<Module const> core_module_dependencies,
+        llvm::LLVMContext& llvm_context,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Module& llvm_module,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::Function* const llvm_parent_function,
+        std::span<Value_and_type const> function_arguments,
+        std::span<Value_and_type const> local_variables,
+        Struct_types const& struct_types,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::vector<Value_and_type> all_local_variables;
+        all_local_variables.reserve(local_variables.size() + statements.size());
+        all_local_variables.insert(all_local_variables.begin(), local_variables.begin(), local_variables.end());
+
+        for (Statement const statement : statements)
+        {
+            Value_and_type statement_value = create_statement_value(
+                statement,
+                core_module,
+                core_module_dependencies,
+                llvm_context,
+                llvm_data_layout,
+                llvm_module,
+                llvm_builder,
+                llvm_parent_function,
+                function_arguments,
+                all_local_variables,
+                struct_types,
+                temporaries_allocator
+            );
+
+            all_local_variables.push_back(statement_value);
+        }
+    }
+
     Value_and_type create_value(
         Module const& core_module,
         std::span<Module const> core_module_dependencies,
@@ -1092,46 +1180,24 @@ namespace h::compiler
     {
         std::span<Statement const> statements = block_expression.statements;
 
-        std::pmr::vector<Value_and_type> all_local_variables;
-        all_local_variables.reserve(local_variables.size() + statements.size());
-        all_local_variables.insert(all_local_variables.begin(), local_variables.begin(), local_variables.end());
-
         llvm::BasicBlock* const begin_block = llvm::BasicBlock::Create(llvm_context, "begin_block", llvm_parent_function);
         llvm_builder.CreateBr(begin_block);
         llvm_builder.SetInsertPoint(begin_block);
 
-        for (Statement const statement : statements)
-        {
-            std::pmr::vector<Value_and_type> temporaries;
-            temporaries.resize(statement.expressions.size());
-
-            for (std::size_t index = 0; index < statement.expressions.size(); ++index)
-            {
-                std::size_t const expression_index = statement.expressions.size() - 1 - index;
-                Expression const& current_expression = statement.expressions[expression_index];
-
-                Value_and_type const instruction = create_value(
-                    core_module,
-                    statement,
-                    current_expression,
-                    llvm_context,
-                    llvm_data_layout,
-                    llvm_module,
-                    llvm_builder,
-                    llvm_parent_function,
-                    function_arguments,
-                    all_local_variables,
-                    temporaries,
-                    core_module_dependencies,
-                    struct_types,
-                    temporaries_allocator
-                );
-
-                temporaries[expression_index] = instruction;
-            }
-
-            all_local_variables.push_back(temporaries.front());
-        }
+        create_statement_values(
+            statements,
+            core_module,
+            core_module_dependencies,
+            llvm_context,
+            llvm_data_layout,
+            llvm_module,
+            llvm_builder,
+            llvm_parent_function,
+            function_arguments,
+            local_variables,
+            struct_types,
+            temporaries_allocator
+        );
 
         llvm::BasicBlock* const end_block = llvm::BasicBlock::Create(llvm_context, "end_block", llvm_parent_function);
         llvm_builder.CreateBr(end_block);
@@ -1159,7 +1225,7 @@ namespace h::compiler
 
         llvm::Function* const llvm_function = static_cast<llvm::Function*>(left_hand_side.value);
 
-        if (expression.arguments.size() != llvm_function->arg_size())
+        if (expression.arguments.size() != llvm_function->arg_size() && !llvm_function->isVarArg())
         {
             throw std::runtime_error{ "Incorrect # arguments passed." };
         }
@@ -1433,6 +1499,158 @@ namespace h::compiler
         throw std::runtime_error{ "Constant expression not handled!" };
     }
 
+    std::pmr::vector<Statement> skip_block(Statement const& statement)
+    {
+        if (statement.expressions.empty())
+            return {};
+
+        Expression const& first_expression = statement.expressions[0];
+        if (std::holds_alternative<Block_expression>(first_expression.data))
+        {
+            Block_expression const& block_expression = std::get<Block_expression>(first_expression.data);
+            return block_expression.statements;
+        }
+
+        return { {statement} };
+    }
+
+    Value_and_type create_value(
+        Module const& core_module,
+        std::span<Module const> core_module_dependencies,
+        If_expression const& expression,
+        llvm::LLVMContext& llvm_context,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Module& llvm_module,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::Function* const llvm_parent_function,
+        std::span<Value_and_type const> function_arguments,
+        std::span<Value_and_type const> local_variables,
+        std::span<Value_and_type const> const temporaries,
+        Struct_types const& struct_types,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        auto const calculate_number_of_blocks = [](std::span<Condition_statement_pair const> const series) -> std::uint32_t
+        {
+            if (series.size() == 1)
+                return 2;
+
+            Condition_statement_pair const& last_serie = series.back();
+            bool const is_else_if = last_serie.condition.has_value();
+
+            std::uint32_t const blocks_except_last = 2 * (series.size() - 1);
+            std::uint32_t const last = is_else_if ? 2 : 1;
+            std::uint32_t const total = blocks_except_last + last;
+            return total;
+        };
+
+        auto get_block_name = [](std::size_t const index, std::size_t const last_index) -> std::string
+        {
+            if (index == 0)
+                return std::format("if_s{}_then", index);
+            else if (index == last_index)
+                return std::format("if_s{}_after", index);
+            else if (index % 2 != 0)
+                return std::format("if_s{}_else", index);
+            else
+                return std::format("if_s{}_then", index);
+        };
+
+        std::uint32_t const number_of_blocks = calculate_number_of_blocks(expression.series);
+
+        std::pmr::vector<llvm::BasicBlock*> blocks;
+        blocks.resize(number_of_blocks);
+
+        for (std::size_t index = 0; index < blocks.size(); ++index)
+        {
+            std::string const block_name = get_block_name(index, blocks.size() - 1);
+            blocks[index] = llvm::BasicBlock::Create(llvm_context, block_name, llvm_parent_function);
+        }
+
+        llvm::BasicBlock* const end_if_block = blocks.back();
+
+        for (std::size_t serie_index = 0; serie_index < expression.series.size(); ++serie_index)
+        {
+            Condition_statement_pair const& serie = expression.series[serie_index];
+
+            // if: current, then, end_if
+            // if,else_if: current, then, else, then, end_if
+            // if,else: current, then, else, end_if
+            // if,else_if,else: current, then, else, then, else, end_if
+
+            if (serie.condition.has_value())
+            {
+                Value_and_type const& condition_value = create_statement_value(
+                    serie.condition.value(),
+                    core_module,
+                    core_module_dependencies,
+                    llvm_context,
+                    llvm_data_layout,
+                    llvm_module,
+                    llvm_builder,
+                    llvm_parent_function,
+                    function_arguments,
+                    local_variables,
+                    struct_types,
+                    temporaries_allocator
+                );
+
+                std::size_t const block_index = 2 * serie_index;
+                llvm::BasicBlock* const then_block = blocks[block_index];
+                llvm::BasicBlock* const else_block = blocks[block_index + 1];
+
+                llvm_builder.CreateCondBr(condition_value.value, then_block, else_block);
+
+                llvm_builder.SetInsertPoint(then_block);
+                std::pmr::vector<Statement> const statements = skip_block(serie.statement);
+                create_statement_values(
+                    statements,
+                    core_module,
+                    core_module_dependencies,
+                    llvm_context,
+                    llvm_data_layout,
+                    llvm_module,
+                    llvm_builder,
+                    llvm_parent_function,
+                    function_arguments,
+                    local_variables,
+                    struct_types,
+                    temporaries_allocator
+                );
+                llvm_builder.CreateBr(end_if_block);
+
+                llvm_builder.SetInsertPoint(else_block);
+            }
+            else
+            {
+                std::pmr::vector<Statement> const statements = skip_block(serie.statement);
+                create_statement_values(
+                    statements,
+                    core_module,
+                    core_module_dependencies,
+                    llvm_context,
+                    llvm_data_layout,
+                    llvm_module,
+                    llvm_builder,
+                    llvm_parent_function,
+                    function_arguments,
+                    local_variables,
+                    struct_types,
+                    temporaries_allocator
+                );
+                llvm_builder.CreateBr(end_if_block);
+
+                llvm_builder.SetInsertPoint(end_if_block);
+            }
+        }
+
+        return Value_and_type
+        {
+            .value = end_if_block,
+            .type = std::nullopt
+        };
+    }
+
     Value_and_type create_value(
         Parenthesis_expression const& expression,
         std::span<Value_and_type const> const temporaries
@@ -1700,6 +1918,11 @@ namespace h::compiler
             Constant_expression const& data = std::get<Constant_expression>(expression.data);
             return create_value(data, llvm_context, llvm_data_layout, llvm_module, struct_types);
         }
+        else if (std::holds_alternative<If_expression>(expression.data))
+        {
+            If_expression const& data = std::get<If_expression>(expression.data);
+            return create_value(core_module, core_module_dependencies, data, llvm_context, llvm_data_layout, llvm_module, llvm_builder, llvm_parent_function, function_arguments, local_variables, temporaries, struct_types, temporaries_allocator);
+        }
         else if (std::holds_alternative<Parenthesis_expression>(expression.data))
         {
             Parenthesis_expression const& data = std::get<Parenthesis_expression>(expression.data);
@@ -1746,6 +1969,7 @@ namespace h::compiler
             llvm_data_layout,
             function_declaration.type.input_parameter_types,
             function_declaration.type.output_parameter_types,
+            function_declaration.type.is_variadic,
             struct_types,
             temporaries_allocator
         );
@@ -1925,7 +2149,7 @@ namespace h::compiler
         char const* const cpu = "generic";
         char const* const features = "";
         llvm::TargetOptions const target_options;
-        llvm::Optional<llvm::Reloc::Model> const code_model;
+        std::optional<llvm::Reloc::Model> const code_model;
         llvm::TargetMachine* target_machine = target.createTargetMachine(target_triple, cpu, features, target_options, code_model);
 
         llvm_module.setTargetTriple(target_triple);
@@ -2115,45 +2339,31 @@ namespace h::compiler
         char const* const cpu = "generic";
         char const* const features = "";
         llvm::TargetOptions const target_options;
-        llvm::Optional<llvm::Reloc::Model> const code_model;
+        std::optional<llvm::Reloc::Model> const code_model;
         llvm::TargetMachine* target_machine = target.createTargetMachine(target_triple, cpu, features, target_options, code_model);
         llvm::DataLayout llvm_data_layout = target_machine->createDataLayout();
 
         std::unique_ptr<llvm::LLVMContext> llvm_context = std::make_unique<llvm::LLVMContext>();
         Struct_types struct_types = create_struct_types(*llvm_context);
 
-        bool const debug_logging = true;
-
-        Optimization_managers optimization_managers
-        {
-            .function_pass_manager = std::make_unique<llvm::FunctionPassManager>(),
-            .loop_analysis_manager = std::make_unique<llvm::LoopAnalysisManager>(),
-            .function_analysis_manager = std::make_unique<llvm::FunctionAnalysisManager>(),
-            .cgscc_analysis_manager = std::make_unique<llvm::CGSCCAnalysisManager>(),
-            .module_analysis_manager = std::make_unique<llvm::ModuleAnalysisManager>(),
-            .pass_instrumentation_callbacks = std::make_unique<llvm::PassInstrumentationCallbacks>(),
-            .standard_instrumentations = std::make_unique<llvm::StandardInstrumentations>(debug_logging),
-        };
-
-        optimization_managers.standard_instrumentations->registerCallbacks(
-            *optimization_managers.pass_instrumentation_callbacks,
-            optimization_managers.function_analysis_manager.get()
-        );
-
-        optimization_managers.function_pass_manager->addPass(llvm::InstCombinePass());
-        optimization_managers.function_pass_manager->addPass(llvm::ReassociatePass());
-        optimization_managers.function_pass_manager->addPass(llvm::GVNPass());
-        optimization_managers.function_pass_manager->addPass(llvm::SimplifyCFGPass());
+        std::unique_ptr<llvm::LoopAnalysisManager> loop_analysis_manager = std::make_unique<llvm::LoopAnalysisManager>();
+        std::unique_ptr<llvm::FunctionAnalysisManager> function_analysis_manager = std::make_unique<llvm::FunctionAnalysisManager>();
+        std::unique_ptr<llvm::CGSCCAnalysisManager> cgscc_analysis_manager = std::make_unique<llvm::CGSCCAnalysisManager>();
+        std::unique_ptr<llvm::ModuleAnalysisManager> module_analysis_manager = std::make_unique<llvm::ModuleAnalysisManager>();
 
         llvm::PassBuilder pass_builder;
-        pass_builder.registerModuleAnalyses(*optimization_managers.module_analysis_manager);
-        pass_builder.registerFunctionAnalyses(*optimization_managers.function_analysis_manager);
+        pass_builder.registerModuleAnalyses(*module_analysis_manager);
+        pass_builder.registerCGSCCAnalyses(*cgscc_analysis_manager);
+        pass_builder.registerFunctionAnalyses(*function_analysis_manager);
+        pass_builder.registerLoopAnalyses(*loop_analysis_manager);
         pass_builder.crossRegisterProxies(
-            *optimization_managers.loop_analysis_manager,
-            *optimization_managers.function_analysis_manager,
-            *optimization_managers.cgscc_analysis_manager,
-            *optimization_managers.module_analysis_manager
+            *loop_analysis_manager,
+            *function_analysis_manager,
+            *cgscc_analysis_manager,
+            *module_analysis_manager
         );
+
+        llvm::ModulePassManager module_pass_manager = pass_builder.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O2);
 
         return LLVM_data
         {
@@ -2163,7 +2373,14 @@ namespace h::compiler
             .data_layout = std::move(llvm_data_layout),
             .context = std::move(llvm_context),
             .struct_types = std::move(struct_types),
-            .optimization_managers = std::move(optimization_managers)
+            .optimization_managers =
+            {
+                .loop_analysis_manager = std::move(loop_analysis_manager),
+                .function_analysis_manager = std::move(function_analysis_manager),
+                .cgscc_analysis_manager = std::move(cgscc_analysis_manager),
+                .module_analysis_manager = std::move(module_analysis_manager),
+                .module_pass_manager = std::move(module_pass_manager),
+            }
         };
     }
 

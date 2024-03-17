@@ -287,8 +287,8 @@ namespace h
 
     export struct Condition_statement_pair
     {
+        std::optional<Statement> condition;
         Statement statement;
-        std::optional<Expression_index> condition;
 
         friend auto operator<=>(Condition_statement_pair const&, Condition_statement_pair const&) = default;
     };
@@ -378,7 +378,7 @@ namespace h
 
     export struct While_loop_expression
     {
-        Expression_index condition;
+        Statement condition;
         Statement then_statement;
 
         friend auto operator<=>(While_loop_expression const&, While_loop_expression const&) = default;

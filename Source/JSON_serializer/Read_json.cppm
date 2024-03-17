@@ -1442,6 +1442,17 @@ namespace h::json
     {
         h::Condition_statement_pair* parent = static_cast<h::Condition_statement_pair*>(state->pointer);
 
+        if (key == "condition")
+        {
+            parent->condition = h::Statement{};
+            return Stack_state
+            {
+                .pointer = &parent->condition.value(),
+                .type = "Statement",
+                .get_next_state = get_next_state_statement
+            };
+        }
+
         if (key == "statement")
         {
 
@@ -1450,17 +1461,6 @@ namespace h::json
                 .pointer = &parent->statement,
                 .type = "Statement",
                 .get_next_state = get_next_state_statement,
-            };
-        }
-
-        if (key == "condition")
-        {
-            parent->condition = h::Expression_index{};
-            return Stack_state
-            {
-                .pointer = &parent->condition.value(),
-                .type = "Expression_index",
-                .get_next_state = get_next_state_expression_index
             };
         }
 
@@ -1758,8 +1758,8 @@ namespace h::json
             return Stack_state
             {
                 .pointer = &parent->condition,
-                .type = "Expression_index",
-                .get_next_state = get_next_state_expression_index,
+                .type = "Statement",
+                .get_next_state = get_next_state_statement,
             };
         }
 

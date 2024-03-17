@@ -512,15 +512,15 @@
             "members": [
                 {
                     "type": {
-                        "name": "Statement"
+                        "name": "std::optional<Statement>"
                     },
-                    "name": "statement"
+                    "name": "condition"
                 },
                 {
                     "type": {
-                        "name": "std::optional<Expression_index>"
+                        "name": "Statement"
                     },
-                    "name": "condition"
+                    "name": "statement"
                 }
             ]
         },
@@ -670,7 +670,7 @@
             "members": [
                 {
                     "type": {
-                        "name": "Expression_index"
+                        "name": "Statement"
                     },
                     "name": "condition"
                 },
