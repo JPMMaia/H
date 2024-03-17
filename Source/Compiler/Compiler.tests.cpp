@@ -452,6 +452,7 @@ entry:
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
+        { "C.stdio", g_standard_library_path / "C_stdio.hl" }
     };
 
     char const* const expected_llvm_ir = R"(
@@ -466,6 +467,7 @@ entry:
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
+      { "C.stdio", g_standard_library_path / "C_stdio.hl" }
     };
 
     char const* const expected_llvm_ir = R"(
@@ -504,9 +506,111 @@ declare i32 @puts(ptr)
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
+        { "C.stdio", g_standard_library_path / "C_stdio.hl" }
     };
 
     char const* const expected_llvm_ir = R"(
+@global_0 = internal constant [5 x i8] c"%s\\n\00"
+@global_1 = internal constant [5 x i8] c"zero\00"
+@global_2 = internal constant [9 x i8] c"negative\00"
+@global_3 = internal constant [13 x i8] c"non-negative\00"
+@global_4 = internal constant [9 x i8] c"negative\00"
+@global_5 = internal constant [9 x i8] c"positive\00"
+@global_6 = internal constant [9 x i8] c"negative\00"
+@global_7 = internal constant [9 x i8] c"positive\00"
+@global_8 = internal constant [5 x i8] c"zero\00"
+@global_9 = internal constant [9 x i8] c"negative\00"
+@global_10 = internal constant [9 x i8] c"positive\00"
+@global_11 = internal constant [5 x i8] c"zero\00"
+
+define void @run_ifs(i32 %value) {
+entry:
+  %0 = icmp eq i32 %value, 0
+  br i1 %0, label %if_s0_then, label %if_s1_after
+
+if_s0_then:                                       ; preds = %entry
+  call void @print_message(ptr @global_1)
+  br label %if_s1_after
+
+if_s1_after:                                      ; preds = %if_s0_then, %entry
+  %1 = icmp slt i32 %value, 0
+  br i1 %1, label %if_s0_then1, label %if_s1_else
+
+if_s0_then1:                                      ; preds = %if_s1_after
+  call void @print_message(ptr @global_2)
+  br label %if_s2_after
+
+if_s1_else:                                       ; preds = %if_s1_after
+  call void @print_message(ptr @global_3)
+  br label %if_s2_after
+
+if_s2_after:                                      ; preds = %if_s1_else, %if_s0_then1
+  %2 = icmp slt i32 %value, 0
+  br i1 %2, label %if_s0_then2, label %if_s1_else3
+
+if_s0_then2:                                      ; preds = %if_s2_after
+  call void @print_message(ptr @global_4)
+  br label %if_s3_after
+
+if_s1_else3:                                      ; preds = %if_s2_after
+  %3 = icmp sgt i32 %value, 0
+  br i1 %3, label %if_s2_then, label %if_s3_after
+
+if_s2_then:                                       ; preds = %if_s1_else3
+  call void @print_message(ptr @global_5)
+  br label %if_s3_after
+
+if_s3_after:                                      ; preds = %if_s2_then, %if_s1_else3, %if_s0_then2
+  %4 = icmp slt i32 %value, 0
+  br i1 %4, label %if_s0_then4, label %if_s1_else5
+
+if_s0_then4:                                      ; preds = %if_s3_after
+  call void @print_message(ptr @global_6)
+  br label %if_s4_after
+
+if_s1_else5:                                      ; preds = %if_s3_after
+  %5 = icmp sgt i32 %value, 0
+  br i1 %5, label %if_s2_then6, label %if_s3_else
+
+if_s2_then6:                                      ; preds = %if_s1_else5
+  call void @print_message(ptr @global_7)
+  br label %if_s4_after
+
+if_s3_else:                                       ; preds = %if_s1_else5
+  call void @print_message(ptr @global_8)
+  br label %if_s4_after
+
+if_s4_after:                                      ; preds = %if_s3_else, %if_s2_then6, %if_s0_then4
+  %6 = icmp slt i32 %value, 0
+  br i1 %6, label %if_s0_then7, label %if_s1_else8
+
+if_s0_then7:                                      ; preds = %if_s4_after
+  call void @print_message(ptr @global_9)
+  br label %if_s4_after11
+
+if_s1_else8:                                      ; preds = %if_s4_after
+  %7 = icmp sgt i32 %value, 0
+  br i1 %7, label %if_s2_then9, label %if_s3_else10
+
+if_s2_then9:                                      ; preds = %if_s1_else8
+  call void @print_message(ptr @global_10)
+  br label %if_s4_after11
+
+if_s3_else10:                                     ; preds = %if_s1_else8
+  call void @print_message(ptr @global_11)
+  br label %if_s4_after11
+
+if_s4_after11:                                    ; preds = %if_s3_else10, %if_s2_then9, %if_s0_then7
+  ret void
+}
+
+define private void @print_message(ptr %message) {
+entry:
+  %0 = call i32 (ptr, ...) @printf(ptr @global_0, ptr %message)
+  ret void
+}
+
+declare i32 @printf(ptr, ...)
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -756,6 +860,7 @@ entry:
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
+        { "C.stdio", g_standard_library_path / "C_stdio.hl" }
     };
 
     char const* const expected_llvm_ir = R"(

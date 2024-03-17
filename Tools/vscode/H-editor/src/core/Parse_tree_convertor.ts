@@ -861,7 +861,7 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
             const value = expression.data.value as Core_intermediate_representation.If_expression;
             for (const serie of value.series) {
                 if (serie.condition !== undefined) {
-                    visit_expressions(serie.condition, predicate);
+                    visit_expressions(serie.condition.expression, predicate);
                 }
                 visit_expressions(serie.statement.expression, predicate);
             }
@@ -909,7 +909,7 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
         }
         case Core_intermediate_representation.Expression_enum.While_loop_expression: {
             const value = expression.data.value as Core_intermediate_representation.While_loop_expression;
-            visit_expressions(value.condition, predicate);
+            visit_expressions(value.condition.expression, predicate);
             visit_expressions(value.then_statement.expression, predicate);
             break;
         }

@@ -667,6 +667,8 @@ function core_to_intermediate_variable_expression(core_value: Core.Variable_expr
 }
 
 function intermediate_to_core_variable_expression(intermediate_value: Variable_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
     const core_value: Core.Expression = {
         data: {
             type: Core.Expression_enum.Variable_expression,
@@ -676,7 +678,7 @@ function intermediate_to_core_variable_expression(intermediate_value: Variable_e
         }
     };
 
-    expressions.push(core_value);
+    expressions[index] = core_value;
 }
 
 export function create_variable_expression(name: string): Expression {
@@ -703,6 +705,8 @@ function core_to_intermediate_access_expression(core_value: Core.Access_expressi
 }
 
 function intermediate_to_core_access_expression(intermediate_value: Access_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
     const core_value: Core.Expression = {
         data: {
             type: Core.Expression_enum.Access_expression,
@@ -715,7 +719,7 @@ function intermediate_to_core_access_expression(intermediate_value: Access_expre
         }
     };
 
-    expressions.push(core_value);
+    expressions[index] = core_value;
 
     (core_value.data.value as Core.Access_expression).expression.expression_index = expressions.length;
     intermediate_to_core_expression(intermediate_value.expression, expressions);
@@ -748,6 +752,8 @@ function core_to_intermediate_assignment_expression(core_value: Core.Assignment_
 }
 
 function intermediate_to_core_assignment_expression(intermediate_value: Assignment_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
     const core_value: Core.Expression = {
         data: {
             type: Core.Expression_enum.Assignment_expression,
@@ -763,7 +769,7 @@ function intermediate_to_core_assignment_expression(intermediate_value: Assignme
         }
     };
 
-    expressions.push(core_value);
+    expressions[index] = core_value;
 
     (core_value.data.value as Core.Assignment_expression).left_hand_side.expression_index = expressions.length;
     intermediate_to_core_expression(intermediate_value.left_hand_side, expressions);
@@ -800,6 +806,8 @@ function core_to_intermediate_binary_expression(core_value: Core.Binary_expressi
 }
 
 function intermediate_to_core_binary_expression(intermediate_value: Binary_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
     const core_value: Core.Expression = {
         data: {
             type: Core.Expression_enum.Binary_expression,
@@ -815,7 +823,7 @@ function intermediate_to_core_binary_expression(intermediate_value: Binary_expre
         }
     };
 
-    expressions.push(core_value);
+    expressions[index] = core_value;
 
     (core_value.data.value as Core.Binary_expression).left_hand_side.expression_index = expressions.length;
     intermediate_to_core_expression(intermediate_value.left_hand_side, expressions);
@@ -848,6 +856,8 @@ function core_to_intermediate_block_expression(core_value: Core.Block_expression
 }
 
 function intermediate_to_core_block_expression(intermediate_value: Block_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
     const core_value: Core.Expression = {
         data: {
             type: Core.Expression_enum.Block_expression,
@@ -860,7 +870,7 @@ function intermediate_to_core_block_expression(intermediate_value: Block_express
         }
     };
 
-    expressions.push(core_value);
+    expressions[index] = core_value;
 }
 
 export function create_block_expression(statements: Statement[]): Expression {
@@ -885,6 +895,8 @@ function core_to_intermediate_break_expression(core_value: Core.Break_expression
 }
 
 function intermediate_to_core_break_expression(intermediate_value: Break_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
     const core_value: Core.Expression = {
         data: {
             type: Core.Expression_enum.Break_expression,
@@ -894,7 +906,7 @@ function intermediate_to_core_break_expression(intermediate_value: Break_express
         }
     };
 
-    expressions.push(core_value);
+    expressions[index] = core_value;
 }
 
 export function create_break_expression(loop_count: number): Expression {
@@ -921,6 +933,8 @@ function core_to_intermediate_call_expression(core_value: Core.Call_expression, 
 }
 
 function intermediate_to_core_call_expression(intermediate_value: Call_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
     const core_value: Core.Expression = {
         data: {
             type: Core.Expression_enum.Call_expression,
@@ -936,7 +950,7 @@ function intermediate_to_core_call_expression(intermediate_value: Call_expressio
         }
     };
 
-    expressions.push(core_value);
+    expressions[index] = core_value;
 
     (core_value.data.value as Core.Call_expression).expression.expression_index = expressions.length;
     intermediate_to_core_expression(intermediate_value.expression, expressions);
@@ -975,6 +989,8 @@ function core_to_intermediate_cast_expression(core_value: Core.Cast_expression, 
 }
 
 function intermediate_to_core_cast_expression(intermediate_value: Cast_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
     const core_value: Core.Expression = {
         data: {
             type: Core.Expression_enum.Cast_expression,
@@ -988,7 +1004,7 @@ function intermediate_to_core_cast_expression(intermediate_value: Cast_expressio
         }
     };
 
-    expressions.push(core_value);
+    expressions[index] = core_value;
 
     (core_value.data.value as Core.Cast_expression).source.expression_index = expressions.length;
     intermediate_to_core_expression(intermediate_value.source, expressions);
@@ -1020,6 +1036,8 @@ function core_to_intermediate_constant_expression(core_value: Core.Constant_expr
 }
 
 function intermediate_to_core_constant_expression(intermediate_value: Constant_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
     const core_value: Core.Expression = {
         data: {
             type: Core.Expression_enum.Constant_expression,
@@ -1030,7 +1048,7 @@ function intermediate_to_core_constant_expression(intermediate_value: Constant_e
         }
     };
 
-    expressions.push(core_value);
+    expressions[index] = core_value;
 }
 
 export function create_constant_expression(type: Type_reference, data: string): Expression {
@@ -1054,6 +1072,8 @@ function core_to_intermediate_continue_expression(core_value: Core.Continue_expr
 }
 
 function intermediate_to_core_continue_expression(intermediate_value: Continue_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
     const core_value: Core.Expression = {
         data: {
             type: Core.Expression_enum.Continue_expression,
@@ -1062,7 +1082,7 @@ function intermediate_to_core_continue_expression(intermediate_value: Continue_e
         }
     };
 
-    expressions.push(core_value);
+    expressions[index] = core_value;
 }
 
 export function create_continue_expression(): Expression {
@@ -1094,6 +1114,8 @@ function core_to_intermediate_for_loop_expression(core_value: Core.For_loop_expr
 }
 
 function intermediate_to_core_for_loop_expression(intermediate_value: For_loop_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
     const core_value: Core.Expression = {
         data: {
             type: Core.Expression_enum.For_loop_expression,
@@ -1111,7 +1133,7 @@ function intermediate_to_core_for_loop_expression(intermediate_value: For_loop_e
         }
     };
 
-    expressions.push(core_value);
+    expressions[index] = core_value;
 
     (core_value.data.value as Core.For_loop_expression).range_begin.expression_index = expressions.length;
     intermediate_to_core_expression(intermediate_value.range_begin, expressions);
@@ -1141,29 +1163,22 @@ export function create_for_loop_expression(variable_name: string, range_begin: E
     };
 }
 export interface Condition_statement_pair {
+    condition?: Statement;
     statement: Statement;
-    condition?: Expression;
 }
 
-function core_to_intermediate_condition_statement_pair(core_value: Core.Condition_statement_pair, statement: Core.Statement): Condition_statement_pair {
+function core_to_intermediate_condition_statement_pair(core_value: Core.Condition_statement_pair): Condition_statement_pair {
     return {
+        condition: core_value.condition !== undefined ? core_to_intermediate_statement(core_value.condition) : undefined,
         statement: core_to_intermediate_statement(core_value.statement),
-        condition: core_value.condition !== undefined ? core_to_intermediate_expression(statement.expressions.elements[core_value.condition.expression_index], statement) : undefined,
     };
 }
 
-function intermediate_to_core_condition_statement_pair(intermediate_value: Condition_statement_pair, expressions: Core.Expression[]): Core.Condition_statement_pair {
-    const core_value: Core.Condition_statement_pair = {
+function intermediate_to_core_condition_statement_pair(intermediate_value: Condition_statement_pair): Core.Condition_statement_pair {
+    return {
+        condition: intermediate_value.condition !== undefined ? intermediate_to_core_statement(intermediate_value.condition) : undefined,
         statement: intermediate_to_core_statement(intermediate_value.statement),
-        condition: intermediate_value.condition !== undefined ? { expression_index: -1 } : undefined,
     };
-
-    if (intermediate_value.condition !== undefined) {
-        core_value.condition = { expression_index: expressions.length };
-        intermediate_to_core_expression(intermediate_value.condition, expressions);
-    }
-
-    return core_value;
 }
 
 export interface If_expression {
@@ -1172,24 +1187,26 @@ export interface If_expression {
 
 function core_to_intermediate_if_expression(core_value: Core.If_expression, statement: Core.Statement): If_expression {
     return {
-        series: core_value.series.elements.map(value => core_to_intermediate_condition_statement_pair(value, statement)),
+        series: core_value.series.elements.map(value => core_to_intermediate_condition_statement_pair(value)),
     };
 }
 
 function intermediate_to_core_if_expression(intermediate_value: If_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
     const core_value: Core.Expression = {
         data: {
             type: Core.Expression_enum.If_expression,
             value: {
                 series: {
                     size: intermediate_value.series.length,
-                    elements: intermediate_value.series.map(value => intermediate_to_core_condition_statement_pair(value, expressions))
+                    elements: intermediate_value.series.map(value => intermediate_to_core_condition_statement_pair(value))
                 },
             }
         }
     };
 
-    expressions.push(core_value);
+    expressions[index] = core_value;
 }
 
 export function create_if_expression(series: Condition_statement_pair[]): Expression {
@@ -1214,6 +1231,8 @@ function core_to_intermediate_invalid_expression(core_value: Core.Invalid_expres
 }
 
 function intermediate_to_core_invalid_expression(intermediate_value: Invalid_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
     const core_value: Core.Expression = {
         data: {
             type: Core.Expression_enum.Invalid_expression,
@@ -1223,7 +1242,7 @@ function intermediate_to_core_invalid_expression(intermediate_value: Invalid_exp
         }
     };
 
-    expressions.push(core_value);
+    expressions[index] = core_value;
 }
 
 export function create_invalid_expression(value: string): Expression {
@@ -1248,6 +1267,8 @@ function core_to_intermediate_parenthesis_expression(core_value: Core.Parenthesi
 }
 
 function intermediate_to_core_parenthesis_expression(intermediate_value: Parenthesis_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
     const core_value: Core.Expression = {
         data: {
             type: Core.Expression_enum.Parenthesis_expression,
@@ -1259,7 +1280,7 @@ function intermediate_to_core_parenthesis_expression(intermediate_value: Parenth
         }
     };
 
-    expressions.push(core_value);
+    expressions[index] = core_value;
 
     (core_value.data.value as Core.Parenthesis_expression).expression.expression_index = expressions.length;
     intermediate_to_core_expression(intermediate_value.expression, expressions);
@@ -1287,6 +1308,8 @@ function core_to_intermediate_return_expression(core_value: Core.Return_expressi
 }
 
 function intermediate_to_core_return_expression(intermediate_value: Return_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
     const core_value: Core.Expression = {
         data: {
             type: Core.Expression_enum.Return_expression,
@@ -1298,7 +1321,7 @@ function intermediate_to_core_return_expression(intermediate_value: Return_expre
         }
     };
 
-    expressions.push(core_value);
+    expressions[index] = core_value;
 
     (core_value.data.value as Core.Return_expression).expression.expression_index = expressions.length;
     intermediate_to_core_expression(intermediate_value.expression, expressions);
@@ -1357,6 +1380,8 @@ function core_to_intermediate_switch_expression(core_value: Core.Switch_expressi
 }
 
 function intermediate_to_core_switch_expression(intermediate_value: Switch_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
     const core_value: Core.Expression = {
         data: {
             type: Core.Expression_enum.Switch_expression,
@@ -1372,7 +1397,7 @@ function intermediate_to_core_switch_expression(intermediate_value: Switch_expre
         }
     };
 
-    expressions.push(core_value);
+    expressions[index] = core_value;
 
     (core_value.data.value as Core.Switch_expression).value.expression_index = expressions.length;
     intermediate_to_core_expression(intermediate_value.value, expressions);
@@ -1405,6 +1430,8 @@ function core_to_intermediate_ternary_condition_expression(core_value: Core.Tern
 }
 
 function intermediate_to_core_ternary_condition_expression(intermediate_value: Ternary_condition_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
     const core_value: Core.Expression = {
         data: {
             type: Core.Expression_enum.Ternary_condition_expression,
@@ -1422,7 +1449,7 @@ function intermediate_to_core_ternary_condition_expression(intermediate_value: T
         }
     };
 
-    expressions.push(core_value);
+    expressions[index] = core_value;
 
     (core_value.data.value as Core.Ternary_condition_expression).condition.expression_index = expressions.length;
     intermediate_to_core_expression(intermediate_value.condition, expressions);
@@ -1460,6 +1487,8 @@ function core_to_intermediate_unary_expression(core_value: Core.Unary_expression
 }
 
 function intermediate_to_core_unary_expression(intermediate_value: Unary_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
     const core_value: Core.Expression = {
         data: {
             type: Core.Expression_enum.Unary_expression,
@@ -1472,7 +1501,7 @@ function intermediate_to_core_unary_expression(intermediate_value: Unary_express
         }
     };
 
-    expressions.push(core_value);
+    expressions[index] = core_value;
 
     (core_value.data.value as Core.Unary_expression).expression.expression_index = expressions.length;
     intermediate_to_core_expression(intermediate_value.expression, expressions);
@@ -1505,6 +1534,8 @@ function core_to_intermediate_variable_declaration_expression(core_value: Core.V
 }
 
 function intermediate_to_core_variable_declaration_expression(intermediate_value: Variable_declaration_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
     const core_value: Core.Expression = {
         data: {
             type: Core.Expression_enum.Variable_declaration_expression,
@@ -1518,7 +1549,7 @@ function intermediate_to_core_variable_declaration_expression(intermediate_value
         }
     };
 
-    expressions.push(core_value);
+    expressions[index] = core_value;
 
     (core_value.data.value as Core.Variable_declaration_expression).right_hand_side.expression_index = expressions.length;
     intermediate_to_core_expression(intermediate_value.right_hand_side, expressions);
@@ -1538,37 +1569,34 @@ export function create_variable_declaration_expression(name: string, is_mutable:
     };
 }
 export interface While_loop_expression {
-    condition: Expression;
+    condition: Statement;
     then_statement: Statement;
 }
 
 function core_to_intermediate_while_loop_expression(core_value: Core.While_loop_expression, statement: Core.Statement): While_loop_expression {
     return {
-        condition: core_to_intermediate_expression(statement.expressions.elements[core_value.condition.expression_index], statement),
+        condition: core_to_intermediate_statement(core_value.condition),
         then_statement: core_to_intermediate_statement(core_value.then_statement),
     };
 }
 
 function intermediate_to_core_while_loop_expression(intermediate_value: While_loop_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
     const core_value: Core.Expression = {
         data: {
             type: Core.Expression_enum.While_loop_expression,
             value: {
-                condition: {
-                    expression_index: -1
-                },
+                condition: intermediate_to_core_statement(intermediate_value.condition),
                 then_statement: intermediate_to_core_statement(intermediate_value.then_statement),
             }
         }
     };
 
-    expressions.push(core_value);
-
-    (core_value.data.value as Core.While_loop_expression).condition.expression_index = expressions.length;
-    intermediate_to_core_expression(intermediate_value.condition, expressions);
+    expressions[index] = core_value;
 }
 
-export function create_while_loop_expression(condition: Expression, then_statement: Statement): Expression {
+export function create_while_loop_expression(condition: Statement, then_statement: Statement): Expression {
     const while_loop_expression: While_loop_expression = {
         condition: condition,
         then_statement: then_statement,

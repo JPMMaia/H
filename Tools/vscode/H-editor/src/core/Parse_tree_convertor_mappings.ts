@@ -1263,7 +1263,8 @@ function get_generic_expression(
             const serie_index = get_if_serie_index(stack);
             const serie = if_expression.series[serie_index];
 
-            const next_expression = serie.condition as Core_intermediate_representation.Expression;
+            const statement = serie.condition as Core_intermediate_representation.Statement;
+            const next_expression = statement.expression;
             return {
                 expression: next_expression,
                 label: map_expression_type_to_production_rule_label(next_expression)
@@ -1324,7 +1325,7 @@ function get_generic_expression(
         }
         case Core_intermediate_representation.Expression_enum.While_loop_expression: {
             const while_loop_expression = expression.data.value as Core_intermediate_representation.While_loop_expression;
-            const next_expression = top.current_child_index === 1 ? while_loop_expression.condition : while_loop_expression.then_statement.expression;
+            const next_expression = top.current_child_index === 1 ? while_loop_expression.condition.expression : while_loop_expression.then_statement.expression;
             return {
                 expression: next_expression,
                 label: map_expression_type_to_production_rule_label(next_expression)
@@ -2345,13 +2346,13 @@ function node_to_expression_if(node: Parser_node.Node, key_to_production_rule_in
     let current_node = node;
     while (current_node.children.length > 0) {
         const condition_node = current_node.word.value === "Expression_if" ? find_node(current_node, "Generic_expression", key_to_production_rule_indices) as Parser_node.Node : undefined;
-        const condition_expression = condition_node !== undefined ? node_to_expression(condition_node, key_to_production_rule_indices) : undefined;
+        const condition_statement = condition_node !== undefined ? node_to_statement(condition_node, key_to_production_rule_indices) : undefined;
 
         const statement_node = find_node(current_node, "Statement", key_to_production_rule_indices) as Parser_node.Node;
         const statement = node_to_statement(statement_node, key_to_production_rule_indices);
 
         series.push({
-            condition: condition_expression,
+            condition: condition_statement,
             statement: statement
         });
 
@@ -2541,11 +2542,11 @@ function node_to_expression_while_loop(node: Parser_node.Node, key_to_production
     const condition_node = find_node(node, "Generic_expression", key_to_production_rule_indices) as Parser_node.Node;
     const then_statement_node = find_node(node, "Statement", key_to_production_rule_indices) as Parser_node.Node;
 
-    const condition_expression = node_to_expression(condition_node, key_to_production_rule_indices);
+    const condition_statement = node_to_statement(condition_node, key_to_production_rule_indices);
     const then_statement = node_to_statement(then_statement_node, key_to_production_rule_indices);
 
     const while_loop_expression: Core_intermediate_representation.While_loop_expression = {
-        condition: condition_expression,
+        condition: condition_statement,
         then_statement: then_statement
     };
     return while_loop_expression;

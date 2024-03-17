@@ -272,6 +272,22 @@ namespace h
                     "size": 2,
                     "elements": [
                         {
+                            "condition": {
+                                "name": "",
+                                "expressions": {
+                                    "size": 1,
+                                    "elements": [
+                                        {
+                                            "data": {
+                                                "type": "Variable_expression",
+                                                "value": {
+                                                    "name": "some_boolean"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
                             "statement": {
                                 "name": "",
                                 "expressions": {
@@ -297,9 +313,6 @@ namespace h
                                         }
                                     ]
                                 }
-                            },
-                            "condition": {
-                                "expression_index": 2
                             }
                         },
                         {
@@ -339,6 +352,19 @@ namespace h
         {
             Condition_statement_pair
             {
+                .condition = Statement
+                {
+                    .name = "",
+                    .expressions = std::pmr::vector<Expression>
+                    {
+                        {
+                            .data = Variable_expression
+                            {
+                                .name = "some_boolean"
+                            }
+                        }
+                    }
+                },
                 .statement = Statement
                 {
                     .name = "",
@@ -359,14 +385,11 @@ namespace h
                             }
                         }
                     }
-                },
-                .condition = Expression_index
-                {
-                    .expression_index = 2
                 }
             },
             Condition_statement_pair
             {
+                .condition = std::nullopt,
                 .statement = Statement
                 {
                     .name = "",
@@ -387,8 +410,7 @@ namespace h
                             }
                         }
                     }
-                },
-                .condition = std::nullopt
+                }
             }
         };
 
@@ -413,6 +435,19 @@ namespace h
         {
             Condition_statement_pair
             {
+                .condition = Statement
+                {
+                    .name = "",
+                    .expressions = std::pmr::vector<Expression>
+                    {
+                        {
+                            .data = Variable_expression
+                            {
+                                .name = "some_boolean"
+                            }
+                        }
+                    }
+                },
                 .statement = Statement
                 {
                     .name = "",
@@ -433,14 +468,11 @@ namespace h
                             }
                         }
                     }
-                },
-                .condition = Expression_index
-                {
-                    .expression_index = 2
                 }
             },
             Condition_statement_pair
             {
+                .condition = std::nullopt,
                 .statement = Statement
                 {
                     .name = "",
@@ -461,8 +493,7 @@ namespace h
                             }
                         }
                     }
-                },
-                .condition = std::nullopt
+                }
             }
         };
 
@@ -471,7 +502,7 @@ namespace h
             .series = std::move(input_series)
         };
 
-        std::string const expected = "{\"series\":{\"size\":2,\"elements\":[{\"statement\":{\"name\":\"\",\"expressions\":{\"size\":2,\"elements\":[{\"data\":{\"type\":\"Return_expression\",\"value\":{\"expression\":{\"expression_index\":1}}}},{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"value\"}}}]}},\"condition\":{\"expression_index\":2}},{\"statement\":{\"name\":\"\",\"expressions\":{\"size\":2,\"elements\":[{\"data\":{\"type\":\"Return_expression\",\"value\":{\"expression\":{\"expression_index\":3}}}},{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"value\"}}}]}}}]}}";
+        std::string const expected = "{\"series\":{\"size\":2,\"elements\":[{\"condition\":{\"name\":\"\",\"expressions\":{\"size\":1,\"elements\":[{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"some_boolean\"}}}]}},\"statement\":{\"name\":\"\",\"expressions\":{\"size\":2,\"elements\":[{\"data\":{\"type\":\"Return_expression\",\"value\":{\"expression\":{\"expression_index\":1}}}},{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"value\"}}}]}}},{\"statement\":{\"name\":\"\",\"expressions\":{\"size\":2,\"elements\":[{\"data\":{\"type\":\"Return_expression\",\"value\":{\"expression\":{\"expression_index\":3}}}},{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"value\"}}}]}}}]}}";
 
         rapidjson::StringBuffer output_stream;
         rapidjson::Writer<rapidjson::StringBuffer> writer{ output_stream };

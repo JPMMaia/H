@@ -233,8 +233,8 @@ export interface For_loop_expression {
 }
 
 export interface Condition_statement_pair {
+    condition?: Statement;
     statement: Statement;
-    condition?: Expression_index;
 }
 
 export interface If_expression {
@@ -281,7 +281,7 @@ export interface Variable_declaration_expression {
 }
 
 export interface While_loop_expression {
-    condition: Expression_index;
+    condition: Statement;
     then_statement: Statement;
 }
 

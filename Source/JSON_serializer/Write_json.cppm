@@ -606,6 +606,21 @@ namespace h::json
             write_value(writer, value);
         }
     }
+
+    export template <typename Writer_type, typename Value_type>
+        void write_optional_object(
+            Writer_type& writer,
+            char const* const key,
+            std::optional<Value_type> const& value
+        )
+    {
+        if (value.has_value())
+        {
+            writer.Key(key);
+            write_object(writer, value.value());
+        }
+    }
+
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
@@ -1018,7 +1033,7 @@ namespace h::json
         write_object(writer, output.range_begin);
         writer.Key("range_end");
         write_object(writer, output.range_end);
-        write_optional(writer, "step_by", output.step_by);
+        write_optional_object(writer, "step_by", output.step_by);
         writer.Key("then_statement");
         write_object(writer, output.then_statement);
         writer.EndObject();
@@ -1031,9 +1046,9 @@ namespace h::json
         )
     {
         writer.StartObject();
+        write_optional_object(writer, "condition", output.condition);
         writer.Key("statement");
         write_object(writer, output.statement);
-        write_optional(writer, "condition", output.condition);
         writer.EndObject();
     }
 
@@ -1092,7 +1107,7 @@ namespace h::json
         )
     {
         writer.StartObject();
-        write_optional(writer, "case_value", output.case_value);
+        write_optional_object(writer, "case_value", output.case_value);
         writer.Key("statements");
         write_object(writer, output.statements);
         writer.EndObject();
