@@ -2015,10 +2015,29 @@ function node_to_expression_access(node: Parser_node.Node, key_to_production_rul
 
     const access_expression: Core_intermediate_representation.Access_expression = {
         expression: generic_expression,
-        member_name: variable_expression.name
+        member_name: variable_expression.name,
+        access_type: Core_intermediate_representation.Access_type.Read
     };
 
     return access_expression;
+}
+
+function set_expression_access_type(expression: Core_intermediate_representation.Expression, access_type: Core_intermediate_representation.Access_type): void {
+    switch (expression.data.type) {
+        case Core_intermediate_representation.Expression_enum.Access_expression: {
+            const access_expression = expression.data.value as Core_intermediate_representation.Access_expression;
+            access_expression.access_type = access_type;
+            break;
+        }
+        case Core_intermediate_representation.Expression_enum.Variable_expression: {
+            const variable_expression = expression.data.value as Core_intermediate_representation.Variable_expression;
+            variable_expression.access_type = access_type;
+            break;
+        }
+        default: {
+            break;
+        }
+    }
 }
 
 function node_to_expression_assignment(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Assignment_expression {
@@ -2039,6 +2058,9 @@ function node_to_expression_assignment(node: Parser_node.Node, key_to_production
 
     const symbol = find_node_value(node, "Expression_assignment_symbol", key_to_production_rule_indices);
     const additional_operation = map_production_rule_label_to_assignment_binary_operation(symbol);
+
+    const access_type = additional_operation !== undefined ? Core_intermediate_representation.Access_type.Read_write : Core_intermediate_representation.Access_type.Write;
+    set_expression_access_type(left_hand_side_expression, access_type);
 
     const assignment_expression: Core_intermediate_representation.Assignment_expression = {
         left_hand_side: left_hand_side_expression,
@@ -2469,6 +2491,10 @@ function node_to_expression_unary_0(node: Parser_node.Node, key_to_production_ru
 
     const operation = get_operation();
 
+    if (operation === Core_intermediate_representation.Unary_operation.Post_increment || operation === Core_intermediate_representation.Unary_operation.Post_decrement) {
+        set_expression_access_type(generic_expression, Core_intermediate_representation.Access_type.Read_write);
+    }
+
     const unary_expression: Core_intermediate_representation.Unary_expression = {
         expression: generic_expression,
         operation: operation
@@ -2503,6 +2529,10 @@ function node_to_expression_unary_1(node: Parser_node.Node, key_to_production_ru
 
     const operation = get_operation();
 
+    if (operation === Core_intermediate_representation.Unary_operation.Pre_increment || operation === Core_intermediate_representation.Unary_operation.Pre_decrement) {
+        set_expression_access_type(generic_expression, Core_intermediate_representation.Access_type.Read_write);
+    }
+
     const unary_expression: Core_intermediate_representation.Unary_expression = {
         expression: generic_expression,
         operation: operation
@@ -2514,7 +2544,8 @@ function node_to_expression_unary_1(node: Parser_node.Node, key_to_production_ru
 function node_to_expression_variable_name(node: Parser_node.Node): Core_intermediate_representation.Variable_expression {
     const name = get_terminal_value(node);
     const variable_expression: Core_intermediate_representation.Variable_expression = {
-        name: name
+        name: name,
+        access_type: Core_intermediate_representation.Access_type.Read
     };
     return variable_expression;
 }

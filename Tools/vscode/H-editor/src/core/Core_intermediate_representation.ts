@@ -215,6 +215,12 @@ export enum Fundamental_type {
     C_ulonglong = "C_ulonglong",
 }
 
+export enum Access_type {
+    Read = "Read",
+    Write = "Write",
+    Read_write = "Read_write",
+}
+
 export enum Binary_operation {
     Add = "Add",
     Subtract = "Subtract",
@@ -658,11 +664,13 @@ function intermediate_to_core_struct_declaration(intermediate_value: Struct_decl
 
 export interface Variable_expression {
     name: string;
+    access_type: Access_type;
 }
 
 function core_to_intermediate_variable_expression(core_value: Core.Variable_expression, statement: Core.Statement): Variable_expression {
     return {
         name: core_value.name,
+        access_type: core_value.access_type,
     };
 }
 
@@ -674,6 +682,7 @@ function intermediate_to_core_variable_expression(intermediate_value: Variable_e
             type: Core.Expression_enum.Variable_expression,
             value: {
                 name: intermediate_value.name,
+                access_type: intermediate_value.access_type,
             }
         }
     };
@@ -681,9 +690,10 @@ function intermediate_to_core_variable_expression(intermediate_value: Variable_e
     expressions[index] = core_value;
 }
 
-export function create_variable_expression(name: string): Expression {
+export function create_variable_expression(name: string, access_type: Access_type): Expression {
     const variable_expression: Variable_expression = {
         name: name,
+        access_type: access_type,
     };
     return {
         data: {
@@ -695,12 +705,14 @@ export function create_variable_expression(name: string): Expression {
 export interface Access_expression {
     expression: Expression;
     member_name: string;
+    access_type: Access_type;
 }
 
 function core_to_intermediate_access_expression(core_value: Core.Access_expression, statement: Core.Statement): Access_expression {
     return {
         expression: core_to_intermediate_expression(statement.expressions.elements[core_value.expression.expression_index], statement),
         member_name: core_value.member_name,
+        access_type: core_value.access_type,
     };
 }
 
@@ -715,6 +727,7 @@ function intermediate_to_core_access_expression(intermediate_value: Access_expre
                     expression_index: -1
                 },
                 member_name: intermediate_value.member_name,
+                access_type: intermediate_value.access_type,
             }
         }
     };
@@ -725,10 +738,11 @@ function intermediate_to_core_access_expression(intermediate_value: Access_expre
     intermediate_to_core_expression(intermediate_value.expression, expressions);
 }
 
-export function create_access_expression(expression: Expression, member_name: string): Expression {
+export function create_access_expression(expression: Expression, member_name: string, access_type: Access_type): Expression {
     const access_expression: Access_expression = {
         expression: expression,
         member_name: member_name,
+        access_type: access_type,
     };
     return {
         data: {

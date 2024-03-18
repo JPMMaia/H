@@ -136,6 +136,29 @@ namespace h::json
     }
 
     export template<>
+        bool read_enum(Access_type& output, std::string_view const value)
+    {
+        if (value == "Read")
+        {
+            output = Access_type::Read;
+            return true;
+        }
+        else if (value == "Write")
+        {
+            output = Access_type::Write;
+            return true;
+        }
+        else if (value == "Read_write")
+        {
+            output = Access_type::Read_write;
+            return true;
+        }
+
+        std::cerr << std::format("Failed to read enum 'Access_type' with value '{}'\n", value);
+        return false;
+    }
+
+    export template<>
         bool read_enum(Binary_operation& output, std::string_view const value)
     {
         if (value == "Add")
@@ -327,6 +350,13 @@ namespace h::json
         if (type == "Fundamental_type")
         {
             Fundamental_type enum_value;
+            read_enum(enum_value, value);
+            return static_cast<int>(enum_value);
+        }
+
+        if (type == "Access_type")
+        {
+            Access_type enum_value;
             read_enum(enum_value, value);
             return static_cast<int>(enum_value);
         }
@@ -1077,6 +1107,17 @@ namespace h::json
             };
         }
 
+        if (key == "access_type")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->access_type,
+                .type = "Access_type",
+                .get_next_state = nullptr,
+            };
+        }
+
         return {};
     }
 
@@ -1120,6 +1161,17 @@ namespace h::json
             {
                 .pointer = &parent->member_name,
                 .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "access_type")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->access_type,
+                .type = "Access_type",
                 .get_next_state = nullptr,
             };
         }

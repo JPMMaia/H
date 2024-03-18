@@ -687,11 +687,13 @@ export function hello() -> ()
                                                             data: {
                                                                 type: Core_intermediate_representation.Expression_enum.Variable_expression,
                                                                 value: {
-                                                                    name: "stdio"
+                                                                    name: "stdio",
+                                                                    access_type: Core_intermediate_representation.Access_type.Read
                                                                 }
                                                             }
                                                         },
-                                                        member_name: "puts"
+                                                        member_name: "puts",
+                                                        access_type: Core_intermediate_representation.Access_type.Read
                                                     }
                                                 }
                                             },

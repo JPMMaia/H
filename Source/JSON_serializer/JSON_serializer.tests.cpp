@@ -443,7 +443,8 @@ namespace h
                         {
                             .data = Variable_expression
                             {
-                                .name = "some_boolean"
+                                .name = "some_boolean",
+                                .access_type = Access_type::Read
                             }
                         }
                     }
@@ -464,7 +465,8 @@ namespace h
                         {
                             .data = Variable_expression
                             {
-                                .name = "value"
+                                .name = "value",
+                                .access_type = Access_type::Read
                             }
                         }
                     }
@@ -489,7 +491,8 @@ namespace h
                         {
                             .data = Variable_expression
                             {
-                                .name = "value"
+                                .name = "value",
+                                .access_type = Access_type::Read
                             }
                         }
                     }
@@ -502,7 +505,7 @@ namespace h
             .series = std::move(input_series)
         };
 
-        std::string const expected = "{\"series\":{\"size\":2,\"elements\":[{\"condition\":{\"name\":\"\",\"expressions\":{\"size\":1,\"elements\":[{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"some_boolean\"}}}]}},\"statement\":{\"name\":\"\",\"expressions\":{\"size\":2,\"elements\":[{\"data\":{\"type\":\"Return_expression\",\"value\":{\"expression\":{\"expression_index\":1}}}},{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"value\"}}}]}}},{\"statement\":{\"name\":\"\",\"expressions\":{\"size\":2,\"elements\":[{\"data\":{\"type\":\"Return_expression\",\"value\":{\"expression\":{\"expression_index\":3}}}},{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"value\"}}}]}}}]}}";
+        std::string const expected = "{\"series\":{\"size\":2,\"elements\":[{\"condition\":{\"name\":\"\",\"expressions\":{\"size\":1,\"elements\":[{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"some_boolean\",\"access_type\":\"Read\"}}}]}},\"statement\":{\"name\":\"\",\"expressions\":{\"size\":2,\"elements\":[{\"data\":{\"type\":\"Return_expression\",\"value\":{\"expression\":{\"expression_index\":1}}}},{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"value\",\"access_type\":\"Read\"}}}]}}},{\"statement\":{\"name\":\"\",\"expressions\":{\"size\":2,\"elements\":[{\"data\":{\"type\":\"Return_expression\",\"value\":{\"expression\":{\"expression_index\":3}}}},{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"value\",\"access_type\":\"Read\"}}}]}}}]}}";
 
         rapidjson::StringBuffer output_stream;
         rapidjson::Writer<rapidjson::StringBuffer> writer{ output_stream };
