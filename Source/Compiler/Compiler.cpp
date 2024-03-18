@@ -530,6 +530,7 @@ namespace h::compiler
 
     struct Value_and_type
     {
+        std::pmr::string name;
         llvm::Value* value;
         std::optional<Type_reference> type;
     };
@@ -542,7 +543,7 @@ namespace h::compiler
     {
         auto const is_variable = [variable_name](Value_and_type const& element) -> bool
         {
-            return to_string_view(element.value->getName()) == variable_name;
+            return element.name == variable_name;
         };
 
         // Search in local variables:
@@ -617,6 +618,7 @@ namespace h::compiler
 
                 return Value_and_type
                 {
+                    .name = std::pmr::string{ mangled_name.begin(), mangled_name.end()},
                     .value = llvm_function,
                     .type = std::move(function_type)
                 };
@@ -624,8 +626,9 @@ namespace h::compiler
         }
 
         // TODO enum / struct access
-        return
+        return Value_and_type
         {
+            .name = "",
             .value = nullptr,
             .type = std::nullopt
         };
@@ -660,6 +663,7 @@ namespace h::compiler
 
             Value_and_type const loaded_value
             {
+                .name = "",
                 .value = loaded_value_value,
                 .type = left_hand_side_type
             };
@@ -670,6 +674,7 @@ namespace h::compiler
 
             return
             {
+                .name = "",
                 .value = store_instruction,
                 .type = std::nullopt
             };
@@ -680,6 +685,7 @@ namespace h::compiler
 
             return
             {
+                .name = "",
                 .value = store_instruction,
                 .type = std::nullopt
             };
@@ -708,6 +714,7 @@ namespace h::compiler
             {
                 return Value_and_type
                 {
+                    .name = "",
                     .value = llvm_builder.CreateAdd(left_hand_side.value, right_hand_side.value),
                     .type = type
                 };
@@ -716,6 +723,7 @@ namespace h::compiler
             {
                 return Value_and_type
                 {
+                    .name = "",
                     .value = llvm_builder.CreateFAdd(left_hand_side.value, right_hand_side.value),
                     .type = type
                 };
@@ -727,6 +735,7 @@ namespace h::compiler
             {
                 return Value_and_type
                 {
+                    .name = "",
                     .value = llvm_builder.CreateSub(left_hand_side.value, right_hand_side.value),
                     .type = type
                 };
@@ -735,6 +744,7 @@ namespace h::compiler
             {
                 return Value_and_type
                 {
+                    .name = "",
                     .value = llvm_builder.CreateFSub(left_hand_side.value, right_hand_side.value),
                     .type = type
                 };
@@ -746,6 +756,7 @@ namespace h::compiler
             {
                 return Value_and_type
                 {
+                    .name = "",
                     .value = llvm_builder.CreateMul(left_hand_side.value, right_hand_side.value),
                     .type = type
                 };
@@ -754,6 +765,7 @@ namespace h::compiler
             {
                 return Value_and_type
                 {
+                    .name = "",
                     .value = llvm_builder.CreateFMul(left_hand_side.value, right_hand_side.value),
                     .type = type
                 };
@@ -767,6 +779,7 @@ namespace h::compiler
                 {
                     return Value_and_type
                     {
+                        .name = "",
                         .value = llvm_builder.CreateSDiv(left_hand_side.value, right_hand_side.value),
                         .type = type
                     };
@@ -775,6 +788,7 @@ namespace h::compiler
                 {
                     return Value_and_type
                     {
+                        .name = "",
                         .value = llvm_builder.CreateUDiv(left_hand_side.value, right_hand_side.value),
                         .type = type
                     };
@@ -784,6 +798,7 @@ namespace h::compiler
             {
                 return Value_and_type
                 {
+                    .name = "",
                     .value = llvm_builder.CreateFDiv(left_hand_side.value, right_hand_side.value),
                     .type = type
                 };
@@ -797,6 +812,7 @@ namespace h::compiler
                 {
                     return Value_and_type
                     {
+                        .name = "",
                         .value = llvm_builder.CreateSRem(left_hand_side.value, right_hand_side.value),
                         .type = type
                     };
@@ -805,6 +821,7 @@ namespace h::compiler
                 {
                     return Value_and_type
                     {
+                        .name = "",
                         .value = llvm_builder.CreateURem(left_hand_side.value, right_hand_side.value),
                         .type = type
                     };
@@ -814,6 +831,7 @@ namespace h::compiler
             {
                 return Value_and_type
                 {
+                    .name = "",
                     .value = llvm_builder.CreateFRem(left_hand_side.value, right_hand_side.value),
                     .type = type
                 };
@@ -825,6 +843,7 @@ namespace h::compiler
             {
                 return Value_and_type
                 {
+                    .name = "",
                     .value = llvm_builder.CreateICmpEQ(left_hand_side.value, right_hand_side.value),
                     .type = create_bool_type_reference()
                 };
@@ -833,6 +852,7 @@ namespace h::compiler
             {
                 return Value_and_type
                 {
+                    .name = "",
                     .value = llvm_builder.CreateFCmpOEQ(left_hand_side.value, right_hand_side.value),
                     .type = create_bool_type_reference()
                 };
@@ -844,6 +864,7 @@ namespace h::compiler
             {
                 return Value_and_type
                 {
+                    .name = "",
                     .value = llvm_builder.CreateICmpNE(left_hand_side.value, right_hand_side.value),
                     .type = create_bool_type_reference()
                 };
@@ -852,6 +873,7 @@ namespace h::compiler
             {
                 return Value_and_type
                 {
+                    .name = "",
                     .value = llvm_builder.CreateFCmpONE(left_hand_side.value, right_hand_side.value),
                     .type = create_bool_type_reference()
                 };
@@ -865,6 +887,7 @@ namespace h::compiler
                 {
                     return Value_and_type
                     {
+                        .name = "",
                         .value = llvm_builder.CreateICmpSLT(left_hand_side.value, right_hand_side.value),
                         .type = create_bool_type_reference()
                     };
@@ -873,6 +896,7 @@ namespace h::compiler
                 {
                     return Value_and_type
                     {
+                        .name = "",
                         .value = llvm_builder.CreateICmpULT(left_hand_side.value, right_hand_side.value),
                         .type = create_bool_type_reference()
                     };
@@ -882,6 +906,7 @@ namespace h::compiler
             {
                 return Value_and_type
                 {
+                    .name = "",
                     .value = llvm_builder.CreateFCmpOLT(left_hand_side.value, right_hand_side.value),
                     .type = create_bool_type_reference()
                 };
@@ -895,6 +920,7 @@ namespace h::compiler
                 {
                     return Value_and_type
                     {
+                        .name = "",
                         .value = llvm_builder.CreateICmpSLE(left_hand_side.value, right_hand_side.value),
                         .type = create_bool_type_reference()
                     };
@@ -903,6 +929,7 @@ namespace h::compiler
                 {
                     return Value_and_type
                     {
+                        .name = "",
                         .value = llvm_builder.CreateICmpULE(left_hand_side.value, right_hand_side.value),
                         .type = create_bool_type_reference()
                     };
@@ -912,6 +939,7 @@ namespace h::compiler
             {
                 return Value_and_type
                 {
+                    .name = "",
                     .value = llvm_builder.CreateFCmpOLE(left_hand_side.value, right_hand_side.value),
                     .type = create_bool_type_reference()
                 };
@@ -925,6 +953,7 @@ namespace h::compiler
                 {
                     return Value_and_type
                     {
+                        .name = "",
                         .value = llvm_builder.CreateICmpSGT(left_hand_side.value, right_hand_side.value),
                         .type = create_bool_type_reference()
                     };
@@ -933,6 +962,7 @@ namespace h::compiler
                 {
                     return Value_and_type
                     {
+                        .name = "",
                         .value = llvm_builder.CreateICmpUGT(left_hand_side.value, right_hand_side.value),
                         .type = create_bool_type_reference()
                     };
@@ -942,6 +972,7 @@ namespace h::compiler
             {
                 return Value_and_type
                 {
+                    .name = "",
                     .value = llvm_builder.CreateFCmpOGT(left_hand_side.value, right_hand_side.value),
                     .type = create_bool_type_reference()
                 };
@@ -955,6 +986,7 @@ namespace h::compiler
                 {
                     return Value_and_type
                     {
+                        .name = "",
                         .value = llvm_builder.CreateICmpSGE(left_hand_side.value, right_hand_side.value),
                         .type = create_bool_type_reference()
                     };
@@ -963,6 +995,7 @@ namespace h::compiler
                 {
                     return Value_and_type
                     {
+                        .name = "",
                         .value = llvm_builder.CreateICmpUGE(left_hand_side.value, right_hand_side.value),
                         .type = create_bool_type_reference()
                     };
@@ -972,6 +1005,7 @@ namespace h::compiler
             {
                 return Value_and_type
                 {
+                    .name = "",
                     .value = llvm_builder.CreateFCmpOGE(left_hand_side.value, right_hand_side.value),
                     .type = create_bool_type_reference()
                 };
@@ -981,6 +1015,7 @@ namespace h::compiler
         case Binary_operation::Logical_and: {
             return Value_and_type
             {
+                .name = "",
                 .value = llvm_builder.CreateAnd(left_hand_side.value, right_hand_side.value),
                 .type = create_bool_type_reference()
             };
@@ -988,6 +1023,7 @@ namespace h::compiler
         case Binary_operation::Logical_or: {
             return Value_and_type
             {
+                .name = "",
                 .value = llvm_builder.CreateOr(left_hand_side.value, right_hand_side.value),
                 .type = create_bool_type_reference()
             };
@@ -997,6 +1033,7 @@ namespace h::compiler
             {
                 return Value_and_type
                 {
+                    .name = "",
                     .value = llvm_builder.CreateAnd(left_hand_side.value, right_hand_side.value),
                     .type = type
                 };
@@ -1008,6 +1045,7 @@ namespace h::compiler
             {
                 return Value_and_type
                 {
+                    .name = "",
                     .value = llvm_builder.CreateOr(left_hand_side.value, right_hand_side.value),
                     .type = type
                 };
@@ -1019,6 +1057,7 @@ namespace h::compiler
             {
                 return Value_and_type
                 {
+                    .name = "",
                     .value = llvm_builder.CreateXor(left_hand_side.value, right_hand_side.value),
                     .type = type
                 };
@@ -1030,6 +1069,7 @@ namespace h::compiler
             {
                 return Value_and_type
                 {
+                    .name = "",
                     .value = llvm_builder.CreateShl(left_hand_side.value, right_hand_side.value),
                     .type = type
                 };
@@ -1043,6 +1083,7 @@ namespace h::compiler
                 {
                     return Value_and_type
                     {
+                        .name = "",
                         .value = llvm_builder.CreateAShr(left_hand_side.value, right_hand_side.value),
                         .type = type
                     };
@@ -1051,6 +1092,7 @@ namespace h::compiler
                 {
                     return Value_and_type
                     {
+                        .name = "",
                         .value = llvm_builder.CreateLShr(left_hand_side.value, right_hand_side.value),
                         .type = type
                     };
@@ -1205,6 +1247,7 @@ namespace h::compiler
 
         return Value_and_type
         {
+            .name = "",
             .value = begin_block,
             .type = std::nullopt
         };
@@ -1247,6 +1290,7 @@ namespace h::compiler
 
         return
         {
+            .name = "",
             .value = call_instruction,
             .type = std::move(function_output_type_reference)
         };
@@ -1348,6 +1392,7 @@ namespace h::compiler
 
         return
         {
+            .name = "",
             .value = cast_instruction,
             .type = expression.destination_type
         };
@@ -1400,6 +1445,7 @@ namespace h::compiler
 
                 return
                 {
+                    .name = "",
                     .value = instruction,
                     .type = expression.type
                 };
@@ -1414,6 +1460,7 @@ namespace h::compiler
 
                 return
                 {
+                    .name = "",
                     .value = instruction,
                     .type = expression.type
                 };
@@ -1428,6 +1475,7 @@ namespace h::compiler
 
                 return
                 {
+                    .name = "",
                     .value = instruction,
                     .type = expression.type
                 };
@@ -1442,6 +1490,7 @@ namespace h::compiler
 
                 return
                 {
+                    .name = "",
                     .value = instruction,
                     .type = expression.type
                 };
@@ -1464,6 +1513,7 @@ namespace h::compiler
 
             return
             {
+                .name = "",
                 .value = instruction,
                 .type = expression.type
             };
@@ -1491,6 +1541,7 @@ namespace h::compiler
 
             return
             {
+                .name = "",
                 .value = instruction,
                 .type = expression.type
             };
@@ -1646,6 +1697,7 @@ namespace h::compiler
 
         return Value_and_type
         {
+            .name = "",
             .value = end_if_block,
             .type = std::nullopt
         };
@@ -1672,6 +1724,7 @@ namespace h::compiler
 
         return
         {
+            .name = "",
             .value = instruction,
             .type = std::nullopt
         };
@@ -1699,6 +1752,7 @@ namespace h::compiler
             {
                 return Value_and_type
                 {
+                    .name = "",
                     .value = llvm_builder.CreateNot(value_expression.value),
                     .type = create_bool_type_reference()
                 };
@@ -1710,6 +1764,7 @@ namespace h::compiler
             {
                 return Value_and_type
                 {
+                    .name = "",
                     .value = llvm_builder.CreateNot(value_expression.value),
                     .type = type
                 };
@@ -1721,6 +1776,7 @@ namespace h::compiler
             {
                 return Value_and_type
                 {
+                    .name = "",
                     .value = llvm_builder.CreateNeg(value_expression.value),
                     .type = type
                 };
@@ -1750,6 +1806,7 @@ namespace h::compiler
 
                 return Value_and_type
                 {
+                    .name = "",
                     .value = returned_value,
                     .type = type
                 };
@@ -1767,6 +1824,7 @@ namespace h::compiler
 
                 return Value_and_type
                 {
+                    .name = "",
                     .value = load_value,
                     .type = core_pointee_type
                 };
@@ -1782,6 +1840,7 @@ namespace h::compiler
                 Value_and_type const& variable_declaration = location.value();
                 return Value_and_type
                 {
+                    .name = "",
                     .value = variable_declaration.value,
                     .type = create_pointer_type_type_reference({ variable_declaration.type.value() }, false)
                 };
@@ -1809,6 +1868,7 @@ namespace h::compiler
 
         return Value_and_type
         {
+            .name = expression.name,
             .value = alloca,
             .type = right_hand_side.type
         };
@@ -1830,7 +1890,7 @@ namespace h::compiler
 
         auto const is_variable = [variable_name](Value_and_type const& element) -> bool
         {
-            return to_string_view(element.value->getName()) == variable_name;
+            return element.name == variable_name;
         };
 
         // Search in local variables:
@@ -1846,6 +1906,7 @@ namespace h::compiler
 
                     return Value_and_type
                     {
+                        .name = expression.name,
                         .value = loaded_value,
                         .type = type
                     };
@@ -1875,6 +1936,7 @@ namespace h::compiler
 
                 return Value_and_type
                 {
+                    .name = expression.name,
                     .value = llvm_function,
                     .type = std::move(type)
                 };
@@ -1890,6 +1952,7 @@ namespace h::compiler
             {
                 return Value_and_type
                 {
+                    .name = expression.name,
                     .value = nullptr,
                     .type = std::nullopt
                 };
@@ -2040,9 +2103,10 @@ namespace h::compiler
             for (std::size_t argument_index = 0; argument_index < function_declaration.type.input_parameter_types.size(); ++argument_index)
             {
                 llvm::Argument* const llvm_argument = llvm_function.getArg(argument_index);
+                std::pmr::string const& name = function_declaration.input_parameter_names[argument_index];
                 Type_reference const& core_type = function_declaration.type.input_parameter_types[argument_index];
 
-                function_arguments.push_back({ .value = llvm_argument, .type = core_type });
+                function_arguments.push_back({ .name = name, .value = llvm_argument, .type = core_type });
             }
 
             std::pmr::vector<Value_and_type> local_variables{ temporaries_allocator };
