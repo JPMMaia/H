@@ -342,7 +342,8 @@ export function create_0(): core.Module {
                                                 data: {
                                                     type: core.Expression_enum.Variable_expression,
                                                     value: {
-                                                        name: "lhs"
+                                                        name: "lhs",
+                                                        access_type: core.Access_type.Read
                                                     }
                                                 }
                                             },
@@ -350,7 +351,8 @@ export function create_0(): core.Module {
                                                 data: {
                                                     type: core.Expression_enum.Variable_expression,
                                                     value: {
-                                                        name: "rhs"
+                                                        name: "rhs",
+                                                        access_type: core.Access_type.Read
                                                     }
                                                 }
                                             }
@@ -390,7 +392,8 @@ export function create_0(): core.Module {
                                                 data: {
                                                     type: core.Expression_enum.Variable_expression,
                                                     value: {
-                                                        name: "lhs"
+                                                        name: "lhs",
+                                                        access_type: core.Access_type.Read
                                                     }
                                                 }
                                             },
@@ -398,7 +401,8 @@ export function create_0(): core.Module {
                                                 data: {
                                                     type: core.Expression_enum.Variable_expression,
                                                     value: {
-                                                        name: "rhs"
+                                                        name: "rhs",
+                                                        access_type: core.Access_type.Read
                                                     }
                                                 }
                                             }
@@ -438,7 +442,8 @@ export function create_0(): core.Module {
                                                 data: {
                                                     type: core.Expression_enum.Variable_expression,
                                                     value: {
-                                                        name: "lhs"
+                                                        name: "lhs",
+                                                        access_type: core.Access_type.Read
                                                     }
                                                 }
                                             },
@@ -446,7 +451,8 @@ export function create_0(): core.Module {
                                                 data: {
                                                     type: core.Expression_enum.Variable_expression,
                                                     value: {
-                                                        name: "rhs"
+                                                        name: "rhs",
+                                                        access_type: core.Access_type.Read
                                                     }
                                                 }
                                             }
@@ -493,7 +499,8 @@ export function create_0(): core.Module {
                                                 data: {
                                                     type: core.Expression_enum.Variable_expression,
                                                     value: {
-                                                        name: "lhs"
+                                                        name: "lhs",
+                                                        access_type: core.Access_type.Read
                                                     }
                                                 }
                                             },
@@ -501,7 +508,8 @@ export function create_0(): core.Module {
                                                 data: {
                                                     type: core.Expression_enum.Variable_expression,
                                                     value: {
-                                                        name: "rhs"
+                                                        name: "rhs",
+                                                        access_type: core.Access_type.Read
                                                     }
                                                 }
                                             }
@@ -686,7 +694,8 @@ export function create_function_example(): core.Module {
                                         data: {
                                             type: core.Expression_enum.Variable_expression,
                                             value: {
-                                                name: "lhs"
+                                                name: "lhs",
+                                                access_type: core.Access_type.Read
                                             }
                                         }
                                     },
@@ -694,7 +703,8 @@ export function create_function_example(): core.Module {
                                         data: {
                                             type: core.Expression_enum.Variable_expression,
                                             value: {
-                                                name: "rhs"
+                                                name: "rhs",
+                                                access_type: core.Access_type.Read
                                             }
                                         }
                                     }
@@ -744,7 +754,7 @@ export function create_function_calling_module_function_example(): IR.Module {
                             {
                                 name: "",
                                 expression: IR.create_call_expression(
-                                    IR.create_access_expression(IR.create_variable_expression("stdio"), "printf"),
+                                    IR.create_access_expression(IR.create_variable_expression("stdio", IR.Access_type.Read), "printf", IR.Access_type.Read),
                                     [
                                         IR.create_constant_expression(create_pointer_type([create_fundamental_type(IR.Fundamental_type.C_char)], false), "Hello world!")
                                     ]
@@ -823,7 +833,7 @@ export function create_hello_world(): IR.Module {
                         statements: [
                             {
                                 name: "",
-                                expression: IR.create_call_expression(IR.create_access_expression(IR.create_variable_expression("stdio"), "puts"), [
+                                expression: IR.create_call_expression(IR.create_access_expression(IR.create_variable_expression("stdio", IR.Access_type.Read), "puts", IR.Access_type.Read), [
                                     {
                                         data: {
                                             type: IR.Expression_enum.Constant_expression,
@@ -985,7 +995,8 @@ export function create_variables(): IR.Module {
                                                 data: {
                                                     type: IR.Expression_enum.Variable_expression,
                                                     value: {
-                                                        name: "my_mutable_variable"
+                                                        name: "my_mutable_variable",
+                                                        access_type: IR.Access_type.Write
                                                     }
                                                 }
                                             },
@@ -1321,24 +1332,24 @@ export function create_booleans(): IR.Module {
 export function create_binary_expressions(): IR.Module {
 
     const binary_expressions: [string, IR.Expression][] = [
-        ["add", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Add)],
-        ["subtract", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Subtract)],
-        ["multiply", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Multiply)],
-        ["divide", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Divide)],
-        ["modulus", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Modulus)],
-        ["equal", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Equal)],
-        ["not_equal", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Not_equal)],
-        ["less_than", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Less_than)],
-        ["less_than_or_equal_to", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Less_than_or_equal_to)],
-        ["greater_than", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Greater_than)],
-        ["greater_than_or_equal_to", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Greater_than_or_equal_to)],
-        ["logical_and", IR.create_binary_expression(IR.create_variable_expression("first_boolean"), IR.create_variable_expression("second_boolean"), IR.Binary_operation.Logical_and)],
-        ["logical_or", IR.create_binary_expression(IR.create_variable_expression("first_boolean"), IR.create_variable_expression("second_boolean"), IR.Binary_operation.Logical_or)],
-        ["bitwise_and", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Bitwise_and)],
-        ["bitwise_or", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Bitwise_or)],
-        ["bitwise_xor", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Bitwise_xor)],
-        ["bit_shift_left", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Bit_shift_left)],
-        ["bit_shift_right", IR.create_binary_expression(IR.create_variable_expression("first_integer"), IR.create_variable_expression("second_integer"), IR.Binary_operation.Bit_shift_right)],
+        ["add", IR.create_binary_expression(IR.create_variable_expression("first_integer", IR.Access_type.Read), IR.create_variable_expression("second_integer", IR.Access_type.Read), IR.Binary_operation.Add)],
+        ["subtract", IR.create_binary_expression(IR.create_variable_expression("first_integer", IR.Access_type.Read), IR.create_variable_expression("second_integer", IR.Access_type.Read), IR.Binary_operation.Subtract)],
+        ["multiply", IR.create_binary_expression(IR.create_variable_expression("first_integer", IR.Access_type.Read), IR.create_variable_expression("second_integer", IR.Access_type.Read), IR.Binary_operation.Multiply)],
+        ["divide", IR.create_binary_expression(IR.create_variable_expression("first_integer", IR.Access_type.Read), IR.create_variable_expression("second_integer", IR.Access_type.Read), IR.Binary_operation.Divide)],
+        ["modulus", IR.create_binary_expression(IR.create_variable_expression("first_integer", IR.Access_type.Read), IR.create_variable_expression("second_integer", IR.Access_type.Read), IR.Binary_operation.Modulus)],
+        ["equal", IR.create_binary_expression(IR.create_variable_expression("first_integer", IR.Access_type.Read), IR.create_variable_expression("second_integer", IR.Access_type.Read), IR.Binary_operation.Equal)],
+        ["not_equal", IR.create_binary_expression(IR.create_variable_expression("first_integer", IR.Access_type.Read), IR.create_variable_expression("second_integer", IR.Access_type.Read), IR.Binary_operation.Not_equal)],
+        ["less_than", IR.create_binary_expression(IR.create_variable_expression("first_integer", IR.Access_type.Read), IR.create_variable_expression("second_integer", IR.Access_type.Read), IR.Binary_operation.Less_than)],
+        ["less_than_or_equal_to", IR.create_binary_expression(IR.create_variable_expression("first_integer", IR.Access_type.Read), IR.create_variable_expression("second_integer", IR.Access_type.Read), IR.Binary_operation.Less_than_or_equal_to)],
+        ["greater_than", IR.create_binary_expression(IR.create_variable_expression("first_integer", IR.Access_type.Read), IR.create_variable_expression("second_integer", IR.Access_type.Read), IR.Binary_operation.Greater_than)],
+        ["greater_than_or_equal_to", IR.create_binary_expression(IR.create_variable_expression("first_integer", IR.Access_type.Read), IR.create_variable_expression("second_integer", IR.Access_type.Read), IR.Binary_operation.Greater_than_or_equal_to)],
+        ["logical_and", IR.create_binary_expression(IR.create_variable_expression("first_boolean", IR.Access_type.Read), IR.create_variable_expression("second_boolean", IR.Access_type.Read), IR.Binary_operation.Logical_and)],
+        ["logical_or", IR.create_binary_expression(IR.create_variable_expression("first_boolean", IR.Access_type.Read), IR.create_variable_expression("second_boolean", IR.Access_type.Read), IR.Binary_operation.Logical_or)],
+        ["bitwise_and", IR.create_binary_expression(IR.create_variable_expression("first_integer", IR.Access_type.Read), IR.create_variable_expression("second_integer", IR.Access_type.Read), IR.Binary_operation.Bitwise_and)],
+        ["bitwise_or", IR.create_binary_expression(IR.create_variable_expression("first_integer", IR.Access_type.Read), IR.create_variable_expression("second_integer", IR.Access_type.Read), IR.Binary_operation.Bitwise_or)],
+        ["bitwise_xor", IR.create_binary_expression(IR.create_variable_expression("first_integer", IR.Access_type.Read), IR.create_variable_expression("second_integer", IR.Access_type.Read), IR.Binary_operation.Bitwise_xor)],
+        ["bit_shift_left", IR.create_binary_expression(IR.create_variable_expression("first_integer", IR.Access_type.Read), IR.create_variable_expression("second_integer", IR.Access_type.Read), IR.Binary_operation.Bit_shift_left)],
+        ["bit_shift_right", IR.create_binary_expression(IR.create_variable_expression("first_integer", IR.Access_type.Read), IR.create_variable_expression("second_integer", IR.Access_type.Read), IR.Binary_operation.Bit_shift_right)],
     ];
 
     const statements: IR.Statement[] = [];
@@ -1394,10 +1405,10 @@ export function create_binary_expressions(): IR.Module {
 
 export function create_binary_expressions_operator_precedence(): IR.Module {
 
-    const a = IR.create_variable_expression("a");
-    const b = IR.create_variable_expression("b");
-    const c = IR.create_variable_expression("c");
-    const function_call = IR.create_call_expression(IR.create_variable_expression("function_call"), []);
+    const a = IR.create_variable_expression("a", IR.Access_type.Read);
+    const b = IR.create_variable_expression("b", IR.Access_type.Read);
+    const c = IR.create_variable_expression("c", IR.Access_type.Read);
+    const function_call = IR.create_call_expression(IR.create_variable_expression("function_call", IR.Access_type.Read), []);
     const value_0 = IR.create_constant_expression(create_integer_type(32, true), "0");
     const value_1 = IR.create_constant_expression(create_integer_type(32, true), "1");
 
@@ -1476,17 +1487,17 @@ export function create_assignment_expressions(): IR.Module {
 
     const expressions: IR.Expression[] = [
         IR.create_variable_declaration_expression("my_integer", true, IR.create_constant_expression(create_integer_type(32, true), "1")),
-        IR.create_assignment_expression(IR.create_variable_expression("my_integer"), IR.create_constant_expression(create_integer_type(32, true), "2"), undefined),
-        IR.create_assignment_expression(IR.create_variable_expression("my_integer"), IR.create_variable_expression("other_integer"), IR.Binary_operation.Add),
-        IR.create_assignment_expression(IR.create_variable_expression("my_integer"), IR.create_variable_expression("other_integer"), IR.Binary_operation.Subtract),
-        IR.create_assignment_expression(IR.create_variable_expression("my_integer"), IR.create_variable_expression("other_integer"), IR.Binary_operation.Multiply),
-        IR.create_assignment_expression(IR.create_variable_expression("my_integer"), IR.create_variable_expression("other_integer"), IR.Binary_operation.Divide),
-        IR.create_assignment_expression(IR.create_variable_expression("my_integer"), IR.create_variable_expression("other_integer"), IR.Binary_operation.Modulus),
-        IR.create_assignment_expression(IR.create_variable_expression("my_integer"), IR.create_variable_expression("other_integer"), IR.Binary_operation.Bitwise_and),
-        IR.create_assignment_expression(IR.create_variable_expression("my_integer"), IR.create_variable_expression("other_integer"), IR.Binary_operation.Bitwise_or),
-        IR.create_assignment_expression(IR.create_variable_expression("my_integer"), IR.create_variable_expression("other_integer"), IR.Binary_operation.Bitwise_xor),
-        IR.create_assignment_expression(IR.create_variable_expression("my_integer"), IR.create_variable_expression("other_integer"), IR.Binary_operation.Bit_shift_left),
-        IR.create_assignment_expression(IR.create_variable_expression("my_integer"), IR.create_variable_expression("other_integer"), IR.Binary_operation.Bit_shift_right),
+        IR.create_assignment_expression(IR.create_variable_expression("my_integer", IR.Access_type.Write), IR.create_constant_expression(create_integer_type(32, true), "2"), undefined),
+        IR.create_assignment_expression(IR.create_variable_expression("my_integer", IR.Access_type.Read_write), IR.create_variable_expression("other_integer", IR.Access_type.Read), IR.Binary_operation.Add),
+        IR.create_assignment_expression(IR.create_variable_expression("my_integer", IR.Access_type.Read_write), IR.create_variable_expression("other_integer", IR.Access_type.Read), IR.Binary_operation.Subtract),
+        IR.create_assignment_expression(IR.create_variable_expression("my_integer", IR.Access_type.Read_write), IR.create_variable_expression("other_integer", IR.Access_type.Read), IR.Binary_operation.Multiply),
+        IR.create_assignment_expression(IR.create_variable_expression("my_integer", IR.Access_type.Read_write), IR.create_variable_expression("other_integer", IR.Access_type.Read), IR.Binary_operation.Divide),
+        IR.create_assignment_expression(IR.create_variable_expression("my_integer", IR.Access_type.Read_write), IR.create_variable_expression("other_integer", IR.Access_type.Read), IR.Binary_operation.Modulus),
+        IR.create_assignment_expression(IR.create_variable_expression("my_integer", IR.Access_type.Read_write), IR.create_variable_expression("other_integer", IR.Access_type.Read), IR.Binary_operation.Bitwise_and),
+        IR.create_assignment_expression(IR.create_variable_expression("my_integer", IR.Access_type.Read_write), IR.create_variable_expression("other_integer", IR.Access_type.Read), IR.Binary_operation.Bitwise_or),
+        IR.create_assignment_expression(IR.create_variable_expression("my_integer", IR.Access_type.Read_write), IR.create_variable_expression("other_integer", IR.Access_type.Read), IR.Binary_operation.Bitwise_xor),
+        IR.create_assignment_expression(IR.create_variable_expression("my_integer", IR.Access_type.Read_write), IR.create_variable_expression("other_integer", IR.Access_type.Read), IR.Binary_operation.Bit_shift_left),
+        IR.create_assignment_expression(IR.create_variable_expression("my_integer", IR.Access_type.Read_write), IR.create_variable_expression("other_integer", IR.Access_type.Read), IR.Binary_operation.Bit_shift_right),
     ];
 
     const statements: IR.Statement[] = [];
@@ -1534,15 +1545,15 @@ export function create_assignment_expressions(): IR.Module {
 export function create_unary_expressions(): IR.Module {
 
     const unary_expressions: [string, IR.Expression][] = [
-        ["not_variable", IR.create_unary_expression(IR.create_variable_expression("my_boolean"), IR.Unary_operation.Not)],
-        ["bitwise_not_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer"), IR.Unary_operation.Bitwise_not)],
-        ["minus_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer"), IR.Unary_operation.Minus)],
-        ["pre_increment_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer"), IR.Unary_operation.Pre_increment)],
-        ["post_increment_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer"), IR.Unary_operation.Post_increment)],
-        ["pre_decrement_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer"), IR.Unary_operation.Pre_decrement)],
-        ["post_decrement_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer"), IR.Unary_operation.Post_decrement)],
-        ["address_of_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer"), IR.Unary_operation.Address_of)],
-        ["indirection_variable", IR.create_unary_expression(IR.create_variable_expression("address_of_variable"), IR.Unary_operation.Indirection)]
+        ["not_variable", IR.create_unary_expression(IR.create_variable_expression("my_boolean", IR.Access_type.Read), IR.Unary_operation.Not)],
+        ["bitwise_not_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer", IR.Access_type.Read), IR.Unary_operation.Bitwise_not)],
+        ["minus_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer", IR.Access_type.Read), IR.Unary_operation.Minus)],
+        ["pre_increment_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer", IR.Access_type.Read_write), IR.Unary_operation.Pre_increment)],
+        ["post_increment_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer", IR.Access_type.Read_write), IR.Unary_operation.Post_increment)],
+        ["pre_decrement_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer", IR.Access_type.Read_write), IR.Unary_operation.Pre_decrement)],
+        ["post_decrement_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer", IR.Access_type.Read_write), IR.Unary_operation.Post_decrement)],
+        ["address_of_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer", IR.Access_type.Read), IR.Unary_operation.Address_of)],
+        ["indirection_variable", IR.create_unary_expression(IR.create_variable_expression("address_of_variable", IR.Access_type.Read), IR.Unary_operation.Indirection)]
     ];
 
     const statements: IR.Statement[] = [];
@@ -1691,9 +1702,9 @@ export function create_block_expressions(): IR.Module {
     const statements: IR.Statement[] = [
         create_statement(IR.create_variable_declaration_expression("a", false, IR.create_constant_expression(create_integer_type(32, true), "0"))),
         create_statement(IR.create_block_expression([
-            create_statement(IR.create_variable_declaration_expression("b", false, IR.create_variable_expression("a"))),
+            create_statement(IR.create_variable_declaration_expression("b", false, IR.create_variable_expression("a", IR.Access_type.Read))),
         ])),
-        create_statement(IR.create_variable_declaration_expression("b", false, IR.create_variable_expression("a"))),
+        create_statement(IR.create_variable_declaration_expression("b", false, IR.create_variable_expression("a", IR.Access_type.Read))),
     ];
 
     return {
@@ -1742,8 +1753,8 @@ export function create_for_loop_expressions(): IR.Module {
                     IR.create_block_expression([
                         create_statement(
                             IR.create_call_expression(
-                                IR.create_variable_expression("print_integer"),
-                                [IR.create_variable_expression("index")]
+                                IR.create_variable_expression("print_integer", IR.Access_type.Read),
+                                [IR.create_variable_expression("index", IR.Access_type.Read)]
                             )
                         )
                     ])
@@ -1758,8 +1769,8 @@ export function create_for_loop_expressions(): IR.Module {
                 undefined,
                 create_statement(
                     IR.create_call_expression(
-                        IR.create_variable_expression("print_integer"),
-                        [IR.create_variable_expression("index")]
+                        IR.create_variable_expression("print_integer", IR.Access_type.Read),
+                        [IR.create_variable_expression("index", IR.Access_type.Read)]
                     )
                 )
             )
@@ -1774,8 +1785,8 @@ export function create_for_loop_expressions(): IR.Module {
                     IR.create_block_expression([
                         create_statement(
                             IR.create_call_expression(
-                                IR.create_variable_expression("print_integer"),
-                                [IR.create_variable_expression("index")]
+                                IR.create_variable_expression("print_integer", IR.Access_type.Read),
+                                [IR.create_variable_expression("index", IR.Access_type.Read)]
                             )
                         )
                     ])
@@ -1795,8 +1806,8 @@ export function create_for_loop_expressions(): IR.Module {
                     IR.create_block_expression([
                         create_statement(
                             IR.create_call_expression(
-                                IR.create_variable_expression("print_integer"),
-                                [IR.create_variable_expression("index")]
+                                IR.create_variable_expression("print_integer", IR.Access_type.Read),
+                                [IR.create_variable_expression("index", IR.Access_type.Read)]
                             )
                         )
                     ])
@@ -1836,10 +1847,10 @@ export function create_for_loop_expressions(): IR.Module {
                         statements: [
                             create_statement(
                                 IR.create_call_expression(
-                                    IR.create_access_expression(IR.create_variable_expression("stdio"), "printf"),
+                                    IR.create_access_expression(IR.create_variable_expression("stdio", IR.Access_type.Read), "printf", IR.Access_type.Read),
                                     [
                                         IR.create_constant_expression(c_string_type, "%d"),
-                                        IR.create_variable_expression("value")
+                                        IR.create_variable_expression("value", IR.Access_type.Read)
                                     ]
                                 )
                             )
@@ -1888,7 +1899,7 @@ export function create_if_expressions(): IR.Module {
                                 [
                                     create_statement(
                                         IR.create_call_expression(
-                                            IR.create_variable_expression("print_message"),
+                                            IR.create_variable_expression("print_message", IR.Access_type.Read),
                                             [
                                                 IR.create_constant_expression(c_string_type, "zero")
                                             ]
@@ -1899,7 +1910,7 @@ export function create_if_expressions(): IR.Module {
                         ),
                         condition: create_statement(
                             IR.create_binary_expression(
-                                IR.create_variable_expression("value"),
+                                IR.create_variable_expression("value", IR.Access_type.Read),
                                 IR.create_constant_expression(int32_type, "0"),
                                 IR.Binary_operation.Equal
                             )
@@ -1917,7 +1928,7 @@ export function create_if_expressions(): IR.Module {
                                 [
                                     create_statement(
                                         IR.create_call_expression(
-                                            IR.create_variable_expression("print_message"),
+                                            IR.create_variable_expression("print_message", IR.Access_type.Read),
                                             [
                                                 IR.create_constant_expression(c_string_type, "negative")
                                             ]
@@ -1928,7 +1939,7 @@ export function create_if_expressions(): IR.Module {
                         ),
                         condition: create_statement(
                             IR.create_binary_expression(
-                                IR.create_variable_expression("value"),
+                                IR.create_variable_expression("value", IR.Access_type.Read),
                                 IR.create_constant_expression(int32_type, "0"),
                                 IR.Binary_operation.Less_than
                             )
@@ -1940,7 +1951,7 @@ export function create_if_expressions(): IR.Module {
                                 [
                                     create_statement(
                                         IR.create_call_expression(
-                                            IR.create_variable_expression("print_message"),
+                                            IR.create_variable_expression("print_message", IR.Access_type.Read),
                                             [
                                                 IR.create_constant_expression(c_string_type, "non-negative")
                                             ]
@@ -1963,7 +1974,7 @@ export function create_if_expressions(): IR.Module {
                                 [
                                     create_statement(
                                         IR.create_call_expression(
-                                            IR.create_variable_expression("print_message"),
+                                            IR.create_variable_expression("print_message", IR.Access_type.Read),
                                             [
                                                 IR.create_constant_expression(c_string_type, "negative")
                                             ]
@@ -1974,7 +1985,7 @@ export function create_if_expressions(): IR.Module {
                         ),
                         condition: create_statement(
                             IR.create_binary_expression(
-                                IR.create_variable_expression("value"),
+                                IR.create_variable_expression("value", IR.Access_type.Read),
                                 IR.create_constant_expression(int32_type, "0"),
                                 IR.Binary_operation.Less_than
                             )
@@ -1986,7 +1997,7 @@ export function create_if_expressions(): IR.Module {
                                 [
                                     create_statement(
                                         IR.create_call_expression(
-                                            IR.create_variable_expression("print_message"),
+                                            IR.create_variable_expression("print_message", IR.Access_type.Read),
                                             [
                                                 IR.create_constant_expression(c_string_type, "positive")
                                             ]
@@ -1997,7 +2008,7 @@ export function create_if_expressions(): IR.Module {
                         ),
                         condition: create_statement(
                             IR.create_binary_expression(
-                                IR.create_variable_expression("value"),
+                                IR.create_variable_expression("value", IR.Access_type.Read),
                                 IR.create_constant_expression(int32_type, "0"),
                                 IR.Binary_operation.Greater_than
                             )
@@ -2009,7 +2020,7 @@ export function create_if_expressions(): IR.Module {
                                 [
                                     create_statement(
                                         IR.create_call_expression(
-                                            IR.create_variable_expression("print_message"),
+                                            IR.create_variable_expression("print_message", IR.Access_type.Read),
                                             [
                                                 IR.create_constant_expression(c_string_type, "zero")
                                             ]
@@ -2029,7 +2040,7 @@ export function create_if_expressions(): IR.Module {
                     {
                         statement: create_statement(
                             IR.create_call_expression(
-                                IR.create_variable_expression("print_message"),
+                                IR.create_variable_expression("print_message", IR.Access_type.Read),
                                 [
                                     IR.create_constant_expression(c_string_type, "negative")
                                 ]
@@ -2037,7 +2048,7 @@ export function create_if_expressions(): IR.Module {
                         ),
                         condition: create_statement(
                             IR.create_binary_expression(
-                                IR.create_variable_expression("value"),
+                                IR.create_variable_expression("value", IR.Access_type.Read),
                                 IR.create_constant_expression(int32_type, "0"),
                                 IR.Binary_operation.Less_than
                             )
@@ -2046,7 +2057,7 @@ export function create_if_expressions(): IR.Module {
                     {
                         statement: create_statement(
                             IR.create_call_expression(
-                                IR.create_variable_expression("print_message"),
+                                IR.create_variable_expression("print_message", IR.Access_type.Read),
                                 [
                                     IR.create_constant_expression(c_string_type, "positive")
                                 ]
@@ -2054,7 +2065,7 @@ export function create_if_expressions(): IR.Module {
                         ),
                         condition: create_statement(
                             IR.create_binary_expression(
-                                IR.create_variable_expression("value"),
+                                IR.create_variable_expression("value", IR.Access_type.Read),
                                 IR.create_constant_expression(int32_type, "0"),
                                 IR.Binary_operation.Greater_than
                             )
@@ -2063,7 +2074,7 @@ export function create_if_expressions(): IR.Module {
                     {
                         statement: create_statement(
                             IR.create_call_expression(
-                                IR.create_variable_expression("print_message"),
+                                IR.create_variable_expression("print_message", IR.Access_type.Read),
                                 [
                                     IR.create_constant_expression(c_string_type, "zero")
                                 ]
@@ -2107,10 +2118,10 @@ export function create_if_expressions(): IR.Module {
                         statements: [
                             create_statement(
                                 IR.create_call_expression(
-                                    IR.create_access_expression(IR.create_variable_expression("stdio"), "printf"),
+                                    IR.create_access_expression(IR.create_variable_expression("stdio", IR.Access_type.Read), "printf", IR.Access_type.Read),
                                     [
                                         IR.create_constant_expression(c_string_type, "%s\n"),
-                                        IR.create_variable_expression("message")
+                                        IR.create_variable_expression("message", IR.Access_type.Read)
                                     ]
                                 )
                             )
@@ -2151,7 +2162,7 @@ export function create_switch_expressions(): IR.Module {
     const statements: IR.Statement[] = [
         create_statement(
             IR.create_switch_expression(
-                IR.create_variable_expression("value"),
+                IR.create_variable_expression("value", IR.Access_type.Read),
                 [
                     {
                         case_value: IR.create_constant_expression(int32_type, "0"),
@@ -2165,7 +2176,7 @@ export function create_switch_expressions(): IR.Module {
                             ),
                             create_statement(
                                 IR.create_return_expression(
-                                    IR.create_variable_expression("return_value")
+                                    IR.create_variable_expression("return_value", IR.Access_type.Read)
                                 )
                             )
                         ]
@@ -2175,7 +2186,7 @@ export function create_switch_expressions(): IR.Module {
         ),
         create_statement(
             IR.create_switch_expression(
-                IR.create_variable_expression("value"),
+                IR.create_variable_expression("value", IR.Access_type.Read),
                 [
                     {
                         case_value: IR.create_constant_expression(int32_type, "1"),
@@ -2228,7 +2239,7 @@ export function create_switch_expressions(): IR.Module {
         ),
         create_statement(
             IR.create_switch_expression(
-                IR.create_variable_expression("value"),
+                IR.create_variable_expression("value", IR.Access_type.Read),
                 [
                     {
                         case_value: undefined,
@@ -2293,7 +2304,7 @@ export function create_ternary_condition_expressions(): IR.Module {
         create_statement(
             IR.create_variable_declaration_expression("a", false,
                 IR.create_ternary_condition_expression(
-                    IR.create_variable_expression("first_boolean"),
+                    IR.create_variable_expression("first_boolean", IR.Access_type.Read),
                     IR.create_constant_expression(int32_type, "1"),
                     IR.create_constant_expression(int32_type, "0")
                 )
@@ -2303,7 +2314,7 @@ export function create_ternary_condition_expressions(): IR.Module {
             IR.create_variable_declaration_expression("b", false,
                 IR.create_ternary_condition_expression(
                     IR.create_binary_expression(
-                        IR.create_variable_expression("first_boolean"),
+                        IR.create_variable_expression("first_boolean", IR.Access_type.Read),
                         IR.create_constant_expression(bool_type, "false"),
                         IR.Binary_operation.Equal
                     ),
@@ -2316,7 +2327,7 @@ export function create_ternary_condition_expressions(): IR.Module {
             IR.create_variable_declaration_expression("c", false,
                 IR.create_ternary_condition_expression(
                     IR.create_unary_expression(
-                        IR.create_variable_expression("first_boolean"),
+                        IR.create_variable_expression("first_boolean", IR.Access_type.Read),
                         IR.Unary_operation.Not
                     ),
                     IR.create_constant_expression(int32_type, "1"),
@@ -2327,9 +2338,9 @@ export function create_ternary_condition_expressions(): IR.Module {
         create_statement(
             IR.create_variable_declaration_expression("d", false,
                 IR.create_ternary_condition_expression(
-                    IR.create_variable_expression("first_boolean"),
+                    IR.create_variable_expression("first_boolean", IR.Access_type.Read),
                     IR.create_ternary_condition_expression(
-                        IR.create_variable_expression("second_boolean"),
+                        IR.create_variable_expression("second_boolean", IR.Access_type.Read),
                         IR.create_constant_expression(int32_type, "2"),
                         IR.create_constant_expression(int32_type, "1")
                     ),
@@ -2387,8 +2398,8 @@ export function create_while_loop_expressions(): IR.Module {
                         IR.create_while_loop_expression(
                             create_statement(
                                 IR.create_binary_expression(
-                                    IR.create_variable_expression("index"),
-                                    IR.create_variable_expression("size"),
+                                    IR.create_variable_expression("index", IR.Access_type.Read),
+                                    IR.create_variable_expression("size", IR.Access_type.Read),
                                     IR.Binary_operation.Less_than
                                 )
                             ),
@@ -2397,15 +2408,15 @@ export function create_while_loop_expressions(): IR.Module {
                                     [
                                         create_statement(
                                             IR.create_call_expression(
-                                                IR.create_variable_expression("print_integer"),
+                                                IR.create_variable_expression("print_integer", IR.Access_type.Read),
                                                 [
-                                                    IR.create_variable_expression("index")
+                                                    IR.create_variable_expression("index", IR.Access_type.Read)
                                                 ]
                                             )
                                         ),
                                         create_statement(
                                             IR.create_assignment_expression(
-                                                IR.create_variable_expression("index"),
+                                                IR.create_variable_expression("index", IR.Access_type.Read_write),
                                                 IR.create_constant_expression(int32_type, "1"),
                                                 IR.Binary_operation.Add
                                             )
@@ -2430,8 +2441,8 @@ export function create_while_loop_expressions(): IR.Module {
                         IR.create_while_loop_expression(
                             create_statement(
                                 IR.create_binary_expression(
-                                    IR.create_variable_expression("index"),
-                                    IR.create_variable_expression("size"),
+                                    IR.create_variable_expression("index", IR.Access_type.Read),
+                                    IR.create_variable_expression("size", IR.Access_type.Read),
                                     IR.Binary_operation.Less_than
                                 )
                             ),
@@ -2448,7 +2459,7 @@ export function create_while_loop_expressions(): IR.Module {
                                                         condition: create_statement(
                                                             IR.create_binary_expression(
                                                                 IR.create_binary_expression(
-                                                                    IR.create_variable_expression("index"),
+                                                                    IR.create_variable_expression("index", IR.Access_type.Read),
                                                                     IR.create_constant_expression(int32_type, "2"),
                                                                     IR.Binary_operation.Modulus
                                                                 ),
@@ -2469,7 +2480,7 @@ export function create_while_loop_expressions(): IR.Module {
                                                         ),
                                                         condition: create_statement(
                                                             IR.create_binary_expression(
-                                                                IR.create_variable_expression("index"),
+                                                                IR.create_variable_expression("index", IR.Access_type.Read),
                                                                 IR.create_constant_expression(int32_type, "5"),
                                                                 IR.Binary_operation.Greater_than
                                                             )
@@ -2480,15 +2491,15 @@ export function create_while_loop_expressions(): IR.Module {
                                         ),
                                         create_statement(
                                             IR.create_call_expression(
-                                                IR.create_variable_expression("print_integer"),
+                                                IR.create_variable_expression("print_integer", IR.Access_type.Read),
                                                 [
-                                                    IR.create_variable_expression("index")
+                                                    IR.create_variable_expression("index", IR.Access_type.Read)
                                                 ]
                                             )
                                         ),
                                         create_statement(
                                             IR.create_assignment_expression(
-                                                IR.create_variable_expression("index"),
+                                                IR.create_variable_expression("index", IR.Access_type.Read_write),
                                                 IR.create_constant_expression(int32_type, "1"),
                                                 IR.Binary_operation.Add
                                             )
@@ -2534,10 +2545,10 @@ export function create_while_loop_expressions(): IR.Module {
                         statements: [
                             create_statement(
                                 IR.create_call_expression(
-                                    IR.create_access_expression(IR.create_variable_expression("stdio"), "printf"),
+                                    IR.create_access_expression(IR.create_variable_expression("stdio", IR.Access_type.Read), "printf", IR.Access_type.Read),
                                     [
                                         IR.create_constant_expression(c_string_type, "%d"),
-                                        IR.create_variable_expression("value")
+                                        IR.create_variable_expression("value", IR.Access_type.Read)
                                     ]
                                 )
                             )
@@ -2581,7 +2592,7 @@ export function create_break_expressions(): IR.Module {
             IR.create_for_loop_expression(
                 "index",
                 IR.create_constant_expression(int32_type, "0"),
-                IR.create_variable_expression("size"),
+                IR.create_variable_expression("size", IR.Access_type.Read),
                 undefined,
                 create_statement(
                     IR.create_block_expression(
@@ -2595,7 +2606,7 @@ export function create_break_expressions(): IR.Module {
                                             ),
                                             condition: create_statement(
                                                 IR.create_binary_expression(
-                                                    IR.create_variable_expression("index"),
+                                                    IR.create_variable_expression("index", IR.Access_type.Read),
                                                     IR.create_constant_expression(int32_type, "4"),
                                                     IR.Binary_operation.Greater_than
                                                 )
@@ -2606,9 +2617,9 @@ export function create_break_expressions(): IR.Module {
                             ),
                             create_statement(
                                 IR.create_call_expression(
-                                    IR.create_variable_expression("print_integer"),
+                                    IR.create_variable_expression("print_integer", IR.Access_type.Read),
                                     [
-                                        IR.create_variable_expression("index")
+                                        IR.create_variable_expression("index", IR.Access_type.Read)
                                     ]
                                 )
                             ),
@@ -2621,7 +2632,7 @@ export function create_break_expressions(): IR.Module {
             IR.create_for_loop_expression(
                 "index",
                 IR.create_constant_expression(int32_type, "0"),
-                IR.create_variable_expression("size"),
+                IR.create_variable_expression("size", IR.Access_type.Read),
                 undefined,
                 create_statement(
                     IR.create_block_expression(
@@ -2637,8 +2648,8 @@ export function create_break_expressions(): IR.Module {
                                 IR.create_while_loop_expression(
                                     create_statement(
                                         IR.create_binary_expression(
-                                            IR.create_variable_expression("index_2"),
-                                            IR.create_variable_expression("size"),
+                                            IR.create_variable_expression("index_2", IR.Access_type.Read),
+                                            IR.create_variable_expression("size", IR.Access_type.Read),
                                             IR.Binary_operation.Less_than
                                         )
                                     ),
@@ -2654,7 +2665,7 @@ export function create_break_expressions(): IR.Module {
                                                                 ),
                                                                 condition: create_statement(
                                                                     IR.create_binary_expression(
-                                                                        IR.create_variable_expression("index"),
+                                                                        IR.create_variable_expression("index", IR.Access_type.Read),
                                                                         IR.create_constant_expression(int32_type, "3"),
                                                                         IR.Binary_operation.Greater_than
                                                                     )
@@ -2665,15 +2676,15 @@ export function create_break_expressions(): IR.Module {
                                                 ),
                                                 create_statement(
                                                     IR.create_call_expression(
-                                                        IR.create_variable_expression("print_integer"),
+                                                        IR.create_variable_expression("print_integer", IR.Access_type.Read),
                                                         [
-                                                            IR.create_variable_expression("index_2")
+                                                            IR.create_variable_expression("index_2", IR.Access_type.Read)
                                                         ]
                                                     )
                                                 ),
                                                 create_statement(
                                                     IR.create_assignment_expression(
-                                                        IR.create_variable_expression("index"),
+                                                        IR.create_variable_expression("index", IR.Access_type.Read_write),
                                                         IR.create_constant_expression(int32_type, "1"),
                                                         IR.Binary_operation.Add
                                                     )
@@ -2685,9 +2696,9 @@ export function create_break_expressions(): IR.Module {
                             ),
                             create_statement(
                                 IR.create_call_expression(
-                                    IR.create_variable_expression("print_integer"),
+                                    IR.create_variable_expression("print_integer", IR.Access_type.Read),
                                     [
-                                        IR.create_variable_expression("index")
+                                        IR.create_variable_expression("index", IR.Access_type.Read)
                                     ]
                                 )
                             ),
@@ -2700,7 +2711,7 @@ export function create_break_expressions(): IR.Module {
             IR.create_for_loop_expression(
                 "index",
                 IR.create_constant_expression(int32_type, "0"),
-                IR.create_variable_expression("size"),
+                IR.create_variable_expression("size", IR.Access_type.Read),
                 undefined,
                 create_statement(
                     IR.create_block_expression(
@@ -2716,8 +2727,8 @@ export function create_break_expressions(): IR.Module {
                                 IR.create_while_loop_expression(
                                     create_statement(
                                         IR.create_binary_expression(
-                                            IR.create_variable_expression("index_2"),
-                                            IR.create_variable_expression("size"),
+                                            IR.create_variable_expression("index_2", IR.Access_type.Read),
+                                            IR.create_variable_expression("size", IR.Access_type.Read),
                                             IR.Binary_operation.Less_than
                                         )
                                     ),
@@ -2733,7 +2744,7 @@ export function create_break_expressions(): IR.Module {
                                                                 ),
                                                                 condition: create_statement(
                                                                     IR.create_binary_expression(
-                                                                        IR.create_variable_expression("index"),
+                                                                        IR.create_variable_expression("index", IR.Access_type.Read),
                                                                         IR.create_constant_expression(int32_type, "3"),
                                                                         IR.Binary_operation.Greater_than
                                                                     )
@@ -2744,15 +2755,15 @@ export function create_break_expressions(): IR.Module {
                                                 ),
                                                 create_statement(
                                                     IR.create_call_expression(
-                                                        IR.create_variable_expression("print_integer"),
+                                                        IR.create_variable_expression("print_integer", IR.Access_type.Read),
                                                         [
-                                                            IR.create_variable_expression("index_2")
+                                                            IR.create_variable_expression("index_2", IR.Access_type.Read)
                                                         ]
                                                     )
                                                 ),
                                                 create_statement(
                                                     IR.create_assignment_expression(
-                                                        IR.create_variable_expression("index"),
+                                                        IR.create_variable_expression("index", IR.Access_type.Read_write),
                                                         IR.create_constant_expression(int32_type, "1"),
                                                         IR.Binary_operation.Add
                                                     )
@@ -2764,9 +2775,9 @@ export function create_break_expressions(): IR.Module {
                             ),
                             create_statement(
                                 IR.create_call_expression(
-                                    IR.create_variable_expression("print_integer"),
+                                    IR.create_variable_expression("print_integer", IR.Access_type.Read),
                                     [
-                                        IR.create_variable_expression("index")
+                                        IR.create_variable_expression("index", IR.Access_type.Read)
                                     ]
                                 )
                             ),
@@ -2808,10 +2819,10 @@ export function create_break_expressions(): IR.Module {
                         statements: [
                             create_statement(
                                 IR.create_call_expression(
-                                    IR.create_access_expression(IR.create_variable_expression("stdio"), "printf"),
+                                    IR.create_access_expression(IR.create_variable_expression("stdio", IR.Access_type.Read), "printf", IR.Access_type.Read),
                                     [
                                         IR.create_constant_expression(c_string_type, "%d"),
-                                        IR.create_variable_expression("value")
+                                        IR.create_variable_expression("value", IR.Access_type.Read)
                                     ]
                                 )
                             )

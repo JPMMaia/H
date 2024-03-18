@@ -25,6 +25,14 @@
             ]
         },
         {
+            "name": "Access_type",
+            "values": [
+                "Read",
+                "Write",
+                "Read_write"
+            ]
+        },
+        {
             "name": "Binary_operation",
             "values": [
                 "Add",
@@ -312,6 +320,12 @@
                         "name": "std::pmr::string"
                     },
                     "name": "name"
+                },
+                {
+                    "type": {
+                        "name": "Access_type"
+                    },
+                    "name": "access_type"
                 }
             ]
         },
@@ -340,6 +354,12 @@
                         "name": "std::pmr::string"
                     },
                     "name": "member_name"
+                },
+                {
+                    "type": {
+                        "name": "Access_type"
+                    },
+                    "name": "access_type"
                 }
             ]
         },

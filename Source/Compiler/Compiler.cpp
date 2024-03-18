@@ -1817,18 +1817,51 @@ namespace h::compiler
     Value_and_type create_value(
         Module const& core_module,
         Variable_expression const& expression,
+        llvm::LLVMContext& llvm_context,
+        llvm::DataLayout const& llvm_data_layout,
         llvm::Module& llvm_module,
+        llvm::IRBuilder<>& llvm_builder,
         std::span<Value_and_type const> const function_arguments,
-        std::span<Value_and_type const> const local_variables
+        std::span<Value_and_type const> const local_variables,
+        Struct_types const& struct_types
     )
     {
         char const* const variable_name = expression.name.c_str();
 
-        // Search in local variables and function arguments:
+        auto const is_variable = [variable_name](Value_and_type const& element) -> bool
         {
-            std::optional<Value_and_type> location = search_in_function_scope(variable_name, function_arguments, local_variables);
-            if (location.has_value())
-                return location.value();
+            return to_string_view(element.value->getName()) == variable_name;
+        };
+
+        // Search in local variables:
+        {
+            auto const location = std::find_if(local_variables.rbegin(), local_variables.rend(), is_variable);
+            if (location != local_variables.rend())
+            {
+                if (expression.access_type == Access_type::Read)
+                {
+                    Type_reference const& type = location->type.value();
+                    llvm::Type* const llvm_pointee_type = to_type(llvm_context, llvm_data_layout, type, struct_types);
+                    llvm::Value* const loaded_value = llvm_builder.CreateLoad(llvm_pointee_type, location->value);
+
+                    return Value_and_type
+                    {
+                        .value = loaded_value,
+                        .type = type
+                    };
+                }
+                else
+                {
+                    return *location;
+                }
+            }
+        }
+
+        // Search in function arguments:
+        {
+            auto const location = std::find_if(function_arguments.begin(), function_arguments.end(), is_variable);
+            if (location != function_arguments.end())
+                return *location;
         }
 
         // Search for functions in this module:
@@ -1941,7 +1974,7 @@ namespace h::compiler
         else if (std::holds_alternative<Variable_expression>(expression.data))
         {
             Variable_expression const& data = std::get<Variable_expression>(expression.data);
-            return create_value(core_module, data, llvm_module, function_arguments, local_variables);
+            return create_value(core_module, data, llvm_context, llvm_data_layout, llvm_module, llvm_builder, function_arguments, local_variables, struct_types);
         }
         else if (std::holds_alternative<Variable_declaration_expression>(expression.data))
         {

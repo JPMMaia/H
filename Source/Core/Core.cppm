@@ -158,9 +158,17 @@ namespace h
         friend auto operator<=>(Statement const&, Statement const&) = default;
     };
 
+    export enum Access_type
+    {
+        Read = 1,
+        Write = 2,
+        Read_write = 3
+    };
+
     export struct Variable_expression
     {
         std::pmr::string name;
+        Access_type access_type;
 
         friend auto operator<=>(Variable_expression const&, Variable_expression const&) = default;
     };
@@ -202,6 +210,7 @@ namespace h
     {
         Expression_index expression;
         std::pmr::string member_name;
+        Access_type access_type;
 
         friend auto operator<=>(Access_expression const&, Access_expression const&) = default;
     };
