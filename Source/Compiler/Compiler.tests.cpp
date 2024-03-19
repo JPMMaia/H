@@ -201,50 +201,54 @@ entry:
   %10 = add i32 %9, %b
   %case_4 = alloca i32, align 4
   store i32 %10, ptr %case_4, align 4
+  %11 = load i32, ptr %case_0, align 4
   %pointer_a = alloca ptr, align 8
   store ptr %case_0, ptr %pointer_a, align 8
+  %12 = load i32, ptr %case_1, align 4
   %pointer_b = alloca ptr, align 8
   store ptr %case_1, ptr %pointer_b, align 8
-  %11 = load ptr, ptr %pointer_b, align 8
-  %12 = load i32, ptr %11, align 4
-  %13 = load ptr, ptr %pointer_a, align 8
-  %14 = load i32, ptr %13, align 4
-  %15 = mul i32 %14, %12
+  %13 = load ptr, ptr %pointer_b, align 8
+  %14 = load ptr, ptr %13, align 8
+  %15 = load i32, ptr %14, align 4
+  %16 = load ptr, ptr %pointer_a, align 8
+  %17 = load ptr, ptr %16, align 8
+  %18 = load i32, ptr %17, align 4
+  %19 = mul i32 %18, %15
   %case_7 = alloca i32, align 4
-  store i32 %15, ptr %case_7, align 4
-  %16 = add i32 %a, %b
-  %17 = mul i32 %16, %c
+  store i32 %19, ptr %case_7, align 4
+  %20 = add i32 %a, %b
+  %21 = mul i32 %20, %c
   %case_8 = alloca i32, align 4
-  store i32 %17, ptr %case_8, align 4
-  %18 = add i32 %b, %c
-  %19 = mul i32 %a, %18
+  store i32 %21, ptr %case_8, align 4
+  %22 = add i32 %b, %c
+  %23 = mul i32 %a, %22
   %case_9 = alloca i32, align 4
-  store i32 %19, ptr %case_9, align 4
-  %20 = icmp eq i32 %b, 1
-  %21 = icmp eq i32 %a, 0
-  %22 = and i1 %21, %20
+  store i32 %23, ptr %case_9, align 4
+  %24 = icmp eq i32 %b, 1
+  %25 = icmp eq i32 %a, 0
+  %26 = and i1 %25, %24
   %case_10 = alloca i1, align 1
-  store i1 %22, ptr %case_10, align 1
-  %23 = and i32 %b, %a
-  %24 = and i32 %a, %b
-  %25 = icmp eq i32 %24, %23
+  store i1 %26, ptr %case_10, align 1
+  %27 = and i32 %b, %a
+  %28 = and i32 %a, %b
+  %29 = icmp eq i32 %28, %27
   %case_11 = alloca i1, align 1
-  store i1 %25, ptr %case_11, align 1
-  %26 = icmp slt i32 %b, %c
-  %27 = icmp slt i32 %a, %b
-  %28 = and i1 %27, %26
+  store i1 %29, ptr %case_11, align 1
+  %30 = icmp slt i32 %b, %c
+  %31 = icmp slt i32 %a, %b
+  %32 = and i1 %31, %30
   %case_12 = alloca i1, align 1
-  store i1 %28, ptr %case_12, align 1
-  %29 = add i32 %b, %c
-  %30 = add i32 %a, %b
-  %31 = icmp eq i32 %30, %29
+  store i1 %32, ptr %case_12, align 1
+  %33 = add i32 %b, %c
+  %34 = add i32 %a, %b
+  %35 = icmp eq i32 %34, %33
   %case_13 = alloca i1, align 1
-  store i1 %31, ptr %case_13, align 1
-  %32 = sub i32 0, %b
-  %33 = sub i32 0, %a
-  %34 = add i32 %33, %32
+  store i1 %35, ptr %case_13, align 1
+  %36 = sub i32 0, %b
+  %37 = sub i32 0, %a
+  %38 = add i32 %37, %36
   %case_14 = alloca i32, align 4
-  store i32 %34, ptr %case_14, align 4
+  store i32 %38, ptr %case_14, align 4
   ret void
 }
 
@@ -407,16 +411,12 @@ define void @run_blocks() {
 entry:
   %a = alloca i32, align 4
   store i32 0, ptr %a, align 4
-  br label %begin_block
-
-begin_block:                                      ; preds = %entry
-  %b = alloca ptr, align 8
-  store ptr %a, ptr %b, align 8
-  br label %end_block
-
-end_block:                                        ; preds = %begin_block
-  %b1 = alloca ptr, align 8
-  store ptr %a, ptr %b1, align 8
+  %0 = load i32, ptr %a, align 4
+  %b = alloca i32, align 4
+  store i32 %0, ptr %b, align 4
+  %1 = load i32, ptr %a, align 4
+  %b1 = alloca i32, align 4
+  store i32 %1, ptr %b1, align 4
   ret void
 }
 )";
@@ -735,12 +735,14 @@ define void @pointers() {
 entry:
   %a = alloca i32, align 4
   store i32 1, ptr %a, align 4
+  %0 = load i32, ptr %a, align 4
   %pointer_a = alloca ptr, align 8
   store ptr %a, ptr %pointer_a, align 8
-  %0 = load ptr, ptr %pointer_a, align 8
-  %1 = load i32, ptr %0, align 4
+  %1 = load ptr, ptr %pointer_a, align 8
+  %2 = load ptr, ptr %1, align 8
+  %3 = load i32, ptr %2, align 4
   %dereferenced_a = alloca i32, align 4
-  store i32 %1, ptr %dereferenced_a, align 4
+  store i32 %3, ptr %dereferenced_a, align 4
   ret void
 }
 )";
@@ -818,12 +820,14 @@ entry:
   store i32 %10, ptr %my_mutable_integer, align 4
   %post_decrement_variable = alloca i32, align 4
   store i32 %9, ptr %post_decrement_variable, align 4
+  %11 = load i32, ptr %my_mutable_integer, align 4
   %address_of_variable = alloca ptr, align 8
   store ptr %my_mutable_integer, ptr %address_of_variable, align 8
-  %11 = load ptr, ptr %address_of_variable, align 8
-  %12 = load i32, ptr %11, align 4
+  %12 = load ptr, ptr %address_of_variable, align 8
+  %13 = load ptr, ptr %12, align 8
+  %14 = load i32, ptr %13, align 4
   %indirection_variable = alloca i32, align 4
-  store i32 %12, ptr %indirection_variable, align 4
+  store i32 %14, ptr %indirection_variable, align 4
   ret void
 }
 )";
@@ -864,6 +868,73 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
+@global_0 = internal constant [3 x i8] c"%d\00"
+
+define void @run_while_loops(i32 %size) {
+entry:
+  %index = alloca i32, align 4
+  store i32 0, ptr %index, align 4
+  br label %while_loop_condition
+
+while_loop_condition:                             ; preds = %while_loop_then, %entry
+  %0 = load i32, ptr %index, align 4
+  %1 = icmp slt i32 %0, %size
+  br i1 %1, label %while_loop_then, label %while_loop_after
+
+while_loop_then:                                  ; preds = %while_loop_condition
+  %2 = load i32, ptr %index, align 4
+  call void @print_integer(i32 %2)
+  %3 = load i32, ptr %index, align 4
+  %4 = add i32 %3, 1
+  store i32 %4, ptr %index, align 4
+  br label %while_loop_condition
+
+while_loop_after:                                 ; preds = %while_loop_condition
+  %index1 = alloca i32, align 4
+  store i32 0, ptr %index1, align 4
+  br label %while_loop_condition2
+
+while_loop_condition2:                            ; preds = %if_s1_after6, %if_s0_then, %while_loop_after
+  %5 = load i32, ptr %index1, align 4
+  %6 = icmp slt i32 %5, %size
+  br i1 %6, label %while_loop_then3, label %while_loop_after4
+
+while_loop_then3:                                 ; preds = %while_loop_condition2
+  %7 = load i32, ptr %index1, align 4
+  %8 = srem i32 %7, 2
+  %9 = icmp eq i32 %8, 0
+  br i1 %9, label %if_s0_then, label %if_s1_after
+
+while_loop_after4:                                ; preds = %if_s0_then5, %while_loop_condition2
+  ret void
+
+if_s0_then:                                       ; preds = %while_loop_then3
+  br label %while_loop_condition2
+
+if_s1_after:                                      ; preds = %while_loop_then3
+  %10 = load i32, ptr %index1, align 4
+  %11 = icmp sgt i32 %10, 5
+  br i1 %11, label %if_s0_then5, label %if_s1_after6
+
+if_s0_then5:                                      ; preds = %if_s1_after
+  br label %while_loop_after4
+
+if_s1_after6:                                     ; preds = %if_s1_after
+  %12 = load i32, ptr %index1, align 4
+  call void @print_integer(i32 %12)
+  %13 = load i32, ptr %index1, align 4
+  %14 = add i32 %13, 1
+  store i32 %14, ptr %index1, align 4
+  br label %while_loop_condition2
+}
+
+define private void @print_integer(i32 %value) {
+entry:
+  %0 = call i32 (ptr, ...) @printf(ptr @global_0, i32 %value)
+  ret void
+}
+
+declare i32 @printf(ptr, ...)
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);

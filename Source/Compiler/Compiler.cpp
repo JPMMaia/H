@@ -528,6 +528,34 @@ namespace h::compiler
         return *llvm_function;
     }
 
+    bool ends_with_break_or_continue_statement(std::span<Statement const> const statements)
+    {
+        if (statements.empty())
+            return false;
+
+        Statement const& last_statement = statements.back();
+
+        if (last_statement.expressions.empty())
+            return false;
+
+        Expression const& first_expression = last_statement.expressions[0];
+        return std::holds_alternative<Break_expression>(first_expression.data) || std::holds_alternative<Continue_expression>(first_expression.data);
+    }
+
+    enum class Block_type
+    {
+        For_loop,
+        Switch,
+        While_loop
+    };
+
+    struct Block_info
+    {
+        Block_type block_type = {};
+        llvm::BasicBlock* repeat_block = nullptr;
+        llvm::BasicBlock* after_block = nullptr;
+    };
+
     struct Value_and_type
     {
         std::pmr::string name;
@@ -572,6 +600,7 @@ namespace h::compiler
         llvm::Module& llvm_module,
         llvm::IRBuilder<>& llvm_builder,
         llvm::Function* const llvm_parent_function,
+        std::span<Block_info const> const blocks,
         std::span<Value_and_type const> function_arguments,
         std::span<Value_and_type const> local_variables,
         std::span<Value_and_type const> temporaries,
@@ -1128,6 +1157,7 @@ namespace h::compiler
         llvm::Module& llvm_module,
         llvm::IRBuilder<>& llvm_builder,
         llvm::Function* const llvm_parent_function,
+        std::span<Block_info const> const blocks,
         std::span<Value_and_type const> function_arguments,
         std::span<Value_and_type const> local_variables,
         Struct_types const& struct_types,
@@ -1151,6 +1181,7 @@ namespace h::compiler
                 llvm_module,
                 llvm_builder,
                 llvm_parent_function,
+                blocks,
                 function_arguments,
                 local_variables,
                 temporaries,
@@ -1174,6 +1205,7 @@ namespace h::compiler
         llvm::Module& llvm_module,
         llvm::IRBuilder<>& llvm_builder,
         llvm::Function* const llvm_parent_function,
+        std::span<Block_info const> const blocks,
         std::span<Value_and_type const> function_arguments,
         std::span<Value_and_type const> local_variables,
         Struct_types const& struct_types,
@@ -1195,6 +1227,7 @@ namespace h::compiler
                 llvm_module,
                 llvm_builder,
                 llvm_parent_function,
+                blocks,
                 function_arguments,
                 all_local_variables,
                 struct_types,
@@ -1214,6 +1247,7 @@ namespace h::compiler
         llvm::Module& llvm_module,
         llvm::IRBuilder<>& llvm_builder,
         llvm::Function* const llvm_parent_function,
+        std::span<Block_info const> const blocks,
         std::span<Value_and_type const> function_arguments,
         std::span<Value_and_type const> local_variables,
         Struct_types const& struct_types,
@@ -1221,10 +1255,6 @@ namespace h::compiler
     )
     {
         std::span<Statement const> statements = block_expression.statements;
-
-        llvm::BasicBlock* const begin_block = llvm::BasicBlock::Create(llvm_context, "begin_block", llvm_parent_function);
-        llvm_builder.CreateBr(begin_block);
-        llvm_builder.SetInsertPoint(begin_block);
 
         create_statement_values(
             statements,
@@ -1235,20 +1265,58 @@ namespace h::compiler
             llvm_module,
             llvm_builder,
             llvm_parent_function,
+            blocks,
             function_arguments,
             local_variables,
             struct_types,
             temporaries_allocator
         );
 
-        llvm::BasicBlock* const end_block = llvm::BasicBlock::Create(llvm_context, "end_block", llvm_parent_function);
-        llvm_builder.CreateBr(end_block);
-        llvm_builder.SetInsertPoint(end_block);
+        return Value_and_type
+        {
+            .name = "",
+            .value = nullptr,
+            .type = std::nullopt
+        };
+    }
+
+    Value_and_type create_value(
+        Break_expression const& break_expression,
+        llvm::IRBuilder<>& llvm_builder,
+        std::span<Block_info const> const blocks
+    )
+    {
+        auto const find_target_block = [&]() -> llvm::BasicBlock*
+        {
+            std::uint64_t target_break_count = break_expression.loop_count <= 1 ? 1 : break_expression.loop_count;
+            std::uint64_t found_break_blocks = 0;
+
+            for (std::size_t index = 0; index < blocks.size(); ++index)
+            {
+                std::size_t const block_index = blocks.size() - index - 1;
+                Block_info const& block_info = blocks[block_index];
+
+                if (block_info.block_type == Block_type::For_loop || block_info.block_type == Block_type::Switch || block_info.block_type == Block_type::While_loop)
+                {
+                    found_break_blocks += 1;
+
+                    if (found_break_blocks == target_break_count)
+                    {
+                        return block_info.after_block;
+                    }
+                }
+            }
+
+            throw std::runtime_error{ std::format("Could not find block to break!") };
+        };
+
+        llvm::BasicBlock* const target_block = find_target_block();
+        llvm_builder.CreateBr(target_block);
 
         return Value_and_type
         {
             .name = "",
-            .value = begin_block,
+            .value = nullptr,
             .type = std::nullopt
         };
     }
@@ -1550,6 +1618,39 @@ namespace h::compiler
         throw std::runtime_error{ "Constant expression not handled!" };
     }
 
+    Value_and_type create_value(
+        Continue_expression const& continue_expression,
+        llvm::IRBuilder<>& llvm_builder,
+        std::span<Block_info const> const block_infos
+    )
+    {
+        auto const find_target_block = [&]() -> llvm::BasicBlock*
+        {
+            for (std::size_t index = 0; index < block_infos.size(); ++index)
+            {
+                std::size_t const block_index = block_infos.size() - index - 1;
+                Block_info const& block_info = block_infos[block_index];
+
+                if (block_info.block_type == Block_type::For_loop || block_info.block_type == Block_type::While_loop)
+                {
+                    return block_info.repeat_block;
+                }
+            }
+
+            throw std::runtime_error{ std::format("Could not find loop block to continue!") };
+        };
+
+        llvm::BasicBlock* const target_block = find_target_block();
+        llvm_builder.CreateBr(target_block);
+
+        return Value_and_type
+        {
+            .name = "",
+            .value = nullptr,
+            .type = std::nullopt
+        };
+    }
+
     std::pmr::vector<Statement> skip_block(Statement const& statement)
     {
         if (statement.expressions.empty())
@@ -1574,6 +1675,7 @@ namespace h::compiler
         llvm::Module& llvm_module,
         llvm::IRBuilder<>& llvm_builder,
         llvm::Function* const llvm_parent_function,
+        std::span<Block_info const> const block_infos,
         std::span<Value_and_type const> function_arguments,
         std::span<Value_and_type const> local_variables,
         std::span<Value_and_type const> const temporaries,
@@ -1640,6 +1742,7 @@ namespace h::compiler
                     llvm_module,
                     llvm_builder,
                     llvm_parent_function,
+                    block_infos,
                     function_arguments,
                     local_variables,
                     struct_types,
@@ -1663,12 +1766,15 @@ namespace h::compiler
                     llvm_module,
                     llvm_builder,
                     llvm_parent_function,
+                    block_infos,
                     function_arguments,
                     local_variables,
                     struct_types,
                     temporaries_allocator
                 );
-                llvm_builder.CreateBr(end_if_block);
+
+                if (!ends_with_break_or_continue_statement(statements))
+                    llvm_builder.CreateBr(end_if_block);
 
                 llvm_builder.SetInsertPoint(else_block);
             }
@@ -1684,12 +1790,15 @@ namespace h::compiler
                     llvm_module,
                     llvm_builder,
                     llvm_parent_function,
+                    block_infos,
                     function_arguments,
                     local_variables,
                     struct_types,
                     temporaries_allocator
                 );
-                llvm_builder.CreateBr(end_if_block);
+
+                if (!ends_with_break_or_continue_statement(statements))
+                    llvm_builder.CreateBr(end_if_block);
 
                 llvm_builder.SetInsertPoint(end_if_block);
             }
@@ -1832,7 +1941,7 @@ namespace h::compiler
             break;
         }
         case Unary_operation::Address_of: {
-            std::string_view const variable_name = to_string_view(value_expression.value->getName());
+            std::string_view const variable_name = value_expression.name;
 
             std::optional<Value_and_type> location = search_in_function_scope(variable_name, {}, local_variables);
             if (location.has_value())
@@ -1964,6 +2073,86 @@ namespace h::compiler
 
     Value_and_type create_value(
         Module const& core_module,
+        std::span<Module const> core_module_dependencies,
+        While_loop_expression const& expression,
+        llvm::LLVMContext& llvm_context,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Module& llvm_module,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::Function* const llvm_parent_function,
+        std::span<Block_info const> const block_infos,
+        std::span<Value_and_type const> function_arguments,
+        std::span<Value_and_type const> local_variables,
+        std::span<Value_and_type const> const temporaries,
+        Struct_types const& struct_types,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        llvm::BasicBlock* const condition_block = llvm::BasicBlock::Create(llvm_context, "while_loop_condition", llvm_parent_function);
+        llvm::BasicBlock* const then_block = llvm::BasicBlock::Create(llvm_context, "while_loop_then", llvm_parent_function);
+        llvm::BasicBlock* const after_block = llvm::BasicBlock::Create(llvm_context, "while_loop_after", llvm_parent_function);
+
+        std::pmr::vector<Block_info> all_block_infos{ block_infos.begin(), block_infos.end() };
+        all_block_infos.push_back(
+            Block_info
+            {
+                .block_type = Block_type::While_loop,
+                .repeat_block = condition_block,
+                .after_block = after_block,
+            }
+        );
+
+        llvm_builder.CreateBr(condition_block);
+        llvm_builder.SetInsertPoint(condition_block);
+        Value_and_type const& condition_value = create_statement_value(
+            expression.condition,
+            core_module,
+            core_module_dependencies,
+            llvm_context,
+            llvm_data_layout,
+            llvm_module,
+            llvm_builder,
+            llvm_parent_function,
+            block_infos,
+            function_arguments,
+            local_variables,
+            struct_types,
+            temporaries_allocator
+        );
+        llvm_builder.CreateCondBr(condition_value.value, then_block, after_block);
+
+        llvm_builder.SetInsertPoint(then_block);
+        std::pmr::vector<Statement> const then_block_statements = skip_block(expression.then_statement);
+        create_statement_values(
+            then_block_statements,
+            core_module,
+            core_module_dependencies,
+            llvm_context,
+            llvm_data_layout,
+            llvm_module,
+            llvm_builder,
+            llvm_parent_function,
+            all_block_infos,
+            function_arguments,
+            local_variables,
+            struct_types,
+            temporaries_allocator
+        );
+        if (!ends_with_break_or_continue_statement(then_block_statements))
+            llvm_builder.CreateBr(condition_block);
+
+        llvm_builder.SetInsertPoint(after_block);
+
+        return Value_and_type
+        {
+            .name = "",
+            .value = after_block,
+            .type = std::nullopt
+        };
+    }
+
+    Value_and_type create_value(
+        Module const& core_module,
         Statement const& statement,
         Expression const& expression,
         llvm::LLVMContext& llvm_context,
@@ -1971,6 +2160,7 @@ namespace h::compiler
         llvm::Module& llvm_module,
         llvm::IRBuilder<>& llvm_builder,
         llvm::Function* const llvm_parent_function,
+        std::span<Block_info const> const block_infos,
         std::span<Value_and_type const> const function_arguments,
         std::span<Value_and_type const> const local_variables,
         std::span<Value_and_type const> const temporaries,
@@ -1997,7 +2187,12 @@ namespace h::compiler
         else if (std::holds_alternative<Block_expression>(expression.data))
         {
             Block_expression const& data = std::get<Block_expression>(expression.data);
-            return create_value(core_module, core_module_dependencies, data, llvm_context, llvm_data_layout, llvm_module, llvm_builder, llvm_parent_function, function_arguments, local_variables, struct_types, temporaries_allocator);
+            return create_value(core_module, core_module_dependencies, data, llvm_context, llvm_data_layout, llvm_module, llvm_builder, llvm_parent_function, block_infos, function_arguments, local_variables, struct_types, temporaries_allocator);
+        }
+        else if (std::holds_alternative<Break_expression>(expression.data))
+        {
+            Break_expression const& data = std::get<Break_expression>(expression.data);
+            return create_value(data, llvm_builder, block_infos);
         }
         else if (std::holds_alternative<Call_expression>(expression.data))
         {
@@ -2014,10 +2209,15 @@ namespace h::compiler
             Constant_expression const& data = std::get<Constant_expression>(expression.data);
             return create_value(data, llvm_context, llvm_data_layout, llvm_module, struct_types);
         }
+        else if (std::holds_alternative<Continue_expression>(expression.data))
+        {
+            Continue_expression const& data = std::get<Continue_expression>(expression.data);
+            return create_value(data, llvm_builder, block_infos);
+        }
         else if (std::holds_alternative<If_expression>(expression.data))
         {
             If_expression const& data = std::get<If_expression>(expression.data);
-            return create_value(core_module, core_module_dependencies, data, llvm_context, llvm_data_layout, llvm_module, llvm_builder, llvm_parent_function, function_arguments, local_variables, temporaries, struct_types, temporaries_allocator);
+            return create_value(core_module, core_module_dependencies, data, llvm_context, llvm_data_layout, llvm_module, llvm_builder, llvm_parent_function, block_infos, function_arguments, local_variables, temporaries, struct_types, temporaries_allocator);
         }
         else if (std::holds_alternative<Parenthesis_expression>(expression.data))
         {
@@ -2043,6 +2243,11 @@ namespace h::compiler
         {
             Variable_declaration_expression const& data = std::get<Variable_declaration_expression>(expression.data);
             return create_value(data, llvm_context, llvm_data_layout, llvm_builder, temporaries, struct_types);
+        }
+        else if (std::holds_alternative<While_loop_expression>(expression.data))
+        {
+            While_loop_expression const& data = std::get<While_loop_expression>(expression.data);
+            return create_value(core_module, core_module_dependencies, data, llvm_context, llvm_data_layout, llvm_module, llvm_builder, llvm_parent_function, block_infos, function_arguments, local_variables, temporaries, struct_types, temporaries_allocator);
         }
         else
         {
@@ -2096,6 +2301,8 @@ namespace h::compiler
 
         llvm::IRBuilder<> llvm_builder{ block };
 
+        std::pmr::vector<Block_info> block_infos;
+
         {
             std::pmr::vector<Value_and_type> function_arguments{ temporaries_allocator };
             function_arguments.reserve(llvm_function.arg_size());
@@ -2133,6 +2340,7 @@ namespace h::compiler
                         llvm_module,
                         llvm_builder,
                         &llvm_function,
+                        block_infos,
                         function_arguments,
                         local_variables,
                         temporaries,
