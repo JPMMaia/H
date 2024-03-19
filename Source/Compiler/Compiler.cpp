@@ -2704,6 +2704,14 @@ namespace h::compiler
         };
     }
 
+    void optimize_llvm_module(
+        LLVM_data& llvm_data,
+        llvm::Module& llvm_module
+    )
+    {
+        llvm_data.optimization_managers.module_pass_manager.run(llvm_module, *llvm_data.optimization_managers.module_analysis_manager);
+    }
+
     std::string to_string(
         llvm::Module const& llvm_module
     )

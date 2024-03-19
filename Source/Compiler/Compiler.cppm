@@ -60,6 +60,11 @@ namespace h::compiler
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map
     );
 
+    export void optimize_llvm_module(
+        LLVM_data& llvm_data,
+        llvm::Module& llvm_module
+    );
+
     export std::string to_string(
         llvm::Module const& llvm_module
     );
