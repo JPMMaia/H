@@ -346,12 +346,18 @@ entry:
 
 define void @boolean_operations(i1 %first_boolean, i1 %second_boolean) {
 entry:
-  %0 = and i1 %first_boolean, %second_boolean
+  %0 = icmp eq i1 %first_boolean, %second_boolean
+  %equal = alloca i1, align 1
+  store i1 %0, ptr %equal, align 1
+  %1 = icmp ne i1 %first_boolean, %second_boolean
+  %not_equal = alloca i1, align 1
+  store i1 %1, ptr %not_equal, align 1
+  %2 = and i1 %first_boolean, %second_boolean
   %logical_and = alloca i1, align 1
-  store i1 %0, ptr %logical_and, align 1
-  %1 = or i1 %first_boolean, %second_boolean
+  store i1 %2, ptr %logical_and, align 1
+  %3 = or i1 %first_boolean, %second_boolean
   %logical_or = alloca i1, align 1
-  store i1 %1, ptr %logical_or, align 1
+  store i1 %3, ptr %logical_or, align 1
   ret void
 }
 

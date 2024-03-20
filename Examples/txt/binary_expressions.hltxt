@@ -39,7 +39,9 @@ export function boolean_operations(
     first_boolean: Bool,
     second_boolean: Bool
 ) -> ()
-{    
+{
+    var equal = first_boolean == second_boolean;
+    var not_equal = first_boolean != second_boolean;
     var logical_and = first_boolean && second_boolean;
     var logical_or = first_boolean || second_boolean;
 }

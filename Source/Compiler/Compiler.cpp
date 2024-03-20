@@ -881,7 +881,7 @@ namespace h::compiler
             break;
         }
         case Binary_operation::Equal: {
-            if (is_integer(type))
+            if (is_bool(type) || is_integer(type))
             {
                 return Value_and_type
                 {
@@ -902,7 +902,7 @@ namespace h::compiler
             break;
         }
         case Binary_operation::Not_equal: {
-            if (is_integer(type))
+            if (is_bool(type) || is_integer(type))
             {
                 return Value_and_type
                 {
