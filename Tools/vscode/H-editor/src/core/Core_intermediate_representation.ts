@@ -1430,15 +1430,15 @@ export function create_switch_expression(value: Expression, cases: Switch_case_e
 }
 export interface Ternary_condition_expression {
     condition: Expression;
-    then_expression: Expression;
-    else_expression: Expression;
+    then_statement: Statement;
+    else_statement: Statement;
 }
 
 function core_to_intermediate_ternary_condition_expression(core_value: Core.Ternary_condition_expression, statement: Core.Statement): Ternary_condition_expression {
     return {
         condition: core_to_intermediate_expression(statement.expressions.elements[core_value.condition.expression_index], statement),
-        then_expression: core_to_intermediate_expression(statement.expressions.elements[core_value.then_expression.expression_index], statement),
-        else_expression: core_to_intermediate_expression(statement.expressions.elements[core_value.else_expression.expression_index], statement),
+        then_statement: core_to_intermediate_statement(core_value.then_statement),
+        else_statement: core_to_intermediate_statement(core_value.else_statement),
     };
 }
 
@@ -1452,12 +1452,8 @@ function intermediate_to_core_ternary_condition_expression(intermediate_value: T
                 condition: {
                     expression_index: -1
                 },
-                then_expression: {
-                    expression_index: -1
-                },
-                else_expression: {
-                    expression_index: -1
-                },
+                then_statement: intermediate_to_core_statement(intermediate_value.then_statement),
+                else_statement: intermediate_to_core_statement(intermediate_value.else_statement),
             }
         }
     };
@@ -1466,19 +1462,13 @@ function intermediate_to_core_ternary_condition_expression(intermediate_value: T
 
     (core_value.data.value as Core.Ternary_condition_expression).condition.expression_index = expressions.length;
     intermediate_to_core_expression(intermediate_value.condition, expressions);
-
-    (core_value.data.value as Core.Ternary_condition_expression).then_expression.expression_index = expressions.length;
-    intermediate_to_core_expression(intermediate_value.then_expression, expressions);
-
-    (core_value.data.value as Core.Ternary_condition_expression).else_expression.expression_index = expressions.length;
-    intermediate_to_core_expression(intermediate_value.else_expression, expressions);
 }
 
-export function create_ternary_condition_expression(condition: Expression, then_expression: Expression, else_expression: Expression): Expression {
+export function create_ternary_condition_expression(condition: Expression, then_statement: Statement, else_statement: Statement): Expression {
     const ternary_condition_expression: Ternary_condition_expression = {
         condition: condition,
-        then_expression: then_expression,
-        else_expression: else_expression,
+        then_statement: then_statement,
+        else_statement: else_statement,
     };
     return {
         data: {

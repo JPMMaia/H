@@ -1332,8 +1332,8 @@ function get_generic_expression(
                 top.current_child_index === 0 ?
                     ternary_condition_expression.condition :
                     top.current_child_index === 2 ?
-                        ternary_condition_expression.then_expression :
-                        ternary_condition_expression.else_expression;
+                        ternary_condition_expression.then_statement.expression :
+                        ternary_condition_expression.else_statement.expression;
             return {
                 expression: next_expression,
                 label: map_expression_type_to_production_rule_label(next_expression)
@@ -2499,8 +2499,8 @@ function node_to_expression_ternary_condition(node: Parser_node.Node, key_to_pro
 
     const ternary_condition_expression: Core_intermediate_representation.Ternary_condition_expression = {
         condition: condition_expression,
-        then_expression: then_expression,
-        else_expression: else_expression
+        then_statement: { name: "", expression: then_expression },
+        else_statement: { name: "", expression: else_expression }
     };
 
     return ternary_condition_expression;
