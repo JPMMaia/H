@@ -1747,7 +1747,10 @@ export function create_for_loop_expressions(): IR.Module {
             IR.create_for_loop_expression(
                 "index",
                 IR.create_constant_expression(int32_type, "0"),
-                IR.create_constant_expression(int32_type, "3"),
+                create_statement(
+                    IR.create_constant_expression(int32_type, "3")
+                ),
+                IR.Binary_operation.Less_than,
                 undefined,
                 create_statement(
                     IR.create_block_expression([
@@ -1765,7 +1768,10 @@ export function create_for_loop_expressions(): IR.Module {
             IR.create_for_loop_expression(
                 "index",
                 IR.create_constant_expression(int32_type, "0"),
-                IR.create_constant_expression(int32_type, "3"),
+                create_statement(
+                    IR.create_constant_expression(int32_type, "3")
+                ),
+                IR.Binary_operation.Less_than,
                 undefined,
                 create_statement(
                     IR.create_call_expression(
@@ -1779,7 +1785,10 @@ export function create_for_loop_expressions(): IR.Module {
             IR.create_for_loop_expression(
                 "index",
                 IR.create_constant_expression(int32_type, "0"),
-                IR.create_constant_expression(int32_type, "4"),
+                create_statement(
+                    IR.create_constant_expression(int32_type, "4")
+                ),
+                IR.Binary_operation.Less_than,
                 IR.create_constant_expression(int32_type, "1"),
                 create_statement(
                     IR.create_block_expression([
@@ -1797,11 +1806,35 @@ export function create_for_loop_expressions(): IR.Module {
             IR.create_for_loop_expression(
                 "index",
                 IR.create_constant_expression(int32_type, "4"),
-                IR.create_constant_expression(int32_type, "0"),
+                create_statement(
+                    IR.create_constant_expression(int32_type, "0")
+                ),
+                IR.Binary_operation.Greater_than,
                 IR.create_unary_expression(
                     IR.create_constant_expression(int32_type, "1"),
                     IR.Unary_operation.Minus
                 ),
+                create_statement(
+                    IR.create_block_expression([
+                        create_statement(
+                            IR.create_call_expression(
+                                IR.create_variable_expression("print_integer", IR.Access_type.Read),
+                                [IR.create_variable_expression("index", IR.Access_type.Read)]
+                            )
+                        )
+                    ])
+                )
+            )
+        ),
+        create_statement(
+            IR.create_for_loop_expression(
+                "index",
+                IR.create_constant_expression(int32_type, "4"),
+                create_statement(
+                    IR.create_constant_expression(int32_type, "0")
+                ),
+                IR.Binary_operation.Greater_than,
+                undefined,
                 create_statement(
                     IR.create_block_expression([
                         create_statement(
@@ -2592,7 +2625,10 @@ export function create_break_expressions(): IR.Module {
             IR.create_for_loop_expression(
                 "index",
                 IR.create_constant_expression(int32_type, "0"),
-                IR.create_variable_expression("size", IR.Access_type.Read),
+                create_statement(
+                    IR.create_variable_expression("size", IR.Access_type.Read)
+                ),
+                IR.Binary_operation.Less_than,
                 undefined,
                 create_statement(
                     IR.create_block_expression(
@@ -2632,7 +2668,10 @@ export function create_break_expressions(): IR.Module {
             IR.create_for_loop_expression(
                 "index",
                 IR.create_constant_expression(int32_type, "0"),
-                IR.create_variable_expression("size", IR.Access_type.Read),
+                create_statement(
+                    IR.create_variable_expression("size", IR.Access_type.Read)
+                ),
+                IR.Binary_operation.Less_than,
                 undefined,
                 create_statement(
                     IR.create_block_expression(
@@ -2711,7 +2750,10 @@ export function create_break_expressions(): IR.Module {
             IR.create_for_loop_expression(
                 "index",
                 IR.create_constant_expression(int32_type, "0"),
-                IR.create_variable_expression("size", IR.Access_type.Read),
+                create_statement(
+                    IR.create_variable_expression("size", IR.Access_type.Read)
+                ),
+                IR.Binary_operation.Less_than,
                 undefined,
                 create_statement(
                     IR.create_block_expression(

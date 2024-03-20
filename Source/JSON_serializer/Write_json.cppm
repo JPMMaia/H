@@ -1061,6 +1061,11 @@ namespace h::json
         write_object(writer, output.range_begin);
         writer.Key("range_end");
         write_object(writer, output.range_end);
+        writer.Key("range_comparison_operation");
+        {
+            std::string_view const enum_value_string = write_enum(output.range_comparison_operation);
+            writer.String(enum_value_string.data(), enum_value_string.size());
+        }
         write_optional_object(writer, "step_by", output.step_by);
         writer.Key("then_statement");
         write_object(writer, output.then_statement);

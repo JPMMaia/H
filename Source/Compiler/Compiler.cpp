@@ -670,21 +670,19 @@ namespace h::compiler
         Binary_operation operation
     );
 
-    Value_and_type create_value(
-        Assignment_expression const& expression,
+    Value_and_type create_assignment_operation_instruction(
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
         llvm::IRBuilder<>& llvm_builder,
-        std::span<Value_and_type const> const temporaries,
+        Value_and_type const& left_hand_side,
+        Value_and_type const& right_hand_side,
+        std::optional<Binary_operation> const additional_operation,
         Struct_types const& struct_types
     )
     {
-        Value_and_type const left_hand_side = temporaries[expression.left_hand_side.expression_index];
-        Value_and_type const right_hand_side = temporaries[expression.right_hand_side.expression_index];
-
-        if (expression.additional_operation.has_value())
+        if (additional_operation.has_value())
         {
-            Binary_operation const additional_operation = expression.additional_operation.value();
+            Binary_operation const operation = additional_operation.value();
 
             Type_reference const left_hand_side_type = left_hand_side.type.value();
             llvm::Type* llvm_element_type = to_type(llvm_context, llvm_data_layout, left_hand_side_type, struct_types);
@@ -697,7 +695,7 @@ namespace h::compiler
                 .type = left_hand_side_type
             };
 
-            Value_and_type const result = create_binary_operation_instruction(llvm_builder, loaded_value, right_hand_side, additional_operation);
+            Value_and_type const result = create_binary_operation_instruction(llvm_builder, loaded_value, right_hand_side, operation);
 
             llvm::Value* store_instruction = llvm_builder.CreateStore(result.value, left_hand_side.value);
 
@@ -719,6 +717,21 @@ namespace h::compiler
                 .type = std::nullopt
             };
         }
+    }
+
+    Value_and_type create_value(
+        Assignment_expression const& expression,
+        llvm::LLVMContext& llvm_context,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::IRBuilder<>& llvm_builder,
+        std::span<Value_and_type const> const temporaries,
+        Struct_types const& struct_types
+    )
+    {
+        Value_and_type const left_hand_side = temporaries[expression.left_hand_side.expression_index];
+        Value_and_type const right_hand_side = temporaries[expression.right_hand_side.expression_index];
+
+        return create_assignment_operation_instruction(llvm_context, llvm_data_layout, llvm_builder, left_hand_side, right_hand_side, expression.additional_operation, struct_types);
     }
 
     Value_and_type create_binary_operation_instruction(
@@ -1669,6 +1682,145 @@ namespace h::compiler
     Value_and_type create_value(
         Module const& core_module,
         std::span<Module const> core_module_dependencies,
+        For_loop_expression const& expression,
+        llvm::LLVMContext& llvm_context,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Module& llvm_module,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::Function* const llvm_parent_function,
+        std::span<Block_info const> const block_infos,
+        std::span<Value_and_type const> function_arguments,
+        std::span<Value_and_type const> local_variables,
+        std::span<Value_and_type const> const temporaries,
+        Struct_types const& struct_types,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        Value_and_type const& range_begin_temporary = temporaries[expression.range_begin.expression_index];
+
+        // Loop variable declaration:
+        Type_reference const& variable_type = range_begin_temporary.type.value();
+        llvm::Type* const variable_llvm_type = to_type(llvm_context, llvm_data_layout, variable_type, struct_types);
+        llvm::Value* const variable_alloca = llvm_builder.CreateAlloca(variable_llvm_type, nullptr, expression.variable_name.c_str());
+        llvm_builder.CreateStore(range_begin_temporary.value, variable_alloca);
+        Value_and_type const variable_value = { .name = expression.variable_name, .value = variable_alloca, .type = variable_type };
+
+        llvm::BasicBlock* const condition_block = llvm::BasicBlock::Create(llvm_context, "for_loop_condition", llvm_parent_function);
+        llvm::BasicBlock* const then_block = llvm::BasicBlock::Create(llvm_context, "for_loop_then", llvm_parent_function);
+        llvm::BasicBlock* const update_index_block = llvm::BasicBlock::Create(llvm_context, "for_loop_update_index", llvm_parent_function);
+        llvm::BasicBlock* const after_block = llvm::BasicBlock::Create(llvm_context, "for_loop_after", llvm_parent_function);
+
+        llvm_builder.CreateBr(condition_block);
+
+        // Loop condition:
+        {
+            llvm_builder.SetInsertPoint(condition_block);
+
+            Value_and_type const& range_end_value = create_statement_value(
+                expression.range_end,
+                core_module,
+                core_module_dependencies,
+                llvm_context,
+                llvm_data_layout,
+                llvm_module,
+                llvm_builder,
+                llvm_parent_function,
+                block_infos,
+                function_arguments,
+                local_variables,
+                struct_types,
+                temporaries_allocator
+            );
+
+            Value_and_type const loaded_variable_value
+            {
+                .name = expression.variable_name,
+                .value = llvm_builder.CreateLoad(variable_llvm_type, variable_alloca),
+                .type = variable_type,
+            };
+
+            Binary_operation const compare_operation = expression.range_comparison_operation;
+            Value_and_type const condition_value = create_binary_operation_instruction(llvm_builder, loaded_variable_value, range_end_value, compare_operation);
+
+            llvm_builder.CreateCondBr(condition_value.value, then_block, after_block);
+        }
+
+        // Loop body:
+        {
+            llvm_builder.SetInsertPoint(then_block);
+
+            std::pmr::vector<Value_and_type> all_local_variables{ local_variables.begin(), local_variables.end() };
+            all_local_variables.push_back(variable_value);
+
+            std::pmr::vector<Block_info> all_block_infos{ block_infos.begin(), block_infos.end() };
+            all_block_infos.push_back(Block_info{ .block_type = Block_type::For_loop, .repeat_block = update_index_block, .after_block = after_block });
+
+            std::pmr::vector<Statement> const then_statements = skip_block(expression.then_statement);
+            create_statement_values(
+                then_statements,
+                core_module,
+                core_module_dependencies,
+                llvm_context,
+                llvm_data_layout,
+                llvm_module,
+                llvm_builder,
+                llvm_parent_function,
+                all_block_infos,
+                function_arguments,
+                all_local_variables,
+                struct_types,
+                temporaries_allocator
+            );
+
+            if (!ends_with_break_or_continue_statement(then_statements))
+                llvm_builder.CreateBr(update_index_block);
+        }
+
+        // Update loop variable:
+        {
+            llvm_builder.SetInsertPoint(update_index_block);
+
+            Constant_expression const default_step_constant
+            {
+                .type = variable_type,
+                .data =
+                    (expression.range_comparison_operation == Binary_operation::Less_than) || (expression.range_comparison_operation == Binary_operation::Less_than_or_equal_to) ?
+                    "1" :
+                    "-1"
+            };
+
+            Value_and_type const step_by_value =
+                expression.step_by.has_value() ?
+                temporaries[expression.step_by.value().expression_index] :
+                create_value(default_step_constant, llvm_context, llvm_data_layout, llvm_module, struct_types);
+
+            create_assignment_operation_instruction(
+                llvm_context,
+                llvm_data_layout,
+                llvm_builder,
+                variable_value,
+                step_by_value,
+                Binary_operation::Add,
+                struct_types
+            );
+
+            llvm_builder.CreateBr(condition_block);
+        }
+
+        // After the loop:
+        llvm_builder.SetInsertPoint(after_block);
+
+        return Value_and_type
+        {
+            .name = "",
+            .value = nullptr,
+            .type = std::nullopt
+        };
+    }
+
+    Value_and_type create_value(
+        Module const& core_module,
+        std::span<Module const> core_module_dependencies,
         If_expression const& expression,
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
@@ -2213,6 +2365,11 @@ namespace h::compiler
         {
             Continue_expression const& data = std::get<Continue_expression>(expression.data);
             return create_value(data, llvm_builder, block_infos);
+        }
+        else if (std::holds_alternative<For_loop_expression>(expression.data))
+        {
+            For_loop_expression const& data = std::get<For_loop_expression>(expression.data);
+            return create_value(core_module, core_module_dependencies, data, llvm_context, llvm_data_layout, llvm_module, llvm_builder, llvm_parent_function, block_infos, function_arguments, local_variables, temporaries, struct_types, temporaries_allocator);
         }
         else if (std::holds_alternative<If_expression>(expression.data))
         {
