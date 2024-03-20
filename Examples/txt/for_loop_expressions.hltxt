@@ -22,7 +22,12 @@ export function run_for_loops() -> ()
         print_integer(index);
     }
 
-    for index in 4 to 0 step_by -1:
+    for index in 4 to 0 step_by -1 reverse:
+    {
+        print_integer(index);
+    }
+
+    for index in 4 to 0 reverse:
     {
         print_integer(index);
     }

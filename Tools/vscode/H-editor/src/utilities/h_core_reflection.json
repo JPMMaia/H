@@ -509,9 +509,15 @@
                 },
                 {
                     "type": {
-                        "name": "Expression_index"
+                        "name": "Statement"
                     },
                     "name": "range_end"
+                },
+                {
+                    "type": {
+                        "name": "Binary_operation"
+                    },
+                    "name": "range_comparison_operation"
                 },
                 {
                     "type": {

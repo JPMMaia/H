@@ -287,7 +287,8 @@ namespace h
     {
         std::pmr::string variable_name;
         Expression_index range_begin;
-        Expression_index range_end;
+        Statement range_end;
+        Binary_operation range_comparison_operation;
         std::optional<Expression_index> step_by;
         Statement then_statement;
 

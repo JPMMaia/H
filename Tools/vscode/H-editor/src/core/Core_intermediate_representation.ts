@@ -1112,7 +1112,8 @@ export function create_continue_expression(): Expression {
 export interface For_loop_expression {
     variable_name: string;
     range_begin: Expression;
-    range_end: Expression;
+    range_end: Statement;
+    range_comparison_operation: Binary_operation;
     step_by?: Expression;
     then_statement: Statement;
 }
@@ -1121,7 +1122,8 @@ function core_to_intermediate_for_loop_expression(core_value: Core.For_loop_expr
     return {
         variable_name: core_value.variable_name,
         range_begin: core_to_intermediate_expression(statement.expressions.elements[core_value.range_begin.expression_index], statement),
-        range_end: core_to_intermediate_expression(statement.expressions.elements[core_value.range_end.expression_index], statement),
+        range_end: core_to_intermediate_statement(core_value.range_end),
+        range_comparison_operation: core_value.range_comparison_operation,
         step_by: core_value.step_by !== undefined ? core_to_intermediate_expression(statement.expressions.elements[core_value.step_by.expression_index], statement) : undefined,
         then_statement: core_to_intermediate_statement(core_value.then_statement),
     };
@@ -1138,9 +1140,8 @@ function intermediate_to_core_for_loop_expression(intermediate_value: For_loop_e
                 range_begin: {
                     expression_index: -1
                 },
-                range_end: {
-                    expression_index: -1
-                },
+                range_end: intermediate_to_core_statement(intermediate_value.range_end),
+                range_comparison_operation: intermediate_value.range_comparison_operation,
                 step_by: intermediate_value.step_by !== undefined ? { expression_index: -1 } : undefined,
                 then_statement: intermediate_to_core_statement(intermediate_value.then_statement),
             }
@@ -1152,20 +1153,18 @@ function intermediate_to_core_for_loop_expression(intermediate_value: For_loop_e
     (core_value.data.value as Core.For_loop_expression).range_begin.expression_index = expressions.length;
     intermediate_to_core_expression(intermediate_value.range_begin, expressions);
 
-    (core_value.data.value as Core.For_loop_expression).range_end.expression_index = expressions.length;
-    intermediate_to_core_expression(intermediate_value.range_end, expressions);
-
     if (intermediate_value.step_by !== undefined) {
         (core_value.data.value as Core.For_loop_expression).step_by = { expression_index: expressions.length };
         intermediate_to_core_expression(intermediate_value.step_by, expressions);
     }
 }
 
-export function create_for_loop_expression(variable_name: string, range_begin: Expression, range_end: Expression, step_by: Expression | undefined, then_statement: Statement): Expression {
+export function create_for_loop_expression(variable_name: string, range_begin: Expression, range_end: Statement, range_comparison_operation: Binary_operation, step_by: Expression | undefined, then_statement: Statement): Expression {
     const for_loop_expression: For_loop_expression = {
         variable_name: variable_name,
         range_begin: range_begin,
         range_end: range_end,
+        range_comparison_operation: range_comparison_operation,
         step_by: step_by,
         then_statement: then_statement,
     };

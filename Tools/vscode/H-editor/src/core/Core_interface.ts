@@ -235,7 +235,8 @@ export interface Continue_expression {
 export interface For_loop_expression {
     variable_name: string;
     range_begin: Expression_index;
-    range_end: Expression_index;
+    range_end: Statement;
+    range_comparison_operation: Binary_operation;
     step_by?: Expression_index;
     then_statement: Statement;
 }

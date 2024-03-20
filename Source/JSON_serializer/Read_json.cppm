@@ -1460,8 +1460,19 @@ namespace h::json
             return Stack_state
             {
                 .pointer = &parent->range_end,
-                .type = "Expression_index",
-                .get_next_state = get_next_state_expression_index,
+                .type = "Statement",
+                .get_next_state = get_next_state_statement,
+            };
+        }
+
+        if (key == "range_comparison_operation")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->range_comparison_operation,
+                .type = "Binary_operation",
+                .get_next_state = nullptr,
             };
         }
 
