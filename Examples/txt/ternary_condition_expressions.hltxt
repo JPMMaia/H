@@ -6,4 +6,9 @@ export function run_ternary_conditions(first_boolean: Bool, second_boolean: Bool
     var b = first_boolean == false ? 1 : 0;
     var c = !first_boolean ? 1 : 0;
     var d = first_boolean ? second_boolean ? 2 : 1 : 0;
+    var e = first_boolean ? 2 : (second_boolean ? 1 : 0);
+
+    var first = 0;
+    var second = 1;
+    var f = first_boolean ? first : second;
 }

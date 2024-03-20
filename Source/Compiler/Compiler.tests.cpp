@@ -898,6 +898,110 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
+define void @run_ternary_conditions(i1 %first_boolean, i1 %second_boolean) {
+entry:
+  br i1 %first_boolean, label %ternary_condition_then, label %ternary_condition_else
+
+ternary_condition_then:                           ; preds = %entry
+  br label %ternary_condition_end
+
+ternary_condition_else:                           ; preds = %entry
+  br label %ternary_condition_end
+
+ternary_condition_end:                            ; preds = %ternary_condition_else, %ternary_condition_then
+  %0 = phi i32 [ 1, %ternary_condition_then ], [ 0, %ternary_condition_else ]
+  %a = alloca i32, align 4
+  store i32 %0, ptr %a, align 4
+  %1 = icmp eq i1 %first_boolean, false
+  br i1 %1, label %ternary_condition_then1, label %ternary_condition_else2
+
+ternary_condition_then1:                          ; preds = %ternary_condition_end
+  br label %ternary_condition_end3
+
+ternary_condition_else2:                          ; preds = %ternary_condition_end
+  br label %ternary_condition_end3
+
+ternary_condition_end3:                           ; preds = %ternary_condition_else2, %ternary_condition_then1
+  %2 = phi i32 [ 1, %ternary_condition_then1 ], [ 0, %ternary_condition_else2 ]
+  %b = alloca i32, align 4
+  store i32 %2, ptr %b, align 4
+  %3 = xor i1 %first_boolean, true
+  br i1 %3, label %ternary_condition_then4, label %ternary_condition_else5
+
+ternary_condition_then4:                          ; preds = %ternary_condition_end3
+  br label %ternary_condition_end6
+
+ternary_condition_else5:                          ; preds = %ternary_condition_end3
+  br label %ternary_condition_end6
+
+ternary_condition_end6:                           ; preds = %ternary_condition_else5, %ternary_condition_then4
+  %4 = phi i32 [ 1, %ternary_condition_then4 ], [ 0, %ternary_condition_else5 ]
+  %c = alloca i32, align 4
+  store i32 %4, ptr %c, align 4
+  br i1 %first_boolean, label %ternary_condition_then7, label %ternary_condition_else8
+
+ternary_condition_then7:                          ; preds = %ternary_condition_end6
+  br i1 %second_boolean, label %ternary_condition_then10, label %ternary_condition_else11
+
+ternary_condition_else8:                          ; preds = %ternary_condition_end6
+  br label %ternary_condition_end9
+
+ternary_condition_end9:                           ; preds = %ternary_condition_else8, %ternary_condition_end12
+  %5 = phi i32 [ %6, %ternary_condition_end12 ], [ 0, %ternary_condition_else8 ]
+  %d = alloca i32, align 4
+  store i32 %5, ptr %d, align 4
+  br i1 %first_boolean, label %ternary_condition_then13, label %ternary_condition_else14
+
+ternary_condition_then10:                         ; preds = %ternary_condition_then7
+  br label %ternary_condition_end12
+
+ternary_condition_else11:                         ; preds = %ternary_condition_then7
+  br label %ternary_condition_end12
+
+ternary_condition_end12:                          ; preds = %ternary_condition_else11, %ternary_condition_then10
+  %6 = phi i32 [ 2, %ternary_condition_then10 ], [ 1, %ternary_condition_else11 ]
+  br label %ternary_condition_end9
+
+ternary_condition_then13:                         ; preds = %ternary_condition_end9
+  br label %ternary_condition_end15
+
+ternary_condition_else14:                         ; preds = %ternary_condition_end9
+  br i1 %second_boolean, label %ternary_condition_then16, label %ternary_condition_else17
+
+ternary_condition_end15:                          ; preds = %ternary_condition_end18, %ternary_condition_then13
+  %7 = phi i32 [ 2, %ternary_condition_then13 ], [ %8, %ternary_condition_end18 ]
+  %e = alloca i32, align 4
+  store i32 %7, ptr %e, align 4
+  %first = alloca i32, align 4
+  store i32 0, ptr %first, align 4
+  %second = alloca i32, align 4
+  store i32 1, ptr %second, align 4
+  br i1 %first_boolean, label %ternary_condition_then19, label %ternary_condition_else20
+
+ternary_condition_then16:                         ; preds = %ternary_condition_else14
+  br label %ternary_condition_end18
+
+ternary_condition_else17:                         ; preds = %ternary_condition_else14
+  br label %ternary_condition_end18
+
+ternary_condition_end18:                          ; preds = %ternary_condition_else17, %ternary_condition_then16
+  %8 = phi i32 [ 1, %ternary_condition_then16 ], [ 0, %ternary_condition_else17 ]
+  br label %ternary_condition_end15
+
+ternary_condition_then19:                         ; preds = %ternary_condition_end15
+  %9 = load i32, ptr %first, align 4
+  br label %ternary_condition_end21
+
+ternary_condition_else20:                         ; preds = %ternary_condition_end15
+  %10 = load i32, ptr %second, align 4
+  br label %ternary_condition_end21
+
+ternary_condition_end21:                          ; preds = %ternary_condition_else20, %ternary_condition_then19
+  %11 = phi i32 [ %9, %ternary_condition_then19 ], [ %10, %ternary_condition_else20 ]
+  %f = alloca i32, align 4
+  store i32 %11, ptr %f, align 4
+  ret void
+}
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);

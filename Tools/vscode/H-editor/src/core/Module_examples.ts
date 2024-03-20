@@ -2338,8 +2338,12 @@ export function create_ternary_condition_expressions(): IR.Module {
             IR.create_variable_declaration_expression("a", false,
                 IR.create_ternary_condition_expression(
                     IR.create_variable_expression("first_boolean", IR.Access_type.Read),
-                    IR.create_constant_expression(int32_type, "1"),
-                    IR.create_constant_expression(int32_type, "0")
+                    create_statement(
+                        IR.create_constant_expression(int32_type, "1")
+                    ),
+                    create_statement(
+                        IR.create_constant_expression(int32_type, "0")
+                    )
                 )
             )
         ),
@@ -2351,8 +2355,12 @@ export function create_ternary_condition_expressions(): IR.Module {
                         IR.create_constant_expression(bool_type, "false"),
                         IR.Binary_operation.Equal
                     ),
-                    IR.create_constant_expression(int32_type, "1"),
-                    IR.create_constant_expression(int32_type, "0")
+                    create_statement(
+                        IR.create_constant_expression(int32_type, "1")
+                    ),
+                    create_statement(
+                        IR.create_constant_expression(int32_type, "0")
+                    )
                 )
             )
         ),
@@ -2363,8 +2371,12 @@ export function create_ternary_condition_expressions(): IR.Module {
                         IR.create_variable_expression("first_boolean", IR.Access_type.Read),
                         IR.Unary_operation.Not
                     ),
-                    IR.create_constant_expression(int32_type, "1"),
-                    IR.create_constant_expression(int32_type, "0")
+                    create_statement(
+                        IR.create_constant_expression(int32_type, "1")
+                    ),
+                    create_statement(
+                        IR.create_constant_expression(int32_type, "0")
+                    )
                 )
             )
         ),
@@ -2372,12 +2384,20 @@ export function create_ternary_condition_expressions(): IR.Module {
             IR.create_variable_declaration_expression("d", false,
                 IR.create_ternary_condition_expression(
                     IR.create_variable_expression("first_boolean", IR.Access_type.Read),
-                    IR.create_ternary_condition_expression(
-                        IR.create_variable_expression("second_boolean", IR.Access_type.Read),
-                        IR.create_constant_expression(int32_type, "2"),
-                        IR.create_constant_expression(int32_type, "1")
+                    create_statement(
+                        IR.create_ternary_condition_expression(
+                            IR.create_variable_expression("second_boolean", IR.Access_type.Read),
+                            create_statement(
+                                IR.create_constant_expression(int32_type, "2")
+                            ),
+                            create_statement(
+                                IR.create_constant_expression(int32_type, "1")
+                            )
+                        )
                     ),
-                    IR.create_constant_expression(int32_type, "0")
+                    create_statement(
+                        IR.create_constant_expression(int32_type, "0")
+                    )
                 )
             )
         )

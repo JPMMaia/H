@@ -639,15 +639,15 @@
                 },
                 {
                     "type": {
-                        "name": "Expression_index"
+                        "name": "Statement"
                     },
-                    "name": "then_expression"
+                    "name": "then_statement"
                 },
                 {
                     "type": {
-                        "name": "Expression_index"
+                        "name": "Statement"
                     },
-                    "name": "else_expression"
+                    "name": "else_statement"
                 }
             ]
         },

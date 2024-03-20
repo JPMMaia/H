@@ -1717,25 +1717,25 @@ namespace h::json
             };
         }
 
-        if (key == "then_expression")
+        if (key == "then_statement")
         {
 
             return Stack_state
             {
-                .pointer = &parent->then_expression,
-                .type = "Expression_index",
-                .get_next_state = get_next_state_expression_index,
+                .pointer = &parent->then_statement,
+                .type = "Statement",
+                .get_next_state = get_next_state_statement,
             };
         }
 
-        if (key == "else_expression")
+        if (key == "else_statement")
         {
 
             return Stack_state
             {
-                .pointer = &parent->else_expression,
-                .type = "Expression_index",
-                .get_next_state = get_next_state_expression_index,
+                .pointer = &parent->else_statement,
+                .type = "Statement",
+                .get_next_state = get_next_state_statement,
             };
         }
 

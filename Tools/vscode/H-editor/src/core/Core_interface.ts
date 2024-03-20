@@ -274,8 +274,8 @@ export interface Switch_expression {
 
 export interface Ternary_condition_expression {
     condition: Expression_index;
-    then_expression: Expression_index;
-    else_expression: Expression_index;
+    then_statement: Statement;
+    else_statement: Statement;
 }
 
 export interface Unary_expression {

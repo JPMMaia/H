@@ -1992,6 +1992,88 @@ namespace h::compiler
     }
 
     Value_and_type create_value(
+        Module const& core_module,
+        std::span<Module const> core_module_dependencies,
+        Ternary_condition_expression const& expression,
+        llvm::LLVMContext& llvm_context,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Module& llvm_module,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::Function* const llvm_parent_function,
+        std::span<Block_info const> const block_infos,
+        std::span<Value_and_type const> function_arguments,
+        std::span<Value_and_type const> local_variables,
+        std::span<Value_and_type const> const temporaries,
+        Struct_types const& struct_types,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        llvm::BasicBlock* const then_block = llvm::BasicBlock::Create(llvm_context, "ternary_condition_then", llvm_parent_function);
+        llvm::BasicBlock* const else_block = llvm::BasicBlock::Create(llvm_context, "ternary_condition_else", llvm_parent_function);
+        llvm::BasicBlock* const end_block = llvm::BasicBlock::Create(llvm_context, "ternary_condition_end", llvm_parent_function);
+
+        // Condition:
+        Value_and_type const& condition_value = temporaries[expression.condition.expression_index];
+        llvm_builder.CreateCondBr(condition_value.value, then_block, else_block);
+
+        // Then:
+        llvm_builder.SetInsertPoint(then_block);
+        Value_and_type const& then_value = create_statement_value(
+            expression.then_statement,
+            core_module,
+            core_module_dependencies,
+            llvm_context,
+            llvm_data_layout,
+            llvm_module,
+            llvm_builder,
+            llvm_parent_function,
+            block_infos,
+            function_arguments,
+            local_variables,
+            struct_types,
+            temporaries_allocator
+        );
+        llvm_builder.CreateBr(end_block);
+        llvm::BasicBlock* const then_end_block = llvm_builder.GetInsertBlock();
+
+        // Else:
+        llvm_builder.SetInsertPoint(else_block);
+        Value_and_type const& else_value = create_statement_value(
+            expression.else_statement,
+            core_module,
+            core_module_dependencies,
+            llvm_context,
+            llvm_data_layout,
+            llvm_module,
+            llvm_builder,
+            llvm_parent_function,
+            block_infos,
+            function_arguments,
+            local_variables,
+            struct_types,
+            temporaries_allocator
+        );
+        llvm_builder.CreateBr(end_block);
+        llvm::BasicBlock* const else_end_block = llvm_builder.GetInsertBlock();
+
+        if (then_value.type.has_value() && else_value.type.has_value() && then_value.type.value() != else_value.type.value())
+            throw std::runtime_error{ "Ternary condition then and else statements must have the same type!" };
+
+        // End:
+        llvm_builder.SetInsertPoint(end_block);
+        llvm::PHINode* const phi_node = llvm_builder.CreatePHI(then_value.value->getType(), 2);
+        phi_node->addIncoming(then_value.value, then_end_block);
+        phi_node->addIncoming(else_value.value, else_end_block);
+
+        return Value_and_type
+        {
+            .name = "",
+            .value = phi_node,
+            .type = then_value.type
+        };
+    }
+
+    Value_and_type create_value(
         Unary_expression const& expression,
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
@@ -2385,6 +2467,11 @@ namespace h::compiler
         {
             Return_expression const& data = std::get<Return_expression>(expression.data);
             return create_value(data, llvm_builder, temporaries);
+        }
+        else if (std::holds_alternative<Ternary_condition_expression>(expression.data))
+        {
+            Ternary_condition_expression const& data = std::get<Ternary_condition_expression>(expression.data);
+            return create_value(core_module, core_module_dependencies, data, llvm_context, llvm_data_layout, llvm_module, llvm_builder, llvm_parent_function, block_infos, function_arguments, local_variables, temporaries, struct_types, temporaries_allocator);
         }
         else if (std::holds_alternative<Unary_expression>(expression.data))
         {

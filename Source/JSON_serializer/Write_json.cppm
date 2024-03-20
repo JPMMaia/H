@@ -1169,10 +1169,10 @@ namespace h::json
         writer.StartObject();
         writer.Key("condition");
         write_object(writer, output.condition);
-        writer.Key("then_expression");
-        write_object(writer, output.then_expression);
-        writer.Key("else_expression");
-        write_object(writer, output.else_expression);
+        writer.Key("then_statement");
+        write_object(writer, output.then_statement);
+        writer.Key("else_statement");
+        write_object(writer, output.else_statement);
         writer.EndObject();
     }
 

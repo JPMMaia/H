@@ -350,8 +350,8 @@ namespace h
     export struct Ternary_condition_expression
     {
         Expression_index condition;
-        Expression_index then_expression;
-        Expression_index else_expression;
+        Statement then_statement;
+        Statement else_statement;
 
         friend auto operator<=>(Ternary_condition_expression const&, Ternary_condition_expression const&) = default;
     };
