@@ -462,6 +462,143 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
+@global_0 = internal constant [3 x i8] c"%d\00"
+
+define void @run_breaks(i32 %size) {
+entry:
+  %index = alloca i32, align 4
+  store i32 0, ptr %index, align 4
+  br label %for_loop_condition
+
+for_loop_condition:                               ; preds = %for_loop_update_index, %entry
+  %0 = load i32, ptr %index, align 4
+  %1 = icmp slt i32 %0, %size
+  br i1 %1, label %for_loop_then, label %for_loop_after
+
+for_loop_then:                                    ; preds = %for_loop_condition
+  %2 = load i32, ptr %index, align 4
+  %3 = icmp sgt i32 %2, 4
+  br i1 %3, label %if_s0_then, label %if_s1_after
+
+for_loop_update_index:                            ; preds = %if_s1_after
+  %4 = load i32, ptr %index, align 4
+  %5 = add i32 %4, 1
+  store i32 %5, ptr %index, align 4
+  br label %for_loop_condition
+
+for_loop_after:                                   ; preds = %if_s0_then, %for_loop_condition
+  %index1 = alloca i32, align 4
+  store i32 0, ptr %index1, align 4
+  br label %for_loop_condition2
+
+if_s0_then:                                       ; preds = %for_loop_then
+  br label %for_loop_after
+
+if_s1_after:                                      ; preds = %for_loop_then
+  %6 = load i32, ptr %index, align 4
+  call void @print_integer(i32 %6)
+  br label %for_loop_update_index
+
+for_loop_condition2:                              ; preds = %for_loop_update_index4, %for_loop_after
+  %7 = load i32, ptr %index1, align 4
+  %8 = icmp slt i32 %7, %size
+  br i1 %8, label %for_loop_then3, label %for_loop_after5
+
+for_loop_then3:                                   ; preds = %for_loop_condition2
+  %index_2 = alloca i32, align 4
+  store i32 0, ptr %index_2, align 4
+  br label %while_loop_condition
+
+for_loop_update_index4:                           ; preds = %while_loop_after
+  %9 = load i32, ptr %index1, align 4
+  %10 = add i32 %9, 1
+  store i32 %10, ptr %index1, align 4
+  br label %for_loop_condition2
+
+for_loop_after5:                                  ; preds = %for_loop_condition2
+  %index8 = alloca i32, align 4
+  store i32 0, ptr %index8, align 4
+  br label %for_loop_condition9
+
+while_loop_condition:                             ; preds = %if_s1_after7, %for_loop_then3
+  %11 = load i32, ptr %index_2, align 4
+  %12 = icmp slt i32 %11, %size
+  br i1 %12, label %while_loop_then, label %while_loop_after
+
+while_loop_then:                                  ; preds = %while_loop_condition
+  %13 = load i32, ptr %index1, align 4
+  %14 = icmp sgt i32 %13, 3
+  br i1 %14, label %if_s0_then6, label %if_s1_after7
+
+while_loop_after:                                 ; preds = %if_s0_then6, %while_loop_condition
+  %15 = load i32, ptr %index1, align 4
+  call void @print_integer(i32 %15)
+  br label %for_loop_update_index4
+
+if_s0_then6:                                      ; preds = %while_loop_then
+  br label %while_loop_after
+
+if_s1_after7:                                     ; preds = %while_loop_then
+  %16 = load i32, ptr %index_2, align 4
+  call void @print_integer(i32 %16)
+  %17 = load i32, ptr %index1, align 4
+  %18 = add i32 %17, 1
+  store i32 %18, ptr %index1, align 4
+  br label %while_loop_condition
+
+for_loop_condition9:                              ; preds = %for_loop_update_index11, %for_loop_after5
+  %19 = load i32, ptr %index8, align 4
+  %20 = icmp slt i32 %19, %size
+  br i1 %20, label %for_loop_then10, label %for_loop_after12
+
+for_loop_then10:                                  ; preds = %for_loop_condition9
+  %index_213 = alloca i32, align 4
+  store i32 0, ptr %index_213, align 4
+  br label %while_loop_condition14
+
+for_loop_update_index11:                          ; preds = %while_loop_after16
+  %21 = load i32, ptr %index8, align 4
+  %22 = add i32 %21, 1
+  store i32 %22, ptr %index8, align 4
+  br label %for_loop_condition9
+
+for_loop_after12:                                 ; preds = %if_s0_then17, %for_loop_condition9
+  ret void
+
+while_loop_condition14:                           ; preds = %if_s1_after18, %for_loop_then10
+  %23 = load i32, ptr %index_213, align 4
+  %24 = icmp slt i32 %23, %size
+  br i1 %24, label %while_loop_then15, label %while_loop_after16
+
+while_loop_then15:                                ; preds = %while_loop_condition14
+  %25 = load i32, ptr %index8, align 4
+  %26 = icmp sgt i32 %25, 3
+  br i1 %26, label %if_s0_then17, label %if_s1_after18
+
+while_loop_after16:                               ; preds = %while_loop_condition14
+  %27 = load i32, ptr %index8, align 4
+  call void @print_integer(i32 %27)
+  br label %for_loop_update_index11
+
+if_s0_then17:                                     ; preds = %while_loop_then15
+  br label %for_loop_after12
+
+if_s1_after18:                                    ; preds = %while_loop_then15
+  %28 = load i32, ptr %index_213, align 4
+  call void @print_integer(i32 %28)
+  %29 = load i32, ptr %index8, align 4
+  %30 = add i32 %29, 1
+  store i32 %30, ptr %index8, align 4
+  br label %while_loop_condition14
+}
+
+define private void @print_integer(i32 %value) {
+entry:
+  %0 = call i32 (ptr, ...) @printf(ptr @global_0, i32 %value)
+  ret void
+}
+
+declare i32 @printf(ptr, ...)
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
