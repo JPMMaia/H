@@ -884,6 +884,59 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
+define i32 @run_switch(i32 %value) {
+entry:
+  switch i32 %value, label %switch_after [
+    i32 0, label %switch_case_i0_
+  ]
+
+switch_after:                                     ; preds = %entry
+  switch i32 %value, label %switch_case_default [
+    i32 1, label %switch_case_i0_2
+    i32 2, label %switch_case_i1_
+    i32 3, label %switch_case_i2_
+    i32 4, label %switch_case_i3_
+    i32 5, label %switch_case_i4_
+  ]
+
+switch_case_i0_:                                  ; preds = %entry
+  %return_value = alloca i32, align 4
+  store i32 0, ptr %return_value, align 4
+  %0 = load i32, ptr %return_value, align 4
+  ret i32 %0
+
+switch_after1:                                    ; preds = %switch_case_i3_
+  switch i32 %value, label %switch_case_default4 [
+    i32 6, label %switch_case_i1_5
+  ]
+
+switch_case_i0_2:                                 ; preds = %switch_after
+  ret i32 1
+
+switch_case_i1_:                                  ; preds = %switch_after
+  br label %switch_case_i2_
+
+switch_case_i2_:                                  ; preds = %switch_case_i1_, %switch_after
+  ret i32 2
+
+switch_case_i3_:                                  ; preds = %switch_after
+  br label %switch_after1
+
+switch_case_i4_:                                  ; preds = %switch_after
+  br label %switch_case_default
+
+switch_case_default:                              ; preds = %switch_case_i4_, %switch_after
+  ret i32 3
+
+switch_after3:                                    ; No predecessors!
+  ret i32 5
+
+switch_case_default4:                             ; preds = %switch_after1
+  br label %switch_case_i1_5
+
+switch_case_i1_5:                                 ; preds = %switch_case_default4, %switch_after1
+  ret i32 4
+}
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);

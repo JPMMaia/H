@@ -528,7 +528,7 @@ namespace h::compiler
         return *llvm_function;
     }
 
-    bool ends_with_break_or_continue_statement(std::span<Statement const> const statements)
+    bool ends_with_terminator_statement(std::span<Statement const> const statements)
     {
         if (statements.empty())
             return false;
@@ -539,7 +539,7 @@ namespace h::compiler
             return false;
 
         Expression const& first_expression = last_statement.expressions[0];
-        return std::holds_alternative<Break_expression>(first_expression.data) || std::holds_alternative<Continue_expression>(first_expression.data);
+        return std::holds_alternative<Break_expression>(first_expression.data) || std::holds_alternative<Continue_expression>(first_expression.data) || std::holds_alternative<Return_expression>(first_expression.data);
     }
 
     enum class Block_type
@@ -1772,7 +1772,7 @@ namespace h::compiler
                 temporaries_allocator
             );
 
-            if (!ends_with_break_or_continue_statement(then_statements))
+            if (!ends_with_terminator_statement(then_statements))
                 llvm_builder.CreateBr(update_index_block);
         }
 
@@ -1925,7 +1925,7 @@ namespace h::compiler
                     temporaries_allocator
                 );
 
-                if (!ends_with_break_or_continue_statement(statements))
+                if (!ends_with_terminator_statement(statements))
                     llvm_builder.CreateBr(end_if_block);
 
                 llvm_builder.SetInsertPoint(else_block);
@@ -1949,7 +1949,7 @@ namespace h::compiler
                     temporaries_allocator
                 );
 
-                if (!ends_with_break_or_continue_statement(statements))
+                if (!ends_with_terminator_statement(statements))
                     llvm_builder.CreateBr(end_if_block);
 
                 llvm_builder.SetInsertPoint(end_if_block);
@@ -1987,6 +1987,121 @@ namespace h::compiler
         {
             .name = "",
             .value = instruction,
+            .type = std::nullopt
+        };
+    }
+
+    Value_and_type create_value(
+        Module const& core_module,
+        std::span<Module const> core_module_dependencies,
+        Switch_expression const& expression,
+        llvm::LLVMContext& llvm_context,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Module& llvm_module,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::Function* const llvm_parent_function,
+        std::span<Block_info const> const block_infos,
+        std::span<Value_and_type const> function_arguments,
+        std::span<Value_and_type const> local_variables,
+        std::span<Value_and_type const> const temporaries,
+        Struct_types const& struct_types,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::vector<llvm::BasicBlock*> case_blocks;
+        case_blocks.resize(expression.cases.size());
+
+        llvm::BasicBlock* const after_block = llvm::BasicBlock::Create(llvm_context, "switch_after", llvm_parent_function);
+        llvm::BasicBlock* default_case_block = nullptr;
+
+        for (std::size_t case_index = 0; case_index < expression.cases.size(); ++case_index)
+        {
+            Switch_case_expression_pair const& switch_case = expression.cases[case_index];
+
+            std::string const block_name = switch_case.case_value.has_value() ? std::format("switch_case_i{}_", case_index) : "switch_case_default";
+
+            llvm::BasicBlock* case_block = llvm::BasicBlock::Create(llvm_context, block_name, llvm_parent_function);
+
+            if (!switch_case.case_value.has_value())
+                default_case_block = case_block;
+
+            case_blocks[case_index] = case_block;
+        }
+
+        if (default_case_block == nullptr)
+            default_case_block = after_block;
+
+        std::uint64_t const number_of_cases = static_cast<std::uint64_t>(expression.cases.size());
+
+        Value_and_type const& switch_value = temporaries[expression.value.expression_index];
+
+        llvm::SwitchInst* switch_instruction = llvm_builder.CreateSwitch(switch_value.value, default_case_block, number_of_cases);
+
+        for (std::size_t case_index = 0; case_index < expression.cases.size(); ++case_index)
+        {
+            Switch_case_expression_pair const& switch_case = expression.cases[case_index];
+
+            if (switch_case.case_value.has_value())
+            {
+                llvm::BasicBlock* const case_block = case_blocks[case_index];
+                Value_and_type const& case_value = temporaries[switch_case.case_value.value().expression_index];
+
+                if (!llvm::ConstantInt::classof(case_value.value))
+                    throw std::runtime_error("Swith case value is not a ConstantInt!");
+
+                llvm::ConstantInt* const case_value_constant = static_cast<llvm::ConstantInt*>(case_value.value);
+
+                switch_instruction->addCase(case_value_constant, case_block);
+            }
+        }
+
+        std::pmr::vector<Block_info> all_block_infos{ block_infos.begin(), block_infos.end() };
+        all_block_infos.push_back({ .block_type = Block_type::Switch, .repeat_block = nullptr, .after_block = after_block });
+
+        for (std::size_t case_index = 0; case_index < expression.cases.size(); ++case_index)
+        {
+            Switch_case_expression_pair const& switch_case = expression.cases[case_index];
+            llvm::BasicBlock* const case_block = case_blocks[case_index];
+
+            llvm_builder.SetInsertPoint(case_block);
+
+            create_statement_values(
+                switch_case.statements,
+                core_module,
+                core_module_dependencies,
+                llvm_context,
+                llvm_data_layout,
+                llvm_module,
+                llvm_builder,
+                llvm_parent_function,
+                all_block_infos,
+                function_arguments,
+                local_variables,
+                struct_types,
+                temporaries_allocator
+            );
+
+            if (!ends_with_terminator_statement(switch_case.statements))
+            {
+                // If there is a next case:
+                if ((case_index + 1) < expression.cases.size())
+                {
+                    llvm::BasicBlock* const next_case_block = case_blocks[case_index + 1];
+                    llvm_builder.CreateBr(next_case_block);
+                }
+                else
+                {
+                    llvm_builder.CreateBr(after_block);
+                }
+            }
+        }
+
+        llvm_builder.SetInsertPoint(after_block);
+
+        return Value_and_type
+        {
+            .name = "",
+            .value = nullptr,
             .type = std::nullopt
         };
     }
@@ -2372,7 +2487,7 @@ namespace h::compiler
             struct_types,
             temporaries_allocator
         );
-        if (!ends_with_break_or_continue_statement(then_block_statements))
+        if (!ends_with_terminator_statement(then_block_statements))
             llvm_builder.CreateBr(condition_block);
 
         llvm_builder.SetInsertPoint(after_block);
@@ -2471,6 +2586,11 @@ namespace h::compiler
         else if (std::holds_alternative<Ternary_condition_expression>(expression.data))
         {
             Ternary_condition_expression const& data = std::get<Ternary_condition_expression>(expression.data);
+            return create_value(core_module, core_module_dependencies, data, llvm_context, llvm_data_layout, llvm_module, llvm_builder, llvm_parent_function, block_infos, function_arguments, local_variables, temporaries, struct_types, temporaries_allocator);
+        }
+        else if (std::holds_alternative<Switch_expression>(expression.data))
+        {
+            Switch_expression const& data = std::get<Switch_expression>(expression.data);
             return create_value(core_module, core_module_dependencies, data, llvm_context, llvm_data_layout, llvm_module, llvm_builder, llvm_parent_function, block_infos, function_arguments, local_variables, temporaries, struct_types, temporaries_allocator);
         }
         else if (std::holds_alternative<Unary_expression>(expression.data))
