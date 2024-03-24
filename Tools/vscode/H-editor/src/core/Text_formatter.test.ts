@@ -17,7 +17,7 @@ describe("Text_formatter.to_string", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
         const production_rules = Grammar.create_production_rules(grammar_description);
         const mappings = Parse_tree_convertor_mappings.create_mapping();
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_alias_example());
+        const module = Module_examples.create_alias_example();
         const parse_tree = Parse_tree_convertor.module_to_parse_tree(module, production_rules, mappings);
         const text_cache = Parse_tree_text_position_cache.create_cache();
 
@@ -32,7 +32,7 @@ describe("Text_formatter.to_string", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
         const production_rules = Grammar.create_production_rules(grammar_description);
         const mappings = Parse_tree_convertor_mappings.create_mapping();
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_enum_example());
+        const module = Module_examples.create_enum_example();
         const parse_tree = Parse_tree_convertor.module_to_parse_tree(module, production_rules, mappings);
         const text_cache = Parse_tree_text_position_cache.create_cache();
 
@@ -47,13 +47,13 @@ describe("Text_formatter.to_string", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
         const production_rules = Grammar.create_production_rules(grammar_description);
         const mappings = Parse_tree_convertor_mappings.create_mapping();
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_struct_example());
+        const module = Module_examples.create_struct_example();
         const parse_tree = Parse_tree_convertor.module_to_parse_tree(module, production_rules, mappings);
         const text_cache = Parse_tree_text_position_cache.create_cache();
 
         const actual_text = Text_formatter.to_string(parse_tree, text_cache, []);
 
-        const expected_text = "module struct_example;\n\nexport struct My_struct\n{\n    member_0: Float32;\n    member_1: Float32;\n    member_2: Float32;\n}\n\n";
+        const expected_text = "module struct_example;\n\nexport struct My_struct\n{\n    member_0: Float32 = 0.0f32;\n    member_1: Float32 = 1.0f32;\n    member_2: Float32 = 2.0f32;\n}\n\n";
 
         assert.equal(actual_text, expected_text);
     });
@@ -62,7 +62,7 @@ describe("Text_formatter.to_string", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
         const production_rules = Grammar.create_production_rules(grammar_description);
         const mappings = Parse_tree_convertor_mappings.create_mapping();
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_function_example());
+        const module = Module_examples.create_function_example();
         const parse_tree = Parse_tree_convertor.module_to_parse_tree(module, production_rules, mappings);
         const text_cache = Parse_tree_text_position_cache.create_cache();
 
@@ -77,7 +77,7 @@ describe("Text_formatter.to_string", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
         const production_rules = Grammar.create_production_rules(grammar_description);
         const mappings = Parse_tree_convertor_mappings.create_mapping();
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_module_with_dependencies());
+        const module = Module_examples.create_module_with_dependencies();
         const parse_tree = Parse_tree_convertor.module_to_parse_tree(module, production_rules, mappings);
         const text_cache = Parse_tree_text_position_cache.create_cache();
 

@@ -240,11 +240,17 @@ export enum Binary_operation {
     Bitwise_xor = "Bitwise_xor",
     Bit_shift_left = "Bit_shift_left",
     Bit_shift_right = "Bit_shift_right",
+    Has = "Has",
 }
 
 export enum Cast_type {
     Numeric = "Numeric",
     BitCast = "BitCast",
+}
+
+export enum Instantiate_struct_type {
+    Default = "Default",
+    Explicit = "Explicit",
 }
 
 export enum Unary_operation {
@@ -286,13 +292,16 @@ export enum Expression_enum {
     Continue_expression = "Continue_expression",
     For_loop_expression = "For_loop_expression",
     If_expression = "If_expression",
+    Instantiate_struct_expression = "Instantiate_struct_expression",
     Invalid_expression = "Invalid_expression",
+    Null_pointer_expression = "Null_pointer_expression",
     Parenthesis_expression = "Parenthesis_expression",
     Return_expression = "Return_expression",
     Switch_expression = "Switch_expression",
     Ternary_condition_expression = "Ternary_condition_expression",
     Unary_expression = "Unary_expression",
     Variable_declaration_expression = "Variable_declaration_expression",
+    Variable_declaration_with_type_expression = "Variable_declaration_with_type_expression",
     Variable_expression = "Variable_expression",
     While_loop_expression = "While_loop_expression",
 }
@@ -589,20 +598,20 @@ function intermediate_to_core_alias_type_declaration(intermediate_value: Alias_t
 
 export interface Enum_value {
     name: string;
-    value: number;
+    value?: Statement;
 }
 
 function core_to_intermediate_enum_value(core_value: Core.Enum_value): Enum_value {
     return {
         name: core_value.name,
-        value: core_value.value,
+        value: core_value.value !== undefined ? core_to_intermediate_statement(core_value.value) : undefined,
     };
 }
 
 function intermediate_to_core_enum_value(intermediate_value: Enum_value): Core.Enum_value {
     return {
         name: intermediate_value.name,
-        value: intermediate_value.value,
+        value: intermediate_value.value !== undefined ? intermediate_to_core_statement(intermediate_value.value) : undefined,
     };
 }
 
@@ -632,6 +641,7 @@ export interface Struct_declaration {
     name: string;
     member_types: Type_reference[];
     member_names: string[];
+    member_default_values: Statement[];
     is_packed: boolean;
     is_literal: boolean;
 }
@@ -641,6 +651,7 @@ function core_to_intermediate_struct_declaration(core_value: Core.Struct_declara
         name: core_value.name,
         member_types: core_value.member_types.elements.map(value => core_to_intermediate_type_reference(value)),
         member_names: core_value.member_names.elements,
+        member_default_values: core_value.member_default_values.elements.map(value => core_to_intermediate_statement(value)),
         is_packed: core_value.is_packed,
         is_literal: core_value.is_literal,
     };
@@ -656,6 +667,10 @@ function intermediate_to_core_struct_declaration(intermediate_value: Struct_decl
         member_names: {
             size: intermediate_value.member_names.length,
             elements: intermediate_value.member_names,
+        },
+        member_default_values: {
+            size: intermediate_value.member_default_values.length,
+            elements: intermediate_value.member_default_values.map(value => intermediate_to_core_statement(value)),
         },
         is_packed: intermediate_value.is_packed,
         is_literal: intermediate_value.is_literal,
@@ -1233,6 +1248,68 @@ export function create_if_expression(series: Condition_statement_pair[]): Expres
         }
     };
 }
+export interface Instantiate_struct_member_value_pair {
+    member_name: string;
+    value: Statement;
+}
+
+function core_to_intermediate_instantiate_struct_member_value_pair(core_value: Core.Instantiate_struct_member_value_pair): Instantiate_struct_member_value_pair {
+    return {
+        member_name: core_value.member_name,
+        value: core_to_intermediate_statement(core_value.value),
+    };
+}
+
+function intermediate_to_core_instantiate_struct_member_value_pair(intermediate_value: Instantiate_struct_member_value_pair): Core.Instantiate_struct_member_value_pair {
+    return {
+        member_name: intermediate_value.member_name,
+        value: intermediate_to_core_statement(intermediate_value.value),
+    };
+}
+
+export interface Instantiate_struct_expression {
+    type: Instantiate_struct_type;
+    members: Instantiate_struct_member_value_pair[];
+}
+
+function core_to_intermediate_instantiate_struct_expression(core_value: Core.Instantiate_struct_expression, statement: Core.Statement): Instantiate_struct_expression {
+    return {
+        type: core_value.type,
+        members: core_value.members.elements.map(value => core_to_intermediate_instantiate_struct_member_value_pair(value)),
+    };
+}
+
+function intermediate_to_core_instantiate_struct_expression(intermediate_value: Instantiate_struct_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
+    const core_value: Core.Expression = {
+        data: {
+            type: Core.Expression_enum.Instantiate_struct_expression,
+            value: {
+                type: intermediate_value.type,
+                members: {
+                    size: intermediate_value.members.length,
+                    elements: intermediate_value.members.map(value => intermediate_to_core_instantiate_struct_member_value_pair(value))
+                },
+            }
+        }
+    };
+
+    expressions[index] = core_value;
+}
+
+export function create_instantiate_struct_expression(type: Instantiate_struct_type, members: Instantiate_struct_member_value_pair[]): Expression {
+    const instantiate_struct_expression: Instantiate_struct_expression = {
+        type: type,
+        members: members,
+    };
+    return {
+        data: {
+            type: Expression_enum.Instantiate_struct_expression,
+            value: instantiate_struct_expression
+        }
+    };
+}
 export interface Invalid_expression {
     value: string;
 }
@@ -1266,6 +1343,38 @@ export function create_invalid_expression(value: string): Expression {
         data: {
             type: Expression_enum.Invalid_expression,
             value: invalid_expression
+        }
+    };
+}
+export interface Null_pointer_expression {
+}
+
+function core_to_intermediate_null_pointer_expression(core_value: Core.Null_pointer_expression, statement: Core.Statement): Null_pointer_expression {
+    return {
+    };
+}
+
+function intermediate_to_core_null_pointer_expression(intermediate_value: Null_pointer_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
+    const core_value: Core.Expression = {
+        data: {
+            type: Core.Expression_enum.Null_pointer_expression,
+            value: {
+            }
+        }
+    };
+
+    expressions[index] = core_value;
+}
+
+export function create_null_pointer_expression(): Expression {
+    const null_pointer_expression: Null_pointer_expression = {
+    };
+    return {
+        data: {
+            type: Expression_enum.Null_pointer_expression,
+            value: null_pointer_expression
         }
     };
 }
@@ -1571,6 +1680,54 @@ export function create_variable_declaration_expression(name: string, is_mutable:
         }
     };
 }
+export interface Variable_declaration_with_type_expression {
+    name: string;
+    is_mutable: boolean;
+    type: Type_reference;
+    right_hand_side: Statement;
+}
+
+function core_to_intermediate_variable_declaration_with_type_expression(core_value: Core.Variable_declaration_with_type_expression, statement: Core.Statement): Variable_declaration_with_type_expression {
+    return {
+        name: core_value.name,
+        is_mutable: core_value.is_mutable,
+        type: core_to_intermediate_type_reference(core_value.type),
+        right_hand_side: core_to_intermediate_statement(core_value.right_hand_side),
+    };
+}
+
+function intermediate_to_core_variable_declaration_with_type_expression(intermediate_value: Variable_declaration_with_type_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
+    const core_value: Core.Expression = {
+        data: {
+            type: Core.Expression_enum.Variable_declaration_with_type_expression,
+            value: {
+                name: intermediate_value.name,
+                is_mutable: intermediate_value.is_mutable,
+                type: intermediate_to_core_type_reference(intermediate_value.type),
+                right_hand_side: intermediate_to_core_statement(intermediate_value.right_hand_side),
+            }
+        }
+    };
+
+    expressions[index] = core_value;
+}
+
+export function create_variable_declaration_with_type_expression(name: string, is_mutable: boolean, type: Type_reference, right_hand_side: Statement): Expression {
+    const variable_declaration_with_type_expression: Variable_declaration_with_type_expression = {
+        name: name,
+        is_mutable: is_mutable,
+        type: type,
+        right_hand_side: right_hand_side,
+    };
+    return {
+        data: {
+            type: Expression_enum.Variable_declaration_with_type_expression,
+            value: variable_declaration_with_type_expression
+        }
+    };
+}
 export interface While_loop_expression {
     condition: Statement;
     then_statement: Statement;
@@ -1612,7 +1769,7 @@ export function create_while_loop_expression(condition: Statement, then_statemen
     };
 }
 export interface Expression {
-    data: Variant<Expression_enum, Access_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Constant_expression | Continue_expression | For_loop_expression | If_expression | Invalid_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_expression | While_loop_expression>;
+    data: Variant<Expression_enum, Access_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Constant_expression | Continue_expression | For_loop_expression | If_expression | Instantiate_struct_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
 }
 
 function core_to_intermediate_expression(core_value: Core.Expression, statement: Core.Statement): Expression {
@@ -1705,11 +1862,27 @@ function core_to_intermediate_expression(core_value: Core.Expression, statement:
                 }
             };
         }
+        case Core.Expression_enum.Instantiate_struct_expression: {
+            return {
+                data: {
+                    type: core_value.data.type,
+                    value: core_to_intermediate_instantiate_struct_expression(core_value.data.value as Core.Instantiate_struct_expression, statement)
+                }
+            };
+        }
         case Core.Expression_enum.Invalid_expression: {
             return {
                 data: {
                     type: core_value.data.type,
                     value: core_to_intermediate_invalid_expression(core_value.data.value as Core.Invalid_expression, statement)
+                }
+            };
+        }
+        case Core.Expression_enum.Null_pointer_expression: {
+            return {
+                data: {
+                    type: core_value.data.type,
+                    value: core_to_intermediate_null_pointer_expression(core_value.data.value as Core.Null_pointer_expression, statement)
                 }
             };
         }
@@ -1758,6 +1931,14 @@ function core_to_intermediate_expression(core_value: Core.Expression, statement:
                 data: {
                     type: core_value.data.type,
                     value: core_to_intermediate_variable_declaration_expression(core_value.data.value as Core.Variable_declaration_expression, statement)
+                }
+            };
+        }
+        case Core.Expression_enum.Variable_declaration_with_type_expression: {
+            return {
+                data: {
+                    type: core_value.data.type,
+                    value: core_to_intermediate_variable_declaration_with_type_expression(core_value.data.value as Core.Variable_declaration_with_type_expression, statement)
                 }
             };
         }
@@ -1826,8 +2007,16 @@ function intermediate_to_core_expression(intermediate_value: Expression, express
             intermediate_to_core_if_expression(intermediate_value.data.value as If_expression, expressions);
             break;
         }
+        case Expression_enum.Instantiate_struct_expression: {
+            intermediate_to_core_instantiate_struct_expression(intermediate_value.data.value as Instantiate_struct_expression, expressions);
+            break;
+        }
         case Expression_enum.Invalid_expression: {
             intermediate_to_core_invalid_expression(intermediate_value.data.value as Invalid_expression, expressions);
+            break;
+        }
+        case Expression_enum.Null_pointer_expression: {
+            intermediate_to_core_null_pointer_expression(intermediate_value.data.value as Null_pointer_expression, expressions);
             break;
         }
         case Expression_enum.Parenthesis_expression: {
@@ -1852,6 +2041,10 @@ function intermediate_to_core_expression(intermediate_value: Expression, express
         }
         case Expression_enum.Variable_declaration_expression: {
             intermediate_to_core_variable_declaration_expression(intermediate_value.data.value as Variable_declaration_expression, expressions);
+            break;
+        }
+        case Expression_enum.Variable_declaration_with_type_expression: {
+            intermediate_to_core_variable_declaration_with_type_expression(intermediate_value.data.value as Variable_declaration_with_type_expression, expressions);
             break;
         }
         case Expression_enum.Variable_expression: {

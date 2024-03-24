@@ -1,727 +1,542 @@
-import * as core from "./Core_interface";
 import * as IR from "./Core_intermediate_representation";
-import * as core_reflection from "./Core_reflection";
 
-export function create_empty(): core.Module {
-    const reflection_info = core_reflection.create_reflection_info();
-    const module = core_reflection.create_empty_module(reflection_info);
-    return module;
+export function create_empty(): IR.Module {
+    return {
+        name: "Module",
+        imports: [],
+        declarations: []
+    };
 }
 
-export function create_default(): core.Module {
+export function create_default(): IR.Module {
     return create_0();
 }
 
-export function create_0(): core.Module {
+export function create_0(): IR.Module {
 
-    const module: core.Module =
+    const int32_type = create_integer_type(32, true);
+
+    const module: IR.Module =
     {
-        language_version: { major: 0, minor: 1, patch: 0 },
         name: "module_name",
-        dependencies: {
-            alias_imports: {
-                size: 0,
-                elements: []
-            }
-        },
-        export_declarations: {
-            alias_type_declarations: {
-                size: 1,
-                elements: [
-                    {
-                        name: "My_float",
-                        type: {
-                            size: 1,
-                            elements: [
-                                {
-                                    data: {
-                                        type: core.Type_reference_enum.Fundamental_type,
-                                        value: core.Fundamental_type.Float32
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                ]
-            },
-            enum_declarations: {
-                size: 1,
-                elements: [
-                    {
-                        name: "My_enum_0",
-                        values: {
-                            size: 3,
-                            elements: [
-                                {
-                                    name: "Value_0",
-                                    value: 0
-                                },
-                                {
-                                    name: "Value_1",
-                                    value: 1
-                                },
-                                {
-                                    name: "Value_2",
-                                    value: 2
-                                }
-                            ]
-                        }
-                    }
-                ]
-            },
-            struct_declarations: {
-                size: 1,
-                elements: [
-                    {
-                        name: "My_struct_0",
-                        member_types: {
-                            size: 3,
-                            elements: [
-                                {
-                                    data: {
-                                        type: core.Type_reference_enum.Fundamental_type,
-                                        value: core.Fundamental_type.Float32
-                                    }
-                                },
-                                {
-                                    data: {
-                                        type: core.Type_reference_enum.Fundamental_type,
-                                        value: core.Fundamental_type.Float32
-                                    }
-                                },
-                                {
-                                    data: {
-                                        type: core.Type_reference_enum.Fundamental_type,
-                                        value: core.Fundamental_type.Float32
-                                    }
-                                }
-                            ]
-                        },
-                        member_names: {
-                            size: 3,
-                            elements: [
-                                "member_0",
-                                "member_1",
-                                "member_2"
-                            ]
-                        },
-                        is_packed: false,
-                        is_literal: false
-                    }
-                ]
-            },
-            function_declarations: {
-                size: 4,
-                elements: [
-                    {
-                        name: "My_function_0",
-                        type: {
-                            input_parameter_types: {
-                                size: 2,
-                                elements: [
-                                    { data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } },
-                                    { data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } },
-                                ],
-                            },
-                            output_parameter_types: {
-                                size: 1,
-                                elements: [{ data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } }],
-                            },
-                            is_variadic: false,
-                        },
-                        input_parameter_names: { size: 2, elements: ["lhs", "rhs"] },
-                        output_parameter_names: { size: 1, elements: ["result"] },
-                        linkage: core.Linkage.External,
-                    },
-                    {
-                        name: "My_function_1",
-                        type: {
-                            input_parameter_types: {
-                                size: 2,
-                                elements: [
-                                    { data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } },
-                                    { data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } },
-                                ],
-                            },
-                            output_parameter_types: {
-                                size: 1,
-                                elements: [{ data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } }],
-                            },
-                            is_variadic: false,
-                        },
-                        input_parameter_names: { size: 2, elements: ["lhs", "rhs"] },
-                        output_parameter_names: { size: 1, elements: ["result"] },
-                        linkage: core.Linkage.External,
-                    },
-                    {
-                        name: "My_function_2",
-                        type: {
-                            input_parameter_types: {
-                                size: 2,
-                                elements: [
-                                    { data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } },
-                                    { data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } },
-                                ],
-                            },
-                            output_parameter_types: {
-                                size: 1,
-                                elements: [{ data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } }],
-                            },
-                            is_variadic: false,
-                        },
-                        input_parameter_names: { size: 2, elements: ["lhs", "rhs"] },
-                        output_parameter_names: { size: 1, elements: ["result"] },
-                        linkage: core.Linkage.External,
-                    },
-                    {
-                        name: "Empty_function",
-                        type: {
-                            input_parameter_types: {
-                                size: 0,
-                                elements: [],
-                            },
-                            output_parameter_types: {
-                                size: 0,
-                                elements: [],
-                            },
-                            is_variadic: false,
-                        },
-                        input_parameter_names: { size: 0, elements: [] },
-                        output_parameter_names: { size: 0, elements: [] },
-                        linkage: core.Linkage.External,
-                    },
-                ],
-            },
-        },
-        internal_declarations: {
-            alias_type_declarations: {
-                size: 1,
-                elements: [
-                    {
-                        name: "My_int",
-                        type: {
-                            size: 1,
-                            elements: [
-                                {
-                                    data: {
-                                        type: core.Type_reference_enum.Integer_type,
-                                        value: {
-                                            number_of_bits: 32,
-                                            is_signed: true
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                ]
-            },
-            enum_declarations: {
-                size: 1,
-                elements: [
-                    {
-                        name: "My_enum_1",
-                        values: {
-                            size: 3,
-                            elements: [
-                                {
-                                    name: "Value_0",
-                                    value: 0
-                                },
-                                {
-                                    name: "Value_1",
-                                    value: 1
-                                },
-                                {
-                                    name: "Value_2",
-                                    value: 2
-                                }
-                            ]
-                        }
-                    }
-                ]
-            },
-            struct_declarations: {
-                size: 1,
-                elements: [
-                    {
-                        name: "My_struct_1",
-                        member_types: {
-                            size: 3,
-                            elements: [
-                                {
-                                    data: {
-                                        type: core.Type_reference_enum.Fundamental_type,
-                                        value: core.Fundamental_type.Float32
-                                    }
-                                },
-                                {
-                                    data: {
-                                        type: core.Type_reference_enum.Fundamental_type,
-                                        value: core.Fundamental_type.Float32
-                                    }
-                                },
-                                {
-                                    data: {
-                                        type: core.Type_reference_enum.Fundamental_type,
-                                        value: core.Fundamental_type.Float32
-                                    }
-                                }
-                            ]
-                        },
-                        member_names: {
-                            size: 3,
-                            elements: [
-                                "member_0",
-                                "member_1",
-                                "member_2"
-                            ]
-                        },
-                        is_packed: false,
-                        is_literal: false
-                    }
-                ]
-            },
-            function_declarations: {
-                size: 1,
-                elements: [
-                    {
-                        name: "My_function_4",
-                        type: {
-                            input_parameter_types: {
-                                size: 2,
-                                elements: [
-                                    { data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } },
-                                    { data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } },
-                                ],
-                            },
-                            output_parameter_types: {
-                                size: 1,
-                                elements: [{ data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } }],
-                            },
-                            is_variadic: false,
-                        },
-                        input_parameter_names: { size: 2, elements: ["lhs", "rhs"] },
-                        output_parameter_names: { size: 1, elements: ["result"] },
-                        linkage: core.Linkage.Private,
-                    },
-                ]
-            }
-        },
-        definitions: {
-            function_definitions: {
-                size: 5,
-                elements: [
-                    {
-                        name: "My_function_0",
-                        statements: {
-                            size: 1,
-                            elements: [
-                                {
-                                    name: "",
-                                    expressions: {
-                                        size: 4,
-                                        elements: [
-                                            {
-                                                data: {
-                                                    type: core.Expression_enum.Return_expression,
-                                                    value: { expression: { expression_index: 1 } },
-                                                },
-                                            },
-                                            {
-                                                data: {
-                                                    type: core.Expression_enum.Binary_expression,
-                                                    value: {
-                                                        left_hand_side: { expression_index: 2 },
-                                                        right_hand_side: { expression_index: 3 },
-                                                        operation: core.Binary_operation.Add,
-                                                    },
-                                                },
-                                            },
-                                            {
-                                                data: {
-                                                    type: core.Expression_enum.Variable_expression,
-                                                    value: {
-                                                        name: "lhs",
-                                                        access_type: core.Access_type.Read
-                                                    }
-                                                }
-                                            },
-                                            {
-                                                data: {
-                                                    type: core.Expression_enum.Variable_expression,
-                                                    value: {
-                                                        name: "rhs",
-                                                        access_type: core.Access_type.Read
-                                                    }
-                                                }
-                                            }
-                                        ],
-                                    },
-                                },
-                            ],
-                        },
-                    },
-                    {
-                        name: "My_function_1",
-                        statements: {
-                            size: 1,
-                            elements: [
-                                {
-                                    name: "",
-                                    expressions: {
-                                        size: 4,
-                                        elements: [
-                                            {
-                                                data: {
-                                                    type: core.Expression_enum.Return_expression,
-                                                    value: { expression: { expression_index: 1 } },
-                                                },
-                                            },
-                                            {
-                                                data: {
-                                                    type: core.Expression_enum.Binary_expression,
-                                                    value: {
-                                                        left_hand_side: { expression_index: 2 },
-                                                        right_hand_side: { expression_index: 3 },
-                                                        operation: core.Binary_operation.Add,
-                                                    },
-                                                },
-                                            },
-                                            {
-                                                data: {
-                                                    type: core.Expression_enum.Variable_expression,
-                                                    value: {
-                                                        name: "lhs",
-                                                        access_type: core.Access_type.Read
-                                                    }
-                                                }
-                                            },
-                                            {
-                                                data: {
-                                                    type: core.Expression_enum.Variable_expression,
-                                                    value: {
-                                                        name: "rhs",
-                                                        access_type: core.Access_type.Read
-                                                    }
-                                                }
-                                            }
-                                        ],
-                                    },
-                                },
-                            ],
-                        },
-                    },
-                    {
-                        name: "My_function_2",
-                        statements: {
-                            size: 1,
-                            elements: [
-                                {
-                                    name: "",
-                                    expressions: {
-                                        size: 4,
-                                        elements: [
-                                            {
-                                                data: {
-                                                    type: core.Expression_enum.Return_expression,
-                                                    value: { expression: { expression_index: 1 } },
-                                                },
-                                            },
-                                            {
-                                                data: {
-                                                    type: core.Expression_enum.Binary_expression,
-                                                    value: {
-                                                        left_hand_side: { expression_index: 2 },
-                                                        right_hand_side: { expression_index: 3 },
-                                                        operation: core.Binary_operation.Add,
-                                                    },
-                                                },
-                                            },
-                                            {
-                                                data: {
-                                                    type: core.Expression_enum.Variable_expression,
-                                                    value: {
-                                                        name: "lhs",
-                                                        access_type: core.Access_type.Read
-                                                    }
-                                                }
-                                            },
-                                            {
-                                                data: {
-                                                    type: core.Expression_enum.Variable_expression,
-                                                    value: {
-                                                        name: "rhs",
-                                                        access_type: core.Access_type.Read
-                                                    }
-                                                }
-                                            }
-                                        ],
-                                    },
-                                },
-                            ],
-                        },
-                    },
-                    {
-                        name: "Empty_function",
-                        statements: {
-                            size: 0,
-                            elements: [],
-                        },
-                    },
-                    {
-                        name: "My_function_4",
-                        statements: {
-                            size: 1,
-                            elements: [
-                                {
-                                    name: "",
-                                    expressions: {
-                                        size: 4,
-                                        elements: [
-                                            {
-                                                data: {
-                                                    type: core.Expression_enum.Return_expression,
-                                                    value: { expression: { expression_index: 1 } },
-                                                },
-                                            },
-                                            {
-                                                data: {
-                                                    type: core.Expression_enum.Binary_expression,
-                                                    value: {
-                                                        left_hand_side: { expression_index: 2 },
-                                                        right_hand_side: { expression_index: 3 },
-                                                        operation: core.Binary_operation.Add,
-                                                    },
-                                                },
-                                            },
-                                            {
-                                                data: {
-                                                    type: core.Expression_enum.Variable_expression,
-                                                    value: {
-                                                        name: "lhs",
-                                                        access_type: core.Access_type.Read
-                                                    }
-                                                }
-                                            },
-                                            {
-                                                data: {
-                                                    type: core.Expression_enum.Variable_expression,
-                                                    value: {
-                                                        name: "rhs",
-                                                        access_type: core.Access_type.Read
-                                                    }
-                                                }
-                                            }
-                                        ],
-                                    },
-                                },
-                            ],
-                        },
-                    },
-                ],
-            },
-        },
-    };
-
-    return module;
-}
-
-export function create_alias_example(): core.Module {
-    const module = create_empty();
-    module.name = "alias_example";
-    module.export_declarations.alias_type_declarations = {
-        size: 1,
-        elements: [
+        imports: [],
+        declarations: [
             {
-                name: "My_alias",
-                type: {
-                    size: 1,
-                    elements: [
+                name: "My_float",
+                type: IR.Declaration_type.Alias,
+                is_export: true,
+                value: {
+                    name: "My_float",
+                    type: [
                         {
                             data: {
-                                type: core.Type_reference_enum.Fundamental_type,
-                                value: core.Fundamental_type.Float32
+                                type: IR.Type_reference_enum.Fundamental_type,
+                                value: IR.Fundamental_type.Float32
                             }
                         }
                     ]
                 }
-            }
-        ]
-    };
-
-    return module;
-}
-
-export function create_enum_example(): core.Module {
-    const module = create_empty();
-    module.name = "enum_example";
-    module.export_declarations.enum_declarations = {
-        size: 1,
-        elements: [
+            },
             {
-                name: "My_enum",
-                values: {
-                    size: 3,
-                    elements: [
+                name: "My_enum_0",
+                type: IR.Declaration_type.Enum,
+                is_export: true,
+                value: {
+                    name: "My_enum_0",
+                    values: [
                         {
-                            name: "value_0",
-                            value: 0
+                            name: "Value_0",
+                            value: create_statement(
+                                IR.create_constant_expression(int32_type, "0")
+                            )
                         },
                         {
-                            name: "value_1",
-                            value: 1
+                            name: "Value_1",
+                            value: create_statement(
+                                IR.create_constant_expression(int32_type, "1")
+                            )
                         },
                         {
-                            name: "value_2",
-                            value: 2
-                        },
-                    ]
-                }
-            }
-        ]
-    };
-
-    return module;
-}
-
-export function create_struct_example(): core.Module {
-    const module = create_empty();
-    module.name = "struct_example";
-    module.export_declarations.struct_declarations = {
-        size: 1,
-        elements: [
-            {
-                name: "My_struct",
-                member_types: {
-                    size: 3,
-                    elements: [
-                        {
-                            data: {
-                                type: core.Type_reference_enum.Fundamental_type,
-                                value: core.Fundamental_type.Float32
-                            }
-                        },
-                        {
-                            data: {
-                                type: core.Type_reference_enum.Fundamental_type,
-                                value: core.Fundamental_type.Float32
-                            }
-                        },
-                        {
-                            data: {
-                                type: core.Type_reference_enum.Fundamental_type,
-                                value: core.Fundamental_type.Float32
-                            }
+                            name: "Value_2",
+                            value: create_statement(
+                                IR.create_constant_expression(int32_type, "2")
+                            )
                         }
                     ]
-                },
-                member_names: {
-                    size: 3,
-                    elements: [
+                }
+            },
+            {
+                name: "My_function_0",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "My_function_0",
+                        type: {
+                            input_parameter_types: [
+                                { data: { type: IR.Type_reference_enum.Fundamental_type, value: IR.Fundamental_type.Float32 } },
+                                { data: { type: IR.Type_reference_enum.Fundamental_type, value: IR.Fundamental_type.Float32 } },
+                            ],
+                            output_parameter_types: [
+                                { data: { type: IR.Type_reference_enum.Fundamental_type, value: IR.Fundamental_type.Float32 } },
+                            ],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: ["lhs", "rhs"],
+                        output_parameter_names: ["result"],
+                        linkage: IR.Linkage.External
+                    },
+                    definition: {
+                        name: "My_function_0",
+                        statements: [
+                            create_statement(
+                                IR.create_return_expression(
+                                    IR.create_binary_expression(
+                                        IR.create_variable_expression("lhs", IR.Access_type.Read),
+                                        IR.create_variable_expression("rhs", IR.Access_type.Read),
+                                        IR.Binary_operation.Add
+                                    )
+                                )
+                            )
+                        ],
+                    }
+                }
+            },
+            {
+                name: "My_function_1",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "My_function_1",
+                        type: {
+                            input_parameter_types: [
+                                { data: { type: IR.Type_reference_enum.Fundamental_type, value: IR.Fundamental_type.Float32 } },
+                                { data: { type: IR.Type_reference_enum.Fundamental_type, value: IR.Fundamental_type.Float32 } },
+                            ],
+                            output_parameter_types: [
+                                { data: { type: IR.Type_reference_enum.Fundamental_type, value: IR.Fundamental_type.Float32 } },
+                            ],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: ["lhs", "rhs"],
+                        output_parameter_names: ["result"],
+                        linkage: IR.Linkage.External
+                    },
+                    definition: {
+                        name: "My_function_1",
+                        statements: [
+                            create_statement(
+                                IR.create_return_expression(
+                                    IR.create_binary_expression(
+                                        IR.create_variable_expression("lhs", IR.Access_type.Read),
+                                        IR.create_variable_expression("rhs", IR.Access_type.Read),
+                                        IR.Binary_operation.Add
+                                    )
+                                )
+                            )
+                        ]
+                    }
+                }
+            },
+            {
+                name: "My_function_2",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "My_function_2",
+                        type: {
+                            input_parameter_types: [
+                                { data: { type: IR.Type_reference_enum.Fundamental_type, value: IR.Fundamental_type.Float32 } },
+                                { data: { type: IR.Type_reference_enum.Fundamental_type, value: IR.Fundamental_type.Float32 } },
+                            ],
+                            output_parameter_types: [
+                                { data: { type: IR.Type_reference_enum.Fundamental_type, value: IR.Fundamental_type.Float32 } },
+                            ],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: ["lhs", "rhs"],
+                        output_parameter_names: ["result"],
+                        linkage: IR.Linkage.External
+                    },
+                    definition: {
+                        name: "My_function_2",
+                        statements: [
+                            create_statement(
+                                IR.create_return_expression(
+                                    IR.create_binary_expression(
+                                        IR.create_variable_expression("lhs", IR.Access_type.Read),
+                                        IR.create_variable_expression("rhs", IR.Access_type.Read),
+                                        IR.Binary_operation.Add
+                                    )
+                                )
+                            )
+                        ]
+                    }
+                }
+            },
+            {
+                name: "Empty_function",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "Empty_function",
+                        type: {
+                            input_parameter_types: [],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: [],
+                        output_parameter_names: [],
+                        linkage: IR.Linkage.External
+                    },
+                    definition: {
+                        name: "Empty_function",
+                        statements: []
+                    }
+                }
+            },
+            {
+                name: "My_struct_0",
+                type: IR.Declaration_type.Struct,
+                is_export: true,
+                value: {
+                    name: "My_struct_0",
+                    member_types: [
+                        {
+                            data: {
+                                type: IR.Type_reference_enum.Fundamental_type,
+                                value: IR.Fundamental_type.Float32
+                            }
+                        },
+                        {
+                            data: {
+                                type: IR.Type_reference_enum.Fundamental_type,
+                                value: IR.Fundamental_type.Float32
+                            }
+                        },
+                        {
+                            data: {
+                                type: IR.Type_reference_enum.Fundamental_type,
+                                value: IR.Fundamental_type.Float32
+                            }
+                        }
+                    ],
+                    member_names: [
                         "member_0",
                         "member_1",
                         "member_2"
+                    ],
+                    member_default_values: [
+                        create_statement(
+                            IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float32), "0.0")
+                        ),
+                        create_statement(
+                            IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float32), "1.0")
+                        ),
+                        create_statement(
+                            IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float32), "2.0")
+                        ),
+                    ],
+                    is_packed: false,
+                    is_literal: false
+                }
+            },
+            {
+                name: "My_float",
+                type: IR.Declaration_type.Alias,
+                is_export: false,
+                value: {
+                    name: "My_int",
+                    type: [
+                        int32_type
                     ]
-                },
-                is_packed: false,
-                is_literal: false
-            }
-        ]
+                }
+            },
+            {
+                name: "My_enum_1",
+                type: IR.Declaration_type.Enum,
+                is_export: false,
+                value: {
+                    name: "My_enum_1",
+                    values: [
+                        {
+                            name: "Value_0",
+                            value: create_statement(
+                                IR.create_constant_expression(int32_type, "0")
+                            )
+                        },
+                        {
+                            name: "Value_1",
+                            value: create_statement(
+                                IR.create_constant_expression(int32_type, "1")
+                            )
+                        },
+                        {
+                            name: "Value_2",
+                            value: create_statement(
+                                IR.create_constant_expression(int32_type, "2")
+                            )
+                        }
+                    ]
+                }
+            },
+            {
+                name: "My_function_4",
+                type: IR.Declaration_type.Function,
+                is_export: false,
+                value: {
+                    declaration: {
+                        name: "My_function_4",
+                        type: {
+                            input_parameter_types: [
+                                { data: { type: IR.Type_reference_enum.Fundamental_type, value: IR.Fundamental_type.Float32 } },
+                                { data: { type: IR.Type_reference_enum.Fundamental_type, value: IR.Fundamental_type.Float32 } },
+                            ],
+                            output_parameter_types: [
+                                { data: { type: IR.Type_reference_enum.Fundamental_type, value: IR.Fundamental_type.Float32 } },
+                            ],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: ["lhs", "rhs"],
+                        output_parameter_names: ["result"],
+                        linkage: IR.Linkage.External
+                    },
+                    definition: {
+                        name: "My_function_4",
+                        statements: [
+                            create_statement(
+                                IR.create_return_expression(
+                                    IR.create_binary_expression(
+                                        IR.create_variable_expression("lhs", IR.Access_type.Read),
+                                        IR.create_variable_expression("rhs", IR.Access_type.Read),
+                                        IR.Binary_operation.Add
+                                    )
+                                )
+                            )
+                        ]
+                    }
+                }
+            },
+            {
+                name: "My_struct_1",
+                type: IR.Declaration_type.Struct,
+                is_export: false,
+                value: {
+                    name: "My_struct_1",
+                    member_types: [
+                        {
+                            data: {
+                                type: IR.Type_reference_enum.Fundamental_type,
+                                value: IR.Fundamental_type.Float32
+                            }
+                        },
+                        {
+                            data: {
+                                type: IR.Type_reference_enum.Fundamental_type,
+                                value: IR.Fundamental_type.Float32
+                            }
+                        },
+                        {
+                            data: {
+                                type: IR.Type_reference_enum.Fundamental_type,
+                                value: IR.Fundamental_type.Float32
+                            }
+                        }
+                    ],
+                    member_names: [
+                        "member_0",
+                        "member_1",
+                        "member_2"
+                    ],
+                    member_default_values: [
+                        create_statement(
+                            IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float32), "0.0")
+                        ),
+                        create_statement(
+                            IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float32), "1.0")
+                        ),
+                        create_statement(
+                            IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float32), "2.0")
+                        ),
+                    ],
+                    is_packed: false,
+                    is_literal: false
+                }
+            },
+        ],
     };
 
     return module;
+};
+
+export function create_alias_example(): IR.Module {
+    return {
+        name: "alias_example",
+        imports: [],
+        declarations: [
+            {
+                name: "My_alias",
+                type: IR.Declaration_type.Alias,
+                is_export: true,
+                value: {
+                    name: "My_alias",
+                    type: [
+                        {
+                            data: {
+                                type: IR.Type_reference_enum.Fundamental_type,
+                                value: IR.Fundamental_type.Float32
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    };
 }
 
-export function create_function_example(): core.Module {
-    const module = create_empty();
-    module.name = "function_example";
-    module.export_declarations.function_declarations = {
-        size: 1,
-        elements: [
+export function create_enum_example(): IR.Module {
+    const int32_type = create_integer_type(32, true);
+    return {
+        name: "enum_example",
+        imports: [],
+        declarations: [
             {
-                name: "My_function",
-                type: {
-                    input_parameter_types: {
-                        size: 2,
-                        elements: [
-                            { data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } },
-                            { data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } },
-                        ],
-                    },
-                    output_parameter_types: {
-                        size: 1,
-                        elements: [{ data: { type: core.Type_reference_enum.Fundamental_type, value: core.Fundamental_type.Float32 } }],
-                    },
-                    is_variadic: false,
-                },
-                input_parameter_names: { size: 2, elements: ["lhs", "rhs"] },
-                output_parameter_names: { size: 1, elements: ["result"] },
-                linkage: core.Linkage.External,
+                name: "My_enum",
+                type: IR.Declaration_type.Enum,
+                is_export: true,
+                value: {
+                    name: "My_enum",
+                    values: [
+                        {
+                            name: "value_0",
+                            value: create_statement(
+                                IR.create_constant_expression(int32_type, "0")
+                            )
+                        },
+                        {
+                            name: "value_1",
+                            value: create_statement(
+                                IR.create_constant_expression(int32_type, "1")
+                            )
+                        },
+                        {
+                            name: "value_2",
+                            value: create_statement(
+                                IR.create_constant_expression(int32_type, "2")
+                            )
+                        }
+                    ]
+                }
             }
         ]
     };
-    module.definitions.function_definitions = {
-        size: 1,
-        elements: [
+}
+
+export function create_struct_example(): IR.Module {
+    return {
+        name: "struct_example",
+        imports: [],
+        declarations: [
             {
-                name: "My_function",
-                statements: {
-                    size: 1,
-                    elements: [
+                name: "My_struct",
+                type: IR.Declaration_type.Struct,
+                is_export: true,
+                value: {
+                    name: "My_struct",
+                    member_types: [
                         {
-                            name: "",
-                            expressions: {
-                                size: 4,
-                                elements: [
-                                    {
-                                        data: {
-                                            type: core.Expression_enum.Return_expression,
-                                            value: { expression: { expression_index: 1 } },
-                                        },
-                                    },
-                                    {
-                                        data: {
-                                            type: core.Expression_enum.Binary_expression,
-                                            value: {
-                                                left_hand_side: { expression_index: 2 },
-                                                right_hand_side: { expression_index: 3 },
-                                                operation: core.Binary_operation.Add,
-                                            },
-                                        },
-                                    },
-                                    {
-                                        data: {
-                                            type: core.Expression_enum.Variable_expression,
-                                            value: {
-                                                name: "lhs",
-                                                access_type: core.Access_type.Read
-                                            }
-                                        }
-                                    },
-                                    {
-                                        data: {
-                                            type: core.Expression_enum.Variable_expression,
-                                            value: {
-                                                name: "rhs",
-                                                access_type: core.Access_type.Read
-                                            }
-                                        }
-                                    }
-                                ],
-                            },
+                            data: {
+                                type: IR.Type_reference_enum.Fundamental_type,
+                                value: IR.Fundamental_type.Float32
+                            }
                         },
+                        {
+                            data: {
+                                type: IR.Type_reference_enum.Fundamental_type,
+                                value: IR.Fundamental_type.Float32
+                            }
+                        },
+                        {
+                            data: {
+                                type: IR.Type_reference_enum.Fundamental_type,
+                                value: IR.Fundamental_type.Float32
+                            }
+                        }
                     ],
-                },
-            },
+                    member_names: [
+                        "member_0",
+                        "member_1",
+                        "member_2"
+                    ],
+                    member_default_values: [
+                        create_statement(
+                            IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float32), "0.0")
+                        ),
+                        create_statement(
+                            IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float32), "1.0")
+                        ),
+                        create_statement(
+                            IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float32), "2.0")
+                        ),
+                    ],
+                    is_packed: false,
+                    is_literal: false
+                }
+            }
         ]
     };
+}
 
-    return module;
+export function create_function_example(): IR.Module {
+    return {
+        name: "function_example",
+        imports: [],
+        declarations: [
+            {
+                name: "My_function",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "My_function",
+                        type: {
+                            input_parameter_types: [
+                                { data: { type: IR.Type_reference_enum.Fundamental_type, value: IR.Fundamental_type.Float32 } },
+                                { data: { type: IR.Type_reference_enum.Fundamental_type, value: IR.Fundamental_type.Float32 } },
+                            ],
+                            output_parameter_types: [
+                                { data: { type: IR.Type_reference_enum.Fundamental_type, value: IR.Fundamental_type.Float32 } },
+                            ],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: ["lhs", "rhs"],
+                        output_parameter_names: ["result"],
+                        linkage: IR.Linkage.External
+                    },
+                    definition: {
+                        name: "My_function",
+                        statements: [
+                            create_statement(
+                                IR.create_return_expression(
+                                    IR.create_binary_expression(
+                                        IR.create_variable_expression("lhs", IR.Access_type.Read),
+                                        IR.create_variable_expression("rhs", IR.Access_type.Read),
+                                        IR.Binary_operation.Add
+                                    )
+                                )
+                            )
+                        ],
+                    }
+                }
+            }
+        ]
+    };
 }
 
 export function create_function_calling_module_function_example(): IR.Module {
-
     return {
         name: "function_calling_module_function_example",
         imports: [
@@ -746,7 +561,7 @@ export function create_function_calling_module_function_example(): IR.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: [],
-                        linkage: core.Linkage.External,
+                        linkage: IR.Linkage.External,
                     },
                     definition: {
                         name: "My_function",
@@ -768,29 +583,23 @@ export function create_function_calling_module_function_example(): IR.Module {
     };
 }
 
-export function create_module_with_dependencies(): core.Module {
-    const module = create_empty();
-    module.name = "Module_with_dependencies";
-    module.dependencies.alias_imports.elements = [
-        {
-            module_name: "C.stdio",
-            alias: "stdio",
-            usages: {
-                size: 0,
-                elements: []
-            }
-        },
-        {
-            module_name: "My_library",
-            alias: "ml",
-            usages: {
-                size: 0,
-                elements: []
-            }
-        }
-    ];
-    module.dependencies.alias_imports.size = module.dependencies.alias_imports.elements.length;
-    return module;
+export function create_module_with_dependencies(): IR.Module {
+    return {
+        name: "Module_with_dependencies",
+        imports: [
+            {
+                module_name: "C.stdio",
+                alias: "stdio",
+                usages: []
+            },
+            {
+                module_name: "My_library",
+                alias: "ml",
+                usages: []
+            },
+        ],
+        declarations: []
+    };
 }
 
 export function create_hello_world(): IR.Module {
@@ -840,13 +649,13 @@ export function create_hello_world(): IR.Module {
                                             value: {
                                                 type: {
                                                     data: {
-                                                        type: core.Type_reference_enum.Pointer_type,
+                                                        type: IR.Type_reference_enum.Pointer_type,
                                                         value: {
                                                             element_type: [
                                                                 {
                                                                     data: {
-                                                                        type: core.Type_reference_enum.Fundamental_type,
-                                                                        value: core.Fundamental_type.C_char
+                                                                        type: IR.Type_reference_enum.Fundamental_type,
+                                                                        value: IR.Fundamental_type.C_char
                                                                     }
                                                                 }
                                                             ],
@@ -872,7 +681,7 @@ export function create_hello_world(): IR.Module {
                                                     value: {
                                                         type: {
                                                             data: {
-                                                                type: core.Type_reference_enum.Integer_type,
+                                                                type: IR.Type_reference_enum.Integer_type,
                                                                 value: {
                                                                     number_of_bits: 32,
                                                                     is_signed: true
@@ -941,7 +750,7 @@ export function create_variables(): IR.Module {
                                                     value: {
                                                         type: {
                                                             data: {
-                                                                type: core.Type_reference_enum.Integer_type,
+                                                                type: IR.Type_reference_enum.Integer_type,
                                                                 value: {
                                                                     number_of_bits: 32,
                                                                     is_signed: true
@@ -970,7 +779,7 @@ export function create_variables(): IR.Module {
                                                     value: {
                                                         type: {
                                                             data: {
-                                                                type: core.Type_reference_enum.Integer_type,
+                                                                type: IR.Type_reference_enum.Integer_type,
                                                                 value: {
                                                                     number_of_bits: 32,
                                                                     is_signed: true
@@ -1006,7 +815,7 @@ export function create_variables(): IR.Module {
                                                     value: {
                                                         type: {
                                                             data: {
-                                                                type: core.Type_reference_enum.Integer_type,
+                                                                type: IR.Type_reference_enum.Integer_type,
                                                                 value: {
                                                                     number_of_bits: 32,
                                                                     is_signed: true
@@ -1034,7 +843,7 @@ export function create_variables(): IR.Module {
                                                     value: {
                                                         type: {
                                                             data: {
-                                                                type: core.Type_reference_enum.Integer_type,
+                                                                type: IR.Type_reference_enum.Integer_type,
                                                                 value: {
                                                                     number_of_bits: 32,
                                                                     is_signed: true
@@ -1136,7 +945,7 @@ export function create_numbers(): IR.Module {
                                                     value: {
                                                         type: {
                                                             data: {
-                                                                type: core.Type_reference_enum.Integer_type,
+                                                                type: IR.Type_reference_enum.Integer_type,
                                                                 value: {
                                                                     number_of_bits: 32,
                                                                     is_signed: true
@@ -1248,7 +1057,7 @@ export function create_numeric_casts(): IR.Module {
                                                     value: {
                                                         type: {
                                                             data: {
-                                                                type: core.Type_reference_enum.Integer_type,
+                                                                type: IR.Type_reference_enum.Integer_type,
                                                                 value: {
                                                                     number_of_bits: 32,
                                                                     is_signed: true
@@ -1634,6 +1443,17 @@ export function create_pointer_types(): IR.Module {
             int32_type,
             create_pointer_type([int32_type], false),
             create_pointer_type([create_custom_type_reference("stdio", "FILE")], true)
+        ],
+        member_default_values: [
+            create_statement(
+                IR.create_constant_expression(int32_type, "0")
+            ),
+            create_statement(
+                IR.create_null_pointer_expression()
+            ),
+            create_statement(
+                IR.create_null_pointer_expression()
+            ),
         ],
         is_packed: false,
         is_literal: false
@@ -2911,6 +2731,628 @@ export function create_break_expressions(): IR.Module {
                     definition: {
                         name: "run_breaks",
                         statements: statements
+                    }
+                }
+            }
+        ]
+    };
+}
+
+export function create_using_alias(): IR.Module {
+
+    return {
+        name: "Alias",
+        imports: [],
+        declarations: [
+            {
+                name: "My_int",
+                type: IR.Declaration_type.Alias,
+                is_export: false,
+                value: {
+                    name: "My_int",
+                    type: [create_integer_type(64, true)]
+                }
+            },
+            {
+                name: "use_alias",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "use_alias",
+                        type: {
+                            input_parameter_types: [create_custom_type_reference("", "My_int")],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: ["size"],
+                        output_parameter_names: [],
+                        linkage: IR.Linkage.Private
+                    },
+                    definition: {
+                        name: "use_alias",
+                        statements: []
+                    }
+                }
+            }
+        ]
+    };
+}
+
+export function create_using_enums(): IR.Module {
+    const int32_type = create_integer_type(32, true);
+    return {
+        name: "Enums",
+        imports: [],
+        declarations: [
+            {
+                name: "My_enum",
+                type: IR.Declaration_type.Enum,
+                is_export: true,
+                value: {
+                    name: "My_enum",
+                    values: [
+                        {
+                            name: "Value_0",
+                            value: create_statement(
+                                IR.create_constant_expression(int32_type, "0")
+                            )
+                        },
+                        {
+                            name: "Value_1",
+                            value: undefined
+                        },
+                        {
+                            name: "Value_2",
+                            value: undefined
+                        },
+                        {
+                            name: "Value_10",
+                            value: create_statement(
+                                IR.create_constant_expression(int32_type, "10")
+                            )
+                        },
+                        {
+                            name: "Value_11",
+                            value: undefined
+                        }
+                    ]
+                }
+            },
+            {
+                name: "use_enums",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "use_enums",
+                        type: {
+                            input_parameter_types: [create_custom_type_reference("", "My_enum")],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: ["enum_argument"],
+                        output_parameter_names: [],
+                        linkage: IR.Linkage.Private
+                    },
+                    definition: {
+                        name: "use_enums",
+                        statements: [
+                            create_statement(
+                                IR.create_variable_declaration_expression(
+                                    "my_value",
+                                    false,
+                                    IR.create_access_expression(
+                                        IR.create_variable_expression("My_enum", IR.Access_type.Read),
+                                        "Value_1",
+                                        IR.Access_type.Read
+                                    )
+                                )
+                            ),
+                            create_statement(
+                                IR.create_switch_expression(
+                                    IR.create_variable_expression("enum_argument", IR.Access_type.Read),
+                                    [
+                                        {
+                                            case_value: IR.create_access_expression(
+                                                IR.create_variable_expression("My_enum", IR.Access_type.Read),
+                                                "Value_0",
+                                                IR.Access_type.Read
+                                            ),
+                                            statements: []
+                                        },
+                                        {
+                                            case_value: IR.create_access_expression(
+                                                IR.create_variable_expression("My_enum", IR.Access_type.Read),
+                                                "Value_1",
+                                                IR.Access_type.Read
+                                            ),
+                                            statements: []
+                                        },
+                                        {
+                                            case_value: IR.create_access_expression(
+                                                IR.create_variable_expression("My_enum", IR.Access_type.Read),
+                                                "Value_2",
+                                                IR.Access_type.Read
+                                            ),
+                                            statements: [
+                                                create_statement(
+                                                    IR.create_return_expression(
+                                                        IR.create_constant_expression(int32_type, "0")
+                                                    )
+                                                )
+                                            ]
+                                        },
+                                        {
+                                            case_value: IR.create_access_expression(
+                                                IR.create_variable_expression("My_enum", IR.Access_type.Read),
+                                                "Value_10",
+                                                IR.Access_type.Read
+                                            ),
+                                            statements: []
+                                        },
+                                        {
+                                            case_value: IR.create_access_expression(
+                                                IR.create_variable_expression("My_enum", IR.Access_type.Read),
+                                                "Value_11",
+                                                IR.Access_type.Read
+                                            ),
+                                            statements: [
+                                                create_statement(
+                                                    IR.create_return_expression(
+                                                        IR.create_constant_expression(int32_type, "1")
+                                                    )
+                                                )
+                                            ]
+                                        }
+                                    ]
+                                )
+                            )
+                        ]
+                    }
+                }
+            }
+        ]
+    };
+}
+
+export function create_using_enum_flags(): IR.Module {
+    const int32_type = create_integer_type(32, true);
+    return {
+        name: "Enum_flags",
+        imports: [],
+        declarations: [
+            {
+                name: "My_enum_flag",
+                type: IR.Declaration_type.Enum,
+                is_export: true,
+                value: {
+                    name: "My_enum_flag",
+                    values: [
+                        {
+                            name: "Flag_1",
+                            value: create_statement(
+                                IR.create_constant_expression(int32_type, "0x01")
+                            )
+                        },
+                        {
+                            name: "Flag_2",
+                            value: create_statement(
+                                IR.create_constant_expression(int32_type, "0x02")
+                            )
+                        },
+                        {
+                            name: "Flag_3",
+                            value: create_statement(
+                                IR.create_constant_expression(int32_type, "0x04")
+                            )
+                        },
+                        {
+                            name: "Flag_4",
+                            value: create_statement(
+                                IR.create_constant_expression(int32_type, "0x08")
+                            )
+                        }
+                    ]
+                }
+            },
+            {
+                name: "use_enums",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "use_enums",
+                        type: {
+                            input_parameter_types: [create_custom_type_reference("", "My_enum_flag")],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: ["enum_argument"],
+                        output_parameter_names: [],
+                        linkage: IR.Linkage.Private
+                    },
+                    definition: {
+                        name: "use_enums",
+                        statements: [
+                            create_statement(
+                                IR.create_variable_declaration_expression(
+                                    "a",
+                                    false,
+                                    IR.create_binary_expression(
+                                        IR.create_access_expression(
+                                            IR.create_variable_expression("My_enum_flag", IR.Access_type.Read),
+                                            "Flag_1",
+                                            IR.Access_type.Read
+                                        ),
+                                        IR.create_access_expression(
+                                            IR.create_variable_expression("My_enum_flag", IR.Access_type.Read),
+                                            "Flag_2",
+                                            IR.Access_type.Read
+                                        ),
+                                        IR.Binary_operation.Bitwise_or
+                                    )
+                                )
+                            ),
+                            create_statement(
+                                IR.create_variable_declaration_expression(
+                                    "b",
+                                    false,
+                                    IR.create_binary_expression(
+                                        IR.create_variable_expression("enum_argument", IR.Access_type.Read),
+                                        IR.create_access_expression(
+                                            IR.create_variable_expression("My_enum_flag", IR.Access_type.Read),
+                                            "Flag_1",
+                                            IR.Access_type.Read
+                                        ),
+                                        IR.Binary_operation.Bitwise_and
+                                    )
+                                )
+                            ),
+                            create_statement(
+                                IR.create_variable_declaration_expression(
+                                    "c",
+                                    false,
+                                    IR.create_binary_expression(
+                                        IR.create_variable_expression("enum_argument", IR.Access_type.Read),
+                                        IR.create_access_expression(
+                                            IR.create_variable_expression("My_enum_flag", IR.Access_type.Read),
+                                            "Flag_1",
+                                            IR.Access_type.Read
+                                        ),
+                                        IR.Binary_operation.Bitwise_xor
+                                    )
+                                )
+                            ),
+                            create_statement(
+                                IR.create_if_expression(
+                                    [
+                                        {
+                                            condition: create_statement(
+                                                IR.create_binary_expression(
+                                                    IR.create_variable_expression("a", IR.Access_type.Read),
+                                                    IR.create_variable_expression("enum_argument", IR.Access_type.Read),
+                                                    IR.Binary_operation.Equal
+                                                )
+                                            ),
+                                            statement: create_statement(
+                                                IR.create_return_expression(
+                                                    IR.create_constant_expression(int32_type, "0")
+                                                )
+                                            )
+                                        }
+                                    ]
+                                )
+                            ),
+                            create_statement(
+                                IR.create_if_expression(
+                                    [
+                                        {
+                                            condition: create_statement(
+                                                IR.create_binary_expression(
+                                                    IR.create_variable_expression("enum_argument", IR.Access_type.Read),
+                                                    IR.create_access_expression(
+                                                        IR.create_variable_expression("My_enum_flag", IR.Access_type.Read),
+                                                        "Flag_1",
+                                                        IR.Access_type.Read
+                                                    ),
+                                                    IR.Binary_operation.Has
+                                                )
+                                            ),
+                                            statement: create_statement(
+                                                IR.create_return_expression(
+                                                    IR.create_constant_expression(int32_type, "1")
+                                                )
+                                            )
+                                        }
+                                    ]
+                                )
+                            ),
+                            create_statement(
+                                IR.create_if_expression(
+                                    [
+                                        {
+                                            condition: create_statement(
+                                                IR.create_binary_expression(
+                                                    IR.create_variable_expression("enum_argument", IR.Access_type.Read),
+                                                    IR.create_access_expression(
+                                                        IR.create_variable_expression("My_enum_flag", IR.Access_type.Read),
+                                                        "Flag_2",
+                                                        IR.Access_type.Read
+                                                    ),
+                                                    IR.Binary_operation.Has
+                                                )
+                                            ),
+                                            statement: create_statement(
+                                                IR.create_return_expression(
+                                                    IR.create_constant_expression(int32_type, "2")
+                                                )
+                                            )
+                                        }
+                                    ]
+                                )
+                            ),
+                            create_statement(
+                                IR.create_if_expression(
+                                    [
+                                        {
+                                            condition: create_statement(
+                                                IR.create_binary_expression(
+                                                    IR.create_variable_expression("enum_argument", IR.Access_type.Read),
+                                                    IR.create_access_expression(
+                                                        IR.create_variable_expression("My_enum_flag", IR.Access_type.Read),
+                                                        "Flag_3",
+                                                        IR.Access_type.Read
+                                                    ),
+                                                    IR.Binary_operation.Has
+                                                )
+                                            ),
+                                            statement: create_statement(
+                                                IR.create_return_expression(
+                                                    IR.create_constant_expression(int32_type, "3")
+                                                )
+                                            )
+                                        }
+                                    ]
+                                )
+                            )
+                        ]
+                    }
+                }
+            }
+        ]
+    };
+}
+
+export function create_using_structs(): IR.Module {
+    const int32_type = create_integer_type(32, true);
+    return {
+        name: "Structs",
+        imports: [],
+        declarations: [
+            {
+                name: "My_struct",
+                type: IR.Declaration_type.Struct,
+                is_export: true,
+                value: {
+                    name: "My_struct",
+                    member_types: [
+                        int32_type,
+                        int32_type
+                    ],
+                    member_names: [
+                        "a",
+                        "b"
+                    ],
+                    member_default_values: [
+                        create_statement(
+                            IR.create_constant_expression(int32_type, "1")
+                        ),
+                        create_statement(
+                            IR.create_constant_expression(int32_type, "2")
+                        )
+                    ],
+                    is_packed: false,
+                    is_literal: false
+                }
+            },
+            {
+                name: "My_struct_2",
+                type: IR.Declaration_type.Struct,
+                is_export: true,
+                value: {
+                    name: "My_struct_2",
+                    member_types: [
+                        create_custom_type_reference("", "My_struct"),
+                        create_custom_type_reference("", "My_struct"),
+                        create_custom_type_reference("", "My_struct"),
+                    ],
+                    member_names: [
+                        "a",
+                        "b",
+                        "c"
+                    ],
+                    member_default_values: [
+                        create_statement(
+                            IR.create_instantiate_struct_expression(IR.Instantiate_struct_type.Default, [])
+                        ),
+                        create_statement(
+                            IR.create_instantiate_struct_expression(IR.Instantiate_struct_type.Default, [
+                                {
+                                    member_name: "a",
+                                    value: create_statement(
+                                        IR.create_constant_expression(int32_type, "2")
+                                    )
+                                }
+                            ])
+                        ),
+                        create_statement(
+                            IR.create_instantiate_struct_expression(IR.Instantiate_struct_type.Default, [
+                                {
+                                    member_name: "a",
+                                    value: create_statement(
+                                        IR.create_constant_expression(int32_type, "3")
+                                    )
+                                },
+                                {
+                                    member_name: "b",
+                                    value: create_statement(
+                                        IR.create_constant_expression(int32_type, "4")
+                                    )
+                                }
+                            ])
+                        ),
+                    ],
+                    is_packed: false,
+                    is_literal: false
+                }
+            },
+            {
+                name: "use_structs",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "use_structs",
+                        type: {
+                            input_parameter_types: [create_custom_type_reference("", "My_struct")],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: ["my_struct"],
+                        output_parameter_names: [],
+                        linkage: IR.Linkage.Private
+                    },
+                    definition: {
+                        name: "use_structs",
+                        statements: [
+                            create_statement(
+                                IR.create_variable_declaration_expression(
+                                    "a",
+                                    false,
+                                    IR.create_access_expression(
+                                        IR.create_variable_expression("my_struct", IR.Access_type.Read),
+                                        "a",
+                                        IR.Access_type.Read
+                                    )
+                                )
+                            ),
+                            create_statement(
+                                IR.create_variable_declaration_with_type_expression(
+                                    "instance_0",
+                                    false,
+                                    create_custom_type_reference("", "My_struct"),
+                                    create_statement(
+                                        IR.create_instantiate_struct_expression(IR.Instantiate_struct_type.Default, [])
+                                    )
+                                )
+                            ),
+                            create_statement(
+                                IR.create_variable_declaration_with_type_expression(
+                                    "instance_1",
+                                    false,
+                                    create_custom_type_reference("", "My_struct"),
+                                    create_statement(
+                                        IR.create_instantiate_struct_expression(IR.Instantiate_struct_type.Default, [
+                                            {
+                                                member_name: "b",
+                                                value: create_statement(
+                                                    IR.create_constant_expression(int32_type, "3")
+                                                )
+                                            }
+                                        ])
+                                    )
+                                )
+                            ),
+                            create_statement(
+                                IR.create_variable_declaration_with_type_expression(
+                                    "instance_2",
+                                    false,
+                                    create_custom_type_reference("", "My_struct_2"),
+                                    create_statement(
+                                        IR.create_instantiate_struct_expression(IR.Instantiate_struct_type.Default, [])
+                                    )
+                                )
+                            ),
+                            create_statement(
+                                IR.create_variable_declaration_with_type_expression(
+                                    "instance_3",
+                                    false,
+                                    create_custom_type_reference("", "My_struct_2"),
+                                    create_statement(
+                                        IR.create_instantiate_struct_expression(IR.Instantiate_struct_type.Explicit, [
+                                            {
+                                                member_name: "a",
+                                                value: create_statement(
+                                                    IR.create_instantiate_struct_expression(IR.Instantiate_struct_type.Default, [])
+                                                )
+                                            },
+                                            {
+                                                member_name: "b",
+                                                value: create_statement(
+                                                    IR.create_instantiate_struct_expression(IR.Instantiate_struct_type.Default, [])
+                                                )
+                                            },
+                                            {
+                                                member_name: "c",
+                                                value: create_statement(
+                                                    IR.create_instantiate_struct_expression(IR.Instantiate_struct_type.Explicit, [
+                                                        {
+                                                            member_name: "a",
+                                                            value: create_statement(
+                                                                IR.create_constant_expression(int32_type, "0")
+                                                            )
+                                                        },
+                                                        {
+                                                            member_name: "b",
+                                                            value: create_statement(
+                                                                IR.create_constant_expression(int32_type, "1")
+                                                            )
+                                                        }
+                                                    ])
+                                                )
+                                            }
+                                        ])
+                                    )
+                                )
+                            ),
+                            create_statement(
+                                IR.create_variable_declaration_expression(
+                                    "nested_b_a",
+                                    false,
+                                    IR.create_access_expression(
+                                        IR.create_access_expression(
+                                            IR.create_variable_expression("instance_3", IR.Access_type.Read),
+                                            "b",
+                                            IR.Access_type.Read
+                                        ),
+                                        "a",
+                                        IR.Access_type.Read
+                                    )
+                                )
+                            ),
+                            create_statement(
+                                IR.create_variable_declaration_with_type_expression(
+                                    "instance_4",
+                                    true,
+                                    create_custom_type_reference("", "My_struct"),
+                                    create_statement(
+                                        IR.create_instantiate_struct_expression(IR.Instantiate_struct_type.Default, [])
+                                    )
+                                )
+                            ),
+                            create_statement(
+                                IR.create_assignment_expression(
+                                    IR.create_access_expression(
+                                        IR.create_variable_expression("instance_4", IR.Access_type.Read),
+                                        "a",
+                                        IR.Access_type.Write
+                                    ),
+                                    IR.create_constant_expression(int32_type, "0"),
+                                    undefined
+                                )
+                            )
+                        ]
                     }
                 }
             }

@@ -87,7 +87,7 @@ function get_expression_level_node(node: Node, level: number): Node {
 describe("Parse_tree_convertor.module_to_parse_tree", () => {
 
     it("Creates module parse tree from grammar 9", () => {
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
+        const module = Module_examples.create_0();
         const parse_tree = test_module_to_parse_tree(Grammar_examples.create_test_grammar_9_description(), module);
 
         assert.equal(parse_tree.word.value, "Module");
@@ -222,9 +222,19 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                         }
 
                         {
-                            const value_value_node = value_node.children[2];
-                            const number_node = value_value_node.children[0];
-                            assert.equal(number_node.word.value, value.value);
+                            const generic_expression_0 = value_node.children[2];
+                            assert.equal(generic_expression_0.word.value, "Generic_expression");
+                            assert.equal(generic_expression_0.children.length, 1);
+
+                            const expression_level_node_0 = generic_expression_0.children[0];
+                            assert_expression_level_node(expression_level_node_0, 12, 0);
+                            const expression_level_node_1 = get_expression_level_node(expression_level_node_0, 0);
+
+                            const constant_expression = expression_level_node_1.children[0];
+                            assert.equal(constant_expression.word.value, "Expression_constant");
+                            assert.equal(constant_expression.children.length, 1);
+
+                            assert.equal(constant_expression.children[0].word.value, member_index.toString());
                         }
                     }
                 }
@@ -444,6 +454,21 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                             const identifier_node = type_name_node.children[0];
                             assert.equal(identifier_node.word.value, member_type_name);
                         }
+
+                        {
+                            const member_default_value_node = member_node.children[4];
+                            assert.equal(member_default_value_node.word.value, "Generic_expression");
+
+                            const expression_level_node_0 = member_default_value_node.children[0];
+                            assert_expression_level_node(expression_level_node_0, 12, 0);
+                            const expression_level_node_1 = get_expression_level_node(expression_level_node_0, 0);
+
+                            const constant_expression = expression_level_node_1.children[0];
+                            assert.equal(constant_expression.word.value, "Expression_constant");
+                            assert.equal(constant_expression.children.length, 1);
+
+                            assert.equal(constant_expression.children[0].word.value, `${member_index}.0f32`);
+                        }
                     }
                 }
             }
@@ -451,7 +476,7 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
     });
 
     it("Creates module imports nodes", () => {
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_module_with_dependencies());
+        const module = Module_examples.create_module_with_dependencies();
         const parse_tree = test_module_to_parse_tree(Grammar_examples.create_test_grammar_9_description(), module);
 
         assert.equal(parse_tree.word.value, "Module");
@@ -577,7 +602,7 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
     });
 
     it("Creates alias nodes", () => {
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_alias_example());
+        const module = Module_examples.create_alias_example();
         const parse_tree = test_module_to_parse_tree(Grammar_examples.create_test_grammar_9_description(), module);
 
         assert.equal(parse_tree.word.value, "Module");
@@ -639,7 +664,7 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
     });
 
     it("Creates enum nodes", () => {
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_enum_example());
+        const module = Module_examples.create_enum_example();
         const parse_tree = test_module_to_parse_tree(Grammar_examples.create_test_grammar_9_description(), module);
 
         assert.equal(parse_tree.word.value, "Module");
@@ -698,16 +723,26 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                 }
 
                 {
-                    const value_value_node = value_node.children[2];
-                    const number_node = value_value_node.children[0];
-                    assert.equal(number_node.word.value, value.value);
+                    const generic_expression_0 = value_node.children[2];
+                    assert.equal(generic_expression_0.word.value, "Generic_expression");
+                    assert.equal(generic_expression_0.children.length, 1);
+
+                    const expression_level_node_0 = generic_expression_0.children[0];
+                    assert_expression_level_node(expression_level_node_0, 12, 0);
+                    const expression_level_node_1 = get_expression_level_node(expression_level_node_0, 0);
+
+                    const constant_expression = expression_level_node_1.children[0];
+                    assert.equal(constant_expression.word.value, "Expression_constant");
+                    assert.equal(constant_expression.children.length, 1);
+
+                    assert.equal(constant_expression.children[0].word.value, member_index.toString());
                 }
             }
         }
     });
 
     it("Creates function nodes", () => {
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_function_example());
+        const module = Module_examples.create_function_example();
         const parse_tree = test_module_to_parse_tree(Grammar_examples.create_test_grammar_9_description(), module);
 
         assert.equal(parse_tree.word.value, "Module");
@@ -1041,7 +1076,7 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
     });
 
     it("Creates struct nodes", () => {
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_struct_example());
+        const module = Module_examples.create_struct_example();
         const parse_tree = test_module_to_parse_tree(Grammar_examples.create_test_grammar_9_description(), module);
 
         assert.equal(parse_tree.word.value, "Module");
@@ -1113,6 +1148,21 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
 
                     const identifier_node = type_name_node.children[0];
                     assert.equal(identifier_node.word.value, member_type_name);
+                }
+
+                {
+                    const member_default_value_node = member_node.children[4];
+                    assert.equal(member_default_value_node.word.value, "Generic_expression");
+
+                    const expression_level_node_0 = member_default_value_node.children[0];
+                    assert_expression_level_node(expression_level_node_0, 12, 0);
+                    const expression_level_node_1 = get_expression_level_node(expression_level_node_0, 0);
+
+                    const constant_expression = expression_level_node_1.children[0];
+                    assert.equal(constant_expression.word.value, "Expression_constant");
+                    assert.equal(constant_expression.children.length, 1);
+
+                    assert.equal(constant_expression.children[0].word.value, `${member_index}.0f32`);
                 }
             }
         }
@@ -1223,7 +1273,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Sets name of module", () => {
 
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
+        const module = Module_examples.create_0();
 
         const module_changes = create_module_changes(
             language_description,
@@ -1249,7 +1299,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Adds new function", () => {
 
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
+        const module = Module_examples.create_0();
 
         const module_changes = create_module_changes(
             language_description,
@@ -1302,7 +1352,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Removes a function", () => {
 
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
+        const module = Module_examples.create_0();
 
         const module_changes = create_module_changes(
             language_description,
@@ -1328,7 +1378,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Sets function name", () => {
 
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
+        const module = Module_examples.create_0();
 
         const module_changes = create_module_changes(
             language_description,
@@ -1370,7 +1420,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Adds new function input parameter", () => {
 
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
+        const module = Module_examples.create_0();
 
         const module_changes = create_module_changes(
             language_description,
@@ -1408,7 +1458,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Removes function input parameter", () => {
 
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
+        const module = Module_examples.create_0();
 
         const module_changes = create_module_changes(
             language_description,
@@ -1446,7 +1496,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Sets function input parameter name", () => {
 
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
+        const module = Module_examples.create_0();
 
         const module_changes = create_module_changes(
             language_description,
@@ -1483,7 +1533,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Sets function input parameter type", () => {
 
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
+        const module = Module_examples.create_0();
 
         const module_changes = create_module_changes(
             language_description,
@@ -1520,7 +1570,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Adds new struct", () => {
 
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
+        const module = Module_examples.create_0();
 
         const module_changes = create_module_changes(
             language_description,
@@ -1558,7 +1608,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Removes a struct", () => {
 
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
+        const module = Module_examples.create_0();
 
         const module_changes = create_module_changes(
             language_description,
@@ -1584,7 +1634,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Sets struct name", () => {
 
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
+        const module = Module_examples.create_0();
 
         const module_changes = create_module_changes(
             language_description,
@@ -1619,7 +1669,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Adds new enum", () => {
 
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
+        const module = Module_examples.create_0();
 
         const module_changes = create_module_changes(
             language_description,
@@ -1654,7 +1704,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Removes an enum", () => {
 
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
+        const module = Module_examples.create_0();
 
         const module_changes = create_module_changes(
             language_description,
@@ -1680,7 +1730,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Sets enum name", () => {
 
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
+        const module = Module_examples.create_0();
 
         const module_changes = create_module_changes(
             language_description,
@@ -1715,7 +1765,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Adds new alias", () => {
 
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
+        const module = Module_examples.create_0();
 
         const module_changes = create_module_changes(
             language_description,
@@ -1752,7 +1802,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Removes an alias", () => {
 
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
+        const module = Module_examples.create_0();
 
         const module_changes = create_module_changes(
             language_description,
@@ -1778,7 +1828,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Sets alias name", () => {
 
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
+        const module = Module_examples.create_0();
 
         const module_changes = create_module_changes(
             language_description,
@@ -1813,7 +1863,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Sets alias type", () => {
 
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
+        const module = Module_examples.create_0();
 
         const module_changes = create_module_changes(
             language_description,
@@ -1849,7 +1899,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Adds import module", () => {
 
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_0());
+        const module = Module_examples.create_0();
 
         const module_changes = create_module_changes(
             language_description,
@@ -1882,7 +1932,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Removes import module", () => {
 
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_module_with_dependencies());
+        const module = Module_examples.create_module_with_dependencies();
 
         const module_changes = create_module_changes(
             language_description,
@@ -1908,7 +1958,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Sets import module name", () => {
 
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_module_with_dependencies());
+        const module = Module_examples.create_module_with_dependencies();
 
         const module_changes = create_module_changes(
             language_description,
@@ -1941,7 +1991,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Sets import module alias", () => {
 
-        const module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_module_with_dependencies());
+        const module = Module_examples.create_module_with_dependencies();
 
         const module_changes = create_module_changes(
             language_description,
@@ -2060,7 +2110,7 @@ describe("Parse_tree_convertor.parse_tree_to_module", () => {
 
     it("Handles the module name", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
-        const expected_module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_empty());
+        const expected_module = Module_examples.create_empty();
         expected_module.name = "Test_name";
         const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
         assert.equal(actual_module.name, expected_module.name);
@@ -2069,7 +2119,7 @@ describe("Parse_tree_convertor.parse_tree_to_module", () => {
     it("Handles functions", () => {
 
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
-        const expected_module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_function_example());
+        const expected_module = Module_examples.create_function_example();
         const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
 
         assert_declarations(actual_module.declarations, expected_module.declarations);
@@ -2087,7 +2137,7 @@ describe("Parse_tree_convertor.parse_tree_to_module", () => {
 
     it("Handles alias", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
-        const expected_module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_alias_example());
+        const expected_module = Module_examples.create_alias_example();
         const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
 
         assert_declarations(actual_module.declarations, expected_module.declarations);
@@ -2095,7 +2145,7 @@ describe("Parse_tree_convertor.parse_tree_to_module", () => {
 
     it("Handles enums", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
-        const expected_module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_enum_example());
+        const expected_module = Module_examples.create_enum_example();
         const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
 
         assert_declarations(actual_module.declarations, expected_module.declarations);
@@ -2103,7 +2153,7 @@ describe("Parse_tree_convertor.parse_tree_to_module", () => {
 
     it("Handles structs", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
-        const expected_module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_struct_example());
+        const expected_module = Module_examples.create_struct_example();
         const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
 
         assert_declarations(actual_module.declarations, expected_module.declarations);
@@ -2111,7 +2161,7 @@ describe("Parse_tree_convertor.parse_tree_to_module", () => {
 
     it("Handles import dependencies", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
-        const expected_module = Core_intermediate_representation.create_intermediate_representation(Module_examples.create_module_with_dependencies());
+        const expected_module = Module_examples.create_module_with_dependencies();
         const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
 
         assert.deepEqual(actual_module.imports, expected_module.imports);
@@ -2240,6 +2290,38 @@ describe("Parse_tree_convertor.parse_tree_to_module", () => {
     it("Handles break expressions", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
         const expected_module = Module_examples.create_break_expressions();
+        const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
+
+        assert.deepEqual(actual_module.declarations, expected_module.declarations);
+    });
+
+    it("Handles using alias", () => {
+        const grammar_description = Grammar_examples.create_test_grammar_9_description();
+        const expected_module = Module_examples.create_using_alias();
+        const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
+
+        assert.deepEqual(actual_module.declarations, expected_module.declarations);
+    });
+
+    it("Handles using enums", () => {
+        const grammar_description = Grammar_examples.create_test_grammar_9_description();
+        const expected_module = Module_examples.create_using_enums();
+        const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
+
+        assert.deepEqual(actual_module.declarations, expected_module.declarations);
+    });
+
+    it("Handles using enum flags", () => {
+        const grammar_description = Grammar_examples.create_test_grammar_9_description();
+        const expected_module = Module_examples.create_using_enum_flags();
+        const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
+
+        assert.deepEqual(actual_module.declarations, expected_module.declarations);
+    });
+
+    it("Handles using structs", () => {
+        const grammar_description = Grammar_examples.create_test_grammar_9_description();
+        const expected_module = Module_examples.create_using_structs();
         const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
 
         assert.deepEqual(actual_module.declarations, expected_module.declarations);

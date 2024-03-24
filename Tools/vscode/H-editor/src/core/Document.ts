@@ -32,8 +32,7 @@ export interface State {
 
 export function create_empty_state(production_rules: Grammar.Production_rule[]): State {
 
-    const core_module = Module_examples.create_empty();
-    const module = Core_intermediate_representation.create_intermediate_representation(core_module);
+    const module = Module_examples.create_empty();
     const parse_tree = undefined;
     const text = "";
     const parse_tree_text_position_cache = undefined;
