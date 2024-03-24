@@ -1159,9 +1159,9 @@ export using My_alias = stdio.FILE mutable*;
 
 export struct My_struct
 {
-    my_integer: Int32;
-    my_pointer_to_integer: Int32*;
-    file_stream: stdio.FILE mutable*;
+    my_integer: Int32 = 0;
+    my_pointer_to_integer: Int32* = null;
+    file_stream: stdio.FILE mutable* = null;
 }
 
 export function run(
@@ -1563,6 +1563,215 @@ export function run_breaks(size: Int32) -> ()
 
         print_integer(index);
     }
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_break_expressions();
+        assert.deepEqual(new_document_state.module, expected_module);
+    });
+
+    it("Handles using alias", () => {
+
+        const document_state = Document.create_empty_state(language_description.production_rules);
+
+        const program = `
+module Alias;
+
+using My_int = Int64;
+
+export function use_alias(size: My_int) -> ()
+{
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_break_expressions();
+        assert.deepEqual(new_document_state.module, expected_module);
+    });
+
+    it("Handles using enums", () => {
+
+        const document_state = Document.create_empty_state(language_description.production_rules);
+
+        const program = `
+module Enums;
+
+export enum My_enum
+{
+    Value_0 = 0,
+    Value_1,
+    Value_2,
+    
+    Value_10 = 10,
+    Value_11
+}
+
+export function use_enums(enum_argument: My_enum) -> (result: Int32)
+{
+    var my_value = My_enum.Value_1;
+
+    switch (enum_argument)
+    {
+        case My_enum.Value_0:
+        case My_enum.Value_1:
+        case My_enum.Value_2:
+            return 0;
+
+        case My_enum.Value_10:
+        case My_enum.Value_11:
+            return 1;
+    }
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_break_expressions();
+        assert.deepEqual(new_document_state.module, expected_module);
+    });
+
+    it("Handles using enum flags", () => {
+
+        const document_state = Document.create_empty_state(language_description.production_rules);
+
+        const program = `
+module Enum_flags;
+
+export enum My_enum_flag
+{
+    Flag_1 = 0x01,
+    Flag_2 = 0x02,
+    Flag_3 = 0x04,
+    Flag_4 = 0x08,
+}
+
+export function use_enums(enum_argument: My_enum_flag) -> (result: Int32)
+{
+    var a = My_enum_flag.Flag_1 | My_enum_flag.Flag_2;
+    var b = enum_argument & My_enum_flag.Flag_1;
+    var c = enum_argument ^ My_enum_flag.Flag_1;
+
+    if (a == enum_argument)
+        return 0;
+
+    if (enum_argument has My_enum_flag.Flag_1)
+        return 1;
+
+    if (enum_argument has My_enum_flag.Flag_2)
+        return 2;
+
+    if (enum_argument has My_enum_flag.Flag_3)
+        return 3;
+
+    return 4;
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_break_expressions();
+        assert.deepEqual(new_document_state.module, expected_module);
+    });
+
+    it("Handles using structs", () => {
+
+        const document_state = Document.create_empty_state(language_description.production_rules);
+
+        const program = `
+module Structs;
+
+export struct My_struct
+{
+    a: Int32 = 1;
+    b: Int32 = 2;
+}
+
+export struct My_struct_2
+{
+    a: My_struct = {};
+    
+    b: My_struct = {
+        a: 2
+    };
+
+    c: My_struct = {
+        a: 3,
+        b: 4
+    };
+}
+
+export function use_structs(my_struct: My_struct) -> ()
+{
+    var a = my_struct.a;
+    
+    var instance_0: My_struct = {};
+    
+    var instance_1: My_struct = {
+        b: 3
+    };
+
+    var instance_2: My_struct_2 = {};
+
+    var instance_3: My_struct_2 = explicit {
+        a: {},
+        b: {},
+        c: explicit {
+            a: 0,
+            b: 1
+        }
+    };
+
+    var nested_b_a = instance_3.b.a;
+
+    mutable instance_4: My_struct = {};
+    instance_4.a = 0;
 }
 `;
 

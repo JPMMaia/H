@@ -187,6 +187,10 @@ namespace h::json
         {
             return "Bit_shift_right";
         }
+        else if (value == Binary_operation::Has)
+        {
+            return "Has";
+        }
 
         throw std::runtime_error{ "Failed to write enum 'Binary_operation'!\n" };
     }
@@ -203,6 +207,20 @@ namespace h::json
         }
 
         throw std::runtime_error{ "Failed to write enum 'Cast_type'!\n" };
+    }
+
+    export std::string_view write_enum(Instantiate_struct_type const value)
+    {
+        if (value == Instantiate_struct_type::Default)
+        {
+            return "Default";
+        }
+        else if (value == Instantiate_struct_type::Explicit)
+        {
+            return "Explicit";
+        }
+
+        throw std::runtime_error{ "Failed to write enum 'Instantiate_struct_type'!\n" };
     }
 
     export std::string_view write_enum(Unary_operation const value)
@@ -312,6 +330,12 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Statement const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Alias_type_declaration const& input
         );
 
@@ -331,12 +355,6 @@ namespace h::json
         void write_object(
             Writer_type& writer,
             Struct_declaration const& input
-        );
-
-    export template<typename Writer_type>
-        void write_object(
-            Writer_type& writer,
-            Statement const& input
         );
 
     export template<typename Writer_type>
@@ -426,7 +444,25 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Instantiate_struct_member_value_pair const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Instantiate_struct_expression const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Invalid_expression const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Null_pointer_expression const& input
         );
 
     export template<typename Writer_type>
@@ -469,6 +505,12 @@ namespace h::json
         void write_object(
             Writer_type& writer,
             Variable_declaration_expression const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Variable_declaration_with_type_expression const& input
         );
 
     export template<typename Writer_type>
@@ -812,6 +854,20 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Statement const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("name");
+        writer.String(output.name.data(), output.name.size());
+        writer.Key("expressions");
+        write_object(writer, output.expressions);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Alias_type_declaration const& output
         )
     {
@@ -832,8 +888,7 @@ namespace h::json
         writer.StartObject();
         writer.Key("name");
         writer.String(output.name.data(), output.name.size());
-        writer.Key("value");
-        writer.Uint64(output.value);
+        write_optional_object(writer, "value", output.value);
         writer.EndObject();
     }
 
@@ -864,24 +919,12 @@ namespace h::json
         write_object(writer, output.member_types);
         writer.Key("member_names");
         write_object(writer, output.member_names);
+        writer.Key("member_default_values");
+        write_object(writer, output.member_default_values);
         writer.Key("is_packed");
         writer.Bool(output.is_packed);
         writer.Key("is_literal");
         writer.Bool(output.is_literal);
-        writer.EndObject();
-    }
-
-    export template<typename Writer_type>
-        void write_object(
-            Writer_type& writer,
-            Statement const& output
-        )
-    {
-        writer.StartObject();
-        writer.Key("name");
-        writer.String(output.name.data(), output.name.size());
-        writer.Key("expressions");
-        write_object(writer, output.expressions);
         writer.EndObject();
     }
 
@@ -1100,12 +1143,53 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Instantiate_struct_member_value_pair const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("member_name");
+        writer.String(output.member_name.data(), output.member_name.size());
+        writer.Key("value");
+        write_object(writer, output.value);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Instantiate_struct_expression const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("type");
+        {
+            std::string_view const enum_value_string = write_enum(output.type);
+            writer.String(enum_value_string.data(), enum_value_string.size());
+        }
+        writer.Key("members");
+        write_object(writer, output.members);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Invalid_expression const& output
         )
     {
         writer.StartObject();
         writer.Key("value");
         writer.String(output.value.data(), output.value.size());
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Null_pointer_expression const& output
+        )
+    {
+        writer.StartObject();
         writer.EndObject();
     }
 
@@ -1204,6 +1288,24 @@ namespace h::json
         writer.String(output.name.data(), output.name.size());
         writer.Key("is_mutable");
         writer.Bool(output.is_mutable);
+        writer.Key("right_hand_side");
+        write_object(writer, output.right_hand_side);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Variable_declaration_with_type_expression const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("name");
+        writer.String(output.name.data(), output.name.size());
+        writer.Key("is_mutable");
+        writer.Bool(output.is_mutable);
+        writer.Key("type");
+        write_object(writer, output.type);
         writer.Key("right_hand_side");
         write_object(writer, output.right_hand_side);
         writer.EndObject();
@@ -1321,12 +1423,28 @@ namespace h::json
             If_expression const& value = std::get<If_expression>(output.data);
             write_object(writer, value);
         }
+        else if (std::holds_alternative<Instantiate_struct_expression>(output.data))
+        {
+            writer.Key("type");
+            writer.String("Instantiate_struct_expression");
+            writer.Key("value");
+            Instantiate_struct_expression const& value = std::get<Instantiate_struct_expression>(output.data);
+            write_object(writer, value);
+        }
         else if (std::holds_alternative<Invalid_expression>(output.data))
         {
             writer.Key("type");
             writer.String("Invalid_expression");
             writer.Key("value");
             Invalid_expression const& value = std::get<Invalid_expression>(output.data);
+            write_object(writer, value);
+        }
+        else if (std::holds_alternative<Null_pointer_expression>(output.data))
+        {
+            writer.Key("type");
+            writer.String("Null_pointer_expression");
+            writer.Key("value");
+            Null_pointer_expression const& value = std::get<Null_pointer_expression>(output.data);
             write_object(writer, value);
         }
         else if (std::holds_alternative<Parenthesis_expression>(output.data))
@@ -1375,6 +1493,14 @@ namespace h::json
             writer.String("Variable_declaration_expression");
             writer.Key("value");
             Variable_declaration_expression const& value = std::get<Variable_declaration_expression>(output.data);
+            write_object(writer, value);
+        }
+        else if (std::holds_alternative<Variable_declaration_with_type_expression>(output.data))
+        {
+            writer.Key("type");
+            writer.String("Variable_declaration_with_type_expression");
+            writer.Key("value");
+            Variable_declaration_with_type_expression const& value = std::get<Variable_declaration_with_type_expression>(output.data);
             write_object(writer, value);
         }
         else if (std::holds_alternative<Variable_expression>(output.data))

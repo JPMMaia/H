@@ -113,6 +113,16 @@ namespace h
         friend auto operator<=>(Type_reference const&, Type_reference const&) = default;
     };
 
+    struct Expression;
+
+    export struct Statement
+    {
+        std::pmr::string name;
+        std::pmr::vector<Expression> expressions;
+
+        friend auto operator<=>(Statement const&, Statement const&) = default;
+    };
+
     export struct Alias_type_declaration
     {
         std::pmr::string name;
@@ -124,7 +134,7 @@ namespace h
     export struct Enum_value
     {
         std::pmr::string name;
-        std::uint64_t value;
+        std::optional<Statement> value;
 
         friend auto operator<=>(Enum_value const& lhs, Enum_value const& rhs) = default;
     };
@@ -142,20 +152,11 @@ namespace h
         std::pmr::string name;
         std::pmr::vector<Type_reference> member_types;
         std::pmr::vector<std::pmr::string> member_names;
+        std::pmr::vector<Statement> member_default_values;
         bool is_packed;
         bool is_literal;
 
         friend auto operator<=>(Struct_declaration const&, Struct_declaration const&) = default;
-    };
-
-    struct Expression;
-
-    export struct Statement
-    {
-        std::pmr::string name;
-        std::pmr::vector<Expression> expressions;
-
-        friend auto operator<=>(Statement const&, Statement const&) = default;
     };
 
     export enum Access_type
@@ -203,7 +204,9 @@ namespace h
         Bitwise_xor,
 
         Bit_shift_left,
-        Bit_shift_right
+        Bit_shift_right,
+
+        Has
     };
 
     export struct Access_expression
@@ -310,11 +313,38 @@ namespace h
         friend auto operator<=>(If_expression const&, If_expression const&) = default;
     };
 
+    export enum class Instantiate_struct_type
+    {
+        Default,
+        Explicit
+    };
+
+    export struct Instantiate_struct_member_value_pair
+    {
+        std::pmr::string member_name;
+        Statement value;
+
+        friend auto operator<=>(Instantiate_struct_member_value_pair const&, Instantiate_struct_member_value_pair const&) = default;
+    };
+
+    export struct Instantiate_struct_expression
+    {
+        Instantiate_struct_type type;
+        std::pmr::vector<Instantiate_struct_member_value_pair> members;
+
+        friend auto operator<=>(Instantiate_struct_expression const&, Instantiate_struct_expression const&) = default;
+    };
+
     export struct Invalid_expression
     {
         std::pmr::string value;
 
         friend auto operator<=>(Invalid_expression const&, Invalid_expression const&) = default;
+    };
+
+    export struct Null_pointer_expression
+    {
+        friend auto operator<=>(Null_pointer_expression const&, Null_pointer_expression const&) = default;
     };
 
     export struct Parenthesis_expression
@@ -386,6 +416,16 @@ namespace h
         friend auto operator<=>(Variable_declaration_expression const&, Variable_declaration_expression const&) = default;
     };
 
+    export struct Variable_declaration_with_type_expression
+    {
+        std::pmr::string name;
+        bool is_mutable;
+        Type_reference type;
+        Statement right_hand_side;
+
+        friend auto operator<=>(Variable_declaration_with_type_expression const&, Variable_declaration_with_type_expression const&) = default;
+    };
+
     export struct While_loop_expression
     {
         Statement condition;
@@ -408,13 +448,16 @@ namespace h
             Continue_expression,
             For_loop_expression,
             If_expression,
+            Instantiate_struct_expression,
             Invalid_expression,
+            Null_pointer_expression,
             Parenthesis_expression,
             Return_expression,
             Switch_expression,
             Ternary_condition_expression,
             Unary_expression,
             Variable_declaration_expression,
+            Variable_declaration_with_type_expression,
             Variable_expression,
             While_loop_expression
         > ;

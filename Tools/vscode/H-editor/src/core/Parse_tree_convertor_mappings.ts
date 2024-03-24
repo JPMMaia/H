@@ -17,7 +17,6 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Alias_name", ["declarations", "$declaration_index", "value", "name"]],
             ["Enum_name", ["declarations", "$declaration_index", "value", "name"]],
             ["Enum_value_name", ["declarations", "$declaration_index", "value", "values", "$order_index", "name"]],
-            ["Enum_value_value", ["declarations", "$declaration_index", "value", "values", "$order_index", "value"]],
             ["Function_name", ["declarations", "$declaration_index", "value", "declaration", "name"]],
             ["Function_parameter_name", ["declarations", "$declaration_index", "value", "declaration", "$parameter_names", "$order_index"]],
             ["Statement", ["declarations", "$declaration_index", "value", "definition", "statements", "$order_index"]],
@@ -89,6 +88,7 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Export", choose_production_rule_export],
             ["Type", choose_production_rule_type],
             ["Pointer_type", choose_production_rule_pointer_type],
+            ["Enum_value", choose_production_rule_enum_value],
             ["Statement", choose_production_rule_statement],
             ["Expression_assignment_symbol", choose_production_rule_expression_assignment_symbol],
             ["Expression_binary_addition_symbol", choose_production_rule_expression_binary_symbol],
@@ -598,6 +598,33 @@ function choose_production_rule_pointer_type(
     };
 }
 
+function choose_production_rule_enum_value(
+    module: Core_intermediate_representation.Module,
+    production_rules: Grammar.Production_rule[],
+    production_rule_indices: number[],
+    label: string,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    mappings: Parse_tree_convertor.Parse_tree_mappings,
+    key_to_production_rule_indices: Map<string, number[]>
+): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
+    const top = stack[stack.length - 1];
+
+    const enum_declaration_state = stack[stack.length - 2];
+    const enum_declaration = enum_declaration_state.state.value.value as Core_intermediate_representation.Enum_declaration;
+
+    const enum_value_index = top.current_child_index;
+    const enum_value = enum_declaration.values[enum_value_index];
+
+    const index = enum_value.value !== undefined ? 1 : 0;
+    return {
+        next_state: {
+            index: 0,
+            value: top.state.value
+        },
+        next_production_rule_index: production_rule_indices[index]
+    };
+}
+
 function choose_production_rule_statement(
     module: Core_intermediate_representation.Module,
     production_rules: Grammar.Production_rule[],
@@ -741,6 +768,7 @@ function choose_production_rule_expression_binary_symbol(
             case Core_intermediate_representation.Binary_operation.Bitwise_xor: return "^";
             case Core_intermediate_representation.Binary_operation.Bit_shift_left: return "<<";
             case Core_intermediate_representation.Binary_operation.Bit_shift_right: return ">>";
+            case Core_intermediate_representation.Binary_operation.Has: return "has";
         }
     };
 
@@ -1382,9 +1410,9 @@ function choose_production_rule_generic_expression(
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
 
     const top = stack[stack.length - 1];
-    const expression = top.state.value as Core_intermediate_representation.Expression;
 
     if (top.node.word.value.startsWith("Expression_level_") || top.node.word.value === "Generic_expression") {
+        const expression = top.state.value as Core_intermediate_representation.Expression;
         const expression_label = map_expression_type_to_production_rule_label(expression);
         const next_production_rule_index = production_rule_indices.find(index => production_rules[index].rhs[0] === expression_label);
         return {
@@ -1395,7 +1423,48 @@ function choose_production_rule_generic_expression(
             next_production_rule_index: next_production_rule_index !== undefined ? next_production_rule_index : production_rule_indices[production_rule_indices.length - 1]
         };
     }
+    else if (top.node.word.value === "Enum_value") {
+        const enum_values_state = stack[stack.length - 2];
+        const enum_value_index = enum_values_state.current_child_index - 1;
+        const enum_values = enum_values_state.state.value as Core_intermediate_representation.Enum_value[];
+        const enum_value = enum_values[enum_value_index];
+        const enum_value_statement = enum_value.value as Core_intermediate_representation.Statement;
+        const expression = enum_value_statement.expression;
+
+        const expression_label = map_expression_type_to_production_rule_label(expression);
+
+        const next_production_rule_index = production_rule_indices.find(index => production_rules[index].rhs[0] === expression_label);
+        return {
+            next_state: {
+                index: 0,
+                value: expression
+            },
+            next_production_rule_index: next_production_rule_index !== undefined ? next_production_rule_index : production_rule_indices[production_rule_indices.length - 1]
+        };
+    }
+    else if (top.node.word.value === "Struct_member") {
+        const struct_state = stack[stack.length - 3];
+        const struct_declaration = struct_state.state.value.value as Core_intermediate_representation.Struct_declaration;
+
+        const struct_members_state = stack[stack.length - 2];
+        const struct_member_index = struct_members_state.current_child_index - 1;
+
+        const default_value = struct_declaration.member_default_values[struct_member_index];
+        const expression = default_value.expression;
+
+        const expression_label = map_expression_type_to_production_rule_label(expression);
+
+        const next_production_rule_index = production_rule_indices.find(index => production_rules[index].rhs[0] === expression_label);
+        return {
+            next_state: {
+                index: 0,
+                value: expression
+            },
+            next_production_rule_index: next_production_rule_index !== undefined ? next_production_rule_index : production_rule_indices[production_rule_indices.length - 1]
+        };
+    }
     else {
+        const expression = top.state.value as Core_intermediate_representation.Expression;
         const next = get_generic_expression(stack, expression);
 
         const next_production_rule_index = production_rule_indices.find(index => production_rules[index].rhs[0] === next.label);
@@ -1465,8 +1534,12 @@ function map_expression_type_to_production_rule_label(expression: Core_intermedi
             return "Expression_for_loop";
         case Core_intermediate_representation.Expression_enum.If_expression:
             return "Expression_if";
+        case Core_intermediate_representation.Expression_enum.Instantiate_struct_expression:
+            return "Expression_instantiate_struct";
         case Core_intermediate_representation.Expression_enum.Invalid_expression:
             return "Expression_invalid";
+        case Core_intermediate_representation.Expression_enum.Null_pointer_expression:
+            return "Expression_null_pointer";
         case Core_intermediate_representation.Expression_enum.Parenthesis_expression:
             return "Expression_parenthesis";
         case Core_intermediate_representation.Expression_enum.Return_expression:
@@ -1489,6 +1562,8 @@ function map_expression_type_to_production_rule_label(expression: Core_intermedi
             return "Expression_variable";
         case Core_intermediate_representation.Expression_enum.Variable_declaration_expression:
             return "Expression_variable_declaration";
+        case Core_intermediate_representation.Expression_enum.Variable_declaration_with_type_expression:
+            return "Expression_variable_declaration_with_type";
         case Core_intermediate_representation.Expression_enum.While_loop_expression:
             return "Expression_while_loop";
     }
@@ -1706,12 +1781,13 @@ function node_to_enum_declaration(node: Parser_node.Node, key_to_production_rule
         const value_node = value_nodes[index];
 
         const value_name = find_node_value(value_node, "Enum_value_name", key_to_production_rule_indices);
-        const value_value = find_node_value(value_node, "Enum_value_value", key_to_production_rule_indices);
+        const generic_expression_node = find_node(value_node, "Generic_expression", key_to_production_rule_indices) as Parser_node.Node;
+        const expression = node_to_expression(generic_expression_node, key_to_production_rule_indices);
 
         values.push(
             {
                 name: value_name,
-                value: Number(value_value)
+                value: { name: "", expression: expression }
             }
         );
     }
@@ -1729,6 +1805,7 @@ function node_to_struct_declaration(node: Parser_node.Node, key_to_production_ru
 
     const member_names: string[] = [];
     const member_types: Core_intermediate_representation.Type_reference[] = [];
+    const member_default_values: Core_intermediate_representation.Statement[] = [];
 
     for (let index = 0; index < member_nodes.length; ++index) {
         const member_node = member_nodes[index];
@@ -1738,14 +1815,19 @@ function node_to_struct_declaration(node: Parser_node.Node, key_to_production_ru
         const member_type_node = find_node(member_node, "Struct_member_type", key_to_production_rule_indices) as Parser_node.Node;
         const member_type = node_to_type_reference(member_type_node.children[0], key_to_production_rule_indices);
 
+        const member_default_value_node = find_node(member_node, "Generic_expression", key_to_production_rule_indices) as Parser_node.Node;
+        const member_default_value_expression = node_to_expression(member_default_value_node, key_to_production_rule_indices);
+
         member_names.push(member_name);
         member_types.push(member_type[0]);
+        member_default_values.push({ name: "", expression: member_default_value_expression });
     }
 
     return {
         name: name,
         member_names: member_names,
         member_types: member_types,
+        member_default_values: member_default_values,
         is_packed: false,
         is_literal: false
     };
@@ -1944,6 +2026,15 @@ function node_to_expression(node: Parser_node.Node, key_to_production_rule_indic
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.If_expression,
+                    value: expression
+                }
+            };
+        }
+        case "Expression_null_pointer": {
+            const expression = node_to_expression_null_pointer(node, key_to_production_rule_indices);
+            return {
+                data: {
+                    type: Core_intermediate_representation.Expression_enum.Null_pointer_expression,
                     value: expression
                 }
             };
@@ -2166,6 +2257,7 @@ function map_production_rule_label_to_binary_operation(label: string): Core_inte
         case "^": return Core_intermediate_representation.Binary_operation.Bitwise_xor;
         case "<<": return Core_intermediate_representation.Binary_operation.Bit_shift_left;
         case ">>": return Core_intermediate_representation.Binary_operation.Bit_shift_right;
+        case "has": return Core_intermediate_representation.Binary_operation.Has;
         default: {
             const message = `Unexpected binary expression symbol '${label}'`;
             onThrowError(message);
@@ -2430,6 +2522,14 @@ function node_to_expression_if(node: Parser_node.Node, key_to_production_rule_in
     };
 
     return if_expression;
+}
+
+function node_to_expression_null_pointer(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Null_pointer_expression {
+
+    const null_pointer_expression: Core_intermediate_representation.Null_pointer_expression = {
+    };
+
+    return null_pointer_expression;
 }
 
 function node_to_expression_parenthesis(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Parenthesis_expression {

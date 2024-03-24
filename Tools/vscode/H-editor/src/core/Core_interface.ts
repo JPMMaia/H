@@ -55,11 +55,17 @@ export enum Binary_operation {
     Bitwise_xor = "Bitwise_xor",
     Bit_shift_left = "Bit_shift_left",
     Bit_shift_right = "Bit_shift_right",
+    Has = "Has",
 }
 
 export enum Cast_type {
     Numeric = "Numeric",
     BitCast = "BitCast",
+}
+
+export enum Instantiate_struct_type {
+    Default = "Default",
+    Explicit = "Explicit",
 }
 
 export enum Unary_operation {
@@ -101,13 +107,16 @@ export enum Expression_enum {
     Continue_expression = "Continue_expression",
     For_loop_expression = "For_loop_expression",
     If_expression = "If_expression",
+    Instantiate_struct_expression = "Instantiate_struct_expression",
     Invalid_expression = "Invalid_expression",
+    Null_pointer_expression = "Null_pointer_expression",
     Parenthesis_expression = "Parenthesis_expression",
     Return_expression = "Return_expression",
     Switch_expression = "Switch_expression",
     Ternary_condition_expression = "Ternary_condition_expression",
     Unary_expression = "Unary_expression",
     Variable_declaration_expression = "Variable_declaration_expression",
+    Variable_declaration_with_type_expression = "Variable_declaration_with_type_expression",
     Variable_expression = "Variable_expression",
     While_loop_expression = "While_loop_expression",
 }
@@ -150,6 +159,11 @@ export interface Type_reference {
     data: Variant<Type_reference_enum, Builtin_type_reference | Constant_array_type | Custom_type_reference | Fundamental_type | Function_type | Integer_type | Pointer_type>;
 }
 
+export interface Statement {
+    name: string;
+    expressions: Vector<Expression>;
+}
+
 export interface Alias_type_declaration {
     name: string;
     type: Vector<Type_reference>;
@@ -157,7 +171,7 @@ export interface Alias_type_declaration {
 
 export interface Enum_value {
     name: string;
-    value: number;
+    value?: Statement;
 }
 
 export interface Enum_declaration {
@@ -169,13 +183,9 @@ export interface Struct_declaration {
     name: string;
     member_types: Vector<Type_reference>;
     member_names: Vector<string>;
+    member_default_values: Vector<Statement>;
     is_packed: boolean;
     is_literal: boolean;
-}
-
-export interface Statement {
-    name: string;
-    expressions: Vector<Expression>;
 }
 
 export interface Variable_expression {
@@ -250,8 +260,21 @@ export interface If_expression {
     series: Vector<Condition_statement_pair>;
 }
 
+export interface Instantiate_struct_member_value_pair {
+    member_name: string;
+    value: Statement;
+}
+
+export interface Instantiate_struct_expression {
+    type: Instantiate_struct_type;
+    members: Vector<Instantiate_struct_member_value_pair>;
+}
+
 export interface Invalid_expression {
     value: string;
+}
+
+export interface Null_pointer_expression {
 }
 
 export interface Parenthesis_expression {
@@ -289,13 +312,20 @@ export interface Variable_declaration_expression {
     right_hand_side: Expression_index;
 }
 
+export interface Variable_declaration_with_type_expression {
+    name: string;
+    is_mutable: boolean;
+    type: Type_reference;
+    right_hand_side: Statement;
+}
+
 export interface While_loop_expression {
     condition: Statement;
     then_statement: Statement;
 }
 
 export interface Expression {
-    data: Variant<Expression_enum, Access_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Constant_expression | Continue_expression | For_loop_expression | If_expression | Invalid_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_expression | While_loop_expression>;
+    data: Variant<Expression_enum, Access_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Constant_expression | Continue_expression | For_loop_expression | If_expression | Instantiate_struct_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
 }
 
 export interface Function_declaration {

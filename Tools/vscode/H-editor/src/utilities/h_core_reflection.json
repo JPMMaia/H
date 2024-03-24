@@ -52,7 +52,8 @@
                 "Bitwise_or",
                 "Bitwise_xor",
                 "Bit_shift_left",
-                "Bit_shift_right"
+                "Bit_shift_right",
+                "Has"
             ]
         },
         {
@@ -60,6 +61,13 @@
             "values": [
                 "Numeric",
                 "BitCast"
+            ]
+        },
+        {
+            "name": "Instantiate_struct_type",
+            "values": [
+                "Default",
+                "Explicit"
             ]
         },
         {
@@ -210,6 +218,23 @@
             ]
         },
         {
+            "name": "Statement",
+            "members": [
+                {
+                    "type": {
+                        "name": "std::pmr::string"
+                    },
+                    "name": "name"
+                },
+                {
+                    "type": {
+                        "name": "std::pmr::vector<Expression>"
+                    },
+                    "name": "expressions"
+                }
+            ]
+        },
+        {
             "name": "Alias_type_declaration",
             "members": [
                 {
@@ -237,7 +262,7 @@
                 },
                 {
                     "type": {
-                        "name": "std::uint64_t"
+                        "name": "std::optional<Statement>"
                     },
                     "name": "value"
                 }
@@ -283,6 +308,12 @@
                 },
                 {
                     "type": {
+                        "name": "std::pmr::vector<Statement>"
+                    },
+                    "name": "member_default_values"
+                },
+                {
+                    "type": {
                         "name": "bool"
                     },
                     "name": "is_packed"
@@ -292,23 +323,6 @@
                         "name": "bool"
                     },
                     "name": "is_literal"
-                }
-            ]
-        },
-        {
-            "name": "Statement",
-            "members": [
-                {
-                    "type": {
-                        "name": "std::pmr::string"
-                    },
-                    "name": "name"
-                },
-                {
-                    "type": {
-                        "name": "std::pmr::vector<Expression>"
-                    },
-                    "name": "expressions"
                 }
             ]
         },
@@ -562,6 +576,40 @@
             ]
         },
         {
+            "name": "Instantiate_struct_member_value_pair",
+            "members": [
+                {
+                    "type": {
+                        "name": "std::pmr::string"
+                    },
+                    "name": "member_name"
+                },
+                {
+                    "type": {
+                        "name": "Statement"
+                    },
+                    "name": "value"
+                }
+            ]
+        },
+        {
+            "name": "Instantiate_struct_expression",
+            "members": [
+                {
+                    "type": {
+                        "name": "Instantiate_struct_type"
+                    },
+                    "name": "type"
+                },
+                {
+                    "type": {
+                        "name": "std::pmr::vector<Instantiate_struct_member_value_pair>"
+                    },
+                    "name": "members"
+                }
+            ]
+        },
+        {
             "name": "Invalid_expression",
             "members": [
                 {
@@ -571,6 +619,10 @@
                     "name": "value"
                 }
             ]
+        },
+        {
+            "name": "Null_pointer_expression",
+            "members": []
         },
         {
             "name": "Parenthesis_expression",
@@ -692,6 +744,35 @@
             ]
         },
         {
+            "name": "Variable_declaration_with_type_expression",
+            "members": [
+                {
+                    "type": {
+                        "name": "std::pmr::string"
+                    },
+                    "name": "name"
+                },
+                {
+                    "type": {
+                        "name": "bool"
+                    },
+                    "name": "is_mutable"
+                },
+                {
+                    "type": {
+                        "name": "Type_reference"
+                    },
+                    "name": "type"
+                },
+                {
+                    "type": {
+                        "name": "Statement"
+                    },
+                    "name": "right_hand_side"
+                }
+            ]
+        },
+        {
             "name": "While_loop_expression",
             "members": [
                 {
@@ -713,7 +794,7 @@
             "members": [
                 {
                     "type": {
-                        "name": "std::variant<Access_expression,Assignment_expression,Binary_expression,Block_expression,Break_expression,Call_expression,Cast_expression,Constant_expression,Continue_expression,For_loop_expression,If_expression,Invalid_expression,Parenthesis_expression,Return_expression,Switch_expression,Ternary_condition_expression,Unary_expression,Variable_declaration_expression,Variable_expression,While_loop_expression>"
+                        "name": "std::variant<Access_expression,Assignment_expression,Binary_expression,Block_expression,Break_expression,Call_expression,Cast_expression,Constant_expression,Continue_expression,For_loop_expression,If_expression,Instantiate_struct_expression,Invalid_expression,Null_pointer_expression,Parenthesis_expression,Return_expression,Switch_expression,Ternary_condition_expression,Unary_expression,Variable_declaration_expression,Variable_declaration_with_type_expression,Variable_expression,While_loop_expression>"
                     },
                     "name": "data"
                 }
