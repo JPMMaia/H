@@ -2,7 +2,6 @@ import "mocha";
 
 import * as assert from "assert";
 
-import * as Core from "./Core_interface";
 import * as Core_intermediate_representation from "./Core_intermediate_representation";
 import * as Grammar from "./Grammar";
 import * as Grammar_examples from "./Grammar_examples";
@@ -2095,8 +2094,7 @@ function test_parse_tree_to_module(grammar_description: string[], expected_modul
     const mappings = Parse_tree_convertor_mappings.create_mapping();
     const parse_tree = Parse_tree_convertor.module_to_parse_tree(expected_module, production_rules, mappings);
 
-    const print_generated_text = false;
-    if (print_generated_text) {
+    if (g_debug) {
         const generated_text = Text_formatter.to_string(parse_tree, undefined, []);
         console.log(generated_text);
     }

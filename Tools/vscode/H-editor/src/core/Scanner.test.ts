@@ -24,6 +24,28 @@ describe("Scanner.scan", () => {
         assert.equal(suffix, "i32");
     });
 
+    it("Scans hexadecimal integers", () => {
+        const input = "0x1234";
+        const scanned_words = Scanner.scan(input, 0, input.length);
+        assert.equal(scanned_words.length, 1);
+        assert.equal(scanned_words[0].value, input);
+        assert.equal(scanned_words[0].type, Grammar.Word_type.Number);
+
+        const suffix = Scanner.get_suffix(scanned_words[0]);
+        assert.equal(suffix, "");
+    });
+
+    it("Scans hexadecimal integers with suffix", () => {
+        const input = "0x1234i64";
+        const scanned_words = Scanner.scan(input, 0, input.length);
+        assert.equal(scanned_words.length, 1);
+        assert.equal(scanned_words[0].value, input);
+        assert.equal(scanned_words[0].type, Grammar.Word_type.Number);
+
+        const suffix = Scanner.get_suffix(scanned_words[0]);
+        assert.equal(suffix, "i64");
+    });
+
     it("Scans floats", () => {
         const input = "12.34";
         const scanned_words = Scanner.scan(input, 0, input.length);

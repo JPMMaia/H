@@ -1610,7 +1610,7 @@ export function use_alias(size: My_int) -> ()
         const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
-        const expected_module = Module_examples.create_break_expressions();
+        const expected_module = Module_examples.create_using_alias();
         assert.deepEqual(new_document_state.module, expected_module);
     });
 
@@ -1628,14 +1628,14 @@ export enum My_enum
     Value_2,
     
     Value_10 = 10,
-    Value_11
+    Value_11,
 }
 
 export function use_enums(enum_argument: My_enum) -> (result: Int32)
 {
     var my_value = My_enum.Value_1;
 
-    switch (enum_argument)
+    switch enum_argument:
     {
         case My_enum.Value_0:
         case My_enum.Value_1:
@@ -1646,6 +1646,8 @@ export function use_enums(enum_argument: My_enum) -> (result: Int32)
         case My_enum.Value_11:
             return 1;
     }
+
+    return 2;
 }
 `;
 
@@ -1662,7 +1664,7 @@ export function use_enums(enum_argument: My_enum) -> (result: Int32)
         const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
-        const expected_module = Module_examples.create_break_expressions();
+        const expected_module = Module_examples.create_using_enums();
         assert.deepEqual(new_document_state.module, expected_module);
     });
 
@@ -1687,16 +1689,16 @@ export function use_enums(enum_argument: My_enum_flag) -> (result: Int32)
     var b = enum_argument & My_enum_flag.Flag_1;
     var c = enum_argument ^ My_enum_flag.Flag_1;
 
-    if (a == enum_argument)
+    if a == enum_argument:
         return 0;
 
-    if (enum_argument has My_enum_flag.Flag_1)
+    if enum_argument has My_enum_flag.Flag_1:
         return 1;
 
-    if (enum_argument has My_enum_flag.Flag_2)
+    if enum_argument has My_enum_flag.Flag_2:
         return 2;
 
-    if (enum_argument has My_enum_flag.Flag_3)
+    if enum_argument has My_enum_flag.Flag_3:
         return 3;
 
     return 4;
@@ -1716,7 +1718,7 @@ export function use_enums(enum_argument: My_enum_flag) -> (result: Int32)
         const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
-        const expected_module = Module_examples.create_break_expressions();
+        const expected_module = Module_examples.create_using_enum_flags();
         assert.deepEqual(new_document_state.module, expected_module);
     });
 
@@ -1735,13 +1737,13 @@ export struct My_struct
 
 export struct My_struct_2
 {
-    a: My_struct = {};
+    a: My_struct = default {};
     
-    b: My_struct = {
+    b: My_struct = default {
         a: 2
     };
 
-    c: My_struct = {
+    c: My_struct = default {
         a: 3,
         b: 4
     };
@@ -1751,17 +1753,17 @@ export function use_structs(my_struct: My_struct) -> ()
 {
     var a = my_struct.a;
     
-    var instance_0: My_struct = {};
+    var instance_0: My_struct = default {};
     
-    var instance_1: My_struct = {
+    var instance_1: My_struct = default {
         b: 3
     };
 
-    var instance_2: My_struct_2 = {};
+    var instance_2: My_struct_2 = default {};
 
     var instance_3: My_struct_2 = explicit {
-        a: {},
-        b: {},
+        a: default {},
+        b: default {},
         c: explicit {
             a: 0,
             b: 1
@@ -1770,7 +1772,7 @@ export function use_structs(my_struct: My_struct) -> ()
 
     var nested_b_a = instance_3.b.a;
 
-    mutable instance_4: My_struct = {};
+    mutable instance_4: My_struct = default {};
     instance_4.a = 0;
 }
 `;
@@ -1788,7 +1790,7 @@ export function use_structs(my_struct: My_struct) -> ()
         const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
-        const expected_module = Module_examples.create_break_expressions();
+        const expected_module = Module_examples.create_using_structs();
         assert.deepEqual(new_document_state.module, expected_module);
     });
 });
