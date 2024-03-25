@@ -2767,7 +2767,7 @@ export function create_using_alias(): IR.Module {
                         },
                         input_parameter_names: ["size"],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.Private
+                        linkage: IR.Linkage.External
                     },
                     definition: {
                         name: "use_alias",
@@ -2828,12 +2828,12 @@ export function create_using_enums(): IR.Module {
                         name: "use_enums",
                         type: {
                             input_parameter_types: [create_custom_type_reference("", "My_enum")],
-                            output_parameter_types: [],
+                            output_parameter_types: [int32_type],
                             is_variadic: false,
                         },
                         input_parameter_names: ["enum_argument"],
-                        output_parameter_names: [],
-                        linkage: IR.Linkage.Private
+                        output_parameter_names: ["result"],
+                        linkage: IR.Linkage.External
                     },
                     definition: {
                         name: "use_enums",
@@ -2907,6 +2907,11 @@ export function create_using_enums(): IR.Module {
                                         }
                                     ]
                                 )
+                            ),
+                            create_statement(
+                                IR.create_return_expression(
+                                    IR.create_constant_expression(int32_type, "2")
+                                )
                             )
                         ]
                     }
@@ -2965,12 +2970,12 @@ export function create_using_enum_flags(): IR.Module {
                         name: "use_enums",
                         type: {
                             input_parameter_types: [create_custom_type_reference("", "My_enum_flag")],
-                            output_parameter_types: [],
+                            output_parameter_types: [int32_type],
                             is_variadic: false,
                         },
                         input_parameter_names: ["enum_argument"],
-                        output_parameter_names: [],
-                        linkage: IR.Linkage.Private
+                        output_parameter_names: ["result"],
+                        linkage: IR.Linkage.External
                     },
                     definition: {
                         name: "use_enums",
@@ -3115,6 +3120,11 @@ export function create_using_enum_flags(): IR.Module {
                                         }
                                     ]
                                 )
+                            ),
+                            create_statement(
+                                IR.create_return_expression(
+                                    IR.create_constant_expression(int32_type, "4")
+                                )
                             )
                         ]
                     }
@@ -3221,7 +3231,7 @@ export function create_using_structs(): IR.Module {
                         },
                         input_parameter_names: ["my_struct"],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.Private
+                        linkage: IR.Linkage.External
                     },
                     definition: {
                         name: "use_structs",

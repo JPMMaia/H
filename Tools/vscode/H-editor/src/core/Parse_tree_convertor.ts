@@ -754,8 +754,6 @@ function parse_tree_to_core_object(
     modify_change: boolean
 ): { position: any[], change: Module_change.Change }[] {
 
-    const nodes_to_parse_later = ["Function_definition"];
-
     const new_changes: { position: any[], change: Module_change.Change }[] = [];
 
     const node_positions: number[][] = [];
@@ -772,17 +770,19 @@ function parse_tree_to_core_object(
             console.log(node.word.value);
         }
 
-        const map = mappings.create_module_changes_map.get(node.word.value);
-        if (map !== undefined) {
-            const changes = map({
-                module: module,
-                node: node,
-                node_position: node_position,
-                modify_change: modify_change,
-                key_to_production_rule_indices: key_to_production_rule_indices
-            });
+        if (!Parser_node.is_terminal_node(node)) {
+            const map = mappings.create_module_changes_map.get(node.word.value);
+            if (map !== undefined) {
+                const changes = map({
+                    module: module,
+                    node: node,
+                    node_position: node_position,
+                    modify_change: modify_change,
+                    key_to_production_rule_indices: key_to_production_rule_indices
+                });
 
-            new_changes.push(...changes);
+                new_changes.push(...changes);
+            }
         }
 
         for (let index = 0; index < node.children.length; ++index) {
@@ -867,6 +867,13 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
             }
             break;
         }
+        case Core_intermediate_representation.Expression_enum.Instantiate_struct_expression: {
+            const value = expression.data.value as Core_intermediate_representation.Instantiate_struct_expression;
+            for (const member of value.members) {
+                visit_expressions(member.value.expression, predicate);
+            }
+            break;
+        }
         case Core_intermediate_representation.Expression_enum.Parenthesis_expression: {
             const value = expression.data.value as Core_intermediate_representation.Parenthesis_expression;
             visit_expressions(value.expression, predicate);
@@ -907,6 +914,11 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
             visit_expressions(value.right_hand_side, predicate);
             break;
         }
+        case Core_intermediate_representation.Expression_enum.Variable_declaration_with_type_expression: {
+            const value = expression.data.value as Core_intermediate_representation.Variable_declaration_with_type_expression;
+            visit_expressions(value.right_hand_side.expression, predicate);
+            break;
+        }
         case Core_intermediate_representation.Expression_enum.While_loop_expression: {
             const value = expression.data.value as Core_intermediate_representation.While_loop_expression;
             visit_expressions(value.condition.expression, predicate);
@@ -940,22 +952,6 @@ export function update_import_module_usages(module: Core_intermediate_representa
             const index = import_module.usages.findIndex(value => value === usage);
             if (index === -1) {
                 import_module.usages.push(usage);
-            }
-        }
-    };
-
-    const process_expression = (expression: Core_intermediate_representation.Expression): void => {
-        switch (expression.data.type) {
-            case Core_intermediate_representation.Expression_enum.Access_expression: {
-                const access_expression = expression.data.value as Core_intermediate_representation.Access_expression;
-                if (access_expression.expression.data.type === Core_intermediate_representation.Expression_enum.Variable_expression) {
-                    const variable_expression = access_expression.expression.data.value as Core_intermediate_representation.Variable_expression;
-                    add_unique_usage(variable_expression.name, access_expression.member_name);
-                }
-                break;
-            }
-            default: {
-                break;
             }
         }
     };
@@ -1000,6 +996,32 @@ export function update_import_module_usages(module: Core_intermediate_representa
                 const message = `Parse_tree_convertor.update_import_module_usages(): Type '${type.data.type}' not handled!`;
                 onThrowError(message);
                 throw Error(message);
+            }
+        }
+    };
+
+    const process_expression = (expression: Core_intermediate_representation.Expression): void => {
+        switch (expression.data.type) {
+            case Core_intermediate_representation.Expression_enum.Access_expression: {
+                const access_expression = expression.data.value as Core_intermediate_representation.Access_expression;
+                if (access_expression.expression.data.type === Core_intermediate_representation.Expression_enum.Variable_expression) {
+                    const variable_expression = access_expression.expression.data.value as Core_intermediate_representation.Variable_expression;
+                    add_unique_usage(variable_expression.name, access_expression.member_name);
+                }
+                break;
+            }
+            case Core_intermediate_representation.Expression_enum.Cast_expression: {
+                const cast_expression = expression.data.value as Core_intermediate_representation.Cast_expression;
+                process_type(cast_expression.destination_type);
+                break;
+            }
+            case Core_intermediate_representation.Expression_enum.Variable_declaration_with_type_expression: {
+                const variable_declaration_with_type_expression = expression.data.value as Core_intermediate_representation.Variable_declaration_with_type_expression;
+                process_type(variable_declaration_with_type_expression.type);
+                break;
+            }
+            default: {
+                break;
             }
         }
     };

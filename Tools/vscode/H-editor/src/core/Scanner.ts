@@ -409,7 +409,19 @@ export function get_suffix(word: Grammar.Word): string {
         return word.value.substring(end + 1, word.value.length);
     }
     else if (word.type === Grammar.Word_type.Number) {
-        for (let index = 1; index < word.value.length; ++index) {
+
+        const get_start_index = (): number => {
+            if (word.value.startsWith("0x")) {
+                return 2;
+            }
+            else {
+                return 0;
+            }
+        };
+
+        const start_index = get_start_index();
+
+        for (let index = start_index; index < word.value.length; ++index) {
             const character = word.value.charAt(index);
             if (is_letter(character)) {
                 return word.value.substring(index, word.value.length);
