@@ -1269,12 +1269,14 @@ function intermediate_to_core_instantiate_struct_member_value_pair(intermediate_
 
 export interface Instantiate_struct_expression {
     type: Instantiate_struct_type;
+    type_reference?: Type_reference;
     members: Instantiate_struct_member_value_pair[];
 }
 
 function core_to_intermediate_instantiate_struct_expression(core_value: Core.Instantiate_struct_expression, statement: Core.Statement): Instantiate_struct_expression {
     return {
         type: core_value.type,
+        type_reference: core_value.type_reference !== undefined ? core_to_intermediate_type_reference(core_value.type_reference) : undefined,
         members: core_value.members.elements.map(value => core_to_intermediate_instantiate_struct_member_value_pair(value)),
     };
 }
@@ -1287,6 +1289,7 @@ function intermediate_to_core_instantiate_struct_expression(intermediate_value: 
             type: Core.Expression_enum.Instantiate_struct_expression,
             value: {
                 type: intermediate_value.type,
+                type_reference: intermediate_value.type_reference,
                 members: {
                     size: intermediate_value.members.length,
                     elements: intermediate_value.members.map(value => intermediate_to_core_instantiate_struct_member_value_pair(value))
@@ -1298,9 +1301,10 @@ function intermediate_to_core_instantiate_struct_expression(intermediate_value: 
     expressions[index] = core_value;
 }
 
-export function create_instantiate_struct_expression(type: Instantiate_struct_type, members: Instantiate_struct_member_value_pair[]): Expression {
+export function create_instantiate_struct_expression(type: Instantiate_struct_type, type_reference: Type_reference | undefined, members: Instantiate_struct_member_value_pair[]): Expression {
     const instantiate_struct_expression: Instantiate_struct_expression = {
         type: type,
+        type_reference: type_reference,
         members: members,
     };
     return {

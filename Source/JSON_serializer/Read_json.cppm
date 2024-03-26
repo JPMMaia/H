@@ -1665,6 +1665,17 @@ namespace h::json
             };
         }
 
+        if (key == "type_reference")
+        {
+            parent->type_reference = h::Type_reference{};
+            return Stack_state
+            {
+                .pointer = &parent->type_reference.value(),
+                .type = "Type_reference",
+                .get_next_state = get_next_state_type_reference
+            };
+        }
+
         if (key == "members")
         {
             auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
