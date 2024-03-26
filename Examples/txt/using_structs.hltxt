@@ -1,0 +1,62 @@
+module Structs;
+
+export struct My_struct
+{
+    a: Int32 = 1;
+    b: Int32 = 2;
+}
+
+export struct My_struct_2
+{
+    a: My_struct = default{};
+    
+    b: My_struct = default{
+        a: 2
+    };
+
+    c: My_struct = default{
+        a: 3,
+        b: 4
+    };
+}
+
+export function use_structs(my_struct: My_struct) -> ()
+{
+    var a = my_struct.a;
+    
+    var instance_0: My_struct = default{};
+    
+    var instance_1: My_struct = default{
+        b: 3
+    };
+
+    var instance_2: My_struct_2 = default{};
+
+    var instance_3: My_struct_2 = explicit{
+        a: default{},
+        b: default{},
+        c: explicit{
+            a: 0,
+            b: 1
+        }
+    };
+
+    var nested_b_a = instance_3.b.a;
+
+    mutable instance_4: My_struct = default{};
+    instance_4.a = 0;
+
+    var instance_5 = default My_struct{};
+
+    pass_struct(default{});
+    var instance_6 = return_struct();
+}
+
+function pass_struct(my_struct: My_struct) -> ()
+{
+}
+
+function return_struct() -> (my_struct: My_struct)
+{
+    return default{};
+}

@@ -1,0 +1,30 @@
+module Enum_flags;
+
+export enum My_enum_flag
+{
+    Flag_1 = 0x01,
+    Flag_2 = 0x02,
+    Flag_3 = 0x04,
+    Flag_4 = 0x08,
+}
+
+export function use_enums(enum_argument: My_enum_flag) -> (result: Int32)
+{
+    var a = My_enum_flag.Flag_1 | My_enum_flag.Flag_2;
+    var b = enum_argument & My_enum_flag.Flag_1;
+    var c = enum_argument ^ My_enum_flag.Flag_1;
+
+    if a == enum_argument:
+        return 0;
+
+    if enum_argument has My_enum_flag.Flag_1:
+        return 1;
+
+    if enum_argument has My_enum_flag.Flag_2:
+        return 2;
+
+    if enum_argument has My_enum_flag.Flag_3:
+        return 3;
+
+    return 4;
+}
