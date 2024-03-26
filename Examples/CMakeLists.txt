@@ -58,6 +58,10 @@ Convert_hltxt_to_hl(
         "${CMAKE_CURRENT_LIST_DIR}/txt/switch_expressions.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/ternary_condition_expressions.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/unary_expressions.hltxt"
+        "${CMAKE_CURRENT_LIST_DIR}/txt/using_alias.hltxt"
+        "${CMAKE_CURRENT_LIST_DIR}/txt/using_enums.hltxt"
+        "${CMAKE_CURRENT_LIST_DIR}/txt/using_enum_flags.hltxt"
+        "${CMAKE_CURRENT_LIST_DIR}/txt/using_structs.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/variables.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/while_loop_expressions.hltxt"
 )

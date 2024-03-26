@@ -1254,6 +1254,65 @@ entry:
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
+  TEST_CASE("Compile Using Alias")
+  {
+    char const* const input_file = "using_alias.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
+  TEST_CASE("Compile Using Enum Flags")
+  {
+    char const* const input_file = "using_enum_flags.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
+
+  TEST_CASE("Compile Using Enums")
+  {
+    char const* const input_file = "using_enums.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
+
+  TEST_CASE("Compile Using Structs")
+  {
+    char const* const input_file = "using_structs.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
+
   TEST_CASE("Compile Variables")
   {
     char const* const input_file = "variables.hl";
