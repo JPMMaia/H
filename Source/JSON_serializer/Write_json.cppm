@@ -1166,6 +1166,7 @@ namespace h::json
             std::string_view const enum_value_string = write_enum(output.type);
             writer.String(enum_value_string.data(), enum_value_string.size());
         }
+        write_optional_object(writer, "type_reference", output.type_reference);
         writer.Key("members");
         write_object(writer, output.members);
         writer.EndObject();

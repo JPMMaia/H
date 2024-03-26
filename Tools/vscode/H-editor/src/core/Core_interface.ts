@@ -267,6 +267,7 @@ export interface Instantiate_struct_member_value_pair {
 
 export interface Instantiate_struct_expression {
     type: Instantiate_struct_type;
+    type_reference?: Type_reference;
     members: Vector<Instantiate_struct_member_value_pair>;
 }
 

@@ -330,6 +330,7 @@ namespace h
     export struct Instantiate_struct_expression
     {
         Instantiate_struct_type type;
+        std::optional<Type_reference> type_reference;
         std::pmr::vector<Instantiate_struct_member_value_pair> members;
 
         friend auto operator<=>(Instantiate_struct_expression const&, Instantiate_struct_expression const&) = default;

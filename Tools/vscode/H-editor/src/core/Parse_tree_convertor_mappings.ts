@@ -109,6 +109,7 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Expression_for_loop_step", choose_production_rule_expression_for_loop_step],
             ["Expression_for_loop_reverse", choose_production_rule_expression_for_loop_reverse],
             ["Expression_if_else", choose_production_rule_expression_if_else],
+            ["Expression_instantiate_struct_name", choose_production_rule_expression_instantiate_struct_name],
             ["Expression_instantiate_struct_type", choose_production_rule_expression_instantiate_struct_type],
             ["Expression_return", choose_production_rule_expression_return],
             ["Expression_switch_case", choose_production_rule_expression_switch_case],
@@ -508,6 +509,11 @@ function choose_production_rule_type(
             const expression = top.state.value as Core_intermediate_representation.Expression;
             const cast_expression = expression.data.value as Core_intermediate_representation.Cast_expression;
             return [cast_expression.destination_type];
+        }
+        else if (top.node.word.value === "Expression_instantiate_struct_name") {
+            const expression = top.state.value as Core_intermediate_representation.Expression;
+            const instantiate_struct_expression = expression.data.value as Core_intermediate_representation.Instantiate_struct_expression;
+            return [instantiate_struct_expression.type_reference as Core_intermediate_representation.Type_reference];
         }
         else if (top.node.word.value === "Expression_variable_declaration_type") {
             const expression = top.state.value as Core_intermediate_representation.Expression;
@@ -1016,6 +1022,35 @@ function choose_production_rule_expression_if_else(
     const index =
         serie_index >= if_expression.series.length ? 0 :
             (serie_index < if_expression.series.length - 1) ? 1 : 2;
+
+    return {
+        next_state: {
+            index: 0,
+            value: expression
+        },
+        next_production_rule_index: production_rule_indices[index]
+    };
+}
+
+function choose_production_rule_expression_instantiate_struct_name(
+    module: Core_intermediate_representation.Module,
+    production_rules: Grammar.Production_rule[],
+    production_rule_indices: number[],
+    label: string,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    mappings: Parse_tree_convertor.Parse_tree_mappings,
+    key_to_production_rule_indices: Map<string, number[]>
+): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
+
+    const top = stack[stack.length - 1];
+
+    const expression = top.state.value as Core_intermediate_representation.Expression;
+    const instantiate_struct_expression = expression.data.value as Core_intermediate_representation.Instantiate_struct_expression;
+
+    const index =
+        instantiate_struct_expression.type_reference === undefined ?
+            0 :
+            1;
 
     return {
         next_state: {
@@ -2618,6 +2653,10 @@ function node_to_expression_instantiate_struct(node: Parser_node.Node, key_to_pr
     const type_node_value = find_node_value(node, "Expression_instantiate_struct_type", key_to_production_rule_indices);
     const type = type_node_value === "explicit" ? Core_intermediate_representation.Instantiate_struct_type.Explicit : Core_intermediate_representation.Instantiate_struct_type.Default;
 
+    const struct_name_node = find_node(node, "Expression_instantiate_struct_name", key_to_production_rule_indices) as Parser_node.Node;
+    const type_reference_node = struct_name_node.children.length > 0 ? struct_name_node.children[0] : undefined;
+    const type_reference = type_reference_node !== undefined ? node_to_type_reference(type_reference_node, key_to_production_rule_indices)[0] : undefined;
+
     const member_nodes = find_nodes_inside_parent(node, "Expression_instantiate_struct_members", "Expression_instantiate_struct_member", key_to_production_rule_indices);
     const members: Core_intermediate_representation.Instantiate_struct_member_value_pair[] = member_nodes.map(
         node => {
@@ -2635,6 +2674,7 @@ function node_to_expression_instantiate_struct(node: Parser_node.Node, key_to_pr
 
     const instantiate_struct_expression: Core_intermediate_representation.Instantiate_struct_expression = {
         type: type,
+        type_reference,
         members: members
     };
 
