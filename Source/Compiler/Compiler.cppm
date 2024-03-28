@@ -18,14 +18,10 @@ module;
 export module h.compiler;
 
 import h.core;
+import h.compiler.types;
 
 namespace h::compiler
 {
-    export struct Struct_types
-    {
-        llvm::StructType* string;
-    };
-
     export struct Optimization_managers
     {
         std::unique_ptr<llvm::LoopAnalysisManager> loop_analysis_manager;
@@ -42,7 +38,6 @@ namespace h::compiler
         llvm::TargetMachine* target_machine;
         llvm::DataLayout data_layout;
         std::unique_ptr<llvm::LLVMContext> context;
-        Struct_types struct_types;
         Optimization_managers optimization_managers;
     };
 
