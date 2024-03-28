@@ -1,0 +1,93 @@
+module;
+
+#include <llvm/IR/BasicBlock.h>
+#include <llvm/IR/DataLayout.h>
+#include <llvm/IR/DerivedTypes.h>
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/LLVMContext.h>
+
+#include <memory_resource>
+#include <span>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+export module h.compiler.expressions;
+
+import h.core;
+import h.compiler.types;
+
+namespace h::compiler
+{
+    export enum class Block_type
+    {
+        For_loop,
+        Switch,
+        While_loop
+    };
+
+    export struct Block_info
+    {
+        Block_type block_type = {};
+        llvm::BasicBlock* repeat_block = nullptr;
+        llvm::BasicBlock* after_block = nullptr;
+    };
+
+
+    export struct Value_and_type
+    {
+        std::pmr::string name;
+        llvm::Value* value;
+        std::optional<Type_reference> type;
+    };
+
+    export Value_and_type create_expression_value(
+        Expression const& expression,
+        Module const& core_module,
+        Statement const& statement,
+        llvm::LLVMContext& llvm_context,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Module& llvm_module,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::Function* const llvm_parent_function,
+        std::span<Block_info const> const blocks,
+        std::span<Value_and_type const> function_arguments,
+        std::span<Value_and_type const> local_variables,
+        std::span<Value_and_type const> temporaries,
+        std::span<Module const> core_module_dependencies,
+        Type_database const& type_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
+    export Value_and_type create_statement_value(
+        Statement const& statement,
+        Module const& core_module,
+        std::span<Module const> core_module_dependencies,
+        llvm::LLVMContext& llvm_context,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Module& llvm_module,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::Function* llvm_parent_function,
+        std::span<Block_info const> blocks,
+        std::span<Value_and_type const> function_arguments,
+        std::span<Value_and_type const> local_variables,
+        Type_database const& type_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
+    export void create_statement_values(
+        std::span<Statement const> statements,
+        Module const& core_module,
+        std::span<Module const> core_module_dependencies,
+        llvm::LLVMContext& llvm_context,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Module& llvm_module,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::Function* llvm_parent_function,
+        std::span<Block_info const> blocks,
+        std::span<Value_and_type const> function_arguments,
+        std::span<Value_and_type const> local_variables,
+        Type_database const& type_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+}

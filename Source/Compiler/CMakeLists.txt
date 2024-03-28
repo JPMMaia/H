@@ -23,8 +23,14 @@ target_link_libraries(H_compiler PUBLIC ${llvm_libs})
 ## End LLVM ##
 
 target_sources(H_compiler PRIVATE
+   "Common.cppm"
+   "Common.cpp"
    "Compiler.cppm"
    "Compiler.cpp"
+   "Expressions.cppm"
+   "Expressions.cpp"
+   "Types.cppm"
+   "Types.cpp"
 )
 
 if(BUILD_TESTING)
