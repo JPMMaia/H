@@ -63,6 +63,9 @@ namespace h::c
 
         CHECK(actual.name == "puts");
 
+        REQUIRE(actual.unique_name.has_value());
+        CHECK(actual.unique_name.value() == "puts");
+
         {
             h::Type_reference const c_char_type_reference{ .data = h::Fundamental_type::C_char };
             h::Type_reference const c_char_const_pointer_type_reference{ .data = h::Pointer_type{.element_type = c_char_type_reference, .is_mutable = false } };
@@ -95,6 +98,10 @@ namespace h::c
         h::Alias_type_declaration const& actual = find_alias_type_declaration(header, "time_t");
 
         CHECK(actual.name == "time_t");
+
+        REQUIRE(actual.unique_name.has_value());
+        CHECK(actual.unique_name.value() == "time_t");
+
         CHECK(!actual.type.empty());
     }
 
@@ -110,6 +117,8 @@ namespace h::c
         h::Enum_declaration const& actual = find_enum_declaration(header, "VkPhysicalDeviceType");
 
         CHECK(actual.name == "VkPhysicalDeviceType");
+        REQUIRE(actual.unique_name.has_value());
+        CHECK(actual.unique_name.value() == "VkPhysicalDeviceType");
 
         REQUIRE(actual.values.size() >= 5);
 
@@ -141,6 +150,10 @@ namespace h::c
         h::Struct_declaration const& actual = find_struct_declaration(header, "VkCommandPoolCreateInfo");
 
         CHECK(actual.name == "VkCommandPoolCreateInfo");
+
+        REQUIRE(actual.unique_name.has_value());
+        CHECK(actual.unique_name.value() == "VkCommandPoolCreateInfo");
+
         CHECK(actual.is_packed == false);
         CHECK(actual.is_literal == false);
 

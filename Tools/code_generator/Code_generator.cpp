@@ -214,6 +214,18 @@ namespace h::tools::code_generator
                 type.name == "std::pmr::string";
         }
 
+        bool is_cpp_type(
+            Type const& type
+        )
+        {
+            return
+                type.name.starts_with("std::") ||
+                is_bool_type(type) ||
+                is_int_type(type) ||
+                is_uint_type(type) ||
+                is_double_type(type);
+        }
+
         std::pmr::string get_optional_value_type(
             Type const& type
         )
@@ -1387,7 +1399,7 @@ namespace h::tools::code_generator
                 else if (is_optional_type(member.type))
                 {
                     std::pmr::string const value_type = get_optional_value_type(member.type);
-                    output_stream << std::format("            parent->{} = h::{}{};", member.name, value_type, "{}");
+                    output_stream << std::format("            parent->{} = {}{}{};", member.name, is_cpp_type(member.type) ? "" : "h::", value_type, "{}");
                 }
                 output_stream << "\n";
 
@@ -2150,16 +2162,16 @@ namespace h::tools::code_generator
                 if (location != replace_map.end())
                 {
                     std::pmr::string const& new_type = location->second;
-                    return to_typescript_type(Type{ .name = new_type.c_str() }, parent_type_name, enum_map, struct_map, replace_map, true);
+                    return to_typescript_type(Type{ .name = new_type }, parent_type_name, enum_map, struct_map, replace_map, true);
                 }
                 else
                 {
-                    return value_type;
+                    return to_typescript_type(Type{ .name = value_type }, parent_type_name, enum_map, struct_map, replace_map, true);
                 }
             }
             else
             {
-                return value_type;
+                return to_typescript_type(Type{ .name = value_type }, parent_type_name, enum_map, struct_map, replace_map, true);
             }
         }
         else

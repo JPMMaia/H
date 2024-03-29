@@ -245,6 +245,12 @@
                 },
                 {
                     "type": {
+                        "name": "std::optional<std::pmr::string>"
+                    },
+                    "name": "unique_name"
+                },
+                {
+                    "type": {
                         "name": "std::pmr::vector<Type_reference>"
                     },
                     "name": "type"
@@ -279,6 +285,12 @@
                 },
                 {
                     "type": {
+                        "name": "std::optional<std::pmr::string>"
+                    },
+                    "name": "unique_name"
+                },
+                {
+                    "type": {
                         "name": "std::pmr::vector<Enum_value>"
                     },
                     "name": "values"
@@ -293,6 +305,12 @@
                         "name": "std::pmr::string"
                     },
                     "name": "name"
+                },
+                {
+                    "type": {
+                        "name": "std::optional<std::pmr::string>"
+                    },
+                    "name": "unique_name"
                 },
                 {
                     "type": {
@@ -814,6 +832,12 @@
                         "name": "std::pmr::string"
                     },
                     "name": "name"
+                },
+                {
+                    "type": {
+                        "name": "std::optional<std::pmr::string>"
+                    },
+                    "name": "unique_name"
                 },
                 {
                     "type": {

@@ -936,6 +936,17 @@ namespace h::json
             };
         }
 
+        if (key == "unique_name")
+        {
+            parent->unique_name = std::pmr::string{};
+            return Stack_state
+            {
+                .pointer = &parent->unique_name.value(),
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
         if (key == "type")
         {
             auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
@@ -981,7 +992,7 @@ namespace h::json
 
         if (key == "value")
         {
-            parent->value = h::Statement{};
+            parent->value = Statement{};
             return Stack_state
             {
                 .pointer = &parent->value.value(),
@@ -1003,6 +1014,17 @@ namespace h::json
             return Stack_state
             {
                 .pointer = &parent->name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "unique_name")
+        {
+            parent->unique_name = std::pmr::string{};
+            return Stack_state
+            {
+                .pointer = &parent->unique_name.value(),
                 .type = "std::pmr::string",
                 .get_next_state = nullptr,
             };
@@ -1046,6 +1068,17 @@ namespace h::json
             return Stack_state
             {
                 .pointer = &parent->name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "unique_name")
+        {
+            parent->unique_name = std::pmr::string{};
+            return Stack_state
+            {
+                .pointer = &parent->unique_name.value(),
                 .type = "std::pmr::string",
                 .get_next_state = nullptr,
             };
@@ -1266,7 +1299,7 @@ namespace h::json
 
         if (key == "additional_operation")
         {
-            parent->additional_operation = h::Binary_operation{};
+            parent->additional_operation = Binary_operation{};
             return Stack_state
             {
                 .pointer = &parent->additional_operation.value(),
@@ -1537,7 +1570,7 @@ namespace h::json
 
         if (key == "step_by")
         {
-            parent->step_by = h::Expression_index{};
+            parent->step_by = Expression_index{};
             return Stack_state
             {
                 .pointer = &parent->step_by.value(),
@@ -1566,7 +1599,7 @@ namespace h::json
 
         if (key == "condition")
         {
-            parent->condition = h::Statement{};
+            parent->condition = Statement{};
             return Stack_state
             {
                 .pointer = &parent->condition.value(),
@@ -1667,7 +1700,7 @@ namespace h::json
 
         if (key == "type_reference")
         {
-            parent->type_reference = h::Type_reference{};
+            parent->type_reference = Type_reference{};
             return Stack_state
             {
                 .pointer = &parent->type_reference.value(),
@@ -1771,7 +1804,7 @@ namespace h::json
 
         if (key == "case_value")
         {
-            parent->case_value = h::Expression_index{};
+            parent->case_value = Expression_index{};
             return Stack_state
             {
                 .pointer = &parent->case_value.value(),
@@ -2359,6 +2392,17 @@ namespace h::json
             return Stack_state
             {
                 .pointer = &parent->name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "unique_name")
+        {
+            parent->unique_name = std::pmr::string{};
+            return Stack_state
+            {
+                .pointer = &parent->unique_name.value(),
                 .type = "std::pmr::string",
                 .get_next_state = nullptr,
             };

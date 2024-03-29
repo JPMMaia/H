@@ -576,12 +576,14 @@ function intermediate_to_core_type_reference(intermediate_value: Type_reference)
 
 export interface Alias_type_declaration {
     name: string;
+    unique_name?: string;
     type: Type_reference[];
 }
 
 function core_to_intermediate_alias_type_declaration(core_value: Core.Alias_type_declaration): Alias_type_declaration {
     return {
         name: core_value.name,
+        unique_name: core_value.unique_name,
         type: core_value.type.elements.map(value => core_to_intermediate_type_reference(value)),
     };
 }
@@ -589,6 +591,7 @@ function core_to_intermediate_alias_type_declaration(core_value: Core.Alias_type
 function intermediate_to_core_alias_type_declaration(intermediate_value: Alias_type_declaration): Core.Alias_type_declaration {
     return {
         name: intermediate_value.name,
+        unique_name: intermediate_value.unique_name,
         type: {
             size: intermediate_value.type.length,
             elements: intermediate_value.type.map(value => intermediate_to_core_type_reference(value)),
@@ -617,12 +620,14 @@ function intermediate_to_core_enum_value(intermediate_value: Enum_value): Core.E
 
 export interface Enum_declaration {
     name: string;
+    unique_name?: string;
     values: Enum_value[];
 }
 
 function core_to_intermediate_enum_declaration(core_value: Core.Enum_declaration): Enum_declaration {
     return {
         name: core_value.name,
+        unique_name: core_value.unique_name,
         values: core_value.values.elements.map(value => core_to_intermediate_enum_value(value)),
     };
 }
@@ -630,6 +635,7 @@ function core_to_intermediate_enum_declaration(core_value: Core.Enum_declaration
 function intermediate_to_core_enum_declaration(intermediate_value: Enum_declaration): Core.Enum_declaration {
     return {
         name: intermediate_value.name,
+        unique_name: intermediate_value.unique_name,
         values: {
             size: intermediate_value.values.length,
             elements: intermediate_value.values.map(value => intermediate_to_core_enum_value(value)),
@@ -639,6 +645,7 @@ function intermediate_to_core_enum_declaration(intermediate_value: Enum_declarat
 
 export interface Struct_declaration {
     name: string;
+    unique_name?: string;
     member_types: Type_reference[];
     member_names: string[];
     member_default_values: Statement[];
@@ -649,6 +656,7 @@ export interface Struct_declaration {
 function core_to_intermediate_struct_declaration(core_value: Core.Struct_declaration): Struct_declaration {
     return {
         name: core_value.name,
+        unique_name: core_value.unique_name,
         member_types: core_value.member_types.elements.map(value => core_to_intermediate_type_reference(value)),
         member_names: core_value.member_names.elements,
         member_default_values: core_value.member_default_values.elements.map(value => core_to_intermediate_statement(value)),
@@ -660,6 +668,7 @@ function core_to_intermediate_struct_declaration(core_value: Core.Struct_declara
 function intermediate_to_core_struct_declaration(intermediate_value: Struct_declaration): Core.Struct_declaration {
     return {
         name: intermediate_value.name,
+        unique_name: intermediate_value.unique_name,
         member_types: {
             size: intermediate_value.member_types.length,
             elements: intermediate_value.member_types.map(value => intermediate_to_core_type_reference(value)),
@@ -2064,6 +2073,7 @@ function intermediate_to_core_expression(intermediate_value: Expression, express
 
 export interface Function_declaration {
     name: string;
+    unique_name?: string;
     type: Function_type;
     input_parameter_names: string[];
     output_parameter_names: string[];
@@ -2073,6 +2083,7 @@ export interface Function_declaration {
 function core_to_intermediate_function_declaration(core_value: Core.Function_declaration): Function_declaration {
     return {
         name: core_value.name,
+        unique_name: core_value.unique_name,
         type: core_to_intermediate_function_type(core_value.type),
         input_parameter_names: core_value.input_parameter_names.elements,
         output_parameter_names: core_value.output_parameter_names.elements,
@@ -2083,6 +2094,7 @@ function core_to_intermediate_function_declaration(core_value: Core.Function_dec
 function intermediate_to_core_function_declaration(intermediate_value: Function_declaration): Core.Function_declaration {
     return {
         name: intermediate_value.name,
+        unique_name: intermediate_value.unique_name,
         type: intermediate_to_core_function_type(intermediate_value.type),
         input_parameter_names: {
             size: intermediate_value.input_parameter_names.length,

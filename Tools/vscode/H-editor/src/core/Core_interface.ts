@@ -166,6 +166,7 @@ export interface Statement {
 
 export interface Alias_type_declaration {
     name: string;
+    unique_name?: string;
     type: Vector<Type_reference>;
 }
 
@@ -176,11 +177,13 @@ export interface Enum_value {
 
 export interface Enum_declaration {
     name: string;
+    unique_name?: string;
     values: Vector<Enum_value>;
 }
 
 export interface Struct_declaration {
     name: string;
+    unique_name?: string;
     member_types: Vector<Type_reference>;
     member_names: Vector<string>;
     member_default_values: Vector<Statement>;
@@ -331,6 +334,7 @@ export interface Expression {
 
 export interface Function_declaration {
     name: string;
+    unique_name?: string;
     type: Function_type;
     input_parameter_names: Vector<string>;
     output_parameter_names: Vector<string>;
