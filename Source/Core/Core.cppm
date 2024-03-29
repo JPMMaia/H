@@ -126,6 +126,7 @@ namespace h
     export struct Alias_type_declaration
     {
         std::pmr::string name;
+        std::optional<std::pmr::string> unique_name;
         std::pmr::vector<Type_reference> type;
 
         friend auto operator<=>(Alias_type_declaration const& lhs, Alias_type_declaration const& rhs) = default;
@@ -142,6 +143,7 @@ namespace h
     export struct Enum_declaration
     {
         std::pmr::string name;
+        std::optional<std::pmr::string> unique_name;
         std::pmr::vector<Enum_value> values;
 
         friend auto operator<=>(Enum_declaration const& lhs, Enum_declaration const& rhs) = default;
@@ -150,6 +152,7 @@ namespace h
     export struct Struct_declaration
     {
         std::pmr::string name;
+        std::optional<std::pmr::string> unique_name;
         std::pmr::vector<Type_reference> member_types;
         std::pmr::vector<std::pmr::string> member_names;
         std::pmr::vector<Statement> member_default_values;
@@ -477,6 +480,7 @@ namespace h
     export struct Function_declaration
     {
         std::pmr::string name;
+        std::optional<std::pmr::string> unique_name;
         Function_type type;
         std::pmr::vector<std::pmr::string> input_parameter_names;
         std::pmr::vector<std::pmr::string> output_parameter_names;

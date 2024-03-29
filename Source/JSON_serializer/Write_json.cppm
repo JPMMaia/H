@@ -874,6 +874,7 @@ namespace h::json
         writer.StartObject();
         writer.Key("name");
         writer.String(output.name.data(), output.name.size());
+        write_optional(writer, "unique_name", output.unique_name);
         writer.Key("type");
         write_object(writer, output.type);
         writer.EndObject();
@@ -901,6 +902,7 @@ namespace h::json
         writer.StartObject();
         writer.Key("name");
         writer.String(output.name.data(), output.name.size());
+        write_optional(writer, "unique_name", output.unique_name);
         writer.Key("values");
         write_object(writer, output.values);
         writer.EndObject();
@@ -915,6 +917,7 @@ namespace h::json
         writer.StartObject();
         writer.Key("name");
         writer.String(output.name.data(), output.name.size());
+        write_optional(writer, "unique_name", output.unique_name);
         writer.Key("member_types");
         write_object(writer, output.member_types);
         writer.Key("member_names");
@@ -1534,6 +1537,7 @@ namespace h::json
         writer.StartObject();
         writer.Key("name");
         writer.String(output.name.data(), output.name.size());
+        write_optional(writer, "unique_name", output.unique_name);
         writer.Key("type");
         write_object(writer, output.type);
         writer.Key("input_parameter_names");

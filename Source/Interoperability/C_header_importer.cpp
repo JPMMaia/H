@@ -378,6 +378,7 @@ namespace h::c
         return h::Alias_type_declaration
         {
             .name = std::pmr::string{type_name},
+            .unique_name = std::pmr::string{type_name},
             .type = std::move(alias_type)
         };
     }
@@ -427,6 +428,7 @@ namespace h::c
         return h::Enum_declaration
         {
             .name = std::pmr::string{enum_type_name},
+            .unique_name = std::pmr::string{enum_type_name},
             .values = std::move(values)
         };
     }
@@ -487,6 +489,7 @@ namespace h::c
         return h::Function_declaration
         {
             .name = std::pmr::string{function_name},
+            .unique_name = std::pmr::string{function_name},
             .type = std::move(h_function_type),
             .input_parameter_names = std::move(input_parameter_names),
             .output_parameter_names = std::move(output_parameter_names),
@@ -587,6 +590,7 @@ namespace h::c
         h::Struct_declaration struct_declaration
         {
             .name = std::pmr::string{struct_name},
+            .unique_name = std::pmr::string{struct_name},
             .member_types = {},
             .member_names = {},
             .is_packed = false,
