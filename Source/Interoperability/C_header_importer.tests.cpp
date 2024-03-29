@@ -50,6 +50,22 @@ namespace h::c
         return *location;
     }
 
+    void check_enum_constant_value(h::Enum_declaration const& actual, std::size_t const value_index, std::string_view const value_expected_data)
+    {
+        auto const& expression_data = actual.values[value_index].value.value().expressions[0].data;
+
+        REQUIRE(std::holds_alternative<h::Constant_expression>(expression_data));
+        Constant_expression const& expression = std::get<h::Constant_expression>(expression_data);
+
+        h::Integer_type const int32_type
+        {
+            .number_of_bits = 32,
+            .is_signed = true
+        };
+
+        CHECK(expression == h::Constant_expression{ .type = int32_type, .data = std::pmr::string{value_expected_data} });
+    }
+
     TEST_CASE("Import stdio.h C header creates 'puts' function declaration")
     {
         std::filesystem::path const c_headers_path = g_c_headers_location;
@@ -123,19 +139,19 @@ namespace h::c
         REQUIRE(actual.values.size() >= 5);
 
         CHECK(actual.values[0].name == "VK_PHYSICAL_DEVICE_TYPE_OTHER");
-        CHECK(actual.values[0].value == 0);
+        check_enum_constant_value(actual, 0, "0");
 
         CHECK(actual.values[1].name == "VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU");
-        CHECK(actual.values[1].value == 1);
+        check_enum_constant_value(actual, 1, "1");
 
         CHECK(actual.values[2].name == "VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU");
-        CHECK(actual.values[2].value == 2);
+        check_enum_constant_value(actual, 2, "2");
 
         CHECK(actual.values[3].name == "VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU");
-        CHECK(actual.values[3].value == 3);
+        check_enum_constant_value(actual, 3, "3");
 
         CHECK(actual.values[4].name == "VK_PHYSICAL_DEVICE_TYPE_CPU");
-        CHECK(actual.values[4].value == 4);
+        check_enum_constant_value(actual, 4, "4");
     }
 
     TEST_CASE("Import vulkan.h C header creates 'VkCommandPoolCreateInfo' enum")

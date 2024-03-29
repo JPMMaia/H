@@ -405,11 +405,32 @@ namespace h::c
 
                 std::uint64_t const enum_constant_value = static_cast<std::uint64_t>(clang_getEnumConstantDeclUnsignedValue(current_cursor));
 
+                h::Statement statement_value
+                {
+                    .name = "",
+                    .expressions = {
+                        h::Expression
+                        {
+                            .data = h::Constant_expression
+                            {
+                                .type = {
+                                    .data = h::Integer_type
+                                    {
+                                        .number_of_bits = 32,
+                                        .is_signed = true
+                                    }
+                                },
+                                .data = std::pmr::string{std::to_string(enum_constant_value)}
+                            }
+                        }
+                    }
+                };
+
                 values->push_back(
                     h::Enum_value
                     {
                         .name = std::pmr::string{enum_constant_name},
-                        .value = enum_constant_value
+                        .value = std::move(statement_value)
                     }
                 );
             }
