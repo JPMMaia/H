@@ -8,6 +8,7 @@ module;
 #include <optional>
 #include <string>
 #include <string_view>
+#include <span>
 
 module h.compiler.common;
 
@@ -47,23 +48,64 @@ namespace h::compiler
         return mangled_name;
     }
 
+    template<typename T>
+    concept Has_name = requires(T a)
+    {
+        { a.name } -> std::convertible_to<std::pmr::string>;
+    };
+
+    template<Has_name Type>
+    Type const* get_value(
+        std::string_view const name,
+        std::span<Type const> const values
+    )
+    {
+        auto const location = std::find_if(values.begin(), values.end(), [name](Type const& value) { return value.name == name; });
+        return location != values.end() ? *location : nullptr;
+    }
+
+    template<Has_name Type>
+    std::optional<Type const*> get_value(
+        std::string_view const name,
+        std::pmr::vector<Type> const& span_0,
+        std::pmr::vector<Type> const& span_1
+    )
+    {
+        auto const find_declaration = [name](Type const& declaration) -> bool { return declaration.name == name; };
+
+        {
+            auto const location = std::find_if(span_0.begin(), span_0.end(), find_declaration);
+            if (location != span_0.end())
+                return &(*location);
+        }
+
+        {
+            auto const location = std::find_if(span_1.begin(), span_1.end(), find_declaration);
+            if (location != span_1.end())
+                return &(*location);
+        }
+
+        return std::nullopt;
+    }
+
+    std::optional<Alias_type_declaration const*> find_alias_type_declaration(Module const& module, std::string_view const name)
+    {
+        return get_value(name, module.export_declarations.alias_type_declarations, module.internal_declarations.alias_type_declarations);
+    }
+
+    std::optional<Enum_declaration const*> find_enum_declaration(Module const& module, std::string_view const name)
+    {
+        return get_value(name, module.export_declarations.enum_declarations, module.internal_declarations.enum_declarations);
+    }
+
     std::optional<Function_declaration const*> find_function_declaration(Module const& module, std::string_view const name)
     {
-        auto const find_declaration = [name](Function_declaration const& declaration) { return declaration.name == name; };
+        return get_value(name, module.export_declarations.function_declarations, module.internal_declarations.function_declarations);
+    }
 
-        {
-            auto const location = std::find_if(module.export_declarations.function_declarations.begin(), module.export_declarations.function_declarations.end(), find_declaration);
-            if (location != module.export_declarations.function_declarations.end())
-                return &(*location);
-        }
-
-        {
-            auto const location = std::find_if(module.internal_declarations.function_declarations.begin(), module.internal_declarations.function_declarations.end(), find_declaration);
-            if (location != module.internal_declarations.function_declarations.end())
-                return &(*location);
-        }
-
-        return {};
+    std::optional<Struct_declaration const*> find_struct_declaration(Module const& module, std::string_view const name)
+    {
+        return get_value(name, module.export_declarations.struct_declarations, module.internal_declarations.struct_declarations);
     }
 
     llvm::Function* get_llvm_function(

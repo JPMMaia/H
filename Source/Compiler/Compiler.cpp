@@ -1,25 +1,26 @@
 module;
 
+#include <llvm/Analysis/ConstantFolding.h>
 #include <llvm/IR/IRBuilder.h>
-#include "llvm/IR/LegacyPassManager.h"
+#include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/PassManager.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/MC/TargetRegistry.h>
 #include <llvm/Passes/PassBuilder.h>
-#include "llvm/Passes/StandardInstrumentations.h"
+#include <llvm/Passes/StandardInstrumentations.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Host.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Target/TargetOptions.h>
-#include "llvm/Transforms/InstCombine/InstCombine.h"
-#include "llvm/Transforms/Scalar.h"
-#include "llvm/Transforms/Scalar/GVN.h"
-#include "llvm/Transforms/Scalar/Reassociate.h"
-#include "llvm/Transforms/Scalar/SimplifyCFG.h"
+#include <llvm/Transforms/InstCombine/InstCombine.h>
+#include <llvm/Transforms/Scalar.h>
+#include <llvm/Transforms/Scalar/GVN.h>
+#include <llvm/Transforms/Scalar/Reassociate.h>
+#include <llvm/Transforms/Scalar/SimplifyCFG.h>
 
 #include <bit>
 #include <cassert>
@@ -41,46 +42,13 @@ module h.compiler;
 
 import h.core;
 import h.compiler.common;
+import h.compiler.declarations;
 import h.compiler.expressions;
 import h.compiler.types;
 import h.json_serializer;
 
 namespace h::compiler
 {
-    template<typename T>
-    concept Has_name = requires(T a)
-    {
-        { a.name } -> std::convertible_to<std::pmr::string>;
-    };
-
-    template<Has_name Type>
-    std::pmr::unordered_map<std::pmr::string, std::size_t> create_name_to_index_map(
-        std::span<Type const> const values,
-        std::pmr::polymorphic_allocator<> const& output_allocator
-    )
-    {
-        std::pmr::unordered_map<std::pmr::string, std::size_t> map{ output_allocator };
-        map.reserve(values.size());
-
-        for (std::size_t index = 0; index < values.size(); ++index)
-        {
-            Type const& declaration = values[index];
-            map.insert(std::make_pair(declaration.name, index));
-        }
-
-        return map;
-    }
-
-    template<Has_name Type>
-    Type const& get_value(
-        std::string_view const name,
-        std::span<Type const> const values
-    )
-    {
-        auto location = std::find_if(values.begin(), values.end(), [name](Type const& value) { return value.name == name; });
-        return *location;
-    }
-
     llvm::GlobalValue::LinkageTypes to_linkage(
         Linkage const linkage
     )
@@ -99,6 +67,7 @@ namespace h::compiler
     llvm::FunctionType* to_function_type(
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
+        std::string_view const current_module_name,
         std::span<Type_reference const> const input_parameter_types,
         std::span<Type_reference const> const output_parameter_types,
         bool const is_var_arg,
@@ -106,8 +75,8 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        std::pmr::vector<llvm::Type*> const llvm_input_parameter_types = type_references_to_llvm_types(llvm_context, llvm_data_layout, input_parameter_types, type_database, temporaries_allocator);
-        std::pmr::vector<llvm::Type*> const llvm_output_parameter_types = type_references_to_llvm_types(llvm_context, llvm_data_layout, output_parameter_types, type_database, temporaries_allocator);
+        std::pmr::vector<llvm::Type*> const llvm_input_parameter_types = type_references_to_llvm_types(llvm_context, llvm_data_layout, current_module_name, input_parameter_types, type_database, temporaries_allocator);
+        std::pmr::vector<llvm::Type*> const llvm_output_parameter_types = type_references_to_llvm_types(llvm_context, llvm_data_layout, current_module_name, output_parameter_types, type_database, temporaries_allocator);
 
         llvm::Type* llvm_return_type = [&]() -> llvm::Type*
         {
@@ -174,6 +143,7 @@ namespace h::compiler
         llvm::FunctionType* const llvm_function_type = to_function_type(
             llvm_context,
             llvm_data_layout,
+            core_module.name,
             function_declaration.type.input_parameter_types,
             function_declaration.type.output_parameter_types,
             function_declaration.type.is_variadic,
@@ -190,6 +160,164 @@ namespace h::compiler
         return llvm_function;
     }
 
+    std::optional<std::size_t> find_enum_value_index_with_statement(
+        Enum_declaration const& declaration,
+        std::size_t const end_index
+    )
+    {
+        std::size_t index = end_index;
+
+        while (index > 0)
+        {
+            Enum_value const& current_enum_value = declaration.values[index];
+            if (current_enum_value.value.has_value())
+                return index;
+
+            index -= 1;
+        }
+
+        return std::nullopt;
+    }
+
+    llvm::Constant* create_enum_value_constant(
+        Enum_declaration const& declaration,
+        std::size_t const enum_value_index,
+        std::span<llvm::Constant* const> const previous_constants,
+        Expression_parameters const& parameters
+    )
+    {
+        llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
+
+        Enum_value const& enum_value = declaration.values[enum_value_index];
+
+        if (enum_value.value.has_value())
+        {
+            return fold_statement_constant(
+                enum_value.value.value(),
+                parameters
+            );
+        }
+        else
+        {
+            std::optional<std::size_t> const index = find_enum_value_index_with_statement(declaration, enum_value_index);
+            if (!index.has_value())
+                return llvm_builder.getInt32(0);
+
+            Enum_value const& enum_value_with_statement = declaration.values[index.value()];
+
+            llvm::ConstantInt* const enum_value_with_statement_constant = fold_statement_constant(
+                enum_value_with_statement.value.value(),
+                parameters
+            );
+
+            llvm::ConstantInt* const difference = llvm_builder.getInt32(enum_value_index - index.value());
+
+            llvm::Constant* enum_value_constant = llvm::ConstantFoldBinaryOpOperands(
+                llvm::Instruction::BinaryOps::Add,
+                enum_value_with_statement_constant,
+                difference,
+                parameters.llvm_data_layout
+            );
+
+            return enum_value_constant;
+        }
+    }
+
+    std::pmr::vector<llvm::Constant*> create_enum_constants(
+        Enum_declaration const& declaration,
+        Expression_parameters const& parameters
+    )
+    {
+        std::pmr::vector<llvm::Constant*> constants;
+        constants.reserve(declaration.values.size());
+
+        std::pmr::vector<Value_and_type> local_variables;
+        local_variables.reserve(declaration.values.size());
+
+        Expression_parameters new_parameters = parameters;
+
+        for (std::size_t index = 0; index < declaration.values.size(); ++index)
+        {
+            Enum_value const& enum_value = declaration.values[index];
+
+            new_parameters.local_variables = local_variables;
+
+            llvm::Constant* const constant = create_enum_value_constant(
+                declaration,
+                index,
+                constants,
+                new_parameters
+            );
+
+            local_variables.push_back(
+                Value_and_type
+                {
+                    .name = enum_value.name,
+                    .value = constant,
+                    .type = create_integer_type_type_reference(32, true)
+                }
+            );
+        }
+
+        return constants;
+    }
+
+    void add_enum_constants(
+        Enum_value_constants& enum_constants,
+        std::span<Enum_declaration const> const declarations,
+        Expression_parameters const& parameters
+    )
+    {
+        for (Enum_declaration const& declaration : declarations)
+        {
+            // TODO mangle name
+            enum_constants.map[declaration.name] = create_enum_constants(declaration, parameters);
+        }
+    }
+
+    Enum_value_constants create_enum_value_constants_map(
+        llvm::LLVMContext& llvm_context,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Module& llvm_module,
+        Module const& core_module,
+        std::span<Module const> core_module_dependencies,
+        Declaration_database const& declaration_database,
+        Type_database const& type_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        Enum_value_constants enum_value_constants;
+
+        llvm::IRBuilder<> llvm_builder{ llvm_context };
+
+        Expression_parameters const expression_parameters
+        {
+            .llvm_context = llvm_context,
+            .llvm_data_layout = llvm_data_layout,
+            .llvm_builder = llvm_builder,
+            .llvm_parent_function = nullptr,
+            .llvm_module = llvm_module,
+            .core_module = core_module,
+            .core_module_dependencies = core_module_dependencies,
+            .declaration_database = declaration_database,
+            .type_database = type_database,
+            .enum_value_constants = enum_value_constants,
+            .blocks = {},
+            .function_arguments = {},
+            .local_variables = {},
+            .temporaries = {},
+            .temporaries_allocator = temporaries_allocator,
+        };
+
+        for (Module const& module : core_module_dependencies)
+            add_enum_constants(enum_value_constants, module.export_declarations.enum_declarations, expression_parameters);
+
+        add_enum_constants(enum_value_constants, core_module.export_declarations.enum_declarations, expression_parameters);
+        add_enum_constants(enum_value_constants, core_module.internal_declarations.enum_declarations, expression_parameters);
+
+        return enum_value_constants;
+    }
+
     void create_function_definition(
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
@@ -199,7 +327,9 @@ namespace h::compiler
         Function_declaration const& function_declaration,
         Function_definition const& function_definition,
         std::span<Module const> const core_module_dependencies,
+        Declaration_database const& declaration_database,
         Type_database const& type_database,
+        Enum_value_constants const& enum_value_constants,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
@@ -222,6 +352,25 @@ namespace h::compiler
                 function_arguments.push_back({ .name = name, .value = llvm_argument, .type = core_type });
             }
 
+            Expression_parameters expression_parameters
+            {
+                .llvm_context = llvm_context,
+                .llvm_data_layout = llvm_data_layout,
+                .llvm_builder = llvm_builder,
+                .llvm_parent_function = &llvm_function,
+                .llvm_module = llvm_module,
+                .core_module = core_module,
+                .core_module_dependencies = core_module_dependencies,
+                .declaration_database = declaration_database,
+                .type_database = type_database,
+                .enum_value_constants = enum_value_constants,
+                .blocks = block_infos,
+                .function_arguments = function_arguments,
+                .local_variables = {},
+                .temporaries = {},
+                .temporaries_allocator = temporaries_allocator,
+            };
+
             std::pmr::vector<Value_and_type> local_variables{ temporaries_allocator };
             local_variables.reserve(function_definition.statements.size());
 
@@ -232,27 +381,19 @@ namespace h::compiler
                 std::pmr::vector<Value_and_type> temporaries{ temporaries_allocator };
                 temporaries.resize(statement.expressions.size());
 
+                expression_parameters.local_variables = local_variables;
+
                 for (std::size_t index = 0; index < statement.expressions.size(); ++index)
                 {
                     std::size_t const expression_index = statement.expressions.size() - 1 - index;
                     Expression const& expression = statement.expressions[expression_index];
 
+                    expression_parameters.temporaries = temporaries;
+
                     Value_and_type const instruction = create_expression_value(
                         expression,
-                        core_module,
                         statement,
-                        llvm_context,
-                        llvm_data_layout,
-                        llvm_module,
-                        llvm_builder,
-                        &llvm_function,
-                        block_infos,
-                        function_arguments,
-                        local_variables,
-                        temporaries,
-                        core_module_dependencies,
-                        type_database,
-                        temporaries_allocator
+                        expression_parameters
                     );
 
                     temporaries[expression_index] = instruction;
@@ -295,7 +436,9 @@ namespace h::compiler
         llvm::Module& llvm_module,
         Module const& core_module,
         std::span<Module const> const core_module_dependencies,
+        Declaration_database const& declaration_database,
         Type_database const& type_database,
+        Enum_value_constants const& enum_value_constants,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
@@ -320,7 +463,9 @@ namespace h::compiler
                 declaration,
                 definition,
                 core_module_dependencies,
+                declaration_database,
                 type_database,
+                enum_value_constants,
                 temporaries_allocator
             );
         }
@@ -423,6 +568,73 @@ namespace h::compiler
         return modules;
     }
 
+    void remove_unused_declarations(
+        Module const& core_module,
+        std::span<Module> const dependency_core_modules
+    )
+    {
+        for (std::size_t index = 0; index < core_module.dependencies.alias_imports.size(); ++index)
+        {
+            Import_module_with_alias const& alias_import = core_module.dependencies.alias_imports[index];
+            Module& dependency_core_module = dependency_core_modules[index];
+
+            auto const is_unused = [&alias_import](auto const& declaration) -> bool
+            {
+                auto const location = std::find_if(alias_import.usages.begin(), alias_import.usages.end(), [&declaration](std::pmr::string const& usage) -> bool { return usage == declaration.name; });
+                return location == alias_import.usages.end();
+            };
+
+            auto const remove_unused = [&is_unused](auto& declarations)
+            {
+                const auto [first, last] = std::ranges::remove_if(declarations, is_unused);
+                declarations.erase(first, last);
+            };
+
+            remove_unused(dependency_core_module.export_declarations.alias_type_declarations);
+            remove_unused(dependency_core_module.internal_declarations.alias_type_declarations);
+
+            remove_unused(dependency_core_module.export_declarations.enum_declarations);
+            remove_unused(dependency_core_module.internal_declarations.enum_declarations);
+
+            remove_unused(dependency_core_module.export_declarations.function_declarations);
+            remove_unused(dependency_core_module.internal_declarations.function_declarations);
+
+            remove_unused(dependency_core_module.export_declarations.struct_declarations);
+            remove_unused(dependency_core_module.internal_declarations.struct_declarations);
+        }
+    }
+
+    void add_module_declarations(
+        llvm::LLVMContext& llvm_context,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Module& llvm_module,
+        Module const& core_module,
+        std::span<Enum_declaration const> const enum_declarations,
+        std::span<Function_declaration const> const function_declarations,
+        Type_database const& type_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        // Add function declarations:
+        {
+            auto& llvm_function_list = llvm_module.getFunctionList();
+
+            for (Function_declaration const& function_declaration : function_declarations)
+            {
+                llvm::Function& llvm_function = create_function_declaration(
+                    llvm_context,
+                    llvm_data_layout,
+                    core_module,
+                    function_declaration,
+                    type_database,
+                    temporaries_allocator
+                );
+
+                llvm_function_list.push_back(&llvm_function);
+            }
+        }
+    }
+
     void add_dependency_module_declarations(
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
@@ -433,59 +645,20 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        auto& llvm_function_list = llvm_module.getFunctionList();
-
         for (std::size_t alias_import_index = 0; alias_import_index < core_module.dependencies.alias_imports.size(); ++alias_import_index)
         {
-            Import_module_with_alias const& alias_import = core_module.dependencies.alias_imports[alias_import_index];
             Module const& core_module_dependency = core_module_dependencies[alias_import_index];
 
-            // TODO alias, enums and structs
-
-            for (Function_declaration const& function_declaration : core_module_dependency.export_declarations.function_declarations)
-            {
-                auto const location = std::find_if(alias_import.usages.begin(), alias_import.usages.end(), [&](std::pmr::string const& usage) -> bool { return function_declaration.name == usage; });
-                if (location != alias_import.usages.end())
-                {
-                    llvm::Function& llvm_function = create_function_declaration(
-                        llvm_context,
-                        llvm_data_layout,
-                        core_module,
-                        function_declaration,
-                        type_database,
-                        temporaries_allocator
-                    );
-
-                    llvm_function_list.push_back(&llvm_function);
-                }
-            }
-        }
-    }
-
-    void add_module_function_declarations(
-        llvm::LLVMContext& llvm_context,
-        llvm::DataLayout const& llvm_data_layout,
-        llvm::Module& llvm_module,
-        Module const& core_module,
-        std::span<Function_declaration const> const function_declarations,
-        Type_database const& type_database,
-        std::pmr::polymorphic_allocator<> const& temporaries_allocator
-    )
-    {
-        auto& llvm_function_list = llvm_module.getFunctionList();
-
-        for (Function_declaration const& function_declaration : function_declarations)
-        {
-            llvm::Function& llvm_function = create_function_declaration(
+            add_module_declarations(
                 llvm_context,
                 llvm_data_layout,
-                core_module,
-                function_declaration,
+                llvm_module,
+                core_module_dependency,
+                core_module_dependency.export_declarations.enum_declarations,
+                core_module_dependency.export_declarations.function_declarations,
                 type_database,
                 temporaries_allocator
             );
-
-            llvm_function_list.push_back(&llvm_function);
         }
     }
 
@@ -495,24 +668,41 @@ namespace h::compiler
         llvm::DataLayout const& llvm_data_layout,
         Module const& core_module,
         std::span<Module const> const core_module_dependencies,
+        Declaration_database const& declaration_database,
         Type_database& type_database
     )
     {
-        for (Module const& module_dependency : core_module_dependencies)
-        {
-            add_module_types(type_database, llvm_context, llvm_data_layout, module_dependency);
-        }
-        add_module_types(type_database, llvm_context, llvm_data_layout, core_module);
-
         std::unique_ptr<llvm::Module> llvm_module = std::make_unique<llvm::Module>(core_module.name.c_str(), llvm_context);
         llvm_module->setTargetTriple(target_triple);
         llvm_module->setDataLayout(llvm_data_layout);
 
-        add_module_function_declarations(llvm_context, llvm_data_layout, *llvm_module, core_module, core_module.export_declarations.function_declarations, type_database, {});
-        add_module_function_declarations(llvm_context, llvm_data_layout, *llvm_module, core_module, core_module.internal_declarations.function_declarations, type_database, {});
+        add_module_declarations(llvm_context, llvm_data_layout, *llvm_module, core_module, core_module.export_declarations.enum_declarations, core_module.export_declarations.function_declarations, type_database, {});
+        add_module_declarations(llvm_context, llvm_data_layout, *llvm_module, core_module, core_module.internal_declarations.enum_declarations, core_module.internal_declarations.function_declarations, type_database, {});
 
         add_dependency_module_declarations(llvm_context, llvm_data_layout, *llvm_module, type_database, core_module, core_module_dependencies, {});
-        add_module_definitions(llvm_context, llvm_data_layout, *llvm_module, core_module, core_module_dependencies, type_database, {});
+
+        Enum_value_constants const enum_value_constants = create_enum_value_constants_map(
+            llvm_context,
+            llvm_data_layout,
+            *llvm_module,
+            core_module,
+            core_module_dependencies,
+            declaration_database,
+            type_database,
+            {}
+        );
+
+        add_module_definitions(
+            llvm_context,
+            llvm_data_layout,
+            *llvm_module,
+            core_module,
+            core_module_dependencies,
+            declaration_database,
+            type_database,
+            enum_value_constants,
+            {}
+        );
 
         if (llvm::verifyModule(*llvm_module, &llvm::errs()))
         {
@@ -603,10 +793,21 @@ namespace h::compiler
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map
     )
     {
-        Type_database type_database = create_type_database(*llvm_data.context);
 
         std::pmr::vector<Module> core_module_dependencies = create_dependency_core_modules(core_module, module_name_to_file_path_map);
-        std::unique_ptr<llvm::Module> llvm_module = create_module(*llvm_data.context, llvm_data.target_triple, llvm_data.data_layout, core_module, core_module_dependencies, type_database);
+        remove_unused_declarations(core_module, core_module_dependencies);
+
+        Type_database type_database = create_type_database(*llvm_data.context);
+        for (Module const& module_dependency : core_module_dependencies)
+            add_module_types(type_database, *llvm_data.context, llvm_data.data_layout, module_dependency);
+        add_module_types(type_database, *llvm_data.context, llvm_data.data_layout, core_module);
+
+        Declaration_database declaration_database = create_declaration_database();
+        for (Module const& module_dependency : core_module_dependencies)
+            add_declarations(declaration_database, module_dependency);
+        add_declarations(declaration_database, core_module);
+
+        std::unique_ptr<llvm::Module> llvm_module = create_module(*llvm_data.context, llvm_data.target_triple, llvm_data.data_layout, core_module, core_module_dependencies, declaration_database, type_database);
 
         return {
             .dependencies = std::move(core_module_dependencies),

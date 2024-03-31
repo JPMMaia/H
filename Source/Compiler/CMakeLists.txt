@@ -27,6 +27,8 @@ target_sources(H_compiler PRIVATE
    "Common.cpp"
    "Compiler.cppm"
    "Compiler.cpp"
+   "Declarations.cppm"
+   "Declarations.cpp"
    "Expressions.cppm"
    "Expressions.cpp"
    "Types.cppm"

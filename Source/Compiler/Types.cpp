@@ -37,6 +37,22 @@ namespace h::compiler
     }
 
 
+    Type_reference create_custom_type_reference(std::string_view const module_name, std::string_view const name)
+    {
+        return Type_reference
+        {
+            .data = Custom_type_reference
+            {
+                .module_reference =
+                {
+                    .name = std::pmr::string{ module_name },
+                },
+                .name = std::pmr::string{ name }
+            }
+        };
+    }
+
+
     Type_reference create_function_type_type_reference(Function_type const& function_type)
     {
         return Type_reference
@@ -106,6 +122,18 @@ namespace h::compiler
         return false;
     }
 
+
+    Type_reference create_integer_type_type_reference(std::uint32_t const number_of_bits, bool const is_signed)
+    {
+        return Type_reference
+        {
+            .data = Integer_type
+            {
+                .number_of_bits = number_of_bits,
+                .is_signed = is_signed
+            }
+        };
+    }
 
     bool is_integer(Type_reference const& type)
     {
@@ -278,12 +306,13 @@ namespace h::compiler
         llvm::DataLayout const& llvm_data_layout,
         Alias_type_declaration const& alias_type_declaration,
         Module const& core_module,
-        Type_database& type_database
+        Type_database const& type_database,
+        LLVM_type_map& llvm_type_map
     )
     {
         {
-            auto const location = type_database.name_to_llvm_type.find(alias_type_declaration.name);
-            if (location != type_database.name_to_llvm_type.end())
+            auto const location = llvm_type_map.find(alias_type_declaration.name);
+            if (location != llvm_type_map.end())
                 return;
         }
 
@@ -292,12 +321,12 @@ namespace h::compiler
             std::pmr::vector<Alias_type_declaration const*> const nested_alias_types = find_nested_alias_types(alias_type_declaration.type[0], core_module.export_declarations.alias_type_declarations, core_module.internal_declarations.alias_type_declarations);
             for (Alias_type_declaration const* nested_alias_type : nested_alias_types)
             {
-                add_alias_type(llvm_context, llvm_data_layout, *nested_alias_type, core_module, type_database);
+                add_alias_type(llvm_context, llvm_data_layout, *nested_alias_type, core_module, type_database, llvm_type_map);
             }
         }
 
-        llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, alias_type_declaration.type, type_database);
-        type_database.name_to_llvm_type.insert(std::make_pair(alias_type_declaration.name, llvm_type));
+        llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module.name, alias_type_declaration.type, type_database);
+        llvm_type_map.insert(std::make_pair(alias_type_declaration.name, llvm_type));
     }
 
     void add_alias_types(
@@ -305,19 +334,20 @@ namespace h::compiler
         llvm::DataLayout const& llvm_data_layout,
         std::span<Alias_type_declaration const> const alias_type_declarations,
         Module const& core_module,
-        Type_database& type_database
+        Type_database const& type_database,
+        LLVM_type_map& llvm_type_map
     )
     {
         for (Alias_type_declaration const& alias_type_declaration : alias_type_declarations)
         {
-            add_alias_type(llvm_context, llvm_data_layout, alias_type_declaration, core_module, type_database);
+            add_alias_type(llvm_context, llvm_data_layout, alias_type_declaration, core_module, type_database, llvm_type_map);
         }
     }
 
     void add_enum_types(
         llvm::LLVMContext& llvm_context,
         std::span<Enum_declaration const> const enum_declarations,
-        Type_database& type_database
+        LLVM_type_map& llvm_type_map
     )
     {
         for (Enum_declaration const& enum_declaration : enum_declarations)
@@ -325,28 +355,30 @@ namespace h::compiler
             // TODO figure out required number of bits
             unsigned const number_of_bits = 32;
             llvm::Type* const integer_type = llvm::Type::getIntNTy(llvm_context, number_of_bits);
-            type_database.name_to_llvm_type.insert(std::make_pair(enum_declaration.name, integer_type));
+            llvm_type_map.insert(std::make_pair(enum_declaration.name, integer_type));
         }
     }
 
     void add_struct_declarations(
         llvm::LLVMContext& llvm_context,
         std::span<Struct_declaration const> const struct_declarations,
-        Type_database& type_database
+        LLVM_type_map& llvm_type_map
     )
     {
         for (Struct_declaration const& struct_declaration : struct_declarations)
         {
             llvm::StructType* const value = llvm::StructType::create(llvm_context, struct_declaration.name.c_str());
-            type_database.name_to_llvm_type.insert(std::make_pair(struct_declaration.name, value));
+            llvm_type_map.insert(std::make_pair(struct_declaration.name, value));
         }
     }
 
     void set_struct_definitions(
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
+        std::string_view const current_module_name,
         std::span<Struct_declaration const> const struct_declarations,
-        Type_database const& type_database
+        Type_database const& type_database,
+        LLVM_type_map const& llvm_type_map
     )
     {
         for (Struct_declaration const& struct_declaration : struct_declarations)
@@ -354,12 +386,13 @@ namespace h::compiler
             std::pmr::vector<llvm::Type*> const llvm_types = type_references_to_llvm_types(
                 llvm_context,
                 llvm_data_layout,
+                current_module_name,
                 struct_declaration.member_types,
                 type_database,
                 {}
             );
 
-            llvm::Type* const llvm_type = type_database.name_to_llvm_type.at(struct_declaration.name);
+            llvm::Type* const llvm_type = llvm_type_map.at(struct_declaration.name);
             if (llvm::StructType::classof(llvm_type))
             {
                 llvm::StructType* const llvm_struct_type = static_cast<llvm::StructType*>(llvm_type);
@@ -386,17 +419,19 @@ namespace h::compiler
         Module const& core_module
     )
     {
-        add_enum_types(llvm_context, core_module.export_declarations.enum_declarations, type_database);
-        add_enum_types(llvm_context, core_module.internal_declarations.enum_declarations, type_database);
+        LLVM_type_map& llvm_type_map = type_database.name_to_llvm_type[core_module.name];
 
-        add_struct_declarations(llvm_context, core_module.export_declarations.struct_declarations, type_database);
-        add_struct_declarations(llvm_context, core_module.internal_declarations.struct_declarations, type_database);
+        add_enum_types(llvm_context, core_module.export_declarations.enum_declarations, llvm_type_map);
+        add_enum_types(llvm_context, core_module.internal_declarations.enum_declarations, llvm_type_map);
 
-        add_alias_types(llvm_context, llvm_data_layout, core_module.export_declarations.alias_type_declarations, core_module, type_database);
-        add_alias_types(llvm_context, llvm_data_layout, core_module.internal_declarations.alias_type_declarations, core_module, type_database);
+        add_struct_declarations(llvm_context, core_module.export_declarations.struct_declarations, llvm_type_map);
+        add_struct_declarations(llvm_context, core_module.internal_declarations.struct_declarations, llvm_type_map);
 
-        set_struct_definitions(llvm_context, llvm_data_layout, core_module.export_declarations.struct_declarations, type_database);
-        set_struct_definitions(llvm_context, llvm_data_layout, core_module.internal_declarations.struct_declarations, type_database);
+        add_alias_types(llvm_context, llvm_data_layout, core_module.export_declarations.alias_type_declarations, core_module, type_database, llvm_type_map);
+        add_alias_types(llvm_context, llvm_data_layout, core_module.internal_declarations.alias_type_declarations, core_module, type_database, llvm_type_map);
+
+        set_struct_definitions(llvm_context, llvm_data_layout, core_module.name, core_module.export_declarations.struct_declarations, type_database, llvm_type_map);
+        set_struct_definitions(llvm_context, llvm_data_layout, core_module.name, core_module.internal_declarations.struct_declarations, type_database, llvm_type_map);
     }
 
     llvm::Type* fundamental_type_to_llvm_type(
@@ -452,17 +487,19 @@ namespace h::compiler
     llvm::Type* pointer_type_to_llvm_type(
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
+        std::string_view const current_module_name,
         Pointer_type const type,
         Type_database const& type_database
     )
     {
-        llvm::Type* pointed_type = !type.element_type.empty() ? type_reference_to_llvm_type(llvm_context, llvm_data_layout, type.element_type[0], type_database) : llvm::Type::getVoidTy(llvm_context);
+        llvm::Type* pointed_type = !type.element_type.empty() ? type_reference_to_llvm_type(llvm_context, llvm_data_layout, current_module_name, type.element_type[0], type_database) : llvm::Type::getVoidTy(llvm_context);
         return pointed_type->getPointerTo();
     }
 
     llvm::Type* type_reference_to_llvm_type(
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
+        std::string_view const current_module_name,
         Type_reference const& type_reference,
         Type_database const& type_database
     )
@@ -480,7 +517,10 @@ namespace h::compiler
         else if (std::holds_alternative<Custom_type_reference>(type_reference.data))
         {
             Custom_type_reference const& data = std::get<Custom_type_reference>(type_reference.data);
-            throw std::runtime_error{ "Not implemented." };
+            std::string_view const module_name = data.module_reference.name.empty() ? current_module_name : std::string_view{ data.module_reference.name };
+            LLVM_type_map const& llvm_type_map = type_database.name_to_llvm_type.at(module_name.data());
+            llvm::Type* const llvm_type = llvm_type_map.at(data.name);
+            return llvm_type;
         }
         else if (std::holds_alternative<Fundamental_type>(type_reference.data))
         {
@@ -500,7 +540,7 @@ namespace h::compiler
         else if (std::holds_alternative<Pointer_type>(type_reference.data))
         {
             Pointer_type const& data = std::get<Pointer_type>(type_reference.data);
-            return pointer_type_to_llvm_type(llvm_context, llvm_data_layout, data, type_database);
+            return pointer_type_to_llvm_type(llvm_context, llvm_data_layout, current_module_name, data, type_database);
         }
 
         throw std::runtime_error{ "Not implemented." };
@@ -509,6 +549,7 @@ namespace h::compiler
     llvm::Type* type_reference_to_llvm_type(
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
+        std::string_view const current_module_name,
         std::span<Type_reference const> const type_reference,
         Type_database const& type_database
     )
@@ -516,12 +557,13 @@ namespace h::compiler
         if (type_reference.empty())
             return llvm::Type::getVoidTy(llvm_context);
 
-        return type_reference_to_llvm_type(llvm_context, llvm_data_layout, type_reference[0], type_database);
+        return type_reference_to_llvm_type(llvm_context, llvm_data_layout, current_module_name, type_reference[0], type_database);
     }
 
     std::pmr::vector<llvm::Type*> type_references_to_llvm_types(
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
+        std::string_view const current_module_name,
         std::span<Type_reference const> const type_references,
         Type_database const& type_database,
         std::pmr::polymorphic_allocator<> const& output_allocator
@@ -534,7 +576,7 @@ namespace h::compiler
             type_references.begin(),
             type_references.end(),
             output.begin(),
-            [&](Type_reference const& type_reference) -> llvm::Type* { return type_reference_to_llvm_type(llvm_context, llvm_data_layout, type_reference, type_database); }
+            [&](Type_reference const& type_reference) -> llvm::Type* { return type_reference_to_llvm_type(llvm_context, llvm_data_layout, current_module_name, type_reference, type_database); }
         );
 
         return output;
