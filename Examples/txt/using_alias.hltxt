@@ -2,6 +2,14 @@ module Alias;
 
 using My_int = Int64;
 
-export function use_alias(size: My_int) -> ()
+enum My_enum
 {
+    A = 10,
+}
+
+using My_alias_to_enum = My_enum;
+
+export function use_alias(size: My_int, my_enum: My_alias_to_enum) -> ()
+{
+    var a = My_alias_to_enum.A;
 }

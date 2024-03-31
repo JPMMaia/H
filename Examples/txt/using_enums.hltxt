@@ -4,7 +4,8 @@ export enum My_enum
 {
     Value_0 = 0,
     Value_1,
-    Value_2,
+    Value_2 = Value_1 + 3,
+    Value_3 = Value_2,
     
     Value_10 = 10,
     Value_11,
@@ -19,6 +20,7 @@ export function use_enums(enum_argument: My_enum) -> (result: Int32)
         case My_enum.Value_0:
         case My_enum.Value_1:
         case My_enum.Value_2:
+        case My_enum.Value_3:
             return 0;
 
         case My_enum.Value_10:

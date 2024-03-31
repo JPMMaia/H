@@ -20,6 +20,8 @@ namespace h::compiler
     export Type_reference create_bool_type_reference();
     export bool is_bool(Type_reference const& type);
 
+    export Type_reference create_custom_type_reference(std::string_view module_name, std::string_view name);
+
     export Type_reference create_function_type_type_reference(Function_type const& function_type);
     export std::optional<Type_reference> get_function_output_type_reference(Type_reference const& type);
 
@@ -27,6 +29,7 @@ namespace h::compiler
     export bool is_c_string(Type_reference const& type_reference);
     export bool is_floating_point(Type_reference const& type);
 
+    export Type_reference create_integer_type_type_reference(std::uint32_t number_of_bits, bool is_signed);
     export bool is_integer(Type_reference const& type);
     export bool is_signed_integer(Type_reference const& type);
     export bool is_unsigned_integer(Type_reference const& type);
@@ -41,10 +44,13 @@ namespace h::compiler
         llvm::StructType* string;
     };
 
+    using LLVM_type_map = std::pmr::unordered_map<std::pmr::string, llvm::Type*>;
+    using Module_name = std::pmr::string;
+
     export struct Type_database
     {
         Builtin_types builtin;
-        std::pmr::unordered_map<std::pmr::string, llvm::Type*> name_to_llvm_type;
+        std::pmr::unordered_map<Module_name, LLVM_type_map> name_to_llvm_type;
     };
 
     export Type_database create_type_database(
@@ -61,6 +67,7 @@ namespace h::compiler
     export llvm::Type* type_reference_to_llvm_type(
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
+        std::string_view const current_module_name,
         Type_reference const& type_reference,
         Type_database const& type_database
     );
@@ -68,6 +75,7 @@ namespace h::compiler
     export llvm::Type* type_reference_to_llvm_type(
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
+        std::string_view const current_module_name,
         std::span<Type_reference const> type_reference,
         Type_database const& type_database
     );
@@ -75,6 +83,7 @@ namespace h::compiler
     export std::pmr::vector<llvm::Type*> type_references_to_llvm_types(
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
+        std::string_view const current_module_name,
         std::span<Type_reference const> const type_references,
         Type_database const& type_database,
         std::pmr::polymorphic_allocator<> const& output_allocator
