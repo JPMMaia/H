@@ -1,0 +1,8 @@
+module Alias_from_modules;
+
+import Alias as Alias;
+
+export function use_alias(my_enum: Alias.My_alias_to_enum) -> ()
+{
+    var a = Alias.My_alias_to_enum.A;
+}

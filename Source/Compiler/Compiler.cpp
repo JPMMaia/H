@@ -169,11 +169,11 @@ namespace h::compiler
 
         while (index > 0)
         {
+            index -= 1;
+
             Enum_value const& current_enum_value = declaration.values[index];
             if (current_enum_value.value.has_value())
                 return index;
-
-            index -= 1;
         }
 
         return std::nullopt;
@@ -182,7 +182,6 @@ namespace h::compiler
     llvm::Constant* create_enum_value_constant(
         Enum_declaration const& declaration,
         std::size_t const enum_value_index,
-        std::span<llvm::Constant* const> const previous_constants,
         Expression_parameters const& parameters
     )
     {
@@ -205,7 +204,7 @@ namespace h::compiler
 
             Enum_value const& enum_value_with_statement = declaration.values[index.value()];
 
-            llvm::ConstantInt* const enum_value_with_statement_constant = fold_statement_constant(
+            llvm::Constant* const enum_value_with_statement_constant = fold_statement_constant(
                 enum_value_with_statement.value.value(),
                 parameters
             );
@@ -245,7 +244,6 @@ namespace h::compiler
             llvm::Constant* const constant = create_enum_value_constant(
                 declaration,
                 index,
-                constants,
                 new_parameters
             );
 
@@ -257,6 +255,8 @@ namespace h::compiler
                     .type = create_integer_type_type_reference(32, true)
                 }
             );
+
+            constants.push_back(constant);
         }
 
         return constants;

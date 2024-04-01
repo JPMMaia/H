@@ -17,14 +17,17 @@ export function use_enums(enum_argument: My_enum_flag) -> (result: Int32)
     if a == enum_argument:
         return 0;
 
-    if enum_argument has My_enum_flag.Flag_1:
+    if b != enum_argument:
         return 1;
 
-    if enum_argument has My_enum_flag.Flag_2:
+    if enum_argument has My_enum_flag.Flag_1:
         return 2;
 
-    if enum_argument has My_enum_flag.Flag_3:
+    if enum_argument has My_enum_flag.Flag_2:
         return 3;
 
-    return 4;
+    if enum_argument has My_enum_flag.Flag_3:
+        return 4;
+
+    return 5;
 }

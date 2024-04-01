@@ -1254,6 +1254,21 @@ entry:
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
+  TEST_CASE("Compile Using Alias From Modules")
+  {
+    char const* const input_file = "using_alias_from_modules.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+        { "Alias", g_test_files_path / "using_alias.hl" }
+    };
+
+    char const* const expected_llvm_ir = R"(
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
   TEST_CASE("Compile Using Alias")
   {
     char const* const input_file = "using_alias.hl";
@@ -1263,8 +1278,10 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
-define void @use_alias(i64 %size) {
+define void @use_alias(i64 %size, i32 %my_enum) {
 entry:
+  %a = alloca i32, align 4
+  store i32 10, ptr %a, align 4
   ret void
 }
 )";
@@ -1281,11 +1298,77 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
+define i32 @use_enums(i32 %enum_argument) {
+entry:
+  %a = alloca i32, align 4
+  store i32 3, ptr %a, align 4
+  %0 = and i32 %enum_argument, 1
+  %b = alloca i32, align 4
+  store i32 %0, ptr %b, align 4
+  %1 = xor i32 %enum_argument, 1
+  %c = alloca i32, align 4
+  store i32 %1, ptr %c, align 4
+  %2 = load i32, ptr %a, align 4
+  %3 = icmp eq i32 %2, %enum_argument
+  br i1 %3, label %if_s0_then, label %if_s1_after
+
+if_s0_then:                                       ; preds = %entry
+  ret i32 0
+
+if_s1_after:                                      ; preds = %entry
+  %4 = load i32, ptr %b, align 4
+  %5 = icmp ne i32 %4, %enum_argument
+  br i1 %5, label %if_s0_then1, label %if_s1_after2
+
+if_s0_then1:                                      ; preds = %if_s1_after
+  ret i32 1
+
+if_s1_after2:                                     ; preds = %if_s1_after
+  %6 = and i32 %enum_argument, 1
+  %7 = icmp ugt i32 %6, 0
+  br i1 %7, label %if_s0_then3, label %if_s1_after4
+
+if_s0_then3:                                      ; preds = %if_s1_after2
+  ret i32 2
+
+if_s1_after4:                                     ; preds = %if_s1_after2
+  %8 = and i32 %enum_argument, 2
+  %9 = icmp ugt i32 %8, 0
+  br i1 %9, label %if_s0_then5, label %if_s1_after6
+
+if_s0_then5:                                      ; preds = %if_s1_after4
+  ret i32 3
+
+if_s1_after6:                                     ; preds = %if_s1_after4
+  %10 = and i32 %enum_argument, 4
+  %11 = icmp ugt i32 %10, 0
+  br i1 %11, label %if_s0_then7, label %if_s1_after8
+
+if_s0_then7:                                      ; preds = %if_s1_after6
+  ret i32 4
+
+if_s1_after8:                                     ; preds = %if_s1_after6
+  ret i32 5
+}
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
+  TEST_CASE("Compile Using Enums From Modules")
+  {
+    char const* const input_file = "using_enums_from_modules.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+        { "Enums", g_test_files_path / "using_enums.hl" }
+    };
+
+    char const* const expected_llvm_ir = R"(
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
 
   TEST_CASE("Compile Using Enums")
   {
@@ -1296,6 +1379,40 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
+define i32 @use_enums(i32 %enum_argument) {
+entry:
+  %my_value = alloca i32, align 4
+  store i32 1, ptr %my_value, align 4
+  switch i32 %enum_argument, label %switch_after [
+    i32 0, label %switch_case_i0_
+    i32 1, label %switch_case_i1_
+    i32 4, label %switch_case_i2_
+    i32 8, label %switch_case_i3_
+    i32 10, label %switch_case_i4_
+    i32 11, label %switch_case_i5_
+  ]
+
+switch_after:                                     ; preds = %entry
+  ret i32 2
+
+switch_case_i0_:                                  ; preds = %entry
+  br label %switch_case_i1_
+
+switch_case_i1_:                                  ; preds = %switch_case_i0_, %entry
+  br label %switch_case_i2_
+
+switch_case_i2_:                                  ; preds = %switch_case_i1_, %entry
+  br label %switch_case_i3_
+
+switch_case_i3_:                                  ; preds = %switch_case_i2_, %entry
+  ret i32 0
+
+switch_case_i4_:                                  ; preds = %entry
+  br label %switch_case_i5_
+
+switch_case_i5_:                                  ; preds = %switch_case_i4_, %entry
+  ret i32 1
+}
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);

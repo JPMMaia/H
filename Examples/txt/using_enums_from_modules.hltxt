@@ -1,0 +1,8 @@
+module Enums_from_modules;
+
+import Enums as Enums;
+
+export function use_enums() -> ()
+{
+    var my_value = Enums.My_enum.Value_1;
+}

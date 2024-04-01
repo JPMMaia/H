@@ -100,21 +100,41 @@ namespace h::compiler
         return {};
     }
 
-    llvm::ConstantInt* fold_constant(
-        llvm::Value* const value
+    llvm::Constant* fold_constant(
+        llvm::Value* const value,
+        llvm::DataLayout const& llvm_data_layout
     )
     {
-        // TODO
-        /*if (llvm::BinaryOperator::classof(value))
+        if (llvm::BinaryOperator::classof(value))
         {
             llvm::BinaryOperator* const binary_operator = static_cast<llvm::BinaryOperator*>(value);
-            int i = 0;
-        }*/
 
-        return nullptr;
+            llvm::Constant* const left_hand_side = fold_constant(binary_operator->getOperand(0), llvm_data_layout);
+            llvm::Constant* const right_hand_side = fold_constant(binary_operator->getOperand(1), llvm_data_layout);
+
+            llvm::Constant* const folded_constant = llvm::ConstantFoldBinaryOpOperands(
+                binary_operator->getOpcode(),
+                left_hand_side,
+                right_hand_side,
+                llvm_data_layout
+            );
+
+            if (folded_constant == nullptr)
+                throw std::runtime_error{ "Could not unfold binary operation constant!" };
+
+            return folded_constant;
+        }
+        else if (llvm::Constant::classof(value))
+        {
+            return static_cast<llvm::Constant*>(value);
+        }
+        else
+        {
+            throw std::runtime_error{ "Could not unfold constant!" };
+        }
     }
 
-    llvm::ConstantInt* fold_statement_constant(
+    llvm::Constant* fold_statement_constant(
         Statement const& statement,
         Expression_parameters const& parameters
     )
@@ -127,10 +147,11 @@ namespace h::compiler
         if (statement_value.value == nullptr)
             throw std::runtime_error{ "Could not fold constant!" };
 
-        return fold_constant(statement_value.value);
+        return fold_constant(statement_value.value, parameters.llvm_data_layout);
     }
 
     Value_and_type access_enum_value(
+        std::string_view const module_name,
         Enum_declaration const& declaration,
         std::string_view const enum_value_name,
         Enum_value_constants const& enum_value_constants
@@ -152,7 +173,7 @@ namespace h::compiler
         {
             .name = "",
             .value = constant,
-            .type = create_integer_type_type_reference(32, true)
+            .type = create_custom_type_reference(module_name, declaration.name)
         };
     }
 
@@ -228,6 +249,7 @@ namespace h::compiler
                                     Enum_declaration const& enum_declaration = *std::get<Enum_declaration const*>(underlying_declaration.value().data);
 
                                     return access_enum_value(
+                                        "",
                                         enum_declaration,
                                         expression.member_name,
                                         enum_value_constants
@@ -240,6 +262,7 @@ namespace h::compiler
                             Enum_declaration const& enum_declaration = *std::get<Enum_declaration const*>(declaration_value.data);
 
                             return access_enum_value(
+                                "",
                                 enum_declaration,
                                 expression.member_name,
                                 enum_value_constants
@@ -489,7 +512,7 @@ namespace h::compiler
             break;
         }
         case Binary_operation::Equal: {
-            if (is_bool(type) || is_integer(type))
+            if (is_bool(type) || is_integer(type) || is_enum_type(type, left_hand_side.value))
             {
                 return Value_and_type
                 {
@@ -510,7 +533,7 @@ namespace h::compiler
             break;
         }
         case Binary_operation::Not_equal: {
-            if (is_bool(type) || is_integer(type))
+            if (is_bool(type) || is_integer(type) || is_enum_type(type, left_hand_side.value))
             {
                 return Value_and_type
                 {
@@ -679,7 +702,7 @@ namespace h::compiler
             };
         }
         case Binary_operation::Bitwise_and: {
-            if (is_integer(type))
+            if (is_integer(type) || is_enum_type(type, left_hand_side.value))
             {
                 return Value_and_type
                 {
@@ -691,7 +714,7 @@ namespace h::compiler
             break;
         }
         case Binary_operation::Bitwise_or: {
-            if (is_integer(type))
+            if (is_integer(type) || is_enum_type(type, left_hand_side.value))
             {
                 return Value_and_type
                 {
@@ -703,7 +726,7 @@ namespace h::compiler
             break;
         }
         case Binary_operation::Bitwise_xor: {
-            if (is_integer(type))
+            if (is_integer(type) || is_enum_type(type, left_hand_side.value))
             {
                 return Value_and_type
                 {
@@ -747,6 +770,25 @@ namespace h::compiler
                         .type = type
                     };
                 }
+            }
+            break;
+        }
+        case Binary_operation::Has: {
+            if (is_enum_type(type, left_hand_side.value))
+            {
+                llvm::Value* const and_value = llvm_builder.CreateAnd(left_hand_side.value, right_hand_side.value);
+
+                unsigned const integer_bit_width = left_hand_side.value->getType()->getIntegerBitWidth();
+                llvm::Value* const zero_value = llvm_builder.getIntN(integer_bit_width, 0);
+
+                llvm::Value* const compare_value = llvm_builder.CreateICmpUGT(and_value, zero_value);
+
+                return Value_and_type
+                {
+                    .name = "",
+                    .value = compare_value,
+                    .type = create_bool_type_reference()
+                };
             }
             break;
         }
@@ -1061,7 +1103,7 @@ namespace h::compiler
             llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, current_module_name, expression.type, type_database);
 
             char* end;
-            std::uint64_t const data = std::strtoull(expression.data.c_str(), &end, 10);
+            std::uint64_t const data = std::strtoull(expression.data.c_str(), &end, 0);
             llvm::APInt const value{ integer_type.number_of_bits, data, integer_type.is_signed };
 
             llvm::Value* const instruction = llvm::ConstantInt::get(llvm_type, value);
@@ -1202,10 +1244,14 @@ namespace h::compiler
             std::pmr::vector<Block_info> all_block_infos{ block_infos.begin(), block_infos.end() };
             all_block_infos.push_back(Block_info{ .block_type = Block_type::For_loop, .repeat_block = update_index_block, .after_block = after_block });
 
+            Expression_parameters new_parameters = parameters;
+            new_parameters.local_variables = all_local_variables;
+            new_parameters.blocks = all_block_infos;
+
             std::pmr::vector<Statement> const then_statements = skip_block(expression.then_statement);
             create_statement_values(
                 then_statements,
-                parameters
+                new_parameters
             );
 
             if (!ends_with_terminator_statement(then_statements))
@@ -1452,6 +1498,9 @@ namespace h::compiler
         std::pmr::vector<Block_info> all_block_infos{ block_infos.begin(), block_infos.end() };
         all_block_infos.push_back({ .block_type = Block_type::Switch, .repeat_block = nullptr, .after_block = after_block });
 
+        Expression_parameters new_parameters = parameters;
+        new_parameters.blocks = all_block_infos;
+
         for (std::size_t case_index = 0; case_index < expression.cases.size(); ++case_index)
         {
             Switch_case_expression_pair const& switch_case = expression.cases[case_index];
@@ -1461,7 +1510,7 @@ namespace h::compiler
 
             create_statement_values(
                 switch_case.statements,
-                parameters
+                new_parameters
             );
 
             if (!ends_with_terminator_statement(switch_case.statements))
@@ -1716,16 +1765,28 @@ namespace h::compiler
             {
                 if (expression.access_type == Access_type::Read)
                 {
-                    Type_reference const& type = location->type.value();
-                    llvm::Type* const llvm_pointee_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module.name, type, type_database);
-                    llvm::Value* const loaded_value = llvm_builder.CreateLoad(llvm_pointee_type, location->value);
-
-                    return Value_and_type
+                    if (llvm::Constant::classof(location->value))
                     {
-                        .name = expression.name,
-                        .value = loaded_value,
-                        .type = type
-                    };
+                        return Value_and_type
+                        {
+                            .name = expression.name,
+                            .value = location->value,
+                            .type = location->type
+                        };
+                    }
+                    else
+                    {
+                        Type_reference const& type = location->type.value();
+                        llvm::Type* const llvm_pointee_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module.name, type, type_database);
+                        llvm::Value* const loaded_value = llvm_builder.CreateLoad(llvm_pointee_type, location->value);
+
+                        return Value_and_type
+                        {
+                            .name = expression.name,
+                            .value = loaded_value,
+                            .type = type
+                        };
+                    }
                 }
                 else
                 {
@@ -1844,11 +1905,14 @@ namespace h::compiler
         );
         llvm_builder.CreateCondBr(condition_value.value, then_block, after_block);
 
+        Expression_parameters new_parameters = parameters;
+        new_parameters.blocks = all_block_infos;
+
         llvm_builder.SetInsertPoint(then_block);
         std::pmr::vector<Statement> const then_block_statements = skip_block(expression.then_statement);
         create_statement_values(
             then_block_statements,
-            parameters
+            new_parameters
         );
         if (!ends_with_terminator_statement(then_block_statements))
             llvm_builder.CreateBr(condition_block);
