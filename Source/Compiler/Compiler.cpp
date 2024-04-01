@@ -793,7 +793,6 @@ namespace h::compiler
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map
     )
     {
-
         std::pmr::vector<Module> core_module_dependencies = create_dependency_core_modules(core_module, module_name_to_file_path_map);
         remove_unused_declarations(core_module, core_module_dependencies);
 
