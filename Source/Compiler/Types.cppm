@@ -21,6 +21,7 @@ namespace h::compiler
     export bool is_bool(Type_reference const& type);
 
     export Type_reference create_custom_type_reference(std::string_view module_name, std::string_view name);
+    export bool is_custom_type_reference(Type_reference const& type);
 
     export Type_reference create_function_type_type_reference(Function_type const& function_type);
     export std::optional<Type_reference> get_function_output_type_reference(Type_reference const& type);
@@ -38,6 +39,8 @@ namespace h::compiler
     export std::optional<Type_reference> remove_pointer(Type_reference const& type);
     export bool is_pointer(Type_reference const& type);
     export bool is_non_void_pointer(Type_reference const& type);
+
+    export bool is_enum_type(Type_reference const& type, llvm::Value* value);
 
     export struct Builtin_types
     {

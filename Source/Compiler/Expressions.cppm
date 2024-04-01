@@ -67,11 +67,12 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator;
     };
 
-    export llvm::ConstantInt* fold_constant(
-        llvm::Value* value
+    export llvm::Constant* fold_constant(
+        llvm::Value* value,
+        llvm::DataLayout* llvm_data_layout
     );
 
-    export llvm::ConstantInt* fold_statement_constant(
+    export llvm::Constant* fold_statement_constant(
         Statement const& statement,
         Expression_parameters const& parameters
     );

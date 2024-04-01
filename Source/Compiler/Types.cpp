@@ -4,6 +4,7 @@ module;
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Type.h>
+#include <llvm/IR/Value.h>
 
 #include <functional>
 #include <memory_resource>
@@ -50,6 +51,11 @@ namespace h::compiler
                 .name = std::pmr::string{ name }
             }
         };
+    }
+
+    bool is_custom_type_reference(Type_reference const& type)
+    {
+        return std::holds_alternative<Custom_type_reference>(type.data);
     }
 
 
@@ -199,6 +205,12 @@ namespace h::compiler
         }
 
         return false;
+    }
+
+
+    bool is_enum_type(Type_reference const& type, llvm::Value* const value)
+    {
+        return is_custom_type_reference(type) && value->getType()->isIntegerTy();
     }
 
 

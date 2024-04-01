@@ -7,7 +7,7 @@ enum My_enum
     A = 10,
 }
 
-using My_alias_to_enum = My_enum;
+export using My_alias_to_enum = My_enum;
 
 export function use_alias(size: My_int, my_enum: My_alias_to_enum) -> ()
 {
