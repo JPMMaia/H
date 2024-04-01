@@ -177,6 +177,70 @@ namespace h::compiler
         };
     }
 
+    std::optional<Module const*> get_module_from_access_expression(
+        Access_expression const& expression,
+        Value_and_type const& left_hand_side,
+        Statement const& statement,
+        Module const& core_module,
+        std::span<Module const> const core_module_dependencies
+    )
+    {
+        if (left_hand_side.value == nullptr)
+        {
+            Expression const& left_hand_side_expression = statement.expressions[expression.expression.expression_index];
+
+            if (std::holds_alternative<Variable_expression>(left_hand_side_expression.data))
+            {
+                Variable_expression const& variable_expression = std::get<Variable_expression>(left_hand_side_expression.data);
+
+                std::string_view const module_alias_name = variable_expression.name;
+                std::optional<std::string_view> const external_module_name = get_module_name_from_alias(core_module, module_alias_name);
+
+                if (external_module_name.has_value())
+                {
+                    return get_module(core_module_dependencies, external_module_name.value()).value();
+                }
+            }
+        }
+
+        return std::nullopt;
+    }
+
+    std::optional<Custom_type_reference> get_custom_type_reference_from_access_expression(
+        Access_expression const& expression,
+        Value_and_type const& left_hand_side,
+        Statement const& statement,
+        std::string_view const current_module_name
+    )
+    {
+        if (left_hand_side.value == nullptr)
+        {
+            Expression const& left_hand_side_expression = statement.expressions[expression.expression.expression_index];
+
+            if (std::holds_alternative<Access_expression>(left_hand_side_expression.data))
+            {
+                if (left_hand_side.type.has_value() && std::holds_alternative<Custom_type_reference>(left_hand_side.type.value().data))
+                {
+                    return std::get<Custom_type_reference>(left_hand_side.type.value().data);
+                }
+            }
+            else if (std::holds_alternative<Variable_expression>(left_hand_side_expression.data))
+            {
+                Variable_expression const& variable_expression = std::get<Variable_expression>(left_hand_side_expression.data);
+                return Custom_type_reference
+                {
+                    .module_reference =
+                    {
+                        .name = std::pmr::string{ current_module_name },
+                    },
+                    .name = variable_expression.name
+                };
+            }
+        }
+
+        return std::nullopt;
+    }
+
     Value_and_type create_access_expression_value(
         Access_expression const& expression,
         Module const& core_module,
@@ -191,105 +255,105 @@ namespace h::compiler
         Value_and_type const& left_hand_side = temporaries[expression.expression.expression_index];
 
         // Check if left hand side corresponds to a module name:
-        if (left_hand_side.value == nullptr)
         {
-            Expression const& left_hand_side_expression = statement.expressions[expression.expression.expression_index];
-
-            if (std::holds_alternative<Variable_expression>(left_hand_side_expression.data))
+            std::optional<Module const*> const external_module_optional = get_module_from_access_expression(expression, left_hand_side, statement, core_module, core_module_dependencies);
+            if (external_module_optional.has_value())
             {
-                Variable_expression const& variable_expression = std::get<Variable_expression>(left_hand_side_expression.data);
+                Module const& external_module = *external_module_optional.value();
 
-                // Check if it's a module alias name:
+                std::string_view const declaration_name = expression.member_name;
+                std::optional<Declaration> const declaration_optional = find_declaration(declaration_database, external_module.name, declaration_name);
+                if (!declaration_optional.has_value())
+                    throw std::runtime_error{ std::format("Could not find declaration '{}.{}' referenced.", external_module.name, declaration_name) };
+
+                Declaration const& declaration = declaration_optional.value();
+
+                if (std::holds_alternative<Alias_type_declaration const*>(declaration.data))
                 {
-                    std::string_view const module_alias_name = variable_expression.name;
-                    std::optional<std::string_view> const external_module_name = get_module_name_from_alias(core_module, module_alias_name);
-
-                    if (external_module_name.has_value())
-                    {
-                        Module const& external_module = *get_module(core_module_dependencies, external_module_name.value()).value();
-
-                        // TODO
-                        std::string_view const declaration_name = expression.member_name;
-                        find_declaration(declaration_database, external_module.name, declaration_name);
-
-                        std::string const mangled_name = mangle_name(external_module, expression.member_name);
-
-                        // TODO try to find alias/enum/struct:
-                        llvm::Function* const llvm_function = llvm_module.getFunction(mangled_name);
-                        if (!llvm_function)
-                            throw std::runtime_error{ std::format("Unknown function '{}.{}' referenced. Mangled name is '{}'.", external_module_name.value(), expression.member_name, mangled_name) };
-
-                        std::optional<Function_declaration const*> function_declaration = find_function_declaration(external_module, expression.member_name.c_str());
-                        Type_reference function_type = create_function_type_type_reference(function_declaration.value()->type);
-
-                        return Value_and_type
-                        {
-                            .name = std::pmr::string{ mangled_name.begin(), mangled_name.end()},
-                            .value = llvm_function,
-                            .type = std::move(function_type)
-                        };
-                    }
+                    Alias_type_declaration const& alias_type_declaration = *std::get<Alias_type_declaration const*>(declaration.data);
+                    // TODO
                 }
-
-                // Check if it's a declaration name:
+                else if (std::holds_alternative<Enum_declaration const*>(declaration.data))
                 {
-                    std::string_view const declaration_name = variable_expression.name;
-                    std::optional<Declaration> const declaration = find_declaration(declaration_database, core_module.name, declaration_name);
-                    if (declaration.has_value())
-                    {
-                        Declaration const& declaration_value = declaration.value();
-                        if (std::holds_alternative<Alias_type_declaration const*>(declaration_value.data))
-                        {
-                            Alias_type_declaration const* data = std::get<Alias_type_declaration const*>(declaration_value.data);
-                            std::optional<Declaration> const underlying_declaration = get_underlying_declaration(declaration_database, core_module.name, *data);
-                            if (underlying_declaration.has_value())
-                            {
-                                if (std::holds_alternative<Enum_declaration const*>(underlying_declaration.value().data))
-                                {
-                                    Enum_declaration const& enum_declaration = *std::get<Enum_declaration const*>(underlying_declaration.value().data);
+                    Enum_declaration const& enum_declaration = *std::get<Enum_declaration const*>(declaration.data);
+                    Type_reference type = create_custom_type_reference(external_module.name, enum_declaration.name);
 
-                                    return access_enum_value(
-                                        "",
-                                        enum_declaration,
-                                        expression.member_name,
-                                        enum_value_constants
-                                    );
-                                }
+                    return Value_and_type
+                    {
+                        .name = expression.member_name,
+                        .value = nullptr,
+                        .type = std::move(type)
+                    };
+                }
+                else if (std::holds_alternative<Function_declaration const*>(declaration.data))
+                {
+                    Function_declaration const& function_declaration = *std::get<Function_declaration const*>(declaration.data);
+                    Type_reference function_type = create_function_type_type_reference(function_declaration.type);
+
+                    std::string const mangled_name = mangle_name(external_module, expression.member_name);
+                    llvm::Function* const llvm_function = llvm_module.getFunction(mangled_name);
+                    if (!llvm_function)
+                        throw std::runtime_error{ std::format("Unknown function '{}.{}' referenced. Mangled name is '{}'.", external_module.name, expression.member_name, mangled_name) };
+
+                    return Value_and_type
+                    {
+                        .name = std::pmr::string{ mangled_name.begin(), mangled_name.end()},
+                        .value = llvm_function,
+                        .type = std::move(function_type)
+                    };
+                }
+            }
+        }
+
+        {
+            std::optional<Custom_type_reference> custom_type_reference = get_custom_type_reference_from_access_expression(expression, left_hand_side, statement, core_module.name);
+
+            if (custom_type_reference.has_value())
+            {
+                std::string_view const module_name = custom_type_reference.value().module_reference.name;
+                std::string_view const declaration_name = custom_type_reference.value().name;
+
+                std::optional<Declaration> const declaration = find_declaration(declaration_database, module_name, declaration_name);
+                if (declaration.has_value())
+                {
+                    Declaration const& declaration_value = declaration.value();
+                    if (std::holds_alternative<Alias_type_declaration const*>(declaration_value.data))
+                    {
+                        Alias_type_declaration const* data = std::get<Alias_type_declaration const*>(declaration_value.data);
+                        std::optional<Declaration> const underlying_declaration = get_underlying_declaration(declaration_database, module_name, *data);
+                        if (underlying_declaration.has_value())
+                        {
+                            if (std::holds_alternative<Enum_declaration const*>(underlying_declaration.value().data))
+                            {
+                                Enum_declaration const& enum_declaration = *std::get<Enum_declaration const*>(underlying_declaration.value().data);
+
+                                return access_enum_value(
+                                    module_name,
+                                    enum_declaration,
+                                    expression.member_name,
+                                    enum_value_constants
+                                );
                             }
                         }
-                        else if (std::holds_alternative<Enum_declaration const*>(declaration_value.data))
-                        {
-                            Enum_declaration const& enum_declaration = *std::get<Enum_declaration const*>(declaration_value.data);
+                    }
+                    else if (std::holds_alternative<Enum_declaration const*>(declaration_value.data))
+                    {
+                        Enum_declaration const& enum_declaration = *std::get<Enum_declaration const*>(declaration_value.data);
 
-                            return access_enum_value(
-                                "",
-                                enum_declaration,
-                                expression.member_name,
-                                enum_value_constants
-                            );
-                        }
-                        else if (std::holds_alternative<Function_declaration const*>(declaration_value.data))
-                        {
-                            Function_declaration const* data = std::get<Function_declaration const*>(declaration_value.data);
-                            // TODO
-                        }
-                        else if (std::holds_alternative<Struct_declaration const*>(declaration_value.data))
-                        {
-                            Struct_declaration const* data = std::get<Struct_declaration const*>(declaration_value.data);
-                            // TODO
-                        }
+                        return access_enum_value(
+                            module_name,
+                            enum_declaration,
+                            expression.member_name,
+                            enum_value_constants
+                        );
                     }
                 }
             }
         }
 
-        // TODO enum / struct access
-        return Value_and_type
-        {
-            .name = "",
-            .value = nullptr,
-            .type = std::nullopt
-        };
+        // TODO access struct member (left_hand_side.value != nullptr)
+
+        throw std::runtime_error{ "Could not process access expression!" };
     }
 
     Value_and_type create_binary_operation_instruction(

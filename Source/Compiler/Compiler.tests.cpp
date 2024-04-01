@@ -1365,6 +1365,12 @@ if_s1_after8:                                     ; preds = %if_s1_after6
     };
 
     char const* const expected_llvm_ir = R"(
+define void @use_enums() {
+entry:
+  %my_value = alloca i32, align 4
+  store i32 1, ptr %my_value, align 4
+  ret void
+}
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
