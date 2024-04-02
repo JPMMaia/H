@@ -113,12 +113,12 @@ namespace h::compiler
             {
                 Alias_type_declaration const* alias_declaration = std::get<Alias_type_declaration const*>(declaration.data);
                 std::optional<Type_reference> alias_type = get_underlying_type(declaration_database, module_name, *alias_declaration);
-                if (alias_type.has_value())
-                    set_custom_type_reference_module_name_if_not_set(alias_type.value(), module_name);
                 return alias_type;
             }
             else
             {
+                Type_reference fixed_type_reference = type_reference;
+                set_custom_type_reference_module_name_if_not_set(fixed_type_reference, module_name);
                 return type_reference;
             }
         }

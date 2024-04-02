@@ -347,9 +347,10 @@ namespace h::compiler
             {
                 llvm::Argument* const llvm_argument = llvm_function.getArg(argument_index);
                 std::pmr::string const& name = function_declaration.input_parameter_names[argument_index];
-                Type_reference const& core_type = function_declaration.type.input_parameter_types[argument_index];
+                Type_reference core_type = function_declaration.type.input_parameter_types[argument_index];
+                set_custom_type_reference_module_name_if_empty(core_type, core_module.name);
 
-                function_arguments.push_back({ .name = name, .value = llvm_argument, .type = core_type });
+                function_arguments.push_back({ .name = name, .value = llvm_argument, .type = std::move(core_type) });
             }
 
             Expression_parameters expression_parameters
