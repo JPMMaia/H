@@ -58,6 +58,16 @@ namespace h::compiler
         return std::holds_alternative<Custom_type_reference>(type.data);
     }
 
+    void set_custom_type_reference_module_name_if_empty(Type_reference& type, std::string_view const module_name)
+    {
+        if (std::holds_alternative<Custom_type_reference>(type.data))
+        {
+            Custom_type_reference& custom_type_reference = std::get<Custom_type_reference>(type.data);
+            if (custom_type_reference.module_reference.name.empty())
+                custom_type_reference.module_reference.name = module_name;
+        }
+    }
+
 
     Type_reference create_function_type_type_reference(Function_type const& function_type)
     {

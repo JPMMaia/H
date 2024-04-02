@@ -970,6 +970,8 @@ namespace h::compiler
         llvm::Value* call_instruction = llvm_builder.CreateCall(llvm_function, llvm_arguments);
 
         std::optional<Type_reference> function_output_type_reference = get_function_output_type_reference(left_hand_side.type.value());
+        if (function_output_type_reference.has_value())
+            set_custom_type_reference_module_name_if_empty(function_output_type_reference.value(), core_module.name);
 
         return
         {
@@ -1062,14 +1064,17 @@ namespace h::compiler
     {
         Value_and_type const source = temporaries[expression.source.expression_index];
 
+        Type_reference destination_type = expression.destination_type;
+        set_custom_type_reference_module_name_if_empty(destination_type, core_module.name);
+
         llvm::Type* const source_llvm_type = source.value->getType();
-        llvm::Type* const destination_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module.name, expression.destination_type, type_database);
+        llvm::Type* const destination_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module.name, destination_type, type_database);
 
         // If types are equal, then ignore the cast:
         if (source_llvm_type == destination_llvm_type)
             return source;
 
-        llvm::Instruction::CastOps const cast_type = get_cast_type(source.type.value(), *source_llvm_type, expression.destination_type, *destination_llvm_type);
+        llvm::Instruction::CastOps const cast_type = get_cast_type(source.type.value(), *source_llvm_type, destination_type, *destination_llvm_type);
 
         llvm::Value* const cast_instruction = llvm_builder.CreateCast(cast_type, source.value, destination_llvm_type);
 
@@ -1077,7 +1082,7 @@ namespace h::compiler
         {
             .name = "",
             .value = cast_instruction,
-            .type = expression.destination_type
+            .type = destination_type
         };
     }
 
