@@ -2,7 +2,7 @@ module Alias;
 
 using My_int = Int64;
 
-enum My_enum
+export enum My_enum
 {
     A = 10,
 }
