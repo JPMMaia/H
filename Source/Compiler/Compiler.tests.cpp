@@ -207,13 +207,13 @@ entry:
   %12 = load i32, ptr %case_1, align 4
   %pointer_b = alloca ptr, align 8
   store ptr %case_1, ptr %pointer_b, align 8
-  %13 = load ptr, ptr %pointer_b, align 8
+  %13 = load ptr, ptr %pointer_a, align 8
   %14 = load ptr, ptr %13, align 8
   %15 = load i32, ptr %14, align 4
-  %16 = load ptr, ptr %pointer_a, align 8
+  %16 = load ptr, ptr %pointer_b, align 8
   %17 = load ptr, ptr %16, align 8
   %18 = load i32, ptr %17, align 4
-  %19 = mul i32 %18, %15
+  %19 = mul i32 %15, %18
   %case_7 = alloca i32, align 4
   store i32 %19, ptr %case_7, align 4
   %20 = add i32 %a, %b
@@ -224,29 +224,29 @@ entry:
   %23 = mul i32 %a, %22
   %case_9 = alloca i32, align 4
   store i32 %23, ptr %case_9, align 4
-  %24 = icmp eq i32 %b, 1
-  %25 = icmp eq i32 %a, 0
-  %26 = and i1 %25, %24
+  %24 = icmp eq i32 %a, 0
+  %25 = icmp eq i32 %b, 1
+  %26 = and i1 %24, %25
   %case_10 = alloca i1, align 1
   store i1 %26, ptr %case_10, align 1
-  %27 = and i32 %b, %a
-  %28 = and i32 %a, %b
-  %29 = icmp eq i32 %28, %27
+  %27 = and i32 %a, %b
+  %28 = and i32 %b, %a
+  %29 = icmp eq i32 %27, %28
   %case_11 = alloca i1, align 1
   store i1 %29, ptr %case_11, align 1
-  %30 = icmp slt i32 %b, %c
-  %31 = icmp slt i32 %a, %b
-  %32 = and i1 %31, %30
+  %30 = icmp slt i32 %a, %b
+  %31 = icmp slt i32 %b, %c
+  %32 = and i1 %30, %31
   %case_12 = alloca i1, align 1
   store i1 %32, ptr %case_12, align 1
-  %33 = add i32 %b, %c
-  %34 = add i32 %a, %b
-  %35 = icmp eq i32 %34, %33
+  %33 = add i32 %a, %b
+  %34 = add i32 %b, %c
+  %35 = icmp eq i32 %33, %34
   %case_13 = alloca i1, align 1
   store i1 %35, ptr %case_13, align 1
-  %36 = sub i32 0, %b
-  %37 = sub i32 0, %a
-  %38 = add i32 %37, %36
+  %36 = sub i32 0, %a
+  %37 = sub i32 0, %b
+  %38 = add i32 %36, %37
   %case_14 = alloca i32, align 4
   store i32 %38, ptr %case_14, align 4
   ret void

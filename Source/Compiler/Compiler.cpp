@@ -305,7 +305,7 @@ namespace h::compiler
             .blocks = {},
             .function_arguments = {},
             .local_variables = {},
-            .temporaries = {},
+            .expression_type = std::nullopt,
             .temporaries_allocator = temporaries_allocator,
         };
 
@@ -368,7 +368,7 @@ namespace h::compiler
                 .blocks = block_infos,
                 .function_arguments = function_arguments,
                 .local_variables = {},
-                .temporaries = {},
+                .expression_type = std::nullopt,
                 .temporaries_allocator = temporaries_allocator,
             };
 
@@ -379,28 +379,18 @@ namespace h::compiler
             {
                 Statement const& statement = function_definition.statements[statement_index];
 
-                std::pmr::vector<Value_and_type> temporaries{ temporaries_allocator };
-                temporaries.resize(statement.expressions.size());
-
                 expression_parameters.local_variables = local_variables;
 
-                for (std::size_t index = 0; index < statement.expressions.size(); ++index)
+                if (!statement.expressions.empty())
                 {
-                    std::size_t const expression_index = statement.expressions.size() - 1 - index;
-                    Expression const& expression = statement.expressions[expression_index];
-
-                    expression_parameters.temporaries = temporaries;
-
-                    Value_and_type const instruction = create_expression_value(
-                        expression,
+                    Value_and_type instruction = create_expression_value(
+                        statement.expressions[0],
                         statement,
                         expression_parameters
                     );
 
-                    temporaries[expression_index] = instruction;
+                    local_variables.push_back(std::move(instruction));
                 }
-
-                local_variables.push_back(temporaries.front());
             }
         }
 

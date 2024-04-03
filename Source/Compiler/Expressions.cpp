@@ -250,17 +250,18 @@ namespace h::compiler
 
     Value_and_type create_access_expression_value(
         Access_expression const& expression,
-        Module const& core_module,
-        std::span<Module const> const core_module_dependencies,
         Statement const& statement,
-        llvm::Module& llvm_module,
-        llvm::IRBuilder<>& llvm_builder,
-        Declaration_database const& declaration_database,
-        Enum_value_constants const& enum_value_constants,
-        std::span<Value_and_type const> const temporaries
+        Expression_parameters const& parameters
     )
     {
-        Value_and_type const& left_hand_side = temporaries[expression.expression.expression_index];
+        Module const& core_module = parameters.core_module;
+        std::span<Module const> const core_module_dependencies = parameters.core_module_dependencies;
+        llvm::Module& llvm_module = parameters.llvm_module;
+        llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
+        Declaration_database const& declaration_database = parameters.declaration_database;
+        Enum_value_constants const& enum_value_constants = parameters.enum_value_constants;
+
+        Value_and_type const& left_hand_side = create_expression_value(expression.expression.expression_index, statement, parameters);
 
         // Check if left hand side corresponds to a module name:
         {
@@ -453,18 +454,14 @@ namespace h::compiler
 
     Value_and_type create_assignment_expression_value(
         Assignment_expression const& expression,
-        llvm::LLVMContext& llvm_context,
-        llvm::DataLayout const& llvm_data_layout,
-        llvm::IRBuilder<>& llvm_builder,
-        std::string_view const current_module_name,
-        std::span<Value_and_type const> const temporaries,
-        Type_database const& type_database
+        Statement const& statement,
+        Expression_parameters const& parameters
     )
     {
-        Value_and_type const left_hand_side = temporaries[expression.left_hand_side.expression_index];
-        Value_and_type const right_hand_side = temporaries[expression.right_hand_side.expression_index];
+        Value_and_type const left_hand_side = create_expression_value(expression.left_hand_side.expression_index, statement, parameters);
+        Value_and_type const right_hand_side = create_expression_value(expression.right_hand_side.expression_index, statement, parameters);
 
-        return create_assignment_operation_instruction(llvm_context, llvm_data_layout, llvm_builder, current_module_name, left_hand_side, right_hand_side, expression.additional_operation, type_database);
+        return create_assignment_operation_instruction(parameters.llvm_context, parameters.llvm_data_layout, parameters.llvm_builder, parameters.core_module.name, left_hand_side, right_hand_side, expression.additional_operation, parameters.type_database);
     }
 
     Value_and_type create_binary_operation_instruction(
@@ -901,12 +898,14 @@ namespace h::compiler
 
     Value_and_type create_binary_expression_value(
         Binary_expression const& expression,
-        llvm::IRBuilder<>& llvm_builder,
-        std::span<Value_and_type const> const temporaries
+        Statement const& statement,
+        Expression_parameters const& parameters
     )
     {
-        Value_and_type const& left_hand_side = temporaries[expression.left_hand_side.expression_index];
-        Value_and_type const& right_hand_side = temporaries[expression.right_hand_side.expression_index];
+        llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
+
+        Value_and_type const& left_hand_side = create_expression_value(expression.left_hand_side.expression_index, statement, parameters);
+        Value_and_type const& right_hand_side = create_expression_value(expression.right_hand_side.expression_index, statement, parameters);
         Binary_operation const operation = expression.operation;
 
         Value_and_type value = create_binary_operation_instruction(llvm_builder, left_hand_side, right_hand_side, operation);
@@ -976,13 +975,15 @@ namespace h::compiler
 
     Value_and_type create_call_expression_value(
         Call_expression const& expression,
-        Module const& core_module,
-        llvm::IRBuilder<>& llvm_builder,
-        std::span<Value_and_type const> const temporaries,
-        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+        Statement const& statement,
+        Expression_parameters const& parameters
     )
     {
-        Value_and_type const& left_hand_side = temporaries[expression.expression.expression_index];
+        Module const& core_module = parameters.core_module;
+        llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator = parameters.temporaries_allocator;
+
+        Value_and_type const& left_hand_side = create_expression_value(expression.expression.expression_index, statement, parameters);
 
         if (!llvm::Function::classof(left_hand_side.value))
             throw std::runtime_error{ std::format("Left hand side of call expression is not a function!") };
@@ -1000,7 +1001,7 @@ namespace h::compiler
         for (unsigned i = 0; i < expression.arguments.size(); ++i)
         {
             std::uint64_t const expression_index = expression.arguments[i].expression_index;
-            Value_and_type const temporary = temporaries[expression_index];
+            Value_and_type const temporary = create_expression_value(expression_index, statement, parameters);
 
             llvm_arguments[i] = temporary.value;
         }
@@ -1092,15 +1093,17 @@ namespace h::compiler
 
     Value_and_type create_cast_expression_value(
         Cast_expression const& expression,
-        Module const& core_module,
-        llvm::LLVMContext& llvm_context,
-        llvm::DataLayout const& llvm_data_layout,
-        llvm::IRBuilder<>& llvm_builder,
-        std::span<Value_and_type const> const temporaries,
-        Type_database const& type_database
+        Statement const& statement,
+        Expression_parameters const& parameters
     )
     {
-        Value_and_type const source = temporaries[expression.source.expression_index];
+        Module const& core_module = parameters.core_module;
+        llvm::LLVMContext& llvm_context = parameters.llvm_context;
+        llvm::DataLayout const& llvm_data_layout = parameters.llvm_data_layout;
+        llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
+        Type_database const& type_database = parameters.type_database;
+
+        Value_and_type const source = create_expression_value(expression.source.expression_index, statement, parameters);
 
         Type_reference destination_type = expression.destination_type;
         set_custom_type_reference_module_name_if_empty(destination_type, core_module.name);
@@ -1289,6 +1292,7 @@ namespace h::compiler
 
     Value_and_type create_for_loop_expression_value(
         For_loop_expression const& expression,
+        Statement const& statement,
         Expression_parameters const& parameters
     )
     {
@@ -1301,9 +1305,8 @@ namespace h::compiler
         Type_database const& type_database = parameters.type_database;
         std::span<Block_info const> block_infos = parameters.blocks;
         std::span<Value_and_type const> const local_variables = parameters.local_variables;
-        std::span<Value_and_type const> const temporaries = parameters.temporaries;
 
-        Value_and_type const& range_begin_temporary = temporaries[expression.range_begin.expression_index];
+        Value_and_type const& range_begin_temporary = create_expression_value(expression.range_begin.expression_index, statement, parameters);
 
         // Loop variable declaration:
         Type_reference const& variable_type = range_begin_temporary.type.value();
@@ -1380,7 +1383,7 @@ namespace h::compiler
 
             Value_and_type const step_by_value =
                 expression.step_by.has_value() ?
-                temporaries[expression.step_by.value().expression_index] :
+                create_expression_value(expression.step_by.value().expression_index, statement, parameters) :
                 create_constant_expression_value(default_step_constant, llvm_context, llvm_data_layout, llvm_module, core_module.name, type_database);
 
             create_assignment_operation_instruction(
@@ -1418,7 +1421,6 @@ namespace h::compiler
         llvm::Function* const llvm_parent_function = parameters.llvm_parent_function;
         std::span<Block_info const> block_infos = parameters.blocks;
         std::span<Value_and_type const> const local_variables = parameters.local_variables;
-        std::span<Value_and_type const> const temporaries = parameters.temporaries;
 
         auto const calculate_number_of_blocks = [](std::span<Condition_statement_pair const> const series) -> std::uint32_t
         {
@@ -1528,10 +1530,10 @@ namespace h::compiler
         Declaration_database const& declaration_database = parameters.declaration_database;
         Type_database const& type_database = parameters.type_database;
 
-        if (!expression.type_reference.has_value() && parameters.expression_types.empty())
+        if (!expression.type_reference.has_value() && !parameters.expression_type.has_value())
             throw std::runtime_error{ "Could not infer struct type while trying to instantiate!" };
 
-        Type_reference const& struct_type_reference = expression.type_reference.has_value() ? expression.type_reference.value() : parameters.expression_types.back();
+        Type_reference const& struct_type_reference = expression.type_reference.has_value() ? expression.type_reference.value() : parameters.expression_type.value();
         if (!std::holds_alternative<Custom_type_reference>(struct_type_reference.data))
             throw std::runtime_error{ "Could not instantiate struct because the type is not a struct!" };
 
@@ -1561,7 +1563,7 @@ namespace h::compiler
                 Statement const& member_value_statement = expression_pair_location != expression.members.end() ? expression_pair_location->value : struct_declaration.member_default_values[member_index];
 
                 Expression_parameters new_parameters = parameters;
-                new_parameters.expression_types = std::span<Type_reference const>{ &member_type, 1 };
+                new_parameters.expression_type = member_type;
                 Value_and_type const member_value = create_statement_value(member_value_statement, new_parameters);
 
                 struct_instance_value = llvm_builder.CreateInsertValue(struct_instance_value, member_value.value, { static_cast<unsigned>(member_index) });
@@ -1592,7 +1594,7 @@ namespace h::compiler
                 Statement const& member_value_statement = pair.value;
 
                 Expression_parameters new_parameters = parameters;
-                new_parameters.expression_types = std::span<Type_reference const>{ &member_type, 1 };
+                new_parameters.expression_type = member_type;
                 Value_and_type const member_value = create_statement_value(member_value_statement, new_parameters);
 
                 struct_instance_value = llvm_builder.CreateInsertValue(struct_instance_value, member_value.value, { static_cast<unsigned>(member_index) });
@@ -1613,20 +1615,22 @@ namespace h::compiler
 
     Value_and_type create_parenthesis_expression_value(
         Parenthesis_expression const& expression,
-        std::span<Value_and_type const> const temporaries
+        Statement const& statement,
+        Expression_parameters const& parameters
     )
     {
-        Value_and_type temporary = temporaries[expression.expression.expression_index];
-        return temporary;
+        return create_expression_value(expression.expression.expression_index, statement, parameters);
     }
 
     Value_and_type create_return_expression_value(
         Return_expression const& expression,
-        llvm::IRBuilder<>& llvm_builder,
-        std::span<Value_and_type const> const temporaries
+        Statement const& statement,
+        Expression_parameters const& parameters
     )
     {
-        Value_and_type const temporary = temporaries[expression.expression.expression_index];
+        llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
+
+        Value_and_type const temporary = create_expression_value(expression.expression.expression_index, statement, parameters);
 
         llvm::Value* const instruction = llvm_builder.CreateRet(temporary.value);
 
@@ -1640,6 +1644,7 @@ namespace h::compiler
 
     Value_and_type create_switch_expression_value(
         Switch_expression const& expression,
+        Statement const& statement,
         Expression_parameters const& parameters
     )
     {
@@ -1648,7 +1653,6 @@ namespace h::compiler
         llvm::Function* const llvm_parent_function = parameters.llvm_parent_function;
         std::span<Block_info const> block_infos = parameters.blocks;
         std::span<Value_and_type const> const local_variables = parameters.local_variables;
-        std::span<Value_and_type const> const temporaries = parameters.temporaries;
 
         std::pmr::vector<llvm::BasicBlock*> case_blocks;
         case_blocks.resize(expression.cases.size());
@@ -1675,7 +1679,7 @@ namespace h::compiler
 
         std::uint64_t const number_of_cases = static_cast<std::uint64_t>(expression.cases.size());
 
-        Value_and_type const& switch_value = temporaries[expression.value.expression_index];
+        Value_and_type const& switch_value = create_expression_value(expression.value.expression_index, statement, parameters);
 
         llvm::SwitchInst* switch_instruction = llvm_builder.CreateSwitch(switch_value.value, default_case_block, number_of_cases);
 
@@ -1686,7 +1690,7 @@ namespace h::compiler
             if (switch_case.case_value.has_value())
             {
                 llvm::BasicBlock* const case_block = case_blocks[case_index];
-                Value_and_type const& case_value = temporaries[switch_case.case_value.value().expression_index];
+                Value_and_type const& case_value = create_expression_value(switch_case.case_value.value().expression_index, statement, parameters);
 
                 if (!llvm::ConstantInt::classof(case_value.value))
                     throw std::runtime_error("Swith case value is not a ConstantInt!");
@@ -1742,6 +1746,7 @@ namespace h::compiler
 
     Value_and_type create_ternary_condition_expression_value(
         Ternary_condition_expression const& expression,
+        Statement const& statement,
         Expression_parameters const& parameters
     )
     {
@@ -1750,14 +1755,13 @@ namespace h::compiler
         llvm::Function* const llvm_parent_function = parameters.llvm_parent_function;
         std::span<Block_info const> block_infos = parameters.blocks;
         std::span<Value_and_type const> const local_variables = parameters.local_variables;
-        std::span<Value_and_type const> const temporaries = parameters.temporaries;
 
         llvm::BasicBlock* const then_block = llvm::BasicBlock::Create(llvm_context, "ternary_condition_then", llvm_parent_function);
         llvm::BasicBlock* const else_block = llvm::BasicBlock::Create(llvm_context, "ternary_condition_else", llvm_parent_function);
         llvm::BasicBlock* const end_block = llvm::BasicBlock::Create(llvm_context, "ternary_condition_end", llvm_parent_function);
 
         // Condition:
-        Value_and_type const& condition_value = temporaries[expression.condition.expression_index];
+        Value_and_type const& condition_value = create_expression_value(expression.condition.expression_index, statement, parameters);
         llvm_builder.CreateCondBr(condition_value.value, then_block, else_block);
 
         // Then:
@@ -1797,16 +1801,18 @@ namespace h::compiler
 
     Value_and_type create_unary_expression_value(
         Unary_expression const& expression,
-        llvm::LLVMContext& llvm_context,
-        llvm::DataLayout const& llvm_data_layout,
-        llvm::IRBuilder<>& llvm_builder,
-        std::string_view const current_module_name,
-        std::span<Value_and_type const> const local_variables,
-        std::span<Value_and_type const> const temporaries,
-        Type_database const& type_database
+        Statement const& statement,
+        Expression_parameters const& parameters
     )
     {
-        Value_and_type const& value_expression = temporaries[expression.expression.expression_index];
+        llvm::LLVMContext& llvm_context = parameters.llvm_context;
+        llvm::DataLayout const& llvm_data_layout = parameters.llvm_data_layout;
+        llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
+        std::string_view const current_module_name = parameters.core_module.name;
+        std::span<Value_and_type const> const local_variables = parameters.local_variables;
+        Type_database const& type_database = parameters.type_database;
+
+        Value_and_type const& value_expression = create_expression_value(expression.expression.expression_index, statement, parameters);
         Unary_operation const operation = expression.operation;
 
         Type_reference const& type = value_expression.type.value();
@@ -1919,14 +1925,13 @@ namespace h::compiler
 
     Value_and_type create_variable_declaration_expression_value(
         Variable_declaration_expression const& expression,
-        llvm::LLVMContext& llvm_context,
-        llvm::DataLayout const& llvm_data_layout,
-        llvm::IRBuilder<>& llvm_builder,
-        std::span<Value_and_type const> const temporaries,
-        Type_database const& type_database
+        Statement const& statement,
+        Expression_parameters const& parameters
     )
     {
-        Value_and_type const& right_hand_side = temporaries[expression.right_hand_side.expression_index];
+        llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
+
+        Value_and_type const& right_hand_side = create_expression_value(expression.right_hand_side.expression_index, statement, parameters);
 
         llvm::Value* const alloca = llvm_builder.CreateAlloca(right_hand_side.value->getType(), nullptr, expression.name.c_str());
 
@@ -1958,7 +1963,7 @@ namespace h::compiler
         llvm::Value* const alloca = llvm_builder.CreateAlloca(llvm_type, nullptr, expression.name.c_str());
 
         Expression_parameters new_parameters = parameters;
-        new_parameters.expression_types = std::span<Type_reference const>{ &core_type, 1 };
+        new_parameters.expression_type = core_type;
 
         Value_and_type const right_hand_side = create_statement_value(
             expression.right_hand_side,
@@ -2118,7 +2123,6 @@ namespace h::compiler
         llvm::Function* const llvm_parent_function = parameters.llvm_parent_function;
         std::span<Block_info const> block_infos = parameters.blocks;
         std::span<Value_and_type const> const local_variables = parameters.local_variables;
-        std::span<Value_and_type const> const temporaries = parameters.temporaries;
 
         llvm::BasicBlock* const condition_block = llvm::BasicBlock::Create(llvm_context, "while_loop_condition", llvm_parent_function);
         llvm::BasicBlock* const then_block = llvm::BasicBlock::Create(llvm_context, "while_loop_then", llvm_parent_function);
@@ -2173,17 +2177,17 @@ namespace h::compiler
         if (std::holds_alternative<Access_expression>(expression.data))
         {
             Access_expression const& data = std::get<Access_expression>(expression.data);
-            return create_access_expression_value(data, parameters.core_module, parameters.core_module_dependencies, statement, parameters.llvm_module, parameters.llvm_builder, parameters.declaration_database, parameters.enum_value_constants, parameters.temporaries);
+            return create_access_expression_value(data, statement, parameters);
         }
         else if (std::holds_alternative<Assignment_expression>(expression.data))
         {
             Assignment_expression const& data = std::get<Assignment_expression>(expression.data);
-            return create_assignment_expression_value(data, parameters.llvm_context, parameters.llvm_data_layout, parameters.llvm_builder, parameters.core_module.name, parameters.temporaries, parameters.type_database);
+            return create_assignment_expression_value(data, statement, parameters);
         }
         else if (std::holds_alternative<Binary_expression>(expression.data))
         {
             Binary_expression const& data = std::get<Binary_expression>(expression.data);
-            return create_binary_expression_value(data, parameters.llvm_builder, parameters.temporaries);
+            return create_binary_expression_value(data, statement, parameters);
         }
         else if (std::holds_alternative<Block_expression>(expression.data))
         {
@@ -2198,12 +2202,12 @@ namespace h::compiler
         else if (std::holds_alternative<Call_expression>(expression.data))
         {
             Call_expression const& data = std::get<Call_expression>(expression.data);
-            return create_call_expression_value(data, parameters.core_module, parameters.llvm_builder, parameters.temporaries, parameters.temporaries_allocator);
+            return create_call_expression_value(data, statement, parameters);
         }
         else if (std::holds_alternative<Cast_expression>(expression.data))
         {
             Cast_expression const& data = std::get<Cast_expression>(expression.data);
-            return create_cast_expression_value(data, parameters.core_module, parameters.llvm_context, parameters.llvm_data_layout, parameters.llvm_builder, parameters.temporaries, parameters.type_database);
+            return create_cast_expression_value(data, statement, parameters);
         }
         else if (std::holds_alternative<Constant_expression>(expression.data))
         {
@@ -2218,7 +2222,7 @@ namespace h::compiler
         else if (std::holds_alternative<For_loop_expression>(expression.data))
         {
             For_loop_expression const& data = std::get<For_loop_expression>(expression.data);
-            return create_for_loop_expression_value(data, parameters);
+            return create_for_loop_expression_value(data, statement, parameters);
         }
         else if (std::holds_alternative<If_expression>(expression.data))
         {
@@ -2233,32 +2237,32 @@ namespace h::compiler
         else if (std::holds_alternative<Parenthesis_expression>(expression.data))
         {
             Parenthesis_expression const& data = std::get<Parenthesis_expression>(expression.data);
-            return create_parenthesis_expression_value(data, parameters.temporaries);
+            return create_parenthesis_expression_value(data, statement, parameters);
         }
         else if (std::holds_alternative<Return_expression>(expression.data))
         {
             Return_expression const& data = std::get<Return_expression>(expression.data);
-            return create_return_expression_value(data, parameters.llvm_builder, parameters.temporaries);
+            return create_return_expression_value(data, statement, parameters);
         }
         else if (std::holds_alternative<Ternary_condition_expression>(expression.data))
         {
             Ternary_condition_expression const& data = std::get<Ternary_condition_expression>(expression.data);
-            return create_ternary_condition_expression_value(data, parameters);
+            return create_ternary_condition_expression_value(data, statement, parameters);
         }
         else if (std::holds_alternative<Switch_expression>(expression.data))
         {
             Switch_expression const& data = std::get<Switch_expression>(expression.data);
-            return create_switch_expression_value(data, parameters);
+            return create_switch_expression_value(data, statement, parameters);
         }
         else if (std::holds_alternative<Unary_expression>(expression.data))
         {
             Unary_expression const& data = std::get<Unary_expression>(expression.data);
-            return create_unary_expression_value(data, parameters.llvm_context, parameters.llvm_data_layout, parameters.llvm_builder, parameters.core_module.name, parameters.local_variables, parameters.temporaries, parameters.type_database);
+            return create_unary_expression_value(data, statement, parameters);
         }
         else if (std::holds_alternative<Variable_declaration_expression>(expression.data))
         {
             Variable_declaration_expression const& data = std::get<Variable_declaration_expression>(expression.data);
-            return create_variable_declaration_expression_value(data, parameters.llvm_context, parameters.llvm_data_layout, parameters.llvm_builder, parameters.temporaries, parameters.type_database);
+            return create_variable_declaration_expression_value(data, statement, parameters);
         }
         else if (std::holds_alternative<Variable_declaration_with_type_expression>(expression.data))
         {
@@ -2282,33 +2286,21 @@ namespace h::compiler
         }
     }
 
+    Value_and_type create_expression_value(
+        std::size_t const expression_index,
+        Statement const& statement,
+        Expression_parameters const& parameters
+    )
+    {
+        return create_expression_value(statement.expressions[expression_index], statement, parameters);
+    }
+
     Value_and_type create_statement_value(
         Statement const& statement,
         Expression_parameters const& parameters
     )
     {
-        std::pmr::vector<Value_and_type> temporaries;
-        temporaries.resize(statement.expressions.size());
-
-        Expression_parameters new_parameters = parameters;
-
-        for (std::size_t index = 0; index < statement.expressions.size(); ++index)
-        {
-            std::size_t const expression_index = statement.expressions.size() - 1 - index;
-            Expression const& current_expression = statement.expressions[expression_index];
-
-            new_parameters.temporaries = temporaries;
-
-            Value_and_type const instruction = create_expression_value(
-                current_expression,
-                statement,
-                new_parameters
-            );
-
-            temporaries[expression_index] = instruction;
-        }
-
-        return temporaries.front();
+        return create_expression_value(statement.expressions[0], statement, parameters);
     }
 
     void create_statement_values(
