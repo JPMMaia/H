@@ -10,6 +10,7 @@ module;
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <variant>
 
 export module h.compiler.types;
 
@@ -42,6 +43,36 @@ namespace h::compiler
     export bool is_non_void_pointer(Type_reference const& type);
 
     export bool is_enum_type(Type_reference const& type, llvm::Value* value);
+
+    export template <typename Function_t>
+        void visit_type_references(
+            Type_reference const& type_reference,
+            Function_t predicate
+        )
+    {
+        predicate(type_reference);
+
+        if (std::holds_alternative<Constant_array_type>(type_reference.data))
+        {
+            Constant_array_type const& data = std::get<Constant_array_type>(type_reference.data);
+            for (Type_reference const& nested_type_reference : data.value_type)
+                visit_type_references(nested_type_reference, predicate);
+        }
+        else if (std::holds_alternative<Function_type>(type_reference.data))
+        {
+            Function_type const& data = std::get<Function_type>(type_reference.data);
+            for (Type_reference const& nested_type_reference : data.input_parameter_types)
+                visit_type_references(nested_type_reference, predicate);
+            for (Type_reference const& nested_type_reference : data.output_parameter_types)
+                visit_type_references(nested_type_reference, predicate);
+        }
+        else if (std::holds_alternative<Pointer_type>(type_reference.data))
+        {
+            Pointer_type const& data = std::get<Pointer_type>(type_reference.data);
+            for (Type_reference const& nested_type_reference : data.element_type)
+                visit_type_references(nested_type_reference, predicate);
+        }
+    }
 
     export struct Builtin_types
     {

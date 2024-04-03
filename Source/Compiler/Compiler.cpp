@@ -579,10 +579,24 @@ namespace h::compiler
             Import_module_with_alias const& alias_import = core_module.dependencies.alias_imports[index];
             Module& dependency_core_module = dependency_core_modules[index];
 
-            auto const is_unused = [&alias_import](auto const& declaration) -> bool
+            std::pmr::vector<std::pmr::string> const& usages = alias_import.usages;
+            std::pmr::vector<std::pmr::string> alias_usages;
+
+            auto const is_unused = [&usages, &alias_usages](auto const& declaration) -> bool
             {
-                auto const location = std::find_if(alias_import.usages.begin(), alias_import.usages.end(), [&declaration](std::pmr::string const& usage) -> bool { return usage == declaration.name; });
-                return location == alias_import.usages.end();
+                {
+                    auto const location = std::find_if(usages.begin(), usages.end(), [&declaration](std::pmr::string const& usage) -> bool { return usage == declaration.name; });
+                    if (location != usages.end())
+                        return false;
+                }
+
+                {
+                    auto const location = std::find_if(alias_usages.begin(), alias_usages.end(), [&declaration](std::pmr::string const& usage) -> bool { return usage == declaration.name; });
+                    if (location != alias_usages.end())
+                        return false;
+                }
+
+                return true;
             };
 
             auto const remove_unused = [&is_unused](auto& declarations)
@@ -593,6 +607,24 @@ namespace h::compiler
 
             remove_unused(dependency_core_module.export_declarations.alias_type_declarations);
             remove_unused(dependency_core_module.internal_declarations.alias_type_declarations);
+
+            auto const add_alias_usage = [&alias_usages](Type_reference const type_reference)
+            {
+                if (std::holds_alternative<Custom_type_reference>(type_reference.data))
+                {
+                    Custom_type_reference const& custom_type_reference = std::get<Custom_type_reference>(type_reference.data);
+                    if (custom_type_reference.module_reference.name.empty())
+                    {
+                        alias_usages.push_back(custom_type_reference.name);
+                    }
+                }
+            };
+
+            for (Alias_type_declaration const& declaration : dependency_core_module.export_declarations.alias_type_declarations)
+            {
+                if (!declaration.type.empty())
+                    visit_type_references(declaration.type[0], add_alias_usage);
+            }
 
             remove_unused(dependency_core_module.export_declarations.enum_declarations);
             remove_unused(dependency_core_module.internal_declarations.enum_declarations);

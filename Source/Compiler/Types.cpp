@@ -237,36 +237,6 @@ namespace h::compiler
         };
     }
 
-    template <typename Function_t>
-    void visit_type_references(
-        Type_reference const& type_reference,
-        Function_t predicate
-    )
-    {
-        predicate(type_reference);
-
-        if (std::holds_alternative<Constant_array_type>(type_reference.data))
-        {
-            Constant_array_type const& data = std::get<Constant_array_type>(type_reference.data);
-            for (Type_reference const& nested_type_reference : data.value_type)
-                visit_type_references(nested_type_reference, predicate);
-        }
-        else if (std::holds_alternative<Function_type>(type_reference.data))
-        {
-            Function_type const& data = std::get<Function_type>(type_reference.data);
-            for (Type_reference const& nested_type_reference : data.input_parameter_types)
-                visit_type_references(nested_type_reference, predicate);
-            for (Type_reference const& nested_type_reference : data.output_parameter_types)
-                visit_type_references(nested_type_reference, predicate);
-        }
-        else if (std::holds_alternative<Pointer_type>(type_reference.data))
-        {
-            Pointer_type const& data = std::get<Pointer_type>(type_reference.data);
-            for (Type_reference const& nested_type_reference : data.element_type)
-                visit_type_references(nested_type_reference, predicate);
-        }
-    }
-
     std::pmr::vector<Alias_type_declaration const*> find_nested_alias_types(
         Type_reference const& type_reference,
         std::span<Alias_type_declaration const> const external_alias_type_declarations,
