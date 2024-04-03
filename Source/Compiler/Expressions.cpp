@@ -237,6 +237,13 @@ namespace h::compiler
                 };
             }
         }
+        else if (left_hand_side.value != nullptr)
+        {
+            if (left_hand_side.type.has_value() && std::holds_alternative<Custom_type_reference>(left_hand_side.type.value().data))
+            {
+                return std::get<Custom_type_reference>(left_hand_side.type.value().data);
+            }
+        }
 
         return std::nullopt;
     }
@@ -247,6 +254,7 @@ namespace h::compiler
         std::span<Module const> const core_module_dependencies,
         Statement const& statement,
         llvm::Module& llvm_module,
+        llvm::IRBuilder<>& llvm_builder,
         Declaration_database const& declaration_database,
         Enum_value_constants const& enum_value_constants,
         std::span<Value_and_type const> const temporaries
@@ -354,11 +362,34 @@ namespace h::compiler
                             enum_value_constants
                         );
                     }
+                    else if (std::holds_alternative<Struct_declaration const*>(declaration_value.data))
+                    {
+                        Struct_declaration const& struct_declaration = *std::get<Struct_declaration const*>(declaration_value.data);
+
+                        if (left_hand_side.value != nullptr)
+                        {
+                            auto const member_location = std::find(struct_declaration.member_names.begin(), struct_declaration.member_names.end(), expression.member_name);
+                            if (member_location == struct_declaration.member_names.end())
+                                throw std::runtime_error{ std::format("'{}' does not exist in struct type '{}'.", expression.member_name, struct_declaration.name) };
+
+                            unsigned const member_index = static_cast<unsigned>(std::distance(struct_declaration.member_names.begin(), member_location));
+
+                            llvm::Value* const extract_value = llvm_builder.CreateExtractValue(left_hand_side.value, { member_index });
+
+                            Type_reference member_type = struct_declaration.member_types[member_index];
+                            set_custom_type_reference_module_name_if_empty(member_type, module_name);
+
+                            return
+                            {
+                                .name = "",
+                                .value = extract_value,
+                                .type = std::move(member_type)
+                            };
+                        }
+                    }
                 }
             }
         }
-
-        // TODO access struct member (left_hand_side.value != nullptr)
 
         throw std::runtime_error{ "Could not process access expression!" };
     }
@@ -1485,6 +1516,101 @@ namespace h::compiler
         };
     }
 
+    Value_and_type create_instantiate_struct_expression_value(
+        Instantiate_struct_expression const& expression,
+        Expression_parameters const& parameters
+    )
+    {
+        llvm::LLVMContext& llvm_context = parameters.llvm_context;
+        llvm::DataLayout const& llvm_data_layout = parameters.llvm_data_layout;
+        llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
+        Module const& core_module = parameters.core_module;
+        Declaration_database const& declaration_database = parameters.declaration_database;
+        Type_database const& type_database = parameters.type_database;
+
+        if (!expression.type_reference.has_value() && parameters.expression_types.empty())
+            throw std::runtime_error{ "Could not infer struct type while trying to instantiate!" };
+
+        Type_reference const& struct_type_reference = expression.type_reference.has_value() ? expression.type_reference.value() : parameters.expression_types.back();
+        if (!std::holds_alternative<Custom_type_reference>(struct_type_reference.data))
+            throw std::runtime_error{ "Could not instantiate struct because the type is not a struct!" };
+
+        Custom_type_reference const& custom_type_reference = std::get<Custom_type_reference>(struct_type_reference.data);
+        std::optional<Declaration> const declaration = find_declaration(declaration_database, custom_type_reference.module_reference.name, custom_type_reference.name);
+
+        if (!declaration.has_value())
+            throw std::runtime_error{ std::format("Could not find struct type declaration '{}.{}' while trying to instantiate struct!", custom_type_reference.module_reference.name, custom_type_reference.name) };
+
+        if (!std::holds_alternative<Struct_declaration const*>(declaration.value().data))
+            throw std::runtime_error{ "Found non-struct type while trying to instantiate struct!" };
+
+        Struct_declaration const& struct_declaration = *std::get<Struct_declaration const*>(declaration.value().data);
+
+        llvm::Type* const llvm_struct_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module.name, struct_type_reference, type_database);
+
+        llvm::Value* struct_instance_value = llvm::UndefValue::get(llvm_struct_type);
+
+        if (expression.type == Instantiate_struct_type::Default)
+        {
+            for (std::size_t member_index = 0; member_index < struct_declaration.member_names.size(); ++member_index)
+            {
+                std::string_view const member_name = struct_declaration.member_names[member_index];
+                Type_reference const member_type = fix_custom_type_reference(struct_declaration.member_types[member_index], core_module.name);
+
+                auto const expression_pair_location = std::find_if(expression.members.begin(), expression.members.end(), [member_name](Instantiate_struct_member_value_pair const& pair) { return pair.member_name == member_name; });
+                Statement const& member_value_statement = expression_pair_location != expression.members.end() ? expression_pair_location->value : struct_declaration.member_default_values[member_index];
+
+                Expression_parameters new_parameters = parameters;
+                new_parameters.expression_types = std::span<Type_reference const>{ &member_type, 1 };
+                Value_and_type const member_value = create_statement_value(member_value_statement, new_parameters);
+
+                struct_instance_value = llvm_builder.CreateInsertValue(struct_instance_value, member_value.value, { static_cast<unsigned>(member_index) });
+            }
+
+            return Value_and_type
+            {
+                .name = "",
+                .value = struct_instance_value,
+                .type = struct_type_reference
+            };
+        }
+        else if (expression.type == Instantiate_struct_type::Explicit)
+        {
+            for (std::size_t member_index = 0; member_index < struct_declaration.member_names.size(); ++member_index)
+            {
+                std::string_view const member_name = struct_declaration.member_names[member_index];
+                Type_reference const member_type = fix_custom_type_reference(struct_declaration.member_types[member_index], core_module.name);
+
+                if (member_index >= expression.members.size())
+                    throw std::runtime_error{ std::format("The struct member '{}' of struct '{}.{}' is not explicitly initialized!", member_name, custom_type_reference.module_reference.name, custom_type_reference.name) };
+
+                Instantiate_struct_member_value_pair const& pair = expression.members[member_index];
+
+                if (pair.member_name != member_name)
+                    throw std::runtime_error{ std::format("Expected struct member '{}' of struct '{}.{}' instead of '{}' while instantiating struct!", member_name, custom_type_reference.module_reference.name, custom_type_reference.name, pair.member_name) };
+
+                Statement const& member_value_statement = pair.value;
+
+                Expression_parameters new_parameters = parameters;
+                new_parameters.expression_types = std::span<Type_reference const>{ &member_type, 1 };
+                Value_and_type const member_value = create_statement_value(member_value_statement, new_parameters);
+
+                struct_instance_value = llvm_builder.CreateInsertValue(struct_instance_value, member_value.value, { static_cast<unsigned>(member_index) });
+            }
+
+            return Value_and_type
+            {
+                .name = "",
+                .value = struct_instance_value,
+                .type = struct_type_reference
+            };
+        }
+        else
+        {
+            throw std::runtime_error{ "Instantiate_struct_type not handled!" };
+        }
+    }
+
     Value_and_type create_parenthesis_expression_value(
         Parenthesis_expression const& expression,
         std::span<Value_and_type const> const temporaries
@@ -1814,6 +1940,41 @@ namespace h::compiler
         };
     }
 
+    Value_and_type create_variable_declaration_with_type_expression_value(
+        Variable_declaration_with_type_expression const& expression,
+        Expression_parameters const& parameters
+    )
+    {
+        llvm::LLVMContext& llvm_context = parameters.llvm_context;
+        llvm::DataLayout const& llvm_data_layout = parameters.llvm_data_layout;
+        llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
+        Module const& core_module = parameters.core_module;
+        Type_database const& type_database = parameters.type_database;
+
+        Type_reference core_type = fix_custom_type_reference(expression.type, core_module.name);
+
+        llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module.name, core_type, type_database);
+
+        llvm::Value* const alloca = llvm_builder.CreateAlloca(llvm_type, nullptr, expression.name.c_str());
+
+        Expression_parameters new_parameters = parameters;
+        new_parameters.expression_types = std::span<Type_reference const>{ &core_type, 1 };
+
+        Value_and_type const right_hand_side = create_statement_value(
+            expression.right_hand_side,
+            new_parameters
+        );
+
+        llvm_builder.CreateStore(right_hand_side.value, alloca);
+
+        return Value_and_type
+        {
+            .name = expression.name,
+            .value = alloca,
+            .type = std::move(core_type)
+        };
+    }
+
     Value_and_type create_variable_expression_value(
         Variable_expression const& expression,
         Module const& core_module,
@@ -2012,7 +2173,7 @@ namespace h::compiler
         if (std::holds_alternative<Access_expression>(expression.data))
         {
             Access_expression const& data = std::get<Access_expression>(expression.data);
-            return create_access_expression_value(data, parameters.core_module, parameters.core_module_dependencies, statement, parameters.llvm_module, parameters.declaration_database, parameters.enum_value_constants, parameters.temporaries);
+            return create_access_expression_value(data, parameters.core_module, parameters.core_module_dependencies, statement, parameters.llvm_module, parameters.llvm_builder, parameters.declaration_database, parameters.enum_value_constants, parameters.temporaries);
         }
         else if (std::holds_alternative<Assignment_expression>(expression.data))
         {
@@ -2064,6 +2225,11 @@ namespace h::compiler
             If_expression const& data = std::get<If_expression>(expression.data);
             return create_if_expression_value(data, parameters);
         }
+        else if (std::holds_alternative<Instantiate_struct_expression>(expression.data))
+        {
+            Instantiate_struct_expression const& data = std::get<Instantiate_struct_expression>(expression.data);
+            return create_instantiate_struct_expression_value(data, parameters);
+        }
         else if (std::holds_alternative<Parenthesis_expression>(expression.data))
         {
             Parenthesis_expression const& data = std::get<Parenthesis_expression>(expression.data);
@@ -2093,6 +2259,11 @@ namespace h::compiler
         {
             Variable_declaration_expression const& data = std::get<Variable_declaration_expression>(expression.data);
             return create_variable_declaration_expression_value(data, parameters.llvm_context, parameters.llvm_data_layout, parameters.llvm_builder, parameters.temporaries, parameters.type_database);
+        }
+        else if (std::holds_alternative<Variable_declaration_with_type_expression>(expression.data))
+        {
+            Variable_declaration_with_type_expression const& data = std::get<Variable_declaration_with_type_expression>(expression.data);
+            return create_variable_declaration_with_type_expression_value(data, parameters);
         }
         else if (std::holds_alternative<Variable_expression>(expression.data))
         {

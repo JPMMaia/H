@@ -24,6 +24,7 @@ namespace h::compiler
     export Type_reference create_custom_type_reference(std::string_view module_name, std::string_view name);
     export bool is_custom_type_reference(Type_reference const& type);
     export void set_custom_type_reference_module_name_if_empty(Type_reference& type, std::string_view module_name);
+    export Type_reference fix_custom_type_reference(Type_reference type, std::string_view module_name);
 
     export Type_reference create_function_type_type_reference(Function_type const& function_type);
     export std::optional<Type_reference> get_function_output_type_reference(Type_reference const& type);
