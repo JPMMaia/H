@@ -271,7 +271,14 @@ namespace h::compiler
                 if (std::holds_alternative<Alias_type_declaration const*>(declaration.data))
                 {
                     Alias_type_declaration const& alias_type_declaration = *std::get<Alias_type_declaration const*>(declaration.data);
-                    // TODO
+                    Type_reference type = create_custom_type_reference(external_module.name, alias_type_declaration.name);
+
+                    return Value_and_type
+                    {
+                        .name = expression.member_name,
+                        .value = nullptr,
+                        .type = std::move(type)
+                    };
                 }
                 else if (std::holds_alternative<Enum_declaration const*>(declaration.data))
                 {

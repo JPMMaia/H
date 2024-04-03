@@ -1264,6 +1264,12 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
+define void @use_alias(i32 %my_enum) {
+entry:
+  %a = alloca i32, align 4
+  store i32 10, ptr %a, align 4
+  ret void
+}
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
