@@ -63,8 +63,7 @@ namespace h::compiler
         std::span<Block_info const> blocks;
         std::span<Value_and_type const> function_arguments;
         std::span<Value_and_type const> local_variables;
-        std::span<Value_and_type const> temporaries;
-        std::span<Type_reference const> expression_types;
+        std::optional<Type_reference> expression_type;
         std::pmr::polymorphic_allocator<> const& temporaries_allocator;
     };
 
@@ -81,6 +80,12 @@ namespace h::compiler
 
     export Value_and_type create_expression_value(
         Expression const& expression,
+        Statement const& statement,
+        Expression_parameters const& parameters
+    );
+
+    export Value_and_type create_expression_value(
+        std::size_t expression_index,
         Statement const& statement,
         Expression_parameters const& parameters
     );
