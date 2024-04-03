@@ -68,6 +68,12 @@ namespace h::compiler
         }
     }
 
+    Type_reference fix_custom_type_reference(Type_reference type, std::string_view module_name)
+    {
+        set_custom_type_reference_module_name_if_empty(type, module_name);
+        return type;
+    }
+
 
     Type_reference create_function_type_type_reference(Function_type const& function_type)
     {

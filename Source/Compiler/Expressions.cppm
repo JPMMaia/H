@@ -64,6 +64,7 @@ namespace h::compiler
         std::span<Value_and_type const> function_arguments;
         std::span<Value_and_type const> local_variables;
         std::span<Value_and_type const> temporaries;
+        std::span<Type_reference const> expression_types;
         std::pmr::polymorphic_allocator<> const& temporaries_allocator;
     };
 
