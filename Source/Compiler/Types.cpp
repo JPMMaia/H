@@ -83,19 +83,24 @@ namespace h::compiler
         };
     }
 
+    std::optional<Type_reference> get_function_output_type_reference(Function_type const& function_type)
+    {
+        if (function_type.output_parameter_types.empty())
+            return std::nullopt;
+
+        if (function_type.output_parameter_types.size() == 1)
+            return function_type.output_parameter_types.front();
+
+        // TODO function with multiple output arguments
+        return std::nullopt;
+    }
+
     std::optional<Type_reference> get_function_output_type_reference(Type_reference const& type)
     {
         if (std::holds_alternative<Function_type>(type.data))
         {
             Function_type const& function_type = std::get<Function_type>(type.data);
-
-            if (function_type.output_parameter_types.empty())
-                return std::nullopt;
-
-            if (function_type.output_parameter_types.size() == 1)
-                return function_type.output_parameter_types.front();
-
-            // TODO function with multiple output arguments
+            return get_function_output_type_reference(function_type);
         }
 
         throw std::runtime_error{ "Type is not a function type!" };
