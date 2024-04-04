@@ -2448,6 +2448,8 @@ export function create_core_module(module: Module, language_version: Core.Langua
     const internal_functions: Core.Function_declaration[] = [];
     const export_structs: Core.Struct_declaration[] = [];
     const internal_structs: Core.Struct_declaration[] = [];
+    const export_unions: Core.Union_declaration[] = [];
+    const internal_unions: Core.Union_declaration[] = [];
     const function_definitions: Core.Function_definition[] = [];
 
     for (const declaration of module.declarations) {
@@ -2472,6 +2474,11 @@ export function create_core_module(module: Module, language_version: Core.Langua
             case Declaration_type.Struct: {
                 const array = declaration.is_export ? export_structs : internal_structs;
                 array.push(intermediate_to_core_struct_declaration(declaration.value as Struct_declaration));
+                break;
+            }
+            case Declaration_type.Union: {
+                const array = declaration.is_export ? export_unions : internal_unions;
+                array.push(intermediate_to_core_union_declaration(declaration.value as Union_declaration));
                 break;
             }
         }
@@ -2503,6 +2510,10 @@ export function create_core_module(module: Module, language_version: Core.Langua
                 size: export_structs.length,
                 elements: export_structs
             },
+            union_declarations: {
+                size: export_unions.length,
+                elements: export_unions
+            }
         },
         internal_declarations: {
             alias_type_declarations: {
@@ -2521,6 +2532,10 @@ export function create_core_module(module: Module, language_version: Core.Langua
                 size: internal_structs.length,
                 elements: internal_structs
             },
+            union_declarations: {
+                size: internal_unions.length,
+                elements: internal_unions
+            }
         },
         definitions: {
             function_definitions: {
@@ -2535,14 +2550,15 @@ export enum Declaration_type {
     Alias,
     Enum,
     Function,
-    Struct
+    Struct,
+    Union
 }
 
 export interface Declaration {
     name: string;
     type: Declaration_type;
     is_export: boolean;
-    value: Alias_type_declaration | Enum_declaration | Function | Struct_declaration
+    value: Alias_type_declaration | Enum_declaration | Function | Struct_declaration | Union_declaration
 }
 
 function create_declarations(module: Core.Module): Declaration[] {
@@ -2552,10 +2568,12 @@ function create_declarations(module: Core.Module): Declaration[] {
         ...module.export_declarations.enum_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Enum, is_export: true, value: core_to_intermediate_enum_declaration(value) }; }),
         ...module.export_declarations.function_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Function, is_export: true, value: core_to_intermediate_function(module, value) }; }),
         ...module.export_declarations.struct_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Struct, is_export: true, value: core_to_intermediate_struct_declaration(value) }; }),
+        ...module.export_declarations.union_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Union, is_export: true, value: core_to_intermediate_union_declaration(value) }; }),
         ...module.internal_declarations.alias_type_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Alias, is_export: false, value: core_to_intermediate_alias_type_declaration(value) }; }),
         ...module.internal_declarations.enum_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Enum, is_export: false, value: core_to_intermediate_enum_declaration(value) }; }),
         ...module.internal_declarations.function_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Function, is_export: false, value: core_to_intermediate_function(module, value) }; }),
         ...module.internal_declarations.struct_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Struct, is_export: false, value: core_to_intermediate_struct_declaration(value) }; }),
+        ...module.internal_declarations.union_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Union, is_export: true, value: core_to_intermediate_union_declaration(value) }; }),
     ];
 
     return declarations;

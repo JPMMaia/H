@@ -345,6 +345,35 @@
             ]
         },
         {
+            "name": "Union_declaration",
+            "members": [
+                {
+                    "type": {
+                        "name": "std::pmr::string"
+                    },
+                    "name": "name"
+                },
+                {
+                    "type": {
+                        "name": "std::optional<std::pmr::string>"
+                    },
+                    "name": "unique_name"
+                },
+                {
+                    "type": {
+                        "name": "std::pmr::vector<Type_reference>"
+                    },
+                    "name": "member_types"
+                },
+                {
+                    "type": {
+                        "name": "std::pmr::vector<std::pmr::string>"
+                    },
+                    "name": "member_names"
+                }
+            ]
+        },
+        {
             "name": "Variable_expression",
             "members": [
                 {
@@ -959,6 +988,12 @@
                         "name": "std::pmr::vector<Struct_declaration>"
                     },
                     "name": "struct_declarations"
+                },
+                {
+                    "type": {
+                        "name": "std::pmr::vector<Union_declaration>"
+                    },
+                    "name": "union_declarations"
                 },
                 {
                     "type": {
