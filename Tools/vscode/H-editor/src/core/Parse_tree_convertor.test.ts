@@ -2157,6 +2157,14 @@ describe("Parse_tree_convertor.parse_tree_to_module", () => {
         assert_declarations(actual_module.declarations, expected_module.declarations);
     });
 
+    it("Handles unions", () => {
+        const grammar_description = Grammar_examples.create_test_grammar_9_description();
+        const expected_module = Module_examples.create_union_example();
+        const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
+
+        assert_declarations(actual_module.declarations, expected_module.declarations);
+    });
+
     it("Handles import dependencies", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
         const expected_module = Module_examples.create_module_with_dependencies();

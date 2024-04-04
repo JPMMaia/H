@@ -22,6 +22,8 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Statement", ["declarations", "$declaration_index", "value", "definition", "statements", "$order_index"]],
             ["Struct_name", ["declarations", "$declaration_index", "value", "name"]],
             ["Struct_member_name", ["declarations", "$declaration_index", "value", "member_names", "$order_index"]],
+            ["Union_name", ["declarations", "$declaration_index", "value", "name"]],
+            ["Union_member_name", ["declarations", "$declaration_index", "value", "member_names", "$order_index"]],
         ]
     );
 
@@ -62,6 +64,10 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
                 ["declarations", "$declaration_index", "value", "member_names"],
                 ["declarations", "$declaration_index", "value", "member_types"]
             ]],
+            ["Union_members", [
+                ["declarations", "$declaration_index", "value", "member_names"],
+                ["declarations", "$declaration_index", "value", "member_types"]
+            ]],
             ["Statements", [["declarations", "$order_index", "value", "definition", "statements"]]],
             ["Expression_block_statements", [["$top.state.value", "data", "value", "statements"]]],
             ["Expression_call_arguments", [["$top.state.value", "data", "value", "arguments"]]],
@@ -79,6 +85,7 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             "Function_input_parameters",
             "Function_output_parameters",
             "Struct_members",
+            "Union_members",
             "Statements",
         ]
     );
@@ -143,6 +150,7 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Enum", create_module_changes_declaration],
             ["Function", create_module_changes_declaration],
             ["Struct", create_module_changes_declaration],
+            ["Union", create_module_changes_declaration],
         ]
     );
 
@@ -154,6 +162,7 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Enum", node_to_declaration],
             ["Function", node_to_declaration],
             ["Struct", node_to_declaration],
+            ["Union", node_to_declaration],
         ]
     );
 
@@ -505,7 +514,16 @@ function choose_production_rule_type(
 
             const member_type = struct_declaration.member_types[member_type_index];
             return [member_type];
+        }
+        else if (top.node.word.value === "Union_member_type") {
+            const union_state = stack[stack.length - 4];
+            const union_declaration = union_state.state.value.value as Core_intermediate_representation.Union_declaration;
 
+            const member_types_array_state = stack[stack.length - 3];
+            const member_type_index = (member_types_array_state.current_child_index - 1);
+
+            const member_type = union_declaration.member_types[member_type_index];
+            return [member_type];
         }
         else if (top.node.word.value === "Expression_cast_destination_type") {
             const expression = top.state.value as Core_intermediate_representation.Expression;
@@ -1779,6 +1797,15 @@ function node_to_declaration(
                 value: value,
             };
         }
+        case "Union": {
+            const value = node_to_union_declaration(node, key_to_production_rule_indices);
+            return {
+                name: value.name,
+                type: Core_intermediate_representation.Declaration_type.Union,
+                is_export: is_export,
+                value: value,
+            };
+        }
         default: {
             const message = "Parse_tree_convertor.node_to_declaration(): failed to handle node";
             onThrowError(message);
@@ -1938,6 +1965,33 @@ function node_to_struct_declaration(node: Parser_node.Node, key_to_production_ru
         member_default_values: member_default_values,
         is_packed: false,
         is_literal: false
+    };
+}
+
+function node_to_union_declaration(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Union_declaration {
+    const name = find_node_value(node, "Union_name", key_to_production_rule_indices);
+
+    const member_nodes = find_nodes_inside_parent(node, "Union_members", "Union_member", key_to_production_rule_indices);
+
+    const member_names: string[] = [];
+    const member_types: Core_intermediate_representation.Type_reference[] = [];
+
+    for (let index = 0; index < member_nodes.length; ++index) {
+        const member_node = member_nodes[index];
+
+        const member_name = find_node_value(member_node, "Union_member_name", key_to_production_rule_indices);
+
+        const member_type_node = find_node(member_node, "Union_member_type", key_to_production_rule_indices) as Parser_node.Node;
+        const member_type = node_to_type_reference(member_type_node.children[0], key_to_production_rule_indices);
+
+        member_names.push(member_name);
+        member_types.push(member_type[0]);
+    }
+
+    return {
+        name: name,
+        member_names: member_names,
+        member_types: member_types
     };
 }
 
