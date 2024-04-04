@@ -461,6 +461,7 @@ namespace h::json
     export std::optional<Stack_state> get_next_state_enum_value(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_enum_declaration(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_struct_declaration(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_union_declaration(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_variable_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_expression_index(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_access_expression(Stack_state* state, std::string_view const key);
@@ -1178,6 +1179,85 @@ namespace h::json
                 .pointer = &parent->is_literal,
                 .type = "bool",
                 .get_next_state = nullptr,
+            };
+        }
+
+        return {};
+    }
+
+    export std::optional<Stack_state> get_next_state_union_declaration(Stack_state* state, std::string_view const key)
+    {
+        h::Union_declaration* parent = static_cast<h::Union_declaration*>(state->pointer);
+
+        if (key == "name")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "unique_name")
+        {
+            parent->unique_name = std::pmr::string{};
+            return Stack_state
+            {
+                .pointer = &parent->unique_name.value(),
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "member_types")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Type_reference>* parent = static_cast<std::pmr::vector<Type_reference>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Type_reference>* parent = static_cast<std::pmr::vector<Type_reference>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->member_types,
+                .type = "std::pmr::vector<Type_reference>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_type_reference
+            };
+        }
+
+        if (key == "member_names")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<std::pmr::string>* parent = static_cast<std::pmr::vector<std::pmr::string>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<std::pmr::string>* parent = static_cast<std::pmr::vector<std::pmr::string>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->member_names,
+                .type = "std::pmr::vector<std::pmr::string>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = nullptr
             };
         }
 
@@ -2731,6 +2811,31 @@ namespace h::json
             };
         }
 
+        if (key == "union_declarations")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Union_declaration>* parent = static_cast<std::pmr::vector<Union_declaration>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Union_declaration>* parent = static_cast<std::pmr::vector<Union_declaration>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->union_declarations,
+                .type = "std::pmr::vector<Union_declaration>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_union_declaration
+            };
+        }
+
         if (key == "function_declarations")
         {
             auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
@@ -2994,6 +3099,16 @@ namespace h::json
                 .pointer = output,
                 .type = "Struct_declaration",
                 .get_next_state = get_next_state_struct_declaration
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Union_declaration>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Union_declaration",
+                .get_next_state = get_next_state_union_declaration
             };
         }
 

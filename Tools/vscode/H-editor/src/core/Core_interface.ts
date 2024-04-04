@@ -191,6 +191,13 @@ export interface Struct_declaration {
     is_literal: boolean;
 }
 
+export interface Union_declaration {
+    name: string;
+    unique_name?: string;
+    member_types: Vector<Type_reference>;
+    member_names: Vector<string>;
+}
+
 export interface Variable_expression {
     name: string;
     access_type: Access_type;
@@ -366,6 +373,7 @@ export interface Module_declarations {
     alias_type_declarations: Vector<Alias_type_declaration>;
     enum_declarations: Vector<Enum_declaration>;
     struct_declarations: Vector<Struct_declaration>;
+    union_declarations: Vector<Union_declaration>;
     function_declarations: Vector<Function_declaration>;
 }
 

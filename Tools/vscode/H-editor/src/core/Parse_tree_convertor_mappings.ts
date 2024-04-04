@@ -438,6 +438,8 @@ function get_underlying_declaration_production_rule_lhs(type: Core_intermediate_
             return "Function";
         case Core_intermediate_representation.Declaration_type.Struct:
             return "Struct";
+        case Core_intermediate_representation.Declaration_type.Union:
+            return "Union";
     }
 }
 

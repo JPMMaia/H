@@ -162,6 +162,16 @@ namespace h
         friend auto operator<=>(Struct_declaration const&, Struct_declaration const&) = default;
     };
 
+    export struct Union_declaration
+    {
+        std::pmr::string name;
+        std::optional<std::pmr::string> unique_name;
+        std::pmr::vector<Type_reference> member_types;
+        std::pmr::vector<std::pmr::string> member_names;
+
+        friend auto operator<=>(Union_declaration const&, Union_declaration const&) = default;
+    };
+
     export enum Access_type
     {
         Read = 1,
@@ -527,6 +537,7 @@ namespace h
         std::pmr::vector<Alias_type_declaration> alias_type_declarations;
         std::pmr::vector<Enum_declaration> enum_declarations;
         std::pmr::vector<Struct_declaration> struct_declarations;
+        std::pmr::vector<Union_declaration> union_declarations;
         std::pmr::vector<Function_declaration> function_declarations;
 
         friend auto operator<=>(Module_declarations const&, Module_declarations const&) = default;
