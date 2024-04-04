@@ -490,6 +490,44 @@ export function create_struct_example(): IR.Module {
     };
 }
 
+export function create_union_example(): IR.Module {
+    return {
+        name: "union_example",
+        imports: [],
+        declarations: [
+            {
+                name: "My_union",
+                type: IR.Declaration_type.Union,
+                is_export: true,
+                value: {
+                    name: "My_union",
+                    member_types: [
+                        {
+                            data: {
+                                type: IR.Type_reference_enum.Fundamental_type,
+                                value: IR.Fundamental_type.Float32
+                            }
+                        },
+                        {
+                            data: {
+                                type: IR.Type_reference_enum.Integer_type,
+                                value: {
+                                    number_of_bits: 32,
+                                    is_signed: true
+                                }
+                            }
+                        }
+                    ],
+                    member_names: [
+                        "member_0",
+                        "member_1"
+                    ]
+                }
+            }
+        ]
+    };
+}
+
 export function create_function_example(): IR.Module {
     return {
         name: "function_example",
