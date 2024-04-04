@@ -61,6 +61,7 @@ namespace h::compiler
         Type_database const& type_database;
         Enum_value_constants const& enum_value_constants;
         std::span<Block_info const> blocks;
+        std::optional<Function_declaration const*> function_declaration;
         std::span<Value_and_type const> function_arguments;
         std::span<Value_and_type const> local_variables;
         std::optional<Type_reference> expression_type;
@@ -77,12 +78,6 @@ namespace h::compiler
         Expression_parameters const& parameters
     );
 
-
-    export Value_and_type create_expression_value(
-        Expression const& expression,
-        Statement const& statement,
-        Expression_parameters const& parameters
-    );
 
     export Value_and_type create_expression_value(
         std::size_t expression_index,

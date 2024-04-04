@@ -303,6 +303,7 @@ namespace h::compiler
             .type_database = type_database,
             .enum_value_constants = enum_value_constants,
             .blocks = {},
+            .function_declaration = {},
             .function_arguments = {},
             .local_variables = {},
             .expression_type = std::nullopt,
@@ -353,7 +354,7 @@ namespace h::compiler
                 function_arguments.push_back({ .name = name, .value = llvm_argument, .type = std::move(core_type) });
             }
 
-            Expression_parameters expression_parameters
+            Expression_parameters const expression_parameters
             {
                 .llvm_context = llvm_context,
                 .llvm_data_layout = llvm_data_layout,
@@ -366,32 +367,14 @@ namespace h::compiler
                 .type_database = type_database,
                 .enum_value_constants = enum_value_constants,
                 .blocks = block_infos,
+                .function_declaration = &function_declaration,
                 .function_arguments = function_arguments,
                 .local_variables = {},
                 .expression_type = std::nullopt,
                 .temporaries_allocator = temporaries_allocator,
             };
 
-            std::pmr::vector<Value_and_type> local_variables{ temporaries_allocator };
-            local_variables.reserve(function_definition.statements.size());
-
-            for (std::size_t statement_index = 0; statement_index < function_definition.statements.size(); ++statement_index)
-            {
-                Statement const& statement = function_definition.statements[statement_index];
-
-                expression_parameters.local_variables = local_variables;
-
-                if (!statement.expressions.empty())
-                {
-                    Value_and_type instruction = create_expression_value(
-                        statement.expressions[0],
-                        statement,
-                        expression_parameters
-                    );
-
-                    local_variables.push_back(std::move(instruction));
-                }
-            }
+            create_statement_values(function_definition.statements, expression_parameters);
         }
 
         auto const return_void_is_missing = [&]() -> bool

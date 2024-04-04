@@ -1440,6 +1440,49 @@ switch_case_i5_:                                  ; preds = %switch_case_i4_, %e
     };
 
     char const* const expected_llvm_ir = R"(
+%My_struct = type { i32, i32 }
+%My_struct_2 = type { %My_struct, %My_struct, %My_struct }
+
+define void @use_structs(%My_struct %my_struct) {
+entry:
+  %0 = extractvalue %My_struct %my_struct, 0
+  %a = alloca i32, align 4
+  store i32 %0, ptr %a, align 4
+  %instance_0 = alloca %My_struct, align 8
+  store %My_struct { i32 1, i32 2 }, ptr %instance_0, align 4
+  %instance_1 = alloca %My_struct, align 8
+  store %My_struct { i32 1, i32 3 }, ptr %instance_1, align 4
+  %instance_2 = alloca %My_struct_2, align 8
+  store %My_struct_2 { %My_struct { i32 1, i32 2 }, %My_struct { i32 2, i32 2 }, %My_struct { i32 3, i32 4 } }, ptr %instance_2, align 4
+  %instance_3 = alloca %My_struct_2, align 8
+  store %My_struct_2 { %My_struct { i32 1, i32 2 }, %My_struct { i32 1, i32 2 }, %My_struct { i32 0, i32 1 } }, ptr %instance_3, align 4
+  %1 = load %My_struct_2, ptr %instance_3, align 4
+  %2 = extractvalue %My_struct_2 %1, 1
+  %3 = extractvalue %My_struct %2, 0
+  %nested_b_a = alloca i32, align 4
+  store i32 %3, ptr %nested_b_a, align 4
+  %instance_4 = alloca %My_struct, align 8
+  store %My_struct { i32 1, i32 2 }, ptr %instance_4, align 4
+  %4 = load %My_struct, ptr %instance_4, align 4
+  %5 = insertvalue %My_struct %4, i32 0, 0
+  %instance_5 = alloca %My_struct, align 8
+  store %My_struct { i32 1, i32 2 }, ptr %instance_5, align 4
+  call void @pass_struct(%My_struct { i32 1, i32 2 })
+  %6 = call %My_struct @return_struct()
+  %instance_6 = alloca %My_struct, align 8
+  store %My_struct %6, ptr %instance_6, align 4
+  ret void
+}
+
+define private void @pass_struct(%My_struct %my_struct) {
+entry:
+  ret void
+}
+
+define private %My_struct @return_struct() {
+entry:
+  ret %My_struct { i32 1, i32 2 }
+}
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
