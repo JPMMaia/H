@@ -1751,13 +1751,13 @@ export struct My_struct
 
 export struct My_struct_2
 {
-    a: My_struct = default{};
+    a: My_struct = {};
     
-    b: My_struct = default{
+    b: My_struct = {
         a: 2
     };
 
-    c: My_struct = default{
+    c: My_struct = {
         a: 3,
         b: 4
     };
@@ -1767,17 +1767,17 @@ export function use_structs(my_struct: My_struct) -> ()
 {
     var a = my_struct.a;
     
-    var instance_0: My_struct = default{};
+    var instance_0: My_struct = {};
     
-    var instance_1: My_struct = default{
+    var instance_1: My_struct = {
         b: 3
     };
 
-    var instance_2: My_struct_2 = default{};
+    var instance_2: My_struct_2 = {};
 
     var instance_3: My_struct_2 = explicit{
-        a: default{},
-        b: default{},
+        a: {},
+        b: {},
         c: explicit{
             a: 0,
             b: 1
@@ -1786,12 +1786,12 @@ export function use_structs(my_struct: My_struct) -> ()
 
     var nested_b_a = instance_3.b.a;
 
-    mutable instance_4: My_struct = default{};
+    mutable instance_4: My_struct = {};
     instance_4.a = 0;
 
-    var instance_5 = default My_struct{};
+    var instance_5 = My_struct{};
 
-    pass_struct(default{});
+    pass_struct({});
     var instance_6 = return_struct();
 }
 
@@ -1801,7 +1801,7 @@ function pass_struct(my_struct: My_struct) -> ()
 
 function return_struct() -> (my_struct: My_struct)
 {
-    return default{};
+    return {};
 }
 `;
 
@@ -1819,6 +1819,99 @@ function return_struct() -> (my_struct: My_struct)
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_using_structs();
+        assert.deepEqual(new_document_state.module, expected_module);
+    });
+
+    it("Handles using unions", () => {
+
+        const document_state = Document.create_empty_state(language_description.production_rules);
+
+        const program = `
+module Unions;
+
+export enum My_union_tag
+{
+    a = 0,
+    b = 1,
+}
+
+export union My_union
+{
+    a: Int32;
+    b: Float32;
+}
+
+export union My_union_2
+{
+    a: Int32;
+    b: Int64;
+}
+
+export struct My_struct
+{
+    a: Int32 = 1;
+}
+
+export union My_union_3
+{
+    a: Int64;
+    b: My_struct;
+}
+
+export function use_unions(my_union: My_union, my_union_tag: My_union_tag) -> ()
+{
+    if my_union_tag == My_union_tag.a:
+    {
+        var a = my_union.a;
+    }
+    else if my_union_tag == My_union_tag.b:
+    {
+        var b = my_union.b;
+    }
+
+    var instance_0: My_union = { a: 2 };
+    var instance_1: My_union = { b: 3.0f32 };
+
+    var instance_2: My_union_2 = { a: 2 };
+    var instance_3: My_union_2 = { b: 3i64 };
+
+    var instance_4: My_union_3 = { a: 3i64 };
+    var instance_5: My_union_3 = { b: default{} };
+    var instance_6: My_union_3 = { b: explicit{a:2} };
+
+    var nested_b_a = instance_6.b.a;
+
+    mutable instance_7: My_union = { a: 1 };
+    instance_7 = { a: 2 };
+
+    pass_union({ a: 4});
+    var instance_8 = return_union();
+}
+
+function pass_union(my_union: My_union) -> ()
+{
+}
+
+function return_union() -> (my_union: My_union)
+{
+    return { b: 10.0f32 };
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_using_unions();
         assert.deepEqual(new_document_state.module, expected_module);
     });
 });

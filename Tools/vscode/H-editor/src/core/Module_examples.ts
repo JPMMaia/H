@@ -3548,6 +3548,449 @@ export function create_using_structs(): IR.Module {
     };
 }
 
+export function create_using_unions(): IR.Module {
+    const int32_type = create_integer_type(32, true);
+    const int64_type = create_integer_type(64, true);
+    const float32_type = create_fundamental_type(IR.Fundamental_type.Float32);
+    return {
+        name: "Unions",
+        imports: [],
+        declarations: [
+            {
+                name: "My_union_tag",
+                type: IR.Declaration_type.Enum,
+                is_export: true,
+                value: {
+                    name: "My_union_tag",
+                    values: [
+                        {
+                            name: "a",
+                            value: create_statement(
+                                IR.create_constant_expression(int32_type, "0")
+                            )
+                        },
+                        {
+                            name: "b",
+                            value: create_statement(
+                                IR.create_constant_expression(int32_type, "1")
+                            )
+                        }
+                    ]
+                }
+            },
+            {
+                name: "My_union",
+                type: IR.Declaration_type.Union,
+                is_export: true,
+                value: {
+                    name: "My_union",
+                    member_types: [
+                        int32_type,
+                        float32_type
+                    ],
+                    member_names: [
+                        "a",
+                        "b"
+                    ]
+                }
+            },
+            {
+                name: "My_union_2",
+                type: IR.Declaration_type.Union,
+                is_export: true,
+                value: {
+                    name: "My_union_2",
+                    member_types: [
+                        int32_type,
+                        int64_type
+                    ],
+                    member_names: [
+                        "a",
+                        "b"
+                    ]
+                }
+            },
+            {
+                name: "My_struct",
+                type: IR.Declaration_type.Struct,
+                is_export: true,
+                value: {
+                    name: "My_struct",
+                    member_types: [
+                        int32_type
+                    ],
+                    member_names: [
+                        "a"
+                    ],
+                    member_default_values: [
+                        create_statement(
+                            IR.create_constant_expression(int32_type, "1")
+                        )
+                    ],
+                    is_packed: false,
+                    is_literal: false
+                }
+            },
+            {
+                name: "My_union_3",
+                type: IR.Declaration_type.Union,
+                is_export: true,
+                value: {
+                    name: "My_union_3",
+                    member_types: [
+                        int64_type,
+                        create_custom_type_reference("", "My_struct")
+                    ],
+                    member_names: [
+                        "a",
+                        "b"
+                    ]
+                }
+            },
+            {
+                name: "use_unions",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "use_unions",
+                        type: {
+                            input_parameter_types: [create_custom_type_reference("", "My_union"), create_custom_type_reference("", "My_union_tag")],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: ["my_union", "my_union_tag"],
+                        output_parameter_names: [],
+                        linkage: IR.Linkage.External
+                    },
+                    definition: {
+                        name: "use_unions",
+                        statements: [
+                            create_statement(
+                                IR.create_if_expression(
+                                    [
+                                        {
+                                            condition: create_statement(
+                                                IR.create_binary_expression(
+                                                    IR.create_variable_expression("my_union_tag", IR.Access_type.Read),
+                                                    IR.create_access_expression(
+                                                        IR.create_variable_expression("my_union", IR.Access_type.Read),
+                                                        "a",
+                                                        IR.Access_type.Read
+                                                    ),
+                                                    IR.Binary_operation.Equal
+                                                )
+                                            ),
+                                            statement: create_statement(
+                                                IR.create_variable_declaration_expression(
+                                                    "a",
+                                                    false,
+                                                    IR.create_access_expression(
+                                                        IR.create_variable_expression("my_union", IR.Access_type.Read),
+                                                        "a",
+                                                        IR.Access_type.Read
+                                                    )
+                                                )
+                                            )
+                                        },
+                                        {
+                                            condition: create_statement(
+                                                IR.create_binary_expression(
+                                                    IR.create_variable_expression("my_union_tag", IR.Access_type.Read),
+                                                    IR.create_access_expression(
+                                                        IR.create_variable_expression("my_union", IR.Access_type.Read),
+                                                        "b",
+                                                        IR.Access_type.Read
+                                                    ),
+                                                    IR.Binary_operation.Equal
+                                                )
+                                            ),
+                                            statement: create_statement(
+                                                IR.create_variable_declaration_expression(
+                                                    "b",
+                                                    false,
+                                                    IR.create_access_expression(
+                                                        IR.create_variable_expression("my_union", IR.Access_type.Read),
+                                                        "b",
+                                                        IR.Access_type.Read
+                                                    )
+                                                )
+                                            )
+                                        }
+                                    ]
+                                )
+                            ),
+                            create_statement(
+                                IR.create_variable_declaration_with_type_expression(
+                                    "instance_0",
+                                    false,
+                                    create_custom_type_reference("", "My_union"),
+                                    create_statement(
+                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [
+                                            {
+                                                member_name: "a",
+                                                value: create_statement(
+                                                    IR.create_constant_expression(int32_type, "2")
+                                                )
+                                            }
+                                        ])
+                                    )
+                                )
+                            ),
+                            create_statement(
+                                IR.create_variable_declaration_with_type_expression(
+                                    "instance_1",
+                                    false,
+                                    create_custom_type_reference("", "My_union"),
+                                    create_statement(
+                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [
+                                            {
+                                                member_name: "b",
+                                                value: create_statement(
+                                                    IR.create_constant_expression(float32_type, "3.0")
+                                                )
+                                            }
+                                        ])
+                                    )
+                                )
+                            ),
+                            create_statement(
+                                IR.create_variable_declaration_with_type_expression(
+                                    "instance_2",
+                                    false,
+                                    create_custom_type_reference("", "My_union_2"),
+                                    create_statement(
+                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [
+                                            {
+                                                member_name: "a",
+                                                value: create_statement(
+                                                    IR.create_constant_expression(int32_type, "2")
+                                                )
+                                            }
+                                        ])
+                                    )
+                                )
+                            ),
+                            create_statement(
+                                IR.create_variable_declaration_with_type_expression(
+                                    "instance_3",
+                                    false,
+                                    create_custom_type_reference("", "My_union_2"),
+                                    create_statement(
+                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [
+                                            {
+                                                member_name: "b",
+                                                value: create_statement(
+                                                    IR.create_constant_expression(int64_type, "3")
+                                                )
+                                            }
+                                        ])
+                                    )
+                                )
+                            ),
+                            create_statement(
+                                IR.create_variable_declaration_with_type_expression(
+                                    "instance_4",
+                                    false,
+                                    create_custom_type_reference("", "My_union_3"),
+                                    create_statement(
+                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [
+                                            {
+                                                member_name: "a",
+                                                value: create_statement(
+                                                    IR.create_constant_expression(int64_type, "3")
+                                                )
+                                            }
+                                        ])
+                                    )
+                                )
+                            ),
+                            create_statement(
+                                IR.create_variable_declaration_with_type_expression(
+                                    "instance_5",
+                                    false,
+                                    create_custom_type_reference("", "My_union_3"),
+                                    create_statement(
+                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [
+                                            {
+                                                member_name: "b",
+                                                value: create_statement(
+                                                    IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [])
+                                                )
+                                            }
+                                        ])
+                                    )
+                                )
+                            ),
+                            create_statement(
+                                IR.create_variable_declaration_with_type_expression(
+                                    "instance_6",
+                                    false,
+                                    create_custom_type_reference("", "My_union_3"),
+                                    create_statement(
+                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [
+                                            {
+                                                member_name: "b",
+                                                value: create_statement(
+                                                    IR.create_instantiate_expression(IR.Instantiate_expression_type.Explicit, undefined, [
+                                                        {
+                                                            member_name: "a",
+                                                            value: create_statement(
+                                                                IR.create_constant_expression(int32_type, "2")
+                                                            )
+                                                        }
+                                                    ])
+                                                )
+                                            }
+                                        ])
+                                    )
+                                )
+                            ),
+                            create_statement(
+                                IR.create_variable_declaration_expression(
+                                    "nested_b_a",
+                                    false,
+                                    IR.create_access_expression(
+                                        IR.create_access_expression(
+                                            IR.create_variable_expression("instance_6", IR.Access_type.Read),
+                                            "b",
+                                            IR.Access_type.Read
+                                        ),
+                                        "a",
+                                        IR.Access_type.Read
+                                    )
+                                )
+                            ),
+                            create_statement(
+                                IR.create_variable_declaration_with_type_expression(
+                                    "instance_7",
+                                    true,
+                                    create_custom_type_reference("", "My_union"),
+                                    create_statement(
+                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [
+                                            {
+                                                member_name: "a",
+                                                value: create_statement(
+                                                    IR.create_constant_expression(int32_type, "1")
+                                                )
+                                            }
+                                        ])
+                                    )
+                                )
+                            ),
+                            create_statement(
+                                IR.create_assignment_expression(
+                                    IR.create_variable_expression("instance_7", IR.Access_type.Write),
+                                    IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [
+                                        {
+                                            member_name: "a",
+                                            value: create_statement(
+                                                IR.create_constant_expression(int32_type, "2")
+                                            )
+                                        }
+                                    ]),
+                                    undefined
+                                )
+                            ),
+                            create_statement(
+                                IR.create_call_expression(
+                                    IR.create_variable_expression("pass_union", IR.Access_type.Read),
+                                    [
+                                        IR.create_instantiate_expression(
+                                            IR.Instantiate_expression_type.Default,
+                                            undefined,
+                                            [
+                                                {
+                                                    member_name: "a",
+                                                    value: create_statement(
+                                                        IR.create_constant_expression(int32_type, "4")
+                                                    )
+                                                }
+                                            ]
+                                        )
+                                    ]
+                                )
+                            ),
+                            create_statement(
+                                IR.create_variable_declaration_expression(
+                                    "instance_8",
+                                    false,
+                                    IR.create_call_expression(
+                                        IR.create_variable_expression("return_union", IR.Access_type.Read),
+                                        [
+                                        ]
+                                    )
+                                )
+                            )
+                        ]
+                    }
+                }
+            },
+            {
+                name: "pass_union",
+                type: IR.Declaration_type.Function,
+                is_export: false,
+                value: {
+                    declaration: {
+                        name: "pass_union",
+                        type: {
+                            input_parameter_types: [create_custom_type_reference("", "My_union")],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: ["my_union"],
+                        output_parameter_names: [],
+                        linkage: IR.Linkage.Private
+                    },
+                    definition: {
+                        name: "pass_union",
+                        statements: []
+                    }
+                }
+            },
+            {
+                name: "return_union",
+                type: IR.Declaration_type.Function,
+                is_export: false,
+                value: {
+                    declaration: {
+                        name: "return_union",
+                        type: {
+                            input_parameter_types: [],
+                            output_parameter_types: [create_custom_type_reference("", "My_union")],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: [],
+                        output_parameter_names: ["my_union"],
+                        linkage: IR.Linkage.Private
+                    },
+                    definition: {
+                        name: "return_union",
+                        statements: [
+                            create_statement(
+                                IR.create_return_expression(
+                                    IR.create_instantiate_expression(
+                                        IR.Instantiate_expression_type.Default,
+                                        undefined,
+                                        [
+                                            {
+                                                member_name: "b",
+                                                value: create_statement(
+                                                    IR.create_constant_expression(float32_type, "10.0")
+                                                )
+                                            }
+                                        ]
+                                    )
+                                )
+                            )
+                        ]
+                    }
+                }
+            }
+        ]
+    };
+}
+
 function create_custom_type_reference(module_name: string, name: string): IR.Type_reference {
     return {
         data: {
