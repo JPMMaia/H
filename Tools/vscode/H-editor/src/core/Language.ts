@@ -1,3 +1,5 @@
+import * as fs from "fs";
+
 import * as Default_grammar from "./Default_grammar";
 import * as Grammar from "./Grammar";
 import * as Parse_tree_convertor from "./Parse_tree_convertor";
@@ -17,7 +19,8 @@ export interface Description {
 function create_parsing_tables(
     production_rules: Grammar.Production_rule[],
     terminals: string[],
-    cache?: Storage_cache.Storage_cache
+    cache?: Storage_cache.Storage_cache,
+    graphviz_output_path?: string
 ): Grammar.Parsing_tables {
 
     if (cache !== undefined) {
@@ -30,6 +33,12 @@ function create_parsing_tables(
 
     const lr1_item_set_0 = Grammar.create_start_lr1_item_set(production_rules, terminals);
     const graph = Grammar.create_lr1_graph(production_rules, terminals, lr1_item_set_0);
+
+    if (graphviz_output_path !== undefined) {
+        const graphviz = Grammar.create_graphviz(graph, production_rules, terminals);
+        fs.writeFileSync(graphviz_output_path, graphviz, { flag: "w" });
+    }
+
     const parsing_tables = Grammar.create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
 
     if (cache !== undefined) {
@@ -43,13 +52,13 @@ function create_parsing_tables(
 export function create_description(
     grammar_description: string[],
     map_word_to_terminal: (word: Grammar.Word) => string,
-    cache?: Storage_cache.Storage_cache
+    cache?: Storage_cache.Storage_cache,
+    graphviz_output_path?: string
 ): Description {
-
     const production_rules = Grammar.create_production_rules(grammar_description);
     const non_terminals = Grammar.get_non_terminals(production_rules);
     const terminals = Grammar.get_terminals(production_rules, non_terminals);
-    const parsing_tables = create_parsing_tables(production_rules, terminals, cache);
+    const parsing_tables = create_parsing_tables(production_rules, terminals, cache, graphviz_output_path);
     const array_infos = Grammar.create_array_infos(production_rules);
     const key_to_production_rule_indices = Parse_tree_convertor.create_key_to_production_rule_indices_map(production_rules);
     const mappings = Parse_tree_convertor_mappings.create_mapping();
@@ -65,13 +74,16 @@ export function create_description(
     };
 }
 
-export function create_default_description(cache?: Storage_cache.Storage_cache): Description {
+export function create_default_description(
+    cache?: Storage_cache.Storage_cache,
+    graphviz_output_path?: string
+): Description {
 
     const grammar_description = Default_grammar.create_description();
     const production_rules = Grammar.create_production_rules(grammar_description);
     const non_terminals = Grammar.get_non_terminals(production_rules);
     const terminals = Grammar.get_terminals(production_rules, non_terminals);
-    const parsing_tables = create_parsing_tables(production_rules, terminals, cache);
+    const parsing_tables = create_parsing_tables(production_rules, terminals, cache, graphviz_output_path);
     const array_infos = Grammar.create_array_infos(production_rules);
     const key_to_production_rule_indices = Parse_tree_convertor.create_key_to_production_rule_indices_map(production_rules);
     const mappings = Parse_tree_convertor_mappings.create_mapping();

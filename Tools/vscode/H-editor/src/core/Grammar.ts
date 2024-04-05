@@ -577,6 +577,109 @@ export function create_lr1_graph(production_rules: Production_rule[], terminals:
     };
 }
 
+function escape_html_string(value: string): string {
+    return value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+function create_state_format(
+    state_index: number,
+    state: LR1_item[],
+    production_rules: Production_rule[]
+): string {
+
+    const style = state_index === 0 ? "filled, bold" : "filled";
+    const penwidth = state_index === 0 ? 1 : 5;
+    const style_string = `style = "${style}" penwidth = ${penwidth} fillcolor = "white" fontname = "Courier New" shape = "Mrecord"`;
+
+    const table_parts: string[] = [];
+    table_parts.push(`<table border="0" cellborder="0" cellpadding="3" bgcolor="white">`);
+
+    table_parts.push(`<tr>`);
+    {
+        table_parts.push(`<td bgcolor="black" align="center" colspan="2">`);
+        {
+            table_parts.push(`<font color="white">State #${state_index}</font>`);
+        }
+        table_parts.push(`</td>`);
+    }
+    table_parts.push(`</tr>`);
+
+    for (let index = 0; index < state.length; ++index) {
+        const item = state[index];
+        const production_rule = production_rules[item.production_rule_index];
+
+        table_parts.push(`<tr>`);
+        {
+            const rhs_array = [];
+            for (const label of production_rule.rhs) {
+                rhs_array.push(escape_html_string(label));
+            }
+            rhs_array[item.label_index] = `&bull;${rhs_array[item.label_index]}`;
+
+            const rhs_array_string = rhs_array.join(" ");
+
+            table_parts.push(`<td align="left" port="r${index}">&#40;${index}&#41; ${production_rule.lhs} -&gt; ${rhs_array_string} </td>`);
+        }
+        table_parts.push(`</tr>`);
+    }
+
+    table_parts.push(`</table>`);
+
+    const table_string = table_parts.join("");
+
+    return `${style_string} label =<${table_string}>`;
+}
+
+function create_edge_format(
+    label: string,
+    is_shift: boolean
+): string {
+    if (is_shift) {
+        return `penwidth = 5 fontsize = 28 fontcolor = "black" label = "${label}"`;
+    }
+    else {
+        return `penwidth = 1 fontsize = 14 fontcolor = "grey28" label = "'${label}'"`;
+    }
+}
+
+export function create_graphviz(
+    graph: { states: LR1_item[][], edges: Edge[] },
+    production_rules: Production_rule[],
+    terminals: string[]
+): string {
+
+    const output: string[] = [
+        `digraph G {`,
+        `  fontname="Helvetica,Arial,sans-serif"`,
+        `  node [fontname="Helvetica,Arial,sans-serif"]`,
+        `  edge [fontname="Helvetica,Arial,sans-serif"]`,
+        `  graph [fontsize=30 labelloc="t" label="" splines=true overlap=false rankdir = "LR"];`,
+        `  ratio = auto;`,
+    ];
+
+    for (let state_index = 0; state_index < graph.states.length; ++state_index) {
+        const format_string = create_state_format(state_index, graph.states[state_index], production_rules);
+        output.push(`  "state${state_index}" [ ${format_string} ];`);
+    }
+
+    for (const edge of graph.edges) {
+        const is_shift = !is_terminal(edge.label, terminals);
+        const format_string = create_edge_format(edge.label, is_shift);
+
+        output.push(`  state${edge.from_state} -> state${edge.to_state} [ ${format_string} ];`);
+    }
+
+    output.push(`}`);
+
+    const graphviz = output.join("\n");
+    return graphviz;
+}
+
 export enum Action_type {
     Accept,
     Go_to,
