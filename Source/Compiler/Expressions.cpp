@@ -406,13 +406,12 @@ namespace h::compiler
     Value_and_type create_assignment_additional_operation_instruction(
         Expression_index const left_hand_side,
         Expression_index const right_hand_side,
+        Type_reference const& expression_type,
         std::optional<Binary_operation> const additional_operation,
         Statement const& statement,
         Expression_parameters const& parameters
     )
     {
-        Value_and_type const right_hand_side_value = create_expression_value(right_hand_side.expression_index, statement, parameters);
-
         if (additional_operation.has_value())
         {
             llvm::LLVMContext& llvm_context = parameters.llvm_context;
@@ -428,6 +427,10 @@ namespace h::compiler
             llvm::Type* llvm_element_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, current_module_name, left_hand_side_type, type_database);
             llvm::Value* const loaded_value_value = llvm_builder.CreateLoad(llvm_element_type, left_hand_side_value.value);
 
+            Expression_parameters right_hand_side_parameters = parameters;
+            right_hand_side_parameters.expression_type = left_hand_side_type;
+            Value_and_type const right_hand_side_value = create_expression_value(right_hand_side.expression_index, statement, right_hand_side_parameters);
+
             Value_and_type const loaded_value
             {
                 .name = "",
@@ -441,6 +444,9 @@ namespace h::compiler
         }
         else
         {
+            Expression_parameters right_hand_side_parameters = parameters;
+            right_hand_side_parameters.expression_type = expression_type;
+            Value_and_type const right_hand_side_value = create_expression_value(right_hand_side.expression_index, statement, right_hand_side_parameters);
             return right_hand_side_value;
         }
     }
@@ -494,18 +500,21 @@ namespace h::compiler
             if (member_location == struct_declaration.member_names.end())
                 throw std::runtime_error{ std::format("'{}' does not exist in struct type '{}.{}'.", access_expression.member_name, module_name, struct_declaration.name) };
 
+            unsigned const member_index = static_cast<unsigned>(std::distance(struct_declaration.member_names.begin(), member_location));
+            Type_reference const member_type = fix_custom_type_reference(struct_declaration.member_types[member_index], module_name);
+
             Value_and_type const result = create_assignment_additional_operation_instruction(
                 expression.left_hand_side,
                 expression.right_hand_side,
+                member_type,
                 expression.additional_operation,
                 statement,
                 parameters
             );
 
             llvm::Value* const struct_instance_value = access_left_hand_side.value;
-            llvm::Value* const struct_member_value = result.value;
-            unsigned const struct_member_index = static_cast<unsigned>(std::distance(struct_declaration.member_names.begin(), member_location));
-            llvm::Value* const insert_value_instruction = llvm_builder.CreateInsertValue(struct_instance_value, struct_member_value, { struct_member_index });
+            llvm::Value* const member_value = result.value;
+            llvm::Value* const insert_value_instruction = llvm_builder.CreateInsertValue(struct_instance_value, member_value, { member_index });
 
             return
             {
@@ -516,15 +525,17 @@ namespace h::compiler
         }
         else
         {
+            Value_and_type const left_hand_side = create_expression_value(expression.left_hand_side.expression_index, statement, parameters);
+
             Value_and_type const result = create_assignment_additional_operation_instruction(
                 expression.left_hand_side,
                 expression.right_hand_side,
+                left_hand_side.type.value(),
                 expression.additional_operation,
                 statement,
                 parameters
             );
 
-            Value_and_type const left_hand_side = create_expression_value(expression.left_hand_side.expression_index, statement, parameters);
             llvm::Value* store_instruction = llvm_builder.CreateStore(result.value, left_hand_side.value);
 
             return
