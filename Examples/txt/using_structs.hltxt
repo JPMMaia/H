@@ -44,6 +44,10 @@ export function use_structs(my_struct: My_struct) -> ()
     var nested_b_a = instance_3.b.a;
 
     mutable instance_4: My_struct = default{};
+    instance_4 = explicit{
+        a: 10,
+        b: 11
+    };
     instance_4.a = 0;
 
     var instance_5 = default My_struct{};

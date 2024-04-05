@@ -1463,6 +1463,7 @@ entry:
   store i32 %3, ptr %nested_b_a, align 4
   %instance_4 = alloca %My_struct, align 8
   store %My_struct { i32 1, i32 2 }, ptr %instance_4, align 4
+  store %My_struct { i32 10, i32 11 }, ptr %instance_4, align 4
   %4 = load %My_struct, ptr %instance_4, align 4
   %5 = insertvalue %My_struct %4, i32 0, 0
   %instance_5 = alloca %My_struct, align 8
