@@ -1310,6 +1310,15 @@ export function run_ifs(value: Int32) -> ()
         print_message("zero"c);
     }
 
+    if value == 0:
+    {
+        print_message("zero"c);
+    }
+    else if value == 1:
+    {
+        print_message("one"c);
+    }
+
     if value < 0:
     {
         print_message("negative"c);
