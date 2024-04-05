@@ -1821,6 +1821,58 @@ export function create_if_expressions(): IR.Module {
                                         IR.create_call_expression(
                                             IR.create_variable_expression("print_message", IR.Access_type.Read),
                                             [
+                                                IR.create_constant_expression(c_string_type, "zero")
+                                            ]
+                                        )
+                                    )
+                                ]
+                            )
+                        ),
+                        condition: create_statement(
+                            IR.create_binary_expression(
+                                IR.create_variable_expression("value", IR.Access_type.Read),
+                                IR.create_constant_expression(int32_type, "0"),
+                                IR.Binary_operation.Equal
+                            )
+                        )
+                    },
+                    {
+                        statement: create_statement(
+                            IR.create_block_expression(
+                                [
+                                    create_statement(
+                                        IR.create_call_expression(
+                                            IR.create_variable_expression("print_message", IR.Access_type.Read),
+                                            [
+                                                IR.create_constant_expression(c_string_type, "one")
+                                            ]
+                                        )
+                                    )
+                                ]
+                            )
+                        ),
+                        condition: create_statement(
+                            IR.create_binary_expression(
+                                IR.create_variable_expression("value", IR.Access_type.Read),
+                                IR.create_constant_expression(int32_type, "1"),
+                                IR.Binary_operation.Equal
+                            )
+                        )
+                    }
+                ]
+            )
+        ),
+        create_statement(
+            IR.create_if_expression(
+                [
+                    {
+                        statement: create_statement(
+                            IR.create_block_expression(
+                                [
+                                    create_statement(
+                                        IR.create_call_expression(
+                                            IR.create_variable_expression("print_message", IR.Access_type.Read),
+                                            [
                                                 IR.create_constant_expression(c_string_type, "negative")
                                             ]
                                         )

@@ -1039,9 +1039,12 @@ function choose_production_rule_expression_if_else(
     const if_expression = expression.data.value as Core_intermediate_representation.If_expression;
     const serie_index = get_if_serie_index(stack) + 1;
 
+    const is_empty = serie_index >= if_expression.series.length;
+    const is_else_if = !is_empty && if_expression.series[serie_index].condition !== undefined;
+
     const index =
-        serie_index >= if_expression.series.length ? 0 :
-            (serie_index < if_expression.series.length - 1) ? 1 : 2;
+        is_empty ? 0 :
+            is_else_if ? 1 : 2;
 
     return {
         next_state: {
