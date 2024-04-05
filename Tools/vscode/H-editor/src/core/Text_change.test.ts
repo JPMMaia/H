@@ -1,17 +1,22 @@
 import "mocha";
 
 import * as assert from "assert";
-import * as Core from "./Core_interface";
 import * as Core_intermediate_representation from "./Core_intermediate_representation";
 import * as Document from "./Document";
 import * as Language from "./Language";
 import * as Module_examples from "./Module_examples";
+import * as Storage_cache from "./Storage_cache";
 import * as Text_change from "./Text_change";
 import * as Type_utilities from "./Type_utilities";
 
 describe("Text_change.update", () => {
 
-    const language_description = Language.create_default_description();
+    let language_description: any;
+
+    before(() => {
+        const cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
+        language_description = Language.create_default_description(cache, "out/tests/graphviz.gv");
+    });
 
     it("Handles add first character", () => {
 
