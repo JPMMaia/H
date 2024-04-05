@@ -63,7 +63,7 @@ export enum Cast_type {
     BitCast = "BitCast",
 }
 
-export enum Instantiate_struct_type {
+export enum Instantiate_expression_type {
     Default = "Default",
     Explicit = "Explicit",
 }
@@ -107,7 +107,7 @@ export enum Expression_enum {
     Continue_expression = "Continue_expression",
     For_loop_expression = "For_loop_expression",
     If_expression = "If_expression",
-    Instantiate_struct_expression = "Instantiate_struct_expression",
+    Instantiate_expression = "Instantiate_expression",
     Invalid_expression = "Invalid_expression",
     Null_pointer_expression = "Null_pointer_expression",
     Parenthesis_expression = "Parenthesis_expression",
@@ -270,15 +270,15 @@ export interface If_expression {
     series: Vector<Condition_statement_pair>;
 }
 
-export interface Instantiate_struct_member_value_pair {
+export interface Instantiate_member_value_pair {
     member_name: string;
     value: Statement;
 }
 
-export interface Instantiate_struct_expression {
-    type: Instantiate_struct_type;
+export interface Instantiate_expression {
+    type: Instantiate_expression_type;
     type_reference?: Type_reference;
-    members: Vector<Instantiate_struct_member_value_pair>;
+    members: Vector<Instantiate_member_value_pair>;
 }
 
 export interface Invalid_expression {
@@ -336,7 +336,7 @@ export interface While_loop_expression {
 }
 
 export interface Expression {
-    data: Variant<Expression_enum, Access_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Constant_expression | Continue_expression | For_loop_expression | If_expression | Instantiate_struct_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
+    data: Variant<Expression_enum, Access_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Constant_expression | Continue_expression | For_loop_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
 }
 
 export interface Function_declaration {

@@ -326,27 +326,27 @@ namespace h
         friend auto operator<=>(If_expression const&, If_expression const&) = default;
     };
 
-    export enum class Instantiate_struct_type
+    export enum class Instantiate_expression_type
     {
         Default,
         Explicit
     };
 
-    export struct Instantiate_struct_member_value_pair
+    export struct Instantiate_member_value_pair
     {
         std::pmr::string member_name;
         Statement value;
 
-        friend auto operator<=>(Instantiate_struct_member_value_pair const&, Instantiate_struct_member_value_pair const&) = default;
+        friend auto operator<=>(Instantiate_member_value_pair const&, Instantiate_member_value_pair const&) = default;
     };
 
-    export struct Instantiate_struct_expression
+    export struct Instantiate_expression
     {
-        Instantiate_struct_type type;
+        Instantiate_expression_type type;
         std::optional<Type_reference> type_reference;
-        std::pmr::vector<Instantiate_struct_member_value_pair> members;
+        std::pmr::vector<Instantiate_member_value_pair> members;
 
-        friend auto operator<=>(Instantiate_struct_expression const&, Instantiate_struct_expression const&) = default;
+        friend auto operator<=>(Instantiate_expression const&, Instantiate_expression const&) = default;
     };
 
     export struct Invalid_expression
@@ -462,7 +462,7 @@ namespace h
             Continue_expression,
             For_loop_expression,
             If_expression,
-            Instantiate_struct_expression,
+            Instantiate_expression,
             Invalid_expression,
             Null_pointer_expression,
             Parenthesis_expression,

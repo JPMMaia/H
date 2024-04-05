@@ -266,7 +266,7 @@ export enum Cast_type {
     BitCast = "BitCast",
 }
 
-export enum Instantiate_struct_type {
+export enum Instantiate_expression_type {
     Default = "Default",
     Explicit = "Explicit",
 }
@@ -310,7 +310,7 @@ export enum Expression_enum {
     Continue_expression = "Continue_expression",
     For_loop_expression = "For_loop_expression",
     If_expression = "If_expression",
-    Instantiate_struct_expression = "Instantiate_struct_expression",
+    Instantiate_expression = "Instantiate_expression",
     Invalid_expression = "Invalid_expression",
     Null_pointer_expression = "Null_pointer_expression",
     Parenthesis_expression = "Parenthesis_expression",
@@ -1306,51 +1306,51 @@ export function create_if_expression(series: Condition_statement_pair[]): Expres
         }
     };
 }
-export interface Instantiate_struct_member_value_pair {
+export interface Instantiate_member_value_pair {
     member_name: string;
     value: Statement;
 }
 
-function core_to_intermediate_instantiate_struct_member_value_pair(core_value: Core.Instantiate_struct_member_value_pair): Instantiate_struct_member_value_pair {
+function core_to_intermediate_instantiate_member_value_pair(core_value: Core.Instantiate_member_value_pair): Instantiate_member_value_pair {
     return {
         member_name: core_value.member_name,
         value: core_to_intermediate_statement(core_value.value),
     };
 }
 
-function intermediate_to_core_instantiate_struct_member_value_pair(intermediate_value: Instantiate_struct_member_value_pair): Core.Instantiate_struct_member_value_pair {
+function intermediate_to_core_instantiate_member_value_pair(intermediate_value: Instantiate_member_value_pair): Core.Instantiate_member_value_pair {
     return {
         member_name: intermediate_value.member_name,
         value: intermediate_to_core_statement(intermediate_value.value),
     };
 }
 
-export interface Instantiate_struct_expression {
-    type: Instantiate_struct_type;
+export interface Instantiate_expression {
+    type: Instantiate_expression_type;
     type_reference?: Type_reference;
-    members: Instantiate_struct_member_value_pair[];
+    members: Instantiate_member_value_pair[];
 }
 
-function core_to_intermediate_instantiate_struct_expression(core_value: Core.Instantiate_struct_expression, statement: Core.Statement): Instantiate_struct_expression {
+function core_to_intermediate_instantiate_expression(core_value: Core.Instantiate_expression, statement: Core.Statement): Instantiate_expression {
     return {
         type: core_value.type,
         type_reference: core_value.type_reference !== undefined ? core_to_intermediate_type_reference(core_value.type_reference) : undefined,
-        members: core_value.members.elements.map(value => core_to_intermediate_instantiate_struct_member_value_pair(value)),
+        members: core_value.members.elements.map(value => core_to_intermediate_instantiate_member_value_pair(value)),
     };
 }
 
-function intermediate_to_core_instantiate_struct_expression(intermediate_value: Instantiate_struct_expression, expressions: Core.Expression[]): void {
+function intermediate_to_core_instantiate_expression(intermediate_value: Instantiate_expression, expressions: Core.Expression[]): void {
     const index = expressions.length;
     expressions.push({} as Core.Expression);
     const core_value: Core.Expression = {
         data: {
-            type: Core.Expression_enum.Instantiate_struct_expression,
+            type: Core.Expression_enum.Instantiate_expression,
             value: {
                 type: intermediate_value.type,
                 type_reference: intermediate_value.type_reference,
                 members: {
                     size: intermediate_value.members.length,
-                    elements: intermediate_value.members.map(value => intermediate_to_core_instantiate_struct_member_value_pair(value))
+                    elements: intermediate_value.members.map(value => intermediate_to_core_instantiate_member_value_pair(value))
                 },
             }
         }
@@ -1359,16 +1359,16 @@ function intermediate_to_core_instantiate_struct_expression(intermediate_value: 
     expressions[index] = core_value;
 }
 
-export function create_instantiate_struct_expression(type: Instantiate_struct_type, type_reference: Type_reference | undefined, members: Instantiate_struct_member_value_pair[]): Expression {
-    const instantiate_struct_expression: Instantiate_struct_expression = {
+export function create_instantiate_expression(type: Instantiate_expression_type, type_reference: Type_reference | undefined, members: Instantiate_member_value_pair[]): Expression {
+    const instantiate_expression: Instantiate_expression = {
         type: type,
         type_reference: type_reference,
         members: members,
     };
     return {
         data: {
-            type: Expression_enum.Instantiate_struct_expression,
-            value: instantiate_struct_expression
+            type: Expression_enum.Instantiate_expression,
+            value: instantiate_expression
         }
     };
 }
@@ -1831,7 +1831,7 @@ export function create_while_loop_expression(condition: Statement, then_statemen
     };
 }
 export interface Expression {
-    data: Variant<Expression_enum, Access_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Constant_expression | Continue_expression | For_loop_expression | If_expression | Instantiate_struct_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
+    data: Variant<Expression_enum, Access_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Constant_expression | Continue_expression | For_loop_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
 }
 
 function core_to_intermediate_expression(core_value: Core.Expression, statement: Core.Statement): Expression {
@@ -1924,11 +1924,11 @@ function core_to_intermediate_expression(core_value: Core.Expression, statement:
                 }
             };
         }
-        case Core.Expression_enum.Instantiate_struct_expression: {
+        case Core.Expression_enum.Instantiate_expression: {
             return {
                 data: {
                     type: core_value.data.type,
-                    value: core_to_intermediate_instantiate_struct_expression(core_value.data.value as Core.Instantiate_struct_expression, statement)
+                    value: core_to_intermediate_instantiate_expression(core_value.data.value as Core.Instantiate_expression, statement)
                 }
             };
         }
@@ -2069,8 +2069,8 @@ function intermediate_to_core_expression(intermediate_value: Expression, express
             intermediate_to_core_if_expression(intermediate_value.data.value as If_expression, expressions);
             break;
         }
-        case Expression_enum.Instantiate_struct_expression: {
-            intermediate_to_core_instantiate_struct_expression(intermediate_value.data.value as Instantiate_struct_expression, expressions);
+        case Expression_enum.Instantiate_expression: {
+            intermediate_to_core_instantiate_expression(intermediate_value.data.value as Instantiate_expression, expressions);
             break;
         }
         case Expression_enum.Invalid_expression: {

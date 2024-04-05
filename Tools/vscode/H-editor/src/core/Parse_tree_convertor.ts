@@ -867,8 +867,8 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
             }
             break;
         }
-        case Core_intermediate_representation.Expression_enum.Instantiate_struct_expression: {
-            const value = expression.data.value as Core_intermediate_representation.Instantiate_struct_expression;
+        case Core_intermediate_representation.Expression_enum.Instantiate_expression: {
+            const value = expression.data.value as Core_intermediate_representation.Instantiate_expression;
             for (const member of value.members) {
                 visit_expressions(member.value.expression, predicate);
             }

@@ -280,20 +280,20 @@ namespace h::json
     }
 
     export template<>
-        bool read_enum(Instantiate_struct_type& output, std::string_view const value)
+        bool read_enum(Instantiate_expression_type& output, std::string_view const value)
     {
         if (value == "Default")
         {
-            output = Instantiate_struct_type::Default;
+            output = Instantiate_expression_type::Default;
             return true;
         }
         else if (value == "Explicit")
         {
-            output = Instantiate_struct_type::Explicit;
+            output = Instantiate_expression_type::Explicit;
             return true;
         }
 
-        std::cerr << std::format("Failed to read enum 'Instantiate_struct_type' with value '{}'\n", value);
+        std::cerr << std::format("Failed to read enum 'Instantiate_expression_type' with value '{}'\n", value);
         return false;
     }
 
@@ -398,9 +398,9 @@ namespace h::json
             return static_cast<int>(enum_value);
         }
 
-        if (type == "Instantiate_struct_type")
+        if (type == "Instantiate_expression_type")
         {
-            Instantiate_struct_type enum_value;
+            Instantiate_expression_type enum_value;
             read_enum(enum_value, value);
             return static_cast<int>(enum_value);
         }
@@ -476,8 +476,8 @@ namespace h::json
     export std::optional<Stack_state> get_next_state_for_loop_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_condition_statement_pair(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_if_expression(Stack_state* state, std::string_view const key);
-    export std::optional<Stack_state> get_next_state_instantiate_struct_member_value_pair(Stack_state* state, std::string_view const key);
-    export std::optional<Stack_state> get_next_state_instantiate_struct_expression(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_instantiate_member_value_pair(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_instantiate_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_invalid_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_null_pointer_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_parenthesis_expression(Stack_state* state, std::string_view const key);
@@ -1734,9 +1734,9 @@ namespace h::json
         return {};
     }
 
-    export std::optional<Stack_state> get_next_state_instantiate_struct_member_value_pair(Stack_state* state, std::string_view const key)
+    export std::optional<Stack_state> get_next_state_instantiate_member_value_pair(Stack_state* state, std::string_view const key)
     {
-        h::Instantiate_struct_member_value_pair* parent = static_cast<h::Instantiate_struct_member_value_pair*>(state->pointer);
+        h::Instantiate_member_value_pair* parent = static_cast<h::Instantiate_member_value_pair*>(state->pointer);
 
         if (key == "member_name")
         {
@@ -1763,9 +1763,9 @@ namespace h::json
         return {};
     }
 
-    export std::optional<Stack_state> get_next_state_instantiate_struct_expression(Stack_state* state, std::string_view const key)
+    export std::optional<Stack_state> get_next_state_instantiate_expression(Stack_state* state, std::string_view const key)
     {
-        h::Instantiate_struct_expression* parent = static_cast<h::Instantiate_struct_expression*>(state->pointer);
+        h::Instantiate_expression* parent = static_cast<h::Instantiate_expression*>(state->pointer);
 
         if (key == "type")
         {
@@ -1773,7 +1773,7 @@ namespace h::json
             return Stack_state
             {
                 .pointer = &parent->type,
-                .type = "Instantiate_struct_type",
+                .type = "Instantiate_expression_type",
                 .get_next_state = nullptr,
             };
         }
@@ -1793,24 +1793,24 @@ namespace h::json
         {
             auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
             {
-                std::pmr::vector<Instantiate_struct_member_value_pair>* parent = static_cast<std::pmr::vector<Instantiate_struct_member_value_pair>*>(state->pointer);
+                std::pmr::vector<Instantiate_member_value_pair>* parent = static_cast<std::pmr::vector<Instantiate_member_value_pair>*>(state->pointer);
                 parent->resize(size);
             };
 
             auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
             {
-                std::pmr::vector<Instantiate_struct_member_value_pair>* parent = static_cast<std::pmr::vector<Instantiate_struct_member_value_pair>*>(state->pointer);
+                std::pmr::vector<Instantiate_member_value_pair>* parent = static_cast<std::pmr::vector<Instantiate_member_value_pair>*>(state->pointer);
                 return &((*parent)[index]);
             };
 
             return Stack_state
             {
                 .pointer = &parent->members,
-                .type = "std::pmr::vector<Instantiate_struct_member_value_pair>",
+                .type = "std::pmr::vector<Instantiate_member_value_pair>",
                 .get_next_state = get_next_state_vector,
                 .set_vector_size = set_vector_size,
                 .get_element = get_element,
-                .get_next_state_element = get_next_state_instantiate_struct_member_value_pair
+                .get_next_state_element = get_next_state_instantiate_member_value_pair
             };
         }
 
@@ -2161,7 +2161,7 @@ namespace h::json
         {
             auto const set_variant_type = [](Stack_state* state, std::string_view const type) -> void
             {
-                using Variant_type = std::variant<h::Access_expression, h::Assignment_expression, h::Binary_expression, h::Block_expression, h::Break_expression, h::Call_expression, h::Cast_expression, h::Constant_expression, h::Continue_expression, h::For_loop_expression, h::If_expression, h::Instantiate_struct_expression, h::Invalid_expression, h::Null_pointer_expression, h::Parenthesis_expression, h::Return_expression, h::Switch_expression, h::Ternary_condition_expression, h::Unary_expression, h::Variable_declaration_expression, h::Variable_declaration_with_type_expression, h::Variable_expression, h::While_loop_expression>;
+                using Variant_type = std::variant<h::Access_expression, h::Assignment_expression, h::Binary_expression, h::Block_expression, h::Break_expression, h::Call_expression, h::Cast_expression, h::Constant_expression, h::Continue_expression, h::For_loop_expression, h::If_expression, h::Instantiate_expression, h::Invalid_expression, h::Null_pointer_expression, h::Parenthesis_expression, h::Return_expression, h::Switch_expression, h::Ternary_condition_expression, h::Unary_expression, h::Variable_declaration_expression, h::Variable_declaration_with_type_expression, h::Variable_expression, h::While_loop_expression>;
                 Variant_type* pointer = static_cast<Variant_type*>(state->pointer);
 
                 if (type == "Access_expression")
@@ -2230,10 +2230,10 @@ namespace h::json
                     state->type = "If_expression";
                     return;
                 }
-                if (type == "Instantiate_struct_expression")
+                if (type == "Instantiate_expression")
                 {
-                    *pointer = Instantiate_struct_expression{};
-                    state->type = "Instantiate_struct_expression";
+                    *pointer = Instantiate_expression{};
+                    state->type = "Instantiate_expression";
                     return;
                 }
                 if (type == "Invalid_expression")
@@ -2375,9 +2375,9 @@ namespace h::json
                             return get_next_state_if_expression;
                         }
 
-                        if (state->type == "Instantiate_struct_expression")
+                        if (state->type == "Instantiate_expression")
                         {
-                            return get_next_state_instantiate_struct_expression;
+                            return get_next_state_instantiate_expression;
                         }
 
                         if (state->type == "Invalid_expression")
@@ -2453,7 +2453,7 @@ namespace h::json
             return Stack_state
             {
                 .pointer = &parent->data,
-                .type = "std::variant<Access_expression,Assignment_expression,Binary_expression,Block_expression,Break_expression,Call_expression,Cast_expression,Constant_expression,Continue_expression,For_loop_expression,If_expression,Instantiate_struct_expression,Invalid_expression,Null_pointer_expression,Parenthesis_expression,Return_expression,Switch_expression,Ternary_condition_expression,Unary_expression,Variable_declaration_expression,Variable_declaration_with_type_expression,Variable_expression,While_loop_expression>",
+                .type = "std::variant<Access_expression,Assignment_expression,Binary_expression,Block_expression,Break_expression,Call_expression,Cast_expression,Constant_expression,Continue_expression,For_loop_expression,If_expression,Instantiate_expression,Invalid_expression,Null_pointer_expression,Parenthesis_expression,Return_expression,Switch_expression,Ternary_condition_expression,Unary_expression,Variable_declaration_expression,Variable_declaration_with_type_expression,Variable_expression,While_loop_expression>",
                 .get_next_state = get_next_state,
                 .set_variant_type = set_variant_type,
             };
@@ -3252,23 +3252,23 @@ namespace h::json
             };
         }
 
-        if constexpr (std::is_same_v<Struct_type, h::Instantiate_struct_member_value_pair>)
+        if constexpr (std::is_same_v<Struct_type, h::Instantiate_member_value_pair>)
         {
             return Stack_state
             {
                 .pointer = output,
-                .type = "Instantiate_struct_member_value_pair",
-                .get_next_state = get_next_state_instantiate_struct_member_value_pair
+                .type = "Instantiate_member_value_pair",
+                .get_next_state = get_next_state_instantiate_member_value_pair
             };
         }
 
-        if constexpr (std::is_same_v<Struct_type, h::Instantiate_struct_expression>)
+        if constexpr (std::is_same_v<Struct_type, h::Instantiate_expression>)
         {
             return Stack_state
             {
                 .pointer = output,
-                .type = "Instantiate_struct_expression",
-                .get_next_state = get_next_state_instantiate_struct_expression
+                .type = "Instantiate_expression",
+                .get_next_state = get_next_state_instantiate_expression
             };
         }
 

@@ -209,18 +209,18 @@ namespace h::json
         throw std::runtime_error{ "Failed to write enum 'Cast_type'!\n" };
     }
 
-    export std::string_view write_enum(Instantiate_struct_type const value)
+    export std::string_view write_enum(Instantiate_expression_type const value)
     {
-        if (value == Instantiate_struct_type::Default)
+        if (value == Instantiate_expression_type::Default)
         {
             return "Default";
         }
-        else if (value == Instantiate_struct_type::Explicit)
+        else if (value == Instantiate_expression_type::Explicit)
         {
             return "Explicit";
         }
 
-        throw std::runtime_error{ "Failed to write enum 'Instantiate_struct_type'!\n" };
+        throw std::runtime_error{ "Failed to write enum 'Instantiate_expression_type'!\n" };
     }
 
     export std::string_view write_enum(Unary_operation const value)
@@ -450,13 +450,13 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
-            Instantiate_struct_member_value_pair const& input
+            Instantiate_member_value_pair const& input
         );
 
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
-            Instantiate_struct_expression const& input
+            Instantiate_expression const& input
         );
 
     export template<typename Writer_type>
@@ -1169,7 +1169,7 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
-            Instantiate_struct_member_value_pair const& output
+            Instantiate_member_value_pair const& output
         )
     {
         writer.StartObject();
@@ -1183,7 +1183,7 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
-            Instantiate_struct_expression const& output
+            Instantiate_expression const& output
         )
     {
         writer.StartObject();
@@ -1450,12 +1450,12 @@ namespace h::json
             If_expression const& value = std::get<If_expression>(output.data);
             write_object(writer, value);
         }
-        else if (std::holds_alternative<Instantiate_struct_expression>(output.data))
+        else if (std::holds_alternative<Instantiate_expression>(output.data))
         {
             writer.Key("type");
-            writer.String("Instantiate_struct_expression");
+            writer.String("Instantiate_expression");
             writer.Key("value");
-            Instantiate_struct_expression const& value = std::get<Instantiate_struct_expression>(output.data);
+            Instantiate_expression const& value = std::get<Instantiate_expression>(output.data);
             write_object(writer, value);
         }
         else if (std::holds_alternative<Invalid_expression>(output.data))
