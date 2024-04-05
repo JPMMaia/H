@@ -324,7 +324,11 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                                     }
 
                                     {
-                                        const generic_expression_0 = return_expression.children[1];
+                                        const generic_expression_or_instantiate_0 = return_expression.children[1];
+                                        assert.equal(generic_expression_or_instantiate_0.word.value, "Generic_expression_or_instantiate");
+                                        assert.equal(generic_expression_or_instantiate_0.children.length, 1);
+
+                                        const generic_expression_0 = generic_expression_or_instantiate_0.children[0];
                                         assert.equal(generic_expression_0.word.value, "Generic_expression");
                                         assert.equal(generic_expression_0.children.length, 1);
 
@@ -456,9 +460,12 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
 
                         {
                             const member_default_value_node = member_node.children[4];
-                            assert.equal(member_default_value_node.word.value, "Generic_expression");
+                            assert.equal(member_default_value_node.word.value, "Generic_expression_or_instantiate");
 
-                            const expression_level_node_0 = member_default_value_node.children[0];
+                            const generic_expression_node = member_default_value_node.children[0];
+                            assert.equal(generic_expression_node.word.value, "Generic_expression");
+
+                            const expression_level_node_0 = generic_expression_node.children[0];
                             assert_expression_level_node(expression_level_node_0, 12, 0);
                             const expression_level_node_1 = get_expression_level_node(expression_level_node_0, 0);
 
@@ -839,7 +846,11 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                     }
 
                     {
-                        const generic_expression_0 = return_expression.children[1];
+                        const generic_expression_or_instantiate_0 = return_expression.children[1];
+                        assert.equal(generic_expression_or_instantiate_0.word.value, "Generic_expression_or_instantiate");
+                        assert.equal(generic_expression_or_instantiate_0.children.length, 1);
+
+                        const generic_expression_0 = generic_expression_or_instantiate_0.children[0];
                         assert.equal(generic_expression_0.word.value, "Generic_expression");
                         assert.equal(generic_expression_0.children.length, 1);
 
@@ -1054,9 +1065,12 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                 assert.equal(arguments_node.children.length, 1);
 
                 const argument_node = arguments_node.children[0];
-                assert.equal(argument_node.word.value, "Generic_expression");
+                assert.equal(argument_node.word.value, "Generic_expression_or_instantiate");
 
-                const expression_level_12_node = argument_node.children[0];
+                const generic_expression_node = argument_node.children[0];
+                assert.equal(generic_expression_node.word.value, "Generic_expression");
+
+                const expression_level_12_node = generic_expression_node.children[0];
                 assert_expression_level_node(expression_level_12_node, 12, 0);
                 const expression_level_0_node = get_expression_level_node(expression_level_12_node, 0);
 
@@ -1151,9 +1165,12 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
 
                 {
                     const member_default_value_node = member_node.children[4];
-                    assert.equal(member_default_value_node.word.value, "Generic_expression");
+                    assert.equal(member_default_value_node.word.value, "Generic_expression_or_instantiate");
 
-                    const expression_level_node_0 = member_default_value_node.children[0];
+                    const generic_expression_node = member_default_value_node.children[0];
+                    assert.equal(generic_expression_node.word.value, "Generic_expression");
+
+                    const expression_level_node_0 = generic_expression_node.children[0];
                     assert_expression_level_node(expression_level_node_0, 12, 0);
                     const expression_level_node_1 = get_expression_level_node(expression_level_node_0, 0);
 
@@ -2328,6 +2345,14 @@ describe("Parse_tree_convertor.parse_tree_to_module", () => {
     it("Handles using structs", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
         const expected_module = Module_examples.create_using_structs();
+        const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
+
+        assert.deepEqual(actual_module.declarations, expected_module.declarations);
+    });
+
+    it("Handles using unions", () => {
+        const grammar_description = Grammar_examples.create_test_grammar_9_description();
+        const expected_module = Module_examples.create_using_unions();
         const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
 
         assert.deepEqual(actual_module.declarations, expected_module.declarations);

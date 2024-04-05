@@ -139,6 +139,7 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Expression_level_11", choose_production_rule_generic_expression],
             ["Expression_level_12", choose_production_rule_generic_expression],
             ["Generic_expression", choose_production_rule_generic_expression],
+            ["Generic_expression_or_instantiate", choose_production_rule_generic_expression],
         ]
     );
 
@@ -1532,13 +1533,13 @@ function choose_production_rule_generic_expression(
 
     const top = stack[stack.length - 1];
 
-    if (top.node.word.value.startsWith("Expression_level_") || top.node.word.value === "Generic_expression") {
+    if (top.node.word.value.startsWith("Expression_level_") || top.node.word.value.startsWith("Generic_expression")) {
         const expression = top.state.value as Core_intermediate_representation.Expression;
         const expression_label = map_expression_type_to_production_rule_label(expression);
         const next_production_rule_index = production_rule_indices.find(index => production_rules[index].rhs[0] === expression_label);
 
         if (label === "Expression_level_0" && next_production_rule_index === undefined) {
-            const message = `Parse_tree_convertor_mappings.choose_production_rule_generic_expression(): Could not find expression production rule!`;
+            const message = `Parse_tree_convertor_mappings.choose_production_rule_generic_expression(): Could not find expression production rule '${expression_label}'!`;
             onThrowError(message);
             throw Error(message);
         }
@@ -1663,8 +1664,11 @@ function map_expression_type_to_production_rule_label(expression: Core_intermedi
             return "Expression_for_loop";
         case Core_intermediate_representation.Expression_enum.If_expression:
             return "Expression_if";
-        case Core_intermediate_representation.Expression_enum.Instantiate_expression:
+        case Core_intermediate_representation.Expression_enum.Instantiate_expression: {
+            const instantiate_expression = expression.data.value as Core_intermediate_representation.Instantiate_expression;
+            //return instantiate_expression.type_reference !== undefined ? "Expression_instantiate" : "Expression_instantiate_with_type";
             return "Expression_instantiate";
+        }
         case Core_intermediate_representation.Expression_enum.Invalid_expression:
             return "Expression_invalid";
         case Core_intermediate_representation.Expression_enum.Null_pointer_expression:
@@ -2082,7 +2086,7 @@ function node_to_statement(node: Parser_node.Node, key_to_production_rule_indice
 
 function node_to_expression(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Expression {
 
-    while (node.word.value.startsWith("Expression_level_") || node.word.value === "Generic_expression") {
+    while (node.word.value.startsWith("Expression_level_") || node.word.value.startsWith("Generic_expression")) {
         node = node.children[0];
     }
 
@@ -2195,7 +2199,8 @@ function node_to_expression(node: Parser_node.Node, key_to_production_rule_indic
                 }
             };
         }
-        case "Expression_instantiate": {
+        case "Expression_instantiate":
+        case "Expression_instantiate_with_type": {
             const expression = node_to_expression_instantiate(node, key_to_production_rule_indices);
             return {
                 data: {
@@ -2348,13 +2353,7 @@ function set_expression_access_type(expression: Core_intermediate_representation
 
 function node_to_expression_assignment(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Assignment_expression {
 
-    const generic_expressions = find_nodes(node, "Generic_expression", key_to_production_rule_indices);
-
-    if (generic_expressions.length !== 2) {
-        const message = "node_to_expression_assignment: could not process node!";
-        onThrowError(message);
-        throw Error(message);
-    }
+    const generic_expressions = [node.children[0], node.children[2]];
 
     const left_hand_side_node = generic_expressions[0];
     const left_hand_side_expression = node_to_expression(left_hand_side_node, key_to_production_rule_indices);
@@ -2762,7 +2761,7 @@ function node_to_expression_parenthesis(node: Parser_node.Node, key_to_productio
 
 function node_to_expression_return(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Return_expression {
 
-    const generic_expression_node = find_node(node, "Generic_expression", key_to_production_rule_indices) as Parser_node.Node;
+    const generic_expression_node = find_node(node, "Generic_expression_or_instantiate", key_to_production_rule_indices) as Parser_node.Node;
     const generic_expression = node_to_expression(generic_expression_node, key_to_production_rule_indices);
 
     const return_expression: Core_intermediate_representation.Return_expression = {
