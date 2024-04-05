@@ -1599,8 +1599,8 @@ namespace h::compiler
         };
     }
 
-    Value_and_type create_instantiate_struct_expression_value(
-        Instantiate_struct_expression const& expression,
+    Value_and_type create_instantiate_expression_value(
+        Instantiate_expression const& expression,
         Expression_parameters const& parameters
     )
     {
@@ -1633,14 +1633,14 @@ namespace h::compiler
 
         llvm::Value* struct_instance_value = llvm::UndefValue::get(llvm_struct_type);
 
-        if (expression.type == Instantiate_struct_type::Default)
+        if (expression.type == Instantiate_expression_type::Default)
         {
             for (std::size_t member_index = 0; member_index < struct_declaration.member_names.size(); ++member_index)
             {
                 std::string_view const member_name = struct_declaration.member_names[member_index];
                 Type_reference const member_type = fix_custom_type_reference(struct_declaration.member_types[member_index], core_module.name);
 
-                auto const expression_pair_location = std::find_if(expression.members.begin(), expression.members.end(), [member_name](Instantiate_struct_member_value_pair const& pair) { return pair.member_name == member_name; });
+                auto const expression_pair_location = std::find_if(expression.members.begin(), expression.members.end(), [member_name](Instantiate_member_value_pair const& pair) { return pair.member_name == member_name; });
                 Statement const& member_value_statement = expression_pair_location != expression.members.end() ? expression_pair_location->value : struct_declaration.member_default_values[member_index];
 
                 Expression_parameters new_parameters = parameters;
@@ -1657,7 +1657,7 @@ namespace h::compiler
                 .type = struct_type_reference
             };
         }
-        else if (expression.type == Instantiate_struct_type::Explicit)
+        else if (expression.type == Instantiate_expression_type::Explicit)
         {
             for (std::size_t member_index = 0; member_index < struct_declaration.member_names.size(); ++member_index)
             {
@@ -1667,7 +1667,7 @@ namespace h::compiler
                 if (member_index >= expression.members.size())
                     throw std::runtime_error{ std::format("The struct member '{}' of struct '{}.{}' is not explicitly initialized!", member_name, custom_type_reference.module_reference.name, custom_type_reference.name) };
 
-                Instantiate_struct_member_value_pair const& pair = expression.members[member_index];
+                Instantiate_member_value_pair const& pair = expression.members[member_index];
 
                 if (pair.member_name != member_name)
                     throw std::runtime_error{ std::format("Expected struct member '{}' of struct '{}.{}' instead of '{}' while instantiating struct!", member_name, custom_type_reference.module_reference.name, custom_type_reference.name, pair.member_name) };
@@ -1690,7 +1690,7 @@ namespace h::compiler
         }
         else
         {
-            throw std::runtime_error{ "Instantiate_struct_type not handled!" };
+            throw std::runtime_error{ "Instantiate_expression_type not handled!" };
         }
     }
 
@@ -2315,10 +2315,10 @@ namespace h::compiler
             If_expression const& data = std::get<If_expression>(expression.data);
             return create_if_expression_value(data, parameters);
         }
-        else if (std::holds_alternative<Instantiate_struct_expression>(expression.data))
+        else if (std::holds_alternative<Instantiate_expression>(expression.data))
         {
-            Instantiate_struct_expression const& data = std::get<Instantiate_struct_expression>(expression.data);
-            return create_instantiate_struct_expression_value(data, parameters);
+            Instantiate_expression const& data = std::get<Instantiate_expression>(expression.data);
+            return create_instantiate_expression_value(data, parameters);
         }
         else if (std::holds_alternative<Parenthesis_expression>(expression.data))
         {

@@ -84,17 +84,17 @@ namespace h::json::operators
         return output_stream;
     }
 
-    export std::istream& operator>>(std::istream& input_stream, Instantiate_struct_type& value)
+    export std::istream& operator>>(std::istream& input_stream, Instantiate_expression_type& value)
     {
         std::pmr::string string;
         input_stream >> string;
 
-        value = h::json::read_enum<Instantiate_struct_type>(string);
+        value = h::json::read_enum<Instantiate_expression_type>(string);
 
         return input_stream;
     }
 
-    export std::ostream& operator<<(std::ostream& output_stream, Instantiate_struct_type const value)
+    export std::ostream& operator<<(std::ostream& output_stream, Instantiate_expression_type const value)
     {
         output_stream << h::json::write_enum(value);
 
@@ -779,11 +779,11 @@ namespace h::json::operators
         return output_stream;
     }
 
-    export std::istream& operator>>(std::istream& input_stream, Instantiate_struct_member_value_pair& value)
+    export std::istream& operator>>(std::istream& input_stream, Instantiate_member_value_pair& value)
     {
         rapidjson::Reader reader;
         rapidjson::IStreamWrapper stream_wrapper{ input_stream };
-        std::optional<Instantiate_struct_member_value_pair> const output = h::json::read<Instantiate_struct_member_value_pair>(reader, stream_wrapper);
+        std::optional<Instantiate_member_value_pair> const output = h::json::read<Instantiate_member_value_pair>(reader, stream_wrapper);
 
         if (output)
         {
@@ -793,7 +793,7 @@ namespace h::json::operators
         return input_stream;
     }
 
-    export std::ostream& operator<<(std::ostream& output_stream, Instantiate_struct_member_value_pair const& value)
+    export std::ostream& operator<<(std::ostream& output_stream, Instantiate_member_value_pair const& value)
     {
         rapidjson::OStreamWrapper stream_wrapper{ output_stream };
         rapidjson::Writer<rapidjson::OStreamWrapper> writer{ stream_wrapper };
@@ -802,11 +802,11 @@ namespace h::json::operators
         return output_stream;
     }
 
-    export std::istream& operator>>(std::istream& input_stream, Instantiate_struct_expression& value)
+    export std::istream& operator>>(std::istream& input_stream, Instantiate_expression& value)
     {
         rapidjson::Reader reader;
         rapidjson::IStreamWrapper stream_wrapper{ input_stream };
-        std::optional<Instantiate_struct_expression> const output = h::json::read<Instantiate_struct_expression>(reader, stream_wrapper);
+        std::optional<Instantiate_expression> const output = h::json::read<Instantiate_expression>(reader, stream_wrapper);
 
         if (output)
         {
@@ -816,7 +816,7 @@ namespace h::json::operators
         return input_stream;
     }
 
-    export std::ostream& operator<<(std::ostream& output_stream, Instantiate_struct_expression const& value)
+    export std::ostream& operator<<(std::ostream& output_stream, Instantiate_expression const& value)
     {
         rapidjson::OStreamWrapper stream_wrapper{ output_stream };
         rapidjson::Writer<rapidjson::OStreamWrapper> writer{ stream_wrapper };

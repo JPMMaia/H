@@ -41,7 +41,7 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Expression_access_member_name", map_expression_access_member_name_to_word],
             ["Expression_break_loop_count", map_expression_break_loop_count_to_word],
             ["Expression_constant", map_expression_constant_to_word],
-            ["Expression_instantiate_struct_member_name", map_expression_instantiate_struct_member_name_to_word],
+            ["Expression_instantiate_member_name", map_expression_instantiate_member_name_to_word],
             ["Expression_for_loop_variable", map_for_loop_variable_to_word],
             ["Variable_name", map_variable_name_to_word],
         ]
@@ -71,7 +71,7 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Statements", [["declarations", "$order_index", "value", "definition", "statements"]]],
             ["Expression_block_statements", [["$top.state.value", "data", "value", "statements"]]],
             ["Expression_call_arguments", [["$top.state.value", "data", "value", "arguments"]]],
-            ["Expression_instantiate_struct_members", [["$top.state.value", "data", "value", "members"]]],
+            ["Expression_instantiate_members", [["$top.state.value", "data", "value", "members"]]],
             ["Expression_switch_cases", [["$top.state.value", "data", "value", "cases"]]],
             ["Expression_switch_case_statements", [["$top.state.value", "statements"]]],
         ]
@@ -116,8 +116,8 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Expression_for_loop_step", choose_production_rule_expression_for_loop_step],
             ["Expression_for_loop_reverse", choose_production_rule_expression_for_loop_reverse],
             ["Expression_if_else", choose_production_rule_expression_if_else],
-            ["Expression_instantiate_struct_name", choose_production_rule_expression_instantiate_struct_name],
-            ["Expression_instantiate_struct_type", choose_production_rule_expression_instantiate_struct_type],
+            ["Expression_instantiate_name", choose_production_rule_expression_instantiate_name],
+            ["Expression_instantiate_expression_type", choose_production_rule_expression_instantiate_expression_type],
             ["Expression_return", choose_production_rule_expression_return],
             ["Expression_switch_case", choose_production_rule_expression_switch_case],
             ["Expression_switch_case_value", choose_production_rule_expression_switch_case_value],
@@ -343,7 +343,7 @@ function map_expression_constant_to_word(
     throw Error(message);
 }
 
-function map_expression_instantiate_struct_member_name_to_word(
+function map_expression_instantiate_member_name_to_word(
     module: Core_intermediate_representation.Module,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
     production_rules: Grammar.Production_rule[],
@@ -353,11 +353,11 @@ function map_expression_instantiate_struct_member_name_to_word(
 ): Scanner.Scanned_word {
     const top = stack[stack.length - 1];
     const expression = top.state.value as Core_intermediate_representation.Expression;
-    const instantiate_struct_expression = expression.data.value as Core_intermediate_representation.Instantiate_struct_expression;
+    const instantiate_expression = expression.data.value as Core_intermediate_representation.Instantiate_expression;
 
     const array_state = stack[stack.length - 3];
     const member_index = Parse_tree_convertor.calculate_array_index(production_rules[array_state.production_rule_index], array_state.current_child_index - 1);
-    const member = instantiate_struct_expression.members[member_index];
+    const member = instantiate_expression.members[member_index];
 
     return { value: member.member_name, type: Grammar.Word_type.Alphanumeric };
 }
@@ -530,10 +530,10 @@ function choose_production_rule_type(
             const cast_expression = expression.data.value as Core_intermediate_representation.Cast_expression;
             return [cast_expression.destination_type];
         }
-        else if (top.node.word.value === "Expression_instantiate_struct_name") {
+        else if (top.node.word.value === "Expression_instantiate_name") {
             const expression = top.state.value as Core_intermediate_representation.Expression;
-            const instantiate_struct_expression = expression.data.value as Core_intermediate_representation.Instantiate_struct_expression;
-            return [instantiate_struct_expression.type_reference as Core_intermediate_representation.Type_reference];
+            const instantiate_expression = expression.data.value as Core_intermediate_representation.Instantiate_expression;
+            return [instantiate_expression.type_reference as Core_intermediate_representation.Type_reference];
         }
         else if (top.node.word.value === "Expression_variable_declaration_type") {
             const expression = top.state.value as Core_intermediate_representation.Expression;
@@ -1052,7 +1052,7 @@ function choose_production_rule_expression_if_else(
     };
 }
 
-function choose_production_rule_expression_instantiate_struct_name(
+function choose_production_rule_expression_instantiate_name(
     module: Core_intermediate_representation.Module,
     production_rules: Grammar.Production_rule[],
     production_rule_indices: number[],
@@ -1065,10 +1065,10 @@ function choose_production_rule_expression_instantiate_struct_name(
     const top = stack[stack.length - 1];
 
     const expression = top.state.value as Core_intermediate_representation.Expression;
-    const instantiate_struct_expression = expression.data.value as Core_intermediate_representation.Instantiate_struct_expression;
+    const instantiate_expression = expression.data.value as Core_intermediate_representation.Instantiate_expression;
 
     const index =
-        instantiate_struct_expression.type_reference === undefined ?
+        instantiate_expression.type_reference === undefined ?
             0 :
             1;
 
@@ -1081,7 +1081,7 @@ function choose_production_rule_expression_instantiate_struct_name(
     };
 }
 
-function choose_production_rule_expression_instantiate_struct_type(
+function choose_production_rule_expression_instantiate_expression_type(
     module: Core_intermediate_representation.Module,
     production_rules: Grammar.Production_rule[],
     production_rule_indices: number[],
@@ -1094,10 +1094,10 @@ function choose_production_rule_expression_instantiate_struct_type(
     const top = stack[stack.length - 1];
 
     const expression = top.state.value as Core_intermediate_representation.Expression;
-    const instantiate_struct_expression = expression.data.value as Core_intermediate_representation.Instantiate_struct_expression;
+    const instantiate_expression = expression.data.value as Core_intermediate_representation.Instantiate_expression;
 
     const index =
-        instantiate_struct_expression.type === Core_intermediate_representation.Instantiate_struct_type.Default ?
+        instantiate_expression.type === Core_intermediate_representation.Instantiate_expression_type.Default ?
             0 :
             1;
 
@@ -1427,12 +1427,12 @@ function get_generic_expression(
                 label: map_expression_type_to_production_rule_label(next_expression)
             };
         }
-        case Core_intermediate_representation.Expression_enum.Instantiate_struct_expression: {
-            const instantiate_struct_expression = expression.data.value as Core_intermediate_representation.Instantiate_struct_expression;
+        case Core_intermediate_representation.Expression_enum.Instantiate_expression: {
+            const instantiate_expression = expression.data.value as Core_intermediate_representation.Instantiate_expression;
 
             const array_state = stack[stack.length - 2];
             const member_index = Parse_tree_convertor.calculate_array_index(production_rules[array_state.production_rule_index], array_state.current_child_index - 1);
-            const member = instantiate_struct_expression.members[member_index];
+            const member = instantiate_expression.members[member_index];
 
             const next_expression = member.value.expression;
             return {
@@ -1660,8 +1660,8 @@ function map_expression_type_to_production_rule_label(expression: Core_intermedi
             return "Expression_for_loop";
         case Core_intermediate_representation.Expression_enum.If_expression:
             return "Expression_if";
-        case Core_intermediate_representation.Expression_enum.Instantiate_struct_expression:
-            return "Expression_instantiate_struct";
+        case Core_intermediate_representation.Expression_enum.Instantiate_expression:
+            return "Expression_instantiate";
         case Core_intermediate_representation.Expression_enum.Invalid_expression:
             return "Expression_invalid";
         case Core_intermediate_representation.Expression_enum.Null_pointer_expression:
@@ -2192,11 +2192,11 @@ function node_to_expression(node: Parser_node.Node, key_to_production_rule_indic
                 }
             };
         }
-        case "Expression_instantiate_struct": {
-            const expression = node_to_expression_instantiate_struct(node, key_to_production_rule_indices);
+        case "Expression_instantiate": {
+            const expression = node_to_expression_instantiate(node, key_to_production_rule_indices);
             return {
                 data: {
-                    type: Core_intermediate_representation.Expression_enum.Instantiate_struct_expression,
+                    type: Core_intermediate_representation.Expression_enum.Instantiate_expression,
                     value: expression
                 }
             };
@@ -2704,19 +2704,19 @@ function node_to_expression_if(node: Parser_node.Node, key_to_production_rule_in
     return if_expression;
 }
 
-function node_to_expression_instantiate_struct(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Instantiate_struct_expression {
+function node_to_expression_instantiate(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Instantiate_expression {
 
-    const type_node_value = find_node_value(node, "Expression_instantiate_struct_type", key_to_production_rule_indices);
-    const type = type_node_value === "explicit" ? Core_intermediate_representation.Instantiate_struct_type.Explicit : Core_intermediate_representation.Instantiate_struct_type.Default;
+    const type_node_value = find_node_value(node, "Expression_instantiate_expression_type", key_to_production_rule_indices);
+    const type = type_node_value === "explicit" ? Core_intermediate_representation.Instantiate_expression_type.Explicit : Core_intermediate_representation.Instantiate_expression_type.Default;
 
-    const struct_name_node = find_node(node, "Expression_instantiate_struct_name", key_to_production_rule_indices) as Parser_node.Node;
+    const struct_name_node = find_node(node, "Expression_instantiate_name", key_to_production_rule_indices) as Parser_node.Node;
     const type_reference_node = struct_name_node.children.length > 0 ? struct_name_node.children[0] : undefined;
     const type_reference = type_reference_node !== undefined ? node_to_type_reference(type_reference_node, key_to_production_rule_indices)[0] : undefined;
 
-    const member_nodes = find_nodes_inside_parent(node, "Expression_instantiate_struct_members", "Expression_instantiate_struct_member", key_to_production_rule_indices);
-    const members: Core_intermediate_representation.Instantiate_struct_member_value_pair[] = member_nodes.map(
+    const member_nodes = find_nodes_inside_parent(node, "Expression_instantiate_members", "Expression_instantiate_member", key_to_production_rule_indices);
+    const members: Core_intermediate_representation.Instantiate_member_value_pair[] = member_nodes.map(
         node => {
-            const member_name = find_node_value(node, "Expression_instantiate_struct_member_name", key_to_production_rule_indices);
+            const member_name = find_node_value(node, "Expression_instantiate_member_name", key_to_production_rule_indices);
 
             const expression_node = find_node(node, "Generic_expression", key_to_production_rule_indices) as Parser_node.Node;
             const expression = node_to_expression(expression_node, key_to_production_rule_indices);
@@ -2728,13 +2728,13 @@ function node_to_expression_instantiate_struct(node: Parser_node.Node, key_to_pr
         }
     );
 
-    const instantiate_struct_expression: Core_intermediate_representation.Instantiate_struct_expression = {
+    const instantiate_expression: Core_intermediate_representation.Instantiate_expression = {
         type: type,
         type_reference,
         members: members
     };
 
-    return instantiate_struct_expression;
+    return instantiate_expression;
 }
 
 function node_to_expression_null_pointer(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Null_pointer_expression {

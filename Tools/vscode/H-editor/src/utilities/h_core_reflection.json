@@ -64,7 +64,7 @@
             ]
         },
         {
-            "name": "Instantiate_struct_type",
+            "name": "Instantiate_expression_type",
             "values": [
                 "Default",
                 "Explicit"
@@ -623,7 +623,7 @@
             ]
         },
         {
-            "name": "Instantiate_struct_member_value_pair",
+            "name": "Instantiate_member_value_pair",
             "members": [
                 {
                     "type": {
@@ -640,11 +640,11 @@
             ]
         },
         {
-            "name": "Instantiate_struct_expression",
+            "name": "Instantiate_expression",
             "members": [
                 {
                     "type": {
-                        "name": "Instantiate_struct_type"
+                        "name": "Instantiate_expression_type"
                     },
                     "name": "type"
                 },
@@ -656,7 +656,7 @@
                 },
                 {
                     "type": {
-                        "name": "std::pmr::vector<Instantiate_struct_member_value_pair>"
+                        "name": "std::pmr::vector<Instantiate_member_value_pair>"
                     },
                     "name": "members"
                 }
@@ -847,7 +847,7 @@
             "members": [
                 {
                     "type": {
-                        "name": "std::variant<Access_expression,Assignment_expression,Binary_expression,Block_expression,Break_expression,Call_expression,Cast_expression,Constant_expression,Continue_expression,For_loop_expression,If_expression,Instantiate_struct_expression,Invalid_expression,Null_pointer_expression,Parenthesis_expression,Return_expression,Switch_expression,Ternary_condition_expression,Unary_expression,Variable_declaration_expression,Variable_declaration_with_type_expression,Variable_expression,While_loop_expression>"
+                        "name": "std::variant<Access_expression,Assignment_expression,Binary_expression,Block_expression,Break_expression,Call_expression,Cast_expression,Constant_expression,Continue_expression,For_loop_expression,If_expression,Instantiate_expression,Invalid_expression,Null_pointer_expression,Parenthesis_expression,Return_expression,Switch_expression,Ternary_condition_expression,Unary_expression,Variable_declaration_expression,Variable_declaration_with_type_expression,Variable_expression,While_loop_expression>"
                     },
                     "name": "data"
                 }

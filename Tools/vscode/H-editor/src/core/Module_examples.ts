@@ -3222,10 +3222,10 @@ export function create_using_structs(): IR.Module {
                     ],
                     member_default_values: [
                         create_statement(
-                            IR.create_instantiate_struct_expression(IR.Instantiate_struct_type.Default, undefined, [])
+                            IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [])
                         ),
                         create_statement(
-                            IR.create_instantiate_struct_expression(IR.Instantiate_struct_type.Default, undefined, [
+                            IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [
                                 {
                                     member_name: "a",
                                     value: create_statement(
@@ -3235,7 +3235,7 @@ export function create_using_structs(): IR.Module {
                             ])
                         ),
                         create_statement(
-                            IR.create_instantiate_struct_expression(IR.Instantiate_struct_type.Default, undefined, [
+                            IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [
                                 {
                                     member_name: "a",
                                     value: create_statement(
@@ -3291,7 +3291,7 @@ export function create_using_structs(): IR.Module {
                                     false,
                                     create_custom_type_reference("", "My_struct"),
                                     create_statement(
-                                        IR.create_instantiate_struct_expression(IR.Instantiate_struct_type.Default, undefined, [])
+                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [])
                                     )
                                 )
                             ),
@@ -3301,7 +3301,7 @@ export function create_using_structs(): IR.Module {
                                     false,
                                     create_custom_type_reference("", "My_struct"),
                                     create_statement(
-                                        IR.create_instantiate_struct_expression(IR.Instantiate_struct_type.Default, undefined, [
+                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [
                                             {
                                                 member_name: "b",
                                                 value: create_statement(
@@ -3318,7 +3318,7 @@ export function create_using_structs(): IR.Module {
                                     false,
                                     create_custom_type_reference("", "My_struct_2"),
                                     create_statement(
-                                        IR.create_instantiate_struct_expression(IR.Instantiate_struct_type.Default, undefined, [])
+                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [])
                                     )
                                 )
                             ),
@@ -3328,23 +3328,23 @@ export function create_using_structs(): IR.Module {
                                     false,
                                     create_custom_type_reference("", "My_struct_2"),
                                     create_statement(
-                                        IR.create_instantiate_struct_expression(IR.Instantiate_struct_type.Explicit, undefined, [
+                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Explicit, undefined, [
                                             {
                                                 member_name: "a",
                                                 value: create_statement(
-                                                    IR.create_instantiate_struct_expression(IR.Instantiate_struct_type.Default, undefined, [])
+                                                    IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [])
                                                 )
                                             },
                                             {
                                                 member_name: "b",
                                                 value: create_statement(
-                                                    IR.create_instantiate_struct_expression(IR.Instantiate_struct_type.Default, undefined, [])
+                                                    IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [])
                                                 )
                                             },
                                             {
                                                 member_name: "c",
                                                 value: create_statement(
-                                                    IR.create_instantiate_struct_expression(IR.Instantiate_struct_type.Explicit, undefined, [
+                                                    IR.create_instantiate_expression(IR.Instantiate_expression_type.Explicit, undefined, [
                                                         {
                                                             member_name: "a",
                                                             value: create_statement(
@@ -3385,7 +3385,7 @@ export function create_using_structs(): IR.Module {
                                     true,
                                     create_custom_type_reference("", "My_struct"),
                                     create_statement(
-                                        IR.create_instantiate_struct_expression(IR.Instantiate_struct_type.Default, undefined, [])
+                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [])
                                     )
                                 )
                             ),
@@ -3404,8 +3404,8 @@ export function create_using_structs(): IR.Module {
                                 IR.create_variable_declaration_expression(
                                     "instance_5",
                                     false,
-                                    IR.create_instantiate_struct_expression(
-                                        IR.Instantiate_struct_type.Default,
+                                    IR.create_instantiate_expression(
+                                        IR.Instantiate_expression_type.Default,
                                         create_custom_type_reference("", "My_struct"),
                                         []
                                     )
@@ -3415,8 +3415,8 @@ export function create_using_structs(): IR.Module {
                                 IR.create_call_expression(
                                     IR.create_variable_expression("pass_struct", IR.Access_type.Read),
                                     [
-                                        IR.create_instantiate_struct_expression(
-                                            IR.Instantiate_struct_type.Default,
+                                        IR.create_instantiate_expression(
+                                            IR.Instantiate_expression_type.Default,
                                             undefined,
                                             []
                                         )
@@ -3481,8 +3481,8 @@ export function create_using_structs(): IR.Module {
                         statements: [
                             create_statement(
                                 IR.create_return_expression(
-                                    IR.create_instantiate_struct_expression(
-                                        IR.Instantiate_struct_type.Default,
+                                    IR.create_instantiate_expression(
+                                        IR.Instantiate_expression_type.Default,
                                         undefined,
                                         []
                                     )
