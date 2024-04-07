@@ -1,3 +1,7 @@
+import * as fs from "fs";
+
+import { onThrowError } from "../utilities/errors";
+
 const g_debug = false;
 
 export enum Word_type {
@@ -578,12 +582,13 @@ export function create_lr1_graph(production_rules: Production_rule[], terminals:
 }
 
 function escape_html_string(value: string): string {
-    return value
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
+    const characters = [];
+
+    for (let index = 0; index < value.length; ++index) {
+        characters.push(`&#${value.charCodeAt(index)};`);
+    }
+
+    return characters.join("");
 }
 
 function create_state_format(
@@ -609,8 +614,27 @@ function create_state_format(
     }
     table_parts.push(`</tr>`);
 
-    for (let index = 0; index < state.length; ++index) {
-        const item = state[index];
+    const aggregated_items = new Map<string, [LR0_item, [string]]>();
+    for (const item of state) {
+        const key = `${item.production_rule_index}@${item.label_index}`;
+        const follow_array = aggregated_items.get(key);
+        if (follow_array !== undefined) {
+            follow_array[1].push(item.follow_terminal);
+        }
+        else {
+            const lr0_item: LR0_item = {
+                production_rule_index: item.production_rule_index,
+                label_index: item.label_index
+            };
+            aggregated_items.set(key, [lr0_item, [item.follow_terminal]]);
+        }
+    }
+
+    let index = 0;
+    for (const pair of aggregated_items) {
+        const item = pair[1][0];
+        const follow_set = pair[1][1];
+
         const production_rule = production_rules[item.production_rule_index];
 
         table_parts.push(`<tr>`);
@@ -619,13 +643,22 @@ function create_state_format(
             for (const label of production_rule.rhs) {
                 rhs_array.push(escape_html_string(label));
             }
-            rhs_array[item.label_index] = `&bull;${rhs_array[item.label_index]}`;
+            if (item.label_index < rhs_array.length) {
+                rhs_array[item.label_index] = `&bull;${rhs_array[item.label_index]}`;
+            }
+            else {
+                rhs_array.push(` &bull;`);
+            }
 
             const rhs_array_string = rhs_array.join(" ");
 
-            table_parts.push(`<td align="left" port="r${index}">&#40;${index}&#41; ${production_rule.lhs} -&gt; ${rhs_array_string} </td>`);
+            const follow_set_string = escape_html_string(`{ ${follow_set.join(", ")} }`);
+
+            table_parts.push(`<td align="left" port="r${index}">&#40;P#${item.production_rule_index}&#41; ${production_rule.lhs} -&gt; ${rhs_array_string} follow_set: ${follow_set_string} </td>`);
         }
         table_parts.push(`</tr>`);
+
+        index += 1;
     }
 
     table_parts.push(`</table>`);
@@ -650,7 +683,8 @@ function create_edge_format(
 export function create_graphviz(
     graph: { states: LR1_item[][], edges: Edge[] },
     production_rules: Production_rule[],
-    terminals: string[]
+    terminals: string[],
+    state_names?: Map<number, number>
 ): string {
 
     const output: string[] = [
@@ -663,8 +697,9 @@ export function create_graphviz(
     ];
 
     for (let state_index = 0; state_index < graph.states.length; ++state_index) {
-        const format_string = create_state_format(state_index, graph.states[state_index], production_rules);
-        output.push(`  "state${state_index}" [ ${format_string} ];`);
+        const state_name = state_names !== undefined ? state_names.get(state_index) as number : state_index;
+        const format_string = create_state_format(state_name, graph.states[state_index], production_rules);
+        output.push(`  "state${state_name}" [ ${format_string} ];`);
     }
 
     for (const edge of graph.edges) {
@@ -680,9 +715,84 @@ export function create_graphviz(
     return graphviz;
 }
 
+export function create_small_graphviz(
+    graph: { states: LR1_item[][], edges: Edge[] },
+    production_rules: Production_rule[],
+    terminals: string[],
+    state_index_to_focus: number,
+    neighboor_distance: number
+): string {
+
+    const smaller_graph: { states: LR1_item[][], edges: Edge[] } = {
+        states: [],
+        edges: []
+    };
+
+    const state_index_map = new Map<number, number>([]);
+    const edge_index_map = new Map<number, number>([]);
+
+    const add_new_state = (state_index: number): void => {
+        if (!state_index_map.has(state_index)) {
+            state_index_map.set(state_index, smaller_graph.states.length);
+            smaller_graph.states.push(graph.states[state_index]);
+        }
+    };
+
+    const add_new_edge = (edge_index: number): void => {
+        if (!edge_index_map.has(edge_index)) {
+            const edge = graph.edges[edge_index];
+            edge_index_map.set(edge_index, smaller_graph.edges.length);
+            smaller_graph.edges.push(edge);
+        }
+    };
+
+    add_new_state(state_index_to_focus);
+
+    const state_indices = new Set<number>([state_index_to_focus]);
+
+    for (let iterations = 0; iterations < neighboor_distance; ++iterations) {
+
+        const added_edges: Edge[] = [];
+
+        for (let edge_index = 0; edge_index < graph.edges.length; ++edge_index) {
+            const edge = graph.edges[edge_index];
+
+            const has_from_state = state_indices.has(edge.from_state);
+            const has_to_state = state_indices.has(edge.to_state);
+
+            if (has_from_state || has_to_state) {
+                if (!has_from_state) {
+                    add_new_state(edge.from_state);
+                }
+                if (!has_to_state) {
+                    add_new_state(edge.to_state);
+                }
+                add_new_edge(edge_index);
+
+                added_edges.push(edge);
+            }
+        }
+
+        for (const edge of added_edges) {
+            if (!state_indices.has(edge.from_state)) {
+                state_indices.add(edge.from_state);
+            }
+            if (!state_indices.has(edge.to_state)) {
+                state_indices.add(edge.to_state);
+            }
+        }
+    }
+
+    const state_names = new Map<number, number>([]);
+    for (const pair of state_index_map) {
+        state_names.set(pair[1], pair[0]);
+    }
+
+    return create_graphviz(smaller_graph, production_rules, terminals, state_names);
+}
+
 export enum Action_type {
     Accept,
-    Go_to,
     Reduce,
     Shift,
 }
@@ -724,7 +834,79 @@ export interface Parsing_tables {
     go_to_table: Go_to_column[][];
 }
 
-export function create_parsing_tables(production_rules: Production_rule[], terminals: string[], states: LR1_item[][], edges: Edge[]): Parsing_tables {
+function create_action_description(
+    label: string,
+    action: Action,
+    production_rules: Production_rule[]
+): string {
+    switch (action.type) {
+        case Action_type.Accept: {
+            const value = action.value as Accept_action;
+            return `Accept: ${value.lhs}`;
+        }
+        case Action_type.Reduce: {
+            const value = action.value as Reduce_action;
+            const production_rule = production_rules[value.production_rule_index];
+            const rhs_string = production_rule.rhs.join(" ");
+            return `Reduce P#${value.production_rule_index}: ${value.lhs} -> ${rhs_string}`;
+        }
+        case Action_type.Shift: {
+            const value = action.value as Shift_action;
+            value.next_state;
+            return `Shift: ${label} (to State #${value.next_state})`;
+        }
+    }
+}
+
+function create_ambiguous_grammar_message(
+    state_index: number,
+    new_conflicting_action: Action_column,
+    action_row: Action_column[],
+    production_rules: Production_rule[]
+): string {
+
+    const column_index = action_row.findIndex(value => value.label === new_conflicting_action.label);
+    const table_action_column = action_row[column_index];
+
+    const table_action_description = create_action_description(
+        table_action_column.label,
+        table_action_column.action,
+        production_rules
+    );
+
+    const conflicting_action_description = create_action_description(
+        new_conflicting_action.label,
+        new_conflicting_action.action,
+        production_rules
+    );
+
+    const message = `In State #${state_index}, undecided between '${table_action_description}' and '${conflicting_action_description}'`;
+    return message;
+}
+
+function check_grammar_for_ambiguity(
+    graph: { states: LR1_item[][], edges: Edge[] },
+    production_rules: Production_rule[],
+    terminals: string[],
+    state_index: number,
+    action_row: Action_column[],
+    graphviz_output_path?: string
+): void {
+    const last_entry = action_row[action_row.length - 1];
+    if (action_row.findIndex(value => value.label === last_entry.label) !== action_row.length - 1) {
+
+        if (graphviz_output_path !== undefined) {
+            const graphviz = create_small_graphviz(graph, production_rules, terminals, state_index, 2);
+            fs.writeFileSync(graphviz_output_path, graphviz, { flag: "w" });
+        }
+
+        const message = create_ambiguous_grammar_message(state_index, action_row[action_row.length - 1], action_row, production_rules);
+        onThrowError(message);
+        throw Error(message);
+    }
+}
+
+export function create_parsing_tables(production_rules: Production_rule[], terminals: string[], states: LR1_item[][], edges: Edge[], graphviz_output_path?: string): Parsing_tables {
 
     const action_table: Action_column[][] = [];
     const go_to_table: Go_to_column[][] = [];
@@ -774,6 +956,8 @@ export function create_parsing_tables(production_rules: Production_rule[], termi
                     }
                 });
             }
+
+            check_grammar_for_ambiguity({ states: states, edges: edges }, production_rules, terminals, state_index, action_row, graphviz_output_path);
         }
     }
 
@@ -789,6 +973,8 @@ export function create_parsing_tables(production_rules: Production_rule[], termi
                     }
                 }
             });
+
+            check_grammar_for_ambiguity({ states: states, edges: edges }, production_rules, terminals, edge.from_state, action_row, graphviz_output_path);
         }
         else {
             const go_to_row = go_to_table[edge.from_state];
