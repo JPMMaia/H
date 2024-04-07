@@ -34,12 +34,7 @@ function create_parsing_tables(
     const lr1_item_set_0 = Grammar.create_start_lr1_item_set(production_rules, terminals);
     const graph = Grammar.create_lr1_graph(production_rules, terminals, lr1_item_set_0);
 
-    if (graphviz_output_path !== undefined) {
-        const graphviz = Grammar.create_graphviz(graph, production_rules, terminals);
-        fs.writeFileSync(graphviz_output_path, graphviz, { flag: "w" });
-    }
-
-    const parsing_tables = Grammar.create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
+    const parsing_tables = Grammar.create_parsing_tables(production_rules, terminals, graph.states, graph.edges, graphviz_output_path);
 
     if (cache !== undefined) {
         const parsing_tables_string = JSON.stringify(parsing_tables);
