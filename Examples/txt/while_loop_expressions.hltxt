@@ -11,7 +11,7 @@ export function run_while_loops(size: Int32) -> ()
 {
     {
         mutable index = 0;
-        while index < size:
+        while index < size
         {
             print_integer(index);
             index += 1;
@@ -20,13 +20,17 @@ export function run_while_loops(size: Int32) -> ()
 
     {
         mutable index = 0;
-        while index < size:
+        while index < size
         {
-            if index % 2 == 0:
+            if index % 2 == 0
+            {
                 continue;
+            }
 
-            if index > 5:
+            if index > 5
+            {
                 break;
+            }
             
             print_integer(index);
             index += 1;

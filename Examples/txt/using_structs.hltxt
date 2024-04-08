@@ -8,13 +8,13 @@ export struct My_struct
 
 export struct My_struct_2
 {
-    a: My_struct = default{};
+    a: My_struct = {};
     
-    b: My_struct = default{
+    b: My_struct = {
         a: 2
     };
 
-    c: My_struct = default{
+    c: My_struct = {
         a: 3,
         b: 4
     };
@@ -24,17 +24,17 @@ export function use_structs(my_struct: My_struct) -> ()
 {
     var a = my_struct.a;
     
-    var instance_0: My_struct = default{};
+    var instance_0: My_struct = {};
     
-    var instance_1: My_struct = default{
+    var instance_1: My_struct = {
         b: 3
     };
 
-    var instance_2: My_struct_2 = default{};
+    var instance_2: My_struct_2 = {};
 
     var instance_3: My_struct_2 = explicit{
-        a: default{},
-        b: default{},
+        a: {},
+        b: {},
         c: explicit{
             a: 0,
             b: 1
@@ -43,17 +43,15 @@ export function use_structs(my_struct: My_struct) -> ()
 
     var nested_b_a = instance_3.b.a;
 
-    mutable instance_4: My_struct = default{};
+    mutable instance_4: My_struct = {};
     instance_4 = explicit{
         a: 10,
         b: 11
     };
     instance_4.a = 0;
 
-    var instance_5 = default My_struct{};
-
-    pass_struct(default{});
-    var instance_6 = return_struct();
+    pass_struct({});
+    var instance_5 = return_struct();
 }
 
 function pass_struct(my_struct: My_struct) -> ()
@@ -62,5 +60,5 @@ function pass_struct(my_struct: My_struct) -> ()
 
 function return_struct() -> (my_struct: My_struct)
 {
-    return default{};
+    return {};
 }
