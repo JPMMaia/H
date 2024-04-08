@@ -645,7 +645,7 @@ for_loop_after:                                   ; preds = %for_loop_condition
 
 for_loop_condition2:                              ; preds = %for_loop_update_index4, %for_loop_after
   %5 = load i32, ptr %index1, align 4
-  %6 = icmp slt i32 %5, 3
+  %6 = icmp slt i32 %5, 4
   br i1 %6, label %for_loop_then3, label %for_loop_after5
 
 for_loop_then3:                                   ; preds = %for_loop_condition2
@@ -661,12 +661,12 @@ for_loop_update_index4:                           ; preds = %for_loop_then3
 
 for_loop_after5:                                  ; preds = %for_loop_condition2
   %index6 = alloca i32, align 4
-  store i32 0, ptr %index6, align 4
+  store i32 4, ptr %index6, align 4
   br label %for_loop_condition7
 
 for_loop_condition7:                              ; preds = %for_loop_update_index9, %for_loop_after5
   %10 = load i32, ptr %index6, align 4
-  %11 = icmp slt i32 %10, 4
+  %11 = icmp sgt i32 %10, 0
   br i1 %11, label %for_loop_then8, label %for_loop_after10
 
 for_loop_then8:                                   ; preds = %for_loop_condition7
@@ -676,7 +676,7 @@ for_loop_then8:                                   ; preds = %for_loop_condition7
 
 for_loop_update_index9:                           ; preds = %for_loop_then8
   %13 = load i32, ptr %index6, align 4
-  %14 = add i32 %13, 1
+  %14 = add i32 %13, -1
   store i32 %14, ptr %index6, align 4
   br label %for_loop_condition7
 
@@ -702,27 +702,6 @@ for_loop_update_index14:                          ; preds = %for_loop_then13
   br label %for_loop_condition12
 
 for_loop_after15:                                 ; preds = %for_loop_condition12
-  %index16 = alloca i32, align 4
-  store i32 4, ptr %index16, align 4
-  br label %for_loop_condition17
-
-for_loop_condition17:                             ; preds = %for_loop_update_index19, %for_loop_after15
-  %20 = load i32, ptr %index16, align 4
-  %21 = icmp sgt i32 %20, 0
-  br i1 %21, label %for_loop_then18, label %for_loop_after20
-
-for_loop_then18:                                  ; preds = %for_loop_condition17
-  %22 = load i32, ptr %index16, align 4
-  call void @print_integer(i32 %22)
-  br label %for_loop_update_index19
-
-for_loop_update_index19:                          ; preds = %for_loop_then18
-  %23 = load i32, ptr %index16, align 4
-  %24 = add i32 %23, -1
-  store i32 %24, ptr %index16, align 4
-  br label %for_loop_condition17
-
-for_loop_after20:                                 ; preds = %for_loop_condition17
   ret void
 }
 
@@ -781,9 +760,6 @@ declare i32 @puts(ptr)
 @global_6 = internal constant [9 x i8] c"negative\00"
 @global_7 = internal constant [9 x i8] c"positive\00"
 @global_8 = internal constant [5 x i8] c"zero\00"
-@global_9 = internal constant [9 x i8] c"negative\00"
-@global_10 = internal constant [9 x i8] c"positive\00"
-@global_11 = internal constant [5 x i8] c"zero\00"
 
 define void @run_ifs(i32 %value) {
 entry:
@@ -843,26 +819,6 @@ if_s3_else:                                       ; preds = %if_s1_else5
   br label %if_s4_after
 
 if_s4_after:                                      ; preds = %if_s3_else, %if_s2_then6, %if_s0_then4
-  %6 = icmp slt i32 %value, 0
-  br i1 %6, label %if_s0_then7, label %if_s1_else8
-
-if_s0_then7:                                      ; preds = %if_s4_after
-  call void @print_message(ptr @global_9)
-  br label %if_s4_after11
-
-if_s1_else8:                                      ; preds = %if_s4_after
-  %7 = icmp sgt i32 %value, 0
-  br i1 %7, label %if_s2_then9, label %if_s3_else10
-
-if_s2_then9:                                      ; preds = %if_s1_else8
-  call void @print_message(ptr @global_10)
-  br label %if_s4_after11
-
-if_s3_else10:                                     ; preds = %if_s1_else8
-  call void @print_message(ptr @global_11)
-  br label %if_s4_after11
-
-if_s4_after11:                                    ; preds = %if_s3_else10, %if_s2_then9, %if_s0_then7
   ret void
 }
 
@@ -1466,12 +1422,10 @@ entry:
   store %My_struct { i32 10, i32 11 }, ptr %instance_4, align 4
   %4 = load %My_struct, ptr %instance_4, align 4
   %5 = insertvalue %My_struct %4, i32 0, 0
-  %instance_5 = alloca %My_struct, align 8
-  store %My_struct { i32 1, i32 2 }, ptr %instance_5, align 4
   call void @pass_struct(%My_struct { i32 1, i32 2 })
   %6 = call %My_struct @return_struct()
-  %instance_6 = alloca %My_struct, align 8
-  store %My_struct %6, ptr %instance_6, align 4
+  %instance_5 = alloca %My_struct, align 8
+  store %My_struct %6, ptr %instance_5, align 4
   ret void
 }
 

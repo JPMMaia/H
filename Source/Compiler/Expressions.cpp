@@ -57,21 +57,6 @@ namespace h::compiler
         return std::holds_alternative<Break_expression>(first_expression.data) || std::holds_alternative<Continue_expression>(first_expression.data) || std::holds_alternative<Return_expression>(first_expression.data);
     }
 
-    std::pmr::vector<Statement> skip_block(Statement const& statement)
-    {
-        if (statement.expressions.empty())
-            return {};
-
-        Expression const& first_expression = statement.expressions[0];
-        if (std::holds_alternative<Block_expression>(first_expression.data))
-        {
-            Block_expression const& block_expression = std::get<Block_expression>(first_expression.data);
-            return block_expression.statements;
-        }
-
-        return { {statement} };
-    }
-
     std::optional<Value_and_type> search_in_function_scope(
         std::string_view const variable_name,
         std::span<Value_and_type const> const function_arguments,
@@ -1446,13 +1431,12 @@ namespace h::compiler
             new_parameters.local_variables = all_local_variables;
             new_parameters.blocks = all_block_infos;
 
-            std::pmr::vector<Statement> const then_statements = skip_block(expression.then_statement);
             create_statement_values(
-                then_statements,
+                expression.then_statements,
                 new_parameters
             );
 
-            if (!ends_with_terminator_statement(then_statements))
+            if (!ends_with_terminator_statement(expression.then_statements))
                 llvm_builder.CreateBr(update_index_block);
         }
 
@@ -1565,26 +1549,24 @@ namespace h::compiler
                 llvm_builder.CreateCondBr(condition_value.value, then_block, else_block);
 
                 llvm_builder.SetInsertPoint(then_block);
-                std::pmr::vector<Statement> const statements = skip_block(serie.statement);
                 create_statement_values(
-                    statements,
+                    serie.then_statements,
                     parameters
                 );
 
-                if (!ends_with_terminator_statement(statements))
+                if (!ends_with_terminator_statement(serie.then_statements))
                     llvm_builder.CreateBr(end_if_block);
 
                 llvm_builder.SetInsertPoint(else_block);
             }
             else
             {
-                std::pmr::vector<Statement> const statements = skip_block(serie.statement);
                 create_statement_values(
-                    statements,
+                    serie.then_statements,
                     parameters
                 );
 
-                if (!ends_with_terminator_statement(statements))
+                if (!ends_with_terminator_statement(serie.then_statements))
                     llvm_builder.CreateBr(end_if_block);
 
                 llvm_builder.SetInsertPoint(end_if_block);
@@ -1611,10 +1593,10 @@ namespace h::compiler
         Declaration_database const& declaration_database = parameters.declaration_database;
         Type_database const& type_database = parameters.type_database;
 
-        if (!expression.type_reference.has_value() && !parameters.expression_type.has_value())
+        if (!parameters.expression_type.has_value())
             throw std::runtime_error{ "Could not infer struct type while trying to instantiate!" };
 
-        Type_reference const& struct_type_reference = expression.type_reference.has_value() ? fix_custom_type_reference(expression.type_reference.value(), core_module.name) : parameters.expression_type.value();
+        Type_reference const& struct_type_reference = parameters.expression_type.value();
         if (!std::holds_alternative<Custom_type_reference>(struct_type_reference.data))
             throw std::runtime_error{ "Could not instantiate struct because the type is not a struct!" };
 
@@ -2236,12 +2218,11 @@ namespace h::compiler
         new_parameters.blocks = all_block_infos;
 
         llvm_builder.SetInsertPoint(then_block);
-        std::pmr::vector<Statement> const then_block_statements = skip_block(expression.then_statement);
         create_statement_values(
-            then_block_statements,
+            expression.then_statements,
             new_parameters
         );
-        if (!ends_with_terminator_statement(then_block_statements))
+        if (!ends_with_terminator_statement(expression.then_statements))
             llvm_builder.CreateBr(condition_block);
 
         llvm_builder.SetInsertPoint(after_block);

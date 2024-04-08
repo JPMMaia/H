@@ -9,22 +9,26 @@ function print_integer(value: Int32) -> ()
 
 export function run_breaks(size: Int32) -> ()
 {
-    for index in 0 to size:
+    for index in 0 to size
     {
-        if index > 4:
+        if index > 4
+        {
             break;
+        }
 
         print_integer(index);
     }
 
-    for index in 0 to size:
+    for index in 0 to size
     {
         mutable index_2 = 0;
 
-        while index_2 < size:
+        while index_2 < size
         {
-            if index > 3:
+            if index > 3
+            {
                 break;
+            }
 
             print_integer(index_2);
             index += 1;
@@ -33,14 +37,16 @@ export function run_breaks(size: Int32) -> ()
         print_integer(index);
     }
 
-    for index in 0 to size:
+    for index in 0 to size
     {
         mutable index_2 = 0;
 
-        while index_2 < size:
+        while index_2 < size
         {
-            if index > 3:
+            if index > 3
+            {
                 break 2;
+            }
 
             print_integer(index_2);
             index += 1;

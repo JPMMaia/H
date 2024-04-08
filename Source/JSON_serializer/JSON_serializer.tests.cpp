@@ -288,59 +288,69 @@ namespace h
                                     ]
                                 }
                             },
-                            "statement": {
-                                "name": "",
-                                "expressions": {
-                                    "size": 2,
-                                    "elements": [
-                                        {
-                                            "data": {
-                                                "type": "Return_expression",
-                                                "value": {
-                                                    "expression": {
-                                                        "expression_index": 1
+                            "then_statements": {
+                                "size": 1,
+                                "elements": [
+                                    {
+                                        "name": "",
+                                        "expressions": {
+                                            "size": 2,
+                                            "elements": [
+                                                {
+                                                    "data": {
+                                                        "type": "Return_expression",
+                                                        "value": {
+                                                            "expression": {
+                                                                "expression_index": 1
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "data": {
+                                                        "type": "Variable_expression",
+                                                        "value": {
+                                                            "name": "value"
+                                                        }
                                                     }
                                                 }
-                                            }
-                                        },
-                                        {
-                                            "data": {
-                                                "type": "Variable_expression",
-                                                "value": {
-                                                    "name": "value"
-                                                }
-                                            }
+                                            ]
                                         }
-                                    ]
-                                }
+                                    }
+                                ]
                             }
                         },
                         {
-                            "statement": {
-                                "name": "",
-                                "expressions": {
-                                    "size": 2,
-                                    "elements": [
-                                        {
-                                            "data": {
-                                                "type": "Return_expression",
-                                                "value": {
-                                                    "expression": {
-                                                        "expression_index": 3
+                            "then_statements": {
+                                "size": 1,
+                                "elements": [
+                                    {
+                                        "name": "",
+                                        "expressions": {
+                                            "size": 2,
+                                            "elements": [
+                                                {
+                                                    "data": {
+                                                        "type": "Return_expression",
+                                                        "value": {
+                                                            "expression": {
+                                                                "expression_index": 3
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "data": {
+                                                        "type": "Variable_expression",
+                                                        "value": {
+                                                            "name": "value"
+                                                        }
                                                     }
                                                 }
-                                            }
-                                        },
-                                        {
-                                            "data": {
-                                                "type": "Variable_expression",
-                                                "value": {
-                                                    "name": "value"
-                                                }
-                                            }
+                                            ]
                                         }
-                                    ]
-                                }
+                                    }
+                                ]
                             }
                         }
                     ]
@@ -365,23 +375,25 @@ namespace h
                         }
                     }
                 },
-                .statement = Statement
-                {
-                    .name = "",
-                    .expressions = std::pmr::vector<Expression>
+                .then_statements = {
+                    Statement
                     {
+                        .name = "",
+                        .expressions = std::pmr::vector<Expression>
                         {
-                            .data = Return_expression
                             {
-                                .expression = {
-                                    .expression_index = 1
+                                .data = Return_expression
+                                {
+                                    .expression = {
+                                        .expression_index = 1
+                                    }
                                 }
-                            }
-                        },
-                        {
-                            .data = Variable_expression
+                            },
                             {
-                                .name = "value"
+                                .data = Variable_expression
+                                {
+                                    .name = "value"
+                                }
                             }
                         }
                     }
@@ -390,23 +402,25 @@ namespace h
             Condition_statement_pair
             {
                 .condition = std::nullopt,
-                .statement = Statement
-                {
-                    .name = "",
-                    .expressions = std::pmr::vector<Expression>
+                .then_statements = {
+                    Statement
                     {
+                        .name = "",
+                        .expressions = std::pmr::vector<Expression>
                         {
-                            .data = Return_expression
                             {
-                                .expression = {
-                                    .expression_index = 3
+                                .data = Return_expression
+                                {
+                                    .expression = {
+                                        .expression_index = 3
+                                    }
                                 }
-                            }
-                        },
-                        {
-                            .data = Variable_expression
+                            },
                             {
-                                .name = "value"
+                                .data = Variable_expression
+                                {
+                                    .name = "value"
+                                }
                             }
                         }
                     }
@@ -449,24 +463,26 @@ namespace h
                         }
                     }
                 },
-                .statement = Statement
-                {
-                    .name = "",
-                    .expressions = std::pmr::vector<Expression>
+                .then_statements = {
+                    Statement
                     {
+                        .name = "",
+                        .expressions = std::pmr::vector<Expression>
                         {
-                            .data = Return_expression
                             {
-                                .expression = {
-                                    .expression_index = 1
+                                .data = Return_expression
+                                {
+                                    .expression = {
+                                        .expression_index = 1
+                                    }
                                 }
-                            }
-                        },
-                        {
-                            .data = Variable_expression
+                            },
                             {
-                                .name = "value",
-                                .access_type = Access_type::Read
+                                .data = Variable_expression
+                                {
+                                    .name = "value",
+                                    .access_type = Access_type::Read
+                                }
                             }
                         }
                     }
@@ -475,24 +491,26 @@ namespace h
             Condition_statement_pair
             {
                 .condition = std::nullopt,
-                .statement = Statement
-                {
-                    .name = "",
-                    .expressions = std::pmr::vector<Expression>
+                .then_statements = {
+                    Statement
                     {
+                        .name = "",
+                        .expressions = std::pmr::vector<Expression>
                         {
-                            .data = Return_expression
                             {
-                                .expression = {
-                                    .expression_index = 3
+                                .data = Return_expression
+                                {
+                                    .expression = {
+                                        .expression_index = 3
+                                    }
                                 }
-                            }
-                        },
-                        {
-                            .data = Variable_expression
+                            },
                             {
-                                .name = "value",
-                                .access_type = Access_type::Read
+                                .data = Variable_expression
+                                {
+                                    .name = "value",
+                                    .access_type = Access_type::Read
+                                }
                             }
                         }
                     }
@@ -505,7 +523,7 @@ namespace h
             .series = std::move(input_series)
         };
 
-        std::string const expected = "{\"series\":{\"size\":2,\"elements\":[{\"condition\":{\"name\":\"\",\"expressions\":{\"size\":1,\"elements\":[{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"some_boolean\",\"access_type\":\"Read\"}}}]}},\"statement\":{\"name\":\"\",\"expressions\":{\"size\":2,\"elements\":[{\"data\":{\"type\":\"Return_expression\",\"value\":{\"expression\":{\"expression_index\":1}}}},{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"value\",\"access_type\":\"Read\"}}}]}}},{\"statement\":{\"name\":\"\",\"expressions\":{\"size\":2,\"elements\":[{\"data\":{\"type\":\"Return_expression\",\"value\":{\"expression\":{\"expression_index\":3}}}},{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"value\",\"access_type\":\"Read\"}}}]}}}]}}";
+        std::string const expected = "{\"series\":{\"size\":2,\"elements\":[{\"condition\":{\"name\":\"\",\"expressions\":{\"size\":1,\"elements\":[{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"some_boolean\",\"access_type\":\"Read\"}}}]}},\"then_statements\":{\"size\":1,\"elements\":[{\"name\":\"\",\"expressions\":{\"size\":2,\"elements\":[{\"data\":{\"type\":\"Return_expression\",\"value\":{\"expression\":{\"expression_index\":1}}}},{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"value\",\"access_type\":\"Read\"}}}]}}]}},{\"then_statements\":{\"size\":1,\"elements\":[{\"name\":\"\",\"expressions\":{\"size\":2,\"elements\":[{\"data\":{\"type\":\"Return_expression\",\"value\":{\"expression\":{\"expression_index\":3}}}},{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"value\",\"access_type\":\"Read\"}}}]}}]}}]}}";
 
         rapidjson::StringBuffer output_stream;
         rapidjson::Writer<rapidjson::StringBuffer> writer{ output_stream };
