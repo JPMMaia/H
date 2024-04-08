@@ -191,6 +191,19 @@ describe("Scanner.scan", () => {
         assert.equal(scanned_words[4].type, Grammar.Word_type.Symbol);
     });
 
+    it("Scans symbols 5", () => {
+        const input = ': ::';
+        const scanned_words = Scanner.scan(input, 0, input.length);
+
+        assert.equal(scanned_words.length, 2);
+
+        assert.equal(scanned_words[0].value, ":");
+        assert.equal(scanned_words[0].type, Grammar.Word_type.Symbol);
+
+        assert.equal(scanned_words[1].value, "::");
+        assert.equal(scanned_words[1].type, Grammar.Word_type.Symbol);
+    });
+
     it("Scans parenthesis", () => {
         const input = "() {} []";
         const scanned_words = Scanner.scan(input, 0, input.length);

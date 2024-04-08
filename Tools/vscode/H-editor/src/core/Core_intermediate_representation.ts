@@ -1188,7 +1188,7 @@ export interface For_loop_expression {
     range_end: Statement;
     range_comparison_operation: Binary_operation;
     step_by?: Expression;
-    then_statement: Statement;
+    then_statements: Statement[];
 }
 
 function core_to_intermediate_for_loop_expression(core_value: Core.For_loop_expression, statement: Core.Statement): For_loop_expression {
@@ -1198,7 +1198,7 @@ function core_to_intermediate_for_loop_expression(core_value: Core.For_loop_expr
         range_end: core_to_intermediate_statement(core_value.range_end),
         range_comparison_operation: core_value.range_comparison_operation,
         step_by: core_value.step_by !== undefined ? core_to_intermediate_expression(statement.expressions.elements[core_value.step_by.expression_index], statement) : undefined,
-        then_statement: core_to_intermediate_statement(core_value.then_statement),
+        then_statements: core_value.then_statements.elements.map(value => core_to_intermediate_statement(value)),
     };
 }
 
@@ -1216,7 +1216,10 @@ function intermediate_to_core_for_loop_expression(intermediate_value: For_loop_e
                 range_end: intermediate_to_core_statement(intermediate_value.range_end),
                 range_comparison_operation: intermediate_value.range_comparison_operation,
                 step_by: intermediate_value.step_by !== undefined ? { expression_index: -1 } : undefined,
-                then_statement: intermediate_to_core_statement(intermediate_value.then_statement),
+                then_statements: {
+                    size: intermediate_value.then_statements.length,
+                    elements: intermediate_value.then_statements.map(value => intermediate_to_core_statement(value))
+                },
             }
         }
     };
@@ -1232,14 +1235,14 @@ function intermediate_to_core_for_loop_expression(intermediate_value: For_loop_e
     }
 }
 
-export function create_for_loop_expression(variable_name: string, range_begin: Expression, range_end: Statement, range_comparison_operation: Binary_operation, step_by: Expression | undefined, then_statement: Statement): Expression {
+export function create_for_loop_expression(variable_name: string, range_begin: Expression, range_end: Statement, range_comparison_operation: Binary_operation, step_by: Expression | undefined, then_statements: Statement[]): Expression {
     const for_loop_expression: For_loop_expression = {
         variable_name: variable_name,
         range_begin: range_begin,
         range_end: range_end,
         range_comparison_operation: range_comparison_operation,
         step_by: step_by,
-        then_statement: then_statement,
+        then_statements: then_statements,
     };
     return {
         data: {
@@ -1250,20 +1253,23 @@ export function create_for_loop_expression(variable_name: string, range_begin: E
 }
 export interface Condition_statement_pair {
     condition?: Statement;
-    statement: Statement;
+    then_statements: Statement[];
 }
 
 function core_to_intermediate_condition_statement_pair(core_value: Core.Condition_statement_pair): Condition_statement_pair {
     return {
         condition: core_value.condition !== undefined ? core_to_intermediate_statement(core_value.condition) : undefined,
-        statement: core_to_intermediate_statement(core_value.statement),
+        then_statements: core_value.then_statements.elements.map(value => core_to_intermediate_statement(value)),
     };
 }
 
 function intermediate_to_core_condition_statement_pair(intermediate_value: Condition_statement_pair): Core.Condition_statement_pair {
     return {
         condition: intermediate_value.condition !== undefined ? intermediate_to_core_statement(intermediate_value.condition) : undefined,
-        statement: intermediate_to_core_statement(intermediate_value.statement),
+        then_statements: {
+            size: intermediate_value.then_statements.length,
+            elements: intermediate_value.then_statements.map(value => intermediate_to_core_statement(value)),
+        },
     };
 }
 
@@ -1792,13 +1798,13 @@ export function create_variable_declaration_with_type_expression(name: string, i
 }
 export interface While_loop_expression {
     condition: Statement;
-    then_statement: Statement;
+    then_statements: Statement[];
 }
 
 function core_to_intermediate_while_loop_expression(core_value: Core.While_loop_expression, statement: Core.Statement): While_loop_expression {
     return {
         condition: core_to_intermediate_statement(core_value.condition),
-        then_statement: core_to_intermediate_statement(core_value.then_statement),
+        then_statements: core_value.then_statements.elements.map(value => core_to_intermediate_statement(value)),
     };
 }
 
@@ -1810,7 +1816,10 @@ function intermediate_to_core_while_loop_expression(intermediate_value: While_lo
             type: Core.Expression_enum.While_loop_expression,
             value: {
                 condition: intermediate_to_core_statement(intermediate_value.condition),
-                then_statement: intermediate_to_core_statement(intermediate_value.then_statement),
+                then_statements: {
+                    size: intermediate_value.then_statements.length,
+                    elements: intermediate_value.then_statements.map(value => intermediate_to_core_statement(value))
+                },
             }
         }
     };
@@ -1818,10 +1827,10 @@ function intermediate_to_core_while_loop_expression(intermediate_value: While_lo
     expressions[index] = core_value;
 }
 
-export function create_while_loop_expression(condition: Statement, then_statement: Statement): Expression {
+export function create_while_loop_expression(condition: Statement, then_statements: Statement[]): Expression {
     const while_loop_expression: While_loop_expression = {
         condition: condition,
-        then_statement: then_statement,
+        then_statements: then_statements,
     };
     return {
         data: {

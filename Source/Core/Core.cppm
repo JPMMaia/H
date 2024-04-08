@@ -306,7 +306,7 @@ namespace h
         Statement range_end;
         Binary_operation range_comparison_operation;
         std::optional<Expression_index> step_by;
-        Statement then_statement;
+        std::pmr::vector<Statement> then_statements;
 
         friend auto operator<=>(For_loop_expression const&, For_loop_expression const&) = default;
     };
@@ -314,7 +314,7 @@ namespace h
     export struct Condition_statement_pair
     {
         std::optional<Statement> condition;
-        Statement statement;
+        std::pmr::vector<Statement> then_statements;
 
         friend auto operator<=>(Condition_statement_pair const&, Condition_statement_pair const&) = default;
     };
@@ -443,7 +443,7 @@ namespace h
     export struct While_loop_expression
     {
         Statement condition;
-        Statement then_statement;
+        std::pmr::vector<Statement> then_statements;
 
         friend auto operator<=>(While_loop_expression const&, While_loop_expression const&) = default;
     };

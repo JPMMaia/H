@@ -1136,8 +1136,8 @@ namespace h::json
             writer.String(enum_value_string.data(), enum_value_string.size());
         }
         write_optional_object(writer, "step_by", output.step_by);
-        writer.Key("then_statement");
-        write_object(writer, output.then_statement);
+        writer.Key("then_statements");
+        write_object(writer, output.then_statements);
         writer.EndObject();
     }
 
@@ -1149,8 +1149,8 @@ namespace h::json
     {
         writer.StartObject();
         write_optional_object(writer, "condition", output.condition);
-        writer.Key("statement");
-        write_object(writer, output.statement);
+        writer.Key("then_statements");
+        write_object(writer, output.then_statements);
         writer.EndObject();
     }
 
@@ -1347,8 +1347,8 @@ namespace h::json
         writer.StartObject();
         writer.Key("condition");
         write_object(writer, output.condition);
-        writer.Key("then_statement");
-        write_object(writer, output.then_statement);
+        writer.Key("then_statements");
+        write_object(writer, output.then_statements);
         writer.EndObject();
     }
 

@@ -73,6 +73,7 @@ function is_symbol(character: string): boolean {
         case '<':
         case '>':
         case '.':
+        case ':':
             return true;
         default:
             return false;
