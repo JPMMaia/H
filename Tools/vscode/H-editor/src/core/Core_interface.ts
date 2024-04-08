@@ -258,12 +258,12 @@ export interface For_loop_expression {
     range_end: Statement;
     range_comparison_operation: Binary_operation;
     step_by?: Expression_index;
-    then_statement: Statement;
+    then_statements: Vector<Statement>;
 }
 
 export interface Condition_statement_pair {
     condition?: Statement;
-    statement: Statement;
+    then_statements: Vector<Statement>;
 }
 
 export interface If_expression {
@@ -332,7 +332,7 @@ export interface Variable_declaration_with_type_expression {
 
 export interface While_loop_expression {
     condition: Statement;
-    then_statement: Statement;
+    then_statements: Vector<Statement>;
 }
 
 export interface Expression {

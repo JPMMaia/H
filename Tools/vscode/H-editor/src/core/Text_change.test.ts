@@ -1160,24 +1160,24 @@ module Pointer_types;
 
 import C.stdio as stdio;
 
-export using My_alias = stdio.FILE mutable*;
+export using My_alias = *mutable stdio.FILE;
 
 export struct My_struct
 {
     my_integer: Int32 = 0;
-    my_pointer_to_integer: Int32* = null;
-    file_stream: stdio.FILE mutable* = null;
+    my_pointer_to_integer: *Int32 = null;
+    file_stream: *mutable stdio.FILE = null;
 }
 
 export function run(
     my_integer: Int32,
-    my_pointer_to_integer: Int32*,
-    my_pointer_to_mutable_integer: Int32 mutable*,
-    my_pointer_to_pointer_to_integer: Int32**,
-    my_pointer_to_pointer_to_mutable_integer: Int32 mutable**,
-    my_pointer_to_mutable_pointer_to_integer: Int32* mutable*,
-    my_pointer_to_mutable_pointer_to_mutable_integer: Int32 mutable* mutable*,
-    file_stream: stdio.FILE mutable* 
+    my_pointer_to_integer: *Int32,
+    my_pointer_to_mutable_integer: *mutable Int32,
+    my_pointer_to_pointer_to_integer: **Int32,
+    my_pointer_to_pointer_to_mutable_integer: **mutable Int32,
+    my_pointer_to_mutable_pointer_to_integer: *mutable *Int32,
+    my_pointer_to_mutable_pointer_to_mutable_integer: *mutable *mutable Int32,
+    file_stream: *mutable stdio.FILE
 ) -> ()
 {
 }
@@ -1252,25 +1252,22 @@ function print_integer(value: Int32) -> ()
 
 export function run_for_loops() -> ()
 {
-    for index in 0 to 3:
+    for index in 0 to 3
     {
         print_integer(index);
     }
 
-    for index in 0 to 3:
-        print_integer(index);
-
-    for index in 0 to 4 step_by 1:
+    for index in 0 to 4 step_by 1
     {
         print_integer(index);
     }
 
-    for index in 4 to 0 step_by -1 reverse:
+    for index in 4 to 0 step_by -1 reverse
     {
         print_integer(index);
     }
 
-    for index in 4 to 0 reverse:
+    for index in 4 to 0 reverse
     {
         print_integer(index);
     }
@@ -1303,28 +1300,28 @@ module If_expressions;
 
 import C.stdio as stdio;
 
-function print_message(message: C_char*) -> ()
+function print_message(message: *C_char) -> ()
 {
     stdio.printf("%s\n"c, message);
 }
 
 export function run_ifs(value: Int32) -> ()
 {
-    if value == 0:
+    if value == 0
     {
         print_message("zero"c);
     }
 
-    if value == 0:
+    if value == 0
     {
         print_message("zero"c);
     }
-    else if value == 1:
+    else if value == 1
     {
         print_message("one"c);
     }
 
-    if value < 0:
+    if value < 0
     {
         print_message("negative"c);
     }
@@ -1333,11 +1330,11 @@ export function run_ifs(value: Int32) -> ()
         print_message("non-negative"c);
     }
 
-    if value < 0:
+    if value < 0
     {
         print_message("negative"c);
     }
-    else if value > 0:
+    else if value > 0
     {
         print_message("positive"c);
     }
@@ -1346,12 +1343,11 @@ export function run_ifs(value: Int32) -> ()
         print_message("zero"c);
     }
 
-    if value < 0:
-        print_message("negative"c);
-    else if value > 0:
-        print_message("positive"c);
-    else
-        print_message("zero"c);
+    if value < 0
+    {
+        print_message("message_0"c);
+        print_message("message_1"c);
+    }
 }
 `;
 
@@ -1481,7 +1477,7 @@ export function run_while_loops(size: Int32) -> ()
 {
     {
         mutable index = 0;
-        while index < size:
+        while index < size
         {
             print_integer(index);
             index += 1;
@@ -1490,13 +1486,17 @@ export function run_while_loops(size: Int32) -> ()
 
     {
         mutable index = 0;
-        while index < size:
+        while index < size
         {
-            if index % 2 == 0:
+            if index % 2 == 0
+            {
                 continue;
+            }
 
-            if index > 5:
+            if index > 5
+            {
                 break;
+            }
             
             print_integer(index);
             index += 1;
@@ -1538,22 +1538,26 @@ function print_integer(value: Int32) -> ()
 
 export function run_breaks(size: Int32) -> ()
 {
-    for index in 0 to size:
+    for index in 0 to size
     {
-        if index > 4:
+        if index > 4
+        {
             break;
+        }
 
         print_integer(index);
     }
 
-    for index in 0 to size:
+    for index in 0 to size
     {
         mutable index_2 = 0;
 
-        while index_2 < size:
+        while index_2 < size
         {
-            if index > 3:
+            if index > 3
+            {
                 break;
+            }
 
             print_integer(index_2);
             index += 1;
@@ -1562,14 +1566,16 @@ export function run_breaks(size: Int32) -> ()
         print_integer(index);
     }
 
-    for index in 0 to size:
+    for index in 0 to size
     {
         mutable index_2 = 0;
 
-        while index_2 < size:
+        while index_2 < size
         {
-            if index > 3:
+            if index > 3
+            {
                 break 2;
+            }
 
             print_integer(index_2);
             index += 1;
@@ -1703,17 +1709,21 @@ export function use_enums(enum_argument: My_enum_flag) -> (result: Int32)
     var b = enum_argument & My_enum_flag.Flag_1;
     var c = enum_argument ^ My_enum_flag.Flag_1;
 
-    if a == enum_argument:
+    if a == enum_argument {
         return 0;
+    }
 
-    if enum_argument has My_enum_flag.Flag_1:
+    if enum_argument has My_enum_flag.Flag_1 {
         return 1;
+    }
 
-    if enum_argument has My_enum_flag.Flag_2:
+    if enum_argument has My_enum_flag.Flag_2 {
         return 2;
+    }
 
-    if enum_argument has My_enum_flag.Flag_3:
+    if enum_argument has My_enum_flag.Flag_3 {
         return 3;
+    }
 
     return 4;
 }

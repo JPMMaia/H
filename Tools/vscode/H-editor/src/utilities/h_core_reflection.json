@@ -588,9 +588,9 @@
                 },
                 {
                     "type": {
-                        "name": "Statement"
+                        "name": "std::pmr::vector<Statement>"
                     },
-                    "name": "then_statement"
+                    "name": "then_statements"
                 }
             ]
         },
@@ -605,9 +605,9 @@
                 },
                 {
                     "type": {
-                        "name": "Statement"
+                        "name": "std::pmr::vector<Statement>"
                     },
-                    "name": "statement"
+                    "name": "then_statements"
                 }
             ]
         },
@@ -836,9 +836,9 @@
                 },
                 {
                     "type": {
-                        "name": "Statement"
+                        "name": "std::pmr::vector<Statement>"
                     },
-                    "name": "then_statement"
+                    "name": "then_statements"
                 }
             ]
         },

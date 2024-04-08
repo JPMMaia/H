@@ -83,6 +83,23 @@ function find_parent_state_index_using_word(
     return find_parent_state_index(current_index, is_word);
 }
 
+export function get_if_serie_index(
+    stack: Module_to_parse_tree_stack_element[]
+): number {
+    let serie_index = 0;
+
+    for (let stack_index = 0; stack_index < stack.length; ++stack_index) {
+        const state_index = stack.length - 1 - stack_index;
+        const state = stack[state_index];
+
+        if (state.node.word.value === "Expression_if_else") {
+            serie_index += 1;
+        }
+    }
+
+    return serie_index;
+}
+
 function replace_placeholders_by_values(
     module: Core_intermediate_representation.Module,
     position_with_placeholders: string[],
@@ -124,6 +141,11 @@ function replace_placeholders_by_values(
                 const index = find_parent_state_index(stack.length - 1, index => stack[index].state.index !== -1);
                 const element = stack[index];
                 position.push(element.state.index);
+                break;
+            }
+            case "$if_series_index": {
+                const serie_index = get_if_serie_index(stack);
+                position.push(serie_index);
                 break;
             }
             case "$parameter_names":
@@ -304,7 +326,13 @@ function get_production_rule_array_rhs_length(
     else if (array_position_with_placeholders.length > 0 && array_position_with_placeholders[0][0] === "$top.state.value") {
         const top = stack[stack.length - 1];
         const state_value = top.state.value;
-        const array_position = array_position_with_placeholders[0].slice(1, array_position_with_placeholders[0].length);
+        const array_position = replace_placeholders_by_values(
+            module,
+            array_position_with_placeholders[0].slice(1, array_position_with_placeholders[0].length),
+            production_rules,
+            stack,
+            mappings
+        );
         const array_reference = Object_reference.get_object_reference_at_position(state_value, array_position);
         const length = array_reference.value.length;
         const has_separator = production_rule.rhs.length === 3;
@@ -396,8 +424,19 @@ function choose_production_rule_index(
             }
             else if (array_position_with_placeholders.length > 0 && array_position_with_placeholders[0][0] === "$top.state.value") {
                 const state_value = top.state.value;
-                const array_position = array_position_with_placeholders[0].slice(1, array_position_with_placeholders[0].length);
+                const array_position = replace_placeholders_by_values(
+                    module,
+                    array_position_with_placeholders[0].slice(1, array_position_with_placeholders[0].length),
+                    production_rules,
+                    stack,
+                    mappings
+                );
                 const array_reference = Object_reference.get_object_reference_at_position(state_value, array_position);
+                if (array_reference.value === undefined) {
+                    const message = `Array associated with label '${label}' is undefined!`;
+                    onThrowError(message);
+                    throw Error(message);
+                }
                 const length = array_reference.value.length;
                 const index = length > 1 ? 2 : length;
                 return {
@@ -854,7 +893,9 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
             if (value.step_by !== undefined) {
                 visit_expressions(value.step_by, predicate);
             }
-            visit_expressions(value.then_statement.expression, predicate);
+            for (const statement of value.then_statements) {
+                visit_expressions(statement.expression, predicate);
+            }
             break;
         }
         case Core_intermediate_representation.Expression_enum.If_expression: {
@@ -863,7 +904,9 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
                 if (serie.condition !== undefined) {
                     visit_expressions(serie.condition.expression, predicate);
                 }
-                visit_expressions(serie.statement.expression, predicate);
+                for (const statement of serie.then_statements) {
+                    visit_expressions(statement.expression, predicate);
+                }
             }
             break;
         }
@@ -922,7 +965,9 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
         case Core_intermediate_representation.Expression_enum.While_loop_expression: {
             const value = expression.data.value as Core_intermediate_representation.While_loop_expression;
             visit_expressions(value.condition.expression, predicate);
-            visit_expressions(value.then_statement.expression, predicate);
+            for (const statement of value.then_statements) {
+                visit_expressions(statement.expression, predicate);
+            }
             break;
         }
         case Core_intermediate_representation.Expression_enum.Break_expression:

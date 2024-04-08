@@ -72,8 +72,11 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Expression_block_statements", [["$top.state.value", "data", "value", "statements"]]],
             ["Expression_call_arguments", [["$top.state.value", "data", "value", "arguments"]]],
             ["Expression_instantiate_members", [["$top.state.value", "data", "value", "members"]]],
+            ["Expression_for_loop_statements", [["$top.state.value", "data", "value", "then_statements"]]],
+            ["Expression_if_statements", [["$top.state.value", "data", "value", "series", "$if_series_index", "then_statements"]]],
             ["Expression_switch_cases", [["$top.state.value", "data", "value", "cases"]]],
             ["Expression_switch_case_statements", [["$top.state.value", "statements"]]],
+            ["Expression_while_loop_statements", [["$top.state.value", "data", "value", "then_statements"]]],
         ]
     );
 
@@ -678,15 +681,19 @@ function choose_production_rule_statement(
 
     const get_statement = (): Core_intermediate_representation.Statement => {
 
-        if (top.node.word.value === "Expression_for_loop") {
+        if (top.node.word.value === "Expression_for_loop_statements") {
             const for_loop_expression = top.state.value.data.value as Core_intermediate_representation.For_loop_expression;
-            return for_loop_expression.then_statement;
+            const statement_index = top.current_child_index;
+            const statement = for_loop_expression.then_statements[statement_index];
+            return statement;
         }
-        else if (top.node.word.value === "Expression_if" || top.node.word.value === "Expression_if_else") {
+        else if (top.node.word.value === "Expression_if_statements") {
             const if_expression = top.state.value.data.value as Core_intermediate_representation.If_expression;
-            const serie_index = get_if_serie_index(stack);
+            const serie_index = Parse_tree_convertor.get_if_serie_index(stack);
             const serie = if_expression.series[serie_index];
-            return serie.statement;
+            const statement_index = top.current_child_index;
+            const statement = serie.then_statements[statement_index];
+            return statement;
         }
         else if (top.node.word.value === "Expression_switch_case_statements") {
             const switch_case = top.state.value as Core_intermediate_representation.Switch_case_expression_pair;
@@ -695,9 +702,10 @@ function choose_production_rule_statement(
             const statement = statements[statement_index];
             return statement;
         }
-        else if (top.node.word.value === "Expression_while_loop") {
+        else if (top.node.word.value === "Expression_while_loop_statements") {
             const while_loop_expression = top.state.value.data.value as Core_intermediate_representation.While_loop_expression;
-            const statement = while_loop_expression.then_statement;
+            const statement_index = top.current_child_index;
+            const statement = while_loop_expression.then_statements[statement_index];
             return statement;
         }
 
@@ -1038,7 +1046,7 @@ function choose_production_rule_expression_if_else(
 
     const expression = top.state.value as Core_intermediate_representation.Expression;
     const if_expression = expression.data.value as Core_intermediate_representation.If_expression;
-    const serie_index = get_if_serie_index(stack) + 1;
+    const serie_index = Parse_tree_convertor.get_if_serie_index(stack) + 1;
 
     const is_empty = serie_index >= if_expression.series.length;
     const is_else_if = !is_empty && if_expression.series[serie_index].condition !== undefined;
@@ -1328,26 +1336,6 @@ function choose_production_rule_expression_variable_mutability(
     };
 }
 
-function get_if_serie_index(
-    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[]
-): number {
-    let serie_index = 0;
-
-    for (let stack_index = 0; stack_index < stack.length; ++stack_index) {
-        const state_index = stack.length - 1 - stack_index;
-        const state = stack[state_index];
-
-        if (state.node.word.value === "Expression_if_else") {
-            serie_index += 1;
-        }
-        else if (state.node.word.value !== "Expression_if") {
-            break;
-        }
-    }
-
-    return serie_index;
-}
-
 function get_generic_expression(
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
     production_rules: Grammar.Production_rule[],
@@ -1421,7 +1409,7 @@ function get_generic_expression(
         case Core_intermediate_representation.Expression_enum.If_expression: {
             const if_expression = expression.data.value as Core_intermediate_representation.If_expression;
 
-            const serie_index = get_if_serie_index(stack);
+            const serie_index = Parse_tree_convertor.get_if_serie_index(stack);
             const serie = if_expression.series[serie_index];
 
             const statement = serie.condition as Core_intermediate_representation.Statement;
@@ -1507,7 +1495,7 @@ function get_generic_expression(
         }
         case Core_intermediate_representation.Expression_enum.While_loop_expression: {
             const while_loop_expression = expression.data.value as Core_intermediate_representation.While_loop_expression;
-            const next_expression = top.current_child_index === 1 ? while_loop_expression.condition.expression : while_loop_expression.then_statement.expression;
+            const next_expression = while_loop_expression.condition.expression;
             return {
                 expression: next_expression,
                 label: map_expression_type_to_production_rule_label(next_expression)
@@ -2656,8 +2644,8 @@ function node_to_expression_for_loop(node: Parser_node.Node, key_to_production_r
     const reverse_node = find_node(node, "Expression_for_loop_reverse", key_to_production_rule_indices) as Parser_node.Node;
     const is_reverse = reverse_node.children.length > 0;
 
-    const then_node = find_node(node, "Statement", key_to_production_rule_indices) as Parser_node.Node;
-    const then_statement = node_to_statement(then_node, key_to_production_rule_indices);
+    const statements_node = find_node(node, "Expression_for_loop_statements", key_to_production_rule_indices) as Parser_node.Node;
+    const statements = statements_node.children.map(node => node_to_statement(node, key_to_production_rule_indices));
 
     const for_loop_expression: Core_intermediate_representation.For_loop_expression = {
         variable_name: variable_node,
@@ -2665,7 +2653,7 @@ function node_to_expression_for_loop(node: Parser_node.Node, key_to_production_r
         range_end: { name: "", expression: range_end_expression },
         range_comparison_operation: is_reverse ? Core_intermediate_representation.Binary_operation.Greater_than : Core_intermediate_representation.Binary_operation.Less_than,
         step_by: step_by_expression,
-        then_statement: then_statement,
+        then_statements: statements,
     };
 
     return for_loop_expression;
@@ -2680,16 +2668,16 @@ function node_to_expression_if(node: Parser_node.Node, key_to_production_rule_in
         const condition_node = current_node.word.value === "Expression_if" ? find_node(current_node, "Generic_expression", key_to_production_rule_indices) as Parser_node.Node : undefined;
         const condition_expression = condition_node !== undefined ? node_to_expression(condition_node, key_to_production_rule_indices) : undefined;
 
-        const statement_node = find_node(current_node, "Statement", key_to_production_rule_indices) as Parser_node.Node;
-        const statement = node_to_statement(statement_node, key_to_production_rule_indices);
+        const statements_node = find_node(current_node, "Expression_if_statements", key_to_production_rule_indices) as Parser_node.Node;
+        const statements = statements_node.children.map(node => node_to_statement(node, key_to_production_rule_indices));
 
         series.push({
             condition: condition_expression !== undefined ? { name: "", expression: condition_expression } : undefined,
-            statement: statement
+            then_statements: statements
         });
 
         current_node = current_node.children[current_node.children.length - 1];
-        if (current_node.children.length === 0 || current_node.word.value === "Statement") {
+        if (current_node.children.length === 0) {
             break;
         }
 
@@ -2944,14 +2932,15 @@ function node_to_expression_variable_declaration_with_type(node: Parser_node.Nod
 function node_to_expression_while_loop(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.While_loop_expression {
 
     const condition_node = find_node(node, "Generic_expression", key_to_production_rule_indices) as Parser_node.Node;
-    const then_statement_node = find_node(node, "Statement", key_to_production_rule_indices) as Parser_node.Node;
 
     const condition_expression = node_to_expression(condition_node, key_to_production_rule_indices);
-    const then_statement = node_to_statement(then_statement_node, key_to_production_rule_indices);
+
+    const then_statements_node = find_node(node, "Expression_while_loop_statements", key_to_production_rule_indices) as Parser_node.Node;
+    const then_statements = then_statements_node.children.map(node => node_to_statement(node, key_to_production_rule_indices));
 
     const while_loop_expression: Core_intermediate_representation.While_loop_expression = {
         condition: { name: "", expression: condition_expression },
-        then_statement: then_statement
+        then_statements: then_statements
     };
     return while_loop_expression;
 }
