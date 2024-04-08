@@ -277,7 +277,6 @@ export interface Instantiate_member_value_pair {
 
 export interface Instantiate_expression {
     type: Instantiate_expression_type;
-    type_reference?: Type_reference;
     members: Vector<Instantiate_member_value_pair>;
 }
 

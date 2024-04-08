@@ -246,8 +246,6 @@ export function create_test_grammar_9_description(): string[] {
         "Expression_for_loop_number_expression -> Expression_access | Expression_call | Expression_constant | Expression_unary_1 | Expression_variable",
         "Expression_for_loop_statements -> Statement $0_or_more",
         "Expression_instantiate -> Expression_instantiate_expression_type { Expression_instantiate_members }",
-        "Expression_instantiate_with_type -> Expression_instantiate_expression_type Expression_instantiate_name { Expression_instantiate_members }",
-        "Expression_instantiate_name -> Type",
         "Expression_instantiate_expression_type -> ",
         "Expression_instantiate_expression_type -> explicit",
         "Expression_instantiate_members -> Expression_instantiate_member , $0_or_more",

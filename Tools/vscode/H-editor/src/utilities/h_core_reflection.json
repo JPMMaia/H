@@ -650,12 +650,6 @@
                 },
                 {
                     "type": {
-                        "name": "std::optional<Type_reference>"
-                    },
-                    "name": "type_reference"
-                },
-                {
-                    "type": {
                         "name": "std::pmr::vector<Instantiate_member_value_pair>"
                     },
                     "name": "members"

@@ -1799,10 +1799,8 @@ export function use_structs(my_struct: My_struct) -> ()
     mutable instance_4: My_struct = {};
     instance_4.a = 0;
 
-    var instance_5 = My_struct{};
-
     pass_struct({});
-    var instance_6 = return_struct();
+    var instance_5 = return_struct();
 }
 
 function pass_struct(my_struct: My_struct) -> ()
@@ -1870,11 +1868,11 @@ export union My_union_3
 
 export function use_unions(my_union: My_union, my_union_tag: My_union_tag) -> ()
 {
-    if my_union_tag == My_union_tag.a:
+    if my_union_tag == My_union_tag.a
     {
         var a = my_union.a;
     }
-    else if my_union_tag == My_union_tag.b:
+    else if my_union_tag == My_union_tag.b
     {
         var b = my_union.b;
     }
@@ -1886,7 +1884,7 @@ export function use_unions(my_union: My_union, my_union_tag: My_union_tag) -> ()
     var instance_3: My_union_2 = { b: 3i64 };
 
     var instance_4: My_union_3 = { a: 3i64 };
-    var instance_5: My_union_3 = { b: default{} };
+    var instance_5: My_union_3 = { b: {} };
     var instance_6: My_union_3 = { b: explicit{a:2} };
 
     var nested_b_a = instance_6.b.a;
