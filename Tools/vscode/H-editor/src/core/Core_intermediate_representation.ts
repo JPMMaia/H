@@ -1333,14 +1333,12 @@ function intermediate_to_core_instantiate_member_value_pair(intermediate_value: 
 
 export interface Instantiate_expression {
     type: Instantiate_expression_type;
-    type_reference?: Type_reference;
     members: Instantiate_member_value_pair[];
 }
 
 function core_to_intermediate_instantiate_expression(core_value: Core.Instantiate_expression, statement: Core.Statement): Instantiate_expression {
     return {
         type: core_value.type,
-        type_reference: core_value.type_reference !== undefined ? core_to_intermediate_type_reference(core_value.type_reference) : undefined,
         members: core_value.members.elements.map(value => core_to_intermediate_instantiate_member_value_pair(value)),
     };
 }
@@ -1353,7 +1351,6 @@ function intermediate_to_core_instantiate_expression(intermediate_value: Instant
             type: Core.Expression_enum.Instantiate_expression,
             value: {
                 type: intermediate_value.type,
-                type_reference: intermediate_value.type_reference,
                 members: {
                     size: intermediate_value.members.length,
                     elements: intermediate_value.members.map(value => intermediate_to_core_instantiate_member_value_pair(value))
@@ -1365,10 +1362,9 @@ function intermediate_to_core_instantiate_expression(intermediate_value: Instant
     expressions[index] = core_value;
 }
 
-export function create_instantiate_expression(type: Instantiate_expression_type, type_reference: Type_reference | undefined, members: Instantiate_member_value_pair[]): Expression {
+export function create_instantiate_expression(type: Instantiate_expression_type, members: Instantiate_member_value_pair[]): Expression {
     const instantiate_expression: Instantiate_expression = {
         type: type,
-        type_reference: type_reference,
         members: members,
     };
     return {

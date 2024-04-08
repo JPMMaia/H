@@ -119,7 +119,6 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Expression_for_loop_step", choose_production_rule_expression_for_loop_step],
             ["Expression_for_loop_reverse", choose_production_rule_expression_for_loop_reverse],
             ["Expression_if_else", choose_production_rule_expression_if_else],
-            ["Expression_instantiate_name", choose_production_rule_expression_instantiate_name],
             ["Expression_instantiate_expression_type", choose_production_rule_expression_instantiate_expression_type],
             ["Expression_return", choose_production_rule_expression_return],
             ["Expression_switch_case", choose_production_rule_expression_switch_case],
@@ -533,11 +532,6 @@ function choose_production_rule_type(
             const expression = top.state.value as Core_intermediate_representation.Expression;
             const cast_expression = expression.data.value as Core_intermediate_representation.Cast_expression;
             return [cast_expression.destination_type];
-        }
-        else if (top.node.word.value === "Expression_instantiate_name") {
-            const expression = top.state.value as Core_intermediate_representation.Expression;
-            const instantiate_expression = expression.data.value as Core_intermediate_representation.Instantiate_expression;
-            return [instantiate_expression.type_reference as Core_intermediate_representation.Type_reference];
         }
         else if (top.node.word.value === "Expression_variable_declaration_type") {
             const expression = top.state.value as Core_intermediate_representation.Expression;
@@ -1054,35 +1048,6 @@ function choose_production_rule_expression_if_else(
     const index =
         is_empty ? 0 :
             is_else_if ? 1 : 2;
-
-    return {
-        next_state: {
-            index: 0,
-            value: expression
-        },
-        next_production_rule_index: production_rule_indices[index]
-    };
-}
-
-function choose_production_rule_expression_instantiate_name(
-    module: Core_intermediate_representation.Module,
-    production_rules: Grammar.Production_rule[],
-    production_rule_indices: number[],
-    label: string,
-    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_convertor.Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
-): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
-
-    const top = stack[stack.length - 1];
-
-    const expression = top.state.value as Core_intermediate_representation.Expression;
-    const instantiate_expression = expression.data.value as Core_intermediate_representation.Instantiate_expression;
-
-    const index =
-        instantiate_expression.type_reference === undefined ?
-            0 :
-            1;
 
     return {
         next_state: {
@@ -1652,11 +1617,8 @@ function map_expression_type_to_production_rule_label(expression: Core_intermedi
             return "Expression_for_loop";
         case Core_intermediate_representation.Expression_enum.If_expression:
             return "Expression_if";
-        case Core_intermediate_representation.Expression_enum.Instantiate_expression: {
-            const instantiate_expression = expression.data.value as Core_intermediate_representation.Instantiate_expression;
-            //return instantiate_expression.type_reference !== undefined ? "Expression_instantiate" : "Expression_instantiate_with_type";
+        case Core_intermediate_representation.Expression_enum.Instantiate_expression:
             return "Expression_instantiate";
-        }
         case Core_intermediate_representation.Expression_enum.Invalid_expression:
             return "Expression_invalid";
         case Core_intermediate_representation.Expression_enum.Null_pointer_expression:
@@ -1945,7 +1907,7 @@ function node_to_struct_declaration(node: Parser_node.Node, key_to_production_ru
         const member_type_node = find_node(member_node, "Struct_member_type", key_to_production_rule_indices) as Parser_node.Node;
         const member_type = node_to_type_reference(member_type_node.children[0], key_to_production_rule_indices);
 
-        const member_default_value_node = find_node(member_node, "Generic_expression", key_to_production_rule_indices) as Parser_node.Node;
+        const member_default_value_node = find_node(member_node, "Generic_expression_or_instantiate", key_to_production_rule_indices) as Parser_node.Node;
         const member_default_value_expression = node_to_expression(member_default_value_node, key_to_production_rule_indices);
 
         member_names.push(member_name);
@@ -2464,7 +2426,7 @@ function node_to_expression_call(node: Parser_node.Node, key_to_production_rule_
     const generic_expression_node = node.children[0];
     const generic_expression = node_to_expression(generic_expression_node, key_to_production_rule_indices);
 
-    const argument_nodes = find_nodes_inside_parent(node, "Expression_call_arguments", "Generic_expression", key_to_production_rule_indices);
+    const argument_nodes = find_nodes_inside_parent(node, "Expression_call_arguments", "Generic_expression_or_instantiate", key_to_production_rule_indices);
     const argument_expressions = argument_nodes.map(node => node_to_expression(node, key_to_production_rule_indices));
 
     const call_expression: Core_intermediate_representation.Call_expression = {
@@ -2699,16 +2661,12 @@ function node_to_expression_instantiate(node: Parser_node.Node, key_to_productio
     const type_node_value = find_node_value(node, "Expression_instantiate_expression_type", key_to_production_rule_indices);
     const type = type_node_value === "explicit" ? Core_intermediate_representation.Instantiate_expression_type.Explicit : Core_intermediate_representation.Instantiate_expression_type.Default;
 
-    const struct_name_node = find_node(node, "Expression_instantiate_name", key_to_production_rule_indices) as Parser_node.Node;
-    const type_reference_node = struct_name_node.children.length > 0 ? struct_name_node.children[0] : undefined;
-    const type_reference = type_reference_node !== undefined ? node_to_type_reference(type_reference_node, key_to_production_rule_indices)[0] : undefined;
-
     const member_nodes = find_nodes_inside_parent(node, "Expression_instantiate_members", "Expression_instantiate_member", key_to_production_rule_indices);
     const members: Core_intermediate_representation.Instantiate_member_value_pair[] = member_nodes.map(
         node => {
             const member_name = find_node_value(node, "Expression_instantiate_member_name", key_to_production_rule_indices);
 
-            const expression_node = find_node(node, "Generic_expression", key_to_production_rule_indices) as Parser_node.Node;
+            const expression_node = find_node(node, "Generic_expression_or_instantiate", key_to_production_rule_indices) as Parser_node.Node;
             const expression = node_to_expression(expression_node, key_to_production_rule_indices);
 
             return {
@@ -2720,7 +2678,6 @@ function node_to_expression_instantiate(node: Parser_node.Node, key_to_productio
 
     const instantiate_expression: Core_intermediate_representation.Instantiate_expression = {
         type: type,
-        type_reference,
         members: members
     };
 
@@ -2917,7 +2874,7 @@ function node_to_expression_variable_declaration_with_type(node: Parser_node.Nod
     const type_node = find_node(node, "Expression_variable_declaration_type", key_to_production_rule_indices) as Parser_node.Node;
     const type = node_to_type_reference(type_node.children[0], key_to_production_rule_indices);
 
-    const right_hand_side_node = find_node(node, "Generic_expression", key_to_production_rule_indices) as Parser_node.Node;
+    const right_hand_side_node = find_node(node, "Generic_expression_or_instantiate", key_to_production_rule_indices) as Parser_node.Node;
     const right_hand_side = node_to_expression(right_hand_side_node, key_to_production_rule_indices);
 
     const variable_declaration_expression: Core_intermediate_representation.Variable_declaration_with_type_expression = {

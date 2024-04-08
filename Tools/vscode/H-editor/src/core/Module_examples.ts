@@ -3190,10 +3190,10 @@ export function create_using_structs(): IR.Module {
                     ],
                     member_default_values: [
                         create_statement(
-                            IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [])
+                            IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [])
                         ),
                         create_statement(
-                            IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [
+                            IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [
                                 {
                                     member_name: "a",
                                     value: create_statement(
@@ -3203,7 +3203,7 @@ export function create_using_structs(): IR.Module {
                             ])
                         ),
                         create_statement(
-                            IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [
+                            IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [
                                 {
                                     member_name: "a",
                                     value: create_statement(
@@ -3259,7 +3259,7 @@ export function create_using_structs(): IR.Module {
                                     false,
                                     create_custom_type_reference("", "My_struct"),
                                     create_statement(
-                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [])
+                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [])
                                     )
                                 )
                             ),
@@ -3269,7 +3269,7 @@ export function create_using_structs(): IR.Module {
                                     false,
                                     create_custom_type_reference("", "My_struct"),
                                     create_statement(
-                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [
+                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [
                                             {
                                                 member_name: "b",
                                                 value: create_statement(
@@ -3286,7 +3286,7 @@ export function create_using_structs(): IR.Module {
                                     false,
                                     create_custom_type_reference("", "My_struct_2"),
                                     create_statement(
-                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [])
+                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [])
                                     )
                                 )
                             ),
@@ -3296,23 +3296,23 @@ export function create_using_structs(): IR.Module {
                                     false,
                                     create_custom_type_reference("", "My_struct_2"),
                                     create_statement(
-                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Explicit, undefined, [
+                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Explicit, [
                                             {
                                                 member_name: "a",
                                                 value: create_statement(
-                                                    IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [])
+                                                    IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [])
                                                 )
                                             },
                                             {
                                                 member_name: "b",
                                                 value: create_statement(
-                                                    IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [])
+                                                    IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [])
                                                 )
                                             },
                                             {
                                                 member_name: "c",
                                                 value: create_statement(
-                                                    IR.create_instantiate_expression(IR.Instantiate_expression_type.Explicit, undefined, [
+                                                    IR.create_instantiate_expression(IR.Instantiate_expression_type.Explicit, [
                                                         {
                                                             member_name: "a",
                                                             value: create_statement(
@@ -3353,7 +3353,7 @@ export function create_using_structs(): IR.Module {
                                     true,
                                     create_custom_type_reference("", "My_struct"),
                                     create_statement(
-                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [])
+                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [])
                                     )
                                 )
                             ),
@@ -3369,23 +3369,11 @@ export function create_using_structs(): IR.Module {
                                 )
                             ),
                             create_statement(
-                                IR.create_variable_declaration_expression(
-                                    "instance_5",
-                                    false,
-                                    IR.create_instantiate_expression(
-                                        IR.Instantiate_expression_type.Default,
-                                        create_custom_type_reference("", "My_struct"),
-                                        []
-                                    )
-                                )
-                            ),
-                            create_statement(
                                 IR.create_call_expression(
                                     IR.create_variable_expression("pass_struct", IR.Access_type.Read),
                                     [
                                         IR.create_instantiate_expression(
                                             IR.Instantiate_expression_type.Default,
-                                            undefined,
                                             []
                                         )
                                     ]
@@ -3393,7 +3381,7 @@ export function create_using_structs(): IR.Module {
                             ),
                             create_statement(
                                 IR.create_variable_declaration_expression(
-                                    "instance_6",
+                                    "instance_5",
                                     false,
                                     IR.create_call_expression(
                                         IR.create_variable_expression("return_struct", IR.Access_type.Read),
@@ -3451,7 +3439,6 @@ export function create_using_structs(): IR.Module {
                                 IR.create_return_expression(
                                     IR.create_instantiate_expression(
                                         IR.Instantiate_expression_type.Default,
-                                        undefined,
                                         []
                                     )
                                 )
@@ -3590,7 +3577,7 @@ export function create_using_unions(): IR.Module {
                                                 IR.create_binary_expression(
                                                     IR.create_variable_expression("my_union_tag", IR.Access_type.Read),
                                                     IR.create_access_expression(
-                                                        IR.create_variable_expression("my_union", IR.Access_type.Read),
+                                                        IR.create_variable_expression("My_union_tag", IR.Access_type.Read),
                                                         "a",
                                                         IR.Access_type.Read
                                                     ),
@@ -3616,7 +3603,7 @@ export function create_using_unions(): IR.Module {
                                                 IR.create_binary_expression(
                                                     IR.create_variable_expression("my_union_tag", IR.Access_type.Read),
                                                     IR.create_access_expression(
-                                                        IR.create_variable_expression("my_union", IR.Access_type.Read),
+                                                        IR.create_variable_expression("My_union_tag", IR.Access_type.Read),
                                                         "b",
                                                         IR.Access_type.Read
                                                     ),
@@ -3646,7 +3633,7 @@ export function create_using_unions(): IR.Module {
                                     false,
                                     create_custom_type_reference("", "My_union"),
                                     create_statement(
-                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [
+                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [
                                             {
                                                 member_name: "a",
                                                 value: create_statement(
@@ -3663,7 +3650,7 @@ export function create_using_unions(): IR.Module {
                                     false,
                                     create_custom_type_reference("", "My_union"),
                                     create_statement(
-                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [
+                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [
                                             {
                                                 member_name: "b",
                                                 value: create_statement(
@@ -3680,7 +3667,7 @@ export function create_using_unions(): IR.Module {
                                     false,
                                     create_custom_type_reference("", "My_union_2"),
                                     create_statement(
-                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [
+                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [
                                             {
                                                 member_name: "a",
                                                 value: create_statement(
@@ -3697,7 +3684,7 @@ export function create_using_unions(): IR.Module {
                                     false,
                                     create_custom_type_reference("", "My_union_2"),
                                     create_statement(
-                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [
+                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [
                                             {
                                                 member_name: "b",
                                                 value: create_statement(
@@ -3714,7 +3701,7 @@ export function create_using_unions(): IR.Module {
                                     false,
                                     create_custom_type_reference("", "My_union_3"),
                                     create_statement(
-                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [
+                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [
                                             {
                                                 member_name: "a",
                                                 value: create_statement(
@@ -3731,11 +3718,11 @@ export function create_using_unions(): IR.Module {
                                     false,
                                     create_custom_type_reference("", "My_union_3"),
                                     create_statement(
-                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [
+                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [
                                             {
                                                 member_name: "b",
                                                 value: create_statement(
-                                                    IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [])
+                                                    IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [])
                                                 )
                                             }
                                         ])
@@ -3748,11 +3735,11 @@ export function create_using_unions(): IR.Module {
                                     false,
                                     create_custom_type_reference("", "My_union_3"),
                                     create_statement(
-                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [
+                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [
                                             {
                                                 member_name: "b",
                                                 value: create_statement(
-                                                    IR.create_instantiate_expression(IR.Instantiate_expression_type.Explicit, undefined, [
+                                                    IR.create_instantiate_expression(IR.Instantiate_expression_type.Explicit, [
                                                         {
                                                             member_name: "a",
                                                             value: create_statement(
@@ -3787,7 +3774,7 @@ export function create_using_unions(): IR.Module {
                                     true,
                                     create_custom_type_reference("", "My_union"),
                                     create_statement(
-                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [
+                                        IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [
                                             {
                                                 member_name: "a",
                                                 value: create_statement(
@@ -3801,7 +3788,7 @@ export function create_using_unions(): IR.Module {
                             create_statement(
                                 IR.create_assignment_expression(
                                     IR.create_variable_expression("instance_7", IR.Access_type.Write),
-                                    IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, undefined, [
+                                    IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [
                                         {
                                             member_name: "a",
                                             value: create_statement(
@@ -3818,7 +3805,6 @@ export function create_using_unions(): IR.Module {
                                     [
                                         IR.create_instantiate_expression(
                                             IR.Instantiate_expression_type.Default,
-                                            undefined,
                                             [
                                                 {
                                                     member_name: "a",
@@ -3891,7 +3877,6 @@ export function create_using_unions(): IR.Module {
                                 IR.create_return_expression(
                                     IR.create_instantiate_expression(
                                         IR.Instantiate_expression_type.Default,
-                                        undefined,
                                         [
                                             {
                                                 member_name: "b",
