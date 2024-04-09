@@ -123,7 +123,8 @@ namespace h::compiler
         {
             llvm::Argument* const argument = llvm_function->getArg(argument_index);
             std::pmr::string const& name = function_declaration.input_parameter_names[argument_index];
-            argument->setName(name.c_str());
+            std::string const argument_name = std::format("arguments.{}", name);
+            argument->setName(argument_name.c_str());
         }
 
         llvm_function->setCallingConv(llvm::CallingConv::C);
@@ -348,10 +349,12 @@ namespace h::compiler
             {
                 llvm::Argument* const llvm_argument = llvm_function.getArg(argument_index);
                 std::pmr::string const& name = function_declaration.input_parameter_names[argument_index];
-                Type_reference core_type = function_declaration.type.input_parameter_types[argument_index];
-                set_custom_type_reference_module_name_if_empty(core_type, core_module.name);
+                Type_reference core_type = fix_custom_type_reference(function_declaration.type.input_parameter_types[argument_index], core_module.name);
 
-                function_arguments.push_back({ .name = name, .value = llvm_argument, .type = std::move(core_type) });
+                llvm::AllocaInst* const alloca_instruction = llvm_builder.CreateAlloca(llvm_argument->getType(), nullptr, name.c_str());
+                llvm_builder.CreateStore(llvm_argument, alloca_instruction);
+
+                function_arguments.push_back({ .name = name, .value = alloca_instruction, .type = std::move(core_type) });
             }
 
             Expression_parameters const expression_parameters
