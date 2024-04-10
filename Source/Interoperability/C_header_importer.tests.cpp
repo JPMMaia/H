@@ -50,6 +50,14 @@ namespace h::c
         return *location;
     }
 
+    h::Union_declaration const& find_union_declaration(h::c::C_header const& header, std::string_view const name)
+    {
+        std::span<h::Union_declaration const> const union_declarations = header.declarations.union_declarations;
+        auto const location = std::find_if(union_declarations.begin(), union_declarations.end(), [name](h::Union_declaration const& union_declaration) -> bool { return union_declaration.name == name; });
+        REQUIRE(location != union_declarations.end());
+        return *location;
+    }
+
     void check_enum_constant_value(h::Enum_declaration const& actual, std::size_t const value_index, std::string_view const value_expected_data)
     {
         auto const& expression_data = actual.values[value_index].value.value().expressions[0].data;
@@ -241,6 +249,85 @@ namespace h::c
             };
 
             CHECK(actual.member_types[3] == h::Type_reference{ .data = expected_type });
+        }
+    }
+
+    TEST_CASE("Import vulkan.h C header creates 'VkClearColorValue' union")
+    {
+        std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
+        std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
+
+        h::c::C_header const header = h::c::import_header(vulkan_header_path);
+
+        CHECK(header.path == vulkan_header_path);
+
+        h::Union_declaration const& actual = find_union_declaration(header, "VkClearColorValue");
+
+        CHECK(actual.name == "VkClearColorValue");
+
+        REQUIRE(actual.unique_name.has_value());
+        CHECK(actual.unique_name.value() == "VkClearColorValue");
+
+        REQUIRE(actual.member_types.size() == 3);
+        REQUIRE(actual.member_names.size() == 3);
+
+        {
+            CHECK(actual.member_names[0] == "float32");
+
+            h::Constant_array_type const expected_type =
+            {
+                .value_type = {
+                     h::Type_reference
+                    {
+                        .data = h::Fundamental_type::Float32
+                    }
+                },
+                .size = 4
+            };
+
+            CHECK(actual.member_types[0] == h::Type_reference{ .data = expected_type });
+        }
+
+        {
+            CHECK(actual.member_names[1] == "int32");
+
+            h::Constant_array_type const expected_type =
+            {
+                .value_type = {
+                    h::Type_reference
+                    {
+                        .data = h::Integer_type
+                        {
+                            .number_of_bits = 32,
+                            .is_signed = true
+                        }
+                    }
+                },
+                .size = 4
+            };
+
+            CHECK(actual.member_types[1] == h::Type_reference{ .data = expected_type });
+        }
+
+        {
+            CHECK(actual.member_names[2] == "uint32");
+
+            h::Constant_array_type const expected_type =
+            {
+                .value_type = {
+                    h::Type_reference
+                    {
+                        .data = h::Integer_type
+                        {
+                            .number_of_bits = 32,
+                            .is_signed = false
+                        }
+                    }
+                },
+                .size = 4
+            };
+
+            CHECK(actual.member_types[2] == h::Type_reference{ .data = expected_type });
         }
     }
 }

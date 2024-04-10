@@ -633,6 +633,77 @@ namespace h::c
         return struct_declaration;
     }
 
+    h::Union_declaration create_union_declaration(C_declarations const& declarations, CXCursor const cursor)
+    {
+        struct Client_data
+        {
+            C_declarations const* declarations;
+            h::Union_declaration* union_declaration;
+        };
+
+        String const cursor_spelling = { clang_getCursorSpelling(cursor) };
+        std::string_view const union_name = cursor_spelling.string_view();
+
+        auto const visitor = [](CXCursor current_cursor, CXCursor parent, CXClientData client_data) -> CXChildVisitResult
+        {
+            Client_data* const data = reinterpret_cast<Client_data*>(client_data);
+
+            CXCursorKind const cursor_kind = clang_getCursorKind(current_cursor);
+
+            if (cursor_kind == CXCursor_FieldDecl)
+            {
+                String const member_spelling = clang_getCursorSpelling(current_cursor);
+                std::string_view const member_name = member_spelling.string_view();
+
+                CXType const member_type = clang_getCursorType(current_cursor);
+
+                if (clang_Cursor_isBitField(current_cursor))
+                {
+                    h::Type_reference member_type_reference = create_type_reference_from_bit_field(current_cursor, member_type);
+
+                    data->union_declaration->member_names.push_back(std::pmr::string{ member_name });
+                    data->union_declaration->member_types.push_back(std::move(member_type_reference));
+                }
+                else
+                {
+                    std::optional<h::Type_reference> const member_type_reference = create_type_reference(*data->declarations, member_type);
+
+                    if (!member_type_reference.has_value())
+                    {
+                        throw std::runtime_error{ "Member type of union cannot be void!" };
+                    }
+
+                    data->union_declaration->member_names.push_back(std::pmr::string{ member_name });
+                    data->union_declaration->member_types.push_back(std::move(*member_type_reference));
+                }
+            }
+
+            return CXChildVisit_Continue;
+        };
+
+        h::Union_declaration union_declaration
+        {
+            .name = std::pmr::string{union_name},
+            .unique_name = std::pmr::string{union_name},
+            .member_types = {},
+            .member_names = {}
+        };
+
+        Client_data client_data
+        {
+            .declarations = &declarations,
+            .union_declaration = &union_declaration
+        };
+
+        clang_visitChildren(
+            cursor,
+            visitor,
+            &client_data
+        );
+
+        return union_declaration;
+    }
+
     bool is_fixed_width_integer_typedef_name(std::string_view const name)
     {
         return
@@ -870,6 +941,19 @@ namespace h::c
             }
         }
 
+        for (h::Union_declaration& declaration : output.union_declarations)
+        {
+            for (h::Type_reference& reference : declaration.member_types)
+            {
+                convert_typedef_to_integer_type_if_necessary(
+                    reference,
+                    input.alias_type_declarations,
+                    names,
+                    indices
+                );
+            }
+        }
+
         for (h::Function_declaration& declaration : output.function_declarations)
         {
             for (h::Type_reference& reference : declaration.type.input_parameter_types)
@@ -962,6 +1046,10 @@ namespace h::c
             else if (cursor_kind == CXCursor_StructDecl)
             {
                 declarations->struct_declarations.push_back(create_struct_declaration(*declarations, current_cursor));
+            }
+            else if (cursor_kind == CXCursor_UnionDecl)
+            {
+                declarations->union_declarations.push_back(create_union_declaration(*declarations, current_cursor));
             }
 
             return CXChildVisit_Continue;
