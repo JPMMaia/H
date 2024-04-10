@@ -1702,6 +1702,114 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
+%My_union = type { [4 x i8] }
+%My_union_2 = type { [8 x i8] }
+%My_union_3 = type { [8 x i8] }
+%My_struct = type { i32 }
+
+define void @use_unions(%My_union %arguments.my_union, i32 %arguments.my_union_tag) {
+entry:
+  %my_union = alloca %My_union, align 8
+  store %My_union %arguments.my_union, ptr %my_union, align 1
+  %my_union_tag = alloca i32, align 4
+  store i32 %arguments.my_union_tag, ptr %my_union_tag, align 4
+  %0 = load i32, ptr %my_union_tag, align 4
+  %1 = icmp eq i32 %0, 0
+  br i1 %1, label %if_s0_then, label %if_s1_else
+
+if_s0_then:                                       ; preds = %entry
+  %2 = getelementptr inbounds %My_union, ptr %my_union, i32 0, i32 0
+  %3 = load i32, ptr %2, align 4
+  %a = alloca i32, align 4
+  store i32 %3, ptr %a, align 4
+  br label %if_s3_after
+
+if_s1_else:                                       ; preds = %entry
+  %4 = load i32, ptr %my_union_tag, align 4
+  %5 = icmp eq i32 %4, 1
+  br i1 %5, label %if_s2_then, label %if_s3_after
+
+if_s2_then:                                       ; preds = %if_s1_else
+  %6 = getelementptr inbounds %My_union, ptr %my_union, i32 0, i32 0
+  %7 = load float, ptr %6, align 4
+  %b = alloca float, align 4
+  store float %7, ptr %b, align 4
+  br label %if_s3_after
+
+if_s3_after:                                      ; preds = %if_s2_then, %if_s1_else, %if_s0_then
+  %8 = alloca %My_union, align 8
+  store i32 2, ptr %8, align 4
+  %9 = load %My_union, ptr %8, align 1
+  %instance_0 = alloca %My_union, align 8
+  store %My_union %9, ptr %instance_0, align 1
+  %10 = alloca %My_union, align 8
+  store float 3.000000e+00, ptr %10, align 4
+  %11 = load %My_union, ptr %10, align 1
+  %instance_1 = alloca %My_union, align 8
+  store %My_union %11, ptr %instance_1, align 1
+  %12 = alloca %My_union_2, align 8
+  store i32 2, ptr %12, align 4
+  %13 = load %My_union_2, ptr %12, align 1
+  %instance_2 = alloca %My_union_2, align 8
+  store %My_union_2 %13, ptr %instance_2, align 1
+  %14 = alloca %My_union_2, align 8
+  store i64 3, ptr %14, align 8
+  %15 = load %My_union_2, ptr %14, align 1
+  %instance_3 = alloca %My_union_2, align 8
+  store %My_union_2 %15, ptr %instance_3, align 1
+  %16 = alloca %My_union_3, align 8
+  store i64 3, ptr %16, align 8
+  %17 = load %My_union_3, ptr %16, align 1
+  %instance_4 = alloca %My_union_3, align 8
+  store %My_union_3 %17, ptr %instance_4, align 1
+  %18 = alloca %My_union_3, align 8
+  store %My_struct { i32 1 }, ptr %18, align 4
+  %19 = load %My_union_3, ptr %18, align 1
+  %instance_5 = alloca %My_union_3, align 8
+  store %My_union_3 %19, ptr %instance_5, align 1
+  %20 = alloca %My_union_3, align 8
+  store %My_struct { i32 2 }, ptr %20, align 4
+  %21 = load %My_union_3, ptr %20, align 1
+  %instance_6 = alloca %My_union_3, align 8
+  store %My_union_3 %21, ptr %instance_6, align 1
+  %22 = getelementptr inbounds %My_union_3, ptr %instance_6, i32 0, i32 0
+  %23 = getelementptr inbounds %My_struct, ptr %22, i32 0, i32 0
+  %24 = load i32, ptr %23, align 4
+  %nested_b_a = alloca i32, align 4
+  store i32 %24, ptr %nested_b_a, align 4
+  %25 = alloca %My_union, align 8
+  store i32 1, ptr %25, align 4
+  %26 = load %My_union, ptr %25, align 1
+  %instance_7 = alloca %My_union, align 8
+  store %My_union %26, ptr %instance_7, align 1
+  %27 = alloca %My_union, align 8
+  store i32 2, ptr %27, align 4
+  %28 = load %My_union, ptr %27, align 1
+  store %My_union %28, ptr %instance_7, align 1
+  %29 = alloca %My_union, align 8
+  store i32 4, ptr %29, align 4
+  %30 = load %My_union, ptr %29, align 1
+  call void @pass_union(%My_union %30)
+  %31 = call %My_union @return_union()
+  %instance_8 = alloca %My_union, align 8
+  store %My_union %31, ptr %instance_8, align 1
+  ret void
+}
+
+define private void @pass_union(%My_union %arguments.my_union) {
+entry:
+  %my_union = alloca %My_union, align 8
+  store %My_union %arguments.my_union, ptr %my_union, align 1
+  ret void
+}
+
+define private %My_union @return_union() {
+entry:
+  %0 = alloca %My_union, align 8
+  store float 1.000000e+01, ptr %0, align 4
+  %1 = load %My_union, ptr %0, align 1
+  ret %My_union %1
+}
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
