@@ -41,8 +41,8 @@ module;
 module h.compiler;
 
 import h.core;
+import h.core.declarations;
 import h.compiler.common;
-import h.compiler.declarations;
 import h.compiler.expressions;
 import h.compiler.types;
 import h.json_serializer;

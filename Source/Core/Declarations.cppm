@@ -6,11 +6,11 @@ module;
 #include <unordered_map>
 #include <variant>
 
-export module h.compiler.declarations;
+export module h.core.declarations;
 
 import h.core;
 
-namespace h::compiler
+namespace h
 {
     export struct Declaration
     {

@@ -7,11 +7,11 @@ module;
 #include <utility>
 #include <variant>
 
-module h.compiler.declarations;
+module h.core.declarations;
 
 import h.core;
 
-namespace h::compiler
+namespace h
 {
     Declaration_database create_declaration_database()
     {
