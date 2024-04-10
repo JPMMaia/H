@@ -20,8 +20,8 @@ module;
 module h.compiler.expressions;
 
 import h.core;
+import h.core.declarations;
 import h.compiler.common;
-import h.compiler.declarations;
 import h.compiler.types;
 
 namespace h::compiler

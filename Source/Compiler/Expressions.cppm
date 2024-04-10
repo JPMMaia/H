@@ -15,7 +15,7 @@ module;
 export module h.compiler.expressions;
 
 import h.core;
-import h.compiler.declarations;
+import h.core.declarations;
 import h.compiler.types;
 
 namespace h::compiler
