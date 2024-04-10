@@ -414,6 +414,14 @@ namespace h::compiler
 
                         if (left_hand_side.value != nullptr)
                         {
+                            llvm::Type* const union_llvm_type = type_reference_to_llvm_type(
+                                parameters.llvm_context,
+                                parameters.llvm_data_layout,
+                                parameters.core_module.name,
+                                create_custom_type_reference(module_name, union_declaration.name),
+                                parameters.type_database
+                            );
+
                             auto const member_location = std::find(union_declaration.member_names.begin(), union_declaration.member_names.end(), expression.member_name);
                             if (member_location == union_declaration.member_names.end())
                                 throw std::runtime_error{ std::format("'{}' does not exist in union type '{}'.", expression.member_name, union_declaration.name) };
@@ -435,9 +443,9 @@ namespace h::compiler
                                 llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm_context), 0),
                                 llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm_context), 0),
                             };
-                            llvm::Value* const get_element_pointer_instruction = llvm_builder.CreateGEP(left_hand_side.value->getType(), left_hand_side.value, indices);
+                            llvm::Value* const get_element_pointer_instruction = llvm_builder.CreateGEP(union_llvm_type, left_hand_side.value, indices, "", true);
 
-                            llvm::Value* const bitcast_instruction = llvm_builder.CreateBitCast(left_hand_side.value, llvm_member_type->getPointerTo());
+                            llvm::Value* const bitcast_instruction = llvm_builder.CreateBitCast(get_element_pointer_instruction, llvm_member_type->getPointerTo());
 
                             return
                             {
@@ -472,11 +480,8 @@ namespace h::compiler
     {
         if (additional_operation.has_value())
         {
-            llvm::LLVMContext& llvm_context = parameters.llvm_context;
-            llvm::DataLayout const& llvm_data_layout = parameters.llvm_data_layout;
             llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
             std::string_view const current_module_name = parameters.core_module.name;
-            Type_database const& type_database = parameters.type_database;
 
             Binary_operation const operation = additional_operation.value();
 
@@ -499,13 +504,6 @@ namespace h::compiler
         }
     }
 
-    struct Access_struct_member
-    {
-        std::string_view module_name;
-        Struct_declaration const& struct_declaration;
-        std::string_view member_name;
-    };
-
     Value_and_type create_assignment_expression_value(
         Assignment_expression const& expression,
         Statement const& statement,
@@ -513,7 +511,6 @@ namespace h::compiler
     )
     {
         llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
-        Declaration_database const& declaration_database = parameters.declaration_database;
 
         Value_and_type const left_hand_side = create_expression_value(expression.left_hand_side.expression_index, statement, parameters);
 
@@ -1585,35 +1582,19 @@ namespace h::compiler
         };
     }
 
-    Value_and_type create_instantiate_expression_value(
+    Value_and_type create_instantiate_struct_expression_value(
         Instantiate_expression const& expression,
-        Expression_parameters const& parameters
+        Expression_parameters const& parameters,
+        std::string_view const module_name,
+        Struct_declaration const& struct_declaration,
+        Type_reference const& struct_type_reference
     )
     {
         llvm::LLVMContext& llvm_context = parameters.llvm_context;
         llvm::DataLayout const& llvm_data_layout = parameters.llvm_data_layout;
         llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
         Module const& core_module = parameters.core_module;
-        Declaration_database const& declaration_database = parameters.declaration_database;
         Type_database const& type_database = parameters.type_database;
-
-        if (!parameters.expression_type.has_value())
-            throw std::runtime_error{ "Could not infer struct type while trying to instantiate!" };
-
-        Type_reference const& struct_type_reference = parameters.expression_type.value();
-        if (!std::holds_alternative<Custom_type_reference>(struct_type_reference.data))
-            throw std::runtime_error{ "Could not instantiate struct because the type is not a struct!" };
-
-        Custom_type_reference const& custom_type_reference = std::get<Custom_type_reference>(struct_type_reference.data);
-        std::optional<Declaration> const declaration = find_declaration(declaration_database, custom_type_reference.module_reference.name, custom_type_reference.name);
-
-        if (!declaration.has_value())
-            throw std::runtime_error{ std::format("Could not find struct type declaration '{}.{}' while trying to instantiate struct!", custom_type_reference.module_reference.name, custom_type_reference.name) };
-
-        if (!std::holds_alternative<Struct_declaration const*>(declaration.value().data))
-            throw std::runtime_error{ "Found non-struct type while trying to instantiate struct!" };
-
-        Struct_declaration const& struct_declaration = *std::get<Struct_declaration const*>(declaration.value().data);
 
         llvm::Type* const llvm_struct_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module.name, struct_type_reference, type_database);
 
@@ -1651,12 +1632,12 @@ namespace h::compiler
                 Type_reference const member_type = fix_custom_type_reference(struct_declaration.member_types[member_index], core_module.name);
 
                 if (member_index >= expression.members.size())
-                    throw std::runtime_error{ std::format("The struct member '{}' of struct '{}.{}' is not explicitly initialized!", member_name, custom_type_reference.module_reference.name, custom_type_reference.name) };
+                    throw std::runtime_error{ std::format("The struct member '{}' of struct '{}.{}' is not explicitly initialized!", member_name, module_name, struct_declaration.name) };
 
                 Instantiate_member_value_pair const& pair = expression.members[member_index];
 
                 if (pair.member_name != member_name)
-                    throw std::runtime_error{ std::format("Expected struct member '{}' of struct '{}.{}' instead of '{}' while instantiating struct!", member_name, custom_type_reference.module_reference.name, custom_type_reference.name, pair.member_name) };
+                    throw std::runtime_error{ std::format("Expected struct member '{}' of struct '{}.{}' instead of '{}' while instantiating struct!", member_name, module_name, struct_declaration.name, pair.member_name) };
 
                 Statement const& member_value_statement = pair.value;
 
@@ -1678,6 +1659,89 @@ namespace h::compiler
         {
             throw std::runtime_error{ "Instantiate_expression_type not handled!" };
         }
+    }
+
+    Value_and_type create_instantiate_union_expression_value(
+        Instantiate_expression const& expression,
+        Expression_parameters const& parameters,
+        std::string_view const module_name,
+        Union_declaration const& union_declaration,
+        Type_reference const& union_type_reference
+    )
+    {
+        llvm::LLVMContext& llvm_context = parameters.llvm_context;
+        llvm::DataLayout const& llvm_data_layout = parameters.llvm_data_layout;
+        llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
+        Module const& core_module = parameters.core_module;
+        Type_database const& type_database = parameters.type_database;
+
+        llvm::Type* const llvm_union_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module.name, union_type_reference, type_database);
+        if (!llvm::StructType::classof(llvm_union_type))
+            throw std::runtime_error{ "llvm_union_type must be a StructType!" };
+
+        if (expression.type != Instantiate_expression_type::Default)
+            throw std::runtime_error{ "Unions only support default Instantiate_expression_type!" };
+
+        if (expression.members.size() != 1)
+            throw std::runtime_error{ "Instantiating a union requires specifying one and only one member!" };
+
+        Instantiate_member_value_pair const& member_value_pair = expression.members[0];
+
+        auto const member_name_location = std::find_if(union_declaration.member_names.begin(), union_declaration.member_names.end(), [&member_value_pair](std::pmr::string const& member_name) { return member_name == member_value_pair.member_name; });
+        if (member_name_location == union_declaration.member_names.end())
+            throw std::runtime_error{ std::format("Could not find member '{}' while instantiating union ''!", member_value_pair.member_name, union_declaration.name) };
+
+        auto const member_index = std::distance(union_declaration.member_names.begin(), member_name_location);
+        Type_reference const member_type = fix_custom_type_reference(union_declaration.member_types[member_index], core_module.name);
+
+        Expression_parameters new_parameters = parameters;
+        new_parameters.expression_type = member_type;
+        Value_and_type const member_value = create_loaded_statement_value(member_value_pair.value, new_parameters);
+
+        llvm::Value* const union_instance = llvm_builder.CreateAlloca(llvm_union_type);
+        llvm::Value* const bitcast_instruction = llvm_builder.CreateBitCast(union_instance, member_value.value->getType()->getPointerTo());
+        llvm_builder.CreateStore(member_value.value, bitcast_instruction);
+
+        return Value_and_type
+        {
+            .name = "",
+            .value = union_instance,
+            .type = union_type_reference
+        };
+    }
+
+    Value_and_type create_instantiate_expression_value(
+        Instantiate_expression const& expression,
+        Expression_parameters const& parameters
+    )
+    {
+        Declaration_database const& declaration_database = parameters.declaration_database;
+
+        if (!parameters.expression_type.has_value())
+            throw std::runtime_error{ "Could not infer struct type while trying to instantiate!" };
+
+        Type_reference const& type_reference = parameters.expression_type.value();
+        if (!std::holds_alternative<Custom_type_reference>(type_reference.data))
+            throw std::runtime_error{ "Could not instantiate struct because the type is not a struct!" };
+
+        Custom_type_reference const& custom_type_reference = std::get<Custom_type_reference>(type_reference.data);
+        std::optional<Declaration> const declaration = find_declaration(declaration_database, custom_type_reference.module_reference.name, custom_type_reference.name);
+
+        if (!declaration.has_value())
+            throw std::runtime_error{ std::format("Could not find struct type declaration '{}.{}' while trying to instantiate struct!", custom_type_reference.module_reference.name, custom_type_reference.name) };
+
+        if (std::holds_alternative<Struct_declaration const*>(declaration.value().data))
+        {
+            Struct_declaration const& struct_declaration = *std::get<Struct_declaration const*>(declaration.value().data);
+            return create_instantiate_struct_expression_value(expression, parameters, custom_type_reference.module_reference.name, struct_declaration, type_reference);
+        }
+        else if (std::holds_alternative<Union_declaration const*>(declaration.value().data))
+        {
+            Union_declaration const& union_declaration = *std::get<Union_declaration const*>(declaration.value().data);
+            return create_instantiate_union_expression_value(expression, parameters, custom_type_reference.module_reference.name, union_declaration, type_reference);
+        }
+
+        throw std::runtime_error{ std::format("Instantiate_expression can only be used to instantiate either structs or unions! Tried to instantiate '{}.{}'", custom_type_reference.module_reference.name, custom_type_reference.name) };
     }
 
     Value_and_type create_parenthesis_expression_value(
@@ -2083,33 +2147,7 @@ namespace h::compiler
 
             if (location.has_value())
             {
-                Value_and_type const& value = location.value();
-                return value;
-
-                if (expression.access_type == Access_type::Read)
-                {
-                    if (llvm::Constant::classof(location->value))
-                    {
-                        return value;
-                    }
-                    else
-                    {
-                        Type_reference const& type = value.type.value();
-                        llvm::Type* const llvm_pointee_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module.name, type, type_database);
-                        llvm::Value* const loaded_value = llvm_builder.CreateLoad(llvm_pointee_type, value.value);
-
-                        return Value_and_type
-                        {
-                            .name = expression.name,
-                            .value = loaded_value,
-                            .type = type
-                        };
-                    }
-                }
-                else
-                {
-                    return *location;
-                }
+                return location.value();
             }
         }
 

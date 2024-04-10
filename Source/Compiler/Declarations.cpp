@@ -64,6 +64,16 @@ namespace h::compiler
         {
             map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration }));
         }
+
+        for (Union_declaration const& declaration : module.export_declarations.union_declarations)
+        {
+            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration }));
+        }
+
+        for (Union_declaration const& declaration : module.internal_declarations.union_declarations)
+        {
+            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration }));
+        }
     }
 
     std::optional<Declaration> find_declaration(

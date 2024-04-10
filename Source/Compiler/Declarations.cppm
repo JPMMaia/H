@@ -18,7 +18,8 @@ namespace h::compiler
             Alias_type_declaration const*,
             Enum_declaration const*,
             Function_declaration const*,
-            Struct_declaration const*
+            Struct_declaration const*,
+            Union_declaration const*
         >;
 
         Data_type data;

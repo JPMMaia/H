@@ -1,0 +1,69 @@
+module Unions;
+
+export enum My_union_tag
+{
+    a = 0,
+    b = 1,
+}
+
+export union My_union
+{
+    a: Int32;
+    b: Float32;
+}
+
+export union My_union_2
+{
+    a: Int32;
+    b: Int64;
+}
+
+export struct My_struct
+{
+    a: Int32 = 1;
+}
+
+export union My_union_3
+{
+    a: Int64;
+    b: My_struct;
+}
+
+export function use_unions(my_union: My_union, my_union_tag: My_union_tag) -> ()
+{
+    if my_union_tag == My_union_tag.a
+    {
+        var a = my_union.a;
+    }
+    else if my_union_tag == My_union_tag.b
+    {
+        var b = my_union.b;
+    }
+
+    var instance_0: My_union = { a: 2 };
+    var instance_1: My_union = { b: 3.0f32 };
+
+    var instance_2: My_union_2 = { a: 2 };
+    var instance_3: My_union_2 = { b: 3i64 };
+
+    var instance_4: My_union_3 = { a: 3i64 };
+    var instance_5: My_union_3 = { b: {} };
+    var instance_6: My_union_3 = { b: explicit{a:2} };
+
+    var nested_b_a = instance_6.b.a;
+
+    mutable instance_7: My_union = { a: 1 };
+    instance_7 = { a: 2 };
+
+    pass_union({ a: 4});
+    var instance_8 = return_union();
+}
+
+function pass_union(my_union: My_union) -> ()
+{
+}
+
+function return_union() -> (my_union: My_union)
+{
+    return { b: 10.0f32 };
+}

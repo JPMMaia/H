@@ -64,6 +64,7 @@ Convert_hltxt_to_hl(
         "${CMAKE_CURRENT_LIST_DIR}/txt/using_enums_from_modules.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/using_enums.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/using_structs.hltxt"
+        "${CMAKE_CURRENT_LIST_DIR}/txt/using_unions.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/variables.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/while_loop_expressions.hltxt"
 )
