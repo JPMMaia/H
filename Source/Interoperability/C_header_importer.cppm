@@ -16,6 +16,7 @@ namespace h::c
         std::pmr::vector<h::Alias_type_declaration> alias_type_declarations;
         std::pmr::vector<h::Enum_declaration> enum_declarations;
         std::pmr::vector<h::Struct_declaration> struct_declarations;
+        std::pmr::vector<h::Union_declaration> union_declarations;
         std::pmr::vector<h::Function_declaration> function_declarations;
     };
 
