@@ -42,6 +42,7 @@ module h.compiler;
 
 import h.core;
 import h.core.declarations;
+import h.core.types;
 import h.compiler.common;
 import h.compiler.expressions;
 import h.compiler.types;
