@@ -117,7 +117,6 @@ namespace h
 
     export struct Statement
     {
-        std::pmr::string name;
         std::pmr::vector<Expression> expressions;
 
         friend auto operator<=>(Statement const&, Statement const&) = default;

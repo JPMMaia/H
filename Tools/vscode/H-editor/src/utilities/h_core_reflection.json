@@ -222,12 +222,6 @@
             "members": [
                 {
                     "type": {
-                        "name": "std::pmr::string"
-                    },
-                    "name": "name"
-                },
-                {
-                    "type": {
                         "name": "std::pmr::vector<Expression>"
                     },
                     "name": "expressions"

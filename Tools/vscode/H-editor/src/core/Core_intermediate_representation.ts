@@ -186,13 +186,11 @@ function core_to_intermediate_function(module: Core.Module, declaration: Core.Fu
 }
 
 export interface Statement {
-    name: string;
     expression: Expression;
 }
 
 function core_to_intermediate_statement(core_value: Core.Statement): Statement {
     return {
-        name: core_value.name,
         expression: core_to_intermediate_expression(core_value.expressions.elements[0], core_value)
     };
 }
@@ -203,7 +201,6 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
     intermediate_to_core_expression(intermediate_value.expression, expressions);
 
     return {
-        name: intermediate_value.name,
         expressions: {
             size: expressions.length,
             elements: expressions

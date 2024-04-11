@@ -445,7 +445,6 @@ namespace h::c
 
                 h::Statement statement_value
                 {
-                    .name = "",
                     .expressions = {
                         h::Expression
                         {

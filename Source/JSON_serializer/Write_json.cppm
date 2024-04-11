@@ -870,8 +870,6 @@ namespace h::json
         )
     {
         writer.StartObject();
-        writer.Key("name");
-        writer.String(output.name.data(), output.name.size());
         writer.Key("expressions");
         write_object(writer, output.expressions);
         writer.EndObject();
