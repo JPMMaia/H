@@ -1611,6 +1611,8 @@ function map_expression_type_to_production_rule_label(expression: Core_intermedi
             return "Expression_cast";
         case Core_intermediate_representation.Expression_enum.Constant_expression:
             return "Expression_constant";
+        case Core_intermediate_representation.Expression_enum.Constant_array_expression:
+            return "Expression_constant_array";
         case Core_intermediate_representation.Expression_enum.Continue_expression:
             return "Expression_continue";
         case Core_intermediate_representation.Expression_enum.For_loop_expression:
