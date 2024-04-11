@@ -472,6 +472,7 @@ namespace h::json
     export std::optional<Stack_state> get_next_state_call_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_cast_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_constant_expression(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_constant_array_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_continue_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_for_loop_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_condition_statement_pair(Stack_state* state, std::string_view const key);
@@ -1593,6 +1594,49 @@ namespace h::json
         return {};
     }
 
+    export std::optional<Stack_state> get_next_state_constant_array_expression(Stack_state* state, std::string_view const key)
+    {
+        h::Constant_array_expression* parent = static_cast<h::Constant_array_expression*>(state->pointer);
+
+        if (key == "type")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->type,
+                .type = "Type_reference",
+                .get_next_state = get_next_state_type_reference,
+            };
+        }
+
+        if (key == "array_data")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Statement>* parent = static_cast<std::pmr::vector<Statement>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Statement>* parent = static_cast<std::pmr::vector<Statement>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->array_data,
+                .type = "std::pmr::vector<Statement>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_statement
+            };
+        }
+
+        return {};
+    }
+
     export std::optional<Stack_state> get_next_state_continue_expression(Stack_state* state, std::string_view const key)
     {
         h::Continue_expression* parent = static_cast<h::Continue_expression*>(state->pointer);
@@ -2192,7 +2236,7 @@ namespace h::json
         {
             auto const set_variant_type = [](Stack_state* state, std::string_view const type) -> void
             {
-                using Variant_type = std::variant<h::Access_expression, h::Assignment_expression, h::Binary_expression, h::Block_expression, h::Break_expression, h::Call_expression, h::Cast_expression, h::Constant_expression, h::Continue_expression, h::For_loop_expression, h::If_expression, h::Instantiate_expression, h::Invalid_expression, h::Null_pointer_expression, h::Parenthesis_expression, h::Return_expression, h::Switch_expression, h::Ternary_condition_expression, h::Unary_expression, h::Variable_declaration_expression, h::Variable_declaration_with_type_expression, h::Variable_expression, h::While_loop_expression>;
+                using Variant_type = std::variant<h::Access_expression, h::Assignment_expression, h::Binary_expression, h::Block_expression, h::Break_expression, h::Call_expression, h::Cast_expression, h::Constant_expression, h::Constant_array_expression, h::Continue_expression, h::For_loop_expression, h::If_expression, h::Instantiate_expression, h::Invalid_expression, h::Null_pointer_expression, h::Parenthesis_expression, h::Return_expression, h::Switch_expression, h::Ternary_condition_expression, h::Unary_expression, h::Variable_declaration_expression, h::Variable_declaration_with_type_expression, h::Variable_expression, h::While_loop_expression>;
                 Variant_type* pointer = static_cast<Variant_type*>(state->pointer);
 
                 if (type == "Access_expression")
@@ -2241,6 +2285,12 @@ namespace h::json
                 {
                     *pointer = Constant_expression{};
                     state->type = "Constant_expression";
+                    return;
+                }
+                if (type == "Constant_array_expression")
+                {
+                    *pointer = Constant_array_expression{};
+                    state->type = "Constant_array_expression";
                     return;
                 }
                 if (type == "Continue_expression")
@@ -2391,6 +2441,11 @@ namespace h::json
                             return get_next_state_constant_expression;
                         }
 
+                        if (state->type == "Constant_array_expression")
+                        {
+                            return get_next_state_constant_array_expression;
+                        }
+
                         if (state->type == "Continue_expression")
                         {
                             return get_next_state_continue_expression;
@@ -2484,7 +2539,7 @@ namespace h::json
             return Stack_state
             {
                 .pointer = &parent->data,
-                .type = "std::variant<Access_expression,Assignment_expression,Binary_expression,Block_expression,Break_expression,Call_expression,Cast_expression,Constant_expression,Continue_expression,For_loop_expression,If_expression,Instantiate_expression,Invalid_expression,Null_pointer_expression,Parenthesis_expression,Return_expression,Switch_expression,Ternary_condition_expression,Unary_expression,Variable_declaration_expression,Variable_declaration_with_type_expression,Variable_expression,While_loop_expression>",
+                .type = "std::variant<Access_expression,Assignment_expression,Binary_expression,Block_expression,Break_expression,Call_expression,Cast_expression,Constant_expression,Constant_array_expression,Continue_expression,For_loop_expression,If_expression,Instantiate_expression,Invalid_expression,Null_pointer_expression,Parenthesis_expression,Return_expression,Switch_expression,Ternary_condition_expression,Unary_expression,Variable_declaration_expression,Variable_declaration_with_type_expression,Variable_expression,While_loop_expression>",
                 .get_next_state = get_next_state,
                 .set_variant_type = set_variant_type,
             };
@@ -3240,6 +3295,16 @@ namespace h::json
                 .pointer = output,
                 .type = "Constant_expression",
                 .get_next_state = get_next_state_constant_expression
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Constant_array_expression>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Constant_array_expression",
+                .get_next_state = get_next_state_constant_array_expression
             };
         }
 

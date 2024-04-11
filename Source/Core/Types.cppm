@@ -17,6 +17,8 @@ namespace h
     export Type_reference create_bool_type_reference();
     export bool is_bool(Type_reference const& type);
 
+    export Type_reference create_constant_array_type_reference(std::pmr::vector<Type_reference> value_type, std::uint64_t size);
+
     export Type_reference create_custom_type_reference(std::string_view module_name, std::string_view name);
     export bool is_custom_type_reference(Type_reference const& type);
     export void set_custom_type_reference_module_name_if_empty(Type_reference& type, std::string_view module_name);
