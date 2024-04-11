@@ -687,6 +687,29 @@ namespace h::json::operators
         return output_stream;
     }
 
+    export std::istream& operator>>(std::istream& input_stream, Constant_array_expression& value)
+    {
+        rapidjson::Reader reader;
+        rapidjson::IStreamWrapper stream_wrapper{ input_stream };
+        std::optional<Constant_array_expression> const output = h::json::read<Constant_array_expression>(reader, stream_wrapper);
+
+        if (output)
+        {
+            value = std::move(*output);
+        }
+
+        return input_stream;
+    }
+
+    export std::ostream& operator<<(std::ostream& output_stream, Constant_array_expression const& value)
+    {
+        rapidjson::OStreamWrapper stream_wrapper{ output_stream };
+        rapidjson::Writer<rapidjson::OStreamWrapper> writer{ stream_wrapper };
+        h::json::write(writer, value);
+
+        return output_stream;
+    }
+
     export std::istream& operator>>(std::istream& input_stream, Continue_expression& value)
     {
         rapidjson::Reader reader;

@@ -426,6 +426,12 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Constant_array_expression const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Continue_expression const& input
         );
 
@@ -1110,6 +1116,20 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Constant_array_expression const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("type");
+        write_object(writer, output.type);
+        writer.Key("array_data");
+        write_object(writer, output.array_data);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Continue_expression const& output
         )
     {
@@ -1423,6 +1443,14 @@ namespace h::json
             writer.String("Constant_expression");
             writer.Key("value");
             Constant_expression const& value = std::get<Constant_expression>(output.data);
+            write_object(writer, value);
+        }
+        else if (std::holds_alternative<Constant_array_expression>(output.data))
+        {
+            writer.Key("type");
+            writer.String("Constant_array_expression");
+            writer.Key("value");
+            Constant_array_expression const& value = std::get<Constant_array_expression>(output.data);
             write_object(writer, value);
         }
         else if (std::holds_alternative<Continue_expression>(output.data))

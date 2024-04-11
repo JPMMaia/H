@@ -307,6 +307,7 @@ export enum Expression_enum {
     Call_expression = "Call_expression",
     Cast_expression = "Cast_expression",
     Constant_expression = "Constant_expression",
+    Constant_array_expression = "Constant_array_expression",
     Continue_expression = "Continue_expression",
     For_loop_expression = "For_loop_expression",
     If_expression = "If_expression",
@@ -1150,6 +1151,49 @@ export function create_constant_expression(type: Type_reference, data: string): 
         }
     };
 }
+export interface Constant_array_expression {
+    type: Type_reference;
+    array_data: Statement[];
+}
+
+function core_to_intermediate_constant_array_expression(core_value: Core.Constant_array_expression, statement: Core.Statement): Constant_array_expression {
+    return {
+        type: core_to_intermediate_type_reference(core_value.type),
+        array_data: core_value.array_data.elements.map(value => core_to_intermediate_statement(value)),
+    };
+}
+
+function intermediate_to_core_constant_array_expression(intermediate_value: Constant_array_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
+    const core_value: Core.Expression = {
+        data: {
+            type: Core.Expression_enum.Constant_array_expression,
+            value: {
+                type: intermediate_to_core_type_reference(intermediate_value.type),
+                array_data: {
+                    size: intermediate_value.array_data.length,
+                    elements: intermediate_value.array_data.map(value => intermediate_to_core_statement(value))
+                },
+            }
+        }
+    };
+
+    expressions[index] = core_value;
+}
+
+export function create_constant_array_expression(type: Type_reference, array_data: Statement[]): Expression {
+    const constant_array_expression: Constant_array_expression = {
+        type: type,
+        array_data: array_data,
+    };
+    return {
+        data: {
+            type: Expression_enum.Constant_array_expression,
+            value: constant_array_expression
+        }
+    };
+}
 export interface Continue_expression {
 }
 
@@ -1836,7 +1880,7 @@ export function create_while_loop_expression(condition: Statement, then_statemen
     };
 }
 export interface Expression {
-    data: Variant<Expression_enum, Access_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Constant_expression | Continue_expression | For_loop_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
+    data: Variant<Expression_enum, Access_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Constant_expression | Constant_array_expression | Continue_expression | For_loop_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
 }
 
 function core_to_intermediate_expression(core_value: Core.Expression, statement: Core.Statement): Expression {
@@ -1902,6 +1946,14 @@ function core_to_intermediate_expression(core_value: Core.Expression, statement:
                 data: {
                     type: core_value.data.type,
                     value: core_to_intermediate_constant_expression(core_value.data.value as Core.Constant_expression, statement)
+                }
+            };
+        }
+        case Core.Expression_enum.Constant_array_expression: {
+            return {
+                data: {
+                    type: core_value.data.type,
+                    value: core_to_intermediate_constant_array_expression(core_value.data.value as Core.Constant_array_expression, statement)
                 }
             };
         }
@@ -2060,6 +2112,10 @@ function intermediate_to_core_expression(intermediate_value: Expression, express
         }
         case Expression_enum.Constant_expression: {
             intermediate_to_core_constant_expression(intermediate_value.data.value as Constant_expression, expressions);
+            break;
+        }
+        case Expression_enum.Constant_array_expression: {
+            intermediate_to_core_constant_array_expression(intermediate_value.data.value as Constant_array_expression, expressions);
             break;
         }
         case Expression_enum.Continue_expression: {

@@ -294,6 +294,14 @@ namespace h
         friend auto operator<=>(Constant_expression const&, Constant_expression const&) = default;
     };
 
+    export struct Constant_array_expression
+    {
+        Type_reference type;
+        std::pmr::vector<Statement> array_data;
+
+        friend auto operator<=>(Constant_array_expression const&, Constant_array_expression const&) = default;
+    };
+
     export struct Continue_expression
     {
         friend auto operator<=>(Continue_expression const&, Continue_expression const&) = default;
@@ -458,6 +466,7 @@ namespace h
             Call_expression,
             Cast_expression,
             Constant_expression,
+            Constant_array_expression,
             Continue_expression,
             For_loop_expression,
             If_expression,
