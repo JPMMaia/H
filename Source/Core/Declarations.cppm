@@ -3,6 +3,7 @@ module;
 #include <memory_resource>
 #include <optional>
 #include <string>
+#include <span>
 #include <unordered_map>
 #include <variant>
 
@@ -34,6 +35,16 @@ namespace h
     };
 
     export Declaration_database create_declaration_database();
+
+    export void add_declarations(
+        Declaration_database& database,
+        std::string_view const module_name,
+        std::span<h::Alias_type_declaration const> alias_type_declarations,
+        std::span<h::Enum_declaration const> enum_declarations,
+        std::span<h::Struct_declaration const> struct_declarations,
+        std::span<h::Union_declaration const> union_declarations,
+        std::span<h::Function_declaration const> function_declarations
+    );
 
     export void add_declarations(
         Declaration_database& database,
