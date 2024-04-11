@@ -16,6 +16,11 @@ module;
 
 module h.c_header_converter;
 
+import h.core;
+import h.core.declarations;
+import h.core.expressions;
+import h.core.types;
+
 namespace h::c
 {
     static constexpr bool g_debug = false;
@@ -178,6 +183,26 @@ namespace h::c
         return h_function_type;
     }
 
+    std::string_view remove_type(std::string_view const string)
+    {
+        if (string.starts_with("enum "))
+        {
+            return string.substr(5);
+        }
+        else if (string.starts_with("struct "))
+        {
+            return string.substr(7);
+        }
+        else if (string.starts_with("union "))
+        {
+            return string.substr(6);
+        }
+        else
+        {
+            return string;
+        }
+    }
+
     std::optional<h::Type_reference> create_type_reference(C_declarations const& declarations, CXType const type)
     {
         {
@@ -282,6 +307,10 @@ namespace h::c
 
             if (location == declarations.alias_type_declarations.end())
             {
+                CXType const canonical_type = clang_getCanonicalType(type);
+                if (canonical_type.kind == CXType_Enum || canonical_type.kind == CXType_Record)
+                    return create_type_reference(declarations, canonical_type);
+
                 std::string const message = std::format("Could not find typedef with name '{}'\n", typedef_name);
                 std::cerr << message;
                 throw std::runtime_error{ message };
@@ -312,8 +341,11 @@ namespace h::c
         }
         case CXType_Record:
         {
-            // TODO
-            return h::Type_reference{};
+            String const type_spelling = { clang_getTypeSpelling(type) };
+            std::string_view const type_spelling_string = type_spelling.string_view();
+            std::string_view type_name = remove_type(type_spelling_string);
+
+            return h::create_custom_type_reference("", type_name);
         }
         case CXType_Void:
         {
@@ -360,19 +392,25 @@ namespace h::c
         }
     }
 
-    h::Alias_type_declaration create_alias_type_declaration(C_declarations const& declarations, CXCursor const cursor)
+    std::optional<h::Alias_type_declaration> create_alias_type_declaration(C_declarations const& declarations, CXCursor const cursor)
     {
         CXType const type = clang_getCursorType(cursor);
         String const type_spelling = { clang_getTypeSpelling(type) };
         std::string_view const type_name = type_spelling.string_view();
 
-        CXType const canonical_type = clang_getCanonicalType(type);
-        std::optional<h::Type_reference> canonical_type_reference = create_type_reference(declarations, canonical_type);
+        CXType const underlying_type = clang_getTypedefDeclUnderlyingType(cursor);
+        String const underlying_type_spelling = { clang_getTypeSpelling(underlying_type) };
+        std::string_view const underlying_type_name = remove_type(underlying_type_spelling.string_view());
+
+        if (type_name == underlying_type_name)
+            return std::nullopt;
+
+        std::optional<h::Type_reference> underlying_type_reference = create_type_reference(declarations, underlying_type);
 
         std::pmr::vector<h::Type_reference> alias_type;
-        if (canonical_type_reference.has_value())
+        if (underlying_type_reference.has_value())
         {
-            alias_type.push_back(*canonical_type_reference);
+            alias_type.push_back(*underlying_type_reference);
         }
 
         return h::Alias_type_declaration
@@ -614,6 +652,7 @@ namespace h::c
             .unique_name = std::pmr::string{struct_name},
             .member_types = {},
             .member_names = {},
+            // TODO member default values
             .is_packed = false,
             .is_literal = false,
         };
@@ -980,8 +1019,221 @@ namespace h::c
         return output;
     }
 
+    h::Statement create_struct_member_default_value(
+        Type_reference const& member_type,
+        std::string_view const module_name,
+        h::Declaration_database const& declaration_database
+    )
+    {
+        if (std::holds_alternative<h::Builtin_type_reference>(member_type.data))
+        {
+            h::Builtin_type_reference const& builtin_type_reference = std::get<h::Builtin_type_reference>(member_type.data);
+            // TODO
+        }
+        else if (std::holds_alternative<h::Constant_array_type>(member_type.data))
+        {
+            h::Constant_array_type const& constant_array_type = std::get<h::Constant_array_type>(member_type.data);
+
+            h::Statement const element_default_value = create_struct_member_default_value(constant_array_type.value_type[0], module_name, declaration_database);
+
+            std::pmr::vector<h::Statement> array_data;
+            array_data.resize(constant_array_type.size);
+            std::fill(array_data.begin(), array_data.end(), element_default_value);
+
+            return h::create_statement(
+                {
+                    h::create_constant_array_expression(
+                        constant_array_type.value_type[0],
+                        std::move(array_data)
+                    )
+                }
+            );
+        }
+        else if (std::holds_alternative<h::Custom_type_reference>(member_type.data))
+        {
+            h::Custom_type_reference const& custom_type_reference = std::get<h::Custom_type_reference>(member_type.data);
+
+            std::optional<Declaration> const member_declaration_optional = h::find_declaration(declaration_database, module_name, custom_type_reference.name);
+            if (member_declaration_optional.has_value())
+            {
+                h::Declaration const& member_declaration = member_declaration_optional.value();
+                if (std::holds_alternative<h::Alias_type_declaration const*>(member_declaration.data))
+                {
+                    h::Alias_type_declaration const* alias_type_declaration = std::get<h::Alias_type_declaration const*>(member_declaration.data);
+                    if (alias_type_declaration->type.empty())
+                        throw std::runtime_error{ std::format("Alias type '{}' is void!", alias_type_declaration->name) };
+
+                    std::optional<Type_reference> const underlying_type_optional = h::get_underlying_type(declaration_database, module_name, alias_type_declaration->type[0]);
+                    if (!underlying_type_optional.has_value())
+                        throw std::runtime_error{ std::format("Alias type '{}' is void!", alias_type_declaration->name) };
+
+                    Type_reference const& underlying_type = underlying_type_optional.value();
+                    return create_struct_member_default_value(underlying_type, module_name, declaration_database);
+                }
+                else if (std::holds_alternative<h::Enum_declaration const*>(member_declaration.data))
+                {
+                    h::Enum_declaration const* enum_declaration = std::get<h::Enum_declaration const*>(member_declaration.data);
+
+                    if (enum_declaration->values.empty())
+                        throw std::runtime_error{ std::format("Enum '{}' is empty!", enum_declaration->name) };
+
+                    return h::create_statement(
+                        h::create_enum_value_expressions(enum_declaration->name, enum_declaration->values[0].name)
+                    );
+                }
+                else if (std::holds_alternative<h::Struct_declaration const*>(member_declaration.data))
+                {
+                    return h::create_statement(
+                        {
+                            h::create_instantiate_expression(Instantiate_expression_type::Default, {})
+                        }
+                    );
+                }
+                else if (std::holds_alternative<h::Union_declaration const*>(member_declaration.data))
+                {
+                    h::Union_declaration const* union_declaration = std::get<h::Union_declaration const*>(member_declaration.data);
+
+                    if (union_declaration->member_types.empty()) {
+                        return h::create_statement(
+                            {
+                                h::create_instantiate_expression(Instantiate_expression_type::Default, {})
+                            }
+                        );
+                    }
+
+                    h::Instantiate_member_value_pair member_value
+                    {
+                        .member_name = union_declaration->member_names[0],
+                        .value = create_struct_member_default_value(union_declaration->member_types[0], module_name, declaration_database)
+                    };
+
+                    return h::create_statement(
+                        {
+                            h::create_instantiate_expression(Instantiate_expression_type::Default, {std::move(member_value)})
+                        }
+                    );
+                }
+            }
+        }
+        else if (std::holds_alternative<h::Fundamental_type>(member_type.data))
+        {
+            h::Fundamental_type const& fundamental_type = std::get<h::Fundamental_type>(member_type.data);
+
+            switch (fundamental_type)
+            {
+            case h::Fundamental_type::Bool: {
+                return h::create_statement(
+                    {
+                        h::create_constant_expression(
+                            member_type,
+                            "false"
+                        )
+                    }
+                );
+            }
+            case h::Fundamental_type::Float16:
+            case h::Fundamental_type::Float32:
+            case h::Fundamental_type::Float64: {
+                return h::create_statement(
+                    {
+                        h::create_constant_expression(
+                            member_type,
+                            "0.0"
+                        )
+                    }
+                );
+            }
+            case h::Fundamental_type::String: {
+                return h::create_statement(
+                    {
+                        h::create_constant_expression(
+                            member_type,
+                            ""
+                        )
+                    }
+                );
+            }
+            case h::Fundamental_type::Byte:
+            case h::Fundamental_type::C_bool:
+            case h::Fundamental_type::C_char:
+            case h::Fundamental_type::C_schar:
+            case h::Fundamental_type::C_uchar:
+            case h::Fundamental_type::C_short:
+            case h::Fundamental_type::C_ushort:
+            case h::Fundamental_type::C_int:
+            case h::Fundamental_type::C_uint:
+            case h::Fundamental_type::C_long:
+            case h::Fundamental_type::C_ulong:
+            case h::Fundamental_type::C_longlong:
+            case h::Fundamental_type::C_ulonglong: {
+                return h::create_statement(
+                    {
+                        h::create_constant_expression(
+                            member_type,
+                            "0"
+                        )
+                    }
+                );
+            }
+            }
+        }
+        else if (std::holds_alternative<h::Function_type>(member_type.data))
+        {
+            h::Function_type const& function_type = std::get<h::Function_type>(member_type.data);
+            return h::create_statement(
+                {
+                    h::create_null_pointer_expression()
+                }
+            );
+        }
+        else if (std::holds_alternative<h::Integer_type>(member_type.data))
+        {
+            return h::create_statement(
+                {
+                    h::create_constant_expression(
+                        member_type,
+                        "0"
+                    )
+                }
+            );
+        }
+        else if (std::holds_alternative<h::Pointer_type>(member_type.data))
+        {
+            h::Pointer_type const& pointer_type = std::get<h::Pointer_type>(member_type.data);
+            return h::create_statement(
+                {
+                    h::create_null_pointer_expression()
+                }
+            );
+        }
+
+        throw std::runtime_error{ "create_struct_member_default_value() did not handle Type_reference type!" };
+    }
+
+    void add_struct_member_default_values(
+        std::string_view const module_name,
+        C_declarations& declarations,
+        h::Declaration_database const& declaration_database
+    )
+    {
+        for (h::Struct_declaration& struct_declaration : declarations.struct_declarations)
+        {
+            struct_declaration.member_default_values.reserve(struct_declaration.member_types.size());
+
+            for (std::size_t index = 0; index < struct_declaration.member_types.size(); ++index)
+            {
+                Type_reference const& member_type = struct_declaration.member_types[index];
+
+                h::Statement default_value = create_struct_member_default_value(member_type, module_name, declaration_database);
+                struct_declaration.member_default_values.push_back(std::move(default_value));
+            }
+        }
+    }
+
     C_header import_header(std::filesystem::path const& header_path)
     {
+        char const* const module_name = "header";
+
         CXIndex index = clang_createIndex(0, 0);
 
         CXTranslationUnit unit;
@@ -1036,8 +1288,9 @@ namespace h::c
             }
             else if (cursor_kind == CXCursor_TypedefDecl)
             {
-                h::Alias_type_declaration declaration = create_alias_type_declaration(*declarations, current_cursor);
-                declarations->alias_type_declarations.push_back(std::move(declaration));
+                std::optional<h::Alias_type_declaration> declaration = create_alias_type_declaration(*declarations, current_cursor);
+                if (declaration.has_value())
+                    declarations->alias_type_declarations.push_back(std::move(declaration.value()));
             }
             else if (cursor_kind == CXCursor_FunctionDecl)
             {
@@ -1068,7 +1321,20 @@ namespace h::c
         clang_disposeTranslationUnit(unit);
         clang_disposeIndex(index);
 
-        C_declarations const declarations_with_fixed_width_integers = convert_fixed_width_integers_typedefs_to_integer_types(declarations);
+        C_declarations declarations_with_fixed_width_integers = convert_fixed_width_integers_typedefs_to_integer_types(declarations);
+
+        h::Declaration_database declaration_database = h::create_declaration_database();
+        h::add_declarations(
+            declaration_database,
+            module_name,
+            declarations_with_fixed_width_integers.alias_type_declarations,
+            declarations_with_fixed_width_integers.enum_declarations,
+            declarations_with_fixed_width_integers.struct_declarations,
+            declarations_with_fixed_width_integers.union_declarations,
+            declarations_with_fixed_width_integers.function_declarations
+        );
+
+        add_struct_member_default_values(module_name, declarations_with_fixed_width_integers, declaration_database);
 
         return C_header
         {
