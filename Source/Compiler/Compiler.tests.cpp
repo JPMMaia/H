@@ -1643,6 +1643,8 @@ switch_case_i5_:                                  ; preds = %switch_case_i4_, %e
     char const* const expected_llvm_ir = R"(
 %My_struct = type { i32, i32 }
 %My_struct_2 = type { %My_struct, %My_struct, %My_struct }
+%My_Union = type { [24 x i8] }
+%My_struct_3 = type { i32, %My_Union }
 
 define void @use_structs(%My_struct %arguments.my_struct) {
 entry:
@@ -1674,6 +1676,12 @@ entry:
   %6 = call %My_struct @return_struct()
   %instance_5 = alloca %My_struct, align 8
   store %My_struct %6, ptr %instance_5, align 4
+  %7 = alloca %My_Union, align 8
+  store %My_struct { i32 1, i32 2 }, ptr %7, align 4
+  %8 = load %My_Union, ptr %7, align 1
+  %9 = insertvalue %My_struct_3 { i32 4, %My_Union undef }, %My_Union %8, 1
+  %instance_6 = alloca %My_struct_3, align 8
+  store %My_struct_3 %9, ptr %instance_6, align 4
   ret void
 }
 
