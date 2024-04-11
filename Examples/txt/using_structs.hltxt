@@ -20,6 +20,26 @@ export struct My_struct_2
     };
 }
 
+export enum My_enum
+{
+    A = 3,
+    B = 4,
+}
+
+export union My_Union
+{
+    a: My_struct;
+    b: My_struct_2;
+}
+
+export struct My_struct_3
+{
+    my_enum: My_enum = My_enum.B;
+    my_union: My_Union = {
+        a: {}
+    };
+}
+
 export function use_structs(my_struct: My_struct) -> ()
 {
     var a = my_struct.a;
@@ -52,6 +72,8 @@ export function use_structs(my_struct: My_struct) -> ()
 
     pass_struct({});
     var instance_5 = return_struct();
+
+    var instance_6: My_struct_3 = {};
 }
 
 function pass_struct(my_struct: My_struct) -> ()
