@@ -238,7 +238,6 @@ namespace h::c
 
         h::Statement const expected_default_value =
         {
-            .name = "",
             .expressions = {
                 h::Expression
                 {
@@ -299,7 +298,6 @@ namespace h::c
 
             h::Statement const expected_default_value =
             {
-                .name = "",
                 .expressions = {
                     h::Expression
                     {
@@ -330,7 +328,6 @@ namespace h::c
 
             h::Statement const expected_default_value =
             {
-                .name = "",
                 .expressions = {
                     h::Expression
                     {
@@ -391,7 +388,6 @@ namespace h::c
 
             h::Statement const expected_default_value =
             {
-                .name = "",
                 .expressions = {
                     h::Expression
                     {
@@ -413,7 +409,6 @@ namespace h::c
 
             h::Statement const expected_default_value =
             {
-                .name = "",
                 .expressions = {
                     h::Expression
                     {
@@ -446,7 +441,6 @@ namespace h::c
 
             h::Statement const color_array_value =
             {
-                .name = "",
                 .expressions = {
                     h::Expression
                     {
@@ -466,7 +460,6 @@ namespace h::c
 
             h::Statement const color_value =
             {
-                .name = "",
                 .expressions = {
                     h::Expression
                     {
@@ -487,7 +480,6 @@ namespace h::c
 
             h::Statement const expected_default_value =
             {
-                .name = "",
                 .expressions = {
                     h::Expression
                     {

@@ -300,16 +300,6 @@ export function is_return_statement_with_variable_declaration(module: Core.Modul
     return first_expression.data.type === Core.Expression_enum.Return_expression;
 }
 
-export function is_statement_with_variable_declaration(module: Core.Module, function_declaration: Core.Function_declaration, statements: Core.Statement[], statement: Core.Statement): boolean {
-
-    const type_reference = get_type_of_statement(module, function_declaration, statements, statement);
-    if (type_reference === undefined) {
-        return false;
-    }
-
-    return type_reference.length > 0;
-}
-
 export function get_type_of_function_input_parameter(function_declaration: Core.Function_declaration, parameter_name: string): Core.Type_reference | undefined {
     const parameter_index = function_declaration.input_parameter_names.elements.findIndex(name => name === parameter_name);
     if (parameter_index === -1) {
@@ -326,57 +316,4 @@ export function get_type_of_function_output_parameter(function_declaration: Core
     }
 
     return function_declaration.type.output_parameter_types.elements[parameter_index];
-}
-
-export function get_type_of_expression(module: Core.Module, function_declaration: Core.Function_declaration, statements: Core.Statement[], expressions: Core.Expression[], expression: Core.Expression): Core.Type_reference[] | undefined {
-
-    if (expression.data.type === Core.Expression_enum.Invalid_expression || expression.data.type === Core.Expression_enum.Return_expression) {
-        return undefined;
-    }
-
-    if (expression.data.type === Core.Expression_enum.Binary_expression) {
-        const binary_expression = expression.data.value as Core.Binary_expression;
-        const left_hand_side_expression = expressions[binary_expression.left_hand_side.expression_index];
-        return get_type_of_expression(module, function_declaration, statements, expressions, left_hand_side_expression);
-    }
-    else if (expression.data.type === Core.Expression_enum.Call_expression) {
-        const call_expression = expression.data.value as Core.Call_expression;
-        // TODO assuming the same module
-        /*const call_function_module = module;
-        const call_function_declaration = find_function_declaration(call_function_module, call_expression.function_name);
-        if (call_function_declaration !== undefined) {
-            return call_function_declaration.type.output_parameter_types.elements;
-        }*/
-    }
-    else if (expression.data.type === Core.Expression_enum.Constant_expression) {
-        const constant_expression = expression.data.value as Core.Constant_expression;
-        const type_reference = constant_expression.type;
-        return [type_reference];
-    }
-    else if (expression.data.type === Core.Expression_enum.Variable_expression) {
-        const variable_expression = expression.data.value as Core.Variable_expression;
-
-        const type = get_type_of_function_input_parameter(function_declaration, variable_expression.name);
-        if (type !== undefined) {
-            return [type];
-        }
-
-        const statement = statements.find(statement => statement.name === variable_expression.name);
-        if (statement !== undefined) {
-            return get_type_of_statement(module, function_declaration, statements, statement);
-        }
-    }
-
-    return undefined;
-}
-
-export function get_type_of_statement(module: Core.Module, function_declaration: Core.Function_declaration, statements: Core.Statement[], statement: Core.Statement): Core.Type_reference[] | undefined {
-
-    if (statement.expressions.elements.length === 0) {
-        return undefined;
-    }
-
-    const first_expression = statement.expressions.elements[0];
-
-    return get_type_of_expression(module, function_declaration, statements, statement.expressions.elements, first_expression);
 }

@@ -161,7 +161,6 @@ export interface Type_reference {
 }
 
 export interface Statement {
-    name: string;
     expressions: Vector<Expression>;
 }
 

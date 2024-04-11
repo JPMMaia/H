@@ -679,7 +679,6 @@ export function hello() -> ()
                         name: "hello",
                         statements: [
                             {
-                                name: "",
                                 expression: {
                                     data: {
                                         type: Core_intermediate_representation.Expression_enum.Call_expression,

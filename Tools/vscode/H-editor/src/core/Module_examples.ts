@@ -605,7 +605,6 @@ export function create_function_calling_module_function_example(): IR.Module {
                         name: "My_function",
                         statements: [
                             {
-                                name: "",
                                 expression: IR.create_call_expression(
                                     IR.create_access_expression(IR.create_variable_expression("stdio", IR.Access_type.Read), "printf", IR.Access_type.Read),
                                     [
@@ -679,7 +678,6 @@ export function create_hello_world(): IR.Module {
                         name: "main",
                         statements: [
                             {
-                                name: "",
                                 expression: IR.create_call_expression(IR.create_access_expression(IR.create_variable_expression("stdio", IR.Access_type.Read), "puts", IR.Access_type.Read), [
                                     {
                                         data: {
@@ -708,7 +706,6 @@ export function create_hello_world(): IR.Module {
                                 ])
                             },
                             {
-                                name: "",
                                 expression: {
                                     data: {
                                         type: IR.Expression_enum.Return_expression,
@@ -775,7 +772,6 @@ export function create_variables(): IR.Module {
                         name: "main",
                         statements: [
                             {
-                                name: "",
                                 expression: {
                                     data: {
                                         type: IR.Expression_enum.Variable_declaration_expression,
@@ -804,7 +800,6 @@ export function create_variables(): IR.Module {
                                 }
                             },
                             {
-                                name: "",
                                 expression: {
                                     data: {
                                         type: IR.Expression_enum.Variable_declaration_expression,
@@ -833,7 +828,6 @@ export function create_variables(): IR.Module {
                                 }
                             },
                             {
-                                name: "",
                                 expression: {
                                     data: {
                                         type: IR.Expression_enum.Assignment_expression,
@@ -870,7 +864,6 @@ export function create_variables(): IR.Module {
                                 }
                             },
                             {
-                                name: "",
                                 expression: {
                                     data: {
                                         type: IR.Expression_enum.Return_expression,
@@ -924,7 +917,6 @@ export function create_numbers(): IR.Module {
 
     for (const constant_expression of constant_expressions) {
         const statement: IR.Statement = {
-            name: "",
             expression: {
                 data: {
                     type: IR.Expression_enum.Variable_declaration_expression,
@@ -972,7 +964,6 @@ export function create_numbers(): IR.Module {
                         statements: [
                             ...statements,
                             {
-                                name: "",
                                 expression: {
                                     data: {
                                         type: IR.Expression_enum.Return_expression,
@@ -1036,7 +1027,6 @@ export function create_numeric_casts(): IR.Module {
 
     for (const constant_expression of constant_expressions) {
         const statement: IR.Statement = {
-            name: "",
             expression: {
                 data: {
                     type: IR.Expression_enum.Variable_declaration_expression,
@@ -1084,7 +1074,6 @@ export function create_numeric_casts(): IR.Module {
                         statements: [
                             ...statements,
                             {
-                                name: "",
                                 expression: {
                                     data: {
                                         type: IR.Expression_enum.Return_expression,
@@ -1129,7 +1118,6 @@ export function create_booleans(): IR.Module {
 
     for (const constant_expression of constant_expressions) {
         const statement: IR.Statement = {
-            name: "",
             expression: {
                 data: {
                     type: IR.Expression_enum.Variable_declaration_expression,
@@ -1203,7 +1191,6 @@ export function create_binary_expressions(): IR.Module {
 
     for (const binary_expression of binary_expressions) {
         const statement: IR.Statement = {
-            name: "",
             expression: {
                 data: {
                     type: IR.Expression_enum.Variable_declaration_expression,
@@ -1283,7 +1270,6 @@ export function create_binary_expressions_operator_precedence(): IR.Module {
 
     for (const binary_expression of binary_expressions) {
         const statement: IR.Statement = {
-            name: "",
             expression: {
                 data: {
                     type: IR.Expression_enum.Variable_declaration_expression,
@@ -1351,7 +1337,6 @@ export function create_assignment_expressions(): IR.Module {
 
     for (const binary_expression of expressions) {
         const statement: IR.Statement = {
-            name: "",
             expression: binary_expression
         };
         statements.push(statement);
@@ -1407,7 +1392,6 @@ export function create_unary_expressions(): IR.Module {
 
     for (const unary_expression of unary_expressions) {
         const statement: IR.Statement = {
-            name: "",
             expression: {
                 data: {
                     type: IR.Expression_enum.Variable_declaration_expression,
@@ -3945,7 +3929,6 @@ function create_pointer_type(element_type: IR.Type_reference[], is_mutable: bool
 
 function create_statement(expression: IR.Expression): IR.Statement {
     return {
-        name: "",
         expression: expression
     };
 }

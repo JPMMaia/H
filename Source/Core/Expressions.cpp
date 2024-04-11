@@ -14,7 +14,6 @@ namespace h
     {
         return h::Statement
         {
-            .name = "",
             .expressions = std::move(expressions)
         };
     }

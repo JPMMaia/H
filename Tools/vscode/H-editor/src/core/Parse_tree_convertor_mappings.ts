@@ -1881,7 +1881,7 @@ function node_to_enum_declaration(node: Parser_node.Node, key_to_production_rule
         values.push(
             {
                 name: value_name,
-                value: expression !== undefined ? { name: "", expression: expression } : undefined
+                value: expression !== undefined ? { expression: expression } : undefined
             }
         );
     }
@@ -1914,7 +1914,7 @@ function node_to_struct_declaration(node: Parser_node.Node, key_to_production_ru
 
         member_names.push(member_name);
         member_types.push(member_type[0]);
-        member_default_values.push({ name: "", expression: member_default_value_expression });
+        member_default_values.push({ expression: member_default_value_expression });
     }
 
     return {
@@ -2031,7 +2031,6 @@ function node_to_statement(node: Parser_node.Node, key_to_production_rule_indice
     const expression = node_to_expression(child, key_to_production_rule_indices);
 
     return {
-        name: "",
         expression: expression
     };
 }
@@ -2614,7 +2613,7 @@ function node_to_expression_for_loop(node: Parser_node.Node, key_to_production_r
     const for_loop_expression: Core_intermediate_representation.For_loop_expression = {
         variable_name: variable_node,
         range_begin: range_begin_expression,
-        range_end: { name: "", expression: range_end_expression },
+        range_end: { expression: range_end_expression },
         range_comparison_operation: is_reverse ? Core_intermediate_representation.Binary_operation.Greater_than : Core_intermediate_representation.Binary_operation.Less_than,
         step_by: step_by_expression,
         then_statements: statements,
@@ -2636,7 +2635,7 @@ function node_to_expression_if(node: Parser_node.Node, key_to_production_rule_in
         const statements = statements_node.children.map(node => node_to_statement(node, key_to_production_rule_indices));
 
         series.push({
-            condition: condition_expression !== undefined ? { name: "", expression: condition_expression } : undefined,
+            condition: condition_expression !== undefined ? { expression: condition_expression } : undefined,
             then_statements: statements
         });
 
@@ -2673,7 +2672,7 @@ function node_to_expression_instantiate(node: Parser_node.Node, key_to_productio
 
             return {
                 member_name: member_name,
-                value: { name: "", expression: expression }
+                value: { expression: expression }
             };
         }
     );
@@ -2761,8 +2760,8 @@ function node_to_expression_ternary_condition(node: Parser_node.Node, key_to_pro
 
     const ternary_condition_expression: Core_intermediate_representation.Ternary_condition_expression = {
         condition: condition_expression,
-        then_statement: { name: "", expression: then_expression },
-        else_statement: { name: "", expression: else_expression }
+        then_statement: { expression: then_expression },
+        else_statement: { expression: else_expression }
     };
 
     return ternary_condition_expression;
@@ -2883,7 +2882,7 @@ function node_to_expression_variable_declaration_with_type(node: Parser_node.Nod
         name: name,
         is_mutable: is_mutable,
         type: type[0],
-        right_hand_side: { name: "", expression: right_hand_side },
+        right_hand_side: { expression: right_hand_side },
     };
     return variable_declaration_expression;
 }
@@ -2898,7 +2897,7 @@ function node_to_expression_while_loop(node: Parser_node.Node, key_to_production
     const then_statements = then_statements_node.children.map(node => node_to_statement(node, key_to_production_rule_indices));
 
     const while_loop_expression: Core_intermediate_representation.While_loop_expression = {
-        condition: { name: "", expression: condition_expression },
+        condition: { expression: condition_expression },
         then_statements: then_statements
     };
     return while_loop_expression;

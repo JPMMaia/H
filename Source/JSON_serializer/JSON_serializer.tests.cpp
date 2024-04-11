@@ -273,7 +273,6 @@ namespace h
                     "elements": [
                         {
                             "condition": {
-                                "name": "",
                                 "expressions": {
                                     "size": 1,
                                     "elements": [
@@ -292,7 +291,6 @@ namespace h
                                 "size": 1,
                                 "elements": [
                                     {
-                                        "name": "",
                                         "expressions": {
                                             "size": 2,
                                             "elements": [
@@ -325,7 +323,6 @@ namespace h
                                 "size": 1,
                                 "elements": [
                                     {
-                                        "name": "",
                                         "expressions": {
                                             "size": 2,
                                             "elements": [
@@ -364,7 +361,6 @@ namespace h
             {
                 .condition = Statement
                 {
-                    .name = "",
                     .expressions = std::pmr::vector<Expression>
                     {
                         {
@@ -378,7 +374,6 @@ namespace h
                 .then_statements = {
                     Statement
                     {
-                        .name = "",
                         .expressions = std::pmr::vector<Expression>
                         {
                             {
@@ -405,7 +400,6 @@ namespace h
                 .then_statements = {
                     Statement
                     {
-                        .name = "",
                         .expressions = std::pmr::vector<Expression>
                         {
                             {
@@ -451,7 +445,6 @@ namespace h
             {
                 .condition = Statement
                 {
-                    .name = "",
                     .expressions = std::pmr::vector<Expression>
                     {
                         {
@@ -466,7 +459,6 @@ namespace h
                 .then_statements = {
                     Statement
                     {
-                        .name = "",
                         .expressions = std::pmr::vector<Expression>
                         {
                             {
@@ -494,7 +486,6 @@ namespace h
                 .then_statements = {
                     Statement
                     {
-                        .name = "",
                         .expressions = std::pmr::vector<Expression>
                         {
                             {
@@ -523,7 +514,7 @@ namespace h
             .series = std::move(input_series)
         };
 
-        std::string const expected = "{\"series\":{\"size\":2,\"elements\":[{\"condition\":{\"name\":\"\",\"expressions\":{\"size\":1,\"elements\":[{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"some_boolean\",\"access_type\":\"Read\"}}}]}},\"then_statements\":{\"size\":1,\"elements\":[{\"name\":\"\",\"expressions\":{\"size\":2,\"elements\":[{\"data\":{\"type\":\"Return_expression\",\"value\":{\"expression\":{\"expression_index\":1}}}},{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"value\",\"access_type\":\"Read\"}}}]}}]}},{\"then_statements\":{\"size\":1,\"elements\":[{\"name\":\"\",\"expressions\":{\"size\":2,\"elements\":[{\"data\":{\"type\":\"Return_expression\",\"value\":{\"expression\":{\"expression_index\":3}}}},{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"value\",\"access_type\":\"Read\"}}}]}}]}}]}}";
+        std::string const expected = "{\"series\":{\"size\":2,\"elements\":[{\"condition\":{\"expressions\":{\"size\":1,\"elements\":[{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"some_boolean\",\"access_type\":\"Read\"}}}]}},\"then_statements\":{\"size\":1,\"elements\":[{\"expressions\":{\"size\":2,\"elements\":[{\"data\":{\"type\":\"Return_expression\",\"value\":{\"expression\":{\"expression_index\":1}}}},{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"value\",\"access_type\":\"Read\"}}}]}}]}},{\"then_statements\":{\"size\":1,\"elements\":[{\"expressions\":{\"size\":2,\"elements\":[{\"data\":{\"type\":\"Return_expression\",\"value\":{\"expression\":{\"expression_index\":3}}}},{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"value\",\"access_type\":\"Read\"}}}]}}]}}]}}";
 
         rapidjson::StringBuffer output_stream;
         rapidjson::Writer<rapidjson::StringBuffer> writer{ output_stream };
@@ -798,7 +789,6 @@ namespace h
         {
             {
                 Statement{
-                    .name = "var_0",
                     .expressions = std::move(expressions)
                 }
             }
@@ -822,7 +812,6 @@ namespace h
                 "size": 1,
                 "elements": [
                     {
-                        "name": "var_0",
                         "expressions": {
                             "size": 4,
                             "elements": 
@@ -1025,7 +1014,6 @@ namespace h
                                 "size": 1,
                                 "elements": [
                                     {
-                                        "name": "var_0",
                                         "expressions": {
                                             "size": 4,
                                             "elements": 

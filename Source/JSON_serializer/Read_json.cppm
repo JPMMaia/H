@@ -884,17 +884,6 @@ namespace h::json
     {
         h::Statement* parent = static_cast<h::Statement*>(state->pointer);
 
-        if (key == "name")
-        {
-
-            return Stack_state
-            {
-                .pointer = &parent->name,
-                .type = "std::pmr::string",
-                .get_next_state = nullptr,
-            };
-        }
-
         if (key == "expressions")
         {
             auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
