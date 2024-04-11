@@ -8,6 +8,8 @@ target_sources(H_core PRIVATE
     "Core.cppm"
     "Declarations.cppm"
     "Declarations.cpp"
+    "Expressions.cppm"
+    "Expressions.cpp"
     "Types.cppm"
     "Types.cpp"
 )
