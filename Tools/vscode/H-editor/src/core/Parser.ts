@@ -535,7 +535,7 @@ export interface Words_change {
 
 function create_bottom_of_stack_node(): Node {
     return {
-        word: { value: "$", type: Grammar.Word_type.Symbol },
+        word: { value: "$", type: Grammar.Word_type.Symbol, comments: [] },
         state: 0,
         production_rule_index: undefined,
         children: []
@@ -558,7 +558,7 @@ function get_next_word(
         return node.word;
     }
 
-    return { value: "$", type: Grammar.Word_type.Symbol };
+    return { value: "$", type: Grammar.Word_type.Symbol, comments: [] };
 }
 
 function get_end_of_tree(root: Node): { position: number[], node: Node } | undefined {
@@ -816,7 +816,7 @@ export function parse_incrementally(
                     children.reverse();
 
                     const new_node: Node = {
-                        word: { value: accept_action.lhs, type: Grammar.Word_type.Symbol },
+                        word: { value: accept_action.lhs, type: Grammar.Word_type.Symbol, comments: [] },
                         state: -1,
                         production_rule_index: 0,
                         children: children.map(element => element.node)
@@ -1048,7 +1048,7 @@ function apply_reduction(
     }
 
     node.children = children.map(element => element.node);
-    node.word = { value: production_lhs, type: Grammar.Word_type.Symbol };
+    node.word = { value: production_lhs, type: Grammar.Word_type.Symbol, comments: [] };
     node.state = go_to_column.next_state;
     node.production_rule_index = production_rule_index;
 
@@ -1147,7 +1147,7 @@ function create_apply_matching_changes(
     top_nodes.reverse();
 
     const mark_parent_clone: Node = {
-        word: { value: mark_parent_node.word.value, type: mark_parent_node.word.type },
+        word: { value: mark_parent_node.word.value, type: mark_parent_node.word.type, comments: [...mark_parent_node.word.comments] },
         state: mark_parent_node.state,
         production_rule_index: mark_parent_node.production_rule_index,
         children: top_nodes.map(value => value.node)
@@ -1669,7 +1669,7 @@ function perform_actions(
                     children.reverse();
 
                     const new_node: Node = {
-                        word: { value: accept_action.lhs, type: Grammar.Word_type.Symbol },
+                        word: { value: accept_action.lhs, type: Grammar.Word_type.Symbol, comments: [] },
                         state: -1,
                         production_rule_index: 0,
                         children: children.map(element => element.node)

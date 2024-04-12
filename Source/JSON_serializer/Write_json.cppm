@@ -872,6 +872,7 @@ namespace h::json
         writer.StartObject();
         writer.Key("expressions");
         write_object(writer, output.expressions);
+        write_optional(writer, "comment", output.comment);
         writer.EndObject();
     }
 

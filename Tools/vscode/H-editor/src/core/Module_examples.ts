@@ -3880,6 +3880,55 @@ export function create_using_unions(): IR.Module {
     };
 }
 
+export function create_comments_inside_functions(): IR.Module {
+    const int32_type = create_integer_type(32, true);
+    return {
+        name: "Comments_inside_functions",
+        imports: [],
+        declarations: [
+            {
+                name: "use_comments",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "use_comments",
+                        type: {
+                            input_parameter_types: [],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: [],
+                        output_parameter_names: [],
+                        linkage: IR.Linkage.External
+                    },
+                    definition: {
+                        name: "use_comments",
+                        statements: [
+                            create_statement(
+                                IR.create_variable_declaration_expression(
+                                    "i",
+                                    false,
+                                    IR.create_constant_expression(int32_type, "0")
+                                ),
+                                "This is a comment"
+                            ),
+                            create_statement(
+                                IR.create_variable_declaration_expression(
+                                    "x",
+                                    false,
+                                    IR.create_constant_expression(int32_type, "0")
+                                ),
+                                "This is another comment\nAnd yet another"
+                            ),
+                        ]
+                    }
+                }
+            }
+        ]
+    };
+}
+
 function create_custom_type_reference(module_name: string, name: string): IR.Type_reference {
     return {
         data: {
@@ -3927,8 +3976,16 @@ function create_pointer_type(element_type: IR.Type_reference[], is_mutable: bool
     };
 }
 
-function create_statement(expression: IR.Expression): IR.Statement {
-    return {
-        expression: expression
-    };
+function create_statement(expression: IR.Expression, comment?: string): IR.Statement {
+    if (comment !== undefined) {
+        return {
+            expression: expression,
+            comment: comment
+        };
+    }
+    else {
+        return {
+            expression: expression
+        };
+    }
 }
