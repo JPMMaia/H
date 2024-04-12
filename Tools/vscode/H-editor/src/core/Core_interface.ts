@@ -162,6 +162,7 @@ export interface Type_reference {
 
 export interface Statement {
     expressions: Vector<Expression>;
+    comment?: string;
 }
 
 export interface Alias_type_declaration {

@@ -225,6 +225,16 @@ export function to_string(root: Node, cache: Parse_tree_text_position_cache.Cach
                     indentation_count -= 1;
                 }
 
+                for (const comment of word.comments) {
+                    const spaces = " ".repeat(indentation_count * indentation_width);
+                    const line = `${spaces}// ${comment}`;
+                    add_word(buffer, line);
+                    add_new_line(buffer);
+                    current_line += 1;
+                    current_column = 0;
+                    current_text_offset += line.length;
+                }
+
                 const added_new_line = buffer[buffer.length - 1] === "\n";
                 const spaces_to_add_before = added_new_line ? indentation_count * indentation_width : should_add_space(word, previous_word);
 

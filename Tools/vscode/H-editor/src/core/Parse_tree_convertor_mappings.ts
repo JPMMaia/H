@@ -177,7 +177,8 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
         order_index_nodes: order_index_nodes,
         choose_production_rule: choose_production_rule,
         create_module_changes_map: create_module_changes_map,
-        node_to_core_object_map: node_to_core_object_map
+        node_to_core_object_map: node_to_core_object_map,
+        extract_comments_from_stack: extract_comments_from_stack
     };
 }
 
@@ -188,7 +189,7 @@ function map_identifier_with_dots_to_word(
     key_to_production_rule_indices: Map<string, number[]>,
     terminal: string,
     mappings: Parse_tree_convertor.Parse_tree_mappings
-): Scanner.Scanned_word {
+): Grammar.Word {
     const index = stack[stack.length - 1].current_child_index;
     if (index % 2 !== 0) {
         return { value: ".", type: Grammar.Word_type.Symbol };
@@ -219,7 +220,7 @@ function map_type_name_to_word(
     key_to_production_rule_indices: Map<string, number[]>,
     terminal: string,
     mappings: Parse_tree_convertor.Parse_tree_mappings
-): Scanner.Scanned_word {
+): Grammar.Word {
     const top = stack[stack.length - 1];
     const type_reference_array = top.state.value as Core_intermediate_representation.Type_reference[];
     const value = Type_utilities.get_type_name(type_reference_array);
@@ -233,7 +234,7 @@ function map_module_type_module_name_to_word(
     key_to_production_rule_indices: Map<string, number[]>,
     terminal: string,
     mappings: Parse_tree_convertor.Parse_tree_mappings
-): Scanner.Scanned_word {
+): Grammar.Word {
     const top = stack[stack.length - 1];
     const type_reference_array = top.state.value as Core_intermediate_representation.Type_reference[];
     const custom_type_reference = type_reference_array[0].data.value as Core_intermediate_representation.Custom_type_reference;
@@ -247,7 +248,7 @@ function map_module_type_type_name_to_word(
     key_to_production_rule_indices: Map<string, number[]>,
     terminal: string,
     mappings: Parse_tree_convertor.Parse_tree_mappings
-): Scanner.Scanned_word {
+): Grammar.Word {
     const top = stack[stack.length - 1];
     const type_reference_array = top.state.value as Core_intermediate_representation.Type_reference[];
     const custom_type_reference = type_reference_array[0].data.value as Core_intermediate_representation.Custom_type_reference;
@@ -261,7 +262,7 @@ function map_expression_access_member_name_to_word(
     key_to_production_rule_indices: Map<string, number[]>,
     terminal: string,
     mappings: Parse_tree_convertor.Parse_tree_mappings
-): Scanner.Scanned_word {
+): Grammar.Word {
     const top = stack[stack.length - 1];
     const expression = top.state.value as Core_intermediate_representation.Expression;
     const access_expression = expression.data.value as Core_intermediate_representation.Access_expression;
@@ -275,7 +276,7 @@ function map_expression_break_loop_count_to_word(
     key_to_production_rule_indices: Map<string, number[]>,
     terminal: string,
     mappings: Parse_tree_convertor.Parse_tree_mappings
-): Scanner.Scanned_word {
+): Grammar.Word {
     const top = stack[stack.length - 1];
     const expression = top.state.value as Core_intermediate_representation.Expression;
     const break_expression = expression.data.value as Core_intermediate_representation.Break_expression;
@@ -289,7 +290,7 @@ function map_expression_constant_to_word(
     key_to_production_rule_indices: Map<string, number[]>,
     terminal: string,
     mappings: Parse_tree_convertor.Parse_tree_mappings
-): Scanner.Scanned_word {
+): Grammar.Word {
     const top = stack[stack.length - 1];
     const expression = top.state.value as Core_intermediate_representation.Expression;
     const constant_expression = expression.data.value as Core_intermediate_representation.Constant_expression;
@@ -353,7 +354,7 @@ function map_expression_instantiate_member_name_to_word(
     key_to_production_rule_indices: Map<string, number[]>,
     terminal: string,
     mappings: Parse_tree_convertor.Parse_tree_mappings
-): Scanner.Scanned_word {
+): Grammar.Word {
     const top = stack[stack.length - 1];
     const expression = top.state.value as Core_intermediate_representation.Expression;
     const instantiate_expression = expression.data.value as Core_intermediate_representation.Instantiate_expression;
@@ -372,7 +373,7 @@ function map_for_loop_variable_to_word(
     key_to_production_rule_indices: Map<string, number[]>,
     terminal: string,
     mappings: Parse_tree_convertor.Parse_tree_mappings
-): Scanner.Scanned_word {
+): Grammar.Word {
     const top = stack[stack.length - 1];
     const expression = top.state.value as Core_intermediate_representation.Expression;
     const for_loop_expression = expression.data.value as Core_intermediate_representation.For_loop_expression;
@@ -386,7 +387,7 @@ function map_variable_name_to_word(
     key_to_production_rule_indices: Map<string, number[]>,
     terminal: string,
     mappings: Parse_tree_convertor.Parse_tree_mappings
-): Scanner.Scanned_word {
+): Grammar.Word {
     const top = stack[stack.length - 1];
     const expression = top.state.value as Core_intermediate_representation.Expression;
     const variable_expression = expression.data.value as Core_intermediate_representation.Variable_expression;
@@ -661,6 +662,53 @@ function choose_production_rule_enum_value(
     };
 }
 
+function get_statement_from_stack(
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    top_element_index: number,
+    production_rules: Grammar.Production_rule[]
+): Core_intermediate_representation.Statement {
+
+    const top = stack[top_element_index];
+
+    const current_child_index = top_element_index === stack.length - 1 ? top.current_child_index : top.current_child_index - 1;
+
+    if (top.node.word.value === "Expression_for_loop_statements") {
+        const for_loop_expression = top.state.value.data.value as Core_intermediate_representation.For_loop_expression;
+        const statement_index = current_child_index;
+        const statement = for_loop_expression.then_statements[statement_index];
+        return statement;
+    }
+    else if (top.node.word.value === "Expression_if_statements") {
+        const if_expression = top.state.value.data.value as Core_intermediate_representation.If_expression;
+        const serie_index = Parse_tree_convertor.get_if_serie_index(stack);
+        const serie = if_expression.series[serie_index];
+        const statement_index = current_child_index;
+        const statement = serie.then_statements[statement_index];
+        return statement;
+    }
+    else if (top.node.word.value === "Expression_switch_case_statements") {
+        const switch_case = top.state.value as Core_intermediate_representation.Switch_case_expression_pair;
+        const statements = switch_case.statements;
+        const statement_index = current_child_index;
+        const statement = statements[statement_index];
+        return statement;
+    }
+    else if (top.node.word.value === "Expression_while_loop_statements") {
+        const while_loop_expression = top.state.value.data.value as Core_intermediate_representation.While_loop_expression;
+        const statement_index = current_child_index;
+        const statement = while_loop_expression.then_statements[statement_index];
+        return statement;
+    }
+
+    const statements_array = top.node.word.value === "Expression_block_statements" ?
+        (top.state.value.data.value as Core_intermediate_representation.Block_expression).statements :
+        top.state.value as Core_intermediate_representation.Statement[];
+
+    const statement_index = Parse_tree_convertor.calculate_array_index(production_rules[top.production_rule_index], current_child_index);
+    const statement = statements_array[statement_index];
+    return statement;
+}
+
 function choose_production_rule_statement(
     module: Core_intermediate_representation.Module,
     production_rules: Grammar.Production_rule[],
@@ -671,48 +719,7 @@ function choose_production_rule_statement(
     key_to_production_rule_indices: Map<string, number[]>
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
 
-    const top = stack[stack.length - 1];
-
-    const get_statement = (): Core_intermediate_representation.Statement => {
-
-        if (top.node.word.value === "Expression_for_loop_statements") {
-            const for_loop_expression = top.state.value.data.value as Core_intermediate_representation.For_loop_expression;
-            const statement_index = top.current_child_index;
-            const statement = for_loop_expression.then_statements[statement_index];
-            return statement;
-        }
-        else if (top.node.word.value === "Expression_if_statements") {
-            const if_expression = top.state.value.data.value as Core_intermediate_representation.If_expression;
-            const serie_index = Parse_tree_convertor.get_if_serie_index(stack);
-            const serie = if_expression.series[serie_index];
-            const statement_index = top.current_child_index;
-            const statement = serie.then_statements[statement_index];
-            return statement;
-        }
-        else if (top.node.word.value === "Expression_switch_case_statements") {
-            const switch_case = top.state.value as Core_intermediate_representation.Switch_case_expression_pair;
-            const statements = switch_case.statements;
-            const statement_index = top.current_child_index;
-            const statement = statements[statement_index];
-            return statement;
-        }
-        else if (top.node.word.value === "Expression_while_loop_statements") {
-            const while_loop_expression = top.state.value.data.value as Core_intermediate_representation.While_loop_expression;
-            const statement_index = top.current_child_index;
-            const statement = while_loop_expression.then_statements[statement_index];
-            return statement;
-        }
-
-        const statements_array = top.node.word.value === "Expression_block_statements" ?
-            (top.state.value.data.value as Core_intermediate_representation.Block_expression).statements :
-            top.state.value as Core_intermediate_representation.Statement[];
-
-        const statement_index = Parse_tree_convertor.calculate_array_index(production_rules[top.production_rule_index], top.current_child_index);
-        const statement = statements_array[statement_index];
-        return statement;
-    };
-
-    const statement = get_statement();
+    const statement = get_statement_from_stack(stack, stack.length - 1, production_rules);
 
     const first_expression = statement.expression;
     const rhs_label = map_expression_type_to_production_rule_label(first_expression);
@@ -2030,9 +2037,18 @@ function node_to_statement(node: Parser_node.Node, key_to_production_rule_indice
     const child = node.children[0];
     const expression = node_to_expression(child, key_to_production_rule_indices);
 
-    return {
-        expression: expression
-    };
+    const comments = extract_comments_from_node(node);
+    if (comments !== undefined) {
+        return {
+            expression: expression,
+            comment: comments
+        };
+    }
+    else {
+        return {
+            expression: expression
+        };
+    }
 }
 
 function node_to_expression(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Expression {
@@ -3041,4 +3057,42 @@ function find_descendant_if(node: Parser_node.Node, predicate: (node: Parser_nod
     }
 
     return undefined;
+}
+
+function extract_comments_from_node(node: Parser_node.Node): string | undefined {
+
+    for (const child of node.children) {
+        if (child.word.comments.length > 0) {
+            return child.word.comments.join("\n");
+        }
+
+        return extract_comments_from_node(child);
+    }
+
+    return undefined;
+}
+
+function extract_comments_from_stack(
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    production_rules: Grammar.Production_rule[]
+): string[] {
+    const comments: string[] = [];
+
+    for (let stack_index = 0; stack_index < stack.length; ++stack_index) {
+        const element_index = stack.length - stack_index - 1;
+        const element = stack[element_index];
+        if (element.node.word.value === "Statement") {
+            const first_terminal_node = Parser_node.find_descendant_position_if(element.node, node => Parser_node.is_terminal_node(node));
+            const is_first_terminal_to_be_created = first_terminal_node === undefined;
+            if (is_first_terminal_to_be_created) {
+                const statement = get_statement_from_stack(stack, element_index - 1, production_rules);
+                if (statement.comment !== undefined) {
+                    comments.push(...statement.comment.split("\n"));
+                }
+            }
+            break;
+        }
+    }
+
+    return comments;
 }

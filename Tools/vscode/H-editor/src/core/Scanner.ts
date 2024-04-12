@@ -1,8 +1,12 @@
 import { onThrowError } from "../utilities/errors";
 import * as Grammar from "./Grammar";
 
+export function is_new_line(character: string): boolean {
+    return character === "\n";
+}
+
 export function is_whitespace_or_new_line(character: string): boolean {
-    return character === " " || character === "\n" || character === "\r" || character === "\t";
+    return character === " " || is_new_line(character) || character === "\r" || character === "\t";
 }
 
 export function ignore_whitespace_or_new_lines(code: string, current_offset: number): number {
@@ -15,6 +19,10 @@ export function ignore_whitespace_or_new_lines(code: string, current_offset: num
     }
 
     return code.length - current_offset;
+}
+
+function is_comment(code: string, offset: number): boolean {
+    return ((offset + 1) < code.length) && code[offset] === "/" && code[offset + 1] === "/";
 }
 
 function is_number(character: string): boolean {
@@ -98,6 +106,36 @@ function get_suffix_size(code: string, start_offset: number): number {
     }
 
     return current_offset - start_offset;
+}
+
+function scan_comment(code: string, start_offset: number): { word: string, processed_characters: number } {
+
+    let ignored_characters = 0;
+
+    // Skip '//' and one space if it exist
+    ignored_characters += 2;
+    if (start_offset + 2 < code.length && code[start_offset + 2] === " ") {
+        ignored_characters += 1;
+    }
+
+    let current_offset = start_offset + ignored_characters;
+
+    while (current_offset < code.length) {
+
+        const character = code[current_offset];
+
+        if (is_new_line(character)) {
+            break;
+        }
+
+        current_offset += 1;
+    }
+
+    return {
+        word: code.substring(start_offset + ignored_characters, current_offset),
+        processed_characters: current_offset - start_offset
+    };
+
 }
 
 function scan_number(code: string, start_offset: number): { word: string, type: Grammar.Word_type, processed_characters: number } {
@@ -236,10 +274,36 @@ function scan_string(code: string, start_offset: number): { word: string, proces
     };
 }
 
-function scan_word(code: string, current_offset: number): { word: string, type: Grammar.Word_type, processed_characters: number } {
+function scan_comments(code: string, start_offset: number): { comments: string[], processed_characters: number } {
+    const comments: string[] = [];
+
+    let current_offset = start_offset;
+
+    while (is_comment(code, current_offset)) {
+        const scan_result = scan_comment(code, current_offset);
+
+        comments.push(scan_result.word);
+        current_offset += scan_result.processed_characters;
+
+        const ignored_characters = ignore_whitespace_or_new_lines(code, current_offset);
+        current_offset += ignored_characters;
+    }
+
+    return {
+        comments: comments,
+        processed_characters: current_offset - start_offset
+    };
+}
+
+function scan_word(code: string, start_offset: number): { word: string, type: Grammar.Word_type, comments: string[], processed_characters: number } {
+
+    let current_offset = start_offset;
 
     const ignored_characters = ignore_whitespace_or_new_lines(code, current_offset);
     current_offset += ignored_characters;
+
+    const scan_comments_result = scan_comments(code, current_offset);
+    current_offset += scan_comments_result.processed_characters;
 
     const first_character = code[current_offset];
 
@@ -249,7 +313,8 @@ function scan_word(code: string, current_offset: number): { word: string, type: 
         return {
             word: scan_result.word,
             type: scan_result.type,
-            processed_characters: ignored_characters + scan_result.processed_characters
+            comments: scan_comments_result.comments,
+            processed_characters: (current_offset - start_offset) + scan_result.processed_characters
         };
     }
     // If it starts by a letter, it can be alphanumeric
@@ -258,7 +323,8 @@ function scan_word(code: string, current_offset: number): { word: string, type: 
         return {
             word: scan_result.word,
             type: Grammar.Word_type.Alphanumeric,
-            processed_characters: ignored_characters + scan_result.processed_characters
+            comments: scan_comments_result.comments,
+            processed_characters: (current_offset - start_offset) + scan_result.processed_characters
         };
     }
     // If it starts by a quote, then it can have anything and then end as a quote
@@ -267,7 +333,8 @@ function scan_word(code: string, current_offset: number): { word: string, type: 
         return {
             word: scan_result.word,
             type: Grammar.Word_type.String,
-            processed_characters: ignored_characters + scan_result.processed_characters
+            comments: scan_comments_result.comments,
+            processed_characters: (current_offset - start_offset) + scan_result.processed_characters
         };
     }
     // If it starts by parenthesis, then it only read one character at a time
@@ -276,7 +343,8 @@ function scan_word(code: string, current_offset: number): { word: string, type: 
         return {
             word: scan_result.word,
             type: Grammar.Word_type.Symbol,
-            processed_characters: ignored_characters + scan_result.processed_characters
+            comments: scan_comments_result.comments,
+            processed_characters: (current_offset - start_offset) + scan_result.processed_characters
         };
     }
     // If it is a colon, don't join with other symbols:
@@ -285,7 +353,8 @@ function scan_word(code: string, current_offset: number): { word: string, type: 
         return {
             word: scan_result.word,
             type: Grammar.Word_type.Symbol,
-            processed_characters: ignored_characters + scan_result.processed_characters
+            comments: scan_comments_result.comments,
+            processed_characters: (current_offset - start_offset) + scan_result.processed_characters
         };
     }
     // If it is an asterisc, don't join with another asterisc:
@@ -294,7 +363,8 @@ function scan_word(code: string, current_offset: number): { word: string, type: 
         return {
             word: scan_result.word,
             type: Grammar.Word_type.Symbol,
-            processed_characters: ignored_characters + scan_result.processed_characters
+            comments: scan_comments_result.comments,
+            processed_characters: (current_offset - start_offset) + scan_result.processed_characters
         };
     }
     // If it starts by a symbol, then it can be only symbols
@@ -303,7 +373,8 @@ function scan_word(code: string, current_offset: number): { word: string, type: 
         return {
             word: scan_result.word,
             type: Grammar.Word_type.Symbol,
-            processed_characters: ignored_characters + scan_result.processed_characters
+            comments: scan_comments_result.comments,
+            processed_characters: (current_offset - start_offset) + scan_result.processed_characters
         };
     }
     // Unrecognized token
@@ -311,7 +382,8 @@ function scan_word(code: string, current_offset: number): { word: string, type: 
         return {
             word: code.substring(current_offset, current_offset + 1),
             type: Grammar.Word_type.Invalid,
-            processed_characters: ignored_characters + 1
+            comments: scan_comments_result.comments,
+            processed_characters: (current_offset - start_offset) + 1
         };
     }
 }
@@ -343,6 +415,7 @@ export function get_word_type(value: string): Grammar.Word_type {
 export interface Scanned_word {
     value: string;
     type: Grammar.Word_type;
+    comments: string[];
 }
 
 export function scan(code: string, start_offset: number, end_offset: number): Scanned_word[] {
@@ -355,7 +428,7 @@ export function scan(code: string, start_offset: number, end_offset: number): Sc
         const word_scan_result = scan_word(code, current_offset);
 
         if (word_scan_result.word.length > 0) {
-            scanned_words.push({ value: word_scan_result.word, type: word_scan_result.type });
+            scanned_words.push({ value: word_scan_result.word, type: word_scan_result.type, comments: word_scan_result.comments });
         }
 
         current_offset += word_scan_result.processed_characters;

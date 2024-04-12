@@ -225,6 +225,12 @@
                         "name": "std::pmr::vector<Expression>"
                     },
                     "name": "expressions"
+                },
+                {
+                    "type": {
+                        "name": "std::optional<std::pmr::string>"
+                    },
+                    "name": "comment"
                 }
             ]
         },

@@ -2357,4 +2357,12 @@ describe("Parse_tree_convertor.parse_tree_to_module", () => {
 
         assert.deepEqual(actual_module.declarations, expected_module.declarations);
     });
+
+    it("Handles comments", () => {
+        const grammar_description = Grammar_examples.create_test_grammar_9_description();
+        const expected_module = Module_examples.create_comments_inside_functions();
+        const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
+
+        assert.deepEqual(actual_module.declarations, expected_module.declarations);
+    });
 });

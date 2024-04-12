@@ -46,6 +46,11 @@ export type Node_to_core_object_handler = (
     key_to_production_rule_indices: Map<string, number[]>
 ) => any;
 
+export type Extract_elements_from_stack_handler = (
+    stack: Module_to_parse_tree_stack_element[],
+    production_rules: Grammar.Production_rule[]
+) => string[];
+
 export interface Parse_tree_mappings {
     value_map: Map<string, string[]>;
     value_transforms: Map<string, (value: any) => string>;
@@ -55,6 +60,7 @@ export interface Parse_tree_mappings {
     choose_production_rule: Map<string, Choose_production_rule_handler>;
     create_module_changes_map: Map<string, Create_module_changes_handler>;
     node_to_core_object_map: Map<string, Node_to_core_object_handler>;
+    extract_comments_from_stack: Extract_elements_from_stack_handler;
 }
 
 function find_parent_state_index(
@@ -202,7 +208,7 @@ export function module_to_parse_tree(
                 value: module
             },
             node: {
-                word: { value: production_rules[0].lhs, type: Grammar.Word_type.Symbol },
+                word: { value: production_rules[0].lhs, type: Grammar.Word_type.Symbol, comments: [] },
                 state: -1,
                 production_rule_index: 0,
                 children: []
@@ -276,7 +282,7 @@ export function module_to_parse_tree(
                 production_rule_index: next_production_rule_index,
                 state: next_state,
                 node: {
-                    word: { value: next_production_rule.lhs, type: Grammar.Word_type.Symbol },
+                    word: { value: next_production_rule.lhs, type: Grammar.Word_type.Symbol, comments: [] },
                     state: -1,
                     production_rule_index: next_production_rule_index,
                     children: []
@@ -478,20 +484,27 @@ export function map_terminal_to_word(
 
     const label = stack[stack.length - 1].node.word.value;
 
+    const comments = mappings.extract_comments_from_stack(stack, production_rules);
+
     {
         const map = mappings.terminal_to_word_map.get(label);
         if (map !== undefined) {
-            return map(module, stack, production_rules, key_to_production_rule_indices, terminal, mappings);
+            const word = map(module, stack, production_rules, key_to_production_rule_indices, terminal, mappings);
+            return {
+                value: word.value,
+                type: word.type,
+                comments: comments
+            };
         }
     }
 
     if (terminal !== "identifier" && terminal !== "number") {
-        return { value: terminal, type: Scanner.get_word_type(terminal) };
+        return { value: terminal, type: Scanner.get_word_type(terminal), comments: comments };
     }
 
     const position_with_placeholders = mappings.value_map.get(label);
     if (position_with_placeholders === undefined) {
-        return { value: terminal, type: Scanner.get_word_type(terminal) };
+        return { value: terminal, type: Scanner.get_word_type(terminal), comments: comments };
     }
 
     const position = replace_placeholders_by_values(module, position_with_placeholders, production_rules, stack, mappings);
@@ -505,7 +518,10 @@ export function map_terminal_to_word(
 
     const transform = mappings.value_transforms.get(label);
     const transformed_value = transform !== undefined ? transform(object_reference.value) : object_reference.value.toString();
-    return { value: transformed_value, type: Scanner.get_word_type(transformed_value) };
+
+    return {
+        value: transformed_value, type: Scanner.get_word_type(transformed_value), comments: comments
+    };
 }
 
 function get_change_parent_position(change: Parser.Change): any[] {
