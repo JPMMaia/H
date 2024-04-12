@@ -1922,13 +1922,107 @@ function return_union() -> (my_union: My_union)
         assert.deepEqual(new_document_state.module, expected_module);
     });
 
-    it("Handles comments inside functions", () => {
+    it("Handles comments in the module declaration", () => {
 
         const document_state = Document.create_empty_state(language_description.production_rules);
 
         const program = `
-module Comments_inside_functions;
+// This is a very long
+// module decription
+module Comments_in_module_declaration;
+`;
 
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_comments_in_module_declaration();
+        assert.deepEqual(new_document_state.module, expected_module);
+    });
+
+    it("Handles comments in alias", () => {
+
+        const document_state = Document.create_empty_state(language_description.production_rules);
+
+        const program = `
+module Comments_in_alias;
+
+// Alias comment
+// Another line
+using My_int = Int32;
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_comments_in_alias();
+        assert.deepEqual(new_document_state.module, expected_module);
+    });
+
+    it("Handles comments in enums", () => {
+
+        const document_state = Document.create_empty_state(language_description.production_rules);
+
+        const program = `
+module Comments_in_enums;
+
+// Enum comment
+// Another line
+enum My_enum
+{
+    // This is A
+    A = 1,
+    B = 2,
+    // This is C
+    C = 3,
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_comments_in_enums();
+        assert.deepEqual(new_document_state.module, expected_module);
+    });
+
+    it("Handles comments in functions", () => {
+
+        const document_state = Document.create_empty_state(language_description.production_rules);
+
+        const program = `
+module Comments_in_functions;
+
+// Function comment
+// No arguments
 export function use_comments() -> ()
 {
     // This is a comment
@@ -1953,7 +2047,81 @@ export function use_comments() -> ()
         const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
-        const expected_module = Module_examples.create_comments_inside_functions();
+        const expected_module = Module_examples.create_comments_in_functions();
+        assert.deepEqual(new_document_state.module, expected_module);
+    });
+
+    it("Handles comments in structs", () => {
+
+        const document_state = Document.create_empty_state(language_description.production_rules);
+
+        const program = `
+module Comments_in_structs;
+
+// Struct comment
+// Another line
+struct My_struct
+{
+    // This is a int
+    a: Int32 = 0;
+    b: Int32 = 0;
+    // Another int
+    // Another line
+    c: Int32 = 0;
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_comments_in_structs();
+        assert.deepEqual(new_document_state.module, expected_module);
+    });
+
+    it("Handles comments in unions", () => {
+
+        const document_state = Document.create_empty_state(language_description.production_rules);
+
+        const program = `
+module Comments_in_unions;
+
+// Union comment
+// Another line
+union My_union
+{
+    // This is a int
+    a: Int32;
+    b: Int32;
+    // Another int
+    // Another line
+    c: Int32;
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_comments_in_unions();
         assert.deepEqual(new_document_state.module, expected_module);
     });
 });

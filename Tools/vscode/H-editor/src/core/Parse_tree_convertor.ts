@@ -794,6 +794,11 @@ export function parse_tree_to_module(
 
     update_import_module_usages(module);
 
+    const comments = extract_comments_from_node(root.children[0].children[0]);
+    if (comments !== undefined) {
+        module.comment = comments;
+    }
+
     return module;
 }
 
@@ -858,6 +863,22 @@ function node_to_core_object(
 ): any {
     const map = mappings.node_to_core_object_map.get(node.word.value) as Node_to_core_object_handler;
     return map(node, key_to_production_rule_indices);
+}
+
+export function extract_comments_from_node(node: Parser_node.Node): string | undefined {
+
+    for (const child of node.children) {
+        if (child.word.comments.length > 0) {
+            return child.word.comments.join("\n");
+        }
+
+        const comments = extract_comments_from_node(child);
+        if (comments !== undefined) {
+            return comments;
+        }
+    }
+
+    return undefined;
 }
 
 function visit_expressions(expression: Core_intermediate_representation.Expression, predicate: (expression: Core_intermediate_representation.Expression) => void) {

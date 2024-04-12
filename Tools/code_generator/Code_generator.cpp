@@ -2422,6 +2422,7 @@ export interface Module {
     name: string;
     imports: Import_module_with_alias[];
     declarations: Declaration[];
+    comment?: string;
 }
 
 export function create_intermediate_representation(core_module: Core.Module): Module {
@@ -2432,7 +2433,8 @@ export function create_intermediate_representation(core_module: Core.Module): Mo
     return {
         name: core_module.name,
         imports: imports,
-        declarations: declarations
+        declarations: declarations,
+        comment: core_module.comment
     };
 }
 
@@ -2542,7 +2544,8 @@ export function create_core_module(module: Module, language_version: Core.Langua
                 size: function_definitions.length,
                 elements: function_definitions
             }
-        }
+        },
+        comment: module.comment
     };
 }
 

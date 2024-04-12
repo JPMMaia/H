@@ -160,6 +160,11 @@ export interface Type_reference {
     data: Variant<Type_reference_enum, Builtin_type_reference | Constant_array_type | Custom_type_reference | Fundamental_type | Function_type | Integer_type | Pointer_type>;
 }
 
+export interface Indexed_comment {
+    index: number;
+    comment: string;
+}
+
 export interface Statement {
     expressions: Vector<Expression>;
     comment?: string;
@@ -169,17 +174,20 @@ export interface Alias_type_declaration {
     name: string;
     unique_name?: string;
     type: Vector<Type_reference>;
+    comment?: string;
 }
 
 export interface Enum_value {
     name: string;
     value?: Statement;
+    comment?: string;
 }
 
 export interface Enum_declaration {
     name: string;
     unique_name?: string;
     values: Vector<Enum_value>;
+    comment?: string;
 }
 
 export interface Struct_declaration {
@@ -190,6 +198,8 @@ export interface Struct_declaration {
     member_default_values: Vector<Statement>;
     is_packed: boolean;
     is_literal: boolean;
+    comment?: string;
+    member_comments: Vector<Indexed_comment>;
 }
 
 export interface Union_declaration {
@@ -197,6 +207,8 @@ export interface Union_declaration {
     unique_name?: string;
     member_types: Vector<Type_reference>;
     member_names: Vector<string>;
+    comment?: string;
+    member_comments: Vector<Indexed_comment>;
 }
 
 export interface Variable_expression {
@@ -351,6 +363,7 @@ export interface Function_declaration {
     input_parameter_names: Vector<string>;
     output_parameter_names: Vector<string>;
     linkage: Linkage;
+    comment?: string;
 }
 
 export interface Function_definition {
@@ -393,5 +406,6 @@ export interface Module {
     export_declarations: Module_declarations;
     internal_declarations: Module_declarations;
     definitions: Module_definitions;
+    comment?: string;
 }
 
