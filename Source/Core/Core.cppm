@@ -113,6 +113,14 @@ namespace h
         friend auto operator<=>(Type_reference const&, Type_reference const&) = default;
     };
 
+    export struct Indexed_comment
+    {
+        std::uint64_t index;
+        std::pmr::string comment;
+
+        friend auto operator<=>(Indexed_comment const&, Indexed_comment const&) = default;
+    };
+
     struct Expression;
 
     export struct Statement
@@ -128,6 +136,7 @@ namespace h
         std::pmr::string name;
         std::optional<std::pmr::string> unique_name;
         std::pmr::vector<Type_reference> type;
+        std::optional<std::pmr::string> comment;
 
         friend auto operator<=>(Alias_type_declaration const& lhs, Alias_type_declaration const& rhs) = default;
     };
@@ -136,6 +145,7 @@ namespace h
     {
         std::pmr::string name;
         std::optional<Statement> value;
+        std::optional<std::pmr::string> comment;
 
         friend auto operator<=>(Enum_value const& lhs, Enum_value const& rhs) = default;
     };
@@ -145,6 +155,7 @@ namespace h
         std::pmr::string name;
         std::optional<std::pmr::string> unique_name;
         std::pmr::vector<Enum_value> values;
+        std::optional<std::pmr::string> comment;
 
         friend auto operator<=>(Enum_declaration const& lhs, Enum_declaration const& rhs) = default;
     };
@@ -158,6 +169,8 @@ namespace h
         std::pmr::vector<Statement> member_default_values;
         bool is_packed;
         bool is_literal;
+        std::optional<std::pmr::string> comment;
+        std::pmr::vector<Indexed_comment> member_comments;
 
         friend auto operator<=>(Struct_declaration const&, Struct_declaration const&) = default;
     };
@@ -168,6 +181,8 @@ namespace h
         std::optional<std::pmr::string> unique_name;
         std::pmr::vector<Type_reference> member_types;
         std::pmr::vector<std::pmr::string> member_names;
+        std::optional<std::pmr::string> comment;
+        std::pmr::vector<Indexed_comment> member_comments;
 
         friend auto operator<=>(Union_declaration const&, Union_declaration const&) = default;
     };
@@ -503,6 +518,7 @@ namespace h
         std::pmr::vector<std::pmr::string> input_parameter_names;
         std::pmr::vector<std::pmr::string> output_parameter_names;
         Linkage linkage;
+        std::optional<std::pmr::string> comment;
 
         friend auto operator<=>(Function_declaration const&, Function_declaration const&) = default;
     };
@@ -566,6 +582,7 @@ namespace h
         Module_declarations export_declarations;
         Module_declarations internal_declarations;
         Module_definitions definitions;
+        std::optional<std::pmr::string> comment;
 
         friend auto operator<=>(Module const&, Module const&) = default;
     };

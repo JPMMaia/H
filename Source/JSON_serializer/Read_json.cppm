@@ -456,6 +456,7 @@ namespace h::json
     export std::optional<Stack_state> get_next_state_constant_array_type(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_custom_type_reference(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_type_reference(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_indexed_comment(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_statement(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_alias_type_declaration(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_enum_value(Stack_state* state, std::string_view const key);
@@ -880,6 +881,35 @@ namespace h::json
         return {};
     }
 
+    export std::optional<Stack_state> get_next_state_indexed_comment(Stack_state* state, std::string_view const key)
+    {
+        h::Indexed_comment* parent = static_cast<h::Indexed_comment*>(state->pointer);
+
+        if (key == "index")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->index,
+                .type = "std::uint64_t",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "comment")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->comment,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        return {};
+    }
+
     export std::optional<Stack_state> get_next_state_statement(Stack_state* state, std::string_view const key)
     {
         h::Statement* parent = static_cast<h::Statement*>(state->pointer);
@@ -974,6 +1004,17 @@ namespace h::json
             };
         }
 
+        if (key == "comment")
+        {
+            parent->comment = std::pmr::string{};
+            return Stack_state
+            {
+                .pointer = &parent->comment.value(),
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
         return {};
     }
 
@@ -1000,6 +1041,17 @@ namespace h::json
                 .pointer = &parent->value.value(),
                 .type = "Statement",
                 .get_next_state = get_next_state_statement
+            };
+        }
+
+        if (key == "comment")
+        {
+            parent->comment = std::pmr::string{};
+            return Stack_state
+            {
+                .pointer = &parent->comment.value(),
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
             };
         }
 
@@ -1054,6 +1106,17 @@ namespace h::json
                 .set_vector_size = set_vector_size,
                 .get_element = get_element,
                 .get_next_state_element = get_next_state_enum_value
+            };
+        }
+
+        if (key == "comment")
+        {
+            parent->comment = std::pmr::string{};
+            return Stack_state
+            {
+                .pointer = &parent->comment.value(),
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
             };
         }
 
@@ -1183,6 +1246,42 @@ namespace h::json
             };
         }
 
+        if (key == "comment")
+        {
+            parent->comment = std::pmr::string{};
+            return Stack_state
+            {
+                .pointer = &parent->comment.value(),
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "member_comments")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Indexed_comment>* parent = static_cast<std::pmr::vector<Indexed_comment>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Indexed_comment>* parent = static_cast<std::pmr::vector<Indexed_comment>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->member_comments,
+                .type = "std::pmr::vector<Indexed_comment>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_indexed_comment
+            };
+        }
+
         return {};
     }
 
@@ -1259,6 +1358,42 @@ namespace h::json
                 .set_vector_size = set_vector_size,
                 .get_element = get_element,
                 .get_next_state_element = nullptr
+            };
+        }
+
+        if (key == "comment")
+        {
+            parent->comment = std::pmr::string{};
+            return Stack_state
+            {
+                .pointer = &parent->comment.value(),
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "member_comments")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Indexed_comment>* parent = static_cast<std::pmr::vector<Indexed_comment>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Indexed_comment>* parent = static_cast<std::pmr::vector<Indexed_comment>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->member_comments,
+                .type = "std::pmr::vector<Indexed_comment>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_indexed_comment
             };
         }
 
@@ -2646,6 +2781,17 @@ namespace h::json
             };
         }
 
+        if (key == "comment")
+        {
+            parent->comment = std::pmr::string{};
+            return Stack_state
+            {
+                .pointer = &parent->comment.value(),
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
         return {};
     }
 
@@ -3052,6 +3198,17 @@ namespace h::json
             };
         }
 
+        if (key == "comment")
+        {
+            parent->comment = std::pmr::string{};
+            return Stack_state
+            {
+                .pointer = &parent->comment.value(),
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
         return {};
     }
 
@@ -3135,6 +3292,16 @@ namespace h::json
                 .pointer = output,
                 .type = "Type_reference",
                 .get_next_state = get_next_state_type_reference
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Indexed_comment>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Indexed_comment",
+                .get_next_state = get_next_state_indexed_comment
             };
         }
 

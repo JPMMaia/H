@@ -2358,9 +2358,49 @@ describe("Parse_tree_convertor.parse_tree_to_module", () => {
         assert.deepEqual(actual_module.declarations, expected_module.declarations);
     });
 
-    it("Handles comments", () => {
+    it("Handles comments in the module declaration", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
-        const expected_module = Module_examples.create_comments_inside_functions();
+        const expected_module = Module_examples.create_comments_in_module_declaration();
+        const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
+
+        assert.deepEqual(actual_module, expected_module);
+    });
+
+    it("Handles comments in alias", () => {
+        const grammar_description = Grammar_examples.create_test_grammar_9_description();
+        const expected_module = Module_examples.create_comments_in_alias();
+        const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
+
+        assert.deepEqual(actual_module.declarations, expected_module.declarations);
+    });
+
+    it("Handles comments in enums", () => {
+        const grammar_description = Grammar_examples.create_test_grammar_9_description();
+        const expected_module = Module_examples.create_comments_in_enums();
+        const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
+
+        assert.deepEqual(actual_module.declarations, expected_module.declarations);
+    });
+
+    it("Handles comments in functions", () => {
+        const grammar_description = Grammar_examples.create_test_grammar_9_description();
+        const expected_module = Module_examples.create_comments_in_functions();
+        const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
+
+        assert.deepEqual(actual_module.declarations, expected_module.declarations);
+    });
+
+    it("Handles comments in structs", () => {
+        const grammar_description = Grammar_examples.create_test_grammar_9_description();
+        const expected_module = Module_examples.create_comments_in_structs();
+        const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
+
+        assert.deepEqual(actual_module.declarations, expected_module.declarations);
+    });
+
+    it("Handles comments in unions", () => {
+        const grammar_description = Grammar_examples.create_test_grammar_9_description();
+        const expected_module = Module_examples.create_comments_in_unions();
         const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
 
         assert.deepEqual(actual_module.declarations, expected_module.declarations);

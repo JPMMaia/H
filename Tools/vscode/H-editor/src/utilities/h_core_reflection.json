@@ -218,6 +218,23 @@
             ]
         },
         {
+            "name": "Indexed_comment",
+            "members": [
+                {
+                    "type": {
+                        "name": "std::uint64_t"
+                    },
+                    "name": "index"
+                },
+                {
+                    "type": {
+                        "name": "std::pmr::string"
+                    },
+                    "name": "comment"
+                }
+            ]
+        },
+        {
             "name": "Statement",
             "members": [
                 {
@@ -254,6 +271,12 @@
                         "name": "std::pmr::vector<Type_reference>"
                     },
                     "name": "type"
+                },
+                {
+                    "type": {
+                        "name": "std::optional<std::pmr::string>"
+                    },
+                    "name": "comment"
                 }
             ]
         },
@@ -271,6 +294,12 @@
                         "name": "std::optional<Statement>"
                     },
                     "name": "value"
+                },
+                {
+                    "type": {
+                        "name": "std::optional<std::pmr::string>"
+                    },
+                    "name": "comment"
                 }
             ]
         },
@@ -294,6 +323,12 @@
                         "name": "std::pmr::vector<Enum_value>"
                     },
                     "name": "values"
+                },
+                {
+                    "type": {
+                        "name": "std::optional<std::pmr::string>"
+                    },
+                    "name": "comment"
                 }
             ]
         },
@@ -341,6 +376,18 @@
                         "name": "bool"
                     },
                     "name": "is_literal"
+                },
+                {
+                    "type": {
+                        "name": "std::optional<std::pmr::string>"
+                    },
+                    "name": "comment"
+                },
+                {
+                    "type": {
+                        "name": "std::pmr::vector<Indexed_comment>"
+                    },
+                    "name": "member_comments"
                 }
             ]
         },
@@ -370,6 +417,18 @@
                         "name": "std::pmr::vector<std::pmr::string>"
                     },
                     "name": "member_names"
+                },
+                {
+                    "type": {
+                        "name": "std::optional<std::pmr::string>"
+                    },
+                    "name": "comment"
+                },
+                {
+                    "type": {
+                        "name": "std::pmr::vector<Indexed_comment>"
+                    },
+                    "name": "member_comments"
                 }
             ]
         },
@@ -902,6 +961,12 @@
                         "name": "Linkage"
                     },
                     "name": "linkage"
+                },
+                {
+                    "type": {
+                        "name": "std::optional<std::pmr::string>"
+                    },
+                    "name": "comment"
                 }
             ]
         },
@@ -1063,6 +1128,12 @@
                         "name": "Module_definitions"
                     },
                     "name": "definitions"
+                },
+                {
+                    "type": {
+                        "name": "std::optional<std::pmr::string>"
+                    },
+                    "name": "comment"
                 }
             ]
         }

@@ -330,6 +330,12 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Indexed_comment const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Statement const& input
         );
 
@@ -866,6 +872,20 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Indexed_comment const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("index");
+        writer.Uint64(output.index);
+        writer.Key("comment");
+        writer.String(output.comment.data(), output.comment.size());
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Statement const& output
         )
     {
@@ -888,6 +908,7 @@ namespace h::json
         write_optional(writer, "unique_name", output.unique_name);
         writer.Key("type");
         write_object(writer, output.type);
+        write_optional(writer, "comment", output.comment);
         writer.EndObject();
     }
 
@@ -901,6 +922,7 @@ namespace h::json
         writer.Key("name");
         writer.String(output.name.data(), output.name.size());
         write_optional_object(writer, "value", output.value);
+        write_optional(writer, "comment", output.comment);
         writer.EndObject();
     }
 
@@ -916,6 +938,7 @@ namespace h::json
         write_optional(writer, "unique_name", output.unique_name);
         writer.Key("values");
         write_object(writer, output.values);
+        write_optional(writer, "comment", output.comment);
         writer.EndObject();
     }
 
@@ -939,6 +962,9 @@ namespace h::json
         writer.Bool(output.is_packed);
         writer.Key("is_literal");
         writer.Bool(output.is_literal);
+        write_optional(writer, "comment", output.comment);
+        writer.Key("member_comments");
+        write_object(writer, output.member_comments);
         writer.EndObject();
     }
 
@@ -956,6 +982,9 @@ namespace h::json
         write_object(writer, output.member_types);
         writer.Key("member_names");
         write_object(writer, output.member_names);
+        write_optional(writer, "comment", output.comment);
+        writer.Key("member_comments");
+        write_object(writer, output.member_comments);
         writer.EndObject();
     }
 
@@ -1598,6 +1627,7 @@ namespace h::json
             std::string_view const enum_value_string = write_enum(output.linkage);
             writer.String(enum_value_string.data(), enum_value_string.size());
         }
+        write_optional(writer, "comment", output.comment);
         writer.EndObject();
     }
 
@@ -1710,6 +1740,7 @@ namespace h::json
         write_object(writer, output.internal_declarations);
         writer.Key("definitions");
         write_object(writer, output.definitions);
+        write_optional(writer, "comment", output.comment);
         writer.EndObject();
     }
 

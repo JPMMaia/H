@@ -1865,10 +1865,17 @@ function node_to_alias_type_declaration(node: Parser_node.Node, key_to_productio
     const alias_type_node = find_node(node, "Alias_type", key_to_production_rule_indices) as Parser_node.Node;
     const type_reference = node_to_type_reference(alias_type_node.children[0], key_to_production_rule_indices);
 
-    return {
+    const output: Core_intermediate_representation.Alias_type_declaration = {
         name: name,
         type: type_reference
     };
+
+    const comments = Parse_tree_convertor.extract_comments_from_node(node);
+    if (comments !== undefined) {
+        output.comment = comments;
+    }
+
+    return output;
 }
 
 function node_to_enum_declaration(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Enum_declaration {
@@ -1885,18 +1892,30 @@ function node_to_enum_declaration(node: Parser_node.Node, key_to_production_rule
         const generic_expression_node = find_node(value_node, "Generic_expression", key_to_production_rule_indices);
         const expression = generic_expression_node !== undefined ? node_to_expression(generic_expression_node, key_to_production_rule_indices) : undefined;
 
-        values.push(
-            {
-                name: value_name,
-                value: expression !== undefined ? { expression: expression } : undefined
-            }
-        );
+        const enum_value: Core_intermediate_representation.Enum_value = {
+            name: value_name,
+            value: expression !== undefined ? { expression: expression } : undefined
+        };
+
+        const enum_value_comments = Parse_tree_convertor.extract_comments_from_node(value_node);
+        if (enum_value_comments !== undefined) {
+            enum_value.comment = enum_value_comments;
+        }
+
+        values.push(enum_value);
     }
 
-    return {
+    const output: Core_intermediate_representation.Enum_declaration = {
         name: name,
         values: values
     };
+
+    const comments = Parse_tree_convertor.extract_comments_from_node(node);
+    if (comments !== undefined) {
+        output.comment = comments;
+    }
+
+    return output;
 }
 
 function node_to_struct_declaration(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Struct_declaration {
@@ -1907,6 +1926,7 @@ function node_to_struct_declaration(node: Parser_node.Node, key_to_production_ru
     const member_names: string[] = [];
     const member_types: Core_intermediate_representation.Type_reference[] = [];
     const member_default_values: Core_intermediate_representation.Statement[] = [];
+    const member_comments: Core_intermediate_representation.Indexed_comment[] = [];
 
     for (let index = 0; index < member_nodes.length; ++index) {
         const member_node = member_nodes[index];
@@ -1919,19 +1939,32 @@ function node_to_struct_declaration(node: Parser_node.Node, key_to_production_ru
         const member_default_value_node = find_node(member_node, "Generic_expression_or_instantiate", key_to_production_rule_indices) as Parser_node.Node;
         const member_default_value_expression = node_to_expression(member_default_value_node, key_to_production_rule_indices);
 
+        const member_comment = Parse_tree_convertor.extract_comments_from_node(member_node);
+
         member_names.push(member_name);
         member_types.push(member_type[0]);
         member_default_values.push({ expression: member_default_value_expression });
+        if (member_comment !== undefined) {
+            member_comments.push({ index: index, comment: member_comment });
+        }
     }
 
-    return {
+    const output: Core_intermediate_representation.Struct_declaration = {
         name: name,
         member_names: member_names,
         member_types: member_types,
         member_default_values: member_default_values,
         is_packed: false,
-        is_literal: false
+        is_literal: false,
+        member_comments: member_comments
     };
+
+    const comments = Parse_tree_convertor.extract_comments_from_node(node);
+    if (comments !== undefined) {
+        output.comment = comments;
+    }
+
+    return output;
 }
 
 function node_to_union_declaration(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Union_declaration {
@@ -1941,6 +1974,7 @@ function node_to_union_declaration(node: Parser_node.Node, key_to_production_rul
 
     const member_names: string[] = [];
     const member_types: Core_intermediate_representation.Type_reference[] = [];
+    const member_comments: Core_intermediate_representation.Indexed_comment[] = [];
 
     for (let index = 0; index < member_nodes.length; ++index) {
         const member_node = member_nodes[index];
@@ -1950,15 +1984,28 @@ function node_to_union_declaration(node: Parser_node.Node, key_to_production_rul
         const member_type_node = find_node(member_node, "Union_member_type", key_to_production_rule_indices) as Parser_node.Node;
         const member_type = node_to_type_reference(member_type_node.children[0], key_to_production_rule_indices);
 
+        const member_comment = Parse_tree_convertor.extract_comments_from_node(member_node);
+
         member_names.push(member_name);
         member_types.push(member_type[0]);
+        if (member_comment !== undefined) {
+            member_comments.push({ index: index, comment: member_comment });
+        }
     }
 
-    return {
+    const output: Core_intermediate_representation.Union_declaration = {
         name: name,
         member_names: member_names,
-        member_types: member_types
+        member_types: member_types,
+        member_comments: member_comments
     };
+
+    const comments = Parse_tree_convertor.extract_comments_from_node(node);
+    if (comments !== undefined) {
+        output.comment = comments;
+    }
+
+    return output;
 }
 
 function is_export_node(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): boolean {
@@ -1999,7 +2046,7 @@ function node_to_function_declaration(node: Parser_node.Node, key_to_production_
     const export_value = find_node_value(node, "Export", key_to_production_rule_indices);
     const linkage = export_value.length > 0 ? Core_intermediate_representation.Linkage.External : Core_intermediate_representation.Linkage.Private;
 
-    return {
+    const output: Core_intermediate_representation.Function_declaration = {
         name: name,
         type: {
             input_parameter_types: input_parameter_types,
@@ -2010,6 +2057,13 @@ function node_to_function_declaration(node: Parser_node.Node, key_to_production_
         output_parameter_names: output_parameter_names,
         linkage: linkage
     };
+
+    const comments = Parse_tree_convertor.extract_comments_from_node(node);
+    if (comments !== undefined) {
+        output.comment = comments;
+    }
+
+    return output;
 }
 
 function node_to_function_definition(node: Parser_node.Node, function_name: string, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Function_definition {
@@ -2037,18 +2091,16 @@ function node_to_statement(node: Parser_node.Node, key_to_production_rule_indice
     const child = node.children[0];
     const expression = node_to_expression(child, key_to_production_rule_indices);
 
-    const comments = extract_comments_from_node(node);
+    const output: Core_intermediate_representation.Statement = {
+        expression: expression
+    };
+
+    const comments = Parse_tree_convertor.extract_comments_from_node(node);
     if (comments !== undefined) {
-        return {
-            expression: expression,
-            comment: comments
-        };
+        output.comment = comments;
     }
-    else {
-        return {
-            expression: expression
-        };
-    }
+
+    return output;
 }
 
 function node_to_expression(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Expression {
@@ -3059,17 +3111,66 @@ function find_descendant_if(node: Parser_node.Node, predicate: (node: Parser_nod
     return undefined;
 }
 
-function extract_comments_from_node(node: Parser_node.Node): string | undefined {
-
-    for (const child of node.children) {
-        if (child.word.comments.length > 0) {
-            return child.word.comments.join("\n");
+function get_comment_from_stack(
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    element: Parse_tree_convertor.Module_to_parse_tree_stack_element,
+    element_index: number,
+    production_rules: Grammar.Production_rule[],
+): string | undefined {
+    switch (element.node.word.value) {
+        case "Module_declaration": {
+            const module = stack[0].state.value as Core_intermediate_representation.Module;
+            return module.comment;
         }
-
-        return extract_comments_from_node(child);
+        case "Alias": {
+            const alias_type_declaration = element.state.value.value as Core_intermediate_representation.Alias_type_declaration;
+            return alias_type_declaration.comment;
+        }
+        case "Enum": {
+            const enum_declaration = element.state.value.value as Core_intermediate_representation.Enum_declaration;
+            return enum_declaration.comment;
+        }
+        case "Enum_value": {
+            const enum_element = stack[element_index - 2];
+            const enum_members_element = stack[element_index - 1];
+            const enum_declaration = enum_element.state.value.value as Core_intermediate_representation.Enum_declaration;
+            const member_index = enum_members_element.current_child_index - 1;
+            const member = enum_declaration.values[member_index];
+            return member.comment;
+        }
+        case "Function_declaration": {
+            const function_declaration = element.state.value.value.declaration as Core_intermediate_representation.Function_declaration;
+            return function_declaration.comment;
+        }
+        case "Statement": {
+            const statement = get_statement_from_stack(stack, element_index - 1, production_rules);
+            return statement.comment;
+        }
+        case "Struct": {
+            const struct_declaration = element.state.value.value as Core_intermediate_representation.Struct_declaration;
+            return struct_declaration.comment;
+        }
+        case "Struct_member": {
+            const struct_element = stack[element_index - 2];
+            const struct_members_element = stack[element_index - 1];
+            const struct_declaration = struct_element.state.value.value as Core_intermediate_representation.Struct_declaration;
+            const member_index = struct_members_element.current_child_index - 1;
+            const member_comment_pair = struct_declaration.member_comments.find(pair => pair.index === member_index);
+            return member_comment_pair !== undefined ? member_comment_pair.comment : undefined;
+        }
+        case "Union": {
+            const struct_declaration = element.state.value.value as Core_intermediate_representation.Union_declaration;
+            return struct_declaration.comment;
+        }
+        case "Union_member": {
+            const union_element = stack[element_index - 2];
+            const union_members_element = stack[element_index - 1];
+            const union_declaration = union_element.state.value.value as Core_intermediate_representation.Union_declaration;
+            const member_index = union_members_element.current_child_index - 1;
+            const member_comment_pair = union_declaration.member_comments.find(pair => pair.index === member_index);
+            return member_comment_pair !== undefined ? member_comment_pair.comment : undefined;
+        }
     }
-
-    return undefined;
 }
 
 function extract_comments_from_stack(
@@ -3081,16 +3182,29 @@ function extract_comments_from_stack(
     for (let stack_index = 0; stack_index < stack.length; ++stack_index) {
         const element_index = stack.length - stack_index - 1;
         const element = stack[element_index];
-        if (element.node.word.value === "Statement") {
-            const first_terminal_node = Parser_node.find_descendant_position_if(element.node, node => Parser_node.is_terminal_node(node));
-            const is_first_terminal_to_be_created = first_terminal_node === undefined;
-            if (is_first_terminal_to_be_created) {
-                const statement = get_statement_from_stack(stack, element_index - 1, production_rules);
-                if (statement.comment !== undefined) {
-                    comments.push(...statement.comment.split("\n"));
+
+        switch (element.node.word.value) {
+            case "Module_declaration":
+            case "Alias":
+            case "Enum":
+            case "Enum_value":
+            case "Function_declaration":
+            case "Statement":
+            case "Struct":
+            case "Struct_member":
+            case "Union":
+            case "Union_member": {
+                const first_terminal_node = Parser_node.find_descendant_position_if(element.node, node => Parser_node.is_terminal_node(node));
+                const is_first_terminal_to_be_created = first_terminal_node === undefined;
+                if (is_first_terminal_to_be_created) {
+                    const comment = get_comment_from_stack(stack, element, element_index, production_rules);
+                    if (comment !== undefined) {
+                        comments.push(...comment.split("\n"));
+                    }
                 }
             }
-            break;
+            default:
+                break;
         }
     }
 

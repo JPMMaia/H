@@ -10,6 +10,7 @@ export interface Module {
     name: string;
     imports: Import_module_with_alias[];
     declarations: Declaration[];
+    comment?: string;
 }
 
 export function create_intermediate_representation(core_module: Core.Module): Module {
@@ -20,7 +21,8 @@ export function create_intermediate_representation(core_module: Core.Module): Mo
     return {
         name: core_module.name,
         imports: imports,
-        declarations: declarations
+        declarations: declarations,
+        comment: core_module.comment
     };
 }
 
@@ -130,7 +132,8 @@ export function create_core_module(module: Module, language_version: Core.Langua
                 size: function_definitions.length,
                 elements: function_definitions
             }
-        }
+        },
+        comment: module.comment
     };
 }
 
@@ -593,10 +596,30 @@ function intermediate_to_core_type_reference(intermediate_value: Type_reference)
     }
 }
 
+export interface Indexed_comment {
+    index: number;
+    comment: string;
+}
+
+function core_to_intermediate_indexed_comment(core_value: Core.Indexed_comment): Indexed_comment {
+    return {
+        index: core_value.index,
+        comment: core_value.comment,
+    };
+}
+
+function intermediate_to_core_indexed_comment(intermediate_value: Indexed_comment): Core.Indexed_comment {
+    return {
+        index: intermediate_value.index,
+        comment: intermediate_value.comment,
+    };
+}
+
 export interface Alias_type_declaration {
     name: string;
     unique_name?: string;
     type: Type_reference[];
+    comment?: string;
 }
 
 function core_to_intermediate_alias_type_declaration(core_value: Core.Alias_type_declaration): Alias_type_declaration {
@@ -604,6 +627,7 @@ function core_to_intermediate_alias_type_declaration(core_value: Core.Alias_type
         name: core_value.name,
         unique_name: core_value.unique_name,
         type: core_value.type.elements.map(value => core_to_intermediate_type_reference(value)),
+        comment: core_value.comment,
     };
 }
 
@@ -615,18 +639,21 @@ function intermediate_to_core_alias_type_declaration(intermediate_value: Alias_t
             size: intermediate_value.type.length,
             elements: intermediate_value.type.map(value => intermediate_to_core_type_reference(value)),
         },
+        comment: intermediate_value.comment,
     };
 }
 
 export interface Enum_value {
     name: string;
     value?: Statement;
+    comment?: string;
 }
 
 function core_to_intermediate_enum_value(core_value: Core.Enum_value): Enum_value {
     return {
         name: core_value.name,
         value: core_value.value !== undefined ? core_to_intermediate_statement(core_value.value) : undefined,
+        comment: core_value.comment,
     };
 }
 
@@ -634,6 +661,7 @@ function intermediate_to_core_enum_value(intermediate_value: Enum_value): Core.E
     return {
         name: intermediate_value.name,
         value: intermediate_value.value !== undefined ? intermediate_to_core_statement(intermediate_value.value) : undefined,
+        comment: intermediate_value.comment,
     };
 }
 
@@ -641,6 +669,7 @@ export interface Enum_declaration {
     name: string;
     unique_name?: string;
     values: Enum_value[];
+    comment?: string;
 }
 
 function core_to_intermediate_enum_declaration(core_value: Core.Enum_declaration): Enum_declaration {
@@ -648,6 +677,7 @@ function core_to_intermediate_enum_declaration(core_value: Core.Enum_declaration
         name: core_value.name,
         unique_name: core_value.unique_name,
         values: core_value.values.elements.map(value => core_to_intermediate_enum_value(value)),
+        comment: core_value.comment,
     };
 }
 
@@ -659,6 +689,7 @@ function intermediate_to_core_enum_declaration(intermediate_value: Enum_declarat
             size: intermediate_value.values.length,
             elements: intermediate_value.values.map(value => intermediate_to_core_enum_value(value)),
         },
+        comment: intermediate_value.comment,
     };
 }
 
@@ -670,6 +701,8 @@ export interface Struct_declaration {
     member_default_values: Statement[];
     is_packed: boolean;
     is_literal: boolean;
+    comment?: string;
+    member_comments: Indexed_comment[];
 }
 
 function core_to_intermediate_struct_declaration(core_value: Core.Struct_declaration): Struct_declaration {
@@ -681,6 +714,8 @@ function core_to_intermediate_struct_declaration(core_value: Core.Struct_declara
         member_default_values: core_value.member_default_values.elements.map(value => core_to_intermediate_statement(value)),
         is_packed: core_value.is_packed,
         is_literal: core_value.is_literal,
+        comment: core_value.comment,
+        member_comments: core_value.member_comments.elements.map(value => core_to_intermediate_indexed_comment(value)),
     };
 }
 
@@ -702,6 +737,11 @@ function intermediate_to_core_struct_declaration(intermediate_value: Struct_decl
         },
         is_packed: intermediate_value.is_packed,
         is_literal: intermediate_value.is_literal,
+        comment: intermediate_value.comment,
+        member_comments: {
+            size: intermediate_value.member_comments.length,
+            elements: intermediate_value.member_comments.map(value => intermediate_to_core_indexed_comment(value)),
+        },
     };
 }
 
@@ -710,6 +750,8 @@ export interface Union_declaration {
     unique_name?: string;
     member_types: Type_reference[];
     member_names: string[];
+    comment?: string;
+    member_comments: Indexed_comment[];
 }
 
 function core_to_intermediate_union_declaration(core_value: Core.Union_declaration): Union_declaration {
@@ -718,6 +760,8 @@ function core_to_intermediate_union_declaration(core_value: Core.Union_declarati
         unique_name: core_value.unique_name,
         member_types: core_value.member_types.elements.map(value => core_to_intermediate_type_reference(value)),
         member_names: core_value.member_names.elements,
+        comment: core_value.comment,
+        member_comments: core_value.member_comments.elements.map(value => core_to_intermediate_indexed_comment(value)),
     };
 }
 
@@ -732,6 +776,11 @@ function intermediate_to_core_union_declaration(intermediate_value: Union_declar
         member_names: {
             size: intermediate_value.member_names.length,
             elements: intermediate_value.member_names,
+        },
+        comment: intermediate_value.comment,
+        member_comments: {
+            size: intermediate_value.member_comments.length,
+            elements: intermediate_value.member_comments.map(value => intermediate_to_core_indexed_comment(value)),
         },
     };
 }
@@ -2188,6 +2237,7 @@ export interface Function_declaration {
     input_parameter_names: string[];
     output_parameter_names: string[];
     linkage: Linkage;
+    comment?: string;
 }
 
 function core_to_intermediate_function_declaration(core_value: Core.Function_declaration): Function_declaration {
@@ -2198,6 +2248,7 @@ function core_to_intermediate_function_declaration(core_value: Core.Function_dec
         input_parameter_names: core_value.input_parameter_names.elements,
         output_parameter_names: core_value.output_parameter_names.elements,
         linkage: core_value.linkage,
+        comment: core_value.comment,
     };
 }
 
@@ -2215,6 +2266,7 @@ function intermediate_to_core_function_declaration(intermediate_value: Function_
             elements: intermediate_value.output_parameter_names,
         },
         linkage: intermediate_value.linkage,
+        comment: intermediate_value.comment,
     };
 }
 

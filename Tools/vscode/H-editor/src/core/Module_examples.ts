@@ -241,7 +241,8 @@ export function create_0(): IR.Module {
                         ),
                     ],
                     is_packed: false,
-                    is_literal: false
+                    is_literal: false,
+                    member_comments: []
                 }
             },
             {
@@ -363,7 +364,8 @@ export function create_0(): IR.Module {
                         ),
                     ],
                     is_packed: false,
-                    is_literal: false
+                    is_literal: false,
+                    member_comments: []
                 }
             },
         ],
@@ -483,7 +485,8 @@ export function create_struct_example(): IR.Module {
                         ),
                     ],
                     is_packed: false,
-                    is_literal: false
+                    is_literal: false,
+                    member_comments: []
                 }
             }
         ]
@@ -521,7 +524,8 @@ export function create_union_example(): IR.Module {
                     member_names: [
                         "member_0",
                         "member_1"
-                    ]
+                    ],
+                    member_comments: []
                 }
             }
         ]
@@ -1478,7 +1482,8 @@ export function create_pointer_types(): IR.Module {
             ),
         ],
         is_packed: false,
-        is_literal: false
+        is_literal: false,
+        member_comments: []
     };
 
     const struct_value_declaration: IR.Declaration = {
@@ -3153,7 +3158,8 @@ export function create_using_structs(): IR.Module {
                         )
                     ],
                     is_packed: false,
-                    is_literal: false
+                    is_literal: false,
+                    member_comments: []
                 }
             },
             {
@@ -3204,7 +3210,8 @@ export function create_using_structs(): IR.Module {
                         ),
                     ],
                     is_packed: false,
-                    is_literal: false
+                    is_literal: false,
+                    member_comments: []
                 }
             },
             {
@@ -3478,7 +3485,8 @@ export function create_using_unions(): IR.Module {
                     member_names: [
                         "a",
                         "b"
-                    ]
+                    ],
+                    member_comments: []
                 }
             },
             {
@@ -3494,7 +3502,8 @@ export function create_using_unions(): IR.Module {
                     member_names: [
                         "a",
                         "b"
-                    ]
+                    ],
+                    member_comments: []
                 }
             },
             {
@@ -3515,7 +3524,8 @@ export function create_using_unions(): IR.Module {
                         )
                     ],
                     is_packed: false,
-                    is_literal: false
+                    is_literal: false,
+                    member_comments: []
                 }
             },
             {
@@ -3531,7 +3541,8 @@ export function create_using_unions(): IR.Module {
                     member_names: [
                         "a",
                         "b"
-                    ]
+                    ],
+                    member_comments: []
                 }
             },
             {
@@ -3880,10 +3891,81 @@ export function create_using_unions(): IR.Module {
     };
 }
 
-export function create_comments_inside_functions(): IR.Module {
+export function create_comments_in_module_declaration(): IR.Module {
+    return {
+        name: "Comments_in_module_declaration",
+        imports: [],
+        declarations: [],
+        comment: "This is a very long\nmodule decription"
+    };
+}
+
+
+export function create_comments_in_alias(): IR.Module {
     const int32_type = create_integer_type(32, true);
     return {
-        name: "Comments_inside_functions",
+        name: "Comments_in_alias",
+        imports: [],
+        declarations: [
+            {
+                name: "My_int",
+                type: IR.Declaration_type.Alias,
+                is_export: false,
+                value: {
+                    name: "My_int",
+                    type: [int32_type],
+                    comment: "Alias comment\nAnother line"
+                }
+            }
+        ]
+    };
+}
+
+export function create_comments_in_enums(): IR.Module {
+    const int32_type = create_integer_type(32, true);
+    return {
+        name: "Comments_in_enums",
+        imports: [],
+        declarations: [
+            {
+                name: "My_enum",
+                type: IR.Declaration_type.Enum,
+                is_export: false,
+                value: {
+                    name: "My_enum",
+                    values: [
+                        {
+                            name: "A",
+                            value: create_statement(
+                                IR.create_constant_expression(int32_type, "1")
+                            ),
+                            comment: "This is A"
+                        },
+                        {
+                            name: "B",
+                            value: create_statement(
+                                IR.create_constant_expression(int32_type, "2")
+                            )
+                        },
+                        {
+                            name: "C",
+                            value: create_statement(
+                                IR.create_constant_expression(int32_type, "3")
+                            ),
+                            comment: "This is C"
+                        }
+                    ],
+                    comment: "Enum comment\nAnother line"
+                }
+            },
+        ]
+    };
+}
+
+export function create_comments_in_functions(): IR.Module {
+    const int32_type = create_integer_type(32, true);
+    return {
+        name: "Comments_in_functions",
         imports: [],
         declarations: [
             {
@@ -3900,7 +3982,8 @@ export function create_comments_inside_functions(): IR.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        comment: "Function comment\nNo arguments"
                     },
                     definition: {
                         name: "use_comments",
@@ -3925,6 +4008,97 @@ export function create_comments_inside_functions(): IR.Module {
                     }
                 }
             }
+        ]
+    };
+}
+
+export function create_comments_in_structs(): IR.Module {
+    const int32_type = create_integer_type(32, true);
+    return {
+        name: "Comments_in_structs",
+        imports: [],
+        declarations: [
+            {
+                name: "My_struct",
+                type: IR.Declaration_type.Struct,
+                is_export: false,
+                value: {
+                    name: "My_struct",
+                    member_types: [
+                        int32_type,
+                        int32_type,
+                        int32_type
+                    ],
+                    member_names: [
+                        "a",
+                        "b",
+                        "c"
+                    ],
+                    member_default_values: [
+                        create_statement(
+                            IR.create_constant_expression(int32_type, "0")
+                        ),
+                        create_statement(
+                            IR.create_constant_expression(int32_type, "0")
+                        ),
+                        create_statement(
+                            IR.create_constant_expression(int32_type, "0")
+                        ),
+                    ],
+                    is_packed: false,
+                    is_literal: false,
+                    member_comments: [
+                        {
+                            index: 0,
+                            comment: "This is a int"
+                        },
+                        {
+                            index: 2,
+                            comment: "Another int\nAnother line"
+                        }
+                    ],
+                    comment: "Struct comment\nAnother line"
+                },
+            },
+        ]
+    };
+}
+
+export function create_comments_in_unions(): IR.Module {
+    const int32_type = create_integer_type(32, true);
+    return {
+        name: "Comments_in_unions",
+        imports: [],
+        declarations: [
+            {
+                name: "My_union",
+                type: IR.Declaration_type.Union,
+                is_export: false,
+                value: {
+                    name: "My_union",
+                    member_types: [
+                        int32_type,
+                        int32_type,
+                        int32_type
+                    ],
+                    member_names: [
+                        "a",
+                        "b",
+                        "c"
+                    ],
+                    member_comments: [
+                        {
+                            index: 0,
+                            comment: "This is a int"
+                        },
+                        {
+                            index: 2,
+                            comment: "Another int\nAnother line"
+                        }
+                    ],
+                    comment: "Union comment\nAnother line"
+                }
+            },
         ]
     };
 }

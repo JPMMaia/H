@@ -65,10 +65,45 @@ describe("Text_formatter.to_string", () => {
         assert.equal(actual_text, expected_text);
     });
 
-    it("Formats comments inside functions correctly", () => {
-        const module = Module_examples.create_comments_inside_functions();
+    it("Formats comments in the module declaration correctly", () => {
+        const module = Module_examples.create_comments_in_module_declaration();
         const actual_text = run_text_formatter(module);
-        const expected_text = "module Comments_inside_functions;\n\nexport function use_comments() -> ()\n{\n    // This is a comment\n    var i = 0;\n    // This is another comment\n    // And yet another\n    var x = 0;\n}\n\n";
+        const expected_text = "// This is a very long\n// module decription\nmodule Comments_in_module_declaration;\n\n";
+        assert.equal(actual_text, expected_text);
+    });
+
+    it("Formats comments in alias correctly", () => {
+        const module = Module_examples.create_comments_in_alias();
+        const actual_text = run_text_formatter(module);
+        const expected_text = "module Comments_in_alias;\n\n// Alias comment\n// Another line\nusing My_int = Int32;\n\n";
+        assert.equal(actual_text, expected_text);
+    });
+
+    it("Formats comments in enums correctly", () => {
+        const module = Module_examples.create_comments_in_enums();
+        const actual_text = run_text_formatter(module);
+        const expected_text = "module Comments_in_enums;\n\n// Enum comment\n// Another line\nenum My_enum\n{\n    // This is A\n    A = 1,\n    B = 2,\n    // This is C\n    C = 3,\n}\n\n";
+        assert.equal(actual_text, expected_text);
+    });
+
+    it("Formats comments in functions correctly", () => {
+        const module = Module_examples.create_comments_in_functions();
+        const actual_text = run_text_formatter(module);
+        const expected_text = "module Comments_in_functions;\n\n// Function comment\n// No arguments\nexport function use_comments() -> ()\n{\n    // This is a comment\n    var i = 0;\n    // This is another comment\n    // And yet another\n    var x = 0;\n}\n\n";
+        assert.equal(actual_text, expected_text);
+    });
+
+    it("Formats comments in structs correctly", () => {
+        const module = Module_examples.create_comments_in_structs();
+        const actual_text = run_text_formatter(module);
+        const expected_text = "module Comments_in_structs;\n\n// Struct comment\n// Another line\nstruct My_struct\n{\n    // This is a int\n    a: Int32 = 0;\n    b: Int32 = 0;\n    // Another int\n    // Another line\n    c: Int32 = 0;\n}\n\n";
+        assert.equal(actual_text, expected_text);
+    });
+
+    it("Formats comments in unions correctly", () => {
+        const module = Module_examples.create_comments_in_unions();
+        const actual_text = run_text_formatter(module);
+        const expected_text = "module Comments_in_unions;\n\n// Union comment\n// Another line\nunion My_union\n{\n    // This is a int\n    a: Int32;\n    b: Int32;\n    // Another int\n    // Another line\n    c: Int32;\n\n}\n";
         assert.equal(actual_text, expected_text);
     });
 });
