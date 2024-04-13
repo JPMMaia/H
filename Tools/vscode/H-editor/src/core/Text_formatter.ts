@@ -1,6 +1,7 @@
 import * as Grammar from "./Grammar";
 import * as Parse_tree_text_position_cache from "./Parse_tree_text_position_cache";
 import { iterate_forward_with_repetition, Iterate_direction, Node } from "./Parser_node";
+import * as Scanner from "./Scanner";
 
 const g_debug = false;
 
@@ -11,7 +12,8 @@ enum State {
     Alias,
     Enum,
     Struct,
-    Function
+    Function,
+    Statements
 }
 
 function should_add_space(current_word: Grammar.Word, previous_word: Grammar.Word): number {
@@ -56,7 +58,7 @@ function should_add_space(current_word: Grammar.Word, previous_word: Grammar.Wor
     return 1;
 }
 
-function should_add_new_line_before(state: State, current_word: Grammar.Word, previous_word: Grammar.Word): number {
+function should_add_new_line_before(state: State, current_word: Scanner.Scanned_word, previous_word: Scanner.Scanned_word): number {
 
     if (state === State.Enum) {
         if (current_word.value === "}" && previous_word.value === ",") {
@@ -68,11 +70,14 @@ function should_add_new_line_before(state: State, current_word: Grammar.Word, pr
             return 0;
         }
     }
+    else if (state === State.Statements) {
+        return 0;
+    }
 
     return current_word.value === "{" || (current_word.value === "}" && previous_word.value !== "{") ? 1 : 0;
 }
 
-function should_add_new_line_after(state: State, current_word: Grammar.Word, previous_word: Grammar.Word): number {
+function should_add_new_line_after(state: State, current_word: Scanner.Scanned_word, previous_word: Scanner.Scanned_word): number {
 
     if (state === State.Global) {
         if (current_word.value === ";") {
@@ -110,6 +115,9 @@ function should_add_new_line_after(state: State, current_word: Grammar.Word, pre
             return 2;
         }
     }
+    else if (state === State.Statements) {
+        return current_word.newlines_after !== undefined ? current_word.newlines_after : 0;
+    }
     else if (state === State.Struct) {
         if (current_word.value === ";") {
             return 1;
@@ -136,7 +144,7 @@ export function to_string(root: Node, cache: Parse_tree_text_position_cache.Cach
     let current_node: Node | undefined = root;
     let current_position: number[] = [];
     let current_direction = Iterate_direction.Down;
-    let previous_word: Grammar.Word = { value: "", type: Grammar.Word_type.Invalid };
+    let previous_word: Scanner.Scanned_word = { value: "", type: Grammar.Word_type.Invalid, comments: [] };
 
     const state_stack: State[] = [State.Global];
 
@@ -183,6 +191,16 @@ export function to_string(root: Node, cache: Parse_tree_text_position_cache.Cach
         else if (current_node.word.value === "Function") {
             if (current_direction === Iterate_direction.Down) {
                 state_stack.push(State.Function);
+            }
+            else {
+                state_stack.pop();
+            }
+        }
+        else if (current_node.word.value === "Statements") {
+            if (current_direction === Iterate_direction.Down) {
+                if (current_node.children.length > 0) {
+                    state_stack.push(State.Statements);
+                }
             }
             else {
                 state_stack.pop();

@@ -51,6 +51,12 @@ export type Extract_elements_from_stack_handler = (
     production_rules: Grammar.Production_rule[]
 ) => string[];
 
+export type Extract_newlines_after_terminal_from_stack_handler = (
+    stack: Module_to_parse_tree_stack_element[],
+    production_rules: Grammar.Production_rule[],
+    terminal: string
+) => number | undefined;
+
 export interface Parse_tree_mappings {
     value_map: Map<string, string[]>;
     value_transforms: Map<string, (value: any) => string>;
@@ -61,6 +67,7 @@ export interface Parse_tree_mappings {
     create_module_changes_map: Map<string, Create_module_changes_handler>;
     node_to_core_object_map: Map<string, Node_to_core_object_handler>;
     extract_comments_from_stack: Extract_elements_from_stack_handler;
+    extract_newlines_after_terminal_from_stack: Extract_newlines_after_terminal_from_stack_handler;
 }
 
 function find_parent_state_index(
@@ -485,6 +492,7 @@ export function map_terminal_to_word(
     const label = stack[stack.length - 1].node.word.value;
 
     const comments = mappings.extract_comments_from_stack(stack, production_rules);
+    const newlines_after = mappings.extract_newlines_after_terminal_from_stack(stack, production_rules, terminal);
 
     {
         const map = mappings.terminal_to_word_map.get(label);
@@ -493,18 +501,19 @@ export function map_terminal_to_word(
             return {
                 value: word.value,
                 type: word.type,
-                comments: comments
+                comments: comments,
+                newlines_after: newlines_after
             };
         }
     }
 
     if (terminal !== "identifier" && terminal !== "number") {
-        return { value: terminal, type: Scanner.get_word_type(terminal), comments: comments };
+        return { value: terminal, type: Scanner.get_word_type(terminal), comments: comments, newlines_after: newlines_after };
     }
 
     const position_with_placeholders = mappings.value_map.get(label);
     if (position_with_placeholders === undefined) {
-        return { value: terminal, type: Scanner.get_word_type(terminal), comments: comments };
+        return { value: terminal, type: Scanner.get_word_type(terminal), comments: comments, newlines_after: newlines_after };
     }
 
     const position = replace_placeholders_by_values(module, position_with_placeholders, production_rules, stack, mappings);
@@ -520,7 +529,7 @@ export function map_terminal_to_word(
     const transformed_value = transform !== undefined ? transform(object_reference.value) : object_reference.value.toString();
 
     return {
-        value: transformed_value, type: Scanner.get_word_type(transformed_value), comments: comments
+        value: transformed_value, type: Scanner.get_word_type(transformed_value), comments: comments, newlines_after: newlines_after
     };
 }
 
