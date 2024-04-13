@@ -248,6 +248,12 @@
                         "name": "std::optional<std::pmr::string>"
                     },
                     "name": "comment"
+                },
+                {
+                    "type": {
+                        "name": "std::optional<std::uint32_t>"
+                    },
+                    "name": "newlines_after"
                 }
             ]
         },

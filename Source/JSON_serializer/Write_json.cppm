@@ -893,6 +893,7 @@ namespace h::json
         writer.Key("expressions");
         write_object(writer, output.expressions);
         write_optional(writer, "comment", output.comment);
+        write_optional(writer, "newlines_after", output.newlines_after);
         writer.EndObject();
     }
 

@@ -108,6 +108,29 @@ function get_suffix_size(code: string, start_offset: number): number {
     return current_offset - start_offset;
 }
 
+function scan_newlines(code: string, start_offset: number): { newlines: number, processed_characters: number } {
+
+    let newlines = 0;
+
+    for (let index = start_offset; index < code.length; ++index) {
+        const character = code[index];
+        if (is_new_line(character)) {
+            newlines += 1;
+        }
+        else if (!is_whitespace_or_new_line(character)) {
+            return {
+                newlines: newlines,
+                processed_characters: index - start_offset
+            };
+        }
+    }
+
+    return {
+        newlines: newlines,
+        processed_characters: code.length - start_offset
+    };
+}
+
 function scan_comment(code: string, start_offset: number): { word: string, processed_characters: number } {
 
     let ignored_characters = 0;
@@ -416,6 +439,7 @@ export interface Scanned_word {
     value: string;
     type: Grammar.Word_type;
     comments: string[];
+    newlines_after?: number;
 }
 
 export function scan(code: string, start_offset: number, end_offset: number): Scanned_word[] {
@@ -426,12 +450,14 @@ export function scan(code: string, start_offset: number, end_offset: number): Sc
 
     while (current_offset < end_offset) {
         const word_scan_result = scan_word(code, current_offset);
+        current_offset += word_scan_result.processed_characters;
+
+        const newlines_can_result = scan_newlines(code, current_offset);
+        current_offset += newlines_can_result.processed_characters;
 
         if (word_scan_result.word.length > 0) {
-            scanned_words.push({ value: word_scan_result.word, type: word_scan_result.type, comments: word_scan_result.comments });
+            scanned_words.push({ value: word_scan_result.word, type: word_scan_result.type, comments: word_scan_result.comments, newlines_after: newlines_can_result.newlines });
         }
-
-        current_offset += word_scan_result.processed_characters;
     }
 
     return scanned_words;

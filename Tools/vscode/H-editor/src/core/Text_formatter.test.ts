@@ -106,4 +106,11 @@ describe("Text_formatter.to_string", () => {
         const expected_text = "module Comments_in_unions;\n\n// Union comment\n// Another line\nunion My_union\n{\n    // This is a int\n    a: Int32;\n    b: Int32;\n    // Another int\n    // Another line\n    c: Int32;\n\n}\n";
         assert.equal(actual_text, expected_text);
     });
+
+    it("Preserves newlines after statements", () => {
+        const module = Module_examples.create_newlines_after_statements();
+        const actual_text = run_text_formatter(module);
+        const expected_text = "module Newlines_after_statements;\n\nfunction use_newlines() -> ()\n{\n    var i = 0;\n    var j = 1;\n\n    var k = 2;\n\n    // A comment\n    var l = 3;\n\n\n    var m = 4;\n\n}\n\n";
+        assert.equal(actual_text, expected_text);
+    });
 });

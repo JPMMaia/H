@@ -1598,6 +1598,8 @@ export function run_breaks(size: Int32) -> ()
         const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
+        console.log(new_document_state.text);
+
         const expected_module = Module_examples.create_break_expressions();
         assert.deepEqual(new_document_state.module, expected_module);
     });
@@ -2122,6 +2124,46 @@ union My_union
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_comments_in_unions();
+        assert.deepEqual(new_document_state.module, expected_module);
+    });
+
+    it("Handles newlines after statements", () => {
+
+        const document_state = Document.create_empty_state(language_description.production_rules);
+
+        const program = `
+module Newlines_after_statements;
+
+function use_newlines() -> ()
+{
+    var i = 0;
+    var j = 1;
+
+    var k = 2;
+
+    // A comment
+    var l = 3;
+
+
+    var m = 4;
+
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_newlines_after_statements();
         assert.deepEqual(new_document_state.module, expected_module);
     });
 });

@@ -178,7 +178,8 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
         choose_production_rule: choose_production_rule,
         create_module_changes_map: create_module_changes_map,
         node_to_core_object_map: node_to_core_object_map,
-        extract_comments_from_stack: extract_comments_from_stack
+        extract_comments_from_stack: extract_comments_from_stack,
+        extract_newlines_after_terminal_from_stack: extract_newlines_after_terminal_from_stack
     };
 }
 
@@ -2100,6 +2101,11 @@ function node_to_statement(node: Parser_node.Node, key_to_production_rule_indice
         output.comment = comments;
     }
 
+    const newlines_after = get_newlines_after_last_descendant(node);
+    if (newlines_after > 1) {
+        output.newlines_after = newlines_after;
+    }
+
     return output;
 }
 
@@ -3209,4 +3215,32 @@ function extract_comments_from_stack(
     }
 
     return comments;
+}
+
+function extract_newlines_after_terminal_from_stack(
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    production_rules: Grammar.Production_rule[],
+    terminal: string
+): number | undefined {
+
+    if (terminal !== ";" && terminal !== "}") {
+        return undefined;
+    }
+
+    for (let stack_index = 0; stack_index < stack.length; ++stack_index) {
+        const element_index = stack.length - stack_index - 1;
+        const element = stack[element_index];
+
+        if (element.node.word.value === "Statement") {
+            const statement = get_statement_from_stack(stack, element_index - 1, production_rules);
+            return statement.newlines_after !== undefined ? statement.newlines_after : 1;
+        }
+    }
+
+    return undefined;
+}
+
+function get_newlines_after_last_descendant(node: Parser_node.Node): number {
+    const rightmost_terminal_node = Parser_node.get_rightmost_terminal_descendant(node);
+    return rightmost_terminal_node.newlines_after !== undefined ? rightmost_terminal_node.newlines_after : 0;
 }

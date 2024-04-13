@@ -258,4 +258,27 @@ describe("Scanner.scan", () => {
         assert.equal(scanned_words[1].type, Grammar.Word_type.Alphanumeric);
         assert.deepEqual(scanned_words[1].comments, []);
     });
+
+    it("Scans newlines as information of the previous token", () => {
+        const input = "var i = 0;\nvar j = 1;\n\n";
+        const scanned_words = Scanner.scan(input, 0, input.length);
+
+        assert.equal(scanned_words.length, 10);
+
+        assert.equal(scanned_words[0].value, "var");
+        assert.equal(scanned_words[0].type, Grammar.Word_type.Alphanumeric);
+        assert.equal(scanned_words[0].newlines_after, 0);
+
+        assert.equal(scanned_words[4].value, ";");
+        assert.equal(scanned_words[4].type, Grammar.Word_type.Symbol);
+        assert.equal(scanned_words[4].newlines_after, 1);
+
+        assert.equal(scanned_words[5].value, "var");
+        assert.equal(scanned_words[5].type, Grammar.Word_type.Alphanumeric);
+        assert.equal(scanned_words[5].newlines_after, 0);
+
+        assert.equal(scanned_words[9].value, ";");
+        assert.equal(scanned_words[9].type, Grammar.Word_type.Symbol);
+        assert.equal(scanned_words[9].newlines_after, 2);
+    });
 });
