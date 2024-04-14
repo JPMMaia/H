@@ -2001,7 +2001,7 @@ export function create_if_expressions(): IR.Module {
                                 IR.create_call_expression(
                                     IR.create_access_expression(IR.create_variable_expression("stdio", IR.Access_type.Read), "printf", IR.Access_type.Read),
                                     [
-                                        IR.create_constant_expression(c_string_type, "%s\n"),
+                                        IR.create_constant_expression(c_string_type, "%s\\n"),
                                         IR.create_variable_expression("message", IR.Access_type.Read)
                                     ]
                                 )

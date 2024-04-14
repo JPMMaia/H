@@ -71,10 +71,15 @@ function should_add_new_line_before(state: State, current_word: Scanner.Scanned_
         }
     }
     else if (state === State.Statements) {
-        return 0;
+        if (current_word.value === "{") {
+            return 1;
+        }
+        else {
+            return 0;
+        }
     }
 
-    return current_word.value === "{" || (current_word.value === "}" && previous_word.value !== "{") ? 1 : 0;
+    return current_word.value === "{" || (current_word.value === "}" && (previous_word.value !== "{" && previous_word.value !== "}")) ? 1 : 0;
 }
 
 function should_add_new_line_after(state: State, current_word: Scanner.Scanned_word, previous_word: Scanner.Scanned_word): number {
@@ -116,7 +121,12 @@ function should_add_new_line_after(state: State, current_word: Scanner.Scanned_w
         }
     }
     else if (state === State.Statements) {
-        return current_word.newlines_after !== undefined ? current_word.newlines_after : 0;
+        if (current_word.value === "{") {
+            return 1;
+        }
+        else {
+            return current_word.newlines_after !== undefined ? current_word.newlines_after : 0;
+        }
     }
     else if (state === State.Struct) {
         if (current_word.value === ";") {

@@ -1301,7 +1301,7 @@ import C.stdio as stdio;
 
 function print_message(message: *C_char) -> ()
 {
-    stdio.printf("%s\n"c, message);
+    stdio.printf("%s\\n"c, message);
 }
 
 export function run_ifs(value: Int32) -> ()
