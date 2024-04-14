@@ -3233,6 +3233,15 @@ function extract_newlines_after_terminal_from_stack(
 
         if (element.node.word.value === "Statement") {
             const statement = get_statement_from_stack(stack, element_index - 1, production_rules);
+
+            if (statement.expression.data.type === Core_intermediate_representation.Expression_enum.If_expression) {
+                const if_expression = statement.expression.data.value as Core_intermediate_representation.If_expression;
+                const serie_index = Parse_tree_convertor.get_if_serie_index(stack);
+                if (serie_index + 1 < if_expression.series.length) {
+                    return 1;
+                }
+            }
+
             return statement.newlines_after !== undefined ? statement.newlines_after : 1;
         }
     }
@@ -3241,6 +3250,9 @@ function extract_newlines_after_terminal_from_stack(
 }
 
 function get_newlines_after_last_descendant(node: Parser_node.Node): number {
-    const rightmost_terminal_node = Parser_node.get_rightmost_terminal_descendant(node);
-    return rightmost_terminal_node.newlines_after !== undefined ? rightmost_terminal_node.newlines_after : 0;
+    const rightmost_terminal = Parser_node.get_rightmost_descendant_terminal_node(node, []);
+    if (rightmost_terminal === undefined) {
+        return 0;
+    }
+    return rightmost_terminal.node.word.newlines_after !== undefined ? rightmost_terminal.node.word.newlines_after : 0;
 }

@@ -224,6 +224,15 @@ export function get_rightmost_descendant(node: Node, position: number[]): { node
     };
 }
 
+export function get_rightmost_descendant_terminal_node(node: Node, position: number[]): { node: Node, position: number[] } | undefined {
+    const rightmost_descendant = get_rightmost_descendant(node, position);
+    if (is_terminal_node(rightmost_descendant.node)) {
+        return rightmost_descendant;
+    }
+
+    return get_previous_node_with_condition(node, rightmost_descendant.node, rightmost_descendant.position, is_terminal_node);
+}
+
 export function get_leftmost_descendant(node: Node, position: number[]): { node: Node, position: number[] } {
     if (node.children.length === 0) {
         return {
