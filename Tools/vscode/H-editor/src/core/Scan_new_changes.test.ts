@@ -662,7 +662,7 @@ describe("Scan_new_changes.scan_new_change", () => {
         if (result.start_change !== undefined) {
             assert.deepEqual(result.start_change.node_position, [1]);
         }
-        assert.deepEqual(result.new_words, [{ value: "Declaration_0_5", type: Grammar.Word_type.Alphanumeric, comments: [], newlines_after: 0 }]);
+        assert.deepEqual(result.new_words, [{ value: "Declaration_0_5", type: Grammar.Word_type.Alphanumeric, comments: [], newlines_after: 1 }]);
         assert.notEqual(result.after_change, undefined);
         if (result.after_change !== undefined) {
             assert.deepEqual(result.after_change.node_position, [1]);
