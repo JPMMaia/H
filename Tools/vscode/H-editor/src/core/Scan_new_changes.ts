@@ -102,6 +102,28 @@ function try_to_skip_last_word_and_calculate_after_change_node(root: Node, befor
     return after;
 }
 
+function calculate_end_text_offset_after_newlines(
+    text: string,
+    end_text_offset: number,
+    new_text: string
+): { new_text: string, end_text_offset: number } {
+
+    for (let offset = end_text_offset; offset < text.length; ++offset) {
+        const character = text[offset];
+        if (!Scanner.is_whitespace_or_new_line(character)) {
+            return {
+                new_text: new_text + text.substring(end_text_offset, offset),
+                end_text_offset: offset
+            };
+        }
+    }
+
+    return {
+        new_text: new_text + text.substring(end_text_offset, text.length),
+        end_text_offset: text.length
+    };
+}
+
 export function scan_new_change(
     root: Node | undefined,
     text: string,
@@ -118,6 +140,11 @@ export function scan_new_change(
             new_words: new_words
         };
     }
+
+    // Add new lines after:
+    const after_newlines_text = calculate_end_text_offset_after_newlines(text, end_text_offset, new_text);
+    new_text = after_newlines_text.new_text;
+    end_text_offset = after_newlines_text.end_text_offset;
 
     // Find iterator before start text position:
     const before_iterator = get_node_before_text_position(root, text, start_text_offset);
