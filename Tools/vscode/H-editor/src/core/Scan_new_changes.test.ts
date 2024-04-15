@@ -702,4 +702,38 @@ describe("Scan_new_changes.scan_new_change", () => {
             assert.deepEqual(result.after_change.node_position, [0]);
         }
     });
+
+    it("Scans change with comments", () => {
+
+        const parse_tree = create_parse_node(
+            "S",
+            [
+                create_parse_node("module", [])
+            ]
+        );
+        const text = "module";
+
+        const start_text_offset = 0;
+        const end_text_offset = 0;
+
+        const new_text = "// A comment\n// Another comment\n";
+
+        const result = scan_new_change(
+            parse_tree,
+            text,
+            start_text_offset,
+            end_text_offset,
+            new_text
+        );
+
+        assert.notEqual(result.start_change, undefined);
+        if (result.start_change !== undefined) {
+            assert.deepEqual(result.start_change.node_position, []);
+        }
+        assert.deepEqual(result.new_words, [{ value: "module", type: Grammar.Word_type.Alphanumeric, comments: ["A comment", "Another comment"], newlines_after: 0 }]);
+        assert.notEqual(result.after_change, undefined);
+        if (result.after_change !== undefined) {
+            assert.deepEqual(result.after_change.node_position, []);
+        }
+    });
 });
