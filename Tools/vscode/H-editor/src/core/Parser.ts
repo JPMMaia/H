@@ -839,35 +839,10 @@ export function parse_incrementally(
                 }
             case Grammar.Action_type.Shift:
                 {
-                    if (current_word_index === new_words.length && original_node_tree !== undefined && start_change_node_position !== undefined && after_change_node_position !== undefined && after_change_node_position.length > 0) {
-
-                        const result = parse_incrementally_after_change(
-                            original_node_tree,
-                            start_change_node_position,
-                            after_change_node_position,
-                            stack,
-                            mark,
-                            parsing_table,
-                            go_to_table,
-                            array_infos,
-                            map_word_to_terminal
-                        );
-
-                        if (result.status === Parse_status.Accept) {
-                            return {
-                                status: Parse_status.Accept,
-                                processed_words: new_words.length + result.processed_words,
-                                changes: result.changes,
-                                messages: []
-                            };
-                        }
-                        else {
-                            return {
-                                status: Parse_status.Failed,
-                                processed_words: 1,
-                                changes: [],
-                                messages: []
-                            };
+                    {
+                        const result = parse_incrementally_after_changes_if_ready(original_node_tree, start_change_node_position, new_words, current_word_index, after_change_node_position, stack, mark, undefined, parsing_table, go_to_table, array_infos, map_word_to_terminal);
+                        if (result !== undefined) {
+                            return result;
                         }
                     }
 
@@ -892,6 +867,13 @@ export function parse_incrementally(
                             changes: [],
                             messages: []
                         };
+                    }
+
+                    {
+                        const result = parse_incrementally_after_changes_if_ready(original_node_tree, start_change_node_position, new_words, current_word_index, after_change_node_position, stack, mark, elements_to_reduce, parsing_table, go_to_table, array_infos, map_word_to_terminal);
+                        if (result !== undefined) {
+                            return result;
+                        }
                     }
 
                     {
@@ -946,6 +928,57 @@ export function parse_incrementally(
         changes: [],
         messages: []
     };
+}
+
+function parse_incrementally_after_changes_if_ready(
+    original_node_tree: Node | undefined,
+    start_change_node_position: number[] | undefined,
+    new_words: Scanner.Scanned_word[],
+    current_word_index: number,
+    after_change_node_position: number[] | undefined,
+    stack: Parsing_stack_element[],
+    mark: Parsing_stack_element,
+    elements_to_reduce: Parsing_stack_element[] | undefined,
+    parsing_table: Grammar.Action_column[][],
+    go_to_table: Grammar.Go_to_column[][],
+    array_infos: Map<string, Grammar.Array_info>,
+    map_word_to_terminal: (word: Scanner.Scanned_word) => string
+): { status: Parse_status, processed_words: number, changes: Change[], messages: string[] } | undefined {
+    if (current_word_index === new_words.length && original_node_tree !== undefined && start_change_node_position !== undefined && after_change_node_position !== undefined && after_change_node_position.length > 0) {
+        if (elements_to_reduce === undefined || elements_to_reduce.length === 0) {
+            const result = parse_incrementally_after_change(
+                original_node_tree,
+                start_change_node_position,
+                after_change_node_position,
+                stack,
+                mark,
+                parsing_table,
+                go_to_table,
+                array_infos,
+                map_word_to_terminal
+            );
+
+            if (result.status === Parse_status.Accept) {
+                return {
+                    status: Parse_status.Accept,
+                    processed_words: new_words.length + result.processed_words,
+                    changes: result.changes,
+                    messages: []
+                };
+            }
+            else {
+                return {
+                    status: Parse_status.Failed,
+                    processed_words: 1,
+                    changes: [],
+                    messages: []
+                };
+            }
+        }
+    }
+    else {
+        return undefined;
+    }
 }
 
 function apply_shift(
