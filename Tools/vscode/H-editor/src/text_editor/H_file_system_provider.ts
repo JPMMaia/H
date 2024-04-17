@@ -50,7 +50,7 @@ export class H_file_system_provider implements vscode.FileSystemProvider {
         if (data.length === 0) {
             const module = Module_examples.create_empty();
             module.name = this.createNameFromFileUri(file_uri);
-            return module;
+            return Core_intermediate_interface.create_core_module(module, { major: 0, minor: 0, patch: 1 });
         }
 
         const utf8_data = Buffer.from(data).toString("utf8");
