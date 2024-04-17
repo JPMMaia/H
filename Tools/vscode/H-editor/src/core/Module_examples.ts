@@ -1557,10 +1557,10 @@ export function create_pointer_types(): IR.Module {
 export function create_block_expressions(): IR.Module {
 
     const statements: IR.Statement[] = [
-        create_statement(IR.create_variable_declaration_expression("a", false, IR.create_constant_expression(create_integer_type(32, true), "0")), undefined, 2),
+        create_statement(IR.create_variable_declaration_expression("a", false, IR.create_constant_expression(create_integer_type(32, true), "0")), 2),
         create_statement(IR.create_block_expression([
             create_statement(IR.create_variable_declaration_expression("b", false, IR.create_variable_expression("a", IR.Access_type.Read))),
-        ]), undefined, 2),
+        ]), 2),
         create_statement(IR.create_variable_declaration_expression("b", false, IR.create_variable_expression("a", IR.Access_type.Read))),
     ];
 
@@ -1618,7 +1618,6 @@ export function create_for_loop_expressions(): IR.Module {
                     )
                 ]
             ),
-            undefined,
             2
         ),
         create_statement(
@@ -1639,7 +1638,6 @@ export function create_for_loop_expressions(): IR.Module {
                     )
                 ]
             ),
-            undefined,
             2
         ),
         create_statement(
@@ -1663,7 +1661,6 @@ export function create_for_loop_expressions(): IR.Module {
                     )
                 ]
             ),
-            undefined,
             2
         ),
         create_statement(
@@ -1785,7 +1782,6 @@ export function create_if_expressions(): IR.Module {
                     }
                 ]
             ),
-            undefined,
             2
         ),
         create_statement(
@@ -1831,7 +1827,6 @@ export function create_if_expressions(): IR.Module {
                     }
                 ]
             ),
-            undefined,
             2
         ),
         create_statement(
@@ -1871,7 +1866,6 @@ export function create_if_expressions(): IR.Module {
                     }
                 ]
             ),
-            undefined,
             2
         ),
         create_statement(
@@ -1930,7 +1924,6 @@ export function create_if_expressions(): IR.Module {
                     }
                 ]
             ),
-            undefined,
             2
         ),
         create_statement(
@@ -2064,7 +2057,6 @@ export function create_switch_expressions(): IR.Module {
                     }
                 ]
             ),
-            undefined,
             2
         ),
         create_statement(
@@ -2119,7 +2111,6 @@ export function create_switch_expressions(): IR.Module {
                     },
                 ],
             ),
-            undefined,
             2
         ),
         create_statement(
@@ -2142,7 +2133,6 @@ export function create_switch_expressions(): IR.Module {
                     },
                 ]
             ),
-            undefined,
             2
         ),
         create_statement(
@@ -2331,7 +2321,6 @@ export function create_while_loop_expressions(): IR.Module {
                     )
                 ]
             ),
-            undefined,
             2
         ),
         create_statement(
@@ -2375,7 +2364,6 @@ export function create_while_loop_expressions(): IR.Module {
                                             }
                                         ]
                                     ),
-                                    undefined,
                                     2
                                 ),
                                 create_statement(
@@ -2397,7 +2385,6 @@ export function create_while_loop_expressions(): IR.Module {
                                             }
                                         ]
                                     ),
-                                    undefined,
                                     2
                                 ),
                                 create_statement(
@@ -2526,7 +2513,6 @@ export function create_break_expressions(): IR.Module {
                                 }
                             ]
                         ),
-                        undefined,
                         2
                     ),
                     create_statement(
@@ -2539,7 +2525,6 @@ export function create_break_expressions(): IR.Module {
                     ),
                 ]
             ),
-            undefined,
             2
         ),
         create_statement(
@@ -2558,7 +2543,6 @@ export function create_break_expressions(): IR.Module {
                             true,
                             IR.create_constant_expression(int32_type, "0")
                         ),
-                        undefined,
                         2
                     ),
                     create_statement(
@@ -2590,7 +2574,6 @@ export function create_break_expressions(): IR.Module {
                                             }
                                         ]
                                     ),
-                                    undefined,
                                     2
                                 ),
                                 create_statement(
@@ -2610,7 +2593,6 @@ export function create_break_expressions(): IR.Module {
                                 )
                             ]
                         ),
-                        undefined,
                         2
                     ),
                     create_statement(
@@ -2623,7 +2605,6 @@ export function create_break_expressions(): IR.Module {
                     ),
                 ]
             ),
-            undefined,
             2
         ),
         create_statement(
@@ -2642,7 +2623,6 @@ export function create_break_expressions(): IR.Module {
                             true,
                             IR.create_constant_expression(int32_type, "0")
                         ),
-                        undefined,
                         2
                     ),
                     create_statement(
@@ -2674,7 +2654,6 @@ export function create_break_expressions(): IR.Module {
                                             }
                                         ]
                                     ),
-                                    undefined,
                                     2
                                 ),
                                 create_statement(
@@ -2694,7 +2673,6 @@ export function create_break_expressions(): IR.Module {
                                 )
                             ]
                         ),
-                        undefined,
                         2
                     ),
                     create_statement(
@@ -2888,7 +2866,6 @@ export function create_using_enums(): IR.Module {
                                         IR.Access_type.Read
                                     )
                                 ),
-                                undefined,
                                 2
                             ),
                             create_statement(
@@ -2922,7 +2899,6 @@ export function create_using_enums(): IR.Module {
                                                     IR.create_return_expression(
                                                         IR.create_constant_expression(int32_type, "0")
                                                     ),
-                                                    undefined,
                                                     2
                                                 )
                                             ]
@@ -2951,7 +2927,6 @@ export function create_using_enums(): IR.Module {
                                         }
                                     ]
                                 ),
-                                undefined,
                                 2
                             ),
                             create_statement(
@@ -3074,7 +3049,6 @@ export function create_using_enum_flags(): IR.Module {
                                         IR.Binary_operation.Bitwise_xor
                                     )
                                 ),
-                                undefined,
                                 2
                             ),
                             create_statement(
@@ -3098,7 +3072,6 @@ export function create_using_enum_flags(): IR.Module {
                                         }
                                     ]
                                 ),
-                                undefined,
                                 2
                             ),
                             create_statement(
@@ -3126,7 +3099,6 @@ export function create_using_enum_flags(): IR.Module {
                                         }
                                     ]
                                 ),
-                                undefined,
                                 2
                             ),
                             create_statement(
@@ -3154,7 +3126,6 @@ export function create_using_enum_flags(): IR.Module {
                                         }
                                     ]
                                 ),
-                                undefined,
                                 2
                             ),
                             create_statement(
@@ -3182,7 +3153,6 @@ export function create_using_enum_flags(): IR.Module {
                                         }
                                     ]
                                 ),
-                                undefined,
                                 2
                             ),
                             create_statement(
@@ -3312,7 +3282,6 @@ export function create_using_structs(): IR.Module {
                                         IR.Access_type.Read
                                     )
                                 ),
-                                undefined,
                                 2
                             ),
                             create_statement(
@@ -3324,7 +3293,6 @@ export function create_using_structs(): IR.Module {
                                         IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [])
                                     )
                                 ),
-                                undefined,
                                 2
                             ),
                             create_statement(
@@ -3343,7 +3311,6 @@ export function create_using_structs(): IR.Module {
                                         ])
                                     )
                                 ),
-                                undefined,
                                 2
                             ),
                             create_statement(
@@ -3355,7 +3322,6 @@ export function create_using_structs(): IR.Module {
                                         IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [])
                                     )
                                 ),
-                                undefined,
                                 2
                             ),
                             create_statement(
@@ -3399,7 +3365,6 @@ export function create_using_structs(): IR.Module {
                                         ])
                                     )
                                 ),
-                                undefined,
                                 2
                             ),
                             create_statement(
@@ -3416,7 +3381,6 @@ export function create_using_structs(): IR.Module {
                                         IR.Access_type.Read
                                     )
                                 ),
-                                undefined,
                                 2
                             ),
                             create_statement(
@@ -3439,7 +3403,6 @@ export function create_using_structs(): IR.Module {
                                     IR.create_constant_expression(int32_type, "0"),
                                     undefined
                                 ),
-                                undefined,
                                 2
                             ),
                             create_statement(
@@ -3704,7 +3667,6 @@ export function create_using_unions(): IR.Module {
                                         }
                                     ]
                                 ),
-                                undefined,
                                 2
                             ),
                             create_statement(
@@ -3740,7 +3702,6 @@ export function create_using_unions(): IR.Module {
                                         ])
                                     )
                                 ),
-                                undefined,
                                 2
                             ),
                             create_statement(
@@ -3776,7 +3737,6 @@ export function create_using_unions(): IR.Module {
                                         ])
                                     )
                                 ),
-                                undefined,
                                 2
                             ),
                             create_statement(
@@ -3836,7 +3796,6 @@ export function create_using_unions(): IR.Module {
                                         ])
                                     )
                                 ),
-                                undefined,
                                 2
                             ),
                             create_statement(
@@ -3853,7 +3812,6 @@ export function create_using_unions(): IR.Module {
                                         IR.Access_type.Read
                                     )
                                 ),
-                                undefined,
                                 2
                             ),
                             create_statement(
@@ -3886,7 +3844,6 @@ export function create_using_unions(): IR.Module {
                                     ]),
                                     undefined
                                 ),
-                                undefined,
                                 2
                             ),
                             create_statement(
@@ -4084,21 +4041,25 @@ export function create_comments_in_functions(): IR.Module {
                         name: "use_comments",
                         statements: [
                             create_statement(
+                                IR.create_comment_expression("This is a comment")
+                            ),
+                            create_statement(
                                 IR.create_variable_declaration_expression(
                                     "i",
                                     false,
                                     IR.create_constant_expression(int32_type, "0")
                                 ),
-                                "This is a comment",
                                 2
+                            ),
+                            create_statement(
+                                IR.create_comment_expression("This is another comment\nAnd yet another")
                             ),
                             create_statement(
                                 IR.create_variable_declaration_expression(
                                     "x",
                                     false,
                                     IR.create_constant_expression(int32_type, "0")
-                                ),
-                                "This is another comment\nAnd yet another"
+                                )
                             ),
                         ]
                     }
@@ -4237,7 +4198,6 @@ export function create_newlines_after_statements(): IR.Module {
                                     false,
                                     IR.create_constant_expression(int32_type, "1")
                                 ),
-                                undefined,
                                 2
                             ),
                             create_statement(
@@ -4246,8 +4206,10 @@ export function create_newlines_after_statements(): IR.Module {
                                     false,
                                     IR.create_constant_expression(int32_type, "2")
                                 ),
-                                undefined,
                                 2
+                            ),
+                            create_statement(
+                                IR.create_comment_expression("A comment")
                             ),
                             create_statement(
                                 IR.create_variable_declaration_expression(
@@ -4255,7 +4217,6 @@ export function create_newlines_after_statements(): IR.Module {
                                     false,
                                     IR.create_constant_expression(int32_type, "3")
                                 ),
-                                "A comment",
                                 3
                             ),
                             create_statement(
@@ -4264,7 +4225,6 @@ export function create_newlines_after_statements(): IR.Module {
                                     false,
                                     IR.create_constant_expression(int32_type, "4")
                                 ),
-                                undefined,
                                 2
                             ),
                         ]
@@ -4322,15 +4282,11 @@ function create_pointer_type(element_type: IR.Type_reference[], is_mutable: bool
     };
 }
 
-function create_statement(expression: IR.Expression, comment?: string, newlines_after?: number): IR.Statement {
+function create_statement(expression: IR.Expression, newlines_after?: number): IR.Statement {
 
     const statement: IR.Statement = {
         expression: expression
     };
-
-    if (comment !== undefined) {
-        statement.comment = comment;
-    }
 
     if (newlines_after !== undefined) {
         statement.newlines_after = newlines_after;

@@ -312,6 +312,7 @@ export enum Expression_enum {
     Break_expression = "Break_expression",
     Call_expression = "Call_expression",
     Cast_expression = "Cast_expression",
+    Comment_expression = "Comment_expression",
     Constant_expression = "Constant_expression",
     Constant_array_expression = "Constant_array_expression",
     Continue_expression = "Continue_expression",
@@ -1163,6 +1164,42 @@ export function create_cast_expression(source: Expression, destination_type: Typ
         }
     };
 }
+export interface Comment_expression {
+    comment: string;
+}
+
+function core_to_intermediate_comment_expression(core_value: Core.Comment_expression, statement: Core.Statement): Comment_expression {
+    return {
+        comment: core_value.comment,
+    };
+}
+
+function intermediate_to_core_comment_expression(intermediate_value: Comment_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
+    const core_value: Core.Expression = {
+        data: {
+            type: Core.Expression_enum.Comment_expression,
+            value: {
+                comment: intermediate_value.comment,
+            }
+        }
+    };
+
+    expressions[index] = core_value;
+}
+
+export function create_comment_expression(comment: string): Expression {
+    const comment_expression: Comment_expression = {
+        comment: comment,
+    };
+    return {
+        data: {
+            type: Expression_enum.Comment_expression,
+            value: comment_expression
+        }
+    };
+}
 export interface Constant_expression {
     type: Type_reference;
     data: string;
@@ -1932,7 +1969,7 @@ export function create_while_loop_expression(condition: Statement, then_statemen
     };
 }
 export interface Expression {
-    data: Variant<Expression_enum, Access_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Constant_expression | Constant_array_expression | Continue_expression | For_loop_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
+    data: Variant<Expression_enum, Access_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Comment_expression | Constant_expression | Constant_array_expression | Continue_expression | For_loop_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
 }
 
 function core_to_intermediate_expression(core_value: Core.Expression, statement: Core.Statement): Expression {
@@ -1990,6 +2027,14 @@ function core_to_intermediate_expression(core_value: Core.Expression, statement:
                 data: {
                     type: core_value.data.type,
                     value: core_to_intermediate_cast_expression(core_value.data.value as Core.Cast_expression, statement)
+                }
+            };
+        }
+        case Core.Expression_enum.Comment_expression: {
+            return {
+                data: {
+                    type: core_value.data.type,
+                    value: core_to_intermediate_comment_expression(core_value.data.value as Core.Comment_expression, statement)
                 }
             };
         }
@@ -2160,6 +2205,10 @@ function intermediate_to_core_expression(intermediate_value: Expression, express
         }
         case Expression_enum.Cast_expression: {
             intermediate_to_core_cast_expression(intermediate_value.data.value as Cast_expression, expressions);
+            break;
+        }
+        case Expression_enum.Comment_expression: {
+            intermediate_to_core_comment_expression(intermediate_value.data.value as Comment_expression, expressions);
             break;
         }
         case Expression_enum.Constant_expression: {

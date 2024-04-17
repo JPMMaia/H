@@ -103,6 +103,7 @@ export enum Expression_enum {
     Break_expression = "Break_expression",
     Call_expression = "Call_expression",
     Cast_expression = "Cast_expression",
+    Comment_expression = "Comment_expression",
     Constant_expression = "Constant_expression",
     Constant_array_expression = "Constant_array_expression",
     Continue_expression = "Continue_expression",
@@ -258,6 +259,10 @@ export interface Cast_expression {
     cast_type: Cast_type;
 }
 
+export interface Comment_expression {
+    comment: string;
+}
+
 export interface Constant_expression {
     type: Type_reference;
     data: string;
@@ -354,7 +359,7 @@ export interface While_loop_expression {
 }
 
 export interface Expression {
-    data: Variant<Expression_enum, Access_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Constant_expression | Constant_array_expression | Continue_expression | For_loop_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
+    data: Variant<Expression_enum, Access_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Comment_expression | Constant_expression | Constant_array_expression | Continue_expression | For_loop_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
 }
 
 export interface Function_declaration {

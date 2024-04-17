@@ -755,8 +755,8 @@ describe("Parser.parse_incrementally", () => {
 
         const second_input = "module_name_2";
         const second_scanned_words = Scanner.scan(second_input, 0, second_input.length);
-        const start_change_node_position: number[] = [0, 0, 1, 0];
-        const after_change_node_position: number[] = [0, 0, 2];
+        const start_change_node_position: number[] = [0, 0, 2, 0];
+        const after_change_node_position: number[] = [0, 0, 3];
 
         // Expected steps:
         // shift [[0,$], [3,module] | [14,module_name_2]] 
@@ -786,16 +786,22 @@ describe("Parser.parse_incrementally", () => {
 
         const module_declaration_node = modify_change.new_node;
         assert.equal(module_declaration_node.word.value, "Module_declaration");
-        assert.equal(module_declaration_node.children.length, 3);
+        assert.equal(module_declaration_node.children.length, 4);
 
         {
-            const module_keyword_node = module_declaration_node.children[0];
+            const comments_node = module_declaration_node.children[0];
+            assert.equal(comments_node.word.value, "Comment_or_empty");
+            assert.equal(comments_node.children.length, 0);
+        }
+
+        {
+            const module_keyword_node = module_declaration_node.children[1];
             assert.equal(module_keyword_node.word.value, "module");
             assert.equal(module_keyword_node.children.length, 0);
         }
 
         {
-            const module_name_node = module_declaration_node.children[1];
+            const module_name_node = module_declaration_node.children[2];
             assert.equal(module_name_node.word.value, "Module_name");
             assert.equal(module_name_node.children.length, 1);
 
@@ -813,7 +819,7 @@ describe("Parser.parse_incrementally", () => {
         }
 
         {
-            const semicolon_node = module_declaration_node.children[2];
+            const semicolon_node = module_declaration_node.children[3];
             assert.equal(semicolon_node.word.value, ";");
             assert.equal(semicolon_node.children.length, 0);
         }

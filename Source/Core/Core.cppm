@@ -302,6 +302,13 @@ namespace h
         friend auto operator<=>(Cast_expression const&, Cast_expression const&) = default;
     };
 
+    export struct Comment_expression
+    {
+        std::pmr::string comment;
+
+        friend auto operator<=>(Comment_expression const&, Comment_expression const&) = default;
+    };
+
     export struct Constant_expression
     {
         Type_reference type;
@@ -481,6 +488,7 @@ namespace h
             Break_expression,
             Call_expression,
             Cast_expression,
+            Comment_expression,
             Constant_expression,
             Constant_array_expression,
             Continue_expression,
