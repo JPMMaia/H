@@ -37,7 +37,24 @@ else if (command === "write") {
 
     const language_description = Language.create_default_description(cache);
     const scanned_words = Scanner.scan(input_text, 0, input_text.length);
-    const parse_tree = Parser.parse(scanned_words, language_description.actions_table, language_description.go_to_table, language_description.array_infos, language_description.map_word_to_terminal);
+
+    const parse_tree_result = Parser.parse_incrementally(
+        undefined,
+        undefined,
+        scanned_words,
+        undefined,
+        language_description.actions_table,
+        language_description.go_to_table,
+        language_description.array_infos,
+        language_description.map_word_to_terminal
+    );
+
+    if (parse_tree_result.status === Parser.Parse_status.Accept) {
+        const messages = parse_tree_result.messages.join("\n");
+        throw Error(`Failed to parse:\n${messages}`);
+    }
+
+    const parse_tree = (parse_tree_result.changes[0].value as Parser.Modify_change).new_node;
 
     const module = Parse_tree_convertor.parse_tree_to_module(parse_tree, language_description.production_rules, language_description.mappings, language_description.key_to_production_rule_indices);
     const core_module = Core_intermediate_representation.create_core_module(module, Language_version.language_version);
