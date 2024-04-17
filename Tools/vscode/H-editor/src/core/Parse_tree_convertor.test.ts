@@ -95,23 +95,29 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
         {
             const module_head = parse_tree.children[0];
             assert.equal(module_head.word.value, "Module_head");
-            assert.equal(module_head.production_rule_index, 3);
+            assert.equal(module_head.production_rule_index, 5);
 
             {
                 const module_declaration = module_head.children[0];
                 assert.equal(module_declaration.word.value, "Module_declaration");
-                assert.equal(module_declaration.production_rule_index, 4);
+                assert.equal(module_declaration.production_rule_index, 6);
 
                 {
-                    const module_keyword = module_declaration.children[0];
+                    const comment_node = module_declaration.children[0];
+                    assert.equal(comment_node.word.value, "Comment_or_empty");
+                    assert.equal(comment_node.children.length, 0);
+                }
+
+                {
+                    const module_keyword = module_declaration.children[1];
                     assert.equal(module_keyword.word.value, "module");
                     assert.equal(module_keyword.production_rule_index, undefined);
                 }
 
                 {
-                    const module_name = module_declaration.children[1];
+                    const module_name = module_declaration.children[2];
                     assert.equal(module_name.word.value, "Module_name");
-                    assert.equal(module_name.production_rule_index, 5);
+                    assert.equal(module_name.production_rule_index, 7);
 
                     const identifier_with_dots = module_name.children[0];
                     assert.equal(identifier_with_dots.word.value, "Identifier_with_dots");
@@ -123,7 +129,7 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                 }
 
                 {
-                    const semicolon = module_declaration.children[2];
+                    const semicolon = module_declaration.children[3];
                     assert.equal(semicolon.word.value, ";");
                     assert.equal(semicolon.production_rule_index, undefined);
                 }
@@ -146,9 +152,15 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
 
                     const alias_declaration = module_declarations[declaration_index].value as Core_intermediate_representation.Alias_type_declaration;
 
-                    assert.equal(declaration_node.children.length, 1);
+                    assert.equal(declaration_node.children.length, 2);
 
-                    const alias_node = declaration_node.children[0];
+                    {
+                        const comment_node = declaration_node.children[0];
+                        assert.equal(comment_node.word.value, "Comment_or_empty");
+                        assert.equal(comment_node.children.length, 0);
+                    }
+
+                    const alias_node = declaration_node.children[1];
                     assert.equal(alias_node.word.value, "Alias");
 
                     assert.equal(alias_node.children.length, 6);
@@ -185,9 +197,15 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
 
                     const enum_declaration = module_declarations[declaration_index].value as Core_intermediate_representation.Enum_declaration;
 
-                    assert.equal(declaration_node.children.length, 1);
+                    assert.equal(declaration_node.children.length, 2);
 
-                    const enum_node = declaration_node.children[0];
+                    {
+                        const comment_node = declaration_node.children[0];
+                        assert.equal(comment_node.word.value, "Comment_or_empty");
+                        assert.equal(comment_node.children.length, 0);
+                    }
+
+                    const enum_node = declaration_node.children[1];
                     assert.equal(enum_node.word.value, "Enum");
 
                     assert.equal(enum_node.children.length === 6, true);
@@ -215,13 +233,19 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                         const value_node = values_node.children[member_index];
 
                         {
-                            const value_name_node = value_node.children[0];
+                            const comment_node = value_node.children[0];
+                            assert.equal(comment_node.word.value, "Comment_or_empty");
+                            assert.equal(comment_node.children.length, 0);
+                        }
+
+                        {
+                            const value_name_node = value_node.children[1];
                             const identifier_node = value_name_node.children[0];
                             assert.equal(identifier_node.word.value, value.name);
                         }
 
                         {
-                            const generic_expression_0 = value_node.children[2];
+                            const generic_expression_0 = value_node.children[3];
                             assert.equal(generic_expression_0.word.value, "Generic_expression");
                             assert.equal(generic_expression_0.children.length, 1);
 
@@ -242,9 +266,15 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                     const function_value = module_declarations[declaration_index].value as Core_intermediate_representation.Function;
                     const function_declaration = function_value.declaration;
 
-                    assert.equal(declaration_node.children.length, 1);
+                    assert.equal(declaration_node.children.length, 2);
 
-                    const function_node = declaration_node.children[0];
+                    {
+                        const comment_node = declaration_node.children[0];
+                        assert.equal(comment_node.word.value, "Comment_or_empty");
+                        assert.equal(comment_node.children.length, 0);
+                    }
+
+                    const function_node = declaration_node.children[1];
                     assert.equal(function_node.word.value, "Function");
 
                     assert.equal(function_node.children.length, 2);
@@ -407,9 +437,15 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
 
                     const struct_declaration = module_declarations[declaration_index].value as Core_intermediate_representation.Struct_declaration;
 
-                    assert.equal(declaration_node.children.length, 1);
+                    assert.equal(declaration_node.children.length, 2);
 
-                    const struct_node = declaration_node.children[0];
+                    {
+                        const comment_node = declaration_node.children[0];
+                        assert.equal(comment_node.word.value, "Comment_or_empty");
+                        assert.equal(comment_node.children.length, 0);
+                    }
+
+                    const struct_node = declaration_node.children[1];
                     assert.equal(struct_node.word.value, "Struct");
 
                     assert.equal(struct_node.children.length === 6, true);
@@ -439,13 +475,19 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                         const member_node = members_node.children[member_index];
 
                         {
-                            const member_name_node = member_node.children[0];
+                            const comment_node = member_node.children[0];
+                            assert.equal(comment_node.word.value, "Comment_or_empty");
+                            assert.equal(comment_node.children.length, 0);
+                        }
+
+                        {
+                            const member_name_node = member_node.children[1];
                             const identifier_node = member_name_node.children[0];
                             assert.equal(identifier_node.word.value, member_name);
                         }
 
                         {
-                            const member_type_node = member_node.children[2];
+                            const member_type_node = member_node.children[3];
                             assert.equal(member_type_node.word.value, "Struct_member_type");
 
                             const type_node = member_type_node.children[0];
@@ -459,7 +501,7 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                         }
 
                         {
-                            const member_default_value_node = member_node.children[4];
+                            const member_default_value_node = member_node.children[5];
                             assert.equal(member_default_value_node.word.value, "Generic_expression_or_instantiate");
 
                             const generic_expression_node = member_default_value_node.children[0];
@@ -632,9 +674,15 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
 
             const declaration_node = module_body.children[0];
 
-            assert.equal(declaration_node.children.length, 1);
+            assert.equal(declaration_node.children.length, 2);
 
-            const alias_node = declaration_node.children[0];
+            {
+                const comment_node = declaration_node.children[0];
+                assert.equal(comment_node.word.value, "Comment_or_empty");
+                assert.equal(comment_node.children.length, 0);
+            }
+
+            const alias_node = declaration_node.children[1];
             assert.equal(alias_node.word.value, "Alias");
 
             assert.equal(alias_node.children.length, 6);
@@ -693,9 +741,15 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
             const enum_declaration = declaration.value as Core_intermediate_representation.Enum_declaration;
 
             const declaration_node = module_body.children[0];
-            assert.equal(declaration_node.children.length, 1);
+            assert.equal(declaration_node.children.length, 2);
 
-            const enum_node = declaration_node.children[0];
+            {
+                const comment_node = declaration_node.children[0];
+                assert.equal(comment_node.word.value, "Comment_or_empty");
+                assert.equal(comment_node.children.length, 0);
+            }
+
+            const enum_node = declaration_node.children[1];
             assert.equal(enum_node.word.value, "Enum");
 
             assert.equal(enum_node.children.length === 6, true);
@@ -723,13 +777,19 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                 const value_node = values_node.children[member_index];
 
                 {
-                    const value_name_node = value_node.children[0];
+                    const comment_node = value_node.children[0];
+                    assert.equal(comment_node.word.value, "Comment_or_empty");
+                    assert.equal(comment_node.children.length, 0);
+                }
+
+                {
+                    const value_name_node = value_node.children[1];
                     const identifier_node = value_name_node.children[0];
                     assert.equal(identifier_node.word.value, value.name);
                 }
 
                 {
-                    const generic_expression_0 = value_node.children[2];
+                    const generic_expression_0 = value_node.children[3];
                     assert.equal(generic_expression_0.word.value, "Generic_expression");
                     assert.equal(generic_expression_0.children.length, 1);
 
@@ -767,7 +827,14 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
         assert.equal(module_body.children.length, 1);
 
         const declaration_node = module_body.children[0];
-        const function_node = declaration_node.children[0];
+
+        {
+            const comment_node = declaration_node.children[0];
+            assert.equal(comment_node.word.value, "Comment_or_empty");
+            assert.equal(comment_node.children.length, 0);
+        }
+
+        const function_node = declaration_node.children[1];
         assert.equal(function_node.word.value, "Function");
 
         {
@@ -1007,7 +1074,7 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
         assert.equal(module_body.children.length, 1);
 
         const declaration_node = module_body.children[0];
-        const function_node = declaration_node.children[0];
+        const function_node = declaration_node.children[1];
         const funtion_definition = function_node.children[1];
         const block_node = funtion_definition.children[0];
         const statements_node = block_node.children[1];
@@ -1112,9 +1179,15 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
             const struct_declaration = declaration.value as Core_intermediate_representation.Struct_declaration;
 
             const declaration_node = module_body.children[0];
-            assert.equal(declaration_node.children.length, 1);
+            assert.equal(declaration_node.children.length, 2);
 
-            const struct_node = declaration_node.children[0];
+            {
+                const comment_node = declaration_node.children[0];
+                assert.equal(comment_node.word.value, "Comment_or_empty");
+                assert.equal(comment_node.children.length, 0);
+            }
+
+            const struct_node = declaration_node.children[1];
             assert.equal(struct_node.word.value, "Struct");
 
             assert.equal(struct_node.children.length === 6, true);
@@ -1144,13 +1217,19 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                 const member_node = members_node.children[member_index];
 
                 {
-                    const member_name_node = member_node.children[0];
+                    const comment_node = member_node.children[0];
+                    assert.equal(comment_node.word.value, "Comment_or_empty");
+                    assert.equal(comment_node.children.length, 0);
+                }
+
+                {
+                    const member_name_node = member_node.children[1];
                     const identifier_node = member_name_node.children[0];
                     assert.equal(identifier_node.word.value, member_name);
                 }
 
                 {
-                    const member_type_node = member_node.children[2];
+                    const member_type_node = member_node.children[3];
                     assert.equal(member_type_node.word.value, "Struct_member_type");
 
                     const type_node = member_type_node.children[0];
@@ -1164,7 +1243,7 @@ describe("Parse_tree_convertor.module_to_parse_tree", () => {
                 }
 
                 {
-                    const member_default_value_node = member_node.children[4];
+                    const member_default_value_node = member_node.children[5];
                     assert.equal(member_default_value_node.word.value, "Generic_expression_or_instantiate");
 
                     const generic_expression_node = member_default_value_node.children[0];
@@ -1320,9 +1399,9 @@ describe("Parse_tree_convertor.create_module_changes", () => {
         const module_changes = create_module_changes(
             language_description,
             module,
-            { line: 0, column: 19 },
-            { line: 0, column: 19 },
-            "\nfunction function_name() -> () {}\n"
+            { line: 2, column: 0 },
+            { line: 2, column: 0 },
+            "function function_name() -> () {}\n\n"
         );
 
         assert.equal(module_changes.length, 1);
@@ -1591,9 +1670,9 @@ describe("Parse_tree_convertor.create_module_changes", () => {
         const module_changes = create_module_changes(
             language_description,
             module,
-            { line: 1, column: 0 },
-            { line: 1, column: 0 },
-            "\nstruct Struct_name {}\n"
+            { line: 2, column: 0 },
+            { line: 2, column: 0 },
+            "struct Struct_name {}\n\n"
         );
 
         assert.equal(module_changes.length, 1);
@@ -1690,9 +1769,9 @@ describe("Parse_tree_convertor.create_module_changes", () => {
         const module_changes = create_module_changes(
             language_description,
             module,
-            { line: 1, column: 0 },
-            { line: 1, column: 0 },
-            "\nenum My_enum {}\n"
+            { line: 2, column: 0 },
+            { line: 2, column: 0 },
+            "enum My_enum {}\n\n"
         );
 
         assert.equal(module_changes.length, 1);
@@ -2037,6 +2116,23 @@ describe("Parse_tree_convertor.create_module_changes", () => {
             assert.deepEqual(set_change.value, value);
         }
     });
+
+
+    it("Handles adding a newline after the module declaration", () => {
+
+        const module = Module_examples.create_comments_in_functions();
+
+        const module_changes = create_module_changes(
+            language_description,
+            module,
+            { line: 1, column: 0 },
+            { line: 1, column: 0 },
+            "\n"
+        );
+
+        assert.equal(module_changes.length, 0);
+    });
+
 });
 
 function assert_declarations(actual_declarations: Core_intermediate_representation.Declaration[], expected_declarations: Core_intermediate_representation.Declaration[]) {

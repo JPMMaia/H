@@ -84,6 +84,8 @@ export function create_default_description(
     const mappings = Parse_tree_convertor_mappings.create_mapping();
 
     const terminals_set = new Set<string>(terminals);
+    terminals_set.delete("boolean");
+    terminals_set.delete("comment");
     terminals_set.delete("identifier");
     terminals_set.delete("number");
     terminals_set.delete("string");
@@ -91,6 +93,10 @@ export function create_default_description(
     const map_word_to_terminal = (word: Grammar.Word): string => {
         if (terminals_set.has(word.value)) {
             return word.value;
+        }
+
+        if (word.type === Grammar.Word_type.Comment) {
+            return "comment";
         }
 
         if (word.type === Grammar.Word_type.Alphanumeric) {

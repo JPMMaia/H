@@ -102,151 +102,62 @@ function try_to_skip_last_word_and_calculate_after_change_node(root: Node, befor
     return after;
 }
 
-function is_begin_of_line(
-    text: string,
-    start_text_offset: number
-): boolean {
-    for (let offset_plus_one = start_text_offset; offset_plus_one > 0; --offset_plus_one) {
-        const offset = offset_plus_one - 1;
-        const character = text[offset];
-
-        if (Scanner.is_new_line(character)) {
-            return true;
-        }
-        else if (!Scanner.is_whitespace_or_new_line(character)) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-function get_previous_line(
-    text: string,
-    start_text_offset: number
-): { start_offset: number, end_offset: number } | undefined {
-
-    let end_of_line_offset = -1;
-
-    for (let offset_plus_one = start_text_offset; offset_plus_one > 0; --offset_plus_one) {
-        const offset = offset_plus_one - 1;
-        const character = text[offset];
-
-        if (Scanner.is_new_line(character)) {
-            end_of_line_offset = offset;
-        }
-    }
-
-    if (end_of_line_offset === -1) {
-        return undefined;
-    }
-
-    for (let offset_plus_one = end_of_line_offset; offset_plus_one > 0; --offset_plus_one) {
-        const offset = offset_plus_one - 1;
-        const character = text[offset];
-
-        if (Scanner.is_new_line(character)) {
-            return {
-                start_offset: offset + 1,
-                end_offset: end_of_line_offset
-            };
-        }
-    }
-
-    return {
-        start_offset: 0,
-        end_offset: end_of_line_offset
-    };
-}
-
-function get_comment_start_offset(
-    text: string,
-    start_offset: number,
-    end_offset: number
-): number | undefined {
-    for (let offset = start_offset; offset < end_offset - 1; ++offset) {
-        const character = text[offset];
-        const next_character = text[offset + 1];
-
-        if (character === "/" && next_character === "/") {
-            return offset;
-        }
-    }
-
-    return undefined;
-}
-
-function calculate_start_text_offset_to_include_comments(
-    text: string,
-    start_text_offset: number,
-    new_text: string
-): { new_text: string, start_text_offset: number } {
-
-    if (!is_begin_of_line(text, start_text_offset)) {
-        return {
-            new_text: new_text,
-            start_text_offset: start_text_offset
-        };
-    }
-
-    let new_text_with_comments = new_text;
-    let start_offset_with_comments = start_text_offset;
-
-    while (true) {
-        const previous_line = get_previous_line(text, start_offset_with_comments);
-        if (previous_line === undefined) {
-            return {
-                new_text: new_text_with_comments,
-                start_text_offset: start_offset_with_comments
-            };
-        }
-
-        const comment_start_offset = get_comment_start_offset(text, previous_line.start_offset, previous_line.end_offset);
-
-        if (comment_start_offset === undefined) {
-            return {
-                new_text: new_text_with_comments,
-                start_text_offset: start_offset_with_comments
-            };
-        }
-
-        new_text_with_comments = text.substring(comment_start_offset, start_offset_with_comments) + new_text_with_comments;
-        start_offset_with_comments = previous_line.start_offset;
-    }
-}
-
-function calculate_text_offset_to_include_comments(
+function calculate_text_offset_to_include_newlines(
     text: string,
     start_text_offset: number,
     end_text_offset: number,
     new_text: string
 ): { new_text: string, start_text_offset: number, end_text_offset: number } {
 
-    const new_text_with_comments = calculate_start_text_offset_to_include_comments(text, start_text_offset, new_text);
+    if (new_text.length === 0) {
+        return {
+            new_text: new_text,
+            start_text_offset: start_text_offset,
+            end_text_offset: end_text_offset
+        };
+    }
 
-    // If the new text only contains comments, then we need to add one word so that the scanner can associate the text with it:
-    const previous_line = get_previous_line(new_text_with_comments.new_text, new_text_with_comments.new_text.length);
-    if (previous_line !== undefined) {
-        const is_comment = get_comment_start_offset(new_text_with_comments.new_text, previous_line.start_offset, previous_line.end_offset) !== undefined;
-        if (is_comment) {
-            const next_word_range = Scanner.get_next_word_range(text, end_text_offset);
+    const start_offset = calculate_start_text_offset_to_include_newlines(text, start_text_offset, new_text);
+    const end_offset = calculate_end_text_offset_to_include_newlines(text, end_text_offset, start_offset.new_text);
+
+    return {
+        new_text: end_offset.new_text,
+        start_text_offset: start_offset.start_text_offset,
+        end_text_offset: end_offset.end_text_offset
+    };
+}
+
+function calculate_start_text_offset_to_include_newlines(
+    text: string,
+    start_text_offset: number,
+    new_text: string
+): { new_text: string, start_text_offset: number } {
+
+    if (!Scanner.is_whitespace_or_new_line(new_text[0])) {
+        return {
+            new_text: new_text,
+            start_text_offset: start_text_offset
+        };
+    }
+
+    for (let offset = start_text_offset; offset > 0; --offset) {
+        const character_offset = offset - 1;
+        const character = text[character_offset];
+        if (!Scanner.is_whitespace_or_new_line(character)) {
             return {
-                new_text: new_text_with_comments.new_text + text.substring(end_text_offset, next_word_range.end),
-                start_text_offset: new_text_with_comments.start_text_offset,
-                end_text_offset: next_word_range.end
+                new_text: text.substring(character_offset, start_text_offset) + new_text,
+                start_text_offset: character_offset
             };
         }
     }
 
     return {
-        new_text: new_text_with_comments.new_text,
-        start_text_offset: new_text_with_comments.start_text_offset,
-        end_text_offset: end_text_offset
+        new_text: text.substring(0, start_text_offset) + new_text,
+        start_text_offset: 0
     };
 }
 
-
-function calculate_end_text_offset_after_newlines(
+function calculate_end_text_offset_to_include_newlines(
     text: string,
     end_text_offset: number,
     new_text: string
@@ -285,16 +196,11 @@ export function scan_new_change(
         };
     }
 
-    // Add comments before:
-    const before_comments_text = calculate_text_offset_to_include_comments(text, start_text_offset, end_text_offset, new_text);
-    new_text = before_comments_text.new_text;
-    start_text_offset = before_comments_text.start_text_offset;
-    end_text_offset = before_comments_text.end_text_offset;
-
-    // Add new lines after:
-    const after_newlines_text = calculate_end_text_offset_after_newlines(text, end_text_offset, new_text);
-    new_text = after_newlines_text.new_text;
-    end_text_offset = after_newlines_text.end_text_offset;
+    // Make sure that newlines are detected. We also need to include at least one non-whitespace-or-newline character.
+    const newlines_text = calculate_text_offset_to_include_newlines(text, start_text_offset, end_text_offset, new_text);
+    new_text = newlines_text.new_text;
+    start_text_offset = newlines_text.start_text_offset;
+    end_text_offset = newlines_text.end_text_offset;
 
     // Find iterator before start text position:
     const before_iterator = get_node_before_text_position(root, text, start_text_offset);

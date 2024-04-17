@@ -472,6 +472,7 @@ namespace h::json
     export std::optional<Stack_state> get_next_state_break_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_call_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_cast_expression(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_comment_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_constant_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_constant_array_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_continue_expression(Stack_state* state, std::string_view const key);
@@ -1711,6 +1712,24 @@ namespace h::json
         return {};
     }
 
+    export std::optional<Stack_state> get_next_state_comment_expression(Stack_state* state, std::string_view const key)
+    {
+        h::Comment_expression* parent = static_cast<h::Comment_expression*>(state->pointer);
+
+        if (key == "comment")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->comment,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        return {};
+    }
+
     export std::optional<Stack_state> get_next_state_constant_expression(Stack_state* state, std::string_view const key)
     {
         h::Constant_expression* parent = static_cast<h::Constant_expression*>(state->pointer);
@@ -2382,7 +2401,7 @@ namespace h::json
         {
             auto const set_variant_type = [](Stack_state* state, std::string_view const type) -> void
             {
-                using Variant_type = std::variant<h::Access_expression, h::Assignment_expression, h::Binary_expression, h::Block_expression, h::Break_expression, h::Call_expression, h::Cast_expression, h::Constant_expression, h::Constant_array_expression, h::Continue_expression, h::For_loop_expression, h::If_expression, h::Instantiate_expression, h::Invalid_expression, h::Null_pointer_expression, h::Parenthesis_expression, h::Return_expression, h::Switch_expression, h::Ternary_condition_expression, h::Unary_expression, h::Variable_declaration_expression, h::Variable_declaration_with_type_expression, h::Variable_expression, h::While_loop_expression>;
+                using Variant_type = std::variant<h::Access_expression, h::Assignment_expression, h::Binary_expression, h::Block_expression, h::Break_expression, h::Call_expression, h::Cast_expression, h::Comment_expression, h::Constant_expression, h::Constant_array_expression, h::Continue_expression, h::For_loop_expression, h::If_expression, h::Instantiate_expression, h::Invalid_expression, h::Null_pointer_expression, h::Parenthesis_expression, h::Return_expression, h::Switch_expression, h::Ternary_condition_expression, h::Unary_expression, h::Variable_declaration_expression, h::Variable_declaration_with_type_expression, h::Variable_expression, h::While_loop_expression>;
                 Variant_type* pointer = static_cast<Variant_type*>(state->pointer);
 
                 if (type == "Access_expression")
@@ -2425,6 +2444,12 @@ namespace h::json
                 {
                     *pointer = Cast_expression{};
                     state->type = "Cast_expression";
+                    return;
+                }
+                if (type == "Comment_expression")
+                {
+                    *pointer = Comment_expression{};
+                    state->type = "Comment_expression";
                     return;
                 }
                 if (type == "Constant_expression")
@@ -2582,6 +2607,11 @@ namespace h::json
                             return get_next_state_cast_expression;
                         }
 
+                        if (state->type == "Comment_expression")
+                        {
+                            return get_next_state_comment_expression;
+                        }
+
                         if (state->type == "Constant_expression")
                         {
                             return get_next_state_constant_expression;
@@ -2685,7 +2715,7 @@ namespace h::json
             return Stack_state
             {
                 .pointer = &parent->data,
-                .type = "std::variant<Access_expression,Assignment_expression,Binary_expression,Block_expression,Break_expression,Call_expression,Cast_expression,Constant_expression,Constant_array_expression,Continue_expression,For_loop_expression,If_expression,Instantiate_expression,Invalid_expression,Null_pointer_expression,Parenthesis_expression,Return_expression,Switch_expression,Ternary_condition_expression,Unary_expression,Variable_declaration_expression,Variable_declaration_with_type_expression,Variable_expression,While_loop_expression>",
+                .type = "std::variant<Access_expression,Assignment_expression,Binary_expression,Block_expression,Break_expression,Call_expression,Cast_expression,Comment_expression,Constant_expression,Constant_array_expression,Continue_expression,For_loop_expression,If_expression,Instantiate_expression,Invalid_expression,Null_pointer_expression,Parenthesis_expression,Return_expression,Switch_expression,Ternary_condition_expression,Unary_expression,Variable_declaration_expression,Variable_declaration_with_type_expression,Variable_expression,While_loop_expression>",
                 .get_next_state = get_next_state,
                 .set_variant_type = set_variant_type,
             };
@@ -3463,6 +3493,16 @@ namespace h::json
                 .pointer = output,
                 .type = "Cast_expression",
                 .get_next_state = get_next_state_cast_expression
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Comment_expression>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Comment_expression",
+                .get_next_state = get_next_state_comment_expression
             };
         }
 

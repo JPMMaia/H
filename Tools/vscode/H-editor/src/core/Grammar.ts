@@ -6,6 +6,7 @@ const g_debug = false;
 
 export enum Word_type {
     Alphanumeric,
+    Comment,
     Number,
     String,
     Symbol,

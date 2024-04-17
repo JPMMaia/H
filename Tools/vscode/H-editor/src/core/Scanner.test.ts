@@ -229,34 +229,38 @@ describe("Scanner.scan", () => {
         assert.equal(scanned_words[5].type, Grammar.Word_type.Symbol);
     });
 
-    it("Scans comments as information for the next token", () => {
+    it("Scans comments", () => {
         const input = "// This is a comment!\nvar i = 0;";
         const scanned_words = Scanner.scan(input, 0, input.length);
 
-        assert.equal(scanned_words.length, 5);
+        assert.equal(scanned_words.length, 6);
 
-        assert.equal(scanned_words[0].value, "var");
-        assert.equal(scanned_words[0].type, Grammar.Word_type.Alphanumeric);
-        assert.deepEqual(scanned_words[0].comments, ["This is a comment!"]);
+        assert.equal(scanned_words[0].value, "// This is a comment!");
+        assert.equal(scanned_words[0].type, Grammar.Word_type.Comment);
+        assert.equal(scanned_words[0].newlines_after, 1);
 
-        assert.equal(scanned_words[1].value, "i");
+        assert.equal(scanned_words[1].value, "var");
         assert.equal(scanned_words[1].type, Grammar.Word_type.Alphanumeric);
-        assert.deepEqual(scanned_words[1].comments, []);
+
+        assert.equal(scanned_words[2].value, "i");
+        assert.equal(scanned_words[2].type, Grammar.Word_type.Alphanumeric);
     });
 
-    it("Scans multiple comments as information for the next token", () => {
+    it("Scans multiple comments", () => {
         const input = "// This is a comment!\n// This is another one\nvar i = 0;";
         const scanned_words = Scanner.scan(input, 0, input.length);
 
-        assert.equal(scanned_words.length, 5);
+        assert.equal(scanned_words.length, 6);
 
-        assert.equal(scanned_words[0].value, "var");
-        assert.equal(scanned_words[0].type, Grammar.Word_type.Alphanumeric);
-        assert.deepEqual(scanned_words[0].comments, ["This is a comment!", "This is another one"]);
+        assert.equal(scanned_words[0].value, "// This is a comment!\n// This is another one");
+        assert.equal(scanned_words[0].type, Grammar.Word_type.Comment);
+        assert.equal(scanned_words[0].newlines_after, 1);
 
-        assert.equal(scanned_words[1].value, "i");
+        assert.equal(scanned_words[1].value, "var");
         assert.equal(scanned_words[1].type, Grammar.Word_type.Alphanumeric);
-        assert.deepEqual(scanned_words[1].comments, []);
+
+        assert.equal(scanned_words[2].value, "i");
+        assert.equal(scanned_words[2].type, Grammar.Word_type.Alphanumeric);
     });
 
     it("Scans newlines as information of the previous token", () => {

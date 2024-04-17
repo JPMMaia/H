@@ -426,6 +426,12 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Comment_expression const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Constant_expression const& input
         );
 
@@ -1131,6 +1137,18 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Comment_expression const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("comment");
+        writer.String(output.comment.data(), output.comment.size());
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Constant_expression const& output
         )
     {
@@ -1464,6 +1482,14 @@ namespace h::json
             writer.String("Cast_expression");
             writer.Key("value");
             Cast_expression const& value = std::get<Cast_expression>(output.data);
+            write_object(writer, value);
+        }
+        else if (std::holds_alternative<Comment_expression>(output.data))
+        {
+            writer.Key("type");
+            writer.String("Comment_expression");
+            writer.Key("value");
+            Comment_expression const& value = std::get<Comment_expression>(output.data);
             write_object(writer, value);
         }
         else if (std::holds_alternative<Constant_expression>(output.data))

@@ -7,7 +7,7 @@ import * as Parse_tree_text_position_cache from "./Parse_tree_text_position_cach
 
 function create_parse_node(value: string, production_rule_index: number | undefined, children: Parser_node.Node[]): Parser_node.Node {
     return {
-        word: { value: value, type: Grammar.Word_type.Alphanumeric, comments: [] },
+        word: { value: value, type: Grammar.Word_type.Alphanumeric },
         state: -1,
         production_rule_index: production_rule_index,
         children: children

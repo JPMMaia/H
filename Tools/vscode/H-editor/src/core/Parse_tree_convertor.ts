@@ -46,10 +46,9 @@ export type Node_to_core_object_handler = (
     key_to_production_rule_indices: Map<string, number[]>
 ) => any;
 
-export type Extract_elements_from_stack_handler = (
-    stack: Module_to_parse_tree_stack_element[],
-    production_rules: Grammar.Production_rule[]
-) => string[];
+export type Extract_comments_from_node_handler = (
+    node: Parser_node.Node
+) => string | undefined;
 
 export type Extract_newlines_after_terminal_from_stack_handler = (
     stack: Module_to_parse_tree_stack_element[],
@@ -66,7 +65,7 @@ export interface Parse_tree_mappings {
     choose_production_rule: Map<string, Choose_production_rule_handler>;
     create_module_changes_map: Map<string, Create_module_changes_handler>;
     node_to_core_object_map: Map<string, Node_to_core_object_handler>;
-    extract_comments_from_stack: Extract_elements_from_stack_handler;
+    extract_comments_from_node: Extract_comments_from_node_handler;
     extract_newlines_after_terminal_from_stack: Extract_newlines_after_terminal_from_stack_handler;
 }
 
@@ -215,7 +214,7 @@ export function module_to_parse_tree(
                 value: module
             },
             node: {
-                word: { value: production_rules[0].lhs, type: Grammar.Word_type.Symbol, comments: [] },
+                word: { value: production_rules[0].lhs, type: Grammar.Word_type.Symbol },
                 state: -1,
                 production_rule_index: 0,
                 children: []
@@ -289,7 +288,7 @@ export function module_to_parse_tree(
                 production_rule_index: next_production_rule_index,
                 state: next_state,
                 node: {
-                    word: { value: next_production_rule.lhs, type: Grammar.Word_type.Symbol, comments: [] },
+                    word: { value: next_production_rule.lhs, type: Grammar.Word_type.Symbol },
                     state: -1,
                     production_rule_index: next_production_rule_index,
                     children: []
@@ -491,7 +490,6 @@ export function map_terminal_to_word(
 
     const label = stack[stack.length - 1].node.word.value;
 
-    const comments = mappings.extract_comments_from_stack(stack, production_rules);
     const newlines_after = mappings.extract_newlines_after_terminal_from_stack(stack, production_rules, terminal);
 
     {
@@ -501,19 +499,18 @@ export function map_terminal_to_word(
             return {
                 value: word.value,
                 type: word.type,
-                comments: comments,
                 newlines_after: newlines_after
             };
         }
     }
 
     if (terminal !== "identifier" && terminal !== "number") {
-        return { value: terminal, type: Scanner.get_word_type(terminal), comments: comments, newlines_after: newlines_after };
+        return { value: terminal, type: Scanner.get_word_type(terminal), newlines_after: newlines_after };
     }
 
     const position_with_placeholders = mappings.value_map.get(label);
     if (position_with_placeholders === undefined) {
-        return { value: terminal, type: Scanner.get_word_type(terminal), comments: comments, newlines_after: newlines_after };
+        return { value: terminal, type: Scanner.get_word_type(terminal), newlines_after: newlines_after };
     }
 
     const position = replace_placeholders_by_values(module, position_with_placeholders, production_rules, stack, mappings);
@@ -529,7 +526,7 @@ export function map_terminal_to_word(
     const transformed_value = transform !== undefined ? transform(object_reference.value) : object_reference.value.toString();
 
     return {
-        value: transformed_value, type: Scanner.get_word_type(transformed_value), comments: comments, newlines_after: newlines_after
+        value: transformed_value, type: Scanner.get_word_type(transformed_value), newlines_after: newlines_after
     };
 }
 
@@ -557,10 +554,6 @@ function is_key_node(node: Node): boolean {
         case "Import":
         case "Module_body":
         case "Declaration":
-        case "Alias":
-        case "Enum":
-        case "Function":
-        case "Struct":
             return true;
         default:
             return false;
@@ -803,9 +796,11 @@ export function parse_tree_to_module(
 
     update_import_module_usages(module);
 
-    const comments = extract_comments_from_node(root.children[0].children[0]);
-    if (comments !== undefined) {
-        module.comment = comments;
+    {
+        const comments = mappings.extract_comments_from_node(root);
+        if (comments !== undefined) {
+            module.comment = comments;
+        }
     }
 
     return module;
@@ -872,22 +867,6 @@ function node_to_core_object(
 ): any {
     const map = mappings.node_to_core_object_map.get(node.word.value) as Node_to_core_object_handler;
     return map(node, key_to_production_rule_indices);
-}
-
-export function extract_comments_from_node(node: Parser_node.Node): string | undefined {
-
-    for (const child of node.children) {
-        if (child.word.comments.length > 0) {
-            return child.word.comments.join("\n");
-        }
-
-        const comments = extract_comments_from_node(child);
-        if (comments !== undefined) {
-            return comments;
-        }
-    }
-
-    return undefined;
 }
 
 function visit_expressions(expression: Core_intermediate_representation.Expression, predicate: (expression: Core_intermediate_representation.Expression) => void) {
@@ -1017,6 +996,7 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
             break;
         }
         case Core_intermediate_representation.Expression_enum.Break_expression:
+        case Core_intermediate_representation.Expression_enum.Comment_expression:
         case Core_intermediate_representation.Expression_enum.Constant_expression:
         case Core_intermediate_representation.Expression_enum.Continue_expression:
         case Core_intermediate_representation.Expression_enum.Invalid_expression:

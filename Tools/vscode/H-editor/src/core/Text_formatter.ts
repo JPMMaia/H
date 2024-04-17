@@ -154,7 +154,7 @@ export function to_string(root: Node, cache: Parse_tree_text_position_cache.Cach
     let current_node: Node | undefined = root;
     let current_position: number[] = [];
     let current_direction = Iterate_direction.Down;
-    let previous_word: Scanner.Scanned_word = { value: "", type: Grammar.Word_type.Invalid, comments: [] };
+    let previous_word: Scanner.Scanned_word = { value: "", type: Grammar.Word_type.Invalid };
 
     const state_stack: State[] = [State.Global];
 
@@ -253,41 +253,45 @@ export function to_string(root: Node, cache: Parse_tree_text_position_cache.Cach
                     indentation_count -= 1;
                 }
 
-                for (const comment of word.comments) {
-                    const spaces = " ".repeat(indentation_count * indentation_width);
-                    const line = `${spaces}// ${comment}`;
-                    add_word(buffer, line);
-                    add_new_line(buffer);
-                    current_line += 1;
-                    current_column = 0;
-                    current_text_offset += line.length;
+                if (current_node.word.type === Grammar.Word_type.Comment) {
+                    const comments = current_node.word.value.split("\n");
+                    for (const comment of comments) {
+                        const spaces = " ".repeat(indentation_count * indentation_width);
+                        const line = `${spaces}${comment}`;
+                        add_word(buffer, line);
+                        add_new_line(buffer);
+                        current_line += 1;
+                        current_column = 0;
+                        current_text_offset += line.length;
+                    }
                 }
+                else {
+                    const added_new_line = buffer[buffer.length - 1] === "\n";
+                    const spaces_to_add_before = added_new_line ? indentation_count * indentation_width : should_add_space(word, previous_word);
 
-                const added_new_line = buffer[buffer.length - 1] === "\n";
-                const spaces_to_add_before = added_new_line ? indentation_count * indentation_width : should_add_space(word, previous_word);
+                    const new_word = " ".repeat(spaces_to_add_before) + format_word(word);
 
-                const new_word = " ".repeat(spaces_to_add_before) + format_word(word);
+                    if (cache !== undefined && should_cache_node(current_node, production_rules_to_cache)) {
+                        const new_word_offset = current_text_offset + spaces_to_add_before;
+                        Parse_tree_text_position_cache.set_entry(cache, new_word_offset, current_node, current_position);
+                    }
 
-                if (cache !== undefined && should_cache_node(current_node, production_rules_to_cache)) {
-                    const new_word_offset = current_text_offset + spaces_to_add_before;
-                    Parse_tree_text_position_cache.set_entry(cache, new_word_offset, current_node, current_position);
-                }
+                    add_word(buffer, new_word);
+                    current_text_offset += new_word.length;
+                    current_column += new_word.length;
 
-                add_word(buffer, new_word);
-                current_text_offset += new_word.length;
-                current_column += new_word.length;
+                    if (current_node.word.value === "{") {
+                        indentation_count += 1;
+                    }
 
-                if (current_node.word.value === "{") {
-                    indentation_count += 1;
-                }
+                    const new_lines_to_add_after = should_add_new_line_after(current_state, current_node.word, previous_word);
 
-                const new_lines_to_add_after = should_add_new_line_after(current_state, current_node.word, previous_word);
-
-                for (let index = 0; index < new_lines_to_add_after; ++index) {
-                    add_new_line(buffer);
-                    current_line += 1;
-                    current_column = 0;
-                    current_text_offset += 1;
+                    for (let index = 0; index < new_lines_to_add_after; ++index) {
+                        add_new_line(buffer);
+                        current_line += 1;
+                        current_column = 0;
+                        current_text_offset += 1;
+                    }
                 }
 
                 previous_word = current_node.word;
