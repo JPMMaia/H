@@ -1490,15 +1490,16 @@ function parse_incrementally_after_change(
 
         const row = parsing_table[top_of_stack.node.state];
         const column = row.find(column => column.label === map_word_to_terminal(next_word_node.word)) as Grammar.Action_column;
-        const shift_action = column.action.value as Grammar.Shift_action;
+        if (column.action.type === Grammar.Action_type.Shift) {
+            const shift_action = column.action.value as Grammar.Shift_action;
+            apply_shift(stack, next_word_node, next_word_node_position, shift_action.next_state, original_node_tree, mark);
 
-        apply_shift(stack, next_word_node, next_word_node_position, shift_action.next_state, original_node_tree, mark);
-
-        {
-            const iterate_result = get_next_terminal_node(original_node_tree, next_word_node, next_word_node_position);
-            next_word_node = iterate_result !== undefined ? clone_node(iterate_result.node) : create_bottom_of_stack_node();
-            next_word_node_position = iterate_result !== undefined ? iterate_result.position : [];
-            current_word_index += 1;
+            {
+                const iterate_result = get_next_terminal_node(original_node_tree, next_word_node, next_word_node_position);
+                next_word_node = iterate_result !== undefined ? clone_node(iterate_result.node) : create_bottom_of_stack_node();
+                next_word_node_position = iterate_result !== undefined ? iterate_result.position : [];
+                current_word_index += 1;
+            }
         }
     }
 
