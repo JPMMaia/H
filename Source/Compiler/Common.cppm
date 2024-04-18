@@ -4,6 +4,7 @@ module;
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Module.h>
 
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -43,4 +44,10 @@ namespace h::compiler
         llvm::Module& llvm_module,
         std::string_view name
     );
+
+    export std::optional<std::pmr::string> get_file_contents(char const* const path);
+    export std::optional<std::pmr::string> get_file_contents(std::filesystem::path const& path);
+
+    export void write_to_file(char const* const path, std::string_view const content);
+    export void write_to_file(std::filesystem::path const& path, std::string_view const content);
 }
