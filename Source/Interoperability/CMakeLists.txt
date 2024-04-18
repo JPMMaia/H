@@ -3,7 +3,7 @@ add_library(H::C_header_importer ALIAS H_C_header_importer)
 
 target_compile_features(H_C_header_importer PUBLIC cxx_std_23)
 
-target_link_libraries(H_C_header_importer PUBLIC H::Core)
+target_link_libraries(H_C_header_importer PUBLIC H::Core H::JSON_serializer)
 
 ## LLVM ##
 

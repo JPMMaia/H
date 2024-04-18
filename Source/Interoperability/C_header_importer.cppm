@@ -3,6 +3,7 @@ module;
 #include <filesystem>
 #include <memory_resource>
 #include <string>
+#include <string_view>
 #include <vector>
 
 export module h.c_header_converter;
@@ -28,4 +29,6 @@ namespace h::c
     };
 
     export C_header import_header(std::filesystem::path const& header_path);
+
+    export void import_header_and_write_to_file(std::string_view const header_name, std::filesystem::path const& header_path, std::filesystem::path const& output_path);
 }

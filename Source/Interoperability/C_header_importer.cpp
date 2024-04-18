@@ -1,5 +1,6 @@
 module;
 
+#include <filesystem>
 #include <format>
 #include <iostream>
 #include <memory_resource>
@@ -20,6 +21,7 @@ import h.core;
 import h.core.declarations;
 import h.core.expressions;
 import h.core.types;
+import h.json_serializer;
 
 namespace h::c
 {
@@ -1345,5 +1347,27 @@ namespace h::c
             .path = header_path,
             .declarations = std::move(declarations_with_fixed_width_integers)
         };
+    }
+
+    void import_header_and_write_to_file(std::string_view const header_name, std::filesystem::path const& header_path, std::filesystem::path const& output_path)
+    {
+        C_header const header = import_header(header_path);
+
+        h::Module const module
+        {
+            .language_version = header.language_version,
+            .name = std::pmr::string{ header_name },
+            .dependencies = {},
+            .export_declarations = {
+                .alias_type_declarations = header.declarations.alias_type_declarations,
+                .enum_declarations = header.declarations.enum_declarations,
+                .struct_declarations = header.declarations.struct_declarations,
+                .function_declarations = header.declarations.function_declarations,
+            },
+            .internal_declarations = {},
+            .definitions = {},
+        };
+
+        h::json::write<h::Module>(output_path, module);
     }
 }
