@@ -3,6 +3,8 @@
     "version-string": "0.1.0",
     "dependencies": [
         "catch2",
+        "docopt",
+        "nlohmann-json",
         "rapidjson",
         {
             "name": "llvm",
