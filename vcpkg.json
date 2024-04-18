@@ -12,6 +12,7 @@
                 "enable-terminfo",
                 "enable-zlib",
                 "enable-eh",
+                "lld",
                 "target-x86"
             ],
             "default-features": false

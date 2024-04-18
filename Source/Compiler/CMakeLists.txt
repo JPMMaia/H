@@ -16,9 +16,15 @@ target_compile_definitions(H_compiler PUBLIC ${LLVM_DEFINITIONS} LLVM_DISABLE_AB
 
 target_include_directories(H_compiler PUBLIC ${LLVM_INCLUDE_DIRS})
 
-llvm_map_components_to_libnames(llvm_libs Core X86 x86asmparser passes)
+llvm_map_components_to_libnames(llvm_libs BinaryFormat Core LibDriver LTO MC Object Option Passes ProfileData Support TargetParser WindowsDriver WindowsManifest X86 X86asmparser)
 
 target_link_libraries(H_compiler PUBLIC ${llvm_libs})
+
+find_library(lldCommon lldCommon REQUIRED)
+target_link_libraries(H_compiler PUBLIC ${lldCommon})
+
+find_library(lldCOFF lldCOFF REQUIRED)
+target_link_libraries(H_compiler PUBLIC ${lldCOFF})
 
 ## End LLVM ##
 
@@ -29,6 +35,8 @@ target_sources(H_compiler PRIVATE
    "Compiler.cpp"
    "Expressions.cppm"
    "Expressions.cpp"
+   "Linker.cppm"
+   "Linker.cpp"
    "Types.cppm"
    "Types.cpp"
 )
