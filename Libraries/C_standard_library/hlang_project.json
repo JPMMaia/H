@@ -1,0 +1,11 @@
+{
+    "name": "C_standard_library",
+    "version": "0.1.0",
+    "type": "c_library",
+    "c_headers": [
+        {
+            "name": "C.stdio",
+            "header": "stdio.h"
+        }
+    ]
+}
