@@ -844,7 +844,7 @@ namespace h::compiler
 
     void write_to_file(
         LLVM_data const& llvm_data,
-        LLVM_module_data const& llvm_module_data,
+        llvm::Module& llvm_module,
         std::filesystem::path const& output_file_path
     )
     {
@@ -860,14 +860,14 @@ namespace h::compiler
             throw std::runtime_error{ error_message };
         }
 
-        if (llvm_data.target_machine->addPassesToEmitFile(pass_manager, output_stream, nullptr, llvm::CGFT_ObjectFile))
+        if (llvm_data.target_machine->addPassesToEmitFile(pass_manager, output_stream, nullptr, llvm::CGFT_AssemblyFile))
         {
             std::string const error_message = error_code.message();
             llvm::errs() << "Target machine can't emit a file of this type: " << error_message;
             throw std::runtime_error{ error_message };
         }
 
-        pass_manager.run(*llvm_module_data.module);
+        pass_manager.run(llvm_module);
     }
 
     void generate_object_file(
@@ -881,6 +881,6 @@ namespace h::compiler
 
         llvm_module_data.module->print(llvm::errs(), nullptr);
 
-        write_to_file(llvm_data, llvm_module_data, output_file_path);
+        write_to_file(llvm_data, *llvm_module_data.module, output_file_path);
     }
 }

@@ -66,7 +66,7 @@ namespace h::compiler
 
     export void write_to_file(
         LLVM_data const& llvm_data,
-        LLVM_module_data const& llvm_module_data,
+        llvm::Module& llvm_module,
         std::filesystem::path const& output_file_path
     );
 
