@@ -9,6 +9,7 @@
 #include <vector>
 
 import h.builder;
+import h.builder.repository;
 import h.compiler;
 import h.compiler.linker;
 
@@ -17,7 +18,7 @@ R"(H compiler
 
     Usage:
       h_compiler build-executable <file> [--build-directory=<build_directory>] [--entry=<entry>] [--output=<output>] [--module-search-path=<module_search_path>]...
-      h_compiler build-artifact [--artifact-file=<artifact_file>] [--build-directory=<build_directory>] [--header-search-path=<header_search_path>]...
+      h_compiler build-artifact [--artifact-file=<artifact_file>] [--build-directory=<build_directory>] [--header-search-path=<header_search_path>]... [--repository=<repository_path>]...
       h_compiler (-h | --help)
       h_compiler --version
 
@@ -68,8 +69,10 @@ int main(int const argc, char const* const* argv)
         std::filesystem::path const artifact_file_path = arguments.at("--artifact-file").asString();
         std::filesystem::path const build_directory_path = arguments.at("--build-directory").asString();
         std::pmr::vector<std::filesystem::path> const header_search_paths = convert_to_path(arguments.at("--header-search-path").asStringList());
+        std::pmr::vector<std::filesystem::path> const repository_paths = convert_to_path(arguments.at("--repository").asStringList());
+        std::pmr::vector<h::builder::Repository> const repositories = h::builder::get_repositories(repository_paths);
 
-        h::builder::build_artifact(artifact_file_path, build_directory_path, header_search_paths);
+        h::builder::build_artifact(artifact_file_path, build_directory_path, header_search_paths, repositories);
     }
 
     return 0;
