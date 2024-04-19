@@ -88,7 +88,7 @@ namespace h::builder
         return std::nullopt;
     }
 
-    void build_project(
+    void build_artifact(
         std::filesystem::path const& project_file_path,
         std::filesystem::path const& build_directory_path,
         std::span<std::filesystem::path const> const header_search_paths

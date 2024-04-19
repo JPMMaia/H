@@ -17,7 +17,7 @@ R"(H compiler
 
     Usage:
       h_compiler build-executable <file> [--build-directory=<build_directory>] [--entry=<entry>] [--output=<output>] [--module-search-path=<module_search_path>]...
-      h_compiler build-project [--project-file=<project_file>] [--build-directory=<build_directory>] [--header-search-path=<header_search_path>]...
+      h_compiler build-artifact [--artifact-file=<artifact_file>] [--build-directory=<build_directory>] [--header-search-path=<header_search_path>]...
       h_compiler (-h | --help)
       h_compiler --version
 
@@ -27,7 +27,7 @@ R"(H compiler
       --build-directory=<build_directory>         Directory where build artifacts will be written to [default: build].
       --entry=<entry>                             Entry point symbol name [default: main].
       --header-search-path=<header_search_path>   Search directories for C header files.
-      --project-file=<project_file>
+      --artifact-file=<artifact_file>
       --output=<output>                           Write output to <output> [default: output].
 )";
 
@@ -63,13 +63,13 @@ int main(int const argc, char const* const* argv)
 
         h::builder::build_executable(file_path, build_directory_path, output_path, module_search_paths, linker_options);
     }
-    else if (arguments.at("build-project").asBool())
+    else if (arguments.at("build-artifact").asBool())
     {
-        std::filesystem::path const project_file_path = arguments.at("--project-file").asString();
+        std::filesystem::path const artifact_file_path = arguments.at("--artifact-file").asString();
         std::filesystem::path const build_directory_path = arguments.at("--build-directory").asString();
         std::pmr::vector<std::filesystem::path> const header_search_paths = convert_to_path(arguments.at("--header-search-path").asStringList());
 
-        h::builder::build_project(project_file_path, build_directory_path, header_search_paths);
+        h::builder::build_artifact(artifact_file_path, build_directory_path, header_search_paths);
     }
 
     return 0;

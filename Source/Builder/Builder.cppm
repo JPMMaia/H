@@ -17,7 +17,7 @@ namespace h::builder
         h::compiler::Linker_options const& linker_options
     );
 
-    export void build_project(
+    export void build_artifact(
         std::filesystem::path const& project_file_path,
         std::filesystem::path const& build_directory_path,
         std::span<std::filesystem::path const> const header_search_paths
