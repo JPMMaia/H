@@ -5,6 +5,7 @@ module;
 
 export module h.builder;
 
+import h.builder.repository;
 import h.compiler.linker;
 
 namespace h::builder
@@ -18,8 +19,9 @@ namespace h::builder
     );
 
     export void build_artifact(
-        std::filesystem::path const& project_file_path,
+        std::filesystem::path const& configuration_file_path,
         std::filesystem::path const& build_directory_path,
-        std::span<std::filesystem::path const> const header_search_paths
+        std::span<std::filesystem::path const> header_search_paths,
+        std::span<Repository const> repositories
     );
 }
