@@ -11,10 +11,11 @@ module;
 
 module h.builder;
 
-import h.builder.common;
+import h.common;
 import h.builder.repository;
 
 import h.core;
+import h.common;
 import h.compiler;
 import h.compiler.common;
 import h.compiler.linker;
@@ -46,13 +47,13 @@ namespace h::builder
         // 
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map;
 
-        std::optional<std::pmr::string> const json_data = h::compiler::get_file_contents(file_path);
+        std::optional<std::pmr::string> const json_data = h::common::get_file_contents(file_path);
         if (!json_data.has_value())
-            print_message_and_exit(std::format("Failed to read contents of {}", file_path.generic_string()));
+            h::common::print_message_and_exit(std::format("Failed to read contents of {}", file_path.generic_string()));
 
         std::optional<h::Module> const module = h::json::read<h::Module>(json_data.value().c_str());
         if (!module.has_value())
-            print_message_and_exit(std::format("Failed to read module contents of {}", file_path.generic_string()));
+            h::common::print_message_and_exit(std::format("Failed to read module contents of {}", file_path.generic_string()));
 
         std::string_view const entry_point = linker_options.entry_point;
 
@@ -93,9 +94,9 @@ namespace h::builder
     {
         create_directory_if_it_does_not_exist(build_directory_path);
 
-        std::optional<std::pmr::string> const json_data = h::compiler::get_file_contents(configuration_file_path);
+        std::optional<std::pmr::string> const json_data = h::common::get_file_contents(configuration_file_path);
         if (!json_data.has_value())
-            print_message_and_exit(std::format("Failed to read contents of {}", configuration_file_path.generic_string()));
+            h::common::print_message_and_exit(std::format("Failed to read contents of {}", configuration_file_path.generic_string()));
 
         nlohmann::json const json = nlohmann::json::parse(json_data.value());
 
@@ -113,7 +114,7 @@ namespace h::builder
 
                 std::optional<std::filesystem::path> const header_path = search_file(header, header_search_paths);
                 if (!header_path.has_value())
-                    print_message_and_exit(std::format("Could not find header {}. Please provide its location using --header-search-path.", header));
+                    h::common::print_message_and_exit(std::format("Could not find header {}. Please provide its location using --header-search-path.", header));
 
                 std::filesystem::path const header_module_filename = header_path.value().filename().replace_extension("hl");
                 std::filesystem::path const output_header_module_path = output_directory_path / header_module_filename;
@@ -139,7 +140,7 @@ namespace h::builder
 
                 std::optional<std::filesystem::path> const dependency_location = get_artifact_location(repositories, dependency_name);
                 if (!dependency_location.has_value())
-                    print_message_and_exit(std::format("Could not find dependency {}.", dependency_name));
+                    h::common::print_message_and_exit(std::format("Could not find dependency {}.", dependency_name));
 
                 std::filesystem::path const dependency_configuration_file_path = dependency_location.value() / "hlang_artifact.json";
 
