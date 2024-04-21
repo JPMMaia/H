@@ -12,16 +12,16 @@ module;
 
 module h.builder.repository;
 
-import h.builder.common;
+import h.common;
 import h.compiler.common;
 
 namespace h::builder
 {
     Repository get_repository(std::filesystem::path const& repository_file_path)
     {
-        std::optional<std::pmr::string> const json_data = h::compiler::get_file_contents(repository_file_path.c_str());
+        std::optional<std::pmr::string> const json_data = h::common::get_file_contents(repository_file_path.c_str());
         if (!json_data.has_value())
-            print_message_and_exit(std::format("Failed to read contents of {}", repository_file_path.generic_string()));
+            h::common::print_message_and_exit(std::format("Failed to read contents of {}", repository_file_path.generic_string()));
 
         nlohmann::json const json = nlohmann::json::parse(json_data.value());
 

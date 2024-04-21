@@ -15,6 +15,7 @@
 #include <llvm/Target/TargetMachine.h>
 
 import h.core;
+import h.common;
 import h.compiler;
 import h.compiler.common;
 import h.json_serializer;
@@ -46,7 +47,7 @@ namespace h
     std::string_view const expected_llvm_ir
   )
   {
-    std::optional<std::pmr::string> const json_data = h::compiler::get_file_contents(g_test_files_path / input_file);
+    std::optional<std::pmr::string> const json_data = h::common::get_file_contents(g_test_files_path / input_file);
     REQUIRE(json_data.has_value());
 
     std::optional<h::Module> const module = h::json::read<h::Module>(json_data.value().c_str());

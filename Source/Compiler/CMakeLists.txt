@@ -3,7 +3,7 @@ add_library(H::Compiler ALIAS H_compiler)
 
 target_compile_features(H_compiler PRIVATE cxx_std_23)
 
-target_link_libraries(H_compiler PRIVATE H::Core H::JSON_serializer)
+target_link_libraries(H_compiler PRIVATE H::Core H::Common H::JSON_serializer)
 
 ## LLVM ##
 
