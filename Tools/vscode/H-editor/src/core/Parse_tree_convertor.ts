@@ -1,4 +1,3 @@
-import * as Core_reflection from "./Core_reflection";
 import { onThrowError } from "../utilities/errors";
 import * as Grammar from "./Grammar";
 import * as Module_change from "./Module_change";
@@ -567,15 +566,14 @@ function create_add_change(
     parent_node: Parser_node.Node,
     production_rules: Grammar.Production_rule[],
     mappings: Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>,
-    reflection_info: Core_reflection.Reflection_info
+    key_to_production_rule_indices: Map<string, number[]>
 ): { position: any[], change: Module_change.Change }[] {
 
     const new_changes: { position: any[], change: Module_change.Change }[] = [];
 
     for (const new_node of add_change.new_nodes) {
         const new_node_position = [...add_change.parent_position, add_change.index];
-        const changes = parse_tree_to_core_object(module, root, new_node, new_node_position, production_rules, mappings, key_to_production_rule_indices, reflection_info, false);
+        const changes = parse_tree_to_core_object(module, root, new_node, new_node_position, production_rules, mappings, key_to_production_rule_indices, false);
         new_changes.push(...changes);
     }
 
@@ -675,8 +673,7 @@ function create_modify_change(
     module: Core_intermediate_representation.Module,
     production_rules: Grammar.Production_rule[],
     mappings: Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>,
-    reflection_info: Core_reflection.Reflection_info
+    key_to_production_rule_indices: Map<string, number[]>
 ): { position: any[], change: Module_change.Change }[] {
 
     const production_rule = production_rules[node.production_rule_index as number];
@@ -700,7 +697,7 @@ function create_modify_change(
     const key_node_clone = JSON.parse(JSON.stringify(key_ancestor.node)) as Parser_node.Node;
     const new_node = apply_parse_tree_change(key_node_clone, key_ancestor.position, any_change);
 
-    const changes = parse_tree_to_core_object(module, root, new_node, key_ancestor.position, production_rules, mappings, key_to_production_rule_indices, reflection_info, true);
+    const changes = parse_tree_to_core_object(module, root, new_node, key_ancestor.position, production_rules, mappings, key_to_production_rule_indices, true);
 
     return changes;
 }
@@ -713,9 +710,6 @@ export function create_module_changes(
     mappings: Parse_tree_mappings,
     key_to_production_rule_indices: Map<string, number[]>
 ): { position: any[], change: Module_change.Change }[] {
-
-    // TODO add as parameter
-    const reflection_info = Core_reflection.create_reflection_info();
 
     const changes: { position: any[], change: Module_change.Change }[] = [];
 
@@ -730,7 +724,7 @@ export function create_module_changes(
 
         if (is_key && parse_tree_change.type === Parser.Change_type.Add) {
             const add_change = parse_tree_change.value as Parser.Add_change;
-            const new_changes = create_add_change(module, parse_tree, add_change, parent_node, production_rules, mappings, key_to_production_rule_indices, reflection_info);
+            const new_changes = create_add_change(module, parse_tree, add_change, parent_node, production_rules, mappings, key_to_production_rule_indices);
             changes.push(...new_changes);
         }
         else if (is_key && parse_tree_change.type === Parser.Change_type.Remove) {
@@ -739,7 +733,7 @@ export function create_module_changes(
             changes.push(...new_changes);
         }
         else {
-            const new_changes = create_modify_change(parse_tree_change, parse_tree, parent_node, parent_position, module, production_rules, mappings, key_to_production_rule_indices, reflection_info);
+            const new_changes = create_modify_change(parse_tree_change, parse_tree, parent_node, parent_position, module, production_rules, mappings, key_to_production_rule_indices);
             changes.push(...new_changes);
         }
     }
@@ -783,15 +777,13 @@ export function parse_tree_to_module(
     key_to_production_rule_indices: Map<string, number[]>
 ): Core_intermediate_representation.Module {
 
-    const reflection_info = Core_reflection.create_reflection_info();
-
     const module: Core_intermediate_representation.Module = {
         name: "",
         imports: [],
         declarations: []
     };
 
-    const new_changes = parse_tree_to_core_object(module, root, root, [], production_rules, mappings, key_to_production_rule_indices, reflection_info, false);
+    const new_changes = parse_tree_to_core_object(module, root, root, [], production_rules, mappings, key_to_production_rule_indices, false);
     Module_change.update_module(module, new_changes);
 
     update_import_module_usages(module);
@@ -814,7 +806,6 @@ function parse_tree_to_core_object(
     production_rules: Grammar.Production_rule[],
     mappings: Parse_tree_mappings,
     key_to_production_rule_indices: Map<string, number[]>,
-    reflection_info: Core_reflection.Reflection_info,
     modify_change: boolean
 ): { position: any[], change: Module_change.Change }[] {
 
