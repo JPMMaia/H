@@ -55,9 +55,9 @@ function node_stack_to_string(
 
     const all = [
         "[",
-        ...tree_strings,
+        tree_strings,
         " | ",
-        ...stack_strings,
+        stack_strings,
         "]"
     ].join("");
 

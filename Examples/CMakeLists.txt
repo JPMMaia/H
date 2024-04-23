@@ -18,13 +18,7 @@ macro(Convert_hltxt_to_hl)
 
         add_custom_command(
             OUTPUT "${output_path}"
-            COMMAND "${CMAKE_COMMAND}"
-            ARGS
-                "-E" "env" "NODE_PATH=${CMAKE_BINARY_DIR}/Source/Parser/node_modules"
-                "node"
-                "${CMAKE_BINARY_DIR}/Source/Parser/application/Application.js"
-                "write" "${output_path}"
-                "--input" "${text_file}"
+            COMMAND "node" "${CMAKE_BINARY_DIR}/Source/Parser/js/dist/main.js" "write" "${output_path}" "--input" "${text_file}"
             WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/working_directory"
             VERBATIM
             COMMENT "Generating ${output_path}"

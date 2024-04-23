@@ -632,9 +632,9 @@ function create_state_format(
     }
 
     let index = 0;
-    for (const pair of aggregated_items) {
-        const item = pair[1][0];
-        const follow_set = pair[1][1];
+    aggregated_items.forEach((value: [LR0_item, [string]], key: string) => {
+        const item = value[0];
+        const follow_set = value[1];
 
         const production_rule = production_rules[item.production_rule_index];
 
@@ -660,7 +660,7 @@ function create_state_format(
         table_parts.push(`</tr>`);
 
         index += 1;
-    }
+    });
 
     table_parts.push(`</table>`);
 
@@ -785,9 +785,9 @@ export function create_small_graphviz(
     }
 
     const state_names = new Map<number, number>([]);
-    for (const pair of state_index_map) {
-        state_names.set(pair[1], pair[0]);
-    }
+    state_index_map.forEach((value: number, key: number) => {
+        state_names.set(value, key);
+    });
 
     return create_graphviz(smaller_graph, production_rules, terminals, state_names);
 }
