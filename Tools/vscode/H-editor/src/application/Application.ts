@@ -49,9 +49,10 @@ else if (command === "write") {
         language_description.map_word_to_terminal
     );
 
-    if (parse_tree_result.status === Parser.Parse_status.Accept) {
+    if (parse_tree_result.status !== Parser.Parse_status.Accept) {
         const messages = parse_tree_result.messages.join("\n");
-        throw Error(`Failed to parse:\n${messages}`);
+        console.log(`Failed to parse:\n${messages}`);
+        process.exit(-1);
     }
 
     const parse_tree = (parse_tree_result.changes[0].value as Parser.Modify_change).new_node;
