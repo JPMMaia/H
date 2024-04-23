@@ -41,18 +41,6 @@ target_sources(H_Tools_Generate_JSON PRIVATE
 set(H_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}/../../")
 
 add_custom_command(
-    OUTPUT "${H_ROOT_DIR}/Tools/vscode/H-editor/src/utilities/h_core_reflection.json"
-    COMMAND H_Tools_Generate_JSON
-                ARGS
-                "reflection_json"
-                "${H_ROOT_DIR}/Source/Core/Core.cppm"
-                "${H_ROOT_DIR}/Tools/vscode/H-editor/src/utilities/h_core_reflection.json"
-    DEPENDS H_Tools_Generate_JSON "${H_ROOT_DIR}/Source/Core/Core.cppm"
-    VERBATIM
-)
-add_custom_target(Generate_h_core_reflection_json DEPENDS "${H_ROOT_DIR}/Tools/vscode/H-editor/src/utilities/h_core_reflection.json")
-
-add_custom_command(
     OUTPUT "${H_ROOT_DIR}/Tools/vscode/H-editor/src/core/Core_interface.ts"
     COMMAND H_Tools_Generate_JSON
                 ARGS
