@@ -10,8 +10,11 @@
 
 import h.builder;
 import h.builder.repository;
+import h.builder.target;
+
 import h.compiler;
 import h.compiler.linker;
+import h.parser;
 
 static constexpr char g_usage[] =
 R"(H compiler
@@ -57,12 +60,18 @@ int main(int const argc, char const* const* argv)
         std::pmr::vector<std::filesystem::path> const module_search_paths = convert_to_path(arguments.at("--module-search-path").asStringList());
         std::string_view const entry = arguments.at("--entry").asString();
 
+        // TODO create from --module-search-path
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map;
+
         h::compiler::Linker_options const linker_options
         {
             .entry_point = entry
         };
 
-        h::builder::build_executable(file_path, build_directory_path, output_path, module_search_paths, linker_options);
+        h::builder::Target const target = h::builder::get_default_target();
+        h::parser::Parser const parser = h::parser::create_parser();
+
+        h::builder::build_executable(target, parser, file_path, {}, build_directory_path, output_path, module_name_to_file_path_map, linker_options);
     }
     else if (arguments.at("build-artifact").asBool())
     {
@@ -72,7 +81,10 @@ int main(int const argc, char const* const* argv)
         std::pmr::vector<std::filesystem::path> const repository_paths = convert_to_path(arguments.at("--repository").asStringList());
         std::pmr::vector<h::builder::Repository> const repositories = h::builder::get_repositories(repository_paths);
 
-        h::builder::build_artifact(artifact_file_path, build_directory_path, header_search_paths, repositories);
+        h::builder::Target const target = h::builder::get_default_target();
+        h::parser::Parser const parser = h::parser::create_parser();
+
+        h::builder::build_artifact(target, parser, artifact_file_path, build_directory_path, header_search_paths, repositories);
     }
 
     return 0;
