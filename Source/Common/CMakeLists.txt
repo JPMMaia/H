@@ -7,4 +7,11 @@ target_compile_definitions(H_common PUBLIC "_SCL_SECURE_NO_WARNINGS")
 target_sources(H_common PRIVATE
    "Common.cppm"
    "Common.cpp"
+   "Filesystem.cppm"
 )
+
+if(WIN32)
+   target_sources(H_common PRIVATE
+      "Filesystem_windows.cpp"
+   )
+endif()
