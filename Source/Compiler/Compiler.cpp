@@ -1,6 +1,7 @@
 module;
 
 #include <llvm/Analysis/ConstantFolding.h>
+#include <llvm/Bitcode/BitcodeWriter.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/LLVMContext.h>
@@ -848,8 +849,6 @@ namespace h::compiler
         std::filesystem::path const& output_file_path
     )
     {
-        llvm::legacy::PassManager pass_manager;
-
         std::error_code error_code;
         llvm::raw_fd_ostream output_stream(output_file_path.generic_string(), error_code, llvm::sys::fs::OF_None);
 
@@ -860,14 +859,7 @@ namespace h::compiler
             throw std::runtime_error{ error_message };
         }
 
-        if (llvm_data.target_machine->addPassesToEmitFile(pass_manager, output_stream, nullptr, llvm::CGFT_AssemblyFile))
-        {
-            std::string const error_message = error_code.message();
-            llvm::errs() << "Target machine can't emit a file of this type: " << error_message;
-            throw std::runtime_error{ error_message };
-        }
-
-        pass_manager.run(llvm_module);
+        llvm::WriteBitcodeToFile(llvm_module, output_stream);
     }
 
     void generate_object_file(
