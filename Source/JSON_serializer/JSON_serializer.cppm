@@ -25,6 +25,7 @@ export module h.json_serializer;
 import h.core;
 import h.json_serializer.read_handler;
 import h.json_serializer.read_json;
+import h.json_serializer.read_module_name_handler;
 import h.json_serializer.write_json;
 
 namespace h::json
@@ -83,6 +84,45 @@ namespace h::json
         rapidjson::Reader reader;
         rapidjson::StringStream input_stream{ json_data };
         return h::json::read<Type>(reader, input_stream);
+    }
+
+    export std::optional<std::pmr::string> read_module_name(
+        std::filesystem::path const& file_path
+    )
+    {
+        std::string const file_path_string = file_path.generic_string();
+        std::FILE* file = std::fopen(file_path_string.c_str(), "r");
+        if (file == nullptr)
+        {
+            return std::nullopt;
+        }
+
+        char read_buffer[1024];
+        rapidjson::FileReadStream input_stream{ file, read_buffer, sizeof(read_buffer) };
+
+        h::json::Read_module_name_handler handler;
+
+        constexpr unsigned int parse_flags =
+            rapidjson::kParseStopWhenDoneFlag |
+            rapidjson::kParseFullPrecisionFlag;
+
+        rapidjson::Reader reader;
+
+        while (!reader.IterativeParseComplete())
+        {
+            if (!reader.IterativeParseNext<parse_flags>(input_stream, handler))
+            {
+                if (reader.HasParseError() && reader.GetParseErrorCode() != rapidjson::ParseErrorCode::kParseErrorTermination)
+                {
+                    std::cout << "Parse error!\n";
+                    return std::nullopt;
+                }
+
+                break;
+            }
+        }
+
+        return handler.module_name;
     }
 
     export std::optional<Module> read_module_export_declarations(

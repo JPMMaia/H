@@ -13,6 +13,7 @@ target_sources(H_JSON_serializer PRIVATE
     "Operators.cppm"
     "Read_handler.cppm"
     "Read_json.cppm"
+    "Read_module_name_handler.cppm"
     "Write_json.cppm"
 )
 
