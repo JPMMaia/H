@@ -20,7 +20,7 @@ static constexpr char g_usage[] =
 R"(H compiler
 
     Usage:
-      h_compiler build-executable <file> [--build-directory=<build_directory>] [--entry=<entry>] [--output=<output>] [--module-search-path=<module_search_path>]...
+      h_compiler build-executable <file>... [--build-directory=<build_directory>] [--entry=<entry>] [--output=<output>] [--module-search-path=<module_search_path>]...
       h_compiler build-artifact [--artifact-file=<artifact_file>] [--build-directory=<build_directory>] [--header-search-path=<header_search_path>]... [--repository=<repository_path>]...
       h_compiler (-h | --help)
       h_compiler --version
@@ -54,14 +54,14 @@ int main(int const argc, char const* const* argv)
 
     if (arguments.at("build-executable").asBool())
     {
-        std::filesystem::path const file_path = arguments.at("<file>").asString();
+        std::pmr::vector<std::filesystem::path> const file_paths = convert_to_path(arguments.at("<file>").asStringList());
         std::filesystem::path const build_directory_path = arguments.at("--build-directory").asString();
         std::filesystem::path const output_path = arguments.at("--output").asString();
         std::pmr::vector<std::filesystem::path> const module_search_paths = convert_to_path(arguments.at("--module-search-path").asStringList());
         std::string_view const entry = arguments.at("--entry").asString();
 
         // TODO create from --module-search-path
-        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map;
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> module_name_to_file_path_map;
 
         h::compiler::Linker_options const linker_options
         {
@@ -71,7 +71,7 @@ int main(int const argc, char const* const* argv)
         h::builder::Target const target = h::builder::get_default_target();
         h::parser::Parser const parser = h::parser::create_parser();
 
-        h::builder::build_executable(target, parser, file_path, {}, build_directory_path, output_path, module_name_to_file_path_map, linker_options);
+        h::builder::build_executable(target, parser, file_paths, {}, build_directory_path, output_path, module_name_to_file_path_map, linker_options);
     }
     else if (arguments.at("build-artifact").asBool())
     {
