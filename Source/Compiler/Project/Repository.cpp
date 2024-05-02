@@ -10,12 +10,12 @@ module;
 #include <unordered_map>
 #include <vector>
 
-module h.builder.repository;
+module h.compiler.repository;
 
 import h.common;
 import h.compiler.common;
 
-namespace h::builder
+namespace h::compiler
 {
     Repository get_repository(std::filesystem::path const& repository_file_path)
     {
@@ -41,6 +41,7 @@ namespace h::builder
 
         return Repository
         {
+            .file_path = repository_file_path,
             .name = std::move(name),
             .artifact_to_location = std::move(artifact_to_location)
         };

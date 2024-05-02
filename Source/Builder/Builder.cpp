@@ -14,13 +14,13 @@ module;
 module h.builder;
 
 import h.builder.target;
-import h.builder.repository;
 
 import h.common;
 import h.core;
 import h.compiler;
 import h.compiler.common;
 import h.compiler.linker;
+import h.compiler.repository;
 import h.c_header_converter;
 import h.json_serializer;
 import h.parser;
@@ -304,7 +304,7 @@ namespace h::builder
         std::filesystem::path const& configuration_file_path,
         std::filesystem::path const& build_directory_path,
         std::span<std::filesystem::path const> const header_search_paths,
-        std::span<Repository const> const repositories
+        std::span<h::compiler::Repository const> const repositories
     )
     {
         create_directory_if_it_does_not_exist(build_directory_path);
@@ -394,7 +394,7 @@ namespace h::builder
         std::filesystem::path const& configuration_file_path,
         std::filesystem::path const& build_directory_path,
         std::span<std::filesystem::path const> const header_search_paths,
-        std::span<Repository const> const repositories
+        std::span<h::compiler::Repository const> const repositories
     )
     {
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> module_name_to_file_path_map;

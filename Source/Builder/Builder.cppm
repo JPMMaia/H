@@ -7,9 +7,9 @@ module;
 
 export module h.builder;
 
-import h.builder.repository;
 import h.builder.target;
 import h.compiler.linker;
+import h.compiler.repository;
 import h.parser;
 
 namespace h::builder
@@ -31,6 +31,6 @@ namespace h::builder
         std::filesystem::path const& configuration_file_path,
         std::filesystem::path const& build_directory_path,
         std::span<std::filesystem::path const> header_search_paths,
-        std::span<Repository const> repositories
+        std::span<h::compiler::Repository const> repositories
     );
 }
