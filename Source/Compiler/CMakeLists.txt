@@ -16,7 +16,7 @@ target_compile_definitions(H_compiler PUBLIC ${LLVM_DEFINITIONS} LLVM_DISABLE_AB
 
 target_include_directories(H_compiler PUBLIC ${LLVM_INCLUDE_DIRS})
 
-llvm_map_components_to_libnames(llvm_libs BinaryFormat Core LibDriver LTO MC Object Option Passes ProfileData Support TargetParser WindowsDriver WindowsManifest X86 X86asmparser)
+llvm_map_components_to_libnames(llvm_libs BinaryFormat Core LibDriver LTO MC nativecodegen OrcJIT Object Option Passes ProfileData Support TargetParser WindowsDriver WindowsManifest X86 X86asmparser)
 
 target_link_libraries(H_compiler PUBLIC ${llvm_libs})
 
@@ -39,6 +39,12 @@ target_sources(H_compiler PRIVATE
    "Linker.cpp"
    "Types.cppm"
    "Types.cpp"
+   "JIT/Core_module_layer.cppm"
+   "JIT/Core_module_layer.cpp"
+   "JIT/Just_in_time_compiler.cppm"
+   "JIT/Just_in_time_compiler.cpp"
+   "JIT/Recompile_module_layer.cppm"
+   "JIT/Recompile_module_layer.cpp"
 )
 
 if(BUILD_TESTING)
