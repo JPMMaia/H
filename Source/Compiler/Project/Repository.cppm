@@ -8,14 +8,13 @@ module;
 #include <unordered_map>
 #include <vector>
 
-export module h.builder.repository;
+export module h.compiler.repository;
 
-import h.compiler.linker;
-
-namespace h::builder
+namespace h::compiler
 {
     export struct Repository
     {
+        std::filesystem::path file_path;
         std::pmr::string name;
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> artifact_to_location;
     };

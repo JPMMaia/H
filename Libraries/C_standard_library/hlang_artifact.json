@@ -2,13 +2,15 @@
     "name": "C_standard_library",
     "version": "0.1.0",
     "type": "library",
-    "c_headers": [
-        {
-            "name": "c.stdio",
-            "header": "stdio.h"
+    "library": {
+        "c_headers": [
+            {
+                "name": "c.stdio",
+                "header": "stdio.h"
+            }
+        ],
+        "external_library": {
+            "windows-dynamic-release": "ucrt.lib"
         }
-    ],
-    "external_library": {
-        "windows-dynamic-release": "ucrt.lib"
     }
 }

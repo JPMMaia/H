@@ -9,11 +9,11 @@
 #include <vector>
 
 import h.builder;
-import h.builder.repository;
 import h.builder.target;
 
 import h.compiler;
 import h.compiler.linker;
+import h.compiler.repository;
 import h.parser;
 
 static constexpr char g_usage[] =
@@ -79,7 +79,7 @@ int main(int const argc, char const* const* argv)
         std::filesystem::path const build_directory_path = arguments.at("--build-directory").asString();
         std::pmr::vector<std::filesystem::path> const header_search_paths = convert_to_path(arguments.at("--header-search-path").asStringList());
         std::pmr::vector<std::filesystem::path> const repository_paths = convert_to_path(arguments.at("--repository").asStringList());
-        std::pmr::vector<h::builder::Repository> const repositories = h::builder::get_repositories(repository_paths);
+        std::pmr::vector<h::compiler::Repository> const repositories = h::compiler::get_repositories(repository_paths);
 
         h::builder::Target const target = h::builder::get_default_target();
         h::parser::Parser const parser = h::parser::create_parser();

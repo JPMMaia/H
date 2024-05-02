@@ -45,6 +45,10 @@ target_sources(H_compiler PRIVATE
    "JIT/Just_in_time_compiler.cpp"
    "JIT/Recompile_module_layer.cppm"
    "JIT/Recompile_module_layer.cpp"
+   "Project/Artifact.cppm"
+   "Project/Artifact.cpp"
+   "Project/Repository.cppm"
+   "Project/Repository.cpp"
 )
 
 if(BUILD_TESTING)
