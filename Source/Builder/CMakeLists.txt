@@ -30,8 +30,8 @@ target_compile_features(H_builder_executable PRIVATE cxx_std_23)
 
 target_link_libraries(H_builder_executable PRIVATE H::Builder)
 
-find_package(docopt REQUIRED CONFIG)
-target_link_libraries(H_builder_executable PRIVATE docopt)
+find_package(argparse CONFIG REQUIRED)
+target_link_libraries(H_builder_executable PRIVATE argparse::argparse)
 
 target_sources(H_builder_executable PRIVATE
    "main.cpp"
