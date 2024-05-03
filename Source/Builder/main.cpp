@@ -1,4 +1,4 @@
-#include <docopt.h>
+#include <argparse/argparse.hpp>
 
 #include <filesystem>
 #include <iostream>
@@ -16,25 +16,6 @@ import h.compiler.linker;
 import h.compiler.repository;
 import h.parser;
 
-static constexpr char g_usage[] =
-R"(H compiler
-
-    Usage:
-      h_compiler build-executable <file>... [--build-directory=<build_directory>] [--entry=<entry>] [--output=<output>] [--module-search-path=<module_search_path>]...
-      h_compiler build-artifact [--artifact-file=<artifact_file>] [--build-directory=<build_directory>] [--header-search-path=<header_search_path>]... [--repository=<repository_path>]...
-      h_compiler (-h | --help)
-      h_compiler --version
-
-    Options:
-      -h --help                                   Show this screen.
-      --version                                   Show version.
-      --build-directory=<build_directory>         Directory where build artifacts will be written to [default: build].
-      --entry=<entry>                             Entry point symbol name [default: main].
-      --header-search-path=<header_search_path>   Search directories for C header files.
-      --artifact-file=<artifact_file>
-      --output=<output>                           Write output to <output> [default: output].
-)";
-
 std::pmr::vector<std::filesystem::path> convert_to_path(std::span<std::string const> const values)
 {
     std::pmr::vector<std::filesystem::path> output;
@@ -48,17 +29,93 @@ std::pmr::vector<std::filesystem::path> convert_to_path(std::span<std::string co
     return output;
 }
 
+argparse::Argument& add_artifact_file_argument(argparse::ArgumentParser& command)
+{
+    return command.add_argument("--artifact-file")
+        .help("Path to the artifact file")
+        .default_value("hlang_artifact.json");
+}
+
+argparse::Argument& add_build_directory_argument(argparse::ArgumentParser& command)
+{
+    return command.add_argument("--build-directory")
+        .help("Directory where build artifacts will be written to")
+        .default_value("build");
+}
+
+argparse::Argument& add_header_search_path_argument(argparse::ArgumentParser& command)
+{
+    return command.add_argument("--header-search-path")
+        .help("Search directories for C header files.")
+        .default_value<std::vector<std::string>>({})
+        .append();
+}
+
+argparse::Argument& add_module_search_path_argument(argparse::ArgumentParser& command)
+{
+    return command.add_argument("--module-search-path")
+        .help("Search directories for module files.")
+        .default_value<std::vector<std::string>>({})
+        .append();
+}
+
+argparse::Argument& add_repository_argument(argparse::ArgumentParser& command)
+{
+    return command.add_argument("--repository")
+        .help("Specify a repository")
+        .default_value<std::vector<std::string>>({})
+        .append();
+}
+
 int main(int const argc, char const* const* argv)
 {
-    std::map<std::string, docopt::value> const arguments = docopt::docopt(g_usage, { argv + 1, argv + argc }, true, "H Builder 0.1.0");
+    argparse::ArgumentParser program("hlang");
 
-    if (arguments.at("build-executable").asBool())
+    // hlang build-executable <files>... [--build-directory=<build_directory>] [--entry=<entry>] [--output=<output>] [--module-search-path=<module_search_path>]...
+    argparse::ArgumentParser build_executable_command("build-executable");
+    build_executable_command.add_description("Build an executable");
+    build_executable_command.add_argument("files")
+        .help("File to compile")
+        .remaining();
+    add_build_directory_argument(build_executable_command);
+    build_executable_command.add_argument("--entry")
+        .help("Entry point symbol name")
+        .default_value("main");
+    build_executable_command.add_argument("--output")
+        .help("Write output to this location")
+        .default_value("output");
+    add_module_search_path_argument(build_executable_command);
+    program.add_subparser(build_executable_command);
+
+    // hlang build-artifact [--artifact-file=<artifact_file>] [--build-directory=<build_directory>] [--header-search-path=<header_search_path>]... [--repository=<repository_path>]...
+    argparse::ArgumentParser build_artifact_command("build-artifact");
+    build_artifact_command.add_description("Build an artifact");
+    add_artifact_file_argument(build_artifact_command);
+    add_build_directory_argument(build_artifact_command);
+    add_header_search_path_argument(build_artifact_command);
+    add_repository_argument(build_artifact_command);
+    program.add_subparser(build_artifact_command);
+
+    try
     {
-        std::pmr::vector<std::filesystem::path> const file_paths = convert_to_path(arguments.at("<file>").asStringList());
-        std::filesystem::path const build_directory_path = arguments.at("--build-directory").asString();
-        std::filesystem::path const output_path = arguments.at("--output").asString();
-        std::pmr::vector<std::filesystem::path> const module_search_paths = convert_to_path(arguments.at("--module-search-path").asStringList());
-        std::string_view const entry = arguments.at("--entry").asString();
+        program.parse_args(argc, argv);
+    }
+    catch (std::exception const& error)
+    {
+        std::cerr << error.what() << std::endl;
+        std::cerr << program;
+        std::exit(1);
+    }
+
+    if (program.is_subcommand_used("build-executable"))
+    {
+        argparse::ArgumentParser const& subprogram = program.at<argparse::ArgumentParser>("build-executable");
+
+        std::pmr::vector<std::filesystem::path> const file_paths = convert_to_path(program.get<std::vector<std::string>>("files"));
+        std::filesystem::path const build_directory_path = subprogram.get<std::string>("--build-directory");
+        std::filesystem::path const output_path = subprogram.get<std::string>("--output");
+        std::pmr::vector<std::filesystem::path> const module_search_paths = convert_to_path(subprogram.get<std::vector<std::string>>("--module-search-path"));
+        std::string_view const entry = subprogram.get<std::string>("--entry");
 
         // TODO create from --module-search-path
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> module_name_to_file_path_map;
@@ -73,12 +130,14 @@ int main(int const argc, char const* const* argv)
 
         h::builder::build_executable(target, parser, file_paths, {}, build_directory_path, output_path, module_name_to_file_path_map, linker_options);
     }
-    else if (arguments.at("build-artifact").asBool())
+    else if (program.is_subcommand_used("build-artifact"))
     {
-        std::filesystem::path const artifact_file_path = arguments.at("--artifact-file").asString();
-        std::filesystem::path const build_directory_path = arguments.at("--build-directory").asString();
-        std::pmr::vector<std::filesystem::path> const header_search_paths = convert_to_path(arguments.at("--header-search-path").asStringList());
-        std::pmr::vector<std::filesystem::path> const repository_paths = convert_to_path(arguments.at("--repository").asStringList());
+        argparse::ArgumentParser const& subprogram = program.at<argparse::ArgumentParser>("build-artifact");
+
+        std::filesystem::path const artifact_file_path = subprogram.get<std::string>("--artifact-file");
+        std::filesystem::path const build_directory_path = subprogram.get<std::string>("--build-directory");
+        std::pmr::vector<std::filesystem::path> const header_search_paths = convert_to_path(subprogram.get<std::vector<std::string>>("--header-search-path"));
+        std::pmr::vector<std::filesystem::path> const repository_paths = convert_to_path(subprogram.get<std::vector<std::string>>("--repository"));
         std::pmr::vector<h::compiler::Repository> const repositories = h::compiler::get_repositories(repository_paths);
 
         h::builder::Target const target = h::builder::get_default_target();
