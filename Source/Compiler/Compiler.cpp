@@ -337,13 +337,14 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        llvm::BasicBlock* const block = llvm::BasicBlock::Create(llvm_context, "entry", &llvm_function);
-
-        llvm::IRBuilder<> llvm_builder{ block };
-
-        std::pmr::vector<Block_info> block_infos;
-
+        if (!function_definition.statements.empty())
         {
+            llvm::BasicBlock* const block = llvm::BasicBlock::Create(llvm_context, "entry", &llvm_function);
+
+            llvm::IRBuilder<> llvm_builder{ block };
+
+            std::pmr::vector<Block_info> block_infos;
+
             std::pmr::vector<Value_and_type> function_arguments{ temporaries_allocator };
             function_arguments.reserve(llvm_function.arg_size());
 
@@ -380,30 +381,31 @@ namespace h::compiler
             };
 
             create_statement_values(function_definition.statements, expression_parameters);
-        }
 
-        auto const return_void_is_missing = [&]() -> bool
-        {
-            if (!function_definition.statements.empty())
+            auto const return_void_is_missing = [&]() -> bool
             {
-                Statement const& statement = function_definition.statements.back();
-                if (!statement.expressions.empty())
+                if (!function_definition.statements.empty())
                 {
-                    Expression const& expression = statement.expressions[0];
-                    if (std::holds_alternative<Return_expression>(expression.data))
-                        return false;
+                    Statement const& statement = function_definition.statements.back();
+                    if (!statement.expressions.empty())
+                    {
+                        Expression const& expression = statement.expressions[0];
+                        if (std::holds_alternative<Return_expression>(expression.data))
+                            return false;
+                    }
                 }
+
+                return true;
+            };
+
+            if (return_void_is_missing())
+            {
+                llvm_builder.CreateRetVoid();
             }
-
-            return true;
-        };
-
-        if (return_void_is_missing())
-        {
-            llvm_builder.CreateRetVoid();
         }
 
         if (llvm::verifyFunction(llvm_function, &llvm::errs())) {
+            llvm::errs() << "\n Function body:\n";
             llvm_function.dump();
             throw std::runtime_error{ std::format("Function '{}' from module '{}' is not valid!", function_declaration.name, core_module.name) };
         }
@@ -415,14 +417,28 @@ namespace h::compiler
         llvm::Module& llvm_module,
         Module const& core_module,
         std::span<Module const> const core_module_dependencies,
+        std::optional<std::span<std::string_view const>> const functions_to_compile,
         Declaration_database const& declaration_database,
         Type_database const& type_database,
         Enum_value_constants const& enum_value_constants,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
+        auto const should_compile = [functions_to_compile](Function_definition const& definition) -> bool
+        {
+            if (!functions_to_compile.has_value())
+                return false;
+
+            auto const predicate = [&](std::string_view const function_name) { return function_name == definition.name; };
+            auto const location = std::find_if(functions_to_compile->begin(), functions_to_compile->end(), predicate);
+            return location != functions_to_compile->end();
+        };
+
         for (Function_definition const& definition : core_module.definitions.function_definitions)
         {
+            if (!should_compile(definition))
+                continue;
+
             Function_declaration const& declaration = *find_function_declaration(core_module, definition.name).value();
 
             llvm::Function* llvm_function = get_llvm_function(core_module, llvm_module, definition.name);
@@ -679,6 +695,7 @@ namespace h::compiler
         llvm::DataLayout const& llvm_data_layout,
         Module const& core_module,
         std::span<Module const> const core_module_dependencies,
+        std::optional<std::span<std::string_view const>> const functions_to_compile,
         Declaration_database const& declaration_database,
         Type_database& type_database
     )
@@ -709,6 +726,7 @@ namespace h::compiler
             *llvm_module,
             core_module,
             core_module_dependencies,
+            functions_to_compile,
             declaration_database,
             type_database,
             enum_value_constants,
@@ -798,15 +816,13 @@ namespace h::compiler
         };
     }
 
-    LLVM_module_data create_llvm_module(
+    std::unique_ptr<llvm::Module> create_llvm_module(
         LLVM_data& llvm_data,
         Module const& core_module,
-        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map
+        std::span<Module const> const core_module_dependencies,
+        std::optional<std::span<std::string_view const>> const functions_to_compile
     )
     {
-        std::pmr::vector<Module> core_module_dependencies = create_dependency_core_modules(core_module, module_name_to_file_path_map);
-        remove_unused_declarations(core_module, core_module_dependencies);
-
         Type_database type_database = create_type_database(*llvm_data.context);
         for (Module const& module_dependency : core_module_dependencies)
             add_module_types(type_database, *llvm_data.context, llvm_data.data_layout, module_dependency);
@@ -817,7 +833,29 @@ namespace h::compiler
             add_declarations(declaration_database, module_dependency);
         add_declarations(declaration_database, core_module);
 
-        std::unique_ptr<llvm::Module> llvm_module = create_module(*llvm_data.context, llvm_data.target_triple, llvm_data.data_layout, core_module, core_module_dependencies, declaration_database, type_database);
+        std::unique_ptr<llvm::Module> llvm_module = create_module(*llvm_data.context, llvm_data.target_triple, llvm_data.data_layout, core_module, core_module_dependencies, functions_to_compile, declaration_database, type_database);
+        return llvm_module;
+    }
+
+    std::unique_ptr<llvm::Module> create_llvm_module(
+        LLVM_data& llvm_data,
+        Module const& core_module,
+        std::span<Module const> const core_module_dependencies
+    )
+    {
+        return create_llvm_module(llvm_data, core_module, core_module_dependencies, std::nullopt);
+    }
+
+    LLVM_module_data create_llvm_module(
+        LLVM_data& llvm_data,
+        Module const& core_module,
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map
+    )
+    {
+        std::pmr::vector<Module> core_module_dependencies = create_dependency_core_modules(core_module, module_name_to_file_path_map);
+        remove_unused_declarations(core_module, core_module_dependencies);
+
+        std::unique_ptr<llvm::Module> llvm_module = create_llvm_module(llvm_data, core_module, core_module_dependencies);
 
         return {
             .dependencies = std::move(core_module_dependencies),

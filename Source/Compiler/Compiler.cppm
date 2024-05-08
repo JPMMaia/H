@@ -12,6 +12,7 @@ module;
 #include <filesystem>
 #include <memory>
 #include <memory_resource>
+#include <span>
 #include <string>
 #include <unordered_map>
 
@@ -49,10 +50,28 @@ namespace h::compiler
 
     export LLVM_data initialize_llvm();
 
+    export std::unique_ptr<llvm::Module> create_llvm_module(
+        LLVM_data& llvm_data,
+        Module const& core_module,
+        std::span<Module const> const core_module_dependencies,
+        std::optional<std::span<std::string_view const>> const functions_to_compile
+    );
+
+    export std::unique_ptr<llvm::Module> create_llvm_module(
+        LLVM_data& llvm_data,
+        Module const& core_module,
+        std::span<Module const> const core_module_dependencies
+    );
+
     export LLVM_module_data create_llvm_module(
         LLVM_data& llvm_data,
         Module const& core_module,
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map
+    );
+
+    export void remove_unused_declarations(
+        Module const& core_module,
+        std::span<Module> dependency_core_modules
     );
 
     export void optimize_llvm_module(
