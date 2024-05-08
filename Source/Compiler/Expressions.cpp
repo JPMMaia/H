@@ -314,14 +314,17 @@ namespace h::compiler
                     Function_declaration const& function_declaration = *std::get<Function_declaration const*>(declaration.data);
                     Type_reference function_type = create_function_type_type_reference(function_declaration.type);
 
-                    std::string const mangled_name = mangle_name(external_module, expression.member_name);
-                    llvm::Function* const llvm_function = llvm_module.getFunction(mangled_name);
+                    llvm::Function* const llvm_function = get_llvm_function(
+                        external_module,
+                        llvm_module,
+                        expression.member_name
+                    );
                     if (!llvm_function)
-                        throw std::runtime_error{ std::format("Unknown function '{}.{}' referenced. Mangled name is '{}'.", external_module.name, expression.member_name, mangled_name) };
+                        throw std::runtime_error{ std::format("Unknown function '{}.{}' referenced. Mangled name is '{}'.", external_module.name, expression.member_name, llvm_function->getName().str()) };
 
                     return Value_and_type
                     {
-                        .name = std::pmr::string{ mangled_name.begin(), mangled_name.end()},
+                        .name = std::pmr::string{ llvm_function->getName().str() },
                         .value = llvm_function,
                         .type = std::move(function_type)
                     };
