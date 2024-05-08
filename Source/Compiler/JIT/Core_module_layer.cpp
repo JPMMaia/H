@@ -2,7 +2,6 @@ module;
 
 #include <llvm/ExecutionEngine/Orc/Core.h>
 #include <llvm/ExecutionEngine/Orc/Layer.h>
-#include <llvm/ExecutionEngine/Orc/Mangling.h>
 
 #include <filesystem>
 #include <memory>
@@ -13,6 +12,7 @@ module;
 module h.compiler.core_module_layer;
 
 import h.core;
+import h.common;
 import h.compiler;
 
 namespace h::compiler
@@ -24,18 +24,14 @@ namespace h::compiler
     {
         llvm::orc::SymbolFlagsMap symbols;
 
-        for (h::Function_declaration const& function_declaration : core_module.export_declarations.function_declarations)
+        for (h::Function_definition const& function_definition : core_module.definitions.function_definitions)
         {
-            symbols.insert(
-                { mangle(function_declaration.name.c_str()), llvm::JITSymbolFlags::Exported | llvm::JITSymbolFlags::Callable }
-            );
-        }
-
-        for (h::Function_declaration const& function_declaration : core_module.internal_declarations.function_declarations)
-        {
-            symbols.insert(
-                { mangle(function_declaration.name.c_str()), llvm::JITSymbolFlags::Exported | llvm::JITSymbolFlags::Callable }
-            );
+            if (function_definition.name.ends_with("$body"))
+            {
+                symbols.insert(
+                    { mangle(function_definition.name.c_str()), llvm::JITSymbolFlags::Exported | llvm::JITSymbolFlags::Callable }
+                );
+            }
         }
 
         return llvm::orc::MaterializationUnit::Interface{ std::move(symbols), nullptr };
@@ -48,6 +44,7 @@ namespace h::compiler
     ) :
         llvm::orc::MaterializationUnit(get_interface(core_module_compilation_data.core_module, mangle)),
         m_core_module_compilation_data{ std::move(core_module_compilation_data) },
+        m_mangle{ mangle },
         m_base_layer{ base_layer }
     {
     }
@@ -56,14 +53,52 @@ namespace h::compiler
         std::unique_ptr<llvm::orc::MaterializationResponsibility> materialization_responsibility
     )
     {
-        h::compiler::LLVM_module_data llvm_module_data = h::compiler::create_llvm_module(
+        llvm::orc::SymbolNameSet const requested_symbols = materialization_responsibility->getRequestedSymbols();
+
+        std::pmr::vector<std::string_view> functions_to_compile;
+
+        for (llvm::orc::SymbolStringPtr const symbol : requested_symbols)
+        {
+            functions_to_compile.push_back(std::string_view{ (*symbol).begin(), (*symbol).end() });
+        }
+
+        std::unique_ptr<llvm::Module> llvm_module = h::compiler::create_llvm_module(
             m_core_module_compilation_data.llvm_data,
             m_core_module_compilation_data.core_module,
-            m_core_module_compilation_data.module_name_to_file_path_map
+            m_core_module_compilation_data.core_module_dependencies,
+            functions_to_compile
         );
 
+        {
+            llvm::orc::MangleAndInterner& mangle = m_mangle;
+
+            auto const is_requested_symbol = [&](h::Function_definition const& definition) -> bool
+            {
+                return requested_symbols.contains(mangle(definition.name.c_str()));
+            };
+
+            std::pmr::vector<h::Function_definition>& function_definitions = m_core_module_compilation_data.core_module.definitions.function_definitions;
+            function_definitions.erase(
+                std::remove_if(function_definitions.begin(), function_definitions.end(), is_requested_symbol),
+                function_definitions.end()
+            );
+
+            if (!function_definitions.empty())
+            {
+                std::unique_ptr<Core_module_materialization_unit> new_materialization_unit = std::make_unique<Core_module_materialization_unit>(
+                    std::move(m_core_module_compilation_data),
+                    m_mangle,
+                    m_base_layer
+                );
+
+                llvm::Error error = materialization_responsibility->replace(std::move(new_materialization_unit));
+                if (error)
+                    h::common::print_message_and_exit(std::format("Error while creating a new materialization unit to replace unrequested symbols to target library: {}", llvm::toString(std::move(error))));
+            }
+        }
+
         llvm::orc::ThreadSafeContext thread_safe_context{ std::make_unique<llvm::LLVMContext>() };
-        llvm::orc::ThreadSafeModule thread_safe_module{ std::move(llvm_module_data.module), std::move(thread_safe_context) };
+        llvm::orc::ThreadSafeModule thread_safe_module{ std::move(llvm_module), std::move(thread_safe_context) };
         m_base_layer.emit(std::move(materialization_responsibility), std::move(thread_safe_module));
     }
 

@@ -43,6 +43,7 @@ namespace h::compiler
 
     private:
         h::compiler::Core_module_layer& m_base_layer;
+        llvm::orc::ExecutionSession& m_execution_session;
         llvm::orc::LazyCallThroughManager& m_lazy_call_through_manager;
         llvm::orc::IndirectStubsManager& m_indirect_stubs_manager;
         llvm::orc::MangleAndInterner& m_mangle;

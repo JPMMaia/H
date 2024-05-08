@@ -1,6 +1,7 @@
 module;
 
 #include <filesystem>
+#include <functional>
 #include <memory_resource>
 #include <optional>
 #include <span>
@@ -61,4 +62,27 @@ namespace h::compiler
     };
 
     export Artifact get_artifact(std::filesystem::path const& artifact_file_path);
+
+    export void write_artifact_to_file(Artifact const& artifact, std::filesystem::path const& artifact_file_path);
+
+    export bool visit_included_files(
+        std::filesystem::path const& root_path,
+        std::string_view const regular_expression,
+        std::function<bool(std::filesystem::path)> const& predicate
+    );
+
+    export bool visit_included_files(
+        Artifact const& artifact,
+        std::function<bool(std::filesystem::path)> const& predicate
+    );
+
+    export std::pmr::vector<std::filesystem::path> find_included_files(
+        Artifact const& artifact,
+        std::pmr::polymorphic_allocator<> const& output_allocator
+    );
+
+    export std::pmr::vector<std::filesystem::path> find_root_include_directories(
+        Artifact const& artifact,
+        std::pmr::polymorphic_allocator<> const& output_allocator
+    );
 }

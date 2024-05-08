@@ -337,12 +337,11 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        if (!function_definition.statements.empty())
+        llvm::BasicBlock* const block = llvm::BasicBlock::Create(llvm_context, "entry", &llvm_function);
+
+        llvm::IRBuilder<> llvm_builder{ block };
+
         {
-            llvm::BasicBlock* const block = llvm::BasicBlock::Create(llvm_context, "entry", &llvm_function);
-
-            llvm::IRBuilder<> llvm_builder{ block };
-
             std::pmr::vector<Block_info> block_infos;
 
             std::pmr::vector<Value_and_type> function_arguments{ temporaries_allocator };
@@ -381,27 +380,27 @@ namespace h::compiler
             };
 
             create_statement_values(function_definition.statements, expression_parameters);
+        }
 
-            auto const return_void_is_missing = [&]() -> bool
+        auto const return_void_is_missing = [&]() -> bool
+        {
+            if (!function_definition.statements.empty())
             {
-                if (!function_definition.statements.empty())
+                Statement const& statement = function_definition.statements.back();
+                if (!statement.expressions.empty())
                 {
-                    Statement const& statement = function_definition.statements.back();
-                    if (!statement.expressions.empty())
-                    {
-                        Expression const& expression = statement.expressions[0];
-                        if (std::holds_alternative<Return_expression>(expression.data))
-                            return false;
-                    }
+                    Expression const& expression = statement.expressions[0];
+                    if (std::holds_alternative<Return_expression>(expression.data))
+                        return false;
                 }
-
-                return true;
-            };
-
-            if (return_void_is_missing())
-            {
-                llvm_builder.CreateRetVoid();
             }
+
+            return true;
+        };
+
+        if (return_void_is_missing())
+        {
+            llvm_builder.CreateRetVoid();
         }
 
         if (llvm::verifyFunction(llvm_function, &llvm::errs())) {
@@ -427,7 +426,7 @@ namespace h::compiler
         auto const should_compile = [functions_to_compile](Function_definition const& definition) -> bool
         {
             if (!functions_to_compile.has_value())
-                return false;
+                return true;
 
             auto const predicate = [&](std::string_view const function_name) { return function_name == definition.name; };
             auto const location = std::find_if(functions_to_compile->begin(), functions_to_compile->end(), predicate);
