@@ -99,7 +99,7 @@ add_library(H::Parser ALIAS H_parser)
 
 target_compile_features(H_parser PRIVATE cxx_std_23)
 
-target_link_libraries(H_parser PUBLIC H::Core H::Common H::Compiler H::C_header_importer H::JSON_serializer)
+target_link_libraries(H_parser PUBLIC H::Common)
 
 target_sources(H_parser PRIVATE
    "Parser.cppm"

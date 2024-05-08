@@ -3,7 +3,7 @@ add_library(H::Compiler ALIAS H_compiler)
 
 target_compile_features(H_compiler PRIVATE cxx_std_23)
 
-target_link_libraries(H_compiler PRIVATE H::Core H::Common H::JSON_serializer)
+target_link_libraries(H_compiler PRIVATE H::Core H::Common H::JSON_serializer H::Parser)
 
 ## LLVM ##
 
@@ -28,6 +28,8 @@ target_link_libraries(H_compiler PUBLIC ${lldCOFF})
 
 ## End LLVM ##
 
+target_link_libraries(H_compiler PUBLIC "wtr.hdr_watcher")
+
 target_sources(H_compiler PRIVATE
    "Common.cppm"
    "Common.cpp"
@@ -41,8 +43,12 @@ target_sources(H_compiler PRIVATE
    "Types.cpp"
    "JIT/Core_module_layer.cppm"
    "JIT/Core_module_layer.cpp"
-   "JIT/Just_in_time_compiler.cppm"
-   "JIT/Just_in_time_compiler.cpp"
+   "JIT/File_watcher.cppm"
+   "JIT/File_watcher.cpp"
+   "JIT/JIT_compiler.cppm"
+   "JIT/JIT_compiler.cpp"
+   "JIT/JIT_runner.cppm"
+   "JIT/JIT_runner.cpp"
    "JIT/Recompile_module_layer.cppm"
    "JIT/Recompile_module_layer.cpp"
    "Project/Artifact.cppm"
@@ -65,8 +71,15 @@ if(BUILD_TESTING)
          C_STANDARD_LIBRARY_PATH="${CMAKE_BINARY_DIR}/C_standard_library"
    )
 
-   target_sources(H_compiler_tests PRIVATE "Compiler.tests.cpp")
+   target_sources(H_compiler_tests PRIVATE
+      "Compiler.tests.cpp"
+      "JIT/JIT_runner.tests.cpp"
+   )
+
+   copy_parser_javascript_to_folder(H_compiler_tests)
+   add_dependencies(H_compiler_tests C_standard_library)
 
    include(Catch)
    catch_discover_tests(H_compiler_tests)
+
 endif()

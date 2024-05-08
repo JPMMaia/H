@@ -1,18 +1,21 @@
 module;
 
+#include <llvm/ExecutionEngine/Orc/CompileOnDemandLayer.h>
 #include <llvm/ExecutionEngine/Orc/EPCIndirectionUtils.h>
 #include <llvm/ExecutionEngine/Orc/IndirectionUtils.h>
 #include <llvm/ExecutionEngine/Orc/LazyReexports.h>
 #include <llvm/ExecutionEngine/Orc/LLJIT.h>
+#include <llvm/ExecutionEngine/Orc/Shared/ExecutorSymbolDef.h>
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Module.h>
 
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
 
-export module h.compiler.just_in_time_compiler;
+export module h.compiler.jit_compiler;
 
 import h.core;
 import h.compiler;
@@ -28,6 +31,7 @@ namespace h::compiler
         std::unique_ptr<llvm::orc::IndirectStubsManager> indirect_stubs_manager;
         std::unique_ptr<llvm::orc::LazyCallThroughManager> lazy_call_through_manager;
         std::unique_ptr<llvm::orc::MangleAndInterner> mangle;
+        std::unique_ptr<llvm::orc::CompileOnDemandLayer> compile_on_demand_layer;
         std::unique_ptr<Core_module_layer> core_module_layer;
         std::unique_ptr<Recompile_module_layer> recompile_module_layer;
     };
@@ -38,7 +42,27 @@ namespace h::compiler
 
     export void add_core_module(
         JIT_data& jit_data,
-        Core_module_compilation_data const& core_compilation_data
+        llvm::orc::JITDylib& library,
+        Core_module_compilation_data core_compilation_data
+    );
+
+    export void add_core_module(
+        JIT_data& jit_data,
+        Core_module_compilation_data core_compilation_data
+    );
+
+    export template <typename GeneratorT>
+        GeneratorT& add_generator(
+            JIT_data& jit_data,
+            std::unique_ptr<GeneratorT> definitions_generator
+        )
+    {
+        llvm::orc::JITDylib& library = jit_data.llvm_jit->getMainJITDylib();
+        return library.addGenerator(std::move(definitions_generator));
+    }
+
+    export llvm::orc::JITDylib& get_main_library(
+        JIT_data& jit_data
     );
 
     export void link_static_library(
@@ -50,6 +74,27 @@ namespace h::compiler
         JIT_data& jit_data,
         char const* dynamic_library_path
     );
+
+    std::optional<llvm::orc::ExecutorSymbolDef> get_function(
+        JIT_data& jit_data,
+        std::string_view const module_name,
+        std::string_view const function_name
+    );
+
+    export
+        template <typename Function_type>
+    Function_type get_function(
+        JIT_data& jit_data,
+        std::string_view const module_name,
+        std::string_view const function_name
+    )
+    {
+        std::optional<llvm::orc::ExecutorSymbolDef> function_address = get_function(jit_data, module_name, function_name);
+        if (!function_address)
+            return nullptr;
+
+        return function_address->getAddress().toPtr<Function_type>();
+    }
 
     export std::future<int> call_as_main_without_arguments(
         JIT_data& jit_data,

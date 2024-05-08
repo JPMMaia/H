@@ -2,7 +2,6 @@ module;
 
 #include <llvm/ExecutionEngine/Orc/Core.h>
 #include <llvm/ExecutionEngine/Orc/Layer.h>
-#include <llvm/ExecutionEngine/Orc/Mangling.h>
 
 #include <filesystem>
 #include <memory>
@@ -21,7 +20,7 @@ namespace h::compiler
     {
         LLVM_data& llvm_data;
         h::Module core_module;
-        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map;
+        std::pmr::vector<h::Module> core_module_dependencies;
     };
 
     export class Core_module_materialization_unit : public llvm::orc::MaterializationUnit
@@ -47,6 +46,7 @@ namespace h::compiler
 
     private:
         Core_module_compilation_data m_core_module_compilation_data;
+        llvm::orc::MangleAndInterner& m_mangle;
         llvm::orc::IRLayer& m_base_layer;
     };
 
