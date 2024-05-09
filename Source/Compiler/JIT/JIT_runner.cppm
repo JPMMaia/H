@@ -23,21 +23,26 @@ import h.parser;
 
 namespace h::compiler
 {
-    struct Module_name_to_file_path
+    struct JIT_runner_unprotected_data
     {
-        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> map;
+        std::filesystem::path build_directory_path;
+        h::parser::Parser parser;
+        std::unique_ptr<h::compiler::LLVM_data> llvm_data;
+        std::unique_ptr<JIT_data> jit_data;
+    };
+
+    struct JIT_runner_protected_data
+    {
         std::shared_mutex mutex;
+        std::pmr::unordered_map<std::filesystem::path, Artifact> artifacts;
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> module_name_to_file_path;
+        llvm::DenseMap<llvm::orc::SymbolStringPtr, std::pmr::string> symbol_to_module_name_map;
     };
 
     export struct JIT_runner
     {
-        h::parser::Parser parser;
-        Module_name_to_file_path module_name_to_file_path;
-        std::pmr::unordered_map<std::filesystem::path, Artifact> artifacts;
-        std::filesystem::path build_directory_path;
-        std::unique_ptr<h::compiler::LLVM_data> llvm_data;
-        std::unique_ptr<JIT_data> jit_data;
-        llvm::DenseMap<llvm::orc::SymbolStringPtr, std::pmr::string> symbol_to_module_name_map;
+        JIT_runner_unprotected_data unprotected_data;
+        JIT_runner_protected_data protected_data;
         std::unique_ptr<File_watcher> file_watcher;
 
         ~JIT_runner();
@@ -63,6 +68,6 @@ namespace h::compiler
         std::string_view const function_name
     )
     {
-        return get_function<Function_type>(*jit_runner.jit_data, module_name, function_name);
+        return get_function<Function_type>(*jit_runner.unprotected_data.jit_data, module_name, function_name);
     }
 }
