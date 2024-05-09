@@ -11,6 +11,7 @@ module;
 #include <shared_mutex>
 #include <string_view>
 #include <unordered_map>
+#include <variant>
 
 export module h.compiler.jit_runner;
 
@@ -63,5 +64,28 @@ namespace h::compiler
     )
     {
         return get_function<Function_type>(*jit_runner.unprotected_data.jit_data, mangled_function_name);
+    }
+
+    export
+        template <typename Function_type>
+    Function_type get_entry_point_function(
+        JIT_runner& jit_runner,
+        std::filesystem::path const& artifact_configuration_file_path
+    )
+    {
+        std::shared_lock<std::shared_mutex> lock{ jit_runner.protected_data.mutex };
+        Artifact const& artifact = jit_runner.protected_data.artifacts[artifact_configuration_file_path];
+
+        if (artifact.info.has_value())
+        {
+            if (std::holds_alternative<Executable_info>(*artifact.info))
+            {
+                Executable_info const& executable_info = std::get<Executable_info>(*artifact.info);
+
+                return get_function<Function_type>(*jit_runner.unprotected_data.jit_data, executable_info.entry_point);
+            }
+        }
+
+        return nullptr;
     }
 }
