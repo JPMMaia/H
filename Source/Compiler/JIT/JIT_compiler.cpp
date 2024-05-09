@@ -30,6 +30,7 @@ module h.compiler.jit_compiler;
 
 import h.common;
 import h.compiler;
+import h.compiler.common;
 import h.compiler.core_module_layer;
 import h.compiler.recompile_module_layer;
 
@@ -161,15 +162,12 @@ namespace h::compiler
 
     std::optional<llvm::orc::ExecutorSymbolDef> get_function(
         JIT_data& jit_data,
-        std::string_view const module_name,
-        std::string_view const function_name
+        std::string_view const mangled_function_name
     )
     {
         llvm::orc::MangleAndInterner& mangle = *jit_data.mangle;
 
-        // TODO
-        //std::string const first_mangle = mangle_name(module_name, function_name, Mangle_name_strategy::Module_and_declaration_name);
-        llvm::orc::SymbolStringPtr symbol = mangle(function_name);
+        llvm::orc::SymbolStringPtr symbol = mangle(mangled_function_name.data());
 
         llvm::orc::ExecutionSession& execution_session = jit_data.llvm_jit->getExecutionSession();
         llvm::orc::JITDylib& main_library = jit_data.llvm_jit->getMainJITDylib();

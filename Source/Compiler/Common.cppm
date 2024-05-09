@@ -17,19 +17,23 @@ namespace h::compiler
 {
     export std::string_view to_string_view(llvm::StringRef const string);
 
-    export enum class Mangle_name_strategy
-    {
-        Only_declaration_name,
-        Module_and_declaration_name
-    };
-
     export std::string mangle_name(
-        std::string_view module_name,
+        Module const& core_module,
         std::string_view declaration_name,
-        Mangle_name_strategy strategy
+        std::optional<std::string_view> unique_name
     );
 
-    export std::string mangle_name(
+    export std::string mangle_function_name(
+        Module const& core_module,
+        std::string_view declaration_name
+    );
+
+    export std::string mangle_struct_name(
+        Module const& core_module,
+        std::string_view declaration_name
+    );
+
+    export std::string mangle_union_name(
         Module const& core_module,
         std::string_view declaration_name
     );
@@ -38,6 +42,7 @@ namespace h::compiler
     export std::optional<Enum_declaration const*> find_enum_declaration(Module const& module, std::string_view name);
     export std::optional<Function_declaration const*> find_function_declaration(Module const& module, std::string_view name);
     export std::optional<Struct_declaration const*> find_struct_declaration(Module const& module, std::string_view name);
+    export std::optional<Union_declaration const*> find_union_declaration(Module const& module, std::string_view name);
 
     export llvm::Function* get_llvm_function(
         Module const& core_module,

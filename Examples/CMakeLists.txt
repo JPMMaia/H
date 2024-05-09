@@ -46,6 +46,7 @@ Convert_hltxt_to_hl(
         "${CMAKE_CURRENT_LIST_DIR}/txt/for_loop_expressions.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/hello_world.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/if_expressions.hltxt"
+        "${CMAKE_CURRENT_LIST_DIR}/txt/module_with_dots.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/numbers.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/numeric_casts.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/pointers.hltxt"

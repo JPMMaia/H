@@ -206,13 +206,7 @@ namespace h::compiler
         {
             for (h::Function_declaration const& declaration : core_module.export_declarations.function_declarations)
             {
-                // TODO fix this
-                std::string const mangled_name = mangle_name(
-                    core_module.name,
-                    declaration.name,
-                    Mangle_name_strategy::Only_declaration_name
-                );
-
+                std::string const mangled_name = mangle_function_name(core_module, declaration.name);
                 llvm::orc::SymbolStringPtr const symbol = mangle(mangled_name);
 
                 protected_data.symbol_to_module_name_map.insert(std::make_pair(symbol, core_module.name));

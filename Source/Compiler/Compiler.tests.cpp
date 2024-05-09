@@ -71,7 +71,7 @@ namespace h
     };
 
     char const* const expected_llvm_ir = R"(
-define void @integer_operations(i32 %arguments.other_signed_integer, i32 %arguments.other_unsigned_integer) {
+define void @Assignment_expressions_integer_operations(i32 %arguments.other_signed_integer, i32 %arguments.other_unsigned_integer) {
 entry:
   %other_signed_integer = alloca i32, align 4
   store i32 %arguments.other_signed_integer, ptr %other_signed_integer, align 4
@@ -138,7 +138,7 @@ entry:
   ret void
 }
 
-define void @float32_operations(float %arguments.other_float) {
+define void @Assignment_expressions_float32_operations(float %arguments.other_float) {
 entry:
   %other_float = alloca float, align 4
   store float %arguments.other_float, ptr %other_float, align 4
@@ -181,7 +181,7 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
-define void @foo(i32 %arguments.a, i32 %arguments.b, i32 %arguments.c) {
+define void @Binary_expressions_operator_precedence_foo(i32 %arguments.a, i32 %arguments.b, i32 %arguments.c) {
 entry:
   %a = alloca i32, align 4
   store i32 %arguments.a, ptr %a, align 4
@@ -218,7 +218,7 @@ entry:
   %case_3 = alloca i32, align 4
   store i32 %19, ptr %case_3, align 4
   %20 = load i32, ptr %a, align 4
-  %21 = call i32 @other_function()
+  %21 = call i32 @Binary_expressions_operator_precedence_other_function()
   %22 = mul i32 %20, %21
   %23 = load i32, ptr %b, align 4
   %24 = add i32 %22, %23
@@ -293,7 +293,7 @@ entry:
   ret void
 }
 
-define private i32 @other_function() {
+define private i32 @Binary_expressions_operator_precedence_other_function() {
 entry:
   ret i32 1
 }
@@ -311,7 +311,7 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
-define void @integer_operations(i32 %arguments.first_signed_integer, i32 %arguments.second_signed_integer, i32 %arguments.first_unsigned_integer, i32 %arguments.second_unsigned_integer) {
+define void @Binary_expressions_integer_operations(i32 %arguments.first_signed_integer, i32 %arguments.second_signed_integer, i32 %arguments.first_unsigned_integer, i32 %arguments.second_unsigned_integer) {
 entry:
   %first_signed_integer = alloca i32, align 4
   store i32 %arguments.first_signed_integer, ptr %first_signed_integer, align 4
@@ -439,7 +439,7 @@ entry:
   ret void
 }
 
-define void @boolean_operations(i1 %arguments.first_boolean, i1 %arguments.second_boolean) {
+define void @Binary_expressions_boolean_operations(i1 %arguments.first_boolean, i1 %arguments.second_boolean) {
 entry:
   %first_boolean = alloca i1, align 1
   store i1 %arguments.first_boolean, ptr %first_boolean, align 1
@@ -468,7 +468,7 @@ entry:
   ret void
 }
 
-define void @float32_operations(float %arguments.first_float, float %arguments.second_float) {
+define void @Binary_expressions_float32_operations(float %arguments.first_float, float %arguments.second_float) {
 entry:
   %first_float = alloca float, align 4
   store float %arguments.first_float, ptr %first_float, align 4
@@ -546,7 +546,7 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
-define void @run_blocks() {
+define void @Block_expressions_run_blocks() {
 entry:
   %a = alloca i32, align 4
   store i32 0, ptr %a, align 4
@@ -572,7 +572,7 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
-define void @foo() {
+define void @Booleans_foo() {
 entry:
   %my_true_boolean = alloca i1, align 1
   store i1 true, ptr %my_true_boolean, align 1
@@ -597,7 +597,7 @@ entry:
     char const* const expected_llvm_ir = R"(
 @global_0 = internal constant [3 x i8] c"%d\00"
 
-define void @run_breaks(i32 %arguments.size) {
+define void @Break_expressions_run_breaks(i32 %arguments.size) {
 entry:
   %size = alloca i32, align 4
   store i32 %arguments.size, ptr %size, align 4
@@ -632,7 +632,7 @@ if_s0_then:                                       ; preds = %for_loop_then
 
 if_s1_after:                                      ; preds = %for_loop_then
   %7 = load i32, ptr %index, align 4
-  call void @print_integer(i32 %7)
+  call void @Break_expressions_print_integer(i32 %7)
   br label %for_loop_update_index
 
 for_loop_condition2:                              ; preds = %for_loop_update_index4, %for_loop_after
@@ -670,7 +670,7 @@ while_loop_then:                                  ; preds = %while_loop_conditio
 
 while_loop_after:                                 ; preds = %if_s0_then6, %while_loop_condition
   %18 = load i32, ptr %index1, align 4
-  call void @print_integer(i32 %18)
+  call void @Break_expressions_print_integer(i32 %18)
   br label %for_loop_update_index4
 
 if_s0_then6:                                      ; preds = %while_loop_then
@@ -678,7 +678,7 @@ if_s0_then6:                                      ; preds = %while_loop_then
 
 if_s1_after7:                                     ; preds = %while_loop_then
   %19 = load i32, ptr %index_2, align 4
-  call void @print_integer(i32 %19)
+  call void @Break_expressions_print_integer(i32 %19)
   %20 = load i32, ptr %index1, align 4
   %21 = add i32 %20, 1
   store i32 %21, ptr %index1, align 4
@@ -717,7 +717,7 @@ while_loop_then15:                                ; preds = %while_loop_conditio
 
 while_loop_after16:                               ; preds = %while_loop_condition14
   %32 = load i32, ptr %index8, align 4
-  call void @print_integer(i32 %32)
+  call void @Break_expressions_print_integer(i32 %32)
   br label %for_loop_update_index11
 
 if_s0_then17:                                     ; preds = %while_loop_then15
@@ -725,14 +725,14 @@ if_s0_then17:                                     ; preds = %while_loop_then15
 
 if_s1_after18:                                    ; preds = %while_loop_then15
   %33 = load i32, ptr %index_213, align 4
-  call void @print_integer(i32 %33)
+  call void @Break_expressions_print_integer(i32 %33)
   %34 = load i32, ptr %index8, align 4
   %35 = add i32 %34, 1
   store i32 %35, ptr %index8, align 4
   br label %while_loop_condition14
 }
 
-define private void @print_integer(i32 %arguments.value) {
+define private void @Break_expressions_print_integer(i32 %arguments.value) {
 entry:
   %value = alloca i32, align 4
   store i32 %arguments.value, ptr %value, align 4
@@ -759,7 +759,7 @@ declare i32 @printf(ptr, ...)
     char const* const expected_llvm_ir = R"(
 @global_0 = internal constant [3 x i8] c"%d\00"
 
-define void @run_for_loops() {
+define void @For_loop_expressions_run_for_loops() {
 entry:
   %index = alloca i32, align 4
   store i32 0, ptr %index, align 4
@@ -772,7 +772,7 @@ for_loop_condition:                               ; preds = %for_loop_update_ind
 
 for_loop_then:                                    ; preds = %for_loop_condition
   %2 = load i32, ptr %index, align 4
-  call void @print_integer(i32 %2)
+  call void @For_loop_expressions_print_integer(i32 %2)
   br label %for_loop_update_index
 
 for_loop_update_index:                            ; preds = %for_loop_then
@@ -793,7 +793,7 @@ for_loop_condition2:                              ; preds = %for_loop_update_ind
 
 for_loop_then3:                                   ; preds = %for_loop_condition2
   %7 = load i32, ptr %index1, align 4
-  call void @print_integer(i32 %7)
+  call void @For_loop_expressions_print_integer(i32 %7)
   br label %for_loop_update_index4
 
 for_loop_update_index4:                           ; preds = %for_loop_then3
@@ -814,7 +814,7 @@ for_loop_condition7:                              ; preds = %for_loop_update_ind
 
 for_loop_then8:                                   ; preds = %for_loop_condition7
   %12 = load i32, ptr %index6, align 4
-  call void @print_integer(i32 %12)
+  call void @For_loop_expressions_print_integer(i32 %12)
   br label %for_loop_update_index9
 
 for_loop_update_index9:                           ; preds = %for_loop_then8
@@ -835,7 +835,7 @@ for_loop_condition12:                             ; preds = %for_loop_update_ind
 
 for_loop_then13:                                  ; preds = %for_loop_condition12
   %17 = load i32, ptr %index11, align 4
-  call void @print_integer(i32 %17)
+  call void @For_loop_expressions_print_integer(i32 %17)
   br label %for_loop_update_index14
 
 for_loop_update_index14:                          ; preds = %for_loop_then13
@@ -848,7 +848,7 @@ for_loop_after15:                                 ; preds = %for_loop_condition1
   ret void
 }
 
-define private void @print_integer(i32 %arguments.value) {
+define private void @For_loop_expressions_print_integer(i32 %arguments.value) {
 entry:
   %value = alloca i32, align 4
   store i32 %arguments.value, ptr %value, align 4
@@ -875,7 +875,7 @@ declare i32 @printf(ptr, ...)
     char const* const expected_llvm_ir = R"(
 @global_0 = internal constant [13 x i8] c"Hello world!\00"
 
-define i32 @main() {
+define i32 @hello_world_main() {
 entry:
   %0 = call i32 @puts(ptr @global_0)
   ret i32 0
@@ -907,7 +907,7 @@ declare i32 @puts(ptr)
 @global_7 = internal constant [9 x i8] c"positive\00"
 @global_8 = internal constant [5 x i8] c"zero\00"
 
-define void @run_ifs(i32 %arguments.value) {
+define void @If_expressions_run_ifs(i32 %arguments.value) {
 entry:
   %value = alloca i32, align 4
   store i32 %arguments.value, ptr %value, align 4
@@ -916,7 +916,7 @@ entry:
   br i1 %1, label %if_s0_then, label %if_s1_after
 
 if_s0_then:                                       ; preds = %entry
-  call void @print_message(ptr @global_1)
+  call void @If_expressions_print_message(ptr @global_1)
   br label %if_s1_after
 
 if_s1_after:                                      ; preds = %if_s0_then, %entry
@@ -925,11 +925,11 @@ if_s1_after:                                      ; preds = %if_s0_then, %entry
   br i1 %3, label %if_s0_then1, label %if_s1_else
 
 if_s0_then1:                                      ; preds = %if_s1_after
-  call void @print_message(ptr @global_2)
+  call void @If_expressions_print_message(ptr @global_2)
   br label %if_s2_after
 
 if_s1_else:                                       ; preds = %if_s1_after
-  call void @print_message(ptr @global_3)
+  call void @If_expressions_print_message(ptr @global_3)
   br label %if_s2_after
 
 if_s2_after:                                      ; preds = %if_s1_else, %if_s0_then1
@@ -938,7 +938,7 @@ if_s2_after:                                      ; preds = %if_s1_else, %if_s0_
   br i1 %5, label %if_s0_then2, label %if_s1_else3
 
 if_s0_then2:                                      ; preds = %if_s2_after
-  call void @print_message(ptr @global_4)
+  call void @If_expressions_print_message(ptr @global_4)
   br label %if_s3_after
 
 if_s1_else3:                                      ; preds = %if_s2_after
@@ -947,7 +947,7 @@ if_s1_else3:                                      ; preds = %if_s2_after
   br i1 %7, label %if_s2_then, label %if_s3_after
 
 if_s2_then:                                       ; preds = %if_s1_else3
-  call void @print_message(ptr @global_5)
+  call void @If_expressions_print_message(ptr @global_5)
   br label %if_s3_after
 
 if_s3_after:                                      ; preds = %if_s2_then, %if_s1_else3, %if_s0_then2
@@ -956,7 +956,7 @@ if_s3_after:                                      ; preds = %if_s2_then, %if_s1_
   br i1 %9, label %if_s0_then4, label %if_s1_else5
 
 if_s0_then4:                                      ; preds = %if_s3_after
-  call void @print_message(ptr @global_6)
+  call void @If_expressions_print_message(ptr @global_6)
   br label %if_s4_after
 
 if_s1_else5:                                      ; preds = %if_s3_after
@@ -965,18 +965,18 @@ if_s1_else5:                                      ; preds = %if_s3_after
   br i1 %11, label %if_s2_then6, label %if_s3_else
 
 if_s2_then6:                                      ; preds = %if_s1_else5
-  call void @print_message(ptr @global_7)
+  call void @If_expressions_print_message(ptr @global_7)
   br label %if_s4_after
 
 if_s3_else:                                       ; preds = %if_s1_else5
-  call void @print_message(ptr @global_8)
+  call void @If_expressions_print_message(ptr @global_8)
   br label %if_s4_after
 
 if_s4_after:                                      ; preds = %if_s3_else, %if_s2_then6, %if_s0_then4
   ret void
 }
 
-define private void @print_message(ptr %arguments.message) {
+define private void @If_expressions_print_message(ptr %arguments.message) {
 entry:
   %message = alloca ptr, align 8
   store ptr %arguments.message, ptr %message, align 8
@@ -985,6 +985,38 @@ entry:
 }
 
 declare i32 @printf(ptr, ...)
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
+  TEST_CASE("Compile Module with Dots")
+  {
+    char const* const input_file = "module_with_dots.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+%name_with_dots_Struct_name = type {}
+
+define void @name_with_dots_function_name(i32 %arguments.a, i32 %arguments.b, %name_with_dots_Struct_name %arguments.c) {
+entry:
+  %a = alloca i32, align 4
+  store i32 %arguments.a, ptr %a, align 4
+  %b = alloca i32, align 4
+  store i32 %arguments.b, ptr %b, align 4
+  %c = alloca %name_with_dots_Struct_name, align 8
+  store %name_with_dots_Struct_name %arguments.c, ptr %c, align 1
+  call void @name_with_dots_other_function_name()
+  ret void
+}
+
+define void @name_with_dots_other_function_name() {
+entry:
+  ret void
+}
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -999,7 +1031,7 @@ declare i32 @printf(ptr, ...)
     };
 
     char const* const expected_llvm_ir = R"(
-define i32 @main() {
+define i32 @Numbers_main() {
 entry:
   %my_int8 = alloca i8, align 1
   store i8 1, ptr %my_int8, align 1
@@ -1039,7 +1071,7 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
-define i32 @do_casts(i32 %arguments.uint32_argument, i64 %arguments.uint64_argument, i32 %arguments.int32_argument, i64 %arguments.int64_argument, half %arguments.float16_argument, float %arguments.float32_argument, double %arguments.float64_argument) {
+define i32 @Numeric_casts_do_casts(i32 %arguments.uint32_argument, i64 %arguments.uint64_argument, i32 %arguments.int32_argument, i64 %arguments.int64_argument, half %arguments.float16_argument, float %arguments.float32_argument, double %arguments.float64_argument) {
 entry:
   %uint32_argument = alloca i32, align 4
   store i32 %arguments.uint32_argument, ptr %uint32_argument, align 4
@@ -1135,7 +1167,7 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
-define void @pointers() {
+define void @Pointers_pointers() {
 entry:
   %a = alloca i32, align 4
   store i32 1, ptr %a, align 4
@@ -1161,7 +1193,7 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
-define i32 @run_switch(i32 %arguments.value) {
+define i32 @Switch_expressions_run_switch(i32 %arguments.value) {
 entry:
   %value = alloca i32, align 4
   store i32 %arguments.value, ptr %value, align 4
@@ -1233,7 +1265,7 @@ switch_case_i1_5:                                 ; preds = %switch_case_default
     };
 
     char const* const expected_llvm_ir = R"(
-define void @run_ternary_conditions(i1 %arguments.first_boolean, i1 %arguments.second_boolean) {
+define void @Ternary_condition_expressions_run_ternary_conditions(i1 %arguments.first_boolean, i1 %arguments.second_boolean) {
 entry:
   %first_boolean = alloca i1, align 1
   store i1 %arguments.first_boolean, ptr %first_boolean, align 1
@@ -1363,7 +1395,7 @@ ternary_condition_end21:                          ; preds = %ternary_condition_e
     };
 
     char const* const expected_llvm_ir = R"(
-define void @unary_operations(i32 %arguments.my_integer, i1 %arguments.my_boolean) {
+define void @Unary_expressions_unary_operations(i32 %arguments.my_integer, i1 %arguments.my_boolean) {
 entry:
   %my_integer = alloca i32, align 4
   store i32 %arguments.my_integer, ptr %my_integer, align 4
@@ -1426,7 +1458,7 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
-define void @use_alias(i32 %arguments.my_enum) {
+define void @Alias_from_modules_use_alias(i32 %arguments.my_enum) {
 entry:
   %my_enum = alloca i32, align 4
   store i32 %arguments.my_enum, ptr %my_enum, align 4
@@ -1448,7 +1480,7 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
-define void @use_alias(i64 %arguments.size, i32 %arguments.my_enum) {
+define void @Alias_use_alias(i64 %arguments.size, i32 %arguments.my_enum) {
 entry:
   %size = alloca i64, align 8
   store i64 %arguments.size, ptr %size, align 8
@@ -1472,7 +1504,7 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
-define i32 @use_enums(i32 %arguments.enum_argument) {
+define i32 @Enum_flags_use_enums(i32 %arguments.enum_argument) {
 entry:
   %enum_argument = alloca i32, align 4
   store i32 %arguments.enum_argument, ptr %enum_argument, align 4
@@ -1548,7 +1580,7 @@ if_s1_after8:                                     ; preds = %if_s1_after6
     };
 
     char const* const expected_llvm_ir = R"(
-define void @use_enums() {
+define void @Enums_from_modules_use_enums() {
 entry:
   %my_value = alloca i32, align 4
   store i32 1, ptr %my_value, align 4
@@ -1568,7 +1600,7 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
-define i32 @use_enums(i32 %arguments.enum_argument) {
+define i32 @Enums_use_enums(i32 %arguments.enum_argument) {
 entry:
   %enum_argument = alloca i32, align 4
   store i32 %arguments.enum_argument, ptr %enum_argument, align 4
@@ -1620,60 +1652,60 @@ switch_case_i5_:                                  ; preds = %switch_case_i4_, %e
     };
 
     char const* const expected_llvm_ir = R"(
-%My_struct = type { i32, i32 }
-%My_struct_2 = type { %My_struct, %My_struct, %My_struct }
-%My_Union = type { [24 x i8] }
-%My_struct_3 = type { i32, %My_Union }
+%Structs_My_struct = type { i32, i32 }
+%Structs_My_struct_2 = type { %Structs_My_struct, %Structs_My_struct, %Structs_My_struct }
+%Structs_My_Union = type { [24 x i8] }
+%Structs_My_struct_3 = type { i32, %Structs_My_Union }
 
-define void @use_structs(%My_struct %arguments.my_struct) {
+define void @Structs_use_structs(%Structs_My_struct %arguments.my_struct) {
 entry:
-  %my_struct = alloca %My_struct, align 8
-  store %My_struct %arguments.my_struct, ptr %my_struct, align 4
-  %0 = getelementptr inbounds %My_struct, ptr %my_struct, i32 0, i32 0
+  %my_struct = alloca %Structs_My_struct, align 8
+  store %Structs_My_struct %arguments.my_struct, ptr %my_struct, align 4
+  %0 = getelementptr inbounds %Structs_My_struct, ptr %my_struct, i32 0, i32 0
   %1 = load i32, ptr %0, align 4
   %a = alloca i32, align 4
   store i32 %1, ptr %a, align 4
-  %instance_0 = alloca %My_struct, align 8
-  store %My_struct { i32 1, i32 2 }, ptr %instance_0, align 4
-  %instance_1 = alloca %My_struct, align 8
-  store %My_struct { i32 1, i32 3 }, ptr %instance_1, align 4
-  %instance_2 = alloca %My_struct_2, align 8
-  store %My_struct_2 { %My_struct { i32 1, i32 2 }, %My_struct { i32 2, i32 2 }, %My_struct { i32 3, i32 4 } }, ptr %instance_2, align 4
-  %instance_3 = alloca %My_struct_2, align 8
-  store %My_struct_2 { %My_struct { i32 1, i32 2 }, %My_struct { i32 1, i32 2 }, %My_struct { i32 0, i32 1 } }, ptr %instance_3, align 4
-  %2 = getelementptr inbounds %My_struct_2, ptr %instance_3, i32 0, i32 1
-  %3 = getelementptr inbounds %My_struct, ptr %2, i32 0, i32 0
+  %instance_0 = alloca %Structs_My_struct, align 8
+  store %Structs_My_struct { i32 1, i32 2 }, ptr %instance_0, align 4
+  %instance_1 = alloca %Structs_My_struct, align 8
+  store %Structs_My_struct { i32 1, i32 3 }, ptr %instance_1, align 4
+  %instance_2 = alloca %Structs_My_struct_2, align 8
+  store %Structs_My_struct_2 { %Structs_My_struct { i32 1, i32 2 }, %Structs_My_struct { i32 2, i32 2 }, %Structs_My_struct { i32 3, i32 4 } }, ptr %instance_2, align 4
+  %instance_3 = alloca %Structs_My_struct_2, align 8
+  store %Structs_My_struct_2 { %Structs_My_struct { i32 1, i32 2 }, %Structs_My_struct { i32 1, i32 2 }, %Structs_My_struct { i32 0, i32 1 } }, ptr %instance_3, align 4
+  %2 = getelementptr inbounds %Structs_My_struct_2, ptr %instance_3, i32 0, i32 1
+  %3 = getelementptr inbounds %Structs_My_struct, ptr %2, i32 0, i32 0
   %4 = load i32, ptr %3, align 4
   %nested_b_a = alloca i32, align 4
   store i32 %4, ptr %nested_b_a, align 4
-  %instance_4 = alloca %My_struct, align 8
-  store %My_struct { i32 1, i32 2 }, ptr %instance_4, align 4
-  store %My_struct { i32 10, i32 11 }, ptr %instance_4, align 4
-  %5 = getelementptr inbounds %My_struct, ptr %instance_4, i32 0, i32 0
+  %instance_4 = alloca %Structs_My_struct, align 8
+  store %Structs_My_struct { i32 1, i32 2 }, ptr %instance_4, align 4
+  store %Structs_My_struct { i32 10, i32 11 }, ptr %instance_4, align 4
+  %5 = getelementptr inbounds %Structs_My_struct, ptr %instance_4, i32 0, i32 0
   store i32 0, ptr %5, align 4
-  call void @pass_struct(%My_struct { i32 1, i32 2 })
-  %6 = call %My_struct @return_struct()
-  %instance_5 = alloca %My_struct, align 8
-  store %My_struct %6, ptr %instance_5, align 4
-  %7 = alloca %My_Union, align 8
-  store %My_struct { i32 1, i32 2 }, ptr %7, align 4
-  %8 = load %My_Union, ptr %7, align 1
-  %9 = insertvalue %My_struct_3 { i32 4, %My_Union undef }, %My_Union %8, 1
-  %instance_6 = alloca %My_struct_3, align 8
-  store %My_struct_3 %9, ptr %instance_6, align 4
+  call void @Structs_pass_struct(%Structs_My_struct { i32 1, i32 2 })
+  %6 = call %Structs_My_struct @Structs_return_struct()
+  %instance_5 = alloca %Structs_My_struct, align 8
+  store %Structs_My_struct %6, ptr %instance_5, align 4
+  %7 = alloca %Structs_My_Union, align 8
+  store %Structs_My_struct { i32 1, i32 2 }, ptr %7, align 4
+  %8 = load %Structs_My_Union, ptr %7, align 1
+  %9 = insertvalue %Structs_My_struct_3 { i32 4, %Structs_My_Union undef }, %Structs_My_Union %8, 1
+  %instance_6 = alloca %Structs_My_struct_3, align 8
+  store %Structs_My_struct_3 %9, ptr %instance_6, align 4
   ret void
 }
 
-define private void @pass_struct(%My_struct %arguments.my_struct) {
+define private void @Structs_pass_struct(%Structs_My_struct %arguments.my_struct) {
 entry:
-  %my_struct = alloca %My_struct, align 8
-  store %My_struct %arguments.my_struct, ptr %my_struct, align 4
+  %my_struct = alloca %Structs_My_struct, align 8
+  store %Structs_My_struct %arguments.my_struct, ptr %my_struct, align 4
   ret void
 }
 
-define private %My_struct @return_struct() {
+define private %Structs_My_struct @Structs_return_struct() {
 entry:
-  ret %My_struct { i32 1, i32 2 }
+  ret %Structs_My_struct { i32 1, i32 2 }
 }
 )";
 
@@ -1689,15 +1721,15 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
-%My_union = type { [4 x i8] }
-%My_union_2 = type { [8 x i8] }
-%My_union_3 = type { [8 x i8] }
-%My_struct = type { i32 }
+%Unions_My_union = type { [4 x i8] }
+%Unions_My_union_2 = type { [8 x i8] }
+%Unions_My_union_3 = type { [8 x i8] }
+%Unions_My_struct = type { i32 }
 
-define void @use_unions(%My_union %arguments.my_union, i32 %arguments.my_union_tag) {
+define void @Unions_use_unions(%Unions_My_union %arguments.my_union, i32 %arguments.my_union_tag) {
 entry:
-  %my_union = alloca %My_union, align 8
-  store %My_union %arguments.my_union, ptr %my_union, align 1
+  %my_union = alloca %Unions_My_union, align 8
+  store %Unions_My_union %arguments.my_union, ptr %my_union, align 1
   %my_union_tag = alloca i32, align 4
   store i32 %arguments.my_union_tag, ptr %my_union_tag, align 4
   %0 = load i32, ptr %my_union_tag, align 4
@@ -1705,7 +1737,7 @@ entry:
   br i1 %1, label %if_s0_then, label %if_s1_else
 
 if_s0_then:                                       ; preds = %entry
-  %2 = getelementptr inbounds %My_union, ptr %my_union, i32 0, i32 0
+  %2 = getelementptr inbounds %Unions_My_union, ptr %my_union, i32 0, i32 0
   %3 = load i32, ptr %2, align 4
   %a = alloca i32, align 4
   store i32 %3, ptr %a, align 4
@@ -1717,85 +1749,85 @@ if_s1_else:                                       ; preds = %entry
   br i1 %5, label %if_s2_then, label %if_s3_after
 
 if_s2_then:                                       ; preds = %if_s1_else
-  %6 = getelementptr inbounds %My_union, ptr %my_union, i32 0, i32 0
+  %6 = getelementptr inbounds %Unions_My_union, ptr %my_union, i32 0, i32 0
   %7 = load float, ptr %6, align 4
   %b = alloca float, align 4
   store float %7, ptr %b, align 4
   br label %if_s3_after
 
 if_s3_after:                                      ; preds = %if_s2_then, %if_s1_else, %if_s0_then
-  %8 = alloca %My_union, align 8
+  %8 = alloca %Unions_My_union, align 8
   store i32 2, ptr %8, align 4
-  %9 = load %My_union, ptr %8, align 1
-  %instance_0 = alloca %My_union, align 8
-  store %My_union %9, ptr %instance_0, align 1
-  %10 = alloca %My_union, align 8
+  %9 = load %Unions_My_union, ptr %8, align 1
+  %instance_0 = alloca %Unions_My_union, align 8
+  store %Unions_My_union %9, ptr %instance_0, align 1
+  %10 = alloca %Unions_My_union, align 8
   store float 3.000000e+00, ptr %10, align 4
-  %11 = load %My_union, ptr %10, align 1
-  %instance_1 = alloca %My_union, align 8
-  store %My_union %11, ptr %instance_1, align 1
-  %12 = alloca %My_union_2, align 8
+  %11 = load %Unions_My_union, ptr %10, align 1
+  %instance_1 = alloca %Unions_My_union, align 8
+  store %Unions_My_union %11, ptr %instance_1, align 1
+  %12 = alloca %Unions_My_union_2, align 8
   store i32 2, ptr %12, align 4
-  %13 = load %My_union_2, ptr %12, align 1
-  %instance_2 = alloca %My_union_2, align 8
-  store %My_union_2 %13, ptr %instance_2, align 1
-  %14 = alloca %My_union_2, align 8
+  %13 = load %Unions_My_union_2, ptr %12, align 1
+  %instance_2 = alloca %Unions_My_union_2, align 8
+  store %Unions_My_union_2 %13, ptr %instance_2, align 1
+  %14 = alloca %Unions_My_union_2, align 8
   store i64 3, ptr %14, align 8
-  %15 = load %My_union_2, ptr %14, align 1
-  %instance_3 = alloca %My_union_2, align 8
-  store %My_union_2 %15, ptr %instance_3, align 1
-  %16 = alloca %My_union_3, align 8
+  %15 = load %Unions_My_union_2, ptr %14, align 1
+  %instance_3 = alloca %Unions_My_union_2, align 8
+  store %Unions_My_union_2 %15, ptr %instance_3, align 1
+  %16 = alloca %Unions_My_union_3, align 8
   store i64 3, ptr %16, align 8
-  %17 = load %My_union_3, ptr %16, align 1
-  %instance_4 = alloca %My_union_3, align 8
-  store %My_union_3 %17, ptr %instance_4, align 1
-  %18 = alloca %My_union_3, align 8
-  store %My_struct { i32 1 }, ptr %18, align 4
-  %19 = load %My_union_3, ptr %18, align 1
-  %instance_5 = alloca %My_union_3, align 8
-  store %My_union_3 %19, ptr %instance_5, align 1
-  %20 = alloca %My_union_3, align 8
-  store %My_struct { i32 2 }, ptr %20, align 4
-  %21 = load %My_union_3, ptr %20, align 1
-  %instance_6 = alloca %My_union_3, align 8
-  store %My_union_3 %21, ptr %instance_6, align 1
-  %22 = getelementptr inbounds %My_union_3, ptr %instance_6, i32 0, i32 0
-  %23 = getelementptr inbounds %My_struct, ptr %22, i32 0, i32 0
+  %17 = load %Unions_My_union_3, ptr %16, align 1
+  %instance_4 = alloca %Unions_My_union_3, align 8
+  store %Unions_My_union_3 %17, ptr %instance_4, align 1
+  %18 = alloca %Unions_My_union_3, align 8
+  store %Unions_My_struct { i32 1 }, ptr %18, align 4
+  %19 = load %Unions_My_union_3, ptr %18, align 1
+  %instance_5 = alloca %Unions_My_union_3, align 8
+  store %Unions_My_union_3 %19, ptr %instance_5, align 1
+  %20 = alloca %Unions_My_union_3, align 8
+  store %Unions_My_struct { i32 2 }, ptr %20, align 4
+  %21 = load %Unions_My_union_3, ptr %20, align 1
+  %instance_6 = alloca %Unions_My_union_3, align 8
+  store %Unions_My_union_3 %21, ptr %instance_6, align 1
+  %22 = getelementptr inbounds %Unions_My_union_3, ptr %instance_6, i32 0, i32 0
+  %23 = getelementptr inbounds %Unions_My_struct, ptr %22, i32 0, i32 0
   %24 = load i32, ptr %23, align 4
   %nested_b_a = alloca i32, align 4
   store i32 %24, ptr %nested_b_a, align 4
-  %25 = alloca %My_union, align 8
+  %25 = alloca %Unions_My_union, align 8
   store i32 1, ptr %25, align 4
-  %26 = load %My_union, ptr %25, align 1
-  %instance_7 = alloca %My_union, align 8
-  store %My_union %26, ptr %instance_7, align 1
-  %27 = alloca %My_union, align 8
+  %26 = load %Unions_My_union, ptr %25, align 1
+  %instance_7 = alloca %Unions_My_union, align 8
+  store %Unions_My_union %26, ptr %instance_7, align 1
+  %27 = alloca %Unions_My_union, align 8
   store i32 2, ptr %27, align 4
-  %28 = load %My_union, ptr %27, align 1
-  store %My_union %28, ptr %instance_7, align 1
-  %29 = alloca %My_union, align 8
+  %28 = load %Unions_My_union, ptr %27, align 1
+  store %Unions_My_union %28, ptr %instance_7, align 1
+  %29 = alloca %Unions_My_union, align 8
   store i32 4, ptr %29, align 4
-  %30 = load %My_union, ptr %29, align 1
-  call void @pass_union(%My_union %30)
-  %31 = call %My_union @return_union()
-  %instance_8 = alloca %My_union, align 8
-  store %My_union %31, ptr %instance_8, align 1
+  %30 = load %Unions_My_union, ptr %29, align 1
+  call void @Unions_pass_union(%Unions_My_union %30)
+  %31 = call %Unions_My_union @Unions_return_union()
+  %instance_8 = alloca %Unions_My_union, align 8
+  store %Unions_My_union %31, ptr %instance_8, align 1
   ret void
 }
 
-define private void @pass_union(%My_union %arguments.my_union) {
+define private void @Unions_pass_union(%Unions_My_union %arguments.my_union) {
 entry:
-  %my_union = alloca %My_union, align 8
-  store %My_union %arguments.my_union, ptr %my_union, align 1
+  %my_union = alloca %Unions_My_union, align 8
+  store %Unions_My_union %arguments.my_union, ptr %my_union, align 1
   ret void
 }
 
-define private %My_union @return_union() {
+define private %Unions_My_union @Unions_return_union() {
 entry:
-  %0 = alloca %My_union, align 8
+  %0 = alloca %Unions_My_union, align 8
   store float 1.000000e+01, ptr %0, align 4
-  %1 = load %My_union, ptr %0, align 1
-  ret %My_union %1
+  %1 = load %Unions_My_union, ptr %0, align 1
+  ret %Unions_My_union %1
 }
 )";
 
@@ -1811,7 +1843,7 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
-define i32 @main() {
+define i32 @Variables_main() {
 entry:
   %my_constant_variable = alloca i32, align 4
   store i32 1, ptr %my_constant_variable, align 4
@@ -1837,7 +1869,7 @@ entry:
     char const* const expected_llvm_ir = R"(
 @global_0 = internal constant [3 x i8] c"%d\00"
 
-define void @run_while_loops(i32 %arguments.size) {
+define void @While_loop_expressions_run_while_loops(i32 %arguments.size) {
 entry:
   %size = alloca i32, align 4
   store i32 %arguments.size, ptr %size, align 4
@@ -1853,7 +1885,7 @@ while_loop_condition:                             ; preds = %while_loop_then, %e
 
 while_loop_then:                                  ; preds = %while_loop_condition
   %3 = load i32, ptr %index, align 4
-  call void @print_integer(i32 %3)
+  call void @While_loop_expressions_print_integer(i32 %3)
   %4 = load i32, ptr %index, align 4
   %5 = add i32 %4, 1
   store i32 %5, ptr %index, align 4
@@ -1892,14 +1924,14 @@ if_s0_then5:                                      ; preds = %if_s1_after
 
 if_s1_after6:                                     ; preds = %if_s1_after
   %14 = load i32, ptr %index1, align 4
-  call void @print_integer(i32 %14)
+  call void @While_loop_expressions_print_integer(i32 %14)
   %15 = load i32, ptr %index1, align 4
   %16 = add i32 %15, 1
   store i32 %16, ptr %index1, align 4
   br label %while_loop_condition2
 }
 
-define private void @print_integer(i32 %arguments.value) {
+define private void @While_loop_expressions_print_integer(i32 %arguments.value) {
 entry:
   %value = alloca i32, align 4
   store i32 %arguments.value, ptr %value, align 4

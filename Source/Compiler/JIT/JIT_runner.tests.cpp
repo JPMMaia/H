@@ -78,7 +78,7 @@ namespace h
 
         std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, {}, build_directory_path);
 
-        int(*function_pointer)() = h::compiler::get_function<int(*)()>(*jit_runner, "test", "main");
+        int(*function_pointer)() = h::compiler::get_function<int(*)()>(*jit_runner, "test_main");
         REQUIRE(function_pointer != nullptr);
 
         int const first_result = function_pointer();
@@ -105,4 +105,11 @@ namespace h
         int const second_result = function_pointer();
         CHECK(second_result == 20);
     }
+
+    // TODO test removing file
+    // TODO test using structs
+    // TODO test adding errors and update again
+    // TODO test adding new files
+    // TODO test making changes to Artifact
+    // TODO test making changes to Repository
 }
