@@ -12,6 +12,7 @@ import h.builder;
 import h.builder.target;
 
 import h.compiler;
+import h.compiler.jit_runner;
 import h.compiler.linker;
 import h.compiler.repository;
 import h.parser;
@@ -96,6 +97,15 @@ int main(int const argc, char const* const* argv)
     add_repository_argument(build_artifact_command);
     program.add_subparser(build_artifact_command);
 
+    // hlang run-with-jit [--artifact-file=<artifact_file>] [--build-directory=<build_directory>] [--header-search-path=<header_search_path>]... [--repository=<repository_path>]...
+    argparse::ArgumentParser run_with_jit_command("run-with-jit");
+    run_with_jit_command.add_description("Use Just-in-time (JIT) compilation and run the program. Any changes detected during runtime will be applied.");
+    add_artifact_file_argument(run_with_jit_command);
+    add_build_directory_argument(run_with_jit_command);
+    add_header_search_path_argument(run_with_jit_command);
+    add_repository_argument(run_with_jit_command);
+    program.add_subparser(run_with_jit_command);
+
     try
     {
         program.parse_args(argc, argv);
@@ -144,6 +154,28 @@ int main(int const argc, char const* const* argv)
         h::parser::Parser const parser = h::parser::create_parser();
 
         h::builder::build_artifact(target, parser, artifact_file_path, build_directory_path, header_search_paths, repositories);
+    }
+    else if (program.is_subcommand_used("run-with-jit"))
+    {
+        argparse::ArgumentParser const& subprogram = program.at<argparse::ArgumentParser>("run-with-jit");
+
+        std::filesystem::path const artifact_file_path = subprogram.get<std::string>("--artifact-file");
+        std::filesystem::path const build_directory_path = subprogram.get<std::string>("--build-directory");
+        // TODO header search paths are not used?
+        std::pmr::vector<std::filesystem::path> const header_search_paths = convert_to_path(subprogram.get<std::vector<std::string>>("--header-search-path"));
+        std::pmr::vector<std::filesystem::path> const repository_paths = convert_to_path(subprogram.get<std::vector<std::string>>("--repository"));
+        std::pmr::vector<h::compiler::Repository> const repositories = h::compiler::get_repositories(repository_paths);
+
+        std::unique_ptr<h::compiler::JIT_runner> const jit_runner = h::compiler::setup_jit_and_watch(artifact_file_path, repository_paths, build_directory_path);
+
+        void(*function_pointer)() = h::compiler::get_entry_point_function<void(*)()>(*jit_runner, artifact_file_path);
+        if (function_pointer == nullptr)
+        {
+            std::cerr << std::format("Could not find entry point of artifact '{}'\n", artifact_file_path.generic_string());
+            return -1;
+        }
+
+        function_pointer();
     }
 
     return 0;
