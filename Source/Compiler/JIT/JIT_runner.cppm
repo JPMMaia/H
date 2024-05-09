@@ -19,6 +19,7 @@ import h.compiler.artifact;
 import h.compiler.file_watcher;
 import h.compiler.jit_compiler;
 import h.compiler.repository;
+import h.core;
 import h.parser;
 
 namespace h::compiler
@@ -54,20 +55,13 @@ namespace h::compiler
         std::filesystem::path const& build_directory_path
     );
 
-    std::optional<llvm::orc::ExecutorSymbolDef> get_function(
-        JIT_runner& jit_runner,
-        std::string_view module_name,
-        std::string_view function_name
-    );
-
     export
         template <typename Function_type>
     Function_type get_function(
         JIT_runner& jit_runner,
-        std::string_view const module_name,
-        std::string_view const function_name
+        std::string_view const mangled_function_name
     )
     {
-        return get_function<Function_type>(*jit_runner.unprotected_data.jit_data, module_name, function_name);
+        return get_function<Function_type>(*jit_runner.unprotected_data.jit_data, mangled_function_name);
     }
 }

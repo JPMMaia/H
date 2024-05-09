@@ -1,0 +1,29 @@
+module name.with.dots;
+
+export enum Enum_name
+{
+}
+
+export using Alias_name = Enum_name;
+
+export struct Struct_name
+{
+}
+
+export union Union_name
+{
+}
+
+export function function_name(
+    a: Enum_name,
+    b: Alias_name,
+    c: Struct_name,
+    d: Union_name
+) -> ()
+{
+    other_function_name();
+}
+
+export function other_function_name() -> ()
+{
+}

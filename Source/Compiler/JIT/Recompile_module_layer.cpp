@@ -14,6 +14,7 @@ module h.compiler.recompile_module_layer;
 import h.common;
 import h.core;
 import h.compiler;
+import h.compiler.common;
 
 namespace h::compiler
 {
@@ -70,11 +71,12 @@ namespace h::compiler
 
         auto const process_function_declaration = [&](h::Function_declaration& declaration)
         {
-            std::pmr::string stub_name = declaration.name;
+            std::string const stub_name = mangle_function_name(core_module, declaration.name);
             llvm::orc::SymbolStringPtr const stub_symbol = mangle(stub_name.c_str());
 
             std::string const body_name = std::format("{}_{}_$body", declaration.name, id);
-            llvm::orc::SymbolStringPtr const body_symbol = mangle(body_name.c_str());
+            std::string const mangled_body_name = mangle_name(core_module, body_name, std::nullopt);
+            llvm::orc::SymbolStringPtr const body_symbol = mangle(mangled_body_name.c_str());
 
             declaration.linkage = h::Linkage::External;
 
@@ -115,7 +117,6 @@ namespace h::compiler
         for (h::Function_definition& definition : core_module.definitions.function_definitions)
         {
             std::string const body_name = std::format("{}_{}_$body", definition.name, id);
-            llvm::orc::SymbolStringPtr const body_symbol = mangle(body_name.c_str());
 
             definition.name = body_name;
         }

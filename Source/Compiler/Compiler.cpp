@@ -102,7 +102,7 @@ namespace h::compiler
     {
         llvm::GlobalValue::LinkageTypes const linkage = to_linkage(function_declaration.linkage);
 
-        std::string const mangled_name = mangle_name(core_module, function_declaration.name);
+        std::string const mangled_name = mangle_name(core_module, function_declaration.name, function_declaration.unique_name);
 
         llvm::Function* const llvm_function = llvm::Function::Create(
             &llvm_function_type,

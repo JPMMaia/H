@@ -77,19 +77,17 @@ namespace h::compiler
 
     std::optional<llvm::orc::ExecutorSymbolDef> get_function(
         JIT_data& jit_data,
-        std::string_view const module_name,
-        std::string_view const function_name
+        std::string_view const mangled_function_name
     );
 
     export
         template <typename Function_type>
     Function_type get_function(
         JIT_data& jit_data,
-        std::string_view const module_name,
-        std::string_view const function_name
+        std::string_view const mangled_function_name
     )
     {
-        std::optional<llvm::orc::ExecutorSymbolDef> function_address = get_function(jit_data, module_name, function_name);
+        std::optional<llvm::orc::ExecutorSymbolDef> function_address = get_function(jit_data, mangled_function_name);
         if (!function_address)
             return nullptr;
 

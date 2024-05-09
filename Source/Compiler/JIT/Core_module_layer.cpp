@@ -14,6 +14,7 @@ module h.compiler.core_module_layer;
 import h.core;
 import h.common;
 import h.compiler;
+import h.compiler.common;
 
 namespace h::compiler
 {
@@ -28,8 +29,10 @@ namespace h::compiler
         {
             if (function_definition.name.ends_with("$body"))
             {
+                std::string const mangled_name = mangle_name(core_module, function_definition.name, std::nullopt);
+
                 symbols.insert(
-                    { mangle(function_definition.name.c_str()), llvm::JITSymbolFlags::Exported | llvm::JITSymbolFlags::Callable }
+                    { mangle(mangled_name.c_str()), llvm::JITSymbolFlags::Exported | llvm::JITSymbolFlags::Callable }
                 );
             }
         }
@@ -53,13 +56,22 @@ namespace h::compiler
         std::unique_ptr<llvm::orc::MaterializationResponsibility> materialization_responsibility
     )
     {
+        llvm::orc::MangleAndInterner& mangle = m_mangle;
+
         llvm::orc::SymbolNameSet const requested_symbols = materialization_responsibility->getRequestedSymbols();
+
+        auto const is_requested_symbol = [&](h::Function_definition const& definition) -> bool
+        {
+            std::string const mangled_name = mangle_name(m_core_module_compilation_data.core_module, definition.name, std::nullopt);
+            return requested_symbols.contains(mangle(mangled_name.c_str()));
+        };
 
         std::pmr::vector<std::string_view> functions_to_compile;
 
-        for (llvm::orc::SymbolStringPtr const symbol : requested_symbols)
+        for (h::Function_definition const& definition : m_core_module_compilation_data.core_module.definitions.function_definitions)
         {
-            functions_to_compile.push_back(std::string_view{ (*symbol).begin(), (*symbol).end() });
+            if (is_requested_symbol(definition))
+                functions_to_compile.push_back(definition.name);
         }
 
         std::unique_ptr<llvm::Module> llvm_module = h::compiler::create_llvm_module(
@@ -70,13 +82,6 @@ namespace h::compiler
         );
 
         {
-            llvm::orc::MangleAndInterner& mangle = m_mangle;
-
-            auto const is_requested_symbol = [&](h::Function_definition const& definition) -> bool
-            {
-                return requested_symbols.contains(mangle(definition.name.c_str()));
-            };
-
             std::pmr::vector<h::Function_definition>& function_definitions = m_core_module_compilation_data.core_module.definitions.function_definitions;
             function_definitions.erase(
                 std::remove_if(function_definitions.begin(), function_definitions.end(), is_requested_symbol),
