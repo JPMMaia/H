@@ -9,12 +9,12 @@
 #include <vector>
 
 import h.builder;
-import h.builder.target;
 
 import h.compiler;
 import h.compiler.jit_runner;
 import h.compiler.linker;
 import h.compiler.repository;
+import h.compiler.target;
 import h.parser;
 
 std::pmr::vector<std::filesystem::path> convert_to_path(std::span<std::string const> const values)
@@ -135,7 +135,7 @@ int main(int const argc, char const* const* argv)
             .entry_point = entry
         };
 
-        h::builder::Target const target = h::builder::get_default_target();
+        h::compiler::Target const target = h::compiler::get_default_target();
         h::parser::Parser const parser = h::parser::create_parser();
 
         h::builder::build_executable(target, parser, file_paths, {}, build_directory_path, output_path, module_name_to_file_path_map, linker_options);
@@ -150,7 +150,7 @@ int main(int const argc, char const* const* argv)
         std::pmr::vector<std::filesystem::path> const repository_paths = convert_to_path(subprogram.get<std::vector<std::string>>("--repository"));
         std::pmr::vector<h::compiler::Repository> const repositories = h::compiler::get_repositories(repository_paths);
 
-        h::builder::Target const target = h::builder::get_default_target();
+        h::compiler::Target const target = h::compiler::get_default_target();
         h::parser::Parser const parser = h::parser::create_parser();
 
         h::builder::build_artifact(target, parser, artifact_file_path, build_directory_path, header_search_paths, repositories);
@@ -161,12 +161,13 @@ int main(int const argc, char const* const* argv)
 
         std::filesystem::path const artifact_file_path = subprogram.get<std::string>("--artifact-file");
         std::filesystem::path const build_directory_path = subprogram.get<std::string>("--build-directory");
-        // TODO header search paths are not used?
         std::pmr::vector<std::filesystem::path> const header_search_paths = convert_to_path(subprogram.get<std::vector<std::string>>("--header-search-path"));
         std::pmr::vector<std::filesystem::path> const repository_paths = convert_to_path(subprogram.get<std::vector<std::string>>("--repository"));
         std::pmr::vector<h::compiler::Repository> const repositories = h::compiler::get_repositories(repository_paths);
 
-        std::unique_ptr<h::compiler::JIT_runner> const jit_runner = h::compiler::setup_jit_and_watch(artifact_file_path, repository_paths, build_directory_path);
+        h::compiler::Target const target = h::compiler::get_default_target();
+
+        std::unique_ptr<h::compiler::JIT_runner> const jit_runner = h::compiler::setup_jit_and_watch(artifact_file_path, repository_paths, build_directory_path, header_search_paths, target);
 
         void(*function_pointer)() = h::compiler::get_entry_point_function<void(*)()>(*jit_runner, artifact_file_path);
         if (function_pointer == nullptr)

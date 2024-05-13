@@ -3,9 +3,9 @@ module;
 #include <memory_resource>
 #include <string>
 
-export module h.builder.target;
+export module h.compiler.target;
 
-namespace h::builder
+namespace h::compiler
 {
     export struct Target
     {

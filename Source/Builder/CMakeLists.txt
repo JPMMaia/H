@@ -11,14 +11,7 @@ target_link_libraries(H_builder PRIVATE nlohmann_json::nlohmann_json)
 target_sources(H_builder PRIVATE
    "Builder.cppm"
    "Builder.cpp"
-   "Target.cppm"
 )
-
-if(WIN32)
-   target_sources(H_builder PRIVATE
-      "Target_windows.cpp"
-   )
-endif()
 
 
 add_executable(H_builder_executable)

@@ -13,14 +13,13 @@ module;
 
 module h.builder;
 
-import h.builder.target;
-
 import h.common;
 import h.core;
 import h.compiler;
 import h.compiler.common;
 import h.compiler.linker;
 import h.compiler.repository;
+import h.compiler.target;
 import h.c_header_converter;
 import h.json_serializer;
 import h.parser;
@@ -52,7 +51,7 @@ namespace h::builder
     }
 
     void build_executable(
-        Target const& target,
+        h::compiler::Target const& target,
         h::parser::Parser const& parser,
         std::span<std::filesystem::path const> const source_file_paths,
         std::span<std::pmr::string const> const libraries,
@@ -138,7 +137,7 @@ namespace h::builder
         return std::nullopt;
     }
 
-    static std::optional<std::pmr::string> get_external_library(nlohmann::json const& json, Target const& target)
+    static std::optional<std::pmr::string> get_external_library(nlohmann::json const& json, h::compiler::Target const& target)
     {
         nlohmann::json const external_library_json = json.at("external_library");
 
@@ -299,7 +298,7 @@ namespace h::builder
     static void build_artifact_auxiliary(
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path>& module_name_to_file_path_map,
         std::pmr::vector<std::pmr::string>& libraries,
-        Target const& target,
+        h::compiler::Target const& target,
         h::parser::Parser const& parser,
         std::filesystem::path const& configuration_file_path,
         std::filesystem::path const& build_directory_path,
@@ -359,7 +358,7 @@ namespace h::builder
                 if (!dependency_location.has_value())
                     h::common::print_message_and_exit(std::format("Could not find dependency {}.", dependency_name));
 
-                std::filesystem::path const dependency_configuration_file_path = dependency_location.value() / "hlang_artifact.json";
+                std::filesystem::path const dependency_configuration_file_path = dependency_location.value();
 
                 build_artifact_auxiliary(module_name_to_file_path_map, libraries, target, parser, dependency_configuration_file_path, build_directory_path, header_search_paths, repositories);
             }
@@ -389,7 +388,7 @@ namespace h::builder
     }
 
     void build_artifact(
-        Target const& target,
+        h::compiler::Target const& target,
         h::parser::Parser const& parser,
         std::filesystem::path const& configuration_file_path,
         std::filesystem::path const& build_directory_path,

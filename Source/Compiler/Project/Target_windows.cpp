@@ -3,9 +3,9 @@ module;
 #include <memory_resource>
 #include <string>
 
-module h.builder.target;
+module h.compiler.target;
 
-namespace h::builder
+namespace h::compiler
 {
     Target get_default_target()
     {
