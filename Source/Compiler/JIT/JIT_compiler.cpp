@@ -36,6 +36,25 @@ import h.compiler.recompile_module_layer;
 
 namespace h::compiler
 {
+    JIT_data::~JIT_data()
+    {
+        recompile_module_layer.reset();
+        core_module_layer.reset();
+        compile_on_demand_layer.reset();
+        mangle.reset();
+        lazy_call_through_manager.reset();
+        indirect_stubs_manager.reset();
+
+        {
+            llvm::Error error = epc_indirection_utils->cleanup();
+            if (error)
+                std::puts(std::format("Error while cleaning up EPC indirection utils: {}", llvm::toString(std::move(error))).c_str());
+        }
+        epc_indirection_utils.reset();
+
+        llvm_jit.reset();
+    }
+
     std::unique_ptr<JIT_data> create_jit_data(
         llvm::DataLayout& llvm_data_layout
     )
@@ -87,19 +106,15 @@ namespace h::compiler
             *mangle
         );
 
-        std::unique_ptr<JIT_data> jit_data = std::make_unique<JIT_data>(
-            JIT_data
-            {
-                .llvm_jit = std::move(llvm_jit),
-                .epc_indirection_utils = std::move(*epc_indirection_utils),
-                .indirect_stubs_manager = std::move(indirect_stubs_manager),
-                .lazy_call_through_manager = std::move(*local_lazy_call_through_manager),
-                .mangle = std::move(mangle),
-                .compile_on_demand_layer = std::move(compile_on_demand_layer),
-                .core_module_layer = std::move(core_module_layer),
-                .recompile_module_layer = std::move(recompile_module_layer)
-            }
-        );
+        std::unique_ptr<JIT_data> jit_data = std::make_unique<JIT_data>();
+        jit_data->llvm_jit = std::move(llvm_jit);
+        jit_data->epc_indirection_utils = std::move(*epc_indirection_utils);
+        jit_data->indirect_stubs_manager = std::move(indirect_stubs_manager);
+        jit_data->lazy_call_through_manager = std::move(*local_lazy_call_through_manager);
+        jit_data->mangle = std::move(mangle);
+        jit_data->compile_on_demand_layer = std::move(compile_on_demand_layer);
+        jit_data->core_module_layer = std::move(core_module_layer);
+        jit_data->recompile_module_layer = std::move(recompile_module_layer);
 
         // TODO link libLLVMOrcDebugging.a
         // TODO enable llvm::orc::enableDebuggerSupport(*llvm_jit);
