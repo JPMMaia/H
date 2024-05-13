@@ -5,6 +5,7 @@ module;
 #include <llvm/ExecutionEngine/Orc/Shared/ExecutorSymbolDef.h>
 #include <llvm/Support/Error.h>
 
+#include <condition_variable>
 #include <filesystem>
 #include <memory>
 #include <span>
@@ -39,6 +40,8 @@ namespace h::compiler
     struct JIT_runner_protected_data
     {
         std::shared_mutex mutex;
+        std::condition_variable_any condition_variable;
+        std::uint64_t processed_files = 0;
         std::pmr::unordered_map<std::filesystem::path, Artifact> artifacts;
         std::pmr::unordered_map<std::filesystem::path, Repository> repositories;
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> module_name_to_file_path;
@@ -95,4 +98,13 @@ namespace h::compiler
 
         return nullptr;
     }
+
+    export std::uint64_t get_processed_files(
+        JIT_runner& jit_runner
+    );
+
+    export void wait_for(
+        JIT_runner& jit_runner,
+        std::uint64_t const processed_files
+    );
 }
