@@ -17,6 +17,8 @@ module;
 
 #include <wtr/watcher.hpp>
 
+#include <chrono>
+#include <condition_variable>
 #include <cstdio>
 #include <filesystem>
 #include <format>
@@ -50,10 +52,10 @@ namespace h::compiler
 {
     JIT_runner::~JIT_runner()
     {
-        this->file_watcher.release();
+        this->file_watcher.reset();
         this->protected_data.symbol_to_module_name_map.clear();
-        this->unprotected_data.jit_data.release();
-        this->unprotected_data.llvm_data.release();
+        this->unprotected_data.jit_data.reset();
+        this->unprotected_data.llvm_data.reset();
     }
 
     static std::optional<std::pmr::string> read_module_name(std::filesystem::path const& unparsed_file_path)
@@ -244,7 +246,7 @@ namespace h::compiler
             std::optional<h::Module> import_core_module = h::json::read_module_export_declarations(module_file_path);
             if (!import_core_module.has_value())
             {
-                ::printf("Failed to read contents of %s (invalid module)", module_file_path.generic_string().c_str());
+                ::printf("Failed to read contents of %s (invalid module)\n", module_file_path.generic_string().c_str());
                 return std::nullopt;
             }
 
@@ -286,14 +288,14 @@ namespace h::compiler
         std::optional<std::pmr::string> const json_data = h::common::get_file_contents(module_file_path);
         if (!json_data.has_value())
         {
-            ::printf("Failed to read contents of %s", module_file_path.generic_string().c_str());
+            ::printf("Failed to read contents of %s\n", module_file_path.generic_string().c_str());
             return false;
         }
 
         std::optional<h::Module> const core_module = h::json::read<h::Module>(json_data.value().c_str());
         if (!core_module.has_value())
         {
-            ::printf("Failed to read contents of module %s", module_file_path.generic_string().c_str());
+            ::printf("Failed to read contents of module %s\n", module_file_path.generic_string().c_str());
             return false;
         }
 
@@ -517,6 +519,15 @@ namespace h::compiler
         JIT_runner_protected_data& m_protected_data;
     };
 
+    bool is_inside_directory(
+        std::filesystem::path const& path,
+        std::filesystem::path const& directory_path
+    )
+    {
+        auto const [directory_path_end, nothing] = std::mismatch(directory_path.begin(), directory_path.end(), path.begin());
+        return directory_path_end == directory_path.end();
+    }
+
     static void handle_file_change(
         JIT_runner_unprotected_data const& unprotected_data,
         JIT_runner_protected_data& protected_data,
@@ -535,16 +546,29 @@ namespace h::compiler
             std::puts(output_string.c_str());*/
         }
 
+        std::filesystem::path const& source_file_path = event.path_name;
+
+        // Ignore changes in the build directory:
+        if (is_inside_directory(source_file_path, unprotected_data.build_directory_path))
+            return;
+
         // TODO update module_name_to_file_path map
 
         // Any time there is a watched file is modified, add to the recompile module layer:
-        if (event.effect_type == wtr::event::effect_type::modify)
+        if (event.effect_type == wtr::event::effect_type::create || event.effect_type == wtr::event::effect_type::modify)
         {
-            std::filesystem::path const& source_file_path = event.path_name;
             if (source_file_path.extension() == ".hltxt")
             {
+                using namespace std::chrono_literals;
+
+                std::puts(std::format("Compiling {}", source_file_path.generic_string()).c_str());
+
+                std::chrono::high_resolution_clock::time_point const begin_parsing = std::chrono::high_resolution_clock::now();
+
                 std::filesystem::path const parsed_file_path = unprotected_data.build_directory_path / source_file_path.filename().replace_extension("hl");
                 h::parser::parse(unprotected_data.parser, source_file_path, parsed_file_path);
+
+                std::chrono::high_resolution_clock::time_point const begin_compiling = std::chrono::high_resolution_clock::now();
 
                 add_module_for_compilation(
                     parsed_file_path,
@@ -552,6 +576,16 @@ namespace h::compiler
                     unprotected_data,
                     protected_data
                 );
+
+                std::chrono::high_resolution_clock::time_point const end_compiling = std::chrono::high_resolution_clock::now();
+
+                std::puts(std::format("Compiled {}. Parsing took {}ms. Compiling took {}ms. Total time was {}ms", source_file_path.generic_string(), (begin_compiling - begin_parsing) / 1ms, (end_compiling - begin_compiling) / 1ms, (end_compiling - begin_parsing) / 1ms).c_str());
+
+                {
+                    std::unique_lock<std::shared_mutex> lock{ protected_data.mutex };
+                    protected_data.processed_files += 1;
+                }
+                protected_data.condition_variable.notify_all();
             }
         }
 
@@ -626,5 +660,24 @@ namespace h::compiler
         }
 
         return jit_runner;
+    }
+
+    std::uint64_t get_processed_files(
+        JIT_runner& jit_runner
+    )
+    {
+        std::shared_lock<std::shared_mutex> lock{ jit_runner.protected_data.mutex };
+        return jit_runner.protected_data.processed_files;
+    }
+
+    void wait_for(
+        JIT_runner& jit_runner,
+        std::uint64_t const processed_files
+    )
+    {
+        auto const has_enough_processed_files = [&]() { return jit_runner.protected_data.processed_files >= processed_files; };
+
+        std::unique_lock<std::shared_mutex> lock{ jit_runner.protected_data.mutex };
+        jit_runner.protected_data.condition_variable.wait(lock, has_enough_processed_files);
     }
 }
