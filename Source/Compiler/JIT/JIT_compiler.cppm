@@ -26,6 +26,8 @@ namespace h::compiler
 {
     export struct JIT_data
     {
+        ~JIT_data();
+
         std::unique_ptr<llvm::orc::LLJIT> llvm_jit;
         std::unique_ptr<llvm::orc::EPCIndirectionUtils> epc_indirection_utils;
         std::unique_ptr<llvm::orc::IndirectStubsManager> indirect_stubs_manager;
