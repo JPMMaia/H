@@ -12,6 +12,8 @@ module;
 
 export module h.compiler.artifact;
 
+import h.compiler.target;
+
 namespace h::compiler
 {
     export struct Version
@@ -65,6 +67,13 @@ namespace h::compiler
 
     export void write_artifact_to_file(Artifact const& artifact, std::filesystem::path const& artifact_file_path);
 
+    export std::span<C_header const> get_c_headers(Artifact const& artifact);
+
+    export std::optional<std::filesystem::path> find_c_header_path(
+        std::string_view c_header,
+        std::span<std::filesystem::path const> search_paths
+    );
+
     export bool visit_included_files(
         std::filesystem::path const& root_path,
         std::string_view const regular_expression,
@@ -84,5 +93,17 @@ namespace h::compiler
     export std::pmr::vector<std::filesystem::path> find_root_include_directories(
         Artifact const& artifact,
         std::pmr::polymorphic_allocator<> const& output_allocator
+    );
+
+    export struct External_library_info
+    {
+        std::pmr::string name;
+        bool is_dynamic;
+    };
+
+    export std::optional<External_library_info> get_external_library(
+        std::pmr::unordered_map<std::pmr::string, std::pmr::string> const& external_libraries,
+        Target const& target,
+        bool prefer_dynamic
     );
 }

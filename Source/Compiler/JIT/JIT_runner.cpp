@@ -40,7 +40,9 @@ import h.compiler.core_module_layer;
 import h.compiler.file_watcher;
 import h.compiler.jit_compiler;
 import h.compiler.repository;
+import h.compiler.target;
 import h.core;
+import h.c_header_converter;
 import h.json_serializer;
 import h.parser;
 
@@ -106,6 +108,7 @@ namespace h::compiler
 
     std::optional<std::filesystem::path> find_module_file_path(
         std::string_view const module_name,
+        JIT_runner_unprotected_data const& unprotected_data,
         JIT_runner_protected_data& protected_data
     )
     {
@@ -130,19 +133,53 @@ namespace h::compiler
             return false;
         };
 
+        // TODO
         for (auto const& pair : protected_data.artifacts)
         {
             bool const found = visit_included_files(pair.second, predicate);
             if (found)
-                break;
+                return module_file_path;
+
+            std::span<C_header const> const c_headers = get_c_headers(pair.second);
+            for (C_header const& c_header : c_headers)
+            {
+                if (c_header.module_name == module_name)
+                    return find_c_header_path(c_header.header, unprotected_data.header_search_paths);
+            }
+        }
+
+        for (auto const& repository_pair : protected_data.repositories)
+        {
+            Repository const& repository = repository_pair.second;
+
+            for (auto const& artifact_pair : repository.artifact_to_location)
+            {
+                Artifact const artifact = get_artifact(artifact_pair.second);
+                bool const found = visit_included_files(artifact, predicate);
+                if (found)
+                    return module_file_path;
+
+                std::span<C_header const> const c_headers = get_c_headers(artifact);
+                for (C_header const& c_header : c_headers)
+                {
+                    if (c_header.module_name == module_name)
+                        return find_c_header_path(c_header.header, unprotected_data.header_search_paths);
+                }
+            }
         }
 
         // TODO add entry to module_name_to_file_path 
 
-        return module_file_path;
+        return std::nullopt;
     }
 
-    std::optional<std::filesystem::path> find_module_and_parse(
+    struct Parsed_module_info
+    {
+        std::filesystem::path parsed_file_path;
+        bool is_c_header;
+    };
+
+    std::optional<Parsed_module_info> find_module_and_parse(
         std::string_view const module_name,
         JIT_runner_unprotected_data const& unprotected_data,
         JIT_runner_protected_data& protected_data
@@ -150,15 +187,36 @@ namespace h::compiler
     {
         std::optional<std::filesystem::path> const module_file_path = find_module_file_path(
             module_name,
+            unprotected_data,
             protected_data
         );
         if (!module_file_path)
             return std::nullopt;
 
         std::filesystem::path const parsed_file_path = unprotected_data.build_directory_path / module_file_path->filename().replace_extension("hl");
-        h::parser::parse(unprotected_data.parser, *module_file_path, parsed_file_path);
 
-        return parsed_file_path;
+        if (module_file_path->extension() == ".hltxt")
+        {
+            h::parser::parse(unprotected_data.parser, *module_file_path, parsed_file_path);
+
+            return Parsed_module_info
+            {
+                .parsed_file_path = parsed_file_path,
+                .is_c_header = false
+            };
+        }
+        else if (module_file_path->extension() == ".h")
+        {
+            h::c::import_header_and_write_to_file(module_name, *module_file_path, parsed_file_path);
+
+            return Parsed_module_info
+            {
+                .parsed_file_path = parsed_file_path,
+                .is_c_header = true
+            };
+        }
+
+        return std::nullopt;
     }
 
     std::optional<std::pmr::vector<h::Module>> find_and_parse_core_module_dependencies(
@@ -172,21 +230,25 @@ namespace h::compiler
 
         for (Import_module_with_alias const& import_alias : core_module.dependencies.alias_imports)
         {
-            std::optional<std::filesystem::path> module_file_path = find_module_and_parse(
+            std::optional<Parsed_module_info> const parsed_module_info = find_module_and_parse(
                 import_alias.module_name,
                 unprotected_data,
                 protected_data
             );
 
-            if (!module_file_path)
+            if (!parsed_module_info)
                 return std::nullopt;
 
-            std::optional<h::Module> import_core_module = h::json::read_module_export_declarations(*module_file_path);
+            std::filesystem::path const& module_file_path = parsed_module_info->parsed_file_path;
+
+            std::optional<h::Module> import_core_module = h::json::read_module_export_declarations(module_file_path);
             if (!import_core_module.has_value())
             {
-                ::printf("Failed to read contents of %s (invalid module)", module_file_path->generic_string().c_str());
+                ::printf("Failed to read contents of %s (invalid module)", module_file_path.generic_string().c_str());
                 return std::nullopt;
             }
+
+            module_dependecies.push_back(std::move(*import_core_module));
         }
 
         remove_unused_declarations(core_module, module_dependecies);
@@ -206,7 +268,7 @@ namespace h::compiler
         {
             for (h::Function_declaration const& declaration : core_module.export_declarations.function_declarations)
             {
-                std::string const mangled_name = mangle_function_name(core_module, declaration.name);
+                std::string const mangled_name = mangle_name(core_module, declaration.name, declaration.unique_name);
                 llvm::orc::SymbolStringPtr const symbol = mangle(mangled_name);
 
                 protected_data.symbol_to_module_name_map.insert(std::make_pair(symbol, core_module.name));
@@ -239,7 +301,7 @@ namespace h::compiler
             find_and_parse_core_module_dependencies(*core_module, unprotected_data, protected_data);
         if (!core_module_dependencies.has_value())
         {
-            ::printf("Failed to read module dependencies of module %s", module_file_path.generic_string().c_str());
+            ::printf("Failed to read module dependencies of module %s\n", module_file_path.generic_string().c_str());
             return false;
         }
 
@@ -254,6 +316,112 @@ namespace h::compiler
         add_core_module(*unprotected_data.jit_data, library, std::move(core_compilation_data));
 
         return true;
+    }
+
+    static std::pmr::unordered_map<std::filesystem::path, Artifact>::const_iterator find_artifact(
+        std::pmr::unordered_map<std::filesystem::path, Artifact> const& artifacts,
+        std::string_view const artifact_name
+    )
+    {
+        for (auto iterator = artifacts.begin(); iterator != artifacts.end(); ++iterator)
+        {
+            Artifact const& artifact = iterator->second;
+            if (artifact.name == artifact_name)
+                return iterator;
+        }
+
+        return artifacts.end();
+    }
+
+    static std::optional<std::filesystem::path> find_artifact_file_path(
+        std::pmr::unordered_map<std::filesystem::path, Repository> const& repositories,
+        std::string_view const artifact_name
+    )
+    {
+        for (auto const& repository_pair : repositories)
+        {
+            Repository const& repository = repository_pair.second;
+
+            auto const location = repository.artifact_to_location.find(artifact_name.data());
+            if (location != repository.artifact_to_location.end())
+                return location->second;
+        }
+
+        return std::nullopt;
+    }
+
+    static void add_artifact_for_compilation(
+        std::filesystem::path const& artifact_configuration_file_path,
+        JIT_runner_unprotected_data const& unprotected_data,
+        JIT_runner_protected_data& protected_data,
+        File_watcher& file_watcher
+    )
+    {
+        // TODO if artifact is updated on the fly, then we need to review the mutex protection here
+
+        {
+            Artifact artifact = get_artifact(artifact_configuration_file_path);
+
+            std::unique_lock<std::shared_mutex> lock{ protected_data.mutex };
+            protected_data.artifacts.insert(std::make_pair(artifact_configuration_file_path, std::move(artifact)));
+        }
+
+        Artifact const& artifact = protected_data.artifacts.at(artifact_configuration_file_path);
+
+        std::pmr::vector<std::filesystem::path> dependencies_artifacts_configuration_file_paths;
+        {
+            std::shared_lock<std::shared_mutex> lock{ protected_data.mutex };
+
+            for (Dependency const& dependency : artifact.dependencies)
+            {
+                auto const iterator = find_artifact(protected_data.artifacts, dependency.artifact_name);
+                if (iterator == protected_data.artifacts.end())
+                {
+                    std::optional<std::filesystem::path> const dependency_file_path = find_artifact_file_path(protected_data.repositories, dependency.artifact_name);
+                    if (dependency_file_path)
+                        dependencies_artifacts_configuration_file_paths.push_back(std::move(*dependency_file_path));
+                }
+            }
+        }
+
+        for (std::filesystem::path const& dependency_file_path : dependencies_artifacts_configuration_file_paths)
+        {
+            add_artifact_for_compilation(dependency_file_path, unprotected_data, protected_data, file_watcher);
+        }
+
+        if (artifact.info.has_value())
+        {
+            if (std::holds_alternative<Executable_info>(*artifact.info))
+            {
+                Executable_info const& executable_info = std::get<Executable_info>(*artifact.info);
+
+                std::filesystem::path const source_file_path = artifact.file_path.parent_path() / executable_info.source;
+
+                std::filesystem::path const parsed_file_path = unprotected_data.build_directory_path / source_file_path.filename().replace_extension("hl");
+                h::parser::parse(unprotected_data.parser, source_file_path, parsed_file_path);
+
+                add_module_for_compilation(
+                    parsed_file_path,
+                    get_main_library(*unprotected_data.jit_data),
+                    unprotected_data,
+                    protected_data
+                );
+            }
+            else if (std::holds_alternative<Library_info>(*artifact.info))
+            {
+                Library_info const& library_info = std::get<Library_info>(*artifact.info);
+
+                // TODO add c headers for compilation?
+
+                std::optional<External_library_info> const external_library = get_external_library(library_info.external_libraries, unprotected_data.target, true);
+                if (external_library.has_value())
+                {
+                    link_static_library(*unprotected_data.jit_data, external_library->name.c_str());
+                }
+            }
+        }
+
+        watch_artifact_directories(file_watcher, artifact);
     }
 
     std::optional<std::string_view> get_module_name(
@@ -310,12 +478,15 @@ namespace h::compiler
                 if (!module_name)
                     continue;
 
-                std::optional<std::filesystem::path> const module_file_path = find_module_and_parse(*module_name, m_unprotected_data, m_protected_data);
-                if (!module_file_path)
+                std::optional<Parsed_module_info> const parsed_module_info = find_module_and_parse(*module_name, m_unprotected_data, m_protected_data);
+                if (!parsed_module_info)
+                    continue;
+
+                if (parsed_module_info->is_c_header)
                     continue;
 
                 add_module_for_compilation(
-                    *module_file_path,
+                    parsed_module_info->parsed_file_path,
                     library,
                     m_unprotected_data,
                     m_protected_data
@@ -364,8 +535,6 @@ namespace h::compiler
             std::puts(output_string.c_str());*/
         }
 
-        // TODO thread safety
-
         // TODO update module_name_to_file_path map
 
         // Any time there is a watched file is modified, add to the recompile module layer:
@@ -390,43 +559,16 @@ namespace h::compiler
         // TODO when a file is removed, maybe remove the definitions?
     }
 
-    void parse_entry_point_module_and_add_for_compilation(
-        JIT_runner_unprotected_data const& unprotected_data,
-        JIT_runner_protected_data& protected_data,
-        Artifact const& artifact
-    )
-    {
-        if (artifact.info.has_value())
-        {
-            if (std::holds_alternative<Executable_info>(*artifact.info))
-            {
-                Executable_info const& executable_info = std::get<Executable_info>(*artifact.info);
-
-                std::filesystem::path const source_file_path = artifact.file_path.parent_path() / executable_info.source;
-
-                std::filesystem::path const parsed_file_path = unprotected_data.build_directory_path / source_file_path.filename().replace_extension("hl");
-                h::parser::parse(unprotected_data.parser, source_file_path, parsed_file_path);
-
-                add_module_for_compilation(
-                    parsed_file_path,
-                    get_main_library(*unprotected_data.jit_data),
-                    unprotected_data,
-                    protected_data
-                );
-            }
-        }
-    }
-
     std::unique_ptr<JIT_runner> setup_jit_and_watch(
         std::filesystem::path const& artifact_configuration_file_path,
         std::span<std::filesystem::path const> const repositories_file_paths,
-        std::filesystem::path const& build_directory_path
+        std::filesystem::path const& build_directory_path,
+        std::span<std::filesystem::path const> const header_search_paths,
+        Target const& target
     )
     {
         // Print internal LLVM messages:
         //llvm::DebugFlag = true;
-
-        Artifact artifact = get_artifact(artifact_configuration_file_path);
 
         std::unique_ptr<JIT_runner> jit_runner = std::make_unique<JIT_runner>();
 
@@ -438,15 +580,18 @@ namespace h::compiler
             jit_runner->unprotected_data =
             {
                 .build_directory_path = build_directory_path,
+                .header_search_paths = { header_search_paths.begin(), header_search_paths.end() },
+                .target = target,
                 .parser = h::parser::create_parser(),
                 .llvm_data = std::move(llvm_data),
                 .jit_data = std::move(jit_data),
             };
 
-            jit_runner->protected_data.artifacts =
+            for (std::filesystem::path const& repository_file_path : repositories_file_paths)
             {
-                {artifact_configuration_file_path, artifact}
-            };
+                Repository repository = get_repository(repository_file_path);
+                jit_runner->protected_data.repositories.insert(std::make_pair(repository_file_path, std::move(repository)));
+            }
         }
 
         // Create file watcher:
@@ -459,7 +604,8 @@ namespace h::compiler
                 handle_file_change(unprotected_data, protected_data, event);
             };
 
-            std::unique_ptr<File_watcher> file_watcher = watch(artifact, repositories_file_paths, std::move(callback));
+            std::unique_ptr<File_watcher> file_watcher = create_file_watcher(std::move(callback));
+            watch_repository_directories(*file_watcher, repositories_file_paths);
             jit_runner->file_watcher = std::move(file_watcher);
         }
 
@@ -471,7 +617,13 @@ namespace h::compiler
             add_generator(*jit_runner->unprotected_data.jit_data, std::make_unique<H_definition_generator>(unprotected_data, protected_data));
         }
 
-        parse_entry_point_module_and_add_for_compilation(jit_runner->unprotected_data, jit_runner->protected_data, artifact);
+        // Add entry point artifact:
+        {
+            JIT_runner_unprotected_data const& unprotected_data = jit_runner->unprotected_data;
+            JIT_runner_protected_data& protected_data = jit_runner->protected_data;
+
+            add_artifact_for_compilation(artifact_configuration_file_path, unprotected_data, protected_data, *jit_runner->file_watcher);
+        }
 
         return jit_runner;
     }

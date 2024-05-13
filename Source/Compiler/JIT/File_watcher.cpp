@@ -16,18 +16,12 @@ import h.compiler.repository;
 
 namespace h::compiler
 {
-    static std::pmr::vector<std::filesystem::path> find_directories_to_watch(
+    static std::pmr::vector<std::filesystem::path> find_artifact_directories_to_watch(
         Artifact const& artifact,
-        std::span<std::filesystem::path const> const repositories_file_paths,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
         std::pmr::vector<std::filesystem::path> directories_to_watch = find_root_include_directories(artifact, temporaries_allocator);
-
-        for (std::filesystem::path const& repository_file_path : repositories_file_paths)
-        {
-            directories_to_watch.push_back(repository_file_path.parent_path());
-        }
 
         // Remove all subdirectories and leave only "root directories"
         for (std::size_t index = directories_to_watch.size(); index > 1; --index)
@@ -58,28 +52,42 @@ namespace h::compiler
         return directories_to_watch;
     }
 
-    std::unique_ptr<File_watcher> watch(
-        Artifact const& artifact,
-        std::span<std::filesystem::path const> const repositories_file_paths,
+    std::unique_ptr<File_watcher> create_file_watcher(
         std::function<void(wtr::watcher::event const&)> callback
+    )
+    {
+        std::unique_ptr<File_watcher> file_watcher = std::make_unique<File_watcher>();
+        file_watcher->callback = std::move(callback);
+        return file_watcher;
+    }
+
+    void watch_artifact_directories(
+        File_watcher& file_watcher,
+        Artifact const& artifact
     )
     {
         std::pmr::monotonic_buffer_resource temporaries_buffer_resource;
         std::pmr::polymorphic_allocator<> temporaries_allocator{ &temporaries_buffer_resource };
 
-        std::pmr::vector<std::filesystem::path> const directories_to_watch = find_directories_to_watch(artifact, repositories_file_paths, temporaries_allocator);
-
-        std::unique_ptr<File_watcher> file_watcher = std::make_unique<File_watcher>();
-
-        file_watcher->callback = std::move(callback);
+        std::pmr::vector<std::filesystem::path> const directories_to_watch = find_artifact_directories_to_watch(artifact, temporaries_allocator);
 
         for (std::filesystem::path const& path : directories_to_watch)
         {
-            wtr::watcher::watch* wtr_watcher = new wtr::watcher::watch(path, file_watcher->callback);
-            file_watcher->wtr_watchers.push_back(wtr_watcher);
+            wtr::watcher::watch* wtr_watcher = new wtr::watcher::watch(path, file_watcher.callback);
+            file_watcher.wtr_watchers.push_back(wtr_watcher);
         }
+    }
 
-        return file_watcher;
+    void watch_repository_directories(
+        File_watcher& file_watcher,
+        std::span<std::filesystem::path const> const repositories_file_paths
+    )
+    {
+        for (std::filesystem::path const& repository_file_path : repositories_file_paths)
+        {
+            wtr::watcher::watch* wtr_watcher = new wtr::watcher::watch(repository_file_path.parent_path(), file_watcher.callback);
+            file_watcher.wtr_watchers.push_back(wtr_watcher);
+        }
     }
 
     File_watcher::~File_watcher()

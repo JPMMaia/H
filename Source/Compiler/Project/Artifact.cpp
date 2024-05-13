@@ -16,6 +16,7 @@ module h.compiler.artifact;
 
 import h.common;
 import h.compiler.common;
+import h.compiler.target;
 
 namespace h::compiler
 {
@@ -116,7 +117,7 @@ namespace h::compiler
                     .module_name = element.at("name").get<std::pmr::string>(),
                     .header = element.at("header").get<std::pmr::string>(),
                 }
-            );
+                );
         }
 
         return headers;
@@ -290,6 +291,48 @@ namespace h::compiler
 
         std::string const json_string = json.dump(4);
         h::common::write_to_file(artifact_file_path, json_string);
+    }
+
+
+    std::span<C_header const> get_c_headers(Artifact const& artifact)
+    {
+        if (artifact.info.has_value())
+        {
+            if (std::holds_alternative<Library_info>(*artifact.info))
+            {
+                Library_info const& library_info = std::get<Library_info>(*artifact.info);
+                return library_info.c_headers;
+            }
+        }
+
+        return {};
+    }
+
+    static std::optional<std::filesystem::path> search_file(
+        std::string_view const filename,
+        std::span<std::filesystem::path const> const search_paths
+    )
+    {
+        for (std::filesystem::path const& search_path : search_paths)
+        {
+            for (const std::filesystem::directory_entry& entry : std::filesystem::recursive_directory_iterator{ search_path })
+            {
+                if (entry.path().filename() == filename)
+                {
+                    return entry.path();
+                }
+            }
+        }
+
+        return std::nullopt;
+    }
+
+    std::optional<std::filesystem::path> find_c_header_path(
+        std::string_view const c_header,
+        std::span<std::filesystem::path const> search_paths
+    )
+    {
+        return search_file(c_header, search_paths);
     }
 
 
@@ -559,5 +602,42 @@ namespace h::compiler
         }
 
         return std::pmr::vector<std::filesystem::path>{ output_allocator };
+    }
+
+    std::optional<External_library_info> get_external_library(
+        std::pmr::unordered_map<std::pmr::string, std::pmr::string> const& external_libraries,
+        Target const& target,
+        bool const prefer_dynamic
+    )
+    {
+        {
+            std::string const first_target_library = std::format("{}-{}-release", target.operating_system, prefer_dynamic ? "dynamic" : "static");
+
+            auto const location = external_libraries.find(first_target_library.c_str());
+            if (location != external_libraries.end())
+            {
+                return External_library_info
+                {
+                    .name = location->second,
+                    .is_dynamic = prefer_dynamic
+                };
+            }
+        }
+
+        {
+            std::string const second_target_library = std::format("{}-{}-release", target.operating_system, prefer_dynamic ? "static" : "dynamic");
+
+            auto const location = external_libraries.find(second_target_library.c_str());
+            if (location != external_libraries.end())
+            {
+                return External_library_info
+                {
+                    .name = location->second,
+                    .is_dynamic = !prefer_dynamic
+                };
+            }
+        }
+
+        return std::nullopt;
     }
 }
