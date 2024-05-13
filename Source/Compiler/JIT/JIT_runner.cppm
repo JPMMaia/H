@@ -20,6 +20,7 @@ import h.compiler.artifact;
 import h.compiler.file_watcher;
 import h.compiler.jit_compiler;
 import h.compiler.repository;
+import h.compiler.target;
 import h.core;
 import h.parser;
 
@@ -28,6 +29,8 @@ namespace h::compiler
     struct JIT_runner_unprotected_data
     {
         std::filesystem::path build_directory_path;
+        std::pmr::vector<std::filesystem::path> header_search_paths;
+        Target target;
         h::parser::Parser parser;
         std::unique_ptr<h::compiler::LLVM_data> llvm_data;
         std::unique_ptr<JIT_data> jit_data;
@@ -37,7 +40,9 @@ namespace h::compiler
     {
         std::shared_mutex mutex;
         std::pmr::unordered_map<std::filesystem::path, Artifact> artifacts;
+        std::pmr::unordered_map<std::filesystem::path, Repository> repositories;
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> module_name_to_file_path;
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> module_name_to_artifact_path;
         llvm::DenseMap<llvm::orc::SymbolStringPtr, std::pmr::string> symbol_to_module_name_map;
     };
 
@@ -53,7 +58,9 @@ namespace h::compiler
     export std::unique_ptr<JIT_runner> setup_jit_and_watch(
         std::filesystem::path const& artifact_configuration_file_path,
         std::span<std::filesystem::path const> repositories_file_paths,
-        std::filesystem::path const& build_directory_path
+        std::filesystem::path const& build_directory_path,
+        std::span<std::filesystem::path const> header_search_paths,
+        Target const& target
     );
 
     export

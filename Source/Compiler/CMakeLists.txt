@@ -3,7 +3,7 @@ add_library(H::Compiler ALIAS H_compiler)
 
 target_compile_features(H_compiler PRIVATE cxx_std_23)
 
-target_link_libraries(H_compiler PRIVATE H::Core H::Common H::JSON_serializer H::Parser)
+target_link_libraries(H_compiler PRIVATE H::Core H::Common H::C_header_importer H::JSON_serializer H::Parser)
 
 ## LLVM ##
 
@@ -71,11 +71,20 @@ if(BUILD_TESTING)
    find_package(Catch2 CONFIG REQUIRED)
    target_link_libraries(H_compiler_tests PRIVATE Catch2::Catch2 Catch2::Catch2WithMain)
 
+   find_file(
+      stdio_location
+      "stdio.h"
+      REQUIRED
+   )
+   get_filename_component(c_headers_location ${stdio_location} DIRECTORY)
+
    target_compile_definitions(
       H_compiler_tests
       PRIVATE
          TEST_FILES_PATH="${CMAKE_SOURCE_DIR}/Examples/hl"
          C_STANDARD_LIBRARY_PATH="${CMAKE_BINARY_DIR}/C_standard_library"
+         STANDARD_REPOSITORY_FILE_PATH="${CMAKE_SOURCE_DIR}/Libraries/hlang_repository.json"
+         C_HEADERS_LOCATION="${c_headers_location}"
    )
 
    target_sources(H_compiler_tests PRIVATE

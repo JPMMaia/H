@@ -1,3 +1,4 @@
+#include <array>
 #include <chrono>
 #include <filesystem>
 #include <string_view>
@@ -21,9 +22,13 @@
 import h.common;
 import h.compiler.artifact;
 import h.compiler.jit_runner;
+import h.compiler.target;
 
 namespace h
 {
+    static std::filesystem::path const g_standard_repository_file_path = std::filesystem::path{ STANDARD_REPOSITORY_FILE_PATH };
+    static std::filesystem::path const g_c_headers_location = std::filesystem::path{ C_HEADERS_LOCATION };
+
     TEST_CASE("Run JIT and modify code")
     {
         std::filesystem::path const root_directory = std::filesystem::temp_directory_path() / "hlang_test" / "jit_modify_code";
@@ -76,7 +81,8 @@ namespace h
         )";
         h::common::write_to_file(main_file_path, initial_code);
 
-        std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, {}, build_directory_path);
+        h::compiler::Target const target = h::compiler::get_default_target();
+        std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, {}, build_directory_path, {}, target);
 
         int(*function_pointer)() = h::compiler::get_function<int(*)()>(*jit_runner, "test_main");
         REQUIRE(function_pointer != nullptr);
@@ -104,6 +110,148 @@ namespace h
 
         int const second_result = function_pointer();
         CHECK(second_result == 20);
+    }
+
+    TEST_CASE("Run JIT with multiple modules")
+    {
+        std::filesystem::path const root_directory = std::filesystem::temp_directory_path() / "hlang_test" / "jit_multiple_modules";
+
+        if (std::filesystem::exists(root_directory))
+            std::filesystem::remove_all(root_directory);
+
+        std::filesystem::create_directories(root_directory);
+
+        std::filesystem::path const build_directory_path = root_directory / "build";
+        std::filesystem::create_directories(build_directory_path);
+
+        h::compiler::Artifact const artifact
+        {
+            .name = "hlang_artifact.json",
+            .version = {
+                .major = 0,
+                .minor = 1,
+                .patch = 0
+            },
+            .type = h::compiler::Artifact_type::Executable,
+            .info = h::compiler::Executable_info
+            {
+                .source = "m0.hltxt",
+                .entry_point = "m0_main",
+                .include = {
+                    "./**/*.hltxt"
+                }
+            }
+        };
+
+        std::filesystem::path const artifact_configuration_file_path = root_directory / "hlang_artifact.json";
+        h::compiler::write_artifact_to_file(artifact, artifact_configuration_file_path);
+
+        std::filesystem::path const m0_file_path = root_directory / "m0.hltxt";
+        std::string_view const m0_code = R"(    
+            module m0;
+
+            import m1 as m1;
+
+            export function main() -> (result: Int32)
+            {
+                return m1.get_result();
+            }
+        )";
+        h::common::write_to_file(m0_file_path, m0_code);
+
+        std::filesystem::path const m1_file_path = root_directory / "m1.hltxt";
+        std::string_view const m1_code = R"(    
+            module m1;
+
+            export function get_result() -> (result: Int32)
+            {
+                return 5;
+            }
+        )";
+        h::common::write_to_file(m1_file_path, m1_code);
+
+        h::compiler::Target const target = h::compiler::get_default_target();
+        std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, {}, build_directory_path, {}, target);
+
+        int(*function_pointer)() = h::compiler::get_function<int(*)()>(*jit_runner, "m0_main");
+        REQUIRE(function_pointer != nullptr);
+
+        int const result = function_pointer();
+        CHECK(result == 5);
+    }
+
+    TEST_CASE("Run JIT that uses a repository")
+    {
+        std::filesystem::path const root_directory = std::filesystem::temp_directory_path() / "hlang_test" / "jit_repository_modules";
+
+        if (std::filesystem::exists(root_directory))
+            std::filesystem::remove_all(root_directory);
+
+        std::filesystem::create_directories(root_directory);
+
+        std::filesystem::path const build_directory_path = root_directory / "build";
+        std::filesystem::create_directories(build_directory_path);
+
+        h::compiler::Artifact const artifact
+        {
+            .name = "hlang_artifact.json",
+            .version = {
+                .major = 0,
+                .minor = 1,
+                .patch = 0
+            },
+            .type = h::compiler::Artifact_type::Executable,
+            .dependencies =
+            {
+                {
+                    .artifact_name = "C_standard_library"
+                }
+            },
+            .info = h::compiler::Executable_info
+            {
+                .source = "m0.hltxt",
+                .entry_point = "m0_main",
+                .include = {
+                    "./**/*.hltxt"
+                }
+            }
+        };
+
+        std::filesystem::path const artifact_configuration_file_path = root_directory / "hlang_artifact.json";
+        h::compiler::write_artifact_to_file(artifact, artifact_configuration_file_path);
+
+        std::filesystem::path const m0_file_path = root_directory / "m0.hltxt";
+        std::string_view const m0_code = R"(    
+            module m0;
+
+            import c.stdio as stdio;
+
+            export function main() -> (result: Int32)
+            {
+                stdio.puts("hello!"c);
+                return 0;
+            }
+        )";
+        h::common::write_to_file(m0_file_path, m0_code);
+
+        std::array<std::filesystem::path, 1> repositories =
+        {
+            g_standard_repository_file_path
+        };
+
+        std::array<std::filesystem::path, 1> header_search_paths =
+        {
+            g_c_headers_location
+        };
+
+        h::compiler::Target const target = h::compiler::get_default_target();
+        std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, repositories, build_directory_path, header_search_paths, target);
+
+        int(*function_pointer)() = h::compiler::get_function<int(*)()>(*jit_runner, "m0_main");
+        REQUIRE(function_pointer != nullptr);
+
+        int const result = function_pointer();
+        CHECK(result == 0);
     }
 
     // TODO test removing file

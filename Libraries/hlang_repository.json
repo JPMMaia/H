@@ -3,7 +3,7 @@
     "artifacts": [
         {
             "name": "C_standard_library",
-            "location": "C_standard_library"
+            "location": "C_standard_library/hlang_artifact.json"
         }
     ]
 }

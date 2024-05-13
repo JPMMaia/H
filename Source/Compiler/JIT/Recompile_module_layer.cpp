@@ -87,8 +87,8 @@ namespace h::compiler
                 new_function_declarations.push_back(std::move(body_declaration));
             }
 
-            //bool const stub_exists = symbol_exists(indirect_stubs_manager, stub_symbol);
-            bool const stub_exists = symbol_exists(execution_session, source_library, stub_symbol);
+            bool const stub_exists = symbol_exists(indirect_stubs_manager, stub_symbol);
+            //bool const stub_exists = symbol_exists(execution_session, source_library, stub_symbol);
 
             if (stub_exists)
             {
