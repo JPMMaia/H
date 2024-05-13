@@ -7,15 +7,15 @@ module;
 
 export module h.builder;
 
-import h.builder.target;
 import h.compiler.linker;
 import h.compiler.repository;
+import h.compiler.target;
 import h.parser;
 
 namespace h::builder
 {
     export void build_executable(
-        Target const& target,
+        h::compiler::Target const& target,
         h::parser::Parser const& parser,
         std::span<std::filesystem::path const> source_file_paths,
         std::span<std::pmr::string const> libraries,
@@ -26,7 +26,7 @@ namespace h::builder
     );
 
     export void build_artifact(
-        Target const& target,
+        h::compiler::Target const& target,
         h::parser::Parser const& parser,
         std::filesystem::path const& configuration_file_path,
         std::filesystem::path const& build_directory_path,

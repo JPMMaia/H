@@ -55,7 +55,14 @@ target_sources(H_compiler PRIVATE
    "Project/Artifact.cpp"
    "Project/Repository.cppm"
    "Project/Repository.cpp"
+   "Project/Target.cppm"
 )
+
+if(WIN32)
+   target_sources(H_compiler PRIVATE
+      "Project/Target_windows.cpp"
+   )
+endif()
 
 if(BUILD_TESTING)
    add_executable(H_compiler_tests)
