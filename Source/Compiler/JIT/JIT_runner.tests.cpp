@@ -341,7 +341,7 @@ namespace h
 
             export function main() -> (result: Int32)
             {
-                return
+                return foo;
             }
         )";
         write_to_file_and_wait(*jit_runner, m0_file_path, m0_code_with_errors_2);

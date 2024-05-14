@@ -315,9 +315,7 @@ namespace h::compiler
             .core_module = std::move(*core_module),
             .core_module_dependencies = std::move(*core_module_dependencies)
         };
-        add_core_module(*unprotected_data.jit_data, library, std::move(core_compilation_data));
-
-        return true;
+        return add_core_module(*unprotected_data.jit_data, library, std::move(core_compilation_data));
     }
 
     static std::pmr::unordered_map<std::filesystem::path, Artifact>::const_iterator find_artifact(
@@ -570,7 +568,7 @@ namespace h::compiler
 
                 std::chrono::high_resolution_clock::time_point const begin_compiling = std::chrono::high_resolution_clock::now();
 
-                add_module_for_compilation(
+                bool const success = add_module_for_compilation(
                     parsed_file_path,
                     get_main_library(*unprotected_data.jit_data),
                     unprotected_data,
@@ -579,7 +577,7 @@ namespace h::compiler
 
                 std::chrono::high_resolution_clock::time_point const end_compiling = std::chrono::high_resolution_clock::now();
 
-                std::puts(std::format("Compiled {}. Parsing took {}ms. Compiling took {}ms. Total time was {}ms", source_file_path.generic_string(), (begin_compiling - begin_parsing) / 1ms, (end_compiling - begin_compiling) / 1ms, (end_compiling - begin_parsing) / 1ms).c_str());
+                std::puts(std::format("{} {}. Parsing took {}ms. Compiling took {}ms. Total time was {}ms", success ? "Compiled" : "Failed to compile", source_file_path.generic_string(), (begin_compiling - begin_parsing) / 1ms, (end_compiling - begin_compiling) / 1ms, (end_compiling - begin_parsing) / 1ms).c_str());
 
                 {
                     std::unique_lock<std::shared_mutex> lock{ protected_data.mutex };

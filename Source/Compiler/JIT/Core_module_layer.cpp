@@ -74,37 +74,46 @@ namespace h::compiler
                 functions_to_compile.push_back(definition.name);
         }
 
-        std::unique_ptr<llvm::Module> llvm_module = h::compiler::create_llvm_module(
-            m_core_module_compilation_data.llvm_data,
-            m_core_module_compilation_data.core_module,
-            m_core_module_compilation_data.core_module_dependencies,
-            functions_to_compile
-        );
-
+        // TODO refactor code so that exceptions are not used
+        try
         {
-            std::pmr::vector<h::Function_definition>& function_definitions = m_core_module_compilation_data.core_module.definitions.function_definitions;
-            function_definitions.erase(
-                std::remove_if(function_definitions.begin(), function_definitions.end(), is_requested_symbol),
-                function_definitions.end()
+            std::unique_ptr<llvm::Module> llvm_module = h::compiler::create_llvm_module(
+                m_core_module_compilation_data.llvm_data,
+                m_core_module_compilation_data.core_module,
+                m_core_module_compilation_data.core_module_dependencies,
+                functions_to_compile
             );
 
-            if (!function_definitions.empty())
             {
-                std::unique_ptr<Core_module_materialization_unit> new_materialization_unit = std::make_unique<Core_module_materialization_unit>(
-                    std::move(m_core_module_compilation_data),
-                    m_mangle,
-                    m_base_layer
+                std::pmr::vector<h::Function_definition>& function_definitions = m_core_module_compilation_data.core_module.definitions.function_definitions;
+                function_definitions.erase(
+                    std::remove_if(function_definitions.begin(), function_definitions.end(), is_requested_symbol),
+                    function_definitions.end()
                 );
 
-                llvm::Error error = materialization_responsibility->replace(std::move(new_materialization_unit));
-                if (error)
-                    h::common::print_message_and_exit(std::format("Error while creating a new materialization unit to replace unrequested symbols to target library: {}", llvm::toString(std::move(error))));
-            }
-        }
+                if (!function_definitions.empty())
+                {
+                    std::unique_ptr<Core_module_materialization_unit> new_materialization_unit = std::make_unique<Core_module_materialization_unit>(
+                        std::move(m_core_module_compilation_data),
+                        m_mangle,
+                        m_base_layer
+                    );
 
-        llvm::orc::ThreadSafeContext thread_safe_context{ std::make_unique<llvm::LLVMContext>() };
-        llvm::orc::ThreadSafeModule thread_safe_module{ std::move(llvm_module), std::move(thread_safe_context) };
-        m_base_layer.emit(std::move(materialization_responsibility), std::move(thread_safe_module));
+                    llvm::Error error = materialization_responsibility->replace(std::move(new_materialization_unit));
+                    if (error)
+                        h::common::print_message_and_exit(std::format("Error while creating a new materialization unit to replace unrequested symbols to target library: {}", llvm::toString(std::move(error))));
+                }
+            }
+
+            llvm::orc::ThreadSafeContext thread_safe_context{ std::make_unique<llvm::LLVMContext>() };
+            llvm::orc::ThreadSafeModule thread_safe_module{ std::move(llvm_module), std::move(thread_safe_context) };
+            m_base_layer.emit(std::move(materialization_responsibility), std::move(thread_safe_module));
+        }
+        catch (...)
+        {
+            if (materialization_responsibility != nullptr)
+                materialization_responsibility->failMaterialization();
+        }
     }
 
     void Core_module_materialization_unit::discard(const llvm::orc::JITDylib& library, const llvm::orc::SymbolStringPtr& symbol_name)

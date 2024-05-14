@@ -42,13 +42,13 @@ namespace h::compiler
         llvm::DataLayout& llvm_data_layout
     );
 
-    export void add_core_module(
+    export bool add_core_module(
         JIT_data& jit_data,
         llvm::orc::JITDylib& library,
         Core_module_compilation_data core_compilation_data
     );
 
-    export void add_core_module(
+    export bool add_core_module(
         JIT_data& jit_data,
         Core_module_compilation_data core_compilation_data
     );
