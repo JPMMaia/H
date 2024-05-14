@@ -122,7 +122,7 @@ namespace h::compiler
         return jit_data;
     }
 
-    void add_core_module(
+    bool add_core_module(
         JIT_data& jit_data,
         llvm::orc::JITDylib& library,
         Core_module_compilation_data core_compilation_data
@@ -133,19 +133,24 @@ namespace h::compiler
             std::move(core_compilation_data)
         );
         if (error)
-            h::common::print_message_and_exit(std::format("Error while adding core module to JIT: {}", llvm::toString(std::move(error))));
+        {
+            std::puts(std::format("Error while adding core module to JIT: {}", llvm::toString(std::move(error))).c_str());
+            return false;
+        }
 
         // Print execution session state. Useful for debugging.
         // jit_data.llvm_jit->getExecutionSession().dump(llvm::dbgs());
+
+        return true;
     }
 
-    void add_core_module(
+    bool add_core_module(
         JIT_data& jit_data,
         Core_module_compilation_data core_compilation_data
     )
     {
         llvm::orc::JITDylib& library = jit_data.llvm_jit->getMainJITDylib();
-        add_core_module(jit_data, library, core_compilation_data);
+        return add_core_module(jit_data, library, core_compilation_data);
     }
 
     llvm::orc::JITDylib& get_main_library(
