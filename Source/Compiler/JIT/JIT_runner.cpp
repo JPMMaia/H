@@ -299,6 +299,8 @@ namespace h::compiler
             return false;
         }
 
+        insert_symbol_to_module_name_entries({ &*core_module, 1 }, *unprotected_data.jit_data->mangle, protected_data);
+
         std::optional<std::pmr::vector<h::Module>> core_module_dependencies =
             find_and_parse_core_module_dependencies(*core_module, unprotected_data, protected_data);
         if (!core_module_dependencies.has_value())
@@ -578,14 +580,26 @@ namespace h::compiler
                 std::chrono::high_resolution_clock::time_point const end_compiling = std::chrono::high_resolution_clock::now();
 
                 std::puts(std::format("{} {}. Parsing took {}ms. Compiling took {}ms. Total time was {}ms", success ? "Compiled" : "Failed to compile", source_file_path.generic_string(), (begin_compiling - begin_parsing) / 1ms, (end_compiling - begin_compiling) / 1ms, (end_compiling - begin_parsing) / 1ms).c_str());
-
-                {
-                    std::unique_lock<std::shared_mutex> lock{ protected_data.mutex };
-                    protected_data.processed_files += 1;
-                }
-                protected_data.condition_variable.notify_all();
             }
         }
+        else if (event.effect_type == wtr::event::effect_type::rename)
+        {
+            if (std::filesystem::exists(source_file_path))
+            {
+                std::optional<std::pmr::string> const module_name = read_module_name(source_file_path);
+                if (module_name)
+                {
+                    std::unique_lock<std::shared_mutex> lock{ protected_data.mutex };
+                    protected_data.module_name_to_file_path[*module_name] = source_file_path;
+                }
+            }
+        }
+
+        {
+            std::unique_lock<std::shared_mutex> lock{ protected_data.mutex };
+            protected_data.processed_files += 1;
+        }
+        protected_data.condition_variable.notify_all();
 
         // TODO when a file is created, check if it matches the includes and then (optional) add to the watch list and to the recompile module layer
         // TODO when a file is removed, maybe remove the definitions?

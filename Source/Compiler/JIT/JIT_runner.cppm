@@ -45,7 +45,6 @@ namespace h::compiler
         std::pmr::unordered_map<std::filesystem::path, Artifact> artifacts;
         std::pmr::unordered_map<std::filesystem::path, Repository> repositories;
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> module_name_to_file_path;
-        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> module_name_to_artifact_path;
         llvm::DenseMap<llvm::orc::SymbolStringPtr, std::pmr::string> symbol_to_module_name_map;
     };
 
