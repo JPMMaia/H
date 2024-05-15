@@ -86,6 +86,24 @@ namespace h::json
         return h::json::read<Type>(reader, input_stream);
     }
 
+    export std::optional<Module> read_module(
+        std::filesystem::path const& file_path
+    )
+    {
+        std::string const file_path_string = file_path.generic_string();
+        std::FILE* file = std::fopen(file_path_string.c_str(), "rb");
+        if (file == nullptr)
+        {
+            return std::nullopt;
+        }
+
+        char read_buffer[65536];
+        rapidjson::FileReadStream input_stream{ file, read_buffer, sizeof(read_buffer) };
+
+        rapidjson::Reader reader;
+        return h::json::read<Module>(reader, input_stream);
+    }
+
     export std::optional<std::pmr::string> read_module_name(
         std::filesystem::path const& file_path
     )
