@@ -640,7 +640,7 @@ namespace h
 
     TEST_CASE("Run JIT program and rename a file", "[JIT]")
     {
-        std::filesystem::path const root_directory = std::filesystem::temp_directory_path() / "hlang_test" / "jit_remove_files";
+        std::filesystem::path const root_directory = std::filesystem::temp_directory_path() / "hlang_test" / "jit_rename_files";
 
         if (std::filesystem::exists(root_directory))
             std::filesystem::remove_all(root_directory);
