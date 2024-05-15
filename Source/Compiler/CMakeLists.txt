@@ -30,6 +30,9 @@ target_link_libraries(H_compiler PUBLIC ${lldCOFF})
 
 target_link_libraries(H_compiler PUBLIC "wtr.hdr_watcher")
 
+find_package(xxHash CONFIG REQUIRED)
+target_link_libraries(H_compiler PRIVATE xxHash::xxhash)
+
 target_sources(H_compiler PRIVATE
    "Common.cppm"
    "Common.cpp"
@@ -39,6 +42,8 @@ target_sources(H_compiler PRIVATE
    "Expressions.cpp"
    "Linker.cppm"
    "Linker.cpp"
+   "Recompilation.cppm"
+   "Recompilation.cpp"
    "Types.cppm"
    "Types.cpp"
    "JIT/Core_module_layer.cppm"
@@ -89,6 +94,7 @@ if(BUILD_TESTING)
 
    target_sources(H_compiler_tests PRIVATE
       "Compiler.tests.cpp"
+      "Recompilation.tests.cpp"
       "JIT/JIT_runner.tests.cpp"
    )
 
