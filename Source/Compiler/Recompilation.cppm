@@ -25,6 +25,8 @@ namespace h::compiler
         std::pmr::unordered_multimap<std::pmr::string, std::pmr::string> const& module_name_to_reverse_dependencies,
         std::pmr::unordered_map<std::pmr::string, Symbol_name_to_hash> const& module_name_to_symbol_hashes,
         h::parser::Parser const& parser,
-        std::filesystem::path const& build_directory
+        std::filesystem::path const& build_directory,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 }
