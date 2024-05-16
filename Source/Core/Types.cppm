@@ -71,4 +71,224 @@ namespace h
                 visit_type_references(nested_type_reference, predicate);
         }
     }
+
+    export template <typename Function_t>
+        void visit_type_references(
+            h::Alias_type_declaration const& declaration,
+            Function_t predicate
+        )
+    {
+        for (h::Type_reference const& type_reference : declaration.type)
+        {
+            visit_type_references(type_reference, predicate);
+        }
+    }
+
+    export template <typename Function_t>
+        void visit_type_references(
+            h::Struct_declaration const& declaration,
+            Function_t predicate
+        )
+    {
+        for (h::Type_reference const& type_reference : declaration.member_types)
+        {
+            visit_type_references(type_reference, predicate);
+        }
+    }
+
+    export template <typename Function_t>
+        void visit_type_references(
+            h::Union_declaration const& declaration,
+            Function_t predicate
+        )
+    {
+        for (h::Type_reference const& type_reference : declaration.member_types)
+        {
+            visit_type_references(type_reference, predicate);
+        }
+    }
+
+    export template <typename Function_t>
+        void visit_type_references(
+            h::Function_declaration const& declaration,
+            Function_t predicate
+        )
+    {
+        for (h::Type_reference const& type_reference : declaration.type.input_parameter_types)
+        {
+            visit_type_references(type_reference, predicate);
+        }
+
+        for (h::Type_reference const& type_reference : declaration.type.output_parameter_types)
+        {
+            visit_type_references(type_reference, predicate);
+        }
+    }
+
+    export template <typename Function_t>
+        void visit_type_references(
+            Module_declarations const& declarations,
+            Function_t predicate
+        )
+    {
+        for (Alias_type_declaration const& declaration : declarations.alias_type_declarations)
+        {
+            auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> void
+            {
+                predicate(declaration.name, type_reference);
+            };
+
+            visit_type_references(declaration, predicate_with_name);
+        }
+
+        for (Struct_declaration const& declaration : declarations.struct_declarations)
+        {
+            auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> void
+            {
+                predicate(declaration.name, type_reference);
+            };
+
+            visit_type_references(declaration, predicate_with_name);
+        }
+
+        for (Union_declaration const& declaration : declarations.union_declarations)
+        {
+            auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> void
+            {
+                predicate(declaration.name, type_reference);
+            };
+
+            visit_type_references(declaration, predicate_with_name);
+        }
+
+        for (Function_declaration const& declaration : declarations.function_declarations)
+        {
+            auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> void
+            {
+                predicate(declaration.name, type_reference);
+            };
+
+            visit_type_references(declaration, predicate_with_name);
+        }
+    }
+
+    export template <typename Function_t>
+        void visit_type_references(
+            h::Module const& core_module,
+            std::string_view const declaration_name,
+            Function_t predicate
+        )
+    {
+        for (Alias_type_declaration const& declaration : core_module.export_declarations.alias_type_declarations)
+        {
+            if (declaration.name == declaration_name)
+            {
+                auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> void
+                {
+                    predicate(declaration.name, type_reference);
+                };
+
+                visit_type_references(declaration, predicate_with_name);
+                return;
+            }
+        }
+
+        for (Alias_type_declaration const& declaration : core_module.internal_declarations.alias_type_declarations)
+        {
+            if (declaration.name == declaration_name)
+            {
+                auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> void
+                {
+                    predicate(declaration.name, type_reference);
+                };
+
+                visit_type_references(declaration, predicate_with_name);
+                return;
+            }
+        }
+
+        for (Struct_declaration const& declaration : core_module.export_declarations.struct_declarations)
+        {
+            if (declaration.name == declaration_name)
+            {
+                auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> void
+                {
+                    predicate(declaration.name, type_reference);
+                };
+
+                visit_type_references(declaration, predicate_with_name);
+                return;
+            }
+        }
+
+        for (Struct_declaration const& declaration : core_module.internal_declarations.struct_declarations)
+        {
+            if (declaration.name == declaration_name)
+            {
+                auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> void
+                {
+                    predicate(declaration.name, type_reference);
+                };
+
+                visit_type_references(declaration, predicate_with_name);
+                return;
+            }
+        }
+
+        for (Union_declaration const& declaration : core_module.export_declarations.union_declarations)
+        {
+            if (declaration.name == declaration_name)
+            {
+                auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> void
+                {
+                    predicate(declaration.name, type_reference);
+                };
+
+                visit_type_references(declaration, predicate_with_name);
+                return;
+            }
+        }
+
+        for (Union_declaration const& declaration : core_module.internal_declarations.union_declarations)
+        {
+            if (declaration.name == declaration_name)
+            {
+                auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> void
+                {
+                    predicate(declaration.name, type_reference);
+                };
+
+                visit_type_references(declaration, predicate_with_name);
+                return;
+            }
+        }
+
+        for (Function_declaration const& declaration : core_module.export_declarations.function_declarations)
+        {
+            if (declaration.name == declaration_name)
+            {
+                auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> void
+                {
+                    predicate(declaration.name, type_reference);
+                };
+
+                visit_type_references(declaration, predicate_with_name);
+                return;
+            }
+        }
+
+        for (Function_declaration const& declaration : core_module.internal_declarations.function_declarations)
+        {
+            if (declaration.name == declaration_name)
+            {
+                auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> void
+                {
+                    predicate(declaration.name, type_reference);
+                };
+
+                visit_type_references(declaration, predicate_with_name);
+                return;
+            }
+        }
+    }
 }
