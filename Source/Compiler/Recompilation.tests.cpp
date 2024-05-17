@@ -37,16 +37,22 @@ namespace h
         return build_directory_path;
     }
 
-    h::Module parse_core_module(
+    std::filesystem::path parse_core_module(
         h::parser::Parser const& parser,
-        std::filesystem::path const& file_path,
-        std::filesystem::path const& build_directory
+        std::filesystem::path const& build_directory,
+        std::filesystem::path const& file_path
     )
     {
         std::filesystem::path const parsed_file_path = build_directory / file_path.filename().replace_extension("hl");
         h::parser::parse(parser, file_path, parsed_file_path);
+        return parsed_file_path;
+    }
 
-        std::optional<h::Module> core_module = h::json::read_module(parsed_file_path);
+    h::Module read_core_module(
+        std::filesystem::path const& file_path
+    )
+    {
+        std::optional<h::Module> core_module = h::json::read_module(file_path);
         REQUIRE(core_module.has_value());
 
         return *core_module;
@@ -58,7 +64,7 @@ namespace h
         std::filesystem::path const build_directory_path = setup_build_directory(root_directory);
         h::parser::Parser const parser = h::parser::create_parser();
 
-        std::filesystem::path const module_a_file_path = root_directory / "A.hltxt";
+        std::filesystem::path const module_a_code_file_path = root_directory / "A.hltxt";
         std::string_view const module_a_code = R"(    
             module A;
 
@@ -70,9 +76,10 @@ namespace h
                 return foo.a;
             }
         )";
-        h::common::write_to_file(module_a_file_path, module_a_code);
+        h::common::write_to_file(module_a_code_file_path, module_a_code);
+        std::filesystem::path const module_a_file_path = parse_core_module(parser, build_directory_path, module_a_code_file_path);
 
-        std::filesystem::path const module_b_file_path = root_directory / "B.hltxt";
+        std::filesystem::path const module_b_code_file_path = root_directory / "B.hltxt";
         std::string_view const module_b_code = R"(    
             module B;
 
@@ -81,7 +88,26 @@ namespace h
                 a: Int32 = 0;
             }
         )";
-        h::common::write_to_file(module_b_file_path, module_b_code);
+        h::common::write_to_file(module_b_code_file_path, module_b_code);
+        std::filesystem::path const module_b_file_path = parse_core_module(parser, build_directory_path, module_b_code_file_path);
+
+        h::Module const previous_module_b = read_core_module(module_b_file_path);
+        h::compiler::Symbol_name_to_hash const previous_symbol_name_to_hash = h::compiler::hash_export_interface(previous_module_b, {});
+
+        std::string_view const new_module_b_code = R"(    
+            module B;
+
+            export struct Foo
+            {
+                a: Int32 = 1;
+            }
+        )";
+        h::common::write_to_file(module_b_code_file_path, new_module_b_code);
+        parse_core_module(parser, build_directory_path, module_b_code_file_path);
+
+        h::Module const new_module_b = read_core_module(module_b_file_path);
+        h::compiler::Symbol_name_to_hash const new_symbol_name_to_hash = h::compiler::hash_export_interface(new_module_b, {});
+
 
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path
         {
@@ -94,28 +120,12 @@ namespace h
             std::make_pair("B", "A"),
         };
 
-        std::pmr::unordered_map<std::pmr::string, h::compiler::Symbol_name_to_hash> const module_name_to_symbol_hashes
-        {
-            std::make_pair("B", h::compiler::hash_export_interface(parse_core_module(parser, module_b_file_path, build_directory_path), {})),
-        };
-
-        std::string_view const new_module_b_code = R"(    
-            module B;
-
-            export struct Foo
-            {
-                a: Int32 = 1;
-            }
-        )";
-        h::common::write_to_file(module_b_file_path, new_module_b_code);
-
         std::pmr::vector<std::pmr::string> const modules_to_recompile = h::compiler::find_modules_to_recompile(
-            parse_core_module(parser, module_b_file_path, build_directory_path),
+            new_module_b,
+            previous_symbol_name_to_hash,
+            new_symbol_name_to_hash,
             module_name_to_file_path,
             module_name_to_reverse_dependencies,
-            module_name_to_symbol_hashes,
-            parser,
-            build_directory_path,
             {},
             {}
         );
@@ -134,8 +144,8 @@ namespace h
         std::filesystem::path const build_directory_path = setup_build_directory(root_directory);
         h::parser::Parser const parser = h::parser::create_parser();
 
-        std::filesystem::path const module_a_file_path = root_directory / "A.hltxt";
-        std::string_view const module_a_code = R"(    
+        std::filesystem::path const module_a_code_file_path = root_directory / "A.hltxt";
+        std::string_view const module_a_code = R"(
             module A;
 
             import B as B;
@@ -146,10 +156,11 @@ namespace h
                 return foo.a;
             }
         )";
-        h::common::write_to_file(module_a_file_path, module_a_code);
+        h::common::write_to_file(module_a_code_file_path, module_a_code);
+        std::filesystem::path const module_a_file_path = parse_core_module(parser, build_directory_path, module_a_code_file_path);
 
-        std::filesystem::path const module_b_file_path = root_directory / "B.hltxt";
-        std::string_view const module_b_code = R"(    
+        std::filesystem::path const module_b_code_file_path = root_directory / "B.hltxt";
+        std::string_view const module_b_code = R"(
             module B;
 
             export struct Foo
@@ -162,25 +173,13 @@ namespace h
                 a: Int32 = 0;
             }
         )";
-        h::common::write_to_file(module_b_file_path, module_b_code);
+        h::common::write_to_file(module_b_code_file_path, module_b_code);
+        std::filesystem::path const module_b_file_path = parse_core_module(parser, build_directory_path, module_b_code_file_path);
 
-        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path
-        {
-            std::make_pair("A", module_a_file_path),
-            std::make_pair("B", module_b_file_path),
-        };
+        h::Module const previous_module_b = read_core_module(module_b_file_path);
+        h::compiler::Symbol_name_to_hash const previous_symbol_name_to_hash = h::compiler::hash_export_interface(previous_module_b, {});
 
-        std::pmr::unordered_multimap<std::pmr::string, std::pmr::string> const module_name_to_reverse_dependencies
-        {
-            std::make_pair("B", "A"),
-        };
-
-        std::pmr::unordered_map<std::pmr::string, h::compiler::Symbol_name_to_hash> const module_name_to_symbol_hashes
-        {
-            std::make_pair("B", h::compiler::hash_export_interface(parse_core_module(parser, module_b_file_path, build_directory_path), {})),
-        };
-
-        std::string_view const new_module_b_code = R"(    
+        std::string_view const new_module_b_code = R"(
             module B;
 
             export struct Foo
@@ -194,14 +193,29 @@ namespace h
             }
         )";
         h::common::write_to_file(module_b_file_path, new_module_b_code);
+        parse_core_module(parser, build_directory_path, module_b_file_path);
+
+        h::Module const new_module_b = read_core_module(module_b_file_path);
+        h::compiler::Symbol_name_to_hash const new_symbol_name_to_hash = h::compiler::hash_export_interface(new_module_b, {});
+
+
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path
+        {
+            std::make_pair("A", module_a_file_path),
+            std::make_pair("B", module_b_file_path),
+        };
+
+        std::pmr::unordered_multimap<std::pmr::string, std::pmr::string> const module_name_to_reverse_dependencies
+        {
+            std::make_pair("B", "A"),
+        };
 
         std::pmr::vector<std::pmr::string> const modules_to_recompile = h::compiler::find_modules_to_recompile(
-            parse_core_module(parser, module_b_file_path, build_directory_path),
+            new_module_b,
+            previous_symbol_name_to_hash,
+            new_symbol_name_to_hash,
             module_name_to_file_path,
             module_name_to_reverse_dependencies,
-            module_name_to_symbol_hashes,
-            parser,
-            build_directory_path,
             {},
             {}
         );
@@ -215,8 +229,8 @@ namespace h
         std::filesystem::path const build_directory_path = setup_build_directory(root_directory);
         h::parser::Parser const parser = h::parser::create_parser();
 
-        std::filesystem::path const module_a_file_path = root_directory / "A.hltxt";
-        std::string_view const module_a_code = R"(    
+        std::filesystem::path const module_a_code_file_path = root_directory / "A.hltxt";
+        std::string_view const module_a_code = R"(
             module A;
 
             import B as B;
@@ -227,10 +241,11 @@ namespace h
                 return foo.bar.a;
             }
         )";
-        h::common::write_to_file(module_a_file_path, module_a_code);
+        h::common::write_to_file(module_a_code_file_path, module_a_code);
+        std::filesystem::path const module_a_file_path = parse_core_module(parser, build_directory_path, module_a_code_file_path);
 
-        std::filesystem::path const module_b_file_path = root_directory / "B.hltxt";
-        std::string_view const module_b_code = R"(    
+        std::filesystem::path const module_b_code_file_path = root_directory / "B.hltxt";
+        std::string_view const module_b_code = R"(
             module B;
 
             export struct Foo
@@ -243,25 +258,13 @@ namespace h
                 a: Int32 = 0;
             }
         )";
-        h::common::write_to_file(module_b_file_path, module_b_code);
+        h::common::write_to_file(module_b_code_file_path, module_b_code);
+        std::filesystem::path const module_b_file_path = parse_core_module(parser, build_directory_path, module_b_code_file_path);
 
-        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path
-        {
-            std::make_pair("A", module_a_file_path),
-            std::make_pair("B", module_b_file_path),
-        };
+        h::Module const previous_module_b = read_core_module(module_b_file_path);
+        h::compiler::Symbol_name_to_hash const previous_symbol_name_to_hash = h::compiler::hash_export_interface(previous_module_b, {});
 
-        std::pmr::unordered_multimap<std::pmr::string, std::pmr::string> const module_name_to_reverse_dependencies
-        {
-            std::make_pair("B", "A"),
-        };
-
-        std::pmr::unordered_map<std::pmr::string, h::compiler::Symbol_name_to_hash> const module_name_to_symbol_hashes
-        {
-            std::make_pair("B", h::compiler::hash_export_interface(parse_core_module(parser, module_b_file_path, build_directory_path), {})),
-        };
-
-        std::string_view const new_module_b_code = R"(    
+        std::string_view const new_module_b_code = R"(
             module B;
 
             export struct Foo
@@ -274,15 +277,30 @@ namespace h
                 a: Int32 = 1;
             }
         )";
-        h::common::write_to_file(module_b_file_path, new_module_b_code);
+        h::common::write_to_file(module_b_code_file_path, new_module_b_code);
+        parse_core_module(parser, build_directory_path, module_b_code_file_path);
+
+        h::Module const new_module_b = read_core_module(module_b_file_path);
+        h::compiler::Symbol_name_to_hash const new_symbol_name_to_hash = h::compiler::hash_export_interface(new_module_b, {});
+
+
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path
+        {
+            std::make_pair("A", module_a_file_path),
+            std::make_pair("B", module_b_file_path),
+        };
+
+        std::pmr::unordered_multimap<std::pmr::string, std::pmr::string> const module_name_to_reverse_dependencies
+        {
+            std::make_pair("B", "A"),
+        };
 
         std::pmr::vector<std::pmr::string> const modules_to_recompile = h::compiler::find_modules_to_recompile(
-            parse_core_module(parser, module_b_file_path, build_directory_path),
+            new_module_b,
+            previous_symbol_name_to_hash,
+            new_symbol_name_to_hash,
             module_name_to_file_path,
             module_name_to_reverse_dependencies,
-            module_name_to_symbol_hashes,
-            parser,
-            build_directory_path,
             {},
             {}
         );
@@ -301,8 +319,8 @@ namespace h
         std::filesystem::path const build_directory_path = setup_build_directory(root_directory);
         h::parser::Parser const parser = h::parser::create_parser();
 
-        std::filesystem::path const module_a_file_path = root_directory / "A.hltxt";
-        std::string_view const module_a_code = R"(    
+        std::filesystem::path const module_a_code_file_path = root_directory / "A.hltxt";
+        std::string_view const module_a_code = R"(
             module A;
 
             import B as B;
@@ -313,10 +331,11 @@ namespace h
                 return foo.bar.a;
             }
         )";
-        h::common::write_to_file(module_a_file_path, module_a_code);
+        h::common::write_to_file(module_a_code_file_path, module_a_code);
+        std::filesystem::path const module_a_file_path = parse_core_module(parser, build_directory_path, module_a_code_file_path);
 
-        std::filesystem::path const module_b_file_path = root_directory / "B.hltxt";
-        std::string_view const module_b_code = R"(    
+        std::filesystem::path const module_b_code_file_path = root_directory / "B.hltxt";
+        std::string_view const module_b_code = R"(
             module B;
 
             import C as C;
@@ -326,10 +345,11 @@ namespace h
                 bar: C.Bar = 0;
             }
         )";
-        h::common::write_to_file(module_b_file_path, module_b_code);
+        h::common::write_to_file(module_b_code_file_path, module_b_code);
+        std::filesystem::path const module_b_file_path = parse_core_module(parser, build_directory_path, module_b_code_file_path);
 
-        std::filesystem::path const module_c_file_path = root_directory / "C.hltxt";
-        std::string_view const module_c_code = R"(    
+        std::filesystem::path const module_c_code_file_path = root_directory / "C.hltxt";
+        std::string_view const module_c_code = R"(
             module C;
 
             export struct Bar
@@ -337,7 +357,26 @@ namespace h
                 a: Int32 = 0;
             }
         )";
-        h::common::write_to_file(module_c_file_path, module_c_code);
+        h::common::write_to_file(module_c_code_file_path, module_c_code);
+        std::filesystem::path const module_c_file_path = parse_core_module(parser, build_directory_path, module_c_code_file_path);
+
+        h::Module const previous_module_c = read_core_module(module_c_file_path);
+        h::compiler::Symbol_name_to_hash const previous_symbol_name_to_hash = h::compiler::hash_export_interface(previous_module_c, {});
+
+        std::string_view const new_module_c_code = R"(
+            module C;
+
+            export struct Bar
+            {
+                a: Int32 = 1;
+            }
+        )";
+        h::common::write_to_file(module_c_code_file_path, new_module_c_code);
+        parse_core_module(parser, build_directory_path, module_c_code_file_path);
+
+        h::Module const new_module_c = read_core_module(module_c_file_path);
+        h::compiler::Symbol_name_to_hash const new_symbol_name_to_hash = h::compiler::hash_export_interface(new_module_c, {});
+
 
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path
         {
@@ -352,29 +391,12 @@ namespace h
             std::make_pair("C", "B"),
         };
 
-        std::pmr::unordered_map<std::pmr::string, h::compiler::Symbol_name_to_hash> const module_name_to_symbol_hashes
-        {
-            std::make_pair("B", h::compiler::hash_export_interface(parse_core_module(parser, module_b_file_path, build_directory_path), {})),
-            std::make_pair("C", h::compiler::hash_export_interface(parse_core_module(parser, module_c_file_path, build_directory_path), {})),
-        };
-
-        std::string_view const new_module_c_code = R"(    
-            module C;
-
-            export struct Bar
-            {
-                a: Int32 = 1;
-            }
-        )";
-        h::common::write_to_file(module_c_file_path, new_module_c_code);
-
         std::pmr::vector<std::pmr::string> const modules_to_recompile = h::compiler::find_modules_to_recompile(
-            parse_core_module(parser, module_c_file_path, build_directory_path),
+            new_module_c,
+            previous_symbol_name_to_hash,
+            new_symbol_name_to_hash,
             module_name_to_file_path,
             module_name_to_reverse_dependencies,
-            module_name_to_symbol_hashes,
-            parser,
-            build_directory_path,
             {},
             {}
         );
@@ -383,6 +405,107 @@ namespace h
         {
             "B",
             "A",
+        };
+
+        CHECK(modules_to_recompile == expected_modules_to_recompile);
+    }
+
+    TEST_CASE("Dot not recompile modules that do not depend on changed export interface when propagating changes", "[Recompilation]")
+    {
+        std::filesystem::path const root_directory = setup_root_directory("recompilation_4");
+        std::filesystem::path const build_directory_path = setup_build_directory(root_directory);
+        h::parser::Parser const parser = h::parser::create_parser();
+
+        std::filesystem::path const module_a_code_file_path = root_directory / "A.hltxt";
+        std::string_view const module_a_code = R"(
+            module A;
+
+            import B as B;
+
+            export function main() -> (result: Int32)
+            {
+                var other: B.Other = {};
+                return other.a;
+            }
+        )";
+        h::common::write_to_file(module_a_code_file_path, module_a_code);
+        std::filesystem::path const module_a_file_path = parse_core_module(parser, build_directory_path, module_a_code_file_path);
+
+        std::filesystem::path const module_b_code_file_path = root_directory / "B.hltxt";
+        std::string_view const module_b_code = R"(
+            module B;
+
+            import C as C;
+
+            export struct Other
+            {
+                a: Int32 = 0;
+            }
+
+            export struct Foo
+            {
+                bar: C.Bar = 0;
+            }
+        )";
+        h::common::write_to_file(module_b_code_file_path, module_b_code);
+        std::filesystem::path const module_b_file_path = parse_core_module(parser, build_directory_path, module_b_code_file_path);
+
+        std::filesystem::path const module_c_code_file_path = root_directory / "C.hltxt";
+        std::string_view const module_c_code = R"(
+            module C;
+
+            export struct Bar
+            {
+                a: Int32 = 0;
+            }
+        )";
+        h::common::write_to_file(module_c_code_file_path, module_c_code);
+        std::filesystem::path const module_c_file_path = parse_core_module(parser, build_directory_path, module_c_code_file_path);
+
+        h::Module const previous_module_c = read_core_module(module_c_file_path);
+        h::compiler::Symbol_name_to_hash const previous_symbol_name_to_hash = h::compiler::hash_export_interface(previous_module_c, {});
+
+        std::string_view const new_module_c_code = R"(
+            module C;
+
+            export struct Bar
+            {
+                a: Int32 = 1;
+            }
+        )";
+        h::common::write_to_file(module_c_code_file_path, new_module_c_code);
+        parse_core_module(parser, build_directory_path, module_c_code_file_path);
+
+        h::Module const new_module_c = read_core_module(module_c_file_path);
+        h::compiler::Symbol_name_to_hash const new_symbol_name_to_hash = h::compiler::hash_export_interface(new_module_c, {});
+
+
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path
+        {
+            std::make_pair("A", module_a_file_path),
+            std::make_pair("B", module_b_file_path),
+            std::make_pair("C", module_c_file_path),
+        };
+
+        std::pmr::unordered_multimap<std::pmr::string, std::pmr::string> const module_name_to_reverse_dependencies
+        {
+            std::make_pair("B", "A"),
+            std::make_pair("C", "B"),
+        };
+
+        std::pmr::vector<std::pmr::string> const modules_to_recompile = h::compiler::find_modules_to_recompile(
+            new_module_c,
+            previous_symbol_name_to_hash,
+            new_symbol_name_to_hash,
+            module_name_to_file_path,
+            module_name_to_reverse_dependencies,
+            {},
+            {}
+        );
+
+        std::pmr::vector<std::pmr::string> const expected_modules_to_recompile
+        {
+            "B",
         };
 
         CHECK(modules_to_recompile == expected_modules_to_recompile);
