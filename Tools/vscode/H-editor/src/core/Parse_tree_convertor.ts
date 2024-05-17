@@ -1118,6 +1118,13 @@ export function update_import_module_usages(module: Core_intermediate_representa
                 process_type(type);
             }
         }
+        else if (declaration.type === Core_intermediate_representation.Declaration_type.Union) {
+            const union_declaration = declaration.value as Core_intermediate_representation.Union_declaration;
+
+            for (const type of union_declaration.member_types) {
+                process_type(type);
+            }
+        }
     }
 
     for (const import_module of module.imports) {
