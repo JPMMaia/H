@@ -7,6 +7,7 @@
 #include <catch2/catch_all.hpp>
 
 import h.common;
+import h.compiler.hash;
 import h.compiler.recompilation;
 import h.core;
 import h.json_serializer;
