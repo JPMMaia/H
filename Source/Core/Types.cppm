@@ -43,33 +43,49 @@ namespace h
     export bool is_non_void_pointer(Type_reference const& type);
 
     export template <typename Function_t>
-        void visit_type_references(
+        bool visit_type_references(
             Type_reference const& type_reference,
             Function_t predicate
         )
     {
-        predicate(type_reference);
+        bool const done = predicate(type_reference);
+        if (done)
+            return true;
 
         if (std::holds_alternative<Constant_array_type>(type_reference.data))
         {
             Constant_array_type const& data = std::get<Constant_array_type>(type_reference.data);
             for (Type_reference const& nested_type_reference : data.value_type)
-                visit_type_references(nested_type_reference, predicate);
+            {
+                if (visit_type_references(nested_type_reference, predicate))
+                    return true;
+            }
         }
         else if (std::holds_alternative<Function_type>(type_reference.data))
         {
             Function_type const& data = std::get<Function_type>(type_reference.data);
             for (Type_reference const& nested_type_reference : data.input_parameter_types)
-                visit_type_references(nested_type_reference, predicate);
+            {
+                if (visit_type_references(nested_type_reference, predicate))
+                    return true;
+            }
             for (Type_reference const& nested_type_reference : data.output_parameter_types)
-                visit_type_references(nested_type_reference, predicate);
+            {
+                if (visit_type_references(nested_type_reference, predicate))
+                    return true;
+            }
         }
         else if (std::holds_alternative<Pointer_type>(type_reference.data))
         {
             Pointer_type const& data = std::get<Pointer_type>(type_reference.data);
             for (Type_reference const& nested_type_reference : data.element_type)
-                visit_type_references(nested_type_reference, predicate);
+            {
+                if (visit_type_references(nested_type_reference, predicate))
+                    return true;
+            }
         }
+
+        return false;
     }
 
     export template <typename Function_t>
@@ -80,7 +96,8 @@ namespace h
     {
         for (h::Type_reference const& type_reference : declaration.type)
         {
-            visit_type_references(type_reference, predicate);
+            if (visit_type_references(type_reference, predicate))
+                return;
         }
     }
 
@@ -92,7 +109,8 @@ namespace h
     {
         for (h::Type_reference const& type_reference : declaration.member_types)
         {
-            visit_type_references(type_reference, predicate);
+            if (visit_type_references(type_reference, predicate))
+                return;
         }
     }
 
@@ -104,7 +122,8 @@ namespace h
     {
         for (h::Type_reference const& type_reference : declaration.member_types)
         {
-            visit_type_references(type_reference, predicate);
+            if (visit_type_references(type_reference, predicate))
+                return;
         }
     }
 
@@ -116,12 +135,14 @@ namespace h
     {
         for (h::Type_reference const& type_reference : declaration.type.input_parameter_types)
         {
-            visit_type_references(type_reference, predicate);
+            if (visit_type_references(type_reference, predicate))
+                return;
         }
 
         for (h::Type_reference const& type_reference : declaration.type.output_parameter_types)
         {
-            visit_type_references(type_reference, predicate);
+            if (visit_type_references(type_reference, predicate))
+                return;
         }
     }
 
@@ -133,9 +154,9 @@ namespace h
     {
         for (Alias_type_declaration const& declaration : declarations.alias_type_declarations)
         {
-            auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> void
+            auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> bool
             {
-                predicate(declaration.name, type_reference);
+                return predicate(declaration.name, type_reference);
             };
 
             visit_type_references(declaration, predicate_with_name);
@@ -143,9 +164,9 @@ namespace h
 
         for (Struct_declaration const& declaration : declarations.struct_declarations)
         {
-            auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> void
+            auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> bool
             {
-                predicate(declaration.name, type_reference);
+                return predicate(declaration.name, type_reference);
             };
 
             visit_type_references(declaration, predicate_with_name);
@@ -153,9 +174,9 @@ namespace h
 
         for (Union_declaration const& declaration : declarations.union_declarations)
         {
-            auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> void
+            auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> bool
             {
-                predicate(declaration.name, type_reference);
+                return predicate(declaration.name, type_reference);
             };
 
             visit_type_references(declaration, predicate_with_name);
@@ -163,9 +184,9 @@ namespace h
 
         for (Function_declaration const& declaration : declarations.function_declarations)
         {
-            auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> void
+            auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> bool
             {
-                predicate(declaration.name, type_reference);
+                return predicate(declaration.name, type_reference);
             };
 
             visit_type_references(declaration, predicate_with_name);
@@ -183,9 +204,9 @@ namespace h
         {
             if (declaration.name == declaration_name)
             {
-                auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> void
+                auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> bool
                 {
-                    predicate(declaration.name, type_reference);
+                    return predicate(declaration.name, type_reference);
                 };
 
                 visit_type_references(declaration, predicate_with_name);
@@ -197,9 +218,9 @@ namespace h
         {
             if (declaration.name == declaration_name)
             {
-                auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> void
+                auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> bool
                 {
-                    predicate(declaration.name, type_reference);
+                    return predicate(declaration.name, type_reference);
                 };
 
                 visit_type_references(declaration, predicate_with_name);
@@ -211,9 +232,9 @@ namespace h
         {
             if (declaration.name == declaration_name)
             {
-                auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> void
+                auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> bool
                 {
-                    predicate(declaration.name, type_reference);
+                    return predicate(declaration.name, type_reference);
                 };
 
                 visit_type_references(declaration, predicate_with_name);
@@ -225,9 +246,9 @@ namespace h
         {
             if (declaration.name == declaration_name)
             {
-                auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> void
+                auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> bool
                 {
-                    predicate(declaration.name, type_reference);
+                    return predicate(declaration.name, type_reference);
                 };
 
                 visit_type_references(declaration, predicate_with_name);
@@ -239,9 +260,9 @@ namespace h
         {
             if (declaration.name == declaration_name)
             {
-                auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> void
+                auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> bool
                 {
-                    predicate(declaration.name, type_reference);
+                    return predicate(declaration.name, type_reference);
                 };
 
                 visit_type_references(declaration, predicate_with_name);
@@ -253,9 +274,9 @@ namespace h
         {
             if (declaration.name == declaration_name)
             {
-                auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> void
+                auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> bool
                 {
-                    predicate(declaration.name, type_reference);
+                    return predicate(declaration.name, type_reference);
                 };
 
                 visit_type_references(declaration, predicate_with_name);
@@ -267,9 +288,9 @@ namespace h
         {
             if (declaration.name == declaration_name)
             {
-                auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> void
+                auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> bool
                 {
-                    predicate(declaration.name, type_reference);
+                    return predicate(declaration.name, type_reference);
                 };
 
                 visit_type_references(declaration, predicate_with_name);
@@ -281,9 +302,9 @@ namespace h
         {
             if (declaration.name == declaration_name)
             {
-                auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> void
+                auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> bool
                 {
-                    predicate(declaration.name, type_reference);
+                    return predicate(declaration.name, type_reference);
                 };
 
                 visit_type_references(declaration, predicate_with_name);
