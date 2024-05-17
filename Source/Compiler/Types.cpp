@@ -76,7 +76,7 @@ namespace h::compiler
             return nullptr;
         };
 
-        auto const add_nested_alias = [&](Type_reference const& type_reference) -> void
+        auto const add_nested_alias = [&](Type_reference const& type_reference) -> bool
         {
             if (std::holds_alternative<Custom_type_reference>(type_reference.data))
             {
@@ -90,6 +90,8 @@ namespace h::compiler
                     }
                 }
             }
+
+            return false;
         };
 
         visit_type_references(type_reference, add_nested_alias);

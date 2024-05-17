@@ -601,7 +601,7 @@ namespace h::compiler
             remove_unused(dependency_core_module.export_declarations.alias_type_declarations);
             remove_unused(dependency_core_module.internal_declarations.alias_type_declarations);
 
-            auto const add_alias_usage = [&alias_usages](Type_reference const type_reference)
+            auto const add_alias_usage = [&alias_usages](Type_reference const type_reference) -> bool
             {
                 if (std::holds_alternative<Custom_type_reference>(type_reference.data))
                 {
@@ -611,6 +611,8 @@ namespace h::compiler
                         alias_usages.push_back(custom_type_reference.name);
                     }
                 }
+
+                return false;
             };
 
             for (Alias_type_declaration const& declaration : dependency_core_module.export_declarations.alias_type_declarations)
