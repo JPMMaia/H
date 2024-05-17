@@ -14,7 +14,7 @@ namespace h::compiler
 {
     export using Symbol_name_to_hash = std::pmr::unordered_map<std::pmr::string, std::uint64_t>;
 
-    export Symbol_name_to_hash hash_export_interface(
+    export Symbol_name_to_hash hash_module_declarations(
         h::Module const& core_module,
         std::pmr::polymorphic_allocator<> const& output_allocator
     );

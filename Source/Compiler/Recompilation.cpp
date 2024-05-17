@@ -26,7 +26,37 @@ namespace h::compiler
 {
     void update_hash(
         XXH64_state_t* const state,
+        h::Alias_type_declaration const& declaration,
+        h::Module const& current_core_module
+    );
+
+    void update_hash(
+        XXH64_state_t* const state,
+        h::Enum_declaration const& declaration,
+        h::Module const& current_core_module
+    );
+
+    void update_hash(
+        XXH64_state_t* const state,
         h::Struct_declaration const& declaration,
+        h::Module const& current_core_module
+    );
+
+    void update_hash(
+        XXH64_state_t* const state,
+        h::Union_declaration const& declaration,
+        h::Module const& current_core_module
+    );
+
+    void update_hash(
+        XXH64_state_t* const state,
+        h::Function_declaration const& declaration,
+        h::Module const& current_core_module
+    );
+
+    void update_hash(
+        XXH64_state_t* const state,
+        h::Type_reference const& type_reference,
         h::Module const& current_core_module
     );
 
@@ -36,10 +66,44 @@ namespace h::compiler
         std::string_view const declaration_name
     )
     {
-        // TODO other declarations
+        {
+            std::optional<h::Function_declaration const*> const declaration = find_function_declaration(core_module, declaration_name);
+            if (declaration)
+            {
+                update_hash(state, *declaration.value(), core_module);
+                return;
+            }
+        }
+
+        {
+            std::optional<h::Alias_type_declaration const*> const declaration = find_alias_type_declaration(core_module, declaration_name);
+            if (declaration)
+            {
+                update_hash(state, *declaration.value(), core_module);
+                return;
+            }
+        }
+
+        {
+            std::optional<h::Enum_declaration const*> const declaration = find_enum_declaration(core_module, declaration_name);
+            if (declaration)
+            {
+                update_hash(state, *declaration.value(), core_module);
+                return;
+            }
+        }
 
         {
             std::optional<h::Struct_declaration const*> const declaration = find_struct_declaration(core_module, declaration_name);
+            if (declaration)
+            {
+                update_hash(state, *declaration.value(), core_module);
+                return;
+            }
+        }
+
+        {
+            std::optional<h::Union_declaration const*> const declaration = find_union_declaration(core_module, declaration_name);
             if (declaration)
             {
                 update_hash(state, *declaration.value(), core_module);
@@ -64,6 +128,25 @@ namespace h::compiler
     )
     {
         update_hash(state, string.data(), string.size());
+    }
+
+    void update_hash(
+        XXH64_state_t* const state,
+        h::Function_type const& function_type,
+        h::Module const& current_core_module
+    )
+    {
+        for (h::Type_reference const& parameter_type : function_type.input_parameter_types)
+        {
+            update_hash(state, parameter_type, current_core_module);
+        }
+
+        for (h::Type_reference const& parameter_type : function_type.output_parameter_types)
+        {
+            update_hash(state, parameter_type, current_core_module);
+        }
+
+        update_hash(state, &function_type.is_variadic, sizeof(function_type.is_variadic));
     }
 
     void update_hash(
@@ -96,20 +179,8 @@ namespace h::compiler
         else if (std::holds_alternative<h::Custom_type_reference>(type_reference.data))
         {
             h::Custom_type_reference const& data = std::get<h::Custom_type_reference>(type_reference.data);
-
-            if (data.module_reference.name == "" || data.module_reference.name == current_core_module.name)
-            {
-                // If the type is inside the same module, then we update the hash recursively with their contents:
-                update_hash_with_declaration(state, current_core_module, data.name);
-            }
-            else
-            {
-                // Otherwise, just use the module and declaration names.
-                // This is because we want to avoid to read the content of external modules here, as doing that recursively would
-                // be very costly. So we need to propagate the changes in another place.
-                update_hash(state, data.module_reference.name);
-                update_hash(state, data.name);
-            }
+            update_hash(state, data.module_reference.name);
+            update_hash(state, data.name);
         }
         else if (std::holds_alternative<h::Fundamental_type>(type_reference.data))
         {
@@ -119,18 +190,7 @@ namespace h::compiler
         else if (std::holds_alternative<h::Function_type>(type_reference.data))
         {
             h::Function_type const& data = std::get<h::Function_type>(type_reference.data);
-
-            for (h::Type_reference const& parameter_type : data.input_parameter_types)
-            {
-                update_hash(state, parameter_type, current_core_module);
-            }
-
-            for (h::Type_reference const& parameter_type : data.output_parameter_types)
-            {
-                update_hash(state, parameter_type, current_core_module);
-            }
-
-            update_hash(state, &data.is_variadic, sizeof(data.is_variadic));
+            update_hash(state, data, current_core_module);
         }
         else if (std::holds_alternative<h::Integer_type>(type_reference.data))
         {
@@ -280,6 +340,40 @@ namespace h::compiler
 
     void update_hash(
         XXH64_state_t* const state,
+        h::Alias_type_declaration const& declaration,
+        h::Module const& current_core_module
+    )
+    {
+        update_hash(state, declaration.name);
+
+        if (declaration.unique_name.has_value())
+            update_hash(state, *declaration.unique_name);
+
+        for (h::Type_reference const& type_reference : declaration.type)
+            update_hash(state, type_reference, current_core_module);
+    }
+
+    void update_hash(
+        XXH64_state_t* const state,
+        h::Enum_declaration const& declaration,
+        h::Module const& current_core_module
+    )
+    {
+        update_hash(state, declaration.name);
+
+        if (declaration.unique_name.has_value())
+            update_hash(state, *declaration.unique_name);
+
+        for (h::Enum_value const& enum_value : declaration.values)
+        {
+            update_hash(state, enum_value.name);
+            if (enum_value.value)
+                update_hash(state, *enum_value.value, current_core_module);
+        }
+    }
+
+    void update_hash(
+        XXH64_state_t* const state,
         h::Struct_declaration const& declaration,
         h::Module const& current_core_module
     )
@@ -302,6 +396,71 @@ namespace h::compiler
         update_hash(state, &declaration.is_literal, sizeof(declaration.is_literal));
     }
 
+    void update_hash(
+        XXH64_state_t* const state,
+        h::Union_declaration const& declaration,
+        h::Module const& current_core_module
+    )
+    {
+        update_hash(state, declaration.name);
+
+        if (declaration.unique_name.has_value())
+            update_hash(state, *declaration.unique_name);
+
+        for (h::Type_reference const& type_reference : declaration.member_types)
+            update_hash(state, type_reference, current_core_module);
+
+        for (std::pmr::string const& member_name : declaration.member_names)
+            update_hash(state, member_name);
+    }
+
+    void update_hash(
+        XXH64_state_t* const state,
+        h::Function_declaration const& declaration,
+        h::Module const& current_core_module
+    )
+    {
+        update_hash(state, declaration.name);
+
+        if (declaration.unique_name.has_value())
+            update_hash(state, *declaration.unique_name);
+
+        update_hash(state, declaration.type, current_core_module);
+        update_hash(state, &declaration.linkage, sizeof(declaration.linkage));
+    }
+
+    XXH64_hash_t hash_alias_type_declaration(
+        XXH64_state_t* const state,
+        h::Alias_type_declaration const& declaration,
+        h::Module const& current_core_module
+    )
+    {
+        XXH64_hash_t const seed = 0;
+        if (XXH64_reset(state, seed) == XXH_ERROR)
+            h::common::print_message_and_exit("Could not reset xxhash state!");
+
+        update_hash(state, declaration, current_core_module);
+
+        XXH64_hash_t const hash = XXH64_digest(state);
+        return hash;
+    }
+
+    XXH64_hash_t hash_enum_declaration(
+        XXH64_state_t* const state,
+        h::Enum_declaration const& declaration,
+        h::Module const& current_core_module
+    )
+    {
+        XXH64_hash_t const seed = 0;
+        if (XXH64_reset(state, seed) == XXH_ERROR)
+            h::common::print_message_and_exit("Could not reset xxhash state!");
+
+        update_hash(state, declaration, current_core_module);
+
+        XXH64_hash_t const hash = XXH64_digest(state);
+        return hash;
+    }
+
     XXH64_hash_t hash_struct_declaration(
         XXH64_state_t* const state,
         h::Struct_declaration const& declaration,
@@ -318,7 +477,39 @@ namespace h::compiler
         return hash;
     }
 
-    Symbol_name_to_hash hash_export_interface(
+    XXH64_hash_t hash_union_declaration(
+        XXH64_state_t* const state,
+        h::Union_declaration const& declaration,
+        h::Module const& current_core_module
+    )
+    {
+        XXH64_hash_t const seed = 0;
+        if (XXH64_reset(state, seed) == XXH_ERROR)
+            h::common::print_message_and_exit("Could not reset xxhash state!");
+
+        update_hash(state, declaration, current_core_module);
+
+        XXH64_hash_t const hash = XXH64_digest(state);
+        return hash;
+    }
+
+    XXH64_hash_t hash_function_declaration(
+        XXH64_state_t* const state,
+        h::Function_declaration const& declaration,
+        h::Module const& current_core_module
+    )
+    {
+        XXH64_hash_t const seed = 0;
+        if (XXH64_reset(state, seed) == XXH_ERROR)
+            h::common::print_message_and_exit("Could not reset xxhash state!");
+
+        update_hash(state, declaration, current_core_module);
+
+        XXH64_hash_t const hash = XXH64_digest(state);
+        return hash;
+    }
+
+    Symbol_name_to_hash hash_module_declarations(
         h::Module const& core_module,
         std::pmr::polymorphic_allocator<> const& output_allocator
     )
@@ -329,9 +520,63 @@ namespace h::compiler
 
         std::pmr::unordered_map<std::pmr::string, std::uint64_t> map{ output_allocator };
 
+        for (Alias_type_declaration const& declaration : core_module.export_declarations.alias_type_declarations)
+        {
+            XXH64_hash_t const hash = hash_alias_type_declaration(state, declaration, core_module);
+            map.insert(std::make_pair(declaration.name, hash));
+        }
+
+        for (Alias_type_declaration const& declaration : core_module.internal_declarations.alias_type_declarations)
+        {
+            XXH64_hash_t const hash = hash_alias_type_declaration(state, declaration, core_module);
+            map.insert(std::make_pair(declaration.name, hash));
+        }
+
+        for (Enum_declaration const& declaration : core_module.export_declarations.enum_declarations)
+        {
+            XXH64_hash_t const hash = hash_enum_declaration(state, declaration, core_module);
+            map.insert(std::make_pair(declaration.name, hash));
+        }
+
+        for (Enum_declaration const& declaration : core_module.internal_declarations.enum_declarations)
+        {
+            XXH64_hash_t const hash = hash_enum_declaration(state, declaration, core_module);
+            map.insert(std::make_pair(declaration.name, hash));
+        }
+
         for (Struct_declaration const& declaration : core_module.export_declarations.struct_declarations)
         {
             XXH64_hash_t const hash = hash_struct_declaration(state, declaration, core_module);
+            map.insert(std::make_pair(declaration.name, hash));
+        }
+
+        for (Struct_declaration const& declaration : core_module.internal_declarations.struct_declarations)
+        {
+            XXH64_hash_t const hash = hash_struct_declaration(state, declaration, core_module);
+            map.insert(std::make_pair(declaration.name, hash));
+        }
+
+        for (Union_declaration const& declaration : core_module.export_declarations.union_declarations)
+        {
+            XXH64_hash_t const hash = hash_union_declaration(state, declaration, core_module);
+            map.insert(std::make_pair(declaration.name, hash));
+        }
+
+        for (Union_declaration const& declaration : core_module.internal_declarations.union_declarations)
+        {
+            XXH64_hash_t const hash = hash_union_declaration(state, declaration, core_module);
+            map.insert(std::make_pair(declaration.name, hash));
+        }
+
+        for (Function_declaration const& declaration : core_module.export_declarations.function_declarations)
+        {
+            XXH64_hash_t const hash = hash_function_declaration(state, declaration, core_module);
+            map.insert(std::make_pair(declaration.name, hash));
+        }
+
+        for (Function_declaration const& declaration : core_module.internal_declarations.function_declarations)
+        {
+            XXH64_hash_t const hash = hash_function_declaration(state, declaration, core_module);
             map.insert(std::make_pair(declaration.name, hash));
         }
 
@@ -361,6 +606,7 @@ namespace h::compiler
     }
 
     std::pmr::unordered_set<std::pmr::string> compute_symbols_that_changed(
+        h::Module const& core_module,
         Symbol_name_to_hash const& previous_symbol_name_to_hash,
         Symbol_name_to_hash const& new_symbol_name_to_hash
     )
@@ -384,6 +630,41 @@ namespace h::compiler
             }
         }
 
+        std::pmr::unordered_set<std::pmr::string> visited_symbols;
+
+        std::function<bool(std::string_view, h::Type_reference const&)> process_custom_type_reference;
+
+        process_custom_type_reference = [&](
+            std::string_view const declaration_name,
+            h::Type_reference const& type_reference
+            ) -> bool
+        {
+            if (std::holds_alternative<h::Custom_type_reference>(type_reference.data))
+            {
+                h::Custom_type_reference const& custom_type_reference = std::get<h::Custom_type_reference>(type_reference.data);
+
+                if (custom_type_reference.module_reference.name == "" || custom_type_reference.module_reference.name == core_module.name)
+                {
+                    if (!visited_symbols.contains(custom_type_reference.name))
+                    {
+                        visited_symbols.insert(custom_type_reference.name);
+
+                        if (symbols_that_changed.contains(custom_type_reference.name))
+                        {
+                            symbols_that_changed.insert(std::pmr::string{ declaration_name });
+                            return true;
+                        }
+
+                        h::visit_type_references(core_module, custom_type_reference.name, process_custom_type_reference);
+                    }
+                }
+            }
+
+            return false;
+        };
+
+        h::visit_type_references(core_module.export_declarations, process_custom_type_reference);
+
         return symbols_that_changed;
     }
 
@@ -394,13 +675,14 @@ namespace h::compiler
     )
     {
         std::pmr::unordered_set<std::pmr::string> symbols_that_changed;
+        std::pmr::unordered_set<std::pmr::string> visited_symbols;
 
-        std::function<void(std::string_view, h::Type_reference const&)> process_custom_type_reference;
+        std::function<bool(std::string_view, h::Type_reference const&)> process_custom_type_reference;
 
         process_custom_type_reference = [&](
             std::string_view const declaration_name,
             h::Type_reference const& type_reference
-            ) -> void
+            ) -> bool
         {
             if (std::holds_alternative<h::Custom_type_reference>(type_reference.data))
             {
@@ -411,16 +693,21 @@ namespace h::compiler
                     if (dependency_symbols_that_changed.contains(custom_type_reference.name))
                     {
                         symbols_that_changed.insert(std::pmr::string{ declaration_name });
+                        return true;
                     }
                 }
 
                 if (custom_type_reference.module_reference.name == "" || custom_type_reference.module_reference.name == core_module.name)
                 {
-                    h::visit_type_references(core_module, custom_type_reference.name, process_custom_type_reference);
+                    if (!visited_symbols.contains(custom_type_reference.name))
+                    {
+                        visited_symbols.insert(custom_type_reference.name);
+                        h::visit_type_references(core_module, custom_type_reference.name, process_custom_type_reference);
+                    }
                 }
-
-                // TODO handle loops (e.g. type A that has pointer to type A)
             }
+
+            return false;
         };
 
         h::visit_type_references(core_module.export_declarations, process_custom_type_reference);
@@ -499,7 +786,7 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        std::pmr::unordered_set<std::pmr::string> const symbols_that_changed = compute_symbols_that_changed(previous_symbol_name_to_hash, new_symbol_name_to_hash);
+        std::pmr::unordered_set<std::pmr::string> const symbols_that_changed = compute_symbols_that_changed(core_module, previous_symbol_name_to_hash, new_symbol_name_to_hash);
 
         std::pmr::unordered_set<std::pmr::string> modules_to_recompile{ temporaries_allocator };
 
