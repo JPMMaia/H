@@ -351,18 +351,12 @@ namespace h::compiler
         return location->second;
     }
 
-    static std::optional<h::Module> parse_core_module_declarations(
-        h::parser::Parser const& parser,
-        std::filesystem::path const& file_path,
-        std::filesystem::path const& build_directory
+    static std::optional<h::Module> read_core_module_declarations(
+        std::filesystem::path const& file_path
     )
     {
-        // TODO can be parsed outside
-        std::filesystem::path const parsed_file_path = build_directory / file_path.filename().replace_extension("hl");
-        h::parser::parse(parser, file_path, parsed_file_path);
-
         // TODO no need to import definitions
-        std::optional<h::Module> core_module = h::json::read_module(parsed_file_path);
+        std::optional<h::Module> core_module = h::json::read_module(file_path);
         return core_module;
     }
 
@@ -439,10 +433,7 @@ namespace h::compiler
         h::Module const& core_module,
         std::pmr::unordered_set<std::pmr::string> const& symbols_that_changed,
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path,
-        std::pmr::unordered_multimap<std::pmr::string, std::pmr::string> const& module_name_to_reverse_dependencies,
-        std::pmr::unordered_map<std::pmr::string, Symbol_name_to_hash> const& module_name_to_symbol_hashes,
-        h::parser::Parser const& parser,
-        std::filesystem::path const& build_directory
+        std::pmr::unordered_multimap<std::pmr::string, std::pmr::string> const& module_name_to_reverse_dependencies
     )
     {
         auto const reverse_dependencies_range = module_name_to_reverse_dependencies.equal_range(core_module.name);
@@ -456,7 +447,7 @@ namespace h::compiler
 
             std::filesystem::path const& reverse_dependency_file_path = module_name_to_file_path.at(reverse_dependency_name);
 
-            std::optional<h::Module> const reverse_dependency = parse_core_module_declarations(parser, reverse_dependency_file_path, build_directory);
+            std::optional<h::Module> const reverse_dependency = read_core_module_declarations(reverse_dependency_file_path);
             if (!reverse_dependency)
             {
                 std::puts(std::format("Could not read '{}'!", reverse_dependency_file_path.generic_string()).c_str());
@@ -489,10 +480,7 @@ namespace h::compiler
                         *reverse_dependency,
                         reverse_dependency_symbols_that_changed,
                         module_name_to_file_path,
-                        module_name_to_reverse_dependencies,
-                        module_name_to_symbol_hashes,
-                        parser,
-                        build_directory
+                        module_name_to_reverse_dependencies
                     );
 
                     break;
@@ -503,19 +491,14 @@ namespace h::compiler
 
     std::pmr::vector<std::pmr::string> find_modules_to_recompile(
         h::Module const& core_module,
+        Symbol_name_to_hash const& previous_symbol_name_to_hash,
+        Symbol_name_to_hash const& new_symbol_name_to_hash,
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path,
         std::pmr::unordered_multimap<std::pmr::string, std::pmr::string> const& module_name_to_reverse_dependencies,
-        std::pmr::unordered_map<std::pmr::string, Symbol_name_to_hash> const& module_name_to_symbol_hashes,
-        h::parser::Parser const& parser,
-        std::filesystem::path const& build_directory,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        Symbol_name_to_hash const& previous_symbol_name_to_hash = module_name_to_symbol_hashes.at(core_module.name);
-        // TODO do this outside and update
-        Symbol_name_to_hash const new_symbol_name_to_hash = hash_export_interface(core_module, {});
-
         std::pmr::unordered_set<std::pmr::string> const symbols_that_changed = compute_symbols_that_changed(previous_symbol_name_to_hash, new_symbol_name_to_hash);
 
         std::pmr::unordered_set<std::pmr::string> modules_to_recompile{ temporaries_allocator };
@@ -525,10 +508,7 @@ namespace h::compiler
             core_module,
             symbols_that_changed,
             module_name_to_file_path,
-            module_name_to_reverse_dependencies,
-            module_name_to_symbol_hashes,
-            parser,
-            build_directory
+            module_name_to_reverse_dependencies
         );
 
         std::pmr::vector<std::pmr::string> output{ output_allocator };
