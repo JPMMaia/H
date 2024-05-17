@@ -1000,8 +1000,9 @@ declare i32 @printf(ptr, ...)
 
     char const* const expected_llvm_ir = R"(
 %name_with_dots_Struct_name = type {}
+%name_with_dots_Union_name = type { [1 x i8] }
 
-define void @name_with_dots_function_name(i32 %arguments.a, i32 %arguments.b, %name_with_dots_Struct_name %arguments.c) {
+define void @name_with_dots_function_name(i32 %arguments.a, i32 %arguments.b, %name_with_dots_Struct_name %arguments.c, %name_with_dots_Union_name %arguments.d) {
 entry:
   %a = alloca i32, align 4
   store i32 %arguments.a, ptr %a, align 4
@@ -1009,6 +1010,8 @@ entry:
   store i32 %arguments.b, ptr %b, align 4
   %c = alloca %name_with_dots_Struct_name, align 8
   store %name_with_dots_Struct_name %arguments.c, ptr %c, align 1
+  %d = alloca %name_with_dots_Union_name, align 8
+  store %name_with_dots_Union_name %arguments.d, ptr %d, align 1
   call void @name_with_dots_other_function_name()
   ret void
 }
