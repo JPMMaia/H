@@ -8,17 +8,10 @@ module;
 export module h.compiler.recompilation;
 
 import h.core;
-import h.parser;
+import h.compiler.hash;
 
 namespace h::compiler
 {
-    export using Symbol_name_to_hash = std::pmr::unordered_map<std::pmr::string, std::uint64_t>;
-
-    export Symbol_name_to_hash hash_module_declarations(
-        h::Module const& core_module,
-        std::pmr::polymorphic_allocator<> const& output_allocator
-    );
-
     export std::pmr::vector<std::pmr::string> find_modules_to_recompile(
         h::Module const& core_module,
         Symbol_name_to_hash const& previous_symbol_name_to_hash,
