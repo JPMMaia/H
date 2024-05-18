@@ -40,7 +40,9 @@ import h.compiler.artifact;
 import h.compiler.common;
 import h.compiler.core_module_layer;
 import h.compiler.file_watcher;
+import h.compiler.hash;
 import h.compiler.jit_compiler;
+import h.compiler.recompilation;
 import h.compiler.repository;
 import h.compiler.target;
 import h.core;
@@ -96,19 +98,19 @@ namespace h::compiler
         return module_name;
     }
 
-    std::optional<std::filesystem::path> get_module_file_path(
+    std::optional<std::filesystem::path> get_module_source_file_path(
         std::string_view const module_name,
-        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_source_file_path
     )
     {
-        auto location = module_name_to_file_path.find(module_name.data());
-        if (location != module_name_to_file_path.end())
+        auto location = module_name_to_source_file_path.find(module_name.data());
+        if (location != module_name_to_source_file_path.end())
             return location->second;
         else
             return std::nullopt;
     }
 
-    std::optional<std::filesystem::path> find_module_file_path(
+    std::optional<std::filesystem::path> find_module_source_file_path(
         std::string_view const module_name,
         JIT_runner_unprotected_data const& unprotected_data,
         JIT_runner_protected_data& protected_data
@@ -116,11 +118,11 @@ namespace h::compiler
     {
         std::shared_lock<std::shared_mutex> lock{ protected_data.mutex };
 
-        std::optional<std::filesystem::path> module_file_path = get_module_file_path(module_name, protected_data.module_name_to_file_path);
-        if (module_file_path)
-            return module_file_path;
+        std::optional<std::filesystem::path> module_source_file_path = get_module_source_file_path(module_name, protected_data.module_name_to_source_file_path);
+        if (module_source_file_path)
+            return module_source_file_path;
 
-        auto const predicate = [module_name, &module_file_path](std::filesystem::path const& file_path) -> bool
+        auto const predicate = [module_name, &module_source_file_path](std::filesystem::path const& file_path) -> bool
         {
             std::optional<std::pmr::string> const current_module_name = read_module_name(file_path);
             if (!current_module_name)
@@ -128,19 +130,18 @@ namespace h::compiler
 
             if (*current_module_name == module_name)
             {
-                module_file_path = file_path;
+                module_source_file_path = file_path;
                 return true;
             }
 
             return false;
         };
 
-        // TODO
         for (auto const& pair : protected_data.artifacts)
         {
             bool const found = visit_included_files(pair.second, predicate);
             if (found)
-                return module_file_path;
+                return module_source_file_path;
 
             std::span<C_header const> const c_headers = get_c_headers(pair.second);
             for (C_header const& c_header : c_headers)
@@ -159,7 +160,7 @@ namespace h::compiler
                 Artifact const artifact = get_artifact(artifact_pair.second);
                 bool const found = visit_included_files(artifact, predicate);
                 if (found)
-                    return module_file_path;
+                    return module_source_file_path;
 
                 std::span<C_header const> const c_headers = get_c_headers(artifact);
                 for (C_header const& c_header : c_headers)
@@ -169,8 +170,6 @@ namespace h::compiler
                 }
             }
         }
-
-        // TODO add entry to module_name_to_file_path 
 
         return std::nullopt;
     }
@@ -187,19 +186,24 @@ namespace h::compiler
         JIT_runner_protected_data& protected_data
     )
     {
-        std::optional<std::filesystem::path> const module_file_path = find_module_file_path(
+        std::optional<std::filesystem::path> const module_source_file_path = find_module_source_file_path(
             module_name,
             unprotected_data,
             protected_data
         );
-        if (!module_file_path)
+        if (!module_source_file_path)
             return std::nullopt;
 
-        std::filesystem::path const parsed_file_path = unprotected_data.build_directory_path / module_file_path->filename().replace_extension("hl");
-
-        if (module_file_path->extension() == ".hltxt")
         {
-            h::parser::parse(unprotected_data.parser, *module_file_path, parsed_file_path);
+            std::unique_lock<std::shared_mutex> lock{ protected_data.mutex };
+            protected_data.module_name_to_source_file_path.insert(std::make_pair(std::pmr::string{ module_name }, *module_source_file_path));
+        }
+
+        std::filesystem::path const parsed_file_path = unprotected_data.build_directory_path / module_source_file_path->filename().replace_extension("hl");
+
+        if (module_source_file_path->extension() == ".hltxt")
+        {
+            h::parser::parse(unprotected_data.parser, *module_source_file_path, parsed_file_path);
 
             return Parsed_module_info
             {
@@ -207,9 +211,9 @@ namespace h::compiler
                 .is_c_header = false
             };
         }
-        else if (module_file_path->extension() == ".h")
+        else if (module_source_file_path->extension() == ".h")
         {
-            h::c::import_header_and_write_to_file(module_name, *module_file_path, parsed_file_path);
+            h::c::import_header_and_write_to_file(module_name, *module_source_file_path, parsed_file_path);
 
             return Parsed_module_info
             {
@@ -240,6 +244,11 @@ namespace h::compiler
 
             if (!parsed_module_info)
                 return std::nullopt;
+
+            {
+                std::unique_lock<std::shared_mutex> lock{ protected_data.mutex };
+                protected_data.module_name_to_module_file_path.insert(std::make_pair(import_alias.module_name, parsed_module_info->parsed_file_path));
+            }
 
             std::filesystem::path const& module_file_path = parsed_module_info->parsed_file_path;
 
@@ -282,7 +291,8 @@ namespace h::compiler
         std::filesystem::path const& module_file_path,
         llvm::orc::JITDylib& library,
         JIT_runner_unprotected_data const& unprotected_data,
-        JIT_runner_protected_data& protected_data
+        JIT_runner_protected_data& protected_data,
+        bool const recompile_reverse_dependencies
     )
     {
         std::optional<std::pmr::string> const json_data = h::common::get_file_contents(module_file_path);
@@ -310,6 +320,58 @@ namespace h::compiler
         }
 
         insert_symbol_to_module_name_entries(*core_module_dependencies, *unprotected_data.jit_data->mangle, protected_data);
+
+        {
+            std::unique_lock<std::shared_mutex> lock{ protected_data.mutex };
+
+            // TODO remove all entries where pair.second == core_module->name
+
+            for (h::Module const& core_module_dependency : *core_module_dependencies)
+            {
+                protected_data.module_name_to_reverse_dependencies.insert(std::make_pair(core_module_dependency.name, core_module->name));
+            }
+        }
+
+        if (recompile_reverse_dependencies)
+        {
+            Symbol_name_to_hash new_symbol_name_to_hash_map = hash_module_declarations(*core_module, {});
+
+            {
+                std::unique_lock<std::shared_mutex> lock{ protected_data.mutex };
+                auto const previous_symbol_name_to_hash_map_location = protected_data.module_name_to_symbol_hashes.find(core_module->name);
+
+                std::pmr::vector<std::pmr::string> const modules_to_recompile = find_modules_to_recompile(
+                    *core_module,
+                    previous_symbol_name_to_hash_map_location != protected_data.module_name_to_symbol_hashes.end() ? previous_symbol_name_to_hash_map_location->second : Symbol_name_to_hash{},
+                    new_symbol_name_to_hash_map,
+                    protected_data.module_name_to_module_file_path,
+                    protected_data.module_name_to_reverse_dependencies,
+                    {},
+                    {}
+                );
+
+                for (std::pmr::string const& module_to_recompile_name : modules_to_recompile)
+                {
+                    std::filesystem::path const& module_file_path = protected_data.module_name_to_module_file_path.at(module_to_recompile_name);
+
+                    lock.unlock();
+                    bool const success = add_module_for_compilation(
+                        module_file_path,
+                        library,
+                        unprotected_data,
+                        protected_data,
+                        false
+                    );
+
+                    if (!success)
+                        return false;
+
+                    lock.lock();
+                }
+
+                protected_data.module_name_to_symbol_hashes.insert(std::make_pair(core_module->name, std::move(new_symbol_name_to_hash_map)));
+            }
+        }
 
         Core_module_compilation_data core_compilation_data
         {
@@ -402,18 +464,28 @@ namespace h::compiler
                 std::filesystem::path const parsed_file_path = unprotected_data.build_directory_path / source_file_path.filename().replace_extension("hl");
                 h::parser::parse(unprotected_data.parser, source_file_path, parsed_file_path);
 
+                {
+                    std::optional<std::pmr::string> const module_name = read_module_name(source_file_path);
+
+                    if (module_name)
+                    {
+                        std::unique_lock<std::shared_mutex> lock{ protected_data.mutex };
+                        protected_data.module_name_to_source_file_path.insert(std::make_pair(*module_name, source_file_path));
+                        protected_data.module_name_to_module_file_path.insert(std::make_pair(*module_name, parsed_file_path));
+                    }
+                }
+
                 add_module_for_compilation(
                     parsed_file_path,
                     get_main_library(*unprotected_data.jit_data),
                     unprotected_data,
-                    protected_data
+                    protected_data,
+                    false
                 );
             }
             else if (std::holds_alternative<Library_info>(*artifact.info))
             {
                 Library_info const& library_info = std::get<Library_info>(*artifact.info);
-
-                // TODO add c headers for compilation?
 
                 std::optional<External_library_info> const external_library = get_external_library(library_info.external_libraries, unprotected_data.target, true);
                 if (external_library.has_value())
@@ -484,6 +556,11 @@ namespace h::compiler
                 if (!parsed_module_info)
                     continue;
 
+                {
+                    std::unique_lock<std::shared_mutex> lock{ m_protected_data.mutex };
+                    m_protected_data.module_name_to_module_file_path.insert(std::make_pair(std::pmr::string{ *module_name }, parsed_module_info->parsed_file_path));
+                }
+
                 if (parsed_module_info->is_c_header)
                     continue;
 
@@ -491,22 +568,23 @@ namespace h::compiler
                     parsed_module_info->parsed_file_path,
                     library,
                     m_unprotected_data,
-                    m_protected_data
+                    m_protected_data,
+                    false
                 );
 
                 // TODO
                 // Cache module paths:
                 /*{
-                    std::unique_lock<std::shared_mutex> lock{ m_module_name_to_file_path.mutex };
+                    std::unique_lock<std::shared_mutex> lock{ m_module_name_to_source_file_path.mutex };
 
-                    m_module_name_to_file_path.map.emplace(std::pmr::string{ module_name }, *module_file_path);
+                    m_module_name_to_source_file_path.map.emplace(std::pmr::string{ module_name }, *module_file_path);
 
                     for (std::size_t index = 0; index < module_dependecies_names.size(); ++index)
                     {
                         std::string_view const dependency_module_name = module_dependecies_names[index];
                         std::filesystem::path const& dependency_file_path = module_dependencies_file_paths.value()[index];
 
-                        m_module_name_to_file_path.map.insert(std::make_pair(std::pmr::string{ module_name }, dependency_file_path));
+                        m_module_name_to_source_file_path.map.insert(std::make_pair(std::pmr::string{ module_name }, dependency_file_path));
                     }
                 }*/
             }
@@ -552,8 +630,6 @@ namespace h::compiler
         if (is_inside_directory(source_file_path, unprotected_data.build_directory_path))
             return;
 
-        // TODO update module_name_to_file_path map
-
         // Any time there is a watched file is modified, add to the recompile module layer:
         if (event.effect_type == wtr::event::effect_type::create || event.effect_type == wtr::event::effect_type::modify)
         {
@@ -568,13 +644,25 @@ namespace h::compiler
                 std::filesystem::path const parsed_file_path = unprotected_data.build_directory_path / source_file_path.filename().replace_extension("hl");
                 h::parser::parse(unprotected_data.parser, source_file_path, parsed_file_path);
 
+                {
+                    std::optional<std::pmr::string> const module_name = read_module_name(source_file_path);
+
+                    if (module_name)
+                    {
+                        std::unique_lock<std::shared_mutex> lock{ protected_data.mutex };
+                        protected_data.module_name_to_source_file_path.insert(std::make_pair(*module_name, source_file_path));
+                        protected_data.module_name_to_module_file_path.insert(std::make_pair(*module_name, parsed_file_path));
+                    }
+                }
+
                 std::chrono::high_resolution_clock::time_point const begin_compiling = std::chrono::high_resolution_clock::now();
 
                 bool const success = add_module_for_compilation(
                     parsed_file_path,
                     get_main_library(*unprotected_data.jit_data),
                     unprotected_data,
-                    protected_data
+                    protected_data,
+                    true
                 );
 
                 std::chrono::high_resolution_clock::time_point const end_compiling = std::chrono::high_resolution_clock::now();
@@ -590,7 +678,7 @@ namespace h::compiler
                 if (module_name)
                 {
                     std::unique_lock<std::shared_mutex> lock{ protected_data.mutex };
-                    protected_data.module_name_to_file_path[*module_name] = source_file_path;
+                    protected_data.module_name_to_source_file_path[*module_name] = source_file_path;
                 }
             }
         }

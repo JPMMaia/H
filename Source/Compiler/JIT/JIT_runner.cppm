@@ -19,6 +19,7 @@ export module h.compiler.jit_runner;
 import h.compiler;
 import h.compiler.artifact;
 import h.compiler.file_watcher;
+import h.compiler.hash;
 import h.compiler.jit_compiler;
 import h.compiler.repository;
 import h.compiler.target;
@@ -44,7 +45,10 @@ namespace h::compiler
         std::uint64_t processed_files = 0;
         std::pmr::unordered_map<std::filesystem::path, Artifact> artifacts;
         std::pmr::unordered_map<std::filesystem::path, Repository> repositories;
-        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> module_name_to_file_path;
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> module_name_to_source_file_path;
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> module_name_to_module_file_path;
+        std::pmr::unordered_multimap<std::pmr::string, std::pmr::string> module_name_to_reverse_dependencies;
+        std::pmr::unordered_map<std::pmr::string, Symbol_name_to_hash> module_name_to_symbol_hashes;
         llvm::DenseMap<llvm::orc::SymbolStringPtr, std::pmr::string> symbol_to_module_name_map;
     };
 
