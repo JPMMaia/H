@@ -36,6 +36,7 @@ namespace h::compiler
         h::parser::Parser parser;
         std::unique_ptr<h::compiler::LLVM_data> llvm_data;
         std::unique_ptr<JIT_data> jit_data;
+        int log_level;
     };
 
     struct JIT_runner_protected_data

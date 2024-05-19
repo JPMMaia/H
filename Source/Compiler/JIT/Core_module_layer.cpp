@@ -3,6 +3,8 @@ module;
 #include <llvm/ExecutionEngine/Orc/Core.h>
 #include <llvm/ExecutionEngine/Orc/Layer.h>
 
+#include <cstdio>
+#include <chrono>
 #include <filesystem>
 #include <memory>
 #include <memory_resource>
@@ -56,6 +58,8 @@ namespace h::compiler
         std::unique_ptr<llvm::orc::MaterializationResponsibility> materialization_responsibility
     )
     {
+        std::chrono::high_resolution_clock::time_point const begin_materializing = std::chrono::high_resolution_clock::now();
+
         llvm::orc::MangleAndInterner& mangle = m_mangle;
 
         llvm::orc::SymbolNameSet const requested_symbols = materialization_responsibility->getRequestedSymbols();
@@ -114,6 +118,13 @@ namespace h::compiler
             if (materialization_responsibility != nullptr)
                 materialization_responsibility->failMaterialization();
         }
+
+        std::chrono::high_resolution_clock::time_point const end_materializing = std::chrono::high_resolution_clock::now();
+
+        using namespace std::chrono_literals;
+
+        auto const materialization_duration = (end_materializing - begin_materializing) / 1ms;
+        std::puts(std::format("Materialization of {} took {} ms", m_core_module_compilation_data.core_module.name, materialization_duration).c_str());
     }
 
     void Core_module_materialization_unit::discard(const llvm::orc::JITDylib& library, const llvm::orc::SymbolStringPtr& symbol_name)
