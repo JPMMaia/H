@@ -246,6 +246,17 @@ describe("Scanner.scan", () => {
         assert.equal(scanned_words[2].type, Grammar.Word_type.Alphanumeric);
     });
 
+    it("Scans comments without \\r", () => {
+        const input = "// This is a comment!\r\n// This is another one\r\n";
+        const scanned_words = Scanner.scan(input, 0, input.length);
+
+        assert.equal(scanned_words.length, 1);
+
+        assert.equal(scanned_words[0].value, "// This is a comment!\n// This is another one");
+        assert.equal(scanned_words[0].type, Grammar.Word_type.Comment);
+        assert.equal(scanned_words[0].newlines_after, 1);
+    });
+
     it("Scans multiple comments", () => {
         const input = "// This is a comment!\n// This is another one\nvar i = 0;";
         const scanned_words = Scanner.scan(input, 0, input.length);

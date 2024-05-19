@@ -126,7 +126,6 @@ namespace h
     export struct Statement
     {
         std::pmr::vector<Expression> expressions;
-        std::optional<std::pmr::string> comment;
         std::optional<std::uint32_t> newlines_after;
 
         friend auto operator<=>(Statement const&, Statement const&) = default;
