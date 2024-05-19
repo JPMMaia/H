@@ -35,6 +35,7 @@ module;
 module h.compiler.jit_runner;
 
 import h.common;
+import h.common.filesystem;
 import h.compiler;
 import h.compiler.artifact;
 import h.compiler.common;
@@ -711,7 +712,7 @@ namespace h::compiler
         // Create readonly and protected data:
         {
             std::unique_ptr<h::compiler::LLVM_data> llvm_data = std::make_unique<h::compiler::LLVM_data>(h::compiler::initialize_llvm());
-            std::unique_ptr<JIT_data> jit_data = create_jit_data(llvm_data->data_layout);
+            std::unique_ptr<JIT_data> jit_data = create_jit_data(llvm_data->data_layout, h::common::get_default_library_directories());
 
             jit_runner->unprotected_data =
             {

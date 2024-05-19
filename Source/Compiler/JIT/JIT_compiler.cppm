@@ -14,6 +14,7 @@ module;
 #include <span>
 #include <string>
 #include <string_view>
+#include <vector>
 
 export module h.compiler.jit_compiler;
 
@@ -36,10 +37,12 @@ namespace h::compiler
         std::unique_ptr<llvm::orc::CompileOnDemandLayer> compile_on_demand_layer;
         std::unique_ptr<Core_module_layer> core_module_layer;
         std::unique_ptr<Recompile_module_layer> recompile_module_layer;
+        std::pmr::vector<std::filesystem::path> search_library_paths;
     };
 
     export std::unique_ptr<JIT_data> create_jit_data(
-        llvm::DataLayout& llvm_data_layout
+        llvm::DataLayout& llvm_data_layout,
+        std::pmr::vector<std::filesystem::path> search_library_paths
     );
 
     export bool add_core_module(

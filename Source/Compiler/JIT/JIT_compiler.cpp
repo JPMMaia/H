@@ -18,6 +18,7 @@ module;
 #include <llvm/Support/Error.h>
 #include <llvm/TargetParser/Host.h>
 
+#include <filesystem>
 #include <future>
 #include <memory>
 #include <optional>
@@ -29,6 +30,7 @@ module;
 module h.compiler.jit_compiler;
 
 import h.common;
+import h.common.filesystem;
 import h.compiler;
 import h.compiler.common;
 import h.compiler.core_module_layer;
@@ -56,7 +58,8 @@ namespace h::compiler
     }
 
     std::unique_ptr<JIT_data> create_jit_data(
-        llvm::DataLayout& llvm_data_layout
+        llvm::DataLayout& llvm_data_layout,
+        std::pmr::vector<std::filesystem::path> search_library_paths
     )
     {
         llvm::orc::LLJITBuilder builder;
@@ -115,6 +118,7 @@ namespace h::compiler
         jit_data->compile_on_demand_layer = std::move(compile_on_demand_layer);
         jit_data->core_module_layer = std::move(core_module_layer);
         jit_data->recompile_module_layer = std::move(recompile_module_layer);
+        jit_data->search_library_paths = std::move(search_library_paths);
 
         // TODO link libLLVMOrcDebugging.a
         // TODO enable llvm::orc::enableDebuggerSupport(*llvm_jit);
@@ -165,7 +169,13 @@ namespace h::compiler
         char const* const static_library_path
     )
     {
-        llvm::Error error = jit_data.llvm_jit->linkStaticLibraryInto(jit_data.llvm_jit->getMainJITDylib(), static_library_path);
+        std::optional<std::filesystem::path> const path = h::common::search_file(static_library_path, jit_data.search_library_paths);
+        if (!path)
+            h::common::print_message_and_exit(std::format("Could not find '{}' in search library paths", static_library_path));
+
+        std::string const path_string = path->generic_string();
+
+        llvm::Error error = jit_data.llvm_jit->linkStaticLibraryInto(jit_data.llvm_jit->getMainJITDylib(), path_string.c_str());
         if (error)
             h::common::print_message_and_exit(std::format("Error while linking static library: {}", llvm::toString(std::move(error))));
     }
