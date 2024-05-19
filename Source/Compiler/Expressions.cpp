@@ -269,7 +269,7 @@ namespace h::compiler
         Declaration_database const& declaration_database = parameters.declaration_database;
         Enum_value_constants const& enum_value_constants = parameters.enum_value_constants;
 
-        Value_and_type const& left_hand_side = create_expression_value(expression.expression.expression_index, statement, parameters);
+        Value_and_type const left_hand_side = create_expression_value(expression.expression.expression_index, statement, parameters);
 
         // Check if left hand side corresponds to a module name:
         {
@@ -1056,7 +1056,7 @@ namespace h::compiler
         llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
         std::pmr::polymorphic_allocator<> const& temporaries_allocator = parameters.temporaries_allocator;
 
-        Value_and_type const& left_hand_side = create_expression_value(expression.expression.expression_index, statement, parameters);
+        Value_and_type const left_hand_side = create_expression_value(expression.expression.expression_index, statement, parameters);
 
         if (!llvm::Function::classof(left_hand_side.value))
             throw std::runtime_error{ std::format("Left hand side of call expression is not a function!") };
@@ -1952,7 +1952,7 @@ namespace h::compiler
         std::span<Value_and_type const> const local_variables = parameters.local_variables;
         Type_database const& type_database = parameters.type_database;
 
-        Value_and_type const& value_expression = create_expression_value(expression.expression.expression_index, statement, parameters);
+        Value_and_type const value_expression = create_expression_value(expression.expression.expression_index, statement, parameters);
         Unary_operation const operation = expression.operation;
 
         Type_reference const& type = value_expression.type.value();
@@ -2256,7 +2256,7 @@ namespace h::compiler
                 .repeat_block = condition_block,
                 .after_block = after_block,
             }
-        );
+            );
 
         llvm_builder.CreateBr(condition_block);
         llvm_builder.SetInsertPoint(condition_block);
@@ -2405,6 +2405,18 @@ namespace h::compiler
         }
     }
 
+    bool is_comment(
+        Statement const& statement
+    )
+    {
+        if (statement.expressions.size() == 1)
+        {
+            return std::holds_alternative<Comment_expression>(statement.expressions[0].data);
+        }
+
+        return false;
+    }
+
     Value_and_type create_loaded_expression_value(
         std::size_t const expression_index,
         Statement const& statement,
@@ -2473,14 +2485,17 @@ namespace h::compiler
 
         for (Statement const statement : statements)
         {
-            new_parameters.local_variables = all_local_variables;
+            if (!is_comment(statement))
+            {
+                new_parameters.local_variables = all_local_variables;
 
-            Value_and_type statement_value = create_statement_value(
-                statement,
-                new_parameters
-            );
+                Value_and_type statement_value = create_statement_value(
+                    statement,
+                    new_parameters
+                );
 
-            all_local_variables.push_back(statement_value);
+                all_local_variables.push_back(statement_value);
+            }
         }
     }
 }

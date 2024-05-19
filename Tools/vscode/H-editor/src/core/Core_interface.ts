@@ -168,7 +168,6 @@ export interface Indexed_comment {
 
 export interface Statement {
     expressions: Vector<Expression>;
-    comment?: string;
     newlines_after?: number;
 }
 

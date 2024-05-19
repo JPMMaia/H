@@ -940,17 +940,6 @@ namespace h::json
             };
         }
 
-        if (key == "comment")
-        {
-            parent->comment = std::pmr::string{};
-            return Stack_state
-            {
-                .pointer = &parent->comment.value(),
-                .type = "std::pmr::string",
-                .get_next_state = nullptr,
-            };
-        }
-
         if (key == "newlines_after")
         {
             parent->newlines_after = std::uint32_t{};

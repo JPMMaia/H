@@ -1,0 +1,25 @@
+module Comment_expressions;
+
+export function comment_expressions() -> ()
+{
+    //var i = 0;
+
+    {
+        //inside block
+    }
+
+    if true
+    {
+        //inside if
+    }
+
+    for index in 0 to 3
+    {
+        //inside for loop
+    }
+
+    while false
+    {
+        //inside while loop
+    }
+}

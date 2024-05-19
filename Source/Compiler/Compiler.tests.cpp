@@ -747,6 +747,58 @@ declare i32 @printf(ptr, ...)
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
+  TEST_CASE("Compile Comment Expressions")
+  {
+    char const* const input_file = "comment_expressions.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+define void @Comment_expressions_comment_expressions() {
+entry:
+  br i1 true, label %if_s0_then, label %if_s1_after
+
+if_s0_then:                                       ; preds = %entry
+  br label %if_s1_after
+
+if_s1_after:                                      ; preds = %if_s0_then, %entry
+  %index = alloca i32, align 4
+  store i32 0, ptr %index, align 4
+  br label %for_loop_condition
+
+for_loop_condition:                               ; preds = %for_loop_update_index, %if_s1_after
+  %0 = load i32, ptr %index, align 4
+  %1 = icmp slt i32 %0, 3
+  br i1 %1, label %for_loop_then, label %for_loop_after
+
+for_loop_then:                                    ; preds = %for_loop_condition
+  br label %for_loop_update_index
+
+for_loop_update_index:                            ; preds = %for_loop_then
+  %2 = load i32, ptr %index, align 4
+  %3 = add i32 %2, 1
+  store i32 %3, ptr %index, align 4
+  br label %for_loop_condition
+
+for_loop_after:                                   ; preds = %for_loop_condition
+  br label %while_loop_condition
+
+while_loop_condition:                             ; preds = %while_loop_then, %for_loop_after
+  br i1 false, label %while_loop_then, label %while_loop_after
+
+while_loop_then:                                  ; preds = %while_loop_condition
+  br label %while_loop_condition
+
+while_loop_after:                                 ; preds = %while_loop_condition
+  ret void
+}
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
   TEST_CASE("Compile For Loop Expressions")
   {
     char const* const input_file = "for_loop_expressions.hl";

@@ -146,8 +146,11 @@ function scan_comment(code: string, start_offset: number): { word: string, proce
         current_offset += 1;
     }
 
+    const comment = code.substring(start_offset, current_offset);
+    const comment_without_return = comment.replace("\r", "");
+
     return {
-        word: code.substring(start_offset, current_offset),
+        word: comment_without_return,
         processed_characters: current_offset - start_offset
     };
 
