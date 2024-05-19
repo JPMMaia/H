@@ -637,7 +637,8 @@ namespace h::compiler
             {
                 using namespace std::chrono_literals;
 
-                std::puts(std::format("Compiling {}", source_file_path.generic_string()).c_str());
+                if (unprotected_data.log_level >= 1)
+                    std::puts(std::format("Detected change on {}", source_file_path.generic_string()).c_str());
 
                 std::chrono::high_resolution_clock::time_point const begin_parsing = std::chrono::high_resolution_clock::now();
 
@@ -655,7 +656,7 @@ namespace h::compiler
                     }
                 }
 
-                std::chrono::high_resolution_clock::time_point const begin_compiling = std::chrono::high_resolution_clock::now();
+                std::chrono::high_resolution_clock::time_point const begin_processing = std::chrono::high_resolution_clock::now();
 
                 bool const success = add_module_for_compilation(
                     parsed_file_path,
@@ -665,9 +666,10 @@ namespace h::compiler
                     true
                 );
 
-                std::chrono::high_resolution_clock::time_point const end_compiling = std::chrono::high_resolution_clock::now();
+                std::chrono::high_resolution_clock::time_point const end_processing = std::chrono::high_resolution_clock::now();
 
-                std::puts(std::format("{} {}. Parsing took {}ms. Compiling took {}ms. Total time was {}ms", success ? "Compiled" : "Failed to compile", source_file_path.generic_string(), (begin_compiling - begin_parsing) / 1ms, (end_compiling - begin_compiling) / 1ms, (end_compiling - begin_parsing) / 1ms).c_str());
+                if (unprotected_data.log_level >= 1)
+                    std::puts(std::format("{} {}. Parsing took {}ms. Creating materialization units took {}ms. Total time was {}ms", success ? "Created materialization units for" : "Failed to create materialization units for", source_file_path.generic_string(), (begin_processing - begin_parsing) / 1ms, (end_processing - begin_processing) / 1ms, (end_processing - begin_parsing) / 1ms).c_str());
             }
         }
         else if (event.effect_type == wtr::event::effect_type::rename)
@@ -719,6 +721,7 @@ namespace h::compiler
                 .parser = h::parser::create_parser(),
                 .llvm_data = std::move(llvm_data),
                 .jit_data = std::move(jit_data),
+                .log_level = 1
             };
 
             for (std::filesystem::path const& repository_file_path : repositories_file_paths)
