@@ -7,6 +7,8 @@ target_compile_definitions(H_common PUBLIC "_SCL_SECURE_NO_WARNINGS")
 target_sources(H_common PRIVATE
    "Common.cppm"
    "Common.cpp"
+   "Filesystem_common.cppm"
+   "Filesystem_common.cpp"
    "Filesystem.cppm"
 )
 
