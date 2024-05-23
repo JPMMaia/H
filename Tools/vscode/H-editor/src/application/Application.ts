@@ -5,6 +5,7 @@ import * as Core_intermediate_representation from "../core/Core_intermediate_rep
 import * as Language from "../core/Language";
 import * as Language_version from "../core/Language_version";
 import * as Parse_tree_convertor from "../core/Parse_tree_convertor";
+import * as Parse_tree_text_iterator from "../core/Parse_tree_text_iterator";
 import * as Parser from "../core/Parser";
 import * as Scanner from "../core/Scanner";
 import * as Storage_cache from "../core/Storage_cache";
@@ -56,9 +57,14 @@ else if (command === "write") {
     }
 
     const parse_tree = (parse_tree_result.changes[0].value as Parser.Modify_change).new_node;
+    Parse_tree_text_iterator.add_source_locations_to_parse_tree_nodes(parse_tree, input_text);
 
     const module = Parse_tree_convertor.parse_tree_to_module(parse_tree, language_description.production_rules, language_description.mappings, language_description.key_to_production_rule_indices);
     const core_module = Core_intermediate_representation.create_core_module(module, Language_version.language_version);
+
+    if (input_file !== undefined) {
+        core_module.source_file_path = input_file.replace("\\", "/");
+    }
 
     const output_json = JSON.stringify(core_module);
     const output_file = process.argv[3];

@@ -21,6 +21,43 @@ export function ignore_whitespace_or_new_lines(code: string, current_offset: num
     return code.length - current_offset;
 }
 
+export interface Ignored_characters {
+    character_count: number;
+    new_line_count: number;
+    characters_since_last_newline: number;
+}
+
+export function ignore_whitespace_or_new_lines_and_count(code: string, current_offset: number): Ignored_characters {
+
+    let new_line_count = 0;
+    let characters_since_last_newline = 0;
+
+    for (let index = current_offset; index < code.length; ++index) {
+        const character = code[index];
+        if (is_new_line(character)) {
+            new_line_count += 1;
+            characters_since_last_newline = 0;
+            continue;
+        }
+
+        if (!is_whitespace_or_new_line(character)) {
+            return {
+                character_count: index - current_offset,
+                new_line_count: new_line_count,
+                characters_since_last_newline: characters_since_last_newline
+            };
+        }
+
+        characters_since_last_newline += 1;
+    }
+
+    return {
+        character_count: code.length - current_offset,
+        new_line_count: new_line_count,
+        characters_since_last_newline: characters_since_last_newline
+    };
+}
+
 function is_comment(code: string, offset: number): boolean {
     return ((offset + 1) < code.length) && code[offset] === "/" && code[offset + 1] === "/";
 }

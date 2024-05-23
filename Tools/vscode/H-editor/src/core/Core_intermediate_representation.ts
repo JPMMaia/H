@@ -11,6 +11,7 @@ export interface Module {
     imports: Import_module_with_alias[];
     declarations: Declaration[];
     comment?: string;
+    source_file_path?: string;
 }
 
 export function create_intermediate_representation(core_module: Core.Module): Module {
@@ -22,7 +23,8 @@ export function create_intermediate_representation(core_module: Core.Module): Mo
         name: core_module.name,
         imports: imports,
         declarations: declarations,
-        comment: core_module.comment
+        comment: core_module.comment,
+        source_file_path: core_module.source_file_path
     };
 }
 
@@ -133,7 +135,8 @@ export function create_core_module(module: Module, language_version: Core.Langua
                 elements: function_definitions
             }
         },
-        comment: module.comment
+        comment: module.comment,
+        source_file_path: module.source_file_path
     };
 }
 
@@ -329,6 +332,25 @@ export enum Expression_enum {
     While_loop_expression = "While_loop_expression",
 }
 
+export interface Source_location {
+    line: number;
+    column: number;
+}
+
+function core_to_intermediate_source_location(core_value: Core.Source_location): Source_location {
+    return {
+        line: core_value.line,
+        column: core_value.column,
+    };
+}
+
+function intermediate_to_core_source_location(intermediate_value: Source_location): Core.Source_location {
+    return {
+        line: intermediate_value.line,
+        column: intermediate_value.column,
+    };
+}
+
 export interface Integer_type {
     number_of_bits: number;
     is_signed: boolean;
@@ -476,64 +498,54 @@ export interface Type_reference {
 }
 
 function core_to_intermediate_type_reference(core_value: Core.Type_reference): Type_reference {
-    switch (core_value.data.type) {
-        case Core.Type_reference_enum.Builtin_type_reference: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_builtin_type_reference(core_value.data.value as Core.Builtin_type_reference)
+    return {
+        data: (() => {
+            switch (core_value.data.type) {
+                case Core.Type_reference_enum.Builtin_type_reference: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_builtin_type_reference(core_value.data.value as Core.Builtin_type_reference)
+                    };
                 }
-            };
-        }
-        case Core.Type_reference_enum.Constant_array_type: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_constant_array_type(core_value.data.value as Core.Constant_array_type)
+                case Core.Type_reference_enum.Constant_array_type: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_constant_array_type(core_value.data.value as Core.Constant_array_type)
+                    };
                 }
-            };
-        }
-        case Core.Type_reference_enum.Custom_type_reference: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_custom_type_reference(core_value.data.value as Core.Custom_type_reference)
+                case Core.Type_reference_enum.Custom_type_reference: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_custom_type_reference(core_value.data.value as Core.Custom_type_reference)
+                    };
                 }
-            };
-        }
-        case Core.Type_reference_enum.Fundamental_type: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_value.data.value as Fundamental_type
+                case Core.Type_reference_enum.Fundamental_type: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_value.data.value as Fundamental_type
+                    };
                 }
-            };
-        }
-        case Core.Type_reference_enum.Function_type: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_function_type(core_value.data.value as Core.Function_type)
+                case Core.Type_reference_enum.Function_type: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_function_type(core_value.data.value as Core.Function_type)
+                    };
                 }
-            };
-        }
-        case Core.Type_reference_enum.Integer_type: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_integer_type(core_value.data.value as Core.Integer_type)
+                case Core.Type_reference_enum.Integer_type: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_integer_type(core_value.data.value as Core.Integer_type)
+                    };
                 }
-            };
-        }
-        case Core.Type_reference_enum.Pointer_type: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_pointer_type(core_value.data.value as Core.Pointer_type)
+                case Core.Type_reference_enum.Pointer_type: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_pointer_type(core_value.data.value as Core.Pointer_type)
+                    };
                 }
-            };
-        }
-    }
+            }
+        })(),
+    };
 }
 
 function intermediate_to_core_type_reference(intermediate_value: Type_reference): Core.Type_reference {
@@ -621,6 +633,7 @@ export interface Alias_type_declaration {
     unique_name?: string;
     type: Type_reference[];
     comment?: string;
+    source_location?: Source_location;
 }
 
 function core_to_intermediate_alias_type_declaration(core_value: Core.Alias_type_declaration): Alias_type_declaration {
@@ -629,6 +642,7 @@ function core_to_intermediate_alias_type_declaration(core_value: Core.Alias_type
         unique_name: core_value.unique_name,
         type: core_value.type.elements.map(value => core_to_intermediate_type_reference(value)),
         comment: core_value.comment,
+        source_location: core_value.source_location !== undefined ? core_to_intermediate_source_location(core_value.source_location) : undefined,
     };
 }
 
@@ -641,6 +655,7 @@ function intermediate_to_core_alias_type_declaration(intermediate_value: Alias_t
             elements: intermediate_value.type.map(value => intermediate_to_core_type_reference(value)),
         },
         comment: intermediate_value.comment,
+        source_location: intermediate_value.source_location !== undefined ? intermediate_to_core_source_location(intermediate_value.source_location) : undefined,
     };
 }
 
@@ -671,6 +686,7 @@ export interface Enum_declaration {
     unique_name?: string;
     values: Enum_value[];
     comment?: string;
+    source_location?: Source_location;
 }
 
 function core_to_intermediate_enum_declaration(core_value: Core.Enum_declaration): Enum_declaration {
@@ -679,6 +695,7 @@ function core_to_intermediate_enum_declaration(core_value: Core.Enum_declaration
         unique_name: core_value.unique_name,
         values: core_value.values.elements.map(value => core_to_intermediate_enum_value(value)),
         comment: core_value.comment,
+        source_location: core_value.source_location !== undefined ? core_to_intermediate_source_location(core_value.source_location) : undefined,
     };
 }
 
@@ -691,6 +708,7 @@ function intermediate_to_core_enum_declaration(intermediate_value: Enum_declarat
             elements: intermediate_value.values.map(value => intermediate_to_core_enum_value(value)),
         },
         comment: intermediate_value.comment,
+        source_location: intermediate_value.source_location !== undefined ? intermediate_to_core_source_location(intermediate_value.source_location) : undefined,
     };
 }
 
@@ -704,6 +722,8 @@ export interface Struct_declaration {
     is_literal: boolean;
     comment?: string;
     member_comments: Indexed_comment[];
+    source_location?: Source_location;
+    member_source_locations?: Source_location[];
 }
 
 function core_to_intermediate_struct_declaration(core_value: Core.Struct_declaration): Struct_declaration {
@@ -717,6 +737,8 @@ function core_to_intermediate_struct_declaration(core_value: Core.Struct_declara
         is_literal: core_value.is_literal,
         comment: core_value.comment,
         member_comments: core_value.member_comments.elements.map(value => core_to_intermediate_indexed_comment(value)),
+        source_location: core_value.source_location !== undefined ? core_to_intermediate_source_location(core_value.source_location) : undefined,
+        member_source_locations: core_value.member_source_locations !== undefined ? core_value.member_source_locations.elements.map(value => core_to_intermediate_source_location(value)) : undefined,
     };
 }
 
@@ -743,6 +765,8 @@ function intermediate_to_core_struct_declaration(intermediate_value: Struct_decl
             size: intermediate_value.member_comments.length,
             elements: intermediate_value.member_comments.map(value => intermediate_to_core_indexed_comment(value)),
         },
+        source_location: intermediate_value.source_location !== undefined ? intermediate_to_core_source_location(intermediate_value.source_location) : undefined,
+        member_source_locations: intermediate_value.member_source_locations !== undefined ? { size: intermediate_value.member_source_locations.length, elements : intermediate_value.member_source_locations } : undefined,
     };
 }
 
@@ -753,6 +777,8 @@ export interface Union_declaration {
     member_names: string[];
     comment?: string;
     member_comments: Indexed_comment[];
+    source_location?: Source_location;
+    member_source_locations?: Source_location[];
 }
 
 function core_to_intermediate_union_declaration(core_value: Core.Union_declaration): Union_declaration {
@@ -763,6 +789,8 @@ function core_to_intermediate_union_declaration(core_value: Core.Union_declarati
         member_names: core_value.member_names.elements,
         comment: core_value.comment,
         member_comments: core_value.member_comments.elements.map(value => core_to_intermediate_indexed_comment(value)),
+        source_location: core_value.source_location !== undefined ? core_to_intermediate_source_location(core_value.source_location) : undefined,
+        member_source_locations: core_value.member_source_locations !== undefined ? core_value.member_source_locations.elements.map(value => core_to_intermediate_source_location(value)) : undefined,
     };
 }
 
@@ -783,6 +811,8 @@ function intermediate_to_core_union_declaration(intermediate_value: Union_declar
             size: intermediate_value.member_comments.length,
             elements: intermediate_value.member_comments.map(value => intermediate_to_core_indexed_comment(value)),
         },
+        source_location: intermediate_value.source_location !== undefined ? intermediate_to_core_source_location(intermediate_value.source_location) : undefined,
+        member_source_locations: intermediate_value.member_source_locations !== undefined ? { size: intermediate_value.member_source_locations.length, elements : intermediate_value.member_source_locations } : undefined,
     };
 }
 
@@ -1384,12 +1414,14 @@ export function create_for_loop_expression(variable_name: string, range_begin: E
 export interface Condition_statement_pair {
     condition?: Statement;
     then_statements: Statement[];
+    block_source_location?: Source_location;
 }
 
 function core_to_intermediate_condition_statement_pair(core_value: Core.Condition_statement_pair): Condition_statement_pair {
     return {
         condition: core_value.condition !== undefined ? core_to_intermediate_statement(core_value.condition) : undefined,
         then_statements: core_value.then_statements.elements.map(value => core_to_intermediate_statement(value)),
+        block_source_location: core_value.block_source_location !== undefined ? core_to_intermediate_source_location(core_value.block_source_location) : undefined,
     };
 }
 
@@ -1400,6 +1432,7 @@ function intermediate_to_core_condition_statement_pair(intermediate_value: Condi
             size: intermediate_value.then_statements.length,
             elements: intermediate_value.then_statements.map(value => intermediate_to_core_statement(value)),
         },
+        block_source_location: intermediate_value.block_source_location !== undefined ? intermediate_to_core_source_location(intermediate_value.block_source_location) : undefined,
     };
 }
 
@@ -1967,214 +2000,172 @@ export function create_while_loop_expression(condition: Statement, then_statemen
 }
 export interface Expression {
     data: Variant<Expression_enum, Access_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Comment_expression | Constant_expression | Constant_array_expression | Continue_expression | For_loop_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
+    source_location?: Source_location;
 }
 
 function core_to_intermediate_expression(core_value: Core.Expression, statement: Core.Statement): Expression {
-    switch (core_value.data.type) {
-        case Core.Expression_enum.Access_expression: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_access_expression(core_value.data.value as Core.Access_expression, statement)
+    return {
+        data: (() => {
+            switch (core_value.data.type) {
+                case Core.Expression_enum.Access_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_access_expression(core_value.data.value as Core.Access_expression, statement)
+                    };
                 }
-            };
-        }
-        case Core.Expression_enum.Assignment_expression: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_assignment_expression(core_value.data.value as Core.Assignment_expression, statement)
+                case Core.Expression_enum.Assignment_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_assignment_expression(core_value.data.value as Core.Assignment_expression, statement)
+                    };
                 }
-            };
-        }
-        case Core.Expression_enum.Binary_expression: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_binary_expression(core_value.data.value as Core.Binary_expression, statement)
+                case Core.Expression_enum.Binary_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_binary_expression(core_value.data.value as Core.Binary_expression, statement)
+                    };
                 }
-            };
-        }
-        case Core.Expression_enum.Block_expression: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_block_expression(core_value.data.value as Core.Block_expression, statement)
+                case Core.Expression_enum.Block_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_block_expression(core_value.data.value as Core.Block_expression, statement)
+                    };
                 }
-            };
-        }
-        case Core.Expression_enum.Break_expression: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_break_expression(core_value.data.value as Core.Break_expression, statement)
+                case Core.Expression_enum.Break_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_break_expression(core_value.data.value as Core.Break_expression, statement)
+                    };
                 }
-            };
-        }
-        case Core.Expression_enum.Call_expression: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_call_expression(core_value.data.value as Core.Call_expression, statement)
+                case Core.Expression_enum.Call_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_call_expression(core_value.data.value as Core.Call_expression, statement)
+                    };
                 }
-            };
-        }
-        case Core.Expression_enum.Cast_expression: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_cast_expression(core_value.data.value as Core.Cast_expression, statement)
+                case Core.Expression_enum.Cast_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_cast_expression(core_value.data.value as Core.Cast_expression, statement)
+                    };
                 }
-            };
-        }
-        case Core.Expression_enum.Comment_expression: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_comment_expression(core_value.data.value as Core.Comment_expression, statement)
+                case Core.Expression_enum.Comment_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_comment_expression(core_value.data.value as Core.Comment_expression, statement)
+                    };
                 }
-            };
-        }
-        case Core.Expression_enum.Constant_expression: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_constant_expression(core_value.data.value as Core.Constant_expression, statement)
+                case Core.Expression_enum.Constant_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_constant_expression(core_value.data.value as Core.Constant_expression, statement)
+                    };
                 }
-            };
-        }
-        case Core.Expression_enum.Constant_array_expression: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_constant_array_expression(core_value.data.value as Core.Constant_array_expression, statement)
+                case Core.Expression_enum.Constant_array_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_constant_array_expression(core_value.data.value as Core.Constant_array_expression, statement)
+                    };
                 }
-            };
-        }
-        case Core.Expression_enum.Continue_expression: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_continue_expression(core_value.data.value as Core.Continue_expression, statement)
+                case Core.Expression_enum.Continue_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_continue_expression(core_value.data.value as Core.Continue_expression, statement)
+                    };
                 }
-            };
-        }
-        case Core.Expression_enum.For_loop_expression: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_for_loop_expression(core_value.data.value as Core.For_loop_expression, statement)
+                case Core.Expression_enum.For_loop_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_for_loop_expression(core_value.data.value as Core.For_loop_expression, statement)
+                    };
                 }
-            };
-        }
-        case Core.Expression_enum.If_expression: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_if_expression(core_value.data.value as Core.If_expression, statement)
+                case Core.Expression_enum.If_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_if_expression(core_value.data.value as Core.If_expression, statement)
+                    };
                 }
-            };
-        }
-        case Core.Expression_enum.Instantiate_expression: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_instantiate_expression(core_value.data.value as Core.Instantiate_expression, statement)
+                case Core.Expression_enum.Instantiate_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_instantiate_expression(core_value.data.value as Core.Instantiate_expression, statement)
+                    };
                 }
-            };
-        }
-        case Core.Expression_enum.Invalid_expression: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_invalid_expression(core_value.data.value as Core.Invalid_expression, statement)
+                case Core.Expression_enum.Invalid_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_invalid_expression(core_value.data.value as Core.Invalid_expression, statement)
+                    };
                 }
-            };
-        }
-        case Core.Expression_enum.Null_pointer_expression: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_null_pointer_expression(core_value.data.value as Core.Null_pointer_expression, statement)
+                case Core.Expression_enum.Null_pointer_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_null_pointer_expression(core_value.data.value as Core.Null_pointer_expression, statement)
+                    };
                 }
-            };
-        }
-        case Core.Expression_enum.Parenthesis_expression: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_parenthesis_expression(core_value.data.value as Core.Parenthesis_expression, statement)
+                case Core.Expression_enum.Parenthesis_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_parenthesis_expression(core_value.data.value as Core.Parenthesis_expression, statement)
+                    };
                 }
-            };
-        }
-        case Core.Expression_enum.Return_expression: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_return_expression(core_value.data.value as Core.Return_expression, statement)
+                case Core.Expression_enum.Return_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_return_expression(core_value.data.value as Core.Return_expression, statement)
+                    };
                 }
-            };
-        }
-        case Core.Expression_enum.Switch_expression: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_switch_expression(core_value.data.value as Core.Switch_expression, statement)
+                case Core.Expression_enum.Switch_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_switch_expression(core_value.data.value as Core.Switch_expression, statement)
+                    };
                 }
-            };
-        }
-        case Core.Expression_enum.Ternary_condition_expression: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_ternary_condition_expression(core_value.data.value as Core.Ternary_condition_expression, statement)
+                case Core.Expression_enum.Ternary_condition_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_ternary_condition_expression(core_value.data.value as Core.Ternary_condition_expression, statement)
+                    };
                 }
-            };
-        }
-        case Core.Expression_enum.Unary_expression: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_unary_expression(core_value.data.value as Core.Unary_expression, statement)
+                case Core.Expression_enum.Unary_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_unary_expression(core_value.data.value as Core.Unary_expression, statement)
+                    };
                 }
-            };
-        }
-        case Core.Expression_enum.Variable_declaration_expression: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_variable_declaration_expression(core_value.data.value as Core.Variable_declaration_expression, statement)
+                case Core.Expression_enum.Variable_declaration_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_variable_declaration_expression(core_value.data.value as Core.Variable_declaration_expression, statement)
+                    };
                 }
-            };
-        }
-        case Core.Expression_enum.Variable_declaration_with_type_expression: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_variable_declaration_with_type_expression(core_value.data.value as Core.Variable_declaration_with_type_expression, statement)
+                case Core.Expression_enum.Variable_declaration_with_type_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_variable_declaration_with_type_expression(core_value.data.value as Core.Variable_declaration_with_type_expression, statement)
+                    };
                 }
-            };
-        }
-        case Core.Expression_enum.Variable_expression: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_variable_expression(core_value.data.value as Core.Variable_expression, statement)
+                case Core.Expression_enum.Variable_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_variable_expression(core_value.data.value as Core.Variable_expression, statement)
+                    };
                 }
-            };
-        }
-        case Core.Expression_enum.While_loop_expression: {
-            return {
-                data: {
-                    type: core_value.data.type,
-                    value: core_to_intermediate_while_loop_expression(core_value.data.value as Core.While_loop_expression, statement)
+                case Core.Expression_enum.While_loop_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_while_loop_expression(core_value.data.value as Core.While_loop_expression, statement)
+                    };
                 }
-            };
-        }
-    }
+            }
+        })(),
+        source_location: core_value.source_location !== undefined ? core_to_intermediate_source_location(core_value.source_location) : undefined,
+    };
 }
 
 function intermediate_to_core_expression(intermediate_value: Expression, expressions: Core.Expression[]): void {
+    const expression_index = expressions.length;
+
     switch (intermediate_value.data.type) {
         case Expression_enum.Access_expression: {
             intermediate_to_core_access_expression(intermediate_value.data.value as Access_expression, expressions);
@@ -2277,6 +2268,10 @@ function intermediate_to_core_expression(intermediate_value: Expression, express
             break;
         }
     }
+
+    if (intermediate_value.source_location !== undefined) {
+        expressions[expression_index].source_location = intermediate_value.source_location;
+    }
 }
 
 export interface Function_declaration {
@@ -2287,6 +2282,9 @@ export interface Function_declaration {
     output_parameter_names: string[];
     linkage: Linkage;
     comment?: string;
+    source_location?: Source_location;
+    input_parameter_source_locations?: Source_location[];
+    output_parameter_source_locations?: Source_location[];
 }
 
 function core_to_intermediate_function_declaration(core_value: Core.Function_declaration): Function_declaration {
@@ -2298,6 +2296,9 @@ function core_to_intermediate_function_declaration(core_value: Core.Function_dec
         output_parameter_names: core_value.output_parameter_names.elements,
         linkage: core_value.linkage,
         comment: core_value.comment,
+        source_location: core_value.source_location !== undefined ? core_to_intermediate_source_location(core_value.source_location) : undefined,
+        input_parameter_source_locations: core_value.input_parameter_source_locations !== undefined ? core_value.input_parameter_source_locations.elements.map(value => core_to_intermediate_source_location(value)) : undefined,
+        output_parameter_source_locations: core_value.output_parameter_source_locations !== undefined ? core_value.output_parameter_source_locations.elements.map(value => core_to_intermediate_source_location(value)) : undefined,
     };
 }
 
@@ -2316,18 +2317,23 @@ function intermediate_to_core_function_declaration(intermediate_value: Function_
         },
         linkage: intermediate_value.linkage,
         comment: intermediate_value.comment,
+        source_location: intermediate_value.source_location !== undefined ? intermediate_to_core_source_location(intermediate_value.source_location) : undefined,
+        input_parameter_source_locations: intermediate_value.input_parameter_source_locations !== undefined ? { size: intermediate_value.input_parameter_source_locations.length, elements : intermediate_value.input_parameter_source_locations } : undefined,
+        output_parameter_source_locations: intermediate_value.output_parameter_source_locations !== undefined ? { size: intermediate_value.output_parameter_source_locations.length, elements : intermediate_value.output_parameter_source_locations } : undefined,
     };
 }
 
 export interface Function_definition {
     name: string;
     statements: Statement[];
+    source_location?: Source_location;
 }
 
 function core_to_intermediate_function_definition(core_value: Core.Function_definition): Function_definition {
     return {
         name: core_value.name,
         statements: core_value.statements.elements.map(value => core_to_intermediate_statement(value)),
+        source_location: core_value.source_location !== undefined ? core_to_intermediate_source_location(core_value.source_location) : undefined,
     };
 }
 
@@ -2338,6 +2344,7 @@ function intermediate_to_core_function_definition(intermediate_value: Function_d
             size: intermediate_value.statements.length,
             elements: intermediate_value.statements.map(value => intermediate_to_core_statement(value)),
         },
+        source_location: intermediate_value.source_location !== undefined ? intermediate_to_core_source_location(intermediate_value.source_location) : undefined,
     };
 }
 

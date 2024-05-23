@@ -7,6 +7,7 @@ module;
 #include <llvm/IR/LLVMContext.h>
 
 #include <memory_resource>
+#include <optional>
 #include <span>
 #include <string>
 #include <unordered_map>
@@ -16,6 +17,7 @@ export module h.compiler.expressions;
 
 import h.core;
 import h.core.declarations;
+import h.compiler.debug_info;
 import h.compiler.types;
 
 namespace h::compiler
@@ -65,6 +67,8 @@ namespace h::compiler
         std::span<Value_and_type const> function_arguments;
         std::span<Value_and_type const> local_variables;
         std::optional<Type_reference> expression_type;
+        Debug_info* debug_info;
+        std::optional<Source_location> source_location;
         std::pmr::polymorphic_allocator<> const& temporaries_allocator;
     };
 

@@ -5,6 +5,8 @@ import * as Core_intermediate_representation from "./Core_intermediate_represent
 import * as Object_reference from "../utilities/Object_reference";
 import * as Parser from "./Parser";
 import * as Parser_node from "./Parser_node";
+import * as Parse_tree_text_iterator from "./Parse_tree_text_iterator";
+import * as Parse_tree_text_position_cache from "./Parse_tree_text_position_cache";
 import * as Scanner from "./Scanner";
 import { get_node_at_position, Node } from "./Parser_node";
 

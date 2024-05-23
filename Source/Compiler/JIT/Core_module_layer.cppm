@@ -21,6 +21,7 @@ namespace h::compiler
         LLVM_data& llvm_data;
         h::Module core_module;
         std::pmr::vector<h::Module> core_module_dependencies;
+        Compilation_options compilation_options;
     };
 
     export class Core_module_materialization_unit : public llvm::orc::MaterializationUnit

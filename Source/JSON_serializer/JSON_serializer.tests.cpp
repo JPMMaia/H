@@ -675,13 +675,36 @@ namespace h
             .is_variadic = false
         };
 
+        std::pmr::vector<h::Source_location> input_parameter_source_locations
+        {
+            {
+                .line = 3,
+                .column = 22
+            }
+        };
+
+        std::pmr::vector<h::Source_location> output_parameter_source_locations
+        {
+            {
+                .line = 3,
+                .column = 38
+            }
+        };
+
         return h::Function_declaration
         {
             .name = "Add",
             .type = std::move(function_type),
             .input_parameter_names = std::move(input_parameter_names),
             .output_parameter_names = std::move(output_parameter_names),
-            .linkage = Linkage::External
+            .linkage = Linkage::External,
+            .source_location = Source_location
+            {
+                .line = 3,
+                .column = 0
+            },
+            .input_parameter_source_locations = std::move(input_parameter_source_locations),
+            .output_parameter_source_locations = std::move(output_parameter_source_locations)
         };
     }
 
@@ -733,7 +756,29 @@ namespace h
                         "sum"
                     ]
                 },
-                "linkage": "External"
+                "linkage": "External",
+                "source_location": {
+                    "line": 3,
+                    "column": 0
+                },
+                "input_parameter_source_locations": {
+                    "size": 1,
+                    "elements": [
+                        {
+                            "line": 3,
+                            "column": 22
+                        }
+                    ]
+                },
+                "output_parameter_source_locations": {
+                    "size": 1,
+                    "elements": [
+                        {
+                            "line": 3,
+                            "column": 38
+                        }
+                    ]
+                }
             }
         )JSON";
 
@@ -993,7 +1038,29 @@ namespace h
                                     "sum"
                                 ]
                             },
-                            "linkage": "External"
+                            "linkage": "External",
+                            "source_location": {
+                                "line": 3,
+                                "column": 0
+                            },
+                            "input_parameter_source_locations": {
+                                "size": 1,
+                                "elements": [
+                                    {
+                                        "line": 3,
+                                        "column": 22
+                                    }
+                                ]
+                            },
+                            "output_parameter_source_locations": {
+                                "size": 1,
+                                "elements": [
+                                    {
+                                        "line": 3,
+                                        "column": 38
+                                    }
+                                ]
+                            }
                         }
                     ]
                 }

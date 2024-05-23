@@ -1,10 +1,16 @@
 import * as Scanner from "./Scanner";
 
+export interface Source_location {
+    line: number;
+    column: number;
+}
+
 export interface Node {
     word: Scanner.Scanned_word;
     state: number;
     production_rule_index: number | undefined;
     children: Node[];
+    source_location?: Source_location;
 }
 
 export function clone_node(node: Node): Node {

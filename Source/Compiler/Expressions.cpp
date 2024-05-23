@@ -4,6 +4,7 @@ module;
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/DerivedTypes.h>
+#include <llvm/IR/DIBuilder.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
 
@@ -23,6 +24,7 @@ import h.core;
 import h.core.declarations;
 import h.core.types;
 import h.compiler.common;
+import h.compiler.debug_info;
 import h.compiler.types;
 
 namespace h::compiler
@@ -43,6 +45,50 @@ namespace h::compiler
             return std::nullopt;
 
         return location->module_name;
+    }
+
+    static void create_local_variable_debug_description(
+        Debug_info& debug_info,
+        Expression_parameters const& parameters,
+        std::string_view const name,
+        llvm::Value* const alloca,
+        Type_reference const& type_reference
+    )
+    {
+        Source_location const source_location = parameters.source_location.value_or(Source_location{});
+
+        llvm::DIType* const llvm_argument_debug_type = type_reference_to_llvm_debug_type(
+            *debug_info.llvm_builder,
+            parameters.llvm_data_layout,
+            parameters.core_module.name,
+            type_reference,
+            debug_info.type_database
+        );
+
+        llvm::DIScope* const debug_scope = get_debug_scope(debug_info);
+
+        llvm::DILocalVariable* debug_parameter_variable = debug_info.llvm_builder->createAutoVariable(
+            debug_scope,
+            name.data(),
+            debug_scope->getFile(),
+            source_location.line,
+            llvm_argument_debug_type
+        );
+
+        llvm::DILocation* const debug_location = llvm::DILocation::get(
+            parameters.llvm_context,
+            source_location.line,
+            source_location.column,
+            debug_scope
+        );
+
+        debug_info.llvm_builder->insertDeclare(
+            alloca,
+            debug_parameter_variable,
+            debug_info.llvm_builder->createExpression(),
+            debug_location,
+            parameters.llvm_builder.GetInsertBlock()
+        );
     }
 
     bool ends_with_terminator_statement(std::span<Statement const> const statements)
@@ -992,10 +1038,16 @@ namespace h::compiler
     {
         std::span<Statement const> statements = block_expression.statements;
 
+        if (parameters.debug_info != nullptr)
+            push_debug_lexical_block_scope(*parameters.debug_info, *parameters.source_location);
+
         create_statement_values(
             statements,
             parameters
         );
+
+        if (parameters.debug_info != nullptr)
+            pop_debug_scope(*parameters.debug_info);
 
         return Value_and_type
         {
@@ -1390,6 +1442,8 @@ namespace h::compiler
         Type_reference const& variable_type = range_begin_temporary.type.value();
         llvm::Type* const variable_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module.name, variable_type, type_database);
         llvm::Value* const variable_alloca = llvm_builder.CreateAlloca(variable_llvm_type, nullptr, expression.variable_name.c_str());
+        if (parameters.debug_info != nullptr)
+            create_local_variable_debug_description(*parameters.debug_info, parameters, expression.variable_name.c_str(), variable_alloca, variable_type);
         llvm_builder.CreateStore(range_begin_temporary.value, variable_alloca);
         Value_and_type const variable_value = { .name = expression.variable_name, .value = variable_alloca, .type = variable_type };
 
@@ -1403,6 +1457,9 @@ namespace h::compiler
         // Loop condition:
         {
             llvm_builder.SetInsertPoint(condition_block);
+
+            if (parameters.debug_info != nullptr)
+                push_debug_lexical_block_scope(*parameters.debug_info, *parameters.source_location);
 
             Value_and_type const& range_end_value = create_loaded_statement_value(
                 expression.range_end,
@@ -1469,6 +1526,9 @@ namespace h::compiler
 
             llvm_builder.CreateBr(condition_block);
         }
+
+        if (parameters.debug_info != nullptr)
+            pop_debug_scope(*parameters.debug_info);
 
         // After the loop:
         llvm_builder.SetInsertPoint(after_block);
@@ -1554,6 +1614,10 @@ namespace h::compiler
                 llvm_builder.CreateCondBr(condition_value.value, then_block, else_block);
 
                 llvm_builder.SetInsertPoint(then_block);
+
+                if (parameters.debug_info != nullptr)
+                    push_debug_lexical_block_scope(*parameters.debug_info, *serie.block_source_location);
+
                 create_statement_values(
                     serie.then_statements,
                     parameters
@@ -1561,11 +1625,17 @@ namespace h::compiler
 
                 if (!ends_with_terminator_statement(serie.then_statements))
                     llvm_builder.CreateBr(end_if_block);
+
+                if (parameters.debug_info != nullptr)
+                    pop_debug_scope(*parameters.debug_info);
 
                 llvm_builder.SetInsertPoint(else_block);
             }
             else
             {
+                if (parameters.debug_info != nullptr)
+                    push_debug_lexical_block_scope(*parameters.debug_info, *serie.block_source_location);
+
                 create_statement_values(
                     serie.then_statements,
                     parameters
@@ -1573,6 +1643,9 @@ namespace h::compiler
 
                 if (!ends_with_terminator_statement(serie.then_statements))
                     llvm_builder.CreateBr(end_if_block);
+
+                if (parameters.debug_info != nullptr)
+                    pop_debug_scope(*parameters.debug_info);
 
                 llvm_builder.SetInsertPoint(end_if_block);
             }
@@ -2081,6 +2154,9 @@ namespace h::compiler
 
         llvm::Value* const alloca = llvm_builder.CreateAlloca(right_hand_side.value->getType(), nullptr, expression.name.c_str());
 
+        if (parameters.debug_info != nullptr)
+            create_local_variable_debug_description(*parameters.debug_info, parameters, expression.name, alloca, *right_hand_side.type);
+
         llvm_builder.CreateStore(right_hand_side.value, alloca);
 
         return Value_and_type
@@ -2114,6 +2190,9 @@ namespace h::compiler
         );
 
         llvm::Value* const alloca = llvm_builder.CreateAlloca(llvm_type, nullptr, expression.name.c_str());
+
+        if (parameters.debug_info != nullptr)
+            create_local_variable_debug_description(*parameters.debug_info, parameters, expression.name, alloca, core_type);
 
         llvm_builder.CreateStore(right_hand_side.value, alloca);
 
@@ -2270,12 +2349,19 @@ namespace h::compiler
         new_parameters.blocks = all_block_infos;
 
         llvm_builder.SetInsertPoint(then_block);
+
+        if (parameters.debug_info != nullptr)
+            push_debug_lexical_block_scope(*parameters.debug_info, *parameters.source_location);
+
         create_statement_values(
             expression.then_statements,
             new_parameters
         );
         if (!ends_with_terminator_statement(expression.then_statements))
             llvm_builder.CreateBr(condition_block);
+
+        if (parameters.debug_info != nullptr)
+            pop_debug_scope(*parameters.debug_info);
 
         llvm_builder.SetInsertPoint(after_block);
 
@@ -2293,110 +2379,125 @@ namespace h::compiler
         Expression_parameters const& parameters
     )
     {
+        Expression_parameters new_parameters = parameters;
+
+        if (parameters.debug_info != nullptr && expression.source_location.has_value())
+        {
+            Source_location const source_location = *expression.source_location;
+            new_parameters.source_location = source_location;
+
+            set_debug_location(
+                parameters.llvm_builder,
+                *parameters.debug_info,
+                source_location.line,
+                source_location.column
+            );
+        }
+
         if (std::holds_alternative<Access_expression>(expression.data))
         {
             Access_expression const& data = std::get<Access_expression>(expression.data);
-            return create_access_expression_value(data, statement, parameters);
+            return create_access_expression_value(data, statement, new_parameters);
         }
         else if (std::holds_alternative<Assignment_expression>(expression.data))
         {
             Assignment_expression const& data = std::get<Assignment_expression>(expression.data);
-            return create_assignment_expression_value(data, statement, parameters);
+            return create_assignment_expression_value(data, statement, new_parameters);
         }
         else if (std::holds_alternative<Binary_expression>(expression.data))
         {
             Binary_expression const& data = std::get<Binary_expression>(expression.data);
-            return create_binary_expression_value(data, statement, parameters);
+            return create_binary_expression_value(data, statement, new_parameters);
         }
         else if (std::holds_alternative<Block_expression>(expression.data))
         {
             Block_expression const& data = std::get<Block_expression>(expression.data);
-            return create_block_expression_value(data, parameters);
+            return create_block_expression_value(data, new_parameters);
         }
         else if (std::holds_alternative<Break_expression>(expression.data))
         {
             Break_expression const& data = std::get<Break_expression>(expression.data);
-            return create_break_expression_value(data, parameters.llvm_builder, parameters.blocks);
+            return create_break_expression_value(data, new_parameters.llvm_builder, new_parameters.blocks);
         }
         else if (std::holds_alternative<Call_expression>(expression.data))
         {
             Call_expression const& data = std::get<Call_expression>(expression.data);
-            return create_call_expression_value(data, statement, parameters);
+            return create_call_expression_value(data, statement, new_parameters);
         }
         else if (std::holds_alternative<Cast_expression>(expression.data))
         {
             Cast_expression const& data = std::get<Cast_expression>(expression.data);
-            return create_cast_expression_value(data, statement, parameters);
+            return create_cast_expression_value(data, statement, new_parameters);
         }
         else if (std::holds_alternative<Constant_expression>(expression.data))
         {
             Constant_expression const& data = std::get<Constant_expression>(expression.data);
-            return create_constant_expression_value(data, parameters.llvm_context, parameters.llvm_data_layout, parameters.llvm_module, parameters.core_module.name, parameters.type_database);
+            return create_constant_expression_value(data, new_parameters.llvm_context, new_parameters.llvm_data_layout, new_parameters.llvm_module, new_parameters.core_module.name, new_parameters.type_database);
         }
         else if (std::holds_alternative<Continue_expression>(expression.data))
         {
             Continue_expression const& data = std::get<Continue_expression>(expression.data);
-            return create_continue_expression_value(data, parameters.llvm_builder, parameters.blocks);
+            return create_continue_expression_value(data, new_parameters.llvm_builder, new_parameters.blocks);
         }
         else if (std::holds_alternative<For_loop_expression>(expression.data))
         {
             For_loop_expression const& data = std::get<For_loop_expression>(expression.data);
-            return create_for_loop_expression_value(data, statement, parameters);
+            return create_for_loop_expression_value(data, statement, new_parameters);
         }
         else if (std::holds_alternative<If_expression>(expression.data))
         {
             If_expression const& data = std::get<If_expression>(expression.data);
-            return create_if_expression_value(data, parameters);
+            return create_if_expression_value(data, new_parameters);
         }
         else if (std::holds_alternative<Instantiate_expression>(expression.data))
         {
             Instantiate_expression const& data = std::get<Instantiate_expression>(expression.data);
-            return create_instantiate_expression_value(data, parameters);
+            return create_instantiate_expression_value(data, new_parameters);
         }
         else if (std::holds_alternative<Parenthesis_expression>(expression.data))
         {
             Parenthesis_expression const& data = std::get<Parenthesis_expression>(expression.data);
-            return create_parenthesis_expression_value(data, statement, parameters);
+            return create_parenthesis_expression_value(data, statement, new_parameters);
         }
         else if (std::holds_alternative<Return_expression>(expression.data))
         {
             Return_expression const& data = std::get<Return_expression>(expression.data);
-            return create_return_expression_value(data, statement, parameters);
+            return create_return_expression_value(data, statement, new_parameters);
         }
         else if (std::holds_alternative<Ternary_condition_expression>(expression.data))
         {
             Ternary_condition_expression const& data = std::get<Ternary_condition_expression>(expression.data);
-            return create_ternary_condition_expression_value(data, statement, parameters);
+            return create_ternary_condition_expression_value(data, statement, new_parameters);
         }
         else if (std::holds_alternative<Switch_expression>(expression.data))
         {
             Switch_expression const& data = std::get<Switch_expression>(expression.data);
-            return create_switch_expression_value(data, statement, parameters);
+            return create_switch_expression_value(data, statement, new_parameters);
         }
         else if (std::holds_alternative<Unary_expression>(expression.data))
         {
             Unary_expression const& data = std::get<Unary_expression>(expression.data);
-            return create_unary_expression_value(data, statement, parameters);
+            return create_unary_expression_value(data, statement, new_parameters);
         }
         else if (std::holds_alternative<Variable_declaration_expression>(expression.data))
         {
             Variable_declaration_expression const& data = std::get<Variable_declaration_expression>(expression.data);
-            return create_variable_declaration_expression_value(data, statement, parameters);
+            return create_variable_declaration_expression_value(data, statement, new_parameters);
         }
         else if (std::holds_alternative<Variable_declaration_with_type_expression>(expression.data))
         {
             Variable_declaration_with_type_expression const& data = std::get<Variable_declaration_with_type_expression>(expression.data);
-            return create_variable_declaration_with_type_expression_value(data, parameters);
+            return create_variable_declaration_with_type_expression_value(data, new_parameters);
         }
         else if (std::holds_alternative<Variable_expression>(expression.data))
         {
             Variable_expression const& data = std::get<Variable_expression>(expression.data);
-            return create_variable_expression_value(data, parameters.core_module, parameters.llvm_context, parameters.llvm_data_layout, parameters.llvm_module, parameters.llvm_builder, parameters.function_arguments, parameters.local_variables, parameters.declaration_database, parameters.type_database);
+            return create_variable_expression_value(data, new_parameters.core_module, new_parameters.llvm_context, new_parameters.llvm_data_layout, new_parameters.llvm_module, new_parameters.llvm_builder, new_parameters.function_arguments, new_parameters.local_variables, new_parameters.declaration_database, new_parameters.type_database);
         }
         else if (std::holds_alternative<While_loop_expression>(expression.data))
         {
             While_loop_expression const& data = std::get<While_loop_expression>(expression.data);
-            return create_while_loop_expression_value(data, parameters);
+            return create_while_loop_expression_value(data, new_parameters);
         }
         else
         {

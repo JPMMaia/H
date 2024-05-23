@@ -123,6 +123,11 @@ export enum Expression_enum {
     While_loop_expression = "While_loop_expression",
 }
 
+export interface Source_location {
+    line: number;
+    column: number;
+}
+
 export interface Integer_type {
     number_of_bits: number;
     is_signed: boolean;
@@ -176,6 +181,7 @@ export interface Alias_type_declaration {
     unique_name?: string;
     type: Vector<Type_reference>;
     comment?: string;
+    source_location?: Source_location;
 }
 
 export interface Enum_value {
@@ -189,6 +195,7 @@ export interface Enum_declaration {
     unique_name?: string;
     values: Vector<Enum_value>;
     comment?: string;
+    source_location?: Source_location;
 }
 
 export interface Struct_declaration {
@@ -201,6 +208,8 @@ export interface Struct_declaration {
     is_literal: boolean;
     comment?: string;
     member_comments: Vector<Indexed_comment>;
+    source_location?: Source_location;
+    member_source_locations?: Vector<Source_location>;
 }
 
 export interface Union_declaration {
@@ -210,6 +219,8 @@ export interface Union_declaration {
     member_names: Vector<string>;
     comment?: string;
     member_comments: Vector<Indexed_comment>;
+    source_location?: Source_location;
+    member_source_locations?: Vector<Source_location>;
 }
 
 export interface Variable_expression {
@@ -287,6 +298,7 @@ export interface For_loop_expression {
 export interface Condition_statement_pair {
     condition?: Statement;
     then_statements: Vector<Statement>;
+    block_source_location?: Source_location;
 }
 
 export interface If_expression {
@@ -359,6 +371,7 @@ export interface While_loop_expression {
 
 export interface Expression {
     data: Variant<Expression_enum, Access_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Comment_expression | Constant_expression | Constant_array_expression | Continue_expression | For_loop_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
+    source_location?: Source_location;
 }
 
 export interface Function_declaration {
@@ -369,11 +382,15 @@ export interface Function_declaration {
     output_parameter_names: Vector<string>;
     linkage: Linkage;
     comment?: string;
+    source_location?: Source_location;
+    input_parameter_source_locations?: Vector<Source_location>;
+    output_parameter_source_locations?: Vector<Source_location>;
 }
 
 export interface Function_definition {
     name: string;
     statements: Vector<Statement>;
+    source_location?: Source_location;
 }
 
 export interface Language_version {
@@ -412,5 +429,6 @@ export interface Module {
     internal_declarations: Module_declarations;
     definitions: Module_definitions;
     comment?: string;
+    source_file_path?: string;
 }
 

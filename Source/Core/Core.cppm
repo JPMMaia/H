@@ -1,6 +1,7 @@
 module;
 
 #include <compare>
+#include <filesystem>
 #include <memory_resource>
 #include <optional>
 #include <ostream>
@@ -13,6 +14,14 @@ export module h.core;
 
 namespace h
 {
+    export struct Source_location
+    {
+        std::uint32_t line = 0;
+        std::uint32_t column = 0;
+
+        friend auto operator<=>(Source_location const& lhs, Source_location const& rhs) = default;
+    };
+
     struct Type_reference;
 
     export enum class Fundamental_type
@@ -137,6 +146,7 @@ namespace h
         std::optional<std::pmr::string> unique_name;
         std::pmr::vector<Type_reference> type;
         std::optional<std::pmr::string> comment;
+        std::optional<Source_location> source_location;
 
         friend auto operator<=>(Alias_type_declaration const& lhs, Alias_type_declaration const& rhs) = default;
     };
@@ -156,6 +166,7 @@ namespace h
         std::optional<std::pmr::string> unique_name;
         std::pmr::vector<Enum_value> values;
         std::optional<std::pmr::string> comment;
+        std::optional<Source_location> source_location;
 
         friend auto operator<=>(Enum_declaration const& lhs, Enum_declaration const& rhs) = default;
     };
@@ -171,6 +182,8 @@ namespace h
         bool is_literal;
         std::optional<std::pmr::string> comment;
         std::pmr::vector<Indexed_comment> member_comments;
+        std::optional<Source_location> source_location;
+        std::optional<std::pmr::vector<Source_location>> member_source_locations;
 
         friend auto operator<=>(Struct_declaration const&, Struct_declaration const&) = default;
     };
@@ -183,6 +196,8 @@ namespace h
         std::pmr::vector<std::pmr::string> member_names;
         std::optional<std::pmr::string> comment;
         std::pmr::vector<Indexed_comment> member_comments;
+        std::optional<Source_location> source_location;
+        std::optional<std::pmr::vector<Source_location>> member_source_locations;
 
         friend auto operator<=>(Union_declaration const&, Union_declaration const&) = default;
     };
@@ -345,6 +360,7 @@ namespace h
     {
         std::optional<Statement> condition;
         std::pmr::vector<Statement> then_statements;
+        std::optional<Source_location> block_source_location;
 
         friend auto operator<=>(Condition_statement_pair const&, Condition_statement_pair const&) = default;
     };
@@ -508,6 +524,7 @@ namespace h
         > ;
 
         Data_type data;
+        std::optional<Source_location> source_location;
 
         friend auto operator<=>(Expression const&, Expression const&) = default;
     };
@@ -527,6 +544,9 @@ namespace h
         std::pmr::vector<std::pmr::string> output_parameter_names;
         Linkage linkage;
         std::optional<std::pmr::string> comment;
+        std::optional<Source_location> source_location;
+        std::optional<std::pmr::vector<Source_location>> input_parameter_source_locations;
+        std::optional<std::pmr::vector<Source_location>> output_parameter_source_locations;
 
         friend auto operator<=>(Function_declaration const&, Function_declaration const&) = default;
     };
@@ -535,6 +555,7 @@ namespace h
     {
         std::pmr::string name;
         std::pmr::vector<Statement> statements;
+        std::optional<Source_location> source_location;
 
         friend auto operator<=>(Function_definition const&, Function_definition const&) = default;
     };
@@ -591,6 +612,7 @@ namespace h
         Module_declarations internal_declarations;
         Module_definitions definitions;
         std::optional<std::pmr::string> comment;
+        std::optional<std::filesystem::path> source_file_path;
 
         friend auto operator<=>(Module const&, Module const&) = default;
     };

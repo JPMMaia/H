@@ -282,6 +282,12 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Source_location const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Integer_type const& input
         );
 
@@ -602,6 +608,12 @@ namespace h::json
     template <typename C> inline constexpr bool Is_optional_v = Is_optional<C>::value;
 
     export template <typename Writer_type, typename Value_type>
+        void write_object(
+            Writer_type& writer,
+            std::pmr::vector<Value_type> const& values
+        );
+
+    export template <typename Writer_type, typename Value_type>
         void write_value(
             Writer_type& writer,
             Value_type const& value
@@ -630,6 +642,11 @@ namespace h::json
         else if constexpr (std::is_same_v<Value_type, std::string> || std::is_same_v<Value_type, std::pmr::string> || std::is_same_v<Value_type, std::string_view>)
         {
             writer.String(value.data(), value.size());
+        }
+        else if constexpr (std::is_same_v<Value_type, std::filesystem::path>)
+        {
+            std::string const path_string = value.generic_string();
+            writer.String(path_string.data(), path_string.size());
         }
         else if constexpr (std::is_enum_v<Value_type>)
         {
@@ -703,6 +720,20 @@ namespace h::json
             writer.Key(key);
             write_object(writer, value.value());
         }
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Source_location const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("line");
+        writer.Uint(output.line);
+        writer.Key("column");
+        writer.Uint(output.column);
+        writer.EndObject();
     }
 
     export template<typename Writer_type>
@@ -915,6 +946,7 @@ namespace h::json
         writer.Key("type");
         write_object(writer, output.type);
         write_optional(writer, "comment", output.comment);
+        write_optional_object(writer, "source_location", output.source_location);
         writer.EndObject();
     }
 
@@ -945,6 +977,7 @@ namespace h::json
         writer.Key("values");
         write_object(writer, output.values);
         write_optional(writer, "comment", output.comment);
+        write_optional_object(writer, "source_location", output.source_location);
         writer.EndObject();
     }
 
@@ -971,6 +1004,8 @@ namespace h::json
         write_optional(writer, "comment", output.comment);
         writer.Key("member_comments");
         write_object(writer, output.member_comments);
+        write_optional_object(writer, "source_location", output.source_location);
+        write_optional(writer, "member_source_locations", output.member_source_locations);
         writer.EndObject();
     }
 
@@ -991,6 +1026,8 @@ namespace h::json
         write_optional(writer, "comment", output.comment);
         writer.Key("member_comments");
         write_object(writer, output.member_comments);
+        write_optional_object(writer, "source_location", output.source_location);
+        write_optional(writer, "member_source_locations", output.member_source_locations);
         writer.EndObject();
     }
 
@@ -1217,6 +1254,7 @@ namespace h::json
         write_optional_object(writer, "condition", output.condition);
         writer.Key("then_statements");
         write_object(writer, output.then_statements);
+        write_optional_object(writer, "block_source_location", output.block_source_location);
         writer.EndObject();
     }
 
@@ -1629,6 +1667,7 @@ namespace h::json
         }
         writer.EndObject();
 
+        write_optional_object(writer, "source_location", output.source_location);
         writer.EndObject();
     }
 
@@ -1654,6 +1693,9 @@ namespace h::json
             writer.String(enum_value_string.data(), enum_value_string.size());
         }
         write_optional(writer, "comment", output.comment);
+        write_optional_object(writer, "source_location", output.source_location);
+        write_optional(writer, "input_parameter_source_locations", output.input_parameter_source_locations);
+        write_optional(writer, "output_parameter_source_locations", output.output_parameter_source_locations);
         writer.EndObject();
     }
 
@@ -1668,6 +1710,7 @@ namespace h::json
         writer.String(output.name.data(), output.name.size());
         writer.Key("statements");
         write_object(writer, output.statements);
+        write_optional_object(writer, "source_location", output.source_location);
         writer.EndObject();
     }
 
@@ -1767,6 +1810,7 @@ namespace h::json
         writer.Key("definitions");
         write_object(writer, output.definitions);
         write_optional(writer, "comment", output.comment);
+        write_optional(writer, "source_file_path", output.source_file_path);
         writer.EndObject();
     }
 

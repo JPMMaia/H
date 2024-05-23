@@ -136,6 +136,13 @@ namespace h::tools::code_generator
             return type.name.starts_with("std::optional");
         }
 
+        bool is_filesystem_path_type(
+            Type const& type
+        )
+        {
+            return type.name == "std::filesystem::path";
+        }
+
         bool is_struct_type(
             Type const& type,
             std::pmr::unordered_map<std::pmr::string, Struct> const& struct_types
@@ -1310,17 +1317,19 @@ namespace h::tools::code_generator
                 output_stream << std::format("        if (key == \"{}\")\n", member.name);
                 output_stream << "        {\n";
 
-                if (is_vector_type(member.type))
+                if (is_vector_type(member.type) || (is_optional_type(member.type) && is_vector_type(Type{ get_optional_value_type(member.type) })))
                 {
+                    std::pmr::string const type_name = is_optional_type(member.type) ? get_optional_value_type(member.type) : member.type.name;
+
                     output_stream << "            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void\n";
                     output_stream << "            {\n";
-                    output_stream << std::format("                {}* parent = static_cast<{}*>(state->pointer);\n", member.type.name, member.type.name);
+                    output_stream << std::format("                {}* parent = static_cast<{}*>(state->pointer);\n", type_name, type_name);
                     output_stream << "                parent->resize(size);\n";
                     output_stream << "            };\n\n";
 
                     output_stream << "            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*\n";
                     output_stream << "            {\n";
-                    output_stream << std::format("                {}* parent = static_cast<{}*>(state->pointer);\n", member.type.name, member.type.name);
+                    output_stream << std::format("                {}* parent = static_cast<{}*>(state->pointer);\n", type_name, type_name);
                     output_stream << "                return &((*parent)[index]);\n";
                     output_stream << "            };\n";
                 }
@@ -1396,7 +1405,8 @@ namespace h::tools::code_generator
                     output_stream << "            };\n";
                     output_stream << "\n";
                 }
-                else if (is_optional_type(member.type))
+
+                if (is_optional_type(member.type))
                 {
                     std::pmr::string const value_type = get_optional_value_type(member.type);
                     output_stream << std::format("            parent->{} = {}{}{};", member.name, is_cpp_type(member.type) ? "" : "h::", value_type, "{}");
@@ -1422,9 +1432,9 @@ namespace h::tools::code_generator
                 {
                     output_stream << std::format("                .get_next_state = get_next_state_{},\n", to_lowercase(member.type.name));
                 }
-                else if (is_vector_type(member.type))
+                else if (is_vector_type(member.type) || (is_optional_type(member.type) && is_vector_type(Type{ get_optional_value_type(member.type) })))
                 {
-                    Type const value_type = Type{ get_vector_value_type(member.type) };
+                    Type const value_type = Type{ is_optional_type(member.type) ? get_vector_value_type(Type{get_optional_value_type(member.type)}) : get_vector_value_type(member.type) };
                     output_stream << "                .get_next_state = get_next_state_vector,\n";
                     output_stream << "                .set_vector_size = set_vector_size,\n";
                     output_stream << "                .get_element = get_element,\n";
@@ -1771,6 +1781,12 @@ namespace h::tools::code_generator
         output_stream << "    template <typename C> inline constexpr bool Is_optional_v = Is_optional<C>::value;\n";
         output_stream << "\n";
         output_stream << "    export template <typename Writer_type, typename Value_type>\n";
+        output_stream << "        void write_object(\n";
+        output_stream << "            Writer_type& writer,\n";
+        output_stream << "            std::pmr::vector<Value_type> const& values\n";
+        output_stream << "        );\n";
+        output_stream << "\n";
+        output_stream << "    export template <typename Writer_type, typename Value_type>\n";
         output_stream << "        void write_value(\n";
         output_stream << "            Writer_type& writer,\n";
         output_stream << "            Value_type const& value\n";
@@ -1799,6 +1815,11 @@ namespace h::tools::code_generator
         output_stream << "        else if constexpr (std::is_same_v<Value_type, std::string> || std::is_same_v<Value_type, std::pmr::string> || std::is_same_v<Value_type, std::string_view>)\n";
         output_stream << "        {\n";
         output_stream << "            writer.String(value.data(), value.size());\n";
+        output_stream << "        }\n";
+        output_stream << "        else if constexpr (std::is_same_v<Value_type, std::filesystem::path>)\n";
+        output_stream << "        {\n";
+        output_stream << "            std::string const path_string = value.generic_string();\n";
+        output_stream << "            writer.String(path_string.data(), path_string.size());\n";
         output_stream << "        }\n";
         output_stream << "        else if constexpr (std::is_enum_v<Value_type>)\n";
         output_stream << "        {\n";
@@ -2102,7 +2123,7 @@ namespace h::tools::code_generator
             if (location != replace_map.end())
             {
                 std::pmr::string const& new_type = location->second;
-                return to_typescript_type(Type{ .name = new_type.c_str() }, parent_type_name, enum_map, struct_map, replace_map, true);
+                return to_typescript_type(Type{ .name = new_type.c_str() }, parent_type_name, enum_map, struct_map, replace_map, intermediate_representation);
             }
         }
 
@@ -2162,17 +2183,21 @@ namespace h::tools::code_generator
                 if (location != replace_map.end())
                 {
                     std::pmr::string const& new_type = location->second;
-                    return to_typescript_type(Type{ .name = new_type }, parent_type_name, enum_map, struct_map, replace_map, true);
+                    return to_typescript_type(Type{ .name = new_type }, parent_type_name, enum_map, struct_map, replace_map, intermediate_representation);
                 }
                 else
                 {
-                    return to_typescript_type(Type{ .name = value_type }, parent_type_name, enum_map, struct_map, replace_map, true);
+                    return to_typescript_type(Type{ .name = value_type }, parent_type_name, enum_map, struct_map, replace_map, intermediate_representation);
                 }
             }
             else
             {
-                return to_typescript_type(Type{ .name = value_type }, parent_type_name, enum_map, struct_map, replace_map, true);
+                return to_typescript_type(Type{ .name = value_type }, parent_type_name, enum_map, struct_map, replace_map, intermediate_representation);
             }
+        }
+        else if (is_filesystem_path_type(type))
+        {
+            return "string";
         }
         else
         {
@@ -2313,83 +2338,108 @@ namespace h::tools::code_generator
         }
     }
 
-    void generate_variant_core_to_intermediate_representation(std::ostream& output_stream, Type const& type, std::string_view const parent_type_name, std::pmr::unordered_map<std::pmr::string, Enum> const& enum_map, std::pmr::unordered_map<std::pmr::string, Struct> const& struct_map)
+    void generate_variant_core_to_intermediate_representation(
+        std::ostream& output_stream,
+        Type const& type,
+        std::string_view const parent_type_name,
+        std::pmr::unordered_map<std::pmr::string, Enum> const& enum_map,
+        std::pmr::unordered_map<std::pmr::string, Struct> const& struct_map,
+        int const indentation
+    )
     {
         std::pmr::vector<std::pmr::string> const variant_types = get_variadic_types(type.name);
         std::pmr::string const variant_type_enum_name = generate_variant_types_enum_name(parent_type_name, variant_types);
 
-        output_stream << "    switch (core_value.data.type) {\n";
+        output_stream << indent(indentation) << "switch (core_value.data.type) {\n";
 
         for (std::pmr::string const& variant_type : variant_types)
         {
-            output_stream << std::format("        case Core.{}.{}: {{\n", variant_type_enum_name, variant_type);
-            output_stream << "            return {\n";
-            output_stream << "                data: {\n";
-            output_stream << "                    type: core_value.data.type,\n";
+            output_stream << indent(indentation) << std::format("    case Core.{}.{}: {{\n", variant_type_enum_name, variant_type);
+            output_stream << indent(indentation) << "        return {\n";
+            output_stream << indent(indentation) << "            type: core_value.data.type,\n";
 
             if (contains_expressions(variant_type, struct_map))
             {
-                output_stream << std::format("                    value: core_to_intermediate_{}(core_value.data.value as Core.{}, statement)\n", to_lowercase(variant_type), variant_type);
+                output_stream << indent(indentation) << std::format("            value: core_to_intermediate_{}(core_value.data.value as Core.{}, statement)\n", to_lowercase(variant_type), variant_type);
             }
             else if (is_enum_type(Type{ .name = variant_type }, enum_map))
             {
-                output_stream << std::format("                    value: core_value.data.value as {}\n", variant_type);
+                output_stream << indent(indentation) << std::format("            value: core_value.data.value as {}\n", variant_type);
             }
             else
             {
-                output_stream << std::format("                    value: core_to_intermediate_{}(core_value.data.value as Core.{})\n", to_lowercase(variant_type), variant_type);
+                output_stream << indent(indentation) << std::format("            value: core_to_intermediate_{}(core_value.data.value as Core.{})\n", to_lowercase(variant_type), variant_type);
             }
 
-            output_stream << "                }\n";
-            output_stream << "            };\n";
-            output_stream << "        }\n";
+            output_stream << indent(indentation) << "        };\n";
+            output_stream << indent(indentation) << "    }\n";
         }
 
-        output_stream << "    }\n";
+        output_stream << indent(indentation) << "}\n";
     }
 
-    void generate_variant_intermediate_to_core_representation(std::ostream& output_stream, Type const& type, std::string_view const parent_type_name, std::pmr::unordered_map<std::pmr::string, Enum> const& enum_map)
+    void generate_variant_intermediate_to_core_representation(
+        std::ostream& output_stream,
+        Type const& type,
+        std::string_view const parent_type_name,
+        std::pmr::unordered_map<std::pmr::string, Enum> const& enum_map,
+        int const indentation
+    )
     {
         std::pmr::vector<std::pmr::string> const variant_types = get_variadic_types(type.name);
         std::pmr::string const variant_type_enum_name = generate_variant_types_enum_name(parent_type_name, variant_types);
 
-        output_stream << "    switch (intermediate_value.data.type) {\n";
+        if (variant_type_enum_name == "Expression_enum")
+        {
+            output_stream << indent(indentation) << "const expression_index = expressions.length;\n\n";
+        }
+
+        output_stream << indent(indentation) << "switch (intermediate_value.data.type) {\n";
 
         if (variant_type_enum_name == "Expression_enum")
         {
             for (std::pmr::string const& variant_type : variant_types)
             {
-                output_stream << std::format("        case {}.{}: {{\n", variant_type_enum_name, variant_type);
-                output_stream << std::format("            intermediate_to_core_{}(intermediate_value.data.value as {}, expressions);\n", to_lowercase(variant_type), variant_type);
-                output_stream << "            break;\n";
-                output_stream << "        }\n";
+                output_stream << indent(indentation) << std::format("    case {}.{}: {{\n", variant_type_enum_name, variant_type);
+                output_stream << indent(indentation) << std::format("        intermediate_to_core_{}(intermediate_value.data.value as {}, expressions);\n", to_lowercase(variant_type), variant_type);
+                output_stream << indent(indentation) << "        break;\n";
+                output_stream << indent(indentation) << "    }\n";
             }
         }
         else
         {
             for (std::pmr::string const& variant_type : variant_types)
             {
-                output_stream << std::format("        case {}.{}: {{\n", variant_type_enum_name, variant_type);
-                output_stream << "            return {\n";
-                output_stream << "                data: {\n";
-                output_stream << "                    type: intermediate_value.data.type,\n";
+                output_stream << indent(indentation) << std::format("    case {}.{}: {{\n", variant_type_enum_name, variant_type);
+                output_stream << indent(indentation) << "        return {\n";
+                output_stream << indent(indentation) << "            data: {\n";
+                output_stream << indent(indentation) << "                type: intermediate_value.data.type,\n";
 
                 if (is_enum_type(Type{ .name = variant_type }, enum_map))
                 {
-                    output_stream << std::format("                    value: intermediate_value.data.value as {}\n", variant_type);
+                    output_stream << indent(indentation) << std::format("                value: intermediate_value.data.value as {}\n", variant_type);
                 }
                 else
                 {
-                    output_stream << std::format("                    value: intermediate_to_core_{}(intermediate_value.data.value as {})\n", to_lowercase(variant_type), variant_type);
+                    output_stream << indent(indentation) << std::format("                value: intermediate_to_core_{}(intermediate_value.data.value as {})\n", to_lowercase(variant_type), variant_type);
                 }
 
-                output_stream << "                }\n";
-                output_stream << "            };\n";
-                output_stream << "        }\n";
+
+                output_stream << indent(indentation) << "            }\n";
+                output_stream << indent(indentation) << "        };\n";
+                output_stream << indent(indentation) << "    }\n";
             }
         }
 
-        output_stream << "    }\n";
+        output_stream << indent(indentation) << "}\n";
+
+        if (variant_type_enum_name == "Expression_enum")
+        {
+            output_stream << "\n";
+            output_stream << indent(indentation) << "if (intermediate_value.source_location !== undefined) {\n";
+            output_stream << indent(indentation) << "    expressions[expression_index].source_location = intermediate_value.source_location;\n";
+            output_stream << indent(indentation) << "}\n";
+        }
     }
 
     void generate_typescript_intermediate_representation(
@@ -2423,6 +2473,7 @@ export interface Module {
     imports: Import_module_with_alias[];
     declarations: Declaration[];
     comment?: string;
+    source_file_path?: string;
 }
 
 export function create_intermediate_representation(core_module: Core.Module): Module {
@@ -2434,7 +2485,8 @@ export function create_intermediate_representation(core_module: Core.Module): Mo
         name: core_module.name,
         imports: imports,
         declarations: declarations,
-        comment: core_module.comment
+        comment: core_module.comment,
+        source_file_path: core_module.source_file_path
     };
 }
 
@@ -2545,7 +2597,8 @@ export function create_core_module(module: Module, language_version: Core.Langua
                 elements: function_definitions
             }
         },
-        comment: module.comment
+        comment: module.comment,
+        source_file_path: module.source_file_path
     };
 }
 
@@ -2602,14 +2655,12 @@ function core_to_intermediate_function(module: Core.Module, declaration: Core.Fu
 
 export interface Statement {
     expression: Expression;
-    comment?: string;
     newlines_after?: number;
 }
 
 function core_to_intermediate_statement(core_value: Core.Statement): Statement {
     return {
         expression: core_to_intermediate_expression(core_value.expressions.elements[0], core_value),
-        comment: core_value.comment,
         newlines_after: core_value.newlines_after
     };
 }
@@ -2624,7 +2675,6 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
             size: expressions.length,
             elements: expressions
         },
-        comment: intermediate_value.comment,
         newlines_after: intermediate_value.newlines_after
     };
 }
@@ -2687,70 +2737,81 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
                 }
 
                 {
-                    if (struct_info.members.size() == 1 && is_variant_type(struct_info.members[0].type))
+                    output_stream << "    return {\n";
+                    for (Member const& member : struct_info.members)
                     {
-                        generate_variant_core_to_intermediate_representation(output_stream, struct_info.members[0].type, struct_info.name, enum_map, struct_map);
-                    }
-                    else
-                    {
-                        output_stream << "    return {\n";
-                        for (Member const& member : struct_info.members)
+                        if (member.type.name == "Expression_index")
                         {
-                            if (member.type.name == "Expression_index")
+                            output_stream << std::format("        {}: core_to_intermediate_expression(statement.expressions.elements[core_value.{}.expression_index], statement),\n", member.name, member.name);
+                        }
+                        else if (member.type.name == "std::optional<Expression_index>")
+                        {
+                            output_stream << std::format("        {}: core_value.{} !== undefined ? core_to_intermediate_expression(statement.expressions.elements[core_value.{}.expression_index], statement) : undefined,\n", member.name, member.name, member.name);
+                        }
+                        else if (is_variant_type(member.type))
+                        {
+                            output_stream << std::format("        {}: (() => {{\n", member.name);
+                            generate_variant_core_to_intermediate_representation(output_stream, member.type, struct_info.name, enum_map, struct_map, 12);
+                            output_stream << std::format("        }})(),\n", member.name);
+                        }
+                        else if (is_vector_type(member.type))
+                        {
+                            Type const vector_value_type = Type{ .name = get_vector_value_type(member.type) };
+                            if (vector_value_type.name == "Expression_index")
                             {
-                                output_stream << std::format("        {}: core_to_intermediate_expression(statement.expressions.elements[core_value.{}.expression_index], statement),\n", member.name, member.name);
+                                output_stream << std::format("        {}: core_value.{}.elements.map(value => core_to_intermediate_expression(statement.expressions.elements[value.expression_index], statement)),\n", member.name, member.name);
                             }
-                            else if (member.type.name == "std::optional<Expression_index>")
+                            else if (is_struct_type(vector_value_type, struct_map))
                             {
-                                output_stream << std::format("        {}: core_value.{} !== undefined ? core_to_intermediate_expression(statement.expressions.elements[core_value.{}.expression_index], statement) : undefined,\n", member.name, member.name, member.name);
-                            }
-                            else if (is_vector_type(member.type))
-                            {
-                                Type const vector_value_type = Type{ .name = get_vector_value_type(member.type) };
-                                if (vector_value_type.name == "Expression_index")
+                                if (contains_expressions(vector_value_type.name, struct_map))
                                 {
-                                    output_stream << std::format("        {}: core_value.{}.elements.map(value => core_to_intermediate_expression(statement.expressions.elements[value.expression_index], statement)),\n", member.name, member.name);
-                                }
-                                else if (is_struct_type(vector_value_type, struct_map))
-                                {
-                                    if (contains_expressions(vector_value_type.name, struct_map))
-                                    {
-                                        output_stream << std::format("        {}: core_value.{}.elements.map(value => core_to_intermediate_{}(value, statement)),\n", member.name, member.name, to_lowercase(vector_value_type.name));
-                                    }
-                                    else
-                                    {
-                                        output_stream << std::format("        {}: core_value.{}.elements.map(value => core_to_intermediate_{}(value)),\n", member.name, member.name, to_lowercase(vector_value_type.name));
-                                    }
-                                }
-                                else
-                                {
-                                    output_stream << std::format("        {}: core_value.{}.elements,\n", member.name, member.name);
-                                }
-                            }
-                            else if (is_struct_type(member.type, struct_map))
-                            {
-                                output_stream << std::format("        {}: core_to_intermediate_{}(core_value.{}),\n", member.name, to_lowercase(member.type.name), member.name);
-                            }
-                            else if (is_optional_type(member.type))
-                            {
-                                Type const value_type = Type{ get_optional_value_type(member.type) };
-                                if (is_struct_type(value_type, struct_map))
-                                {
-                                    output_stream << std::format("        {}: core_value.{} !== undefined ? core_to_intermediate_{}(core_value.{}) : undefined,\n", member.name, member.name, to_lowercase(value_type.name), member.name);
+                                    output_stream << std::format("        {}: core_value.{}.elements.map(value => core_to_intermediate_{}(value, statement)),\n", member.name, member.name, to_lowercase(vector_value_type.name));
                                 }
                                 else
                                 {
-                                    output_stream << std::format("        {}: core_value.{},\n", member.name, member.name);
+                                    output_stream << std::format("        {}: core_value.{}.elements.map(value => core_to_intermediate_{}(value)),\n", member.name, member.name, to_lowercase(vector_value_type.name));
+                                }
+                            }
+                            else
+                            {
+                                output_stream << std::format("        {}: core_value.{}.elements,\n", member.name, member.name);
+                            }
+                        }
+                        else if (is_struct_type(member.type, struct_map))
+                        {
+                            output_stream << std::format("        {}: core_to_intermediate_{}(core_value.{}),\n", member.name, to_lowercase(member.type.name), member.name);
+                        }
+                        else if (is_optional_type(member.type))
+                        {
+                            Type const value_type = Type{ get_optional_value_type(member.type) };
+                            if (is_struct_type(value_type, struct_map))
+                            {
+                                output_stream << std::format("        {}: core_value.{} !== undefined ? core_to_intermediate_{}(core_value.{}) : undefined,\n", member.name, member.name, to_lowercase(value_type.name), member.name);
+                            }
+                            else if (is_vector_type(value_type))
+                            {
+                                Type const vector_value_type = Type{ get_vector_value_type(value_type) };
+                                if (is_struct_type(vector_value_type, struct_map))
+                                {
+                                    output_stream << std::format("        {}: core_value.{} !== undefined ? core_value.{}.elements.map(value => core_to_intermediate_{}(value)) : undefined,\n", member.name, member.name, member.name, to_lowercase(vector_value_type.name));
+                                }
+                                else
+                                {
+                                    output_stream << std::format("        {}: core_value.{} !== undefined ? core_value.{}.elements : undefined,\n", member.name, member.name, member.name);
                                 }
                             }
                             else
                             {
                                 output_stream << std::format("        {}: core_value.{},\n", member.name, member.name);
                             }
-
                         }
-                        output_stream << "    };\n";
+                        else
+                        {
+                            output_stream << std::format("        {}: core_value.{},\n", member.name, member.name);
+                        }
+
                     }
+                    output_stream << "    };\n";
                 }
                 output_stream << "}\n\n";
             }
@@ -2766,9 +2827,13 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
                     output_stream << std::format("function intermediate_to_core_{}(intermediate_value: {}): Core.{} {{\n", to_lowercase(struct_info.name), struct_info.name, struct_info.name);
                 }
 
-                if (struct_info.members.size() == 1 && is_variant_type(struct_info.members[0].type))
+                if (struct_info.name == "Expression")
                 {
-                    generate_variant_intermediate_to_core_representation(output_stream, struct_info.members[0].type, struct_info.name, enum_map);
+                    generate_variant_intermediate_to_core_representation(output_stream, struct_info.members[0].type, struct_info.name, enum_map, 4);
+                }
+                else if (struct_info.name == "Type_reference")
+                {
+                    generate_variant_intermediate_to_core_representation(output_stream, struct_info.members[0].type, struct_info.name, enum_map, 4);
                 }
                 else if (contains_expressions(struct_info.name, struct_map))
                 {
@@ -2930,6 +2995,10 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
                             if (is_struct_type(value_type, struct_map))
                             {
                                 output_stream << std::format("        {}: intermediate_value.{} !== undefined ? intermediate_to_core_{}(intermediate_value.{}) : undefined,\n", member.name, member.name, to_lowercase(value_type.name), member.name);
+                            }
+                            else if (is_vector_type(value_type))
+                            {
+                                output_stream << std::format("        {}: intermediate_value.{} !== undefined ? {{ size: intermediate_value.{}.length, elements : intermediate_value.{} }} : undefined,\n", member.name, member.name, member.name, member.name);
                             }
                             else
                             {

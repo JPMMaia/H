@@ -2,6 +2,7 @@ module;
 
 #include <llvm/Analysis/ConstantFolding.h>
 #include <llvm/Bitcode/BitcodeWriter.h>
+#include <llvm/IR/DIBuilder.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/LLVMContext.h>
@@ -41,10 +42,12 @@ module;
 
 module h.compiler;
 
+import h.common;
 import h.core;
 import h.core.declarations;
 import h.core.types;
 import h.compiler.common;
+import h.compiler.debug_info;
 import h.compiler.expressions;
 import h.compiler.types;
 import h.json_serializer;
@@ -92,6 +95,83 @@ namespace h::compiler
         }();
 
         return llvm::FunctionType::get(llvm_return_type, llvm_input_parameter_types, is_var_arg);
+    }
+
+    static llvm::DISubroutineType* create_debug_function_type(
+        llvm::DIBuilder& llvm_debug_builder,
+        llvm::DataLayout const& llvm_data_layout,
+        std::string_view const current_module_name,
+        std::span<Type_reference const> const input_parameter_types,
+        std::span<Type_reference const> const output_parameter_types,
+        std::span<std::pmr::string const> const output_parameter_names,
+        Debug_type_database const& debug_type_database,
+        llvm::FunctionType const& llvm_function_type,
+        Function_type const& function_type,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::vector<llvm::DIType*> const llvm_input_parameter_debug_types = type_references_to_llvm_debug_types(llvm_debug_builder, llvm_data_layout, current_module_name, input_parameter_types, debug_type_database, temporaries_allocator);
+        std::pmr::vector<llvm::DIType*> const llvm_output_parameter_debug_types = type_references_to_llvm_debug_types(llvm_debug_builder, llvm_data_layout, current_module_name, output_parameter_types, debug_type_database, temporaries_allocator);
+
+        llvm::DIType* llvm_return_debug_type = [&]() -> llvm::DIType*
+        {
+            if (llvm_output_parameter_debug_types.size() == 0)
+                return nullptr;
+
+            if (llvm_output_parameter_debug_types.size() == 1)
+                return llvm_output_parameter_debug_types.front();
+
+            llvm::TypeSize const return_type_size = llvm_data_layout.getTypeSizeInBits(llvm_function_type.getReturnType());
+
+            std::pmr::vector<llvm::Metadata*> return_type_member_debug_types{ temporaries_allocator };
+            return_type_member_debug_types.reserve(llvm_output_parameter_debug_types.size());
+
+            std::uint64_t current_offset_in_bits = 0;
+
+            for (std::size_t index = 0; index < llvm_output_parameter_debug_types.size(); ++index)
+            {
+                llvm::DIType* const llvm_debug_type = llvm_output_parameter_debug_types[index];
+                llvm::Type* const llvm_type = llvm_function_type.getParamType(index);
+                std::pmr::string const& member_name = output_parameter_names[index];
+
+                llvm::DIType* const llvm_member_debug_type = llvm_debug_builder.createMemberType(
+                    llvm_debug_type->getScope(),
+                    member_name.c_str(),
+                    llvm_debug_type->getScope()->getFile(),
+                    0,
+                    llvm_data_layout.getTypeSizeInBits(llvm_type),
+                    8,
+                    current_offset_in_bits,
+                    llvm::DINode::FlagZero,
+                    llvm_debug_type
+                );
+
+                return_type_member_debug_types.push_back(llvm_member_debug_type);
+
+                current_offset_in_bits += llvm_data_layout.getTypeSizeInBits(llvm_type);
+            }
+
+            return llvm_debug_builder.createStructType(
+                llvm_output_parameter_debug_types[0]->getScope(),
+                "Function_return_type",
+                llvm_output_parameter_debug_types[0]->getScope()->getFile(),
+                0,
+                return_type_size,
+                8,
+                llvm::DINode::FlagZero,
+                nullptr,
+                llvm_debug_builder.getOrCreateArray(return_type_member_debug_types)
+            );
+        }();
+
+        std::pmr::vector<llvm::Metadata*> parameter_debug_types{ temporaries_allocator };
+        parameter_debug_types.reserve(1 + llvm_input_parameter_debug_types.size());
+        parameter_debug_types.push_back(llvm_return_debug_type);
+        parameter_debug_types.insert(parameter_debug_types.end(), llvm_input_parameter_debug_types.begin(), llvm_input_parameter_debug_types.end());
+
+        return llvm_debug_builder.createSubroutineType(
+            llvm_debug_builder.getOrCreateTypeArray(parameter_debug_types)
+        );
     }
 
     llvm::Function& to_function(
@@ -310,6 +390,8 @@ namespace h::compiler
             .function_arguments = {},
             .local_variables = {},
             .expression_type = std::nullopt,
+            .debug_info = nullptr,
+            .source_location = {},
             .temporaries_allocator = temporaries_allocator,
         };
 
@@ -334,12 +416,52 @@ namespace h::compiler
         Declaration_database const& declaration_database,
         Type_database const& type_database,
         Enum_value_constants const& enum_value_constants,
+        Debug_info* debug_info,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
         llvm::BasicBlock* const block = llvm::BasicBlock::Create(llvm_context, "entry", &llvm_function);
 
         llvm::IRBuilder<> llvm_builder{ block };
+
+        if (debug_info != nullptr)
+        {
+            llvm::DISubroutineType* const llvm_function_debug_type = create_debug_function_type(
+                *debug_info->llvm_builder,
+                llvm_data_layout,
+                core_module.name,
+                function_declaration.type.input_parameter_types,
+                function_declaration.type.output_parameter_types,
+                function_declaration.output_parameter_names,
+                debug_info->type_database,
+                *llvm_function.getFunctionType(),
+                function_declaration.type,
+                temporaries_allocator
+            );
+
+            llvm::StringRef const function_name = function_declaration.name.c_str();
+            llvm::StringRef const mangled_function_name = llvm_function.getName();
+
+            unsigned const line = function_declaration.source_location.has_value() ? function_declaration.source_location->line : 0;
+            unsigned const scope_line = function_definition.source_location.has_value() ? function_definition.source_location->line : line;
+
+            llvm::DISubprogram* const subprogram = debug_info->llvm_builder->createFunction(
+                debug_info->main_llvm_compile_unit,
+                function_name,
+                mangled_function_name,
+                debug_info->main_llvm_compile_unit->getFile(),
+                line,
+                llvm_function_debug_type,
+                scope_line,
+                llvm::DINode::FlagPrototyped,
+                llvm::DISubprogram::SPFlagDefinition
+            );
+
+            llvm_function.setSubprogram(subprogram);
+
+            push_debug_scope(*debug_info, subprogram);
+            unset_debug_location(llvm_builder);
+        }
 
         {
             std::pmr::vector<Block_info> block_infos;
@@ -354,9 +476,58 @@ namespace h::compiler
                 Type_reference core_type = fix_custom_type_reference(function_declaration.type.input_parameter_types[argument_index], core_module.name);
 
                 llvm::AllocaInst* const alloca_instruction = llvm_builder.CreateAlloca(llvm_argument->getType(), nullptr, name.c_str());
+
+                if (debug_info != nullptr)
+                {
+                    Source_location const function_declaration_source_location =
+                        function_declaration.source_location.value_or(Source_location{});
+                    Source_location const parameter_source_location =
+                        function_declaration.input_parameter_source_locations.has_value() ?
+                        function_declaration.input_parameter_source_locations.value()[argument_index] :
+                        function_declaration_source_location;
+
+                    llvm::DIType* const llvm_argument_debug_type = type_reference_to_llvm_debug_type(
+                        *debug_info->llvm_builder,
+                        llvm_data_layout,
+                        core_module.name,
+                        core_type,
+                        debug_info->type_database
+                    );
+
+                    llvm::DIScope* const debug_scope = get_debug_scope(*debug_info);
+
+                    llvm::DILocalVariable* debug_parameter_variable = debug_info->llvm_builder->createParameterVariable(
+                        debug_scope,
+                        name.c_str(),
+                        argument_index + 1,
+                        debug_scope->getFile(),
+                        parameter_source_location.line,
+                        llvm_argument_debug_type,
+                        true
+                    );
+
+                    llvm::DILocation* const debug_location = llvm::DILocation::get(llvm_context, parameter_source_location.line, parameter_source_location.column, debug_scope);
+
+                    debug_info->llvm_builder->insertDeclare(
+                        alloca_instruction,
+                        debug_parameter_variable,
+                        debug_info->llvm_builder->createExpression(),
+                        debug_location,
+                        block
+                    );
+                }
+
                 llvm_builder.CreateStore(llvm_argument, alloca_instruction);
 
                 function_arguments.push_back({ .name = name, .value = alloca_instruction, .type = std::move(core_type) });
+            }
+
+            if (debug_info != nullptr)
+            {
+                Source_location const function_declaration_source_location = function_declaration.source_location.value_or(Source_location{});
+                Source_location const function_definition_source_location = function_definition.source_location.value_or(function_declaration_source_location);
+
+                set_debug_location(llvm_builder, *debug_info, function_definition_source_location.line, function_definition_source_location.column);
             }
 
             Expression_parameters const expression_parameters
@@ -376,6 +547,8 @@ namespace h::compiler
                 .function_arguments = function_arguments,
                 .local_variables = {},
                 .expression_type = std::nullopt,
+                .debug_info = debug_info,
+                .source_location = std::nullopt,
                 .temporaries_allocator = temporaries_allocator,
             };
 
@@ -403,6 +576,9 @@ namespace h::compiler
             llvm_builder.CreateRetVoid();
         }
 
+        if (debug_info != nullptr)
+            pop_debug_scope(*debug_info);
+
         if (llvm::verifyFunction(llvm_function, &llvm::errs())) {
             llvm::errs() << "\n Function body:\n";
             llvm_function.dump();
@@ -420,6 +596,7 @@ namespace h::compiler
         Declaration_database const& declaration_database,
         Type_database const& type_database,
         Enum_value_constants const& enum_value_constants,
+        Debug_info* const debug_info,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
@@ -460,6 +637,7 @@ namespace h::compiler
                 declaration_database,
                 type_database,
                 enum_value_constants,
+                debug_info,
                 temporaries_allocator
             );
         }
@@ -690,6 +868,94 @@ namespace h::compiler
         }
     }
 
+    std::unique_ptr<Debug_info> create_debug_info(
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Module& llvm_module,
+        Module const& core_module,
+        std::span<Module const> const core_module_dependencies,
+        Type_database const& type_database,
+        Enum_value_constants const& enum_value_constants,
+        Compilation_options const& compilation_options
+    )
+    {
+        if (!compilation_options.debug)
+            return nullptr;
+
+        std::unique_ptr<llvm::DIBuilder> llvm_debug_builder = std::make_unique<llvm::DIBuilder>(llvm_module);
+
+        std::pmr::unordered_map<std::pmr::string, llvm::DICompileUnit*> module_name_to_llvm_debug_compile_unit;
+
+        llvm::DIFile* const llvm_debug_file = llvm_debug_builder->createFile(core_module.source_file_path->filename().generic_string(), core_module.source_file_path->parent_path().generic_string());
+
+        llvm::DICompileUnit* const llvm_debug_compile_unit = llvm_debug_builder->createCompileUnit(
+            llvm::dwarf::DW_LANG_C,
+            llvm_debug_file,
+            "Hlang Compiler",
+            compilation_options.is_optimized,
+            "",
+            0
+        );
+
+        module_name_to_llvm_debug_compile_unit.insert(std::make_pair(core_module.name, llvm_debug_compile_unit));
+
+        Debug_type_database debug_type_database = create_debug_type_database(
+            *llvm_debug_builder,
+            *llvm_debug_compile_unit,
+            llvm_data_layout
+        );
+
+        add_module_debug_types(
+            debug_type_database,
+            *llvm_debug_builder,
+            *llvm_debug_compile_unit,
+            *llvm_debug_file,
+            llvm_data_layout,
+            core_module,
+            enum_value_constants.map,
+            type_database
+        );
+
+        for (Module const& module_dependency : core_module_dependencies)
+        {
+            if (!module_dependency.source_file_path)
+                h::common::print_message_and_exit("Module did not contain source file path!");
+
+            llvm::DIFile* const llvm_dependency_debug_file = llvm_debug_builder->createFile(module_dependency.source_file_path->filename().generic_string(), module_dependency.source_file_path->parent_path().generic_string());
+
+            llvm::DICompileUnit* const llvm_dependency_debug_compile_unit = llvm_debug_builder->createCompileUnit(
+                llvm::dwarf::DW_LANG_C,
+                llvm_dependency_debug_file,
+                "Hlang Compiler",
+                compilation_options.is_optimized,
+                "",
+                0
+            );
+
+            add_module_debug_types(
+                debug_type_database,
+                *llvm_debug_builder,
+                *llvm_dependency_debug_compile_unit,
+                *llvm_dependency_debug_file,
+                llvm_data_layout,
+                module_dependency,
+                enum_value_constants.map,
+                type_database
+            );
+
+            module_name_to_llvm_debug_compile_unit.insert(std::make_pair(module_dependency.name, llvm_dependency_debug_compile_unit));
+        }
+
+        if (!core_module.source_file_path)
+            h::common::print_message_and_exit("Module did not contain source file path!");
+
+        return std::make_unique<Debug_info>(
+            std::move(llvm_debug_builder),
+            std::move(debug_type_database),
+            std::move(module_name_to_llvm_debug_compile_unit),
+            llvm_debug_compile_unit
+        );
+    }
+
     std::unique_ptr<llvm::Module> create_module(
         llvm::LLVMContext& llvm_context,
         std::string_view const target_triple,
@@ -698,7 +964,8 @@ namespace h::compiler
         std::span<Module const> const core_module_dependencies,
         std::optional<std::span<std::string_view const>> const functions_to_compile,
         Declaration_database const& declaration_database,
-        Type_database& type_database
+        Type_database& type_database,
+        Compilation_options const& compilation_options
     )
     {
         std::unique_ptr<llvm::Module> llvm_module = std::make_unique<llvm::Module>(core_module.name.c_str(), llvm_context);
@@ -721,6 +988,16 @@ namespace h::compiler
             {}
         );
 
+        std::unique_ptr<Debug_info> debug_info = create_debug_info(
+            llvm_data_layout,
+            *llvm_module,
+            core_module,
+            core_module_dependencies,
+            type_database,
+            enum_value_constants,
+            compilation_options
+        );
+
         add_module_definitions(
             llvm_context,
             llvm_data_layout,
@@ -731,6 +1008,7 @@ namespace h::compiler
             declaration_database,
             type_database,
             enum_value_constants,
+            debug_info.get(),
             {}
         );
 
@@ -738,6 +1016,11 @@ namespace h::compiler
         {
             llvm_module->dump();
             throw std::runtime_error{ std::format("Module '{}' is not valid!", core_module.name) };
+        }
+
+        if (debug_info != nullptr)
+        {
+            debug_info->llvm_builder->finalize();
         }
 
         return llvm_module;
@@ -821,7 +1104,8 @@ namespace h::compiler
         LLVM_data& llvm_data,
         Module const& core_module,
         std::span<Module const> const core_module_dependencies,
-        std::optional<std::span<std::string_view const>> const functions_to_compile
+        std::optional<std::span<std::string_view const>> const functions_to_compile,
+        Compilation_options const& compilation_options
     )
     {
         Type_database type_database = create_type_database(*llvm_data.context);
@@ -834,29 +1118,31 @@ namespace h::compiler
             add_declarations(declaration_database, module_dependency);
         add_declarations(declaration_database, core_module);
 
-        std::unique_ptr<llvm::Module> llvm_module = create_module(*llvm_data.context, llvm_data.target_triple, llvm_data.data_layout, core_module, core_module_dependencies, functions_to_compile, declaration_database, type_database);
+        std::unique_ptr<llvm::Module> llvm_module = create_module(*llvm_data.context, llvm_data.target_triple, llvm_data.data_layout, core_module, core_module_dependencies, functions_to_compile, declaration_database, type_database, compilation_options);
         return llvm_module;
     }
 
     std::unique_ptr<llvm::Module> create_llvm_module(
         LLVM_data& llvm_data,
         Module const& core_module,
-        std::span<Module const> const core_module_dependencies
+        std::span<Module const> const core_module_dependencies,
+        Compilation_options const& compilation_options
     )
     {
-        return create_llvm_module(llvm_data, core_module, core_module_dependencies, std::nullopt);
+        return create_llvm_module(llvm_data, core_module, core_module_dependencies, std::nullopt, compilation_options);
     }
 
     LLVM_module_data create_llvm_module(
         LLVM_data& llvm_data,
         Module const& core_module,
-        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map,
+        Compilation_options const& compilation_options
     )
     {
         std::pmr::vector<Module> core_module_dependencies = create_dependency_core_modules(core_module, module_name_to_file_path_map);
         remove_unused_declarations(core_module, core_module_dependencies);
 
-        std::unique_ptr<llvm::Module> llvm_module = create_llvm_module(llvm_data, core_module, core_module_dependencies);
+        std::unique_ptr<llvm::Module> llvm_module = create_llvm_module(llvm_data, core_module, core_module_dependencies, compilation_options);
 
         return {
             .dependencies = std::move(core_module_dependencies),
@@ -904,11 +1190,12 @@ namespace h::compiler
     void generate_object_file(
         std::filesystem::path const& output_file_path,
         Module const& core_module,
-        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map,
+        Compilation_options const& compilation_options
     )
     {
         LLVM_data llvm_data = initialize_llvm();
-        LLVM_module_data llvm_module_data = create_llvm_module(llvm_data, core_module, module_name_to_file_path_map);
+        LLVM_module_data llvm_module_data = create_llvm_module(llvm_data, core_module, module_name_to_file_path_map, compilation_options);
 
         llvm_module_data.module->print(llvm::errs(), nullptr);
 
