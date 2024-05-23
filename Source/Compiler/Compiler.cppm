@@ -48,25 +48,34 @@ namespace h::compiler
         std::unique_ptr<llvm::Module> module;
     };
 
+    export struct Compilation_options
+    {
+        bool debug;
+        bool is_optimized;
+    };
+
     export LLVM_data initialize_llvm();
 
     export std::unique_ptr<llvm::Module> create_llvm_module(
         LLVM_data& llvm_data,
         Module const& core_module,
         std::span<Module const> const core_module_dependencies,
-        std::optional<std::span<std::string_view const>> const functions_to_compile
+        std::optional<std::span<std::string_view const>> const functions_to_compile,
+        Compilation_options const& compilation_options
     );
 
     export std::unique_ptr<llvm::Module> create_llvm_module(
         LLVM_data& llvm_data,
         Module const& core_module,
-        std::span<Module const> const core_module_dependencies
+        std::span<Module const> const core_module_dependencies,
+        Compilation_options const& compilation_options
     );
 
     export LLVM_module_data create_llvm_module(
         LLVM_data& llvm_data,
         Module const& core_module,
-        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map,
+        Compilation_options const& compilation_options
     );
 
     export void remove_unused_declarations(
@@ -92,6 +101,7 @@ namespace h::compiler
     export void generate_object_file(
         std::filesystem::path const& output_file_path,
         Module const& core_module,
-        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map,
+        Compilation_options const& compilation_options
     );
 }

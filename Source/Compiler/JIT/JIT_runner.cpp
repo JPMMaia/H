@@ -378,7 +378,12 @@ namespace h::compiler
         {
             .llvm_data = *unprotected_data.llvm_data,
             .core_module = std::move(*core_module),
-            .core_module_dependencies = std::move(*core_module_dependencies)
+            .core_module_dependencies = std::move(*core_module_dependencies),
+            // TODO
+            .compilation_options = {
+                .debug = false,
+                .is_optimized = false
+            }
         };
         return add_core_module(*unprotected_data.jit_data, library, std::move(core_compilation_data));
     }

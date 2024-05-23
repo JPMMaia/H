@@ -38,6 +38,8 @@ target_sources(H_compiler PRIVATE
    "Common.cpp"
    "Compiler.cppm"
    "Compiler.cpp"
+   "Debug_info.cppm"
+   "Debug_info.cpp"
    "Expressions.cppm"
    "Expressions.cpp"
    "Hash.cppm"

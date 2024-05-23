@@ -331,6 +331,11 @@ namespace h::json
                 std::pmr::string* pointer = static_cast<std::pmr::string*>(current_state.pointer);
                 *pointer = string;
             }
+            else if (current_state.type == "std::filesystem::path")
+            {
+                std::filesystem::path* pointer = static_cast<std::filesystem::path*>(current_state.pointer);
+                *pointer = string;
+            }
             else if (current_state.type == "variant_type")
             {
                 Stack_state& parent_state = this->state_stack[state_stack.size() - 2];

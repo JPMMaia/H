@@ -1,0 +1,33 @@
+module Debug_information;
+
+using My_alias = Int32;
+
+enum My_enum
+{
+    A = 0,
+    B,
+}
+
+struct My_struct
+{
+    a: Int32 = 0i32;
+    b: Int64 = 0i64;
+}
+
+union My_union
+{
+    a: Int32;
+    b: Float32;
+}
+
+export function run(
+    parameter_0: Int32,
+    parameter_1: Int32,
+    parameter_2: My_alias,
+    parameter_3: My_enum,
+    parameter_4: My_struct,
+    parameter_5: My_union
+) -> (result: Int32)
+{
+    return parameter_0 + parameter_1;
+}

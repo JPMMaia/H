@@ -2,15 +2,15 @@ set(PARSER_SOURCE_PATH "${CMAKE_SOURCE_DIR}/Tools/vscode/H-editor/src")
 
 add_custom_command(
     OUTPUT
-        "${CMAKE_CURRENT_BINARY_DIR}/js/application/package.json.in"
-        "${CMAKE_CURRENT_BINARY_DIR}/js/application/tsconfig.json.in"
-        "${CMAKE_CURRENT_BINARY_DIR}/js/application/webpack.config.js.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/js/webpack_config/package.json.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/js/webpack_config/tsconfig.json.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/js/webpack_config/webpack.config.js.in"
     COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "${PARSER_SOURCE_PATH}" "${CMAKE_CURRENT_BINARY_DIR}/js"
     DEPENDS
         "${PARSER_SOURCE_PATH}/application/*.ts"
-        "${PARSER_SOURCE_PATH}/application/*.json.in"
-        "${PARSER_SOURCE_PATH}/application/*.js.in"
         "${PARSER_SOURCE_PATH}/core/*.ts"
+        "${PARSER_SOURCE_PATH}/webpack_config/*.json.in"
+        "${PARSER_SOURCE_PATH}/webpack_config/*.js.in"
     VERBATIM
     COMMENT "Copy Parser source"
 )
@@ -20,13 +20,15 @@ add_custom_command(
         "${CMAKE_CURRENT_BINARY_DIR}/js/package.json"
         "${CMAKE_CURRENT_BINARY_DIR}/js/tsconfig.json"
         "${CMAKE_CURRENT_BINARY_DIR}/js/webpack.config.js"
-    COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_BINARY_DIR}/js/application/package.json.in" "${CMAKE_CURRENT_BINARY_DIR}/js/package.json"
-    COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_BINARY_DIR}/js/application/tsconfig.json.in" "${CMAKE_CURRENT_BINARY_DIR}/js/tsconfig.json"
-    COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_BINARY_DIR}/js/application/webpack.config.js.in" "${CMAKE_CURRENT_BINARY_DIR}/js/webpack.config.js"
+    COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_BINARY_DIR}/js/webpack_config/package.json.in" "${CMAKE_CURRENT_BINARY_DIR}/js/package.json"
+    COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_BINARY_DIR}/js/webpack_config/tsconfig.json.in" "${CMAKE_CURRENT_BINARY_DIR}/js/tsconfig.json"
+    COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_BINARY_DIR}/js/webpack_config/webpack.config.js.in" "${CMAKE_CURRENT_BINARY_DIR}/js/webpack.config.js"
+    COMMAND "${CMAKE_COMMAND}" "-E" "rm" "${CMAKE_CURRENT_BINARY_DIR}/js/application/tsconfig.json"
+    COMMAND "${CMAKE_COMMAND}" "-E" "rm" "${CMAKE_CURRENT_BINARY_DIR}/js/application/package.json"
     DEPENDS
-        "${CMAKE_CURRENT_BINARY_DIR}/js/application/package.json.in"
-        "${CMAKE_CURRENT_BINARY_DIR}/js/application/tsconfig.json.in"
-        "${CMAKE_CURRENT_BINARY_DIR}/js/application/webpack.config.js.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/js/webpack_config/package.json.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/js/webpack_config/tsconfig.json.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/js/webpack_config/webpack.config.js.in"
     VERBATIM
     COMMENT "Copy Parser application configuration files"
 )

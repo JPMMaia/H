@@ -85,7 +85,8 @@ namespace h::compiler
                 m_core_module_compilation_data.llvm_data,
                 m_core_module_compilation_data.core_module,
                 m_core_module_compilation_data.core_module_dependencies,
-                functions_to_compile
+                functions_to_compile,
+                m_core_module_compilation_data.compilation_options
             );
 
             {

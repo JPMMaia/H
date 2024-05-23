@@ -448,6 +448,7 @@ namespace h::json
         }
     }
 
+    export std::optional<Stack_state> get_next_state_source_location(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_integer_type(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_builtin_type_reference(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_function_type(Stack_state* state, std::string_view const key);
@@ -501,6 +502,35 @@ namespace h::json
     export std::optional<Stack_state> get_next_state_module_declarations(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_module_definitions(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_module(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_source_location(Stack_state* state, std::string_view const key)
+    {
+        h::Source_location* parent = static_cast<h::Source_location*>(state->pointer);
+
+        if (key == "line")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->line,
+                .type = "std::uint32_t",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "column")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->column,
+                .type = "std::uint32_t",
+                .get_next_state = nullptr,
+            };
+        }
+
+        return {};
+    }
+
     export std::optional<Stack_state> get_next_state_integer_type(Stack_state* state, std::string_view const key)
     {
         h::Integer_type* parent = static_cast<h::Integer_type*>(state->pointer);
@@ -1016,6 +1046,17 @@ namespace h::json
             };
         }
 
+        if (key == "source_location")
+        {
+            parent->source_location = Source_location{};
+            return Stack_state
+            {
+                .pointer = &parent->source_location.value(),
+                .type = "Source_location",
+                .get_next_state = get_next_state_source_location
+            };
+        }
+
         return {};
     }
 
@@ -1118,6 +1159,17 @@ namespace h::json
                 .pointer = &parent->comment.value(),
                 .type = "std::pmr::string",
                 .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "source_location")
+        {
+            parent->source_location = Source_location{};
+            return Stack_state
+            {
+                .pointer = &parent->source_location.value(),
+                .type = "Source_location",
+                .get_next_state = get_next_state_source_location
             };
         }
 
@@ -1283,6 +1335,42 @@ namespace h::json
             };
         }
 
+        if (key == "source_location")
+        {
+            parent->source_location = Source_location{};
+            return Stack_state
+            {
+                .pointer = &parent->source_location.value(),
+                .type = "Source_location",
+                .get_next_state = get_next_state_source_location
+            };
+        }
+
+        if (key == "member_source_locations")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Source_location>* parent = static_cast<std::pmr::vector<Source_location>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Source_location>* parent = static_cast<std::pmr::vector<Source_location>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+            parent->member_source_locations = std::pmr::vector<Source_location>{};
+            return Stack_state
+            {
+                .pointer = &parent->member_source_locations.value(),
+                .type = "std::pmr::vector<Source_location>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_source_location
+            };
+        }
+
         return {};
     }
 
@@ -1395,6 +1483,42 @@ namespace h::json
                 .set_vector_size = set_vector_size,
                 .get_element = get_element,
                 .get_next_state_element = get_next_state_indexed_comment
+            };
+        }
+
+        if (key == "source_location")
+        {
+            parent->source_location = Source_location{};
+            return Stack_state
+            {
+                .pointer = &parent->source_location.value(),
+                .type = "Source_location",
+                .get_next_state = get_next_state_source_location
+            };
+        }
+
+        if (key == "member_source_locations")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Source_location>* parent = static_cast<std::pmr::vector<Source_location>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Source_location>* parent = static_cast<std::pmr::vector<Source_location>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+            parent->member_source_locations = std::pmr::vector<Source_location>{};
+            return Stack_state
+            {
+                .pointer = &parent->member_source_locations.value(),
+                .type = "std::pmr::vector<Source_location>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_source_location
             };
         }
 
@@ -1922,6 +2046,17 @@ namespace h::json
                 .set_vector_size = set_vector_size,
                 .get_element = get_element,
                 .get_next_state_element = get_next_state_statement
+            };
+        }
+
+        if (key == "block_source_location")
+        {
+            parent->block_source_location = Source_location{};
+            return Stack_state
+            {
+                .pointer = &parent->block_source_location.value(),
+                .type = "Source_location",
+                .get_next_state = get_next_state_source_location
             };
         }
 
@@ -2710,6 +2845,17 @@ namespace h::json
             };
         }
 
+        if (key == "source_location")
+        {
+            parent->source_location = Source_location{};
+            return Stack_state
+            {
+                .pointer = &parent->source_location.value(),
+                .type = "Source_location",
+                .get_next_state = get_next_state_source_location
+            };
+        }
+
         return {};
     }
 
@@ -2822,6 +2968,67 @@ namespace h::json
             };
         }
 
+        if (key == "source_location")
+        {
+            parent->source_location = Source_location{};
+            return Stack_state
+            {
+                .pointer = &parent->source_location.value(),
+                .type = "Source_location",
+                .get_next_state = get_next_state_source_location
+            };
+        }
+
+        if (key == "input_parameter_source_locations")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Source_location>* parent = static_cast<std::pmr::vector<Source_location>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Source_location>* parent = static_cast<std::pmr::vector<Source_location>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+            parent->input_parameter_source_locations = std::pmr::vector<Source_location>{};
+            return Stack_state
+            {
+                .pointer = &parent->input_parameter_source_locations.value(),
+                .type = "std::pmr::vector<Source_location>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_source_location
+            };
+        }
+
+        if (key == "output_parameter_source_locations")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Source_location>* parent = static_cast<std::pmr::vector<Source_location>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Source_location>* parent = static_cast<std::pmr::vector<Source_location>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+            parent->output_parameter_source_locations = std::pmr::vector<Source_location>{};
+            return Stack_state
+            {
+                .pointer = &parent->output_parameter_source_locations.value(),
+                .type = "std::pmr::vector<Source_location>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_source_location
+            };
+        }
+
         return {};
     }
 
@@ -2862,6 +3069,17 @@ namespace h::json
                 .set_vector_size = set_vector_size,
                 .get_element = get_element,
                 .get_next_state_element = get_next_state_statement
+            };
+        }
+
+        if (key == "source_location")
+        {
+            parent->source_location = Source_location{};
+            return Stack_state
+            {
+                .pointer = &parent->source_location.value(),
+                .type = "Source_location",
+                .get_next_state = get_next_state_source_location
             };
         }
 
@@ -3239,12 +3457,33 @@ namespace h::json
             };
         }
 
+        if (key == "source_file_path")
+        {
+            parent->source_file_path = std::filesystem::path{};
+            return Stack_state
+            {
+                .pointer = &parent->source_file_path.value(),
+                .type = "std::filesystem::path",
+                .get_next_state = nullptr,
+            };
+        }
+
         return {};
     }
 
     export template<typename Struct_type>
         Stack_state get_first_state(Struct_type* output)
     {
+        if constexpr (std::is_same_v<Struct_type, h::Source_location>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Source_location",
+                .get_next_state = get_next_state_source_location
+            };
+        }
+
         if constexpr (std::is_same_v<Struct_type, h::Integer_type>)
         {
             return Stack_state

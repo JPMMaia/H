@@ -82,6 +82,30 @@ describe("Parse_tree_text_iterator", () => {
         text.indexOf("}"),
     ];
 
+    const expected_line: number[] = [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        3,
+        4,
+    ];
+
+    const expected_column: number[] = [
+        9,
+        18,
+        24,
+        25,
+        27,
+        30,
+        31,
+        9,
+        9,
+    ];
+
     it("Can iterate forward", () => {
 
         let iterator = Parse_tree_text_iterator.begin(root, text);
@@ -90,6 +114,8 @@ describe("Parse_tree_text_iterator", () => {
         if (iterator.node !== undefined) {
             assert.equal(iterator.node.word.value, expected_word[0]);
             assert.equal(iterator.offset, expected_offset[0]);
+            assert.equal(iterator.line, expected_line[0]);
+            assert.equal(iterator.column, expected_column[0]);
         }
 
         for (let index = 1; index < expected_word.length; ++index) {
@@ -100,22 +126,28 @@ describe("Parse_tree_text_iterator", () => {
             if (iterator.node !== undefined) {
                 assert.equal(iterator.node.word.value, expected_word[index]);
                 assert.equal(iterator.offset, expected_offset[index]);
+                assert.equal(iterator.line, expected_line[index]);
+                assert.equal(iterator.column, expected_column[index]);
             }
         }
 
         iterator = Parse_tree_text_iterator.next(iterator);
         assert.equal(iterator.node, undefined);
         assert.equal(iterator.offset, text.length);
+        assert.equal(iterator.line, -1);
+        assert.equal(iterator.column, -1);
     });
 
     it("Can iterate back", () => {
 
-        let iterator: Parse_tree_text_iterator.Iterator | undefined = Parse_tree_text_iterator.end(root, text);
+        let iterator: Parse_tree_text_iterator.Iterator | undefined = Parse_tree_text_iterator.end(root, text, true);
 
         assert.notEqual(iterator, undefined);
         if (iterator !== undefined) {
             assert.equal(iterator.node, undefined);
             assert.equal(iterator.offset, text.length);
+            assert.equal(iterator.line, 5);
+            assert.equal(iterator.column, 5);
 
             for (let index = expected_offset.length - 1; index >= 0; --index) {
                 if (iterator !== undefined) {
@@ -127,6 +159,8 @@ describe("Parse_tree_text_iterator", () => {
                         if (iterator.node !== undefined) {
                             assert.equal(iterator.node.word.value, expected_word[index]);
                             assert.equal(iterator.offset, expected_offset[index]);
+                            assert.equal(iterator.line, expected_line[index]);
+                            assert.equal(iterator.column, expected_column[index]);
                         }
                     }
                 }
