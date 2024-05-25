@@ -92,7 +92,13 @@ namespace h::compiler
         llvm::Module const& llvm_module
     );
 
-    export void write_to_file(
+    export void write_bitcode_to_file(
+        LLVM_data const& llvm_data,
+        llvm::Module& llvm_module,
+        std::filesystem::path const& output_file_path
+    );
+
+    export void write_object_file(
         LLVM_data const& llvm_data,
         llvm::Module& llvm_module,
         std::filesystem::path const& output_file_path
