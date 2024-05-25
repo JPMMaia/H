@@ -10,12 +10,14 @@ module;
 #include <optional>
 #include <span>
 #include <unordered_map>
+#include <variant>
 
 module h.builder;
 
 import h.common;
 import h.core;
 import h.compiler;
+import h.compiler.artifact;
 import h.compiler.common;
 import h.compiler.linker;
 import h.compiler.repository;
@@ -58,6 +60,7 @@ namespace h::builder
         std::filesystem::path const& build_directory_path,
         std::filesystem::path const& output_path,
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path>& module_name_to_file_path_map,
+        h::compiler::Compilation_options const& compilation_options,
         h::compiler::Linker_options const& linker_options
     )
     {
@@ -101,10 +104,13 @@ namespace h::builder
             std::string_view const entry_point = linker_options.entry_point;
 
             h::compiler::LLVM_data llvm_data = h::compiler::initialize_llvm();
-            h::compiler::LLVM_module_data llvm_module_data = h::compiler::create_llvm_module(llvm_data, module.value(), module_name_to_file_path_map);
+            h::compiler::LLVM_module_data llvm_module_data = h::compiler::create_llvm_module(llvm_data, module.value(), module_name_to_file_path_map, compilation_options);
 
-            std::filesystem::path const output_assembly_file = build_directory_path / std::format("{}.ll", module.value().name);
-            h::compiler::write_to_file(llvm_data, *llvm_module_data.module, output_assembly_file);
+            /*std::filesystem::path const output_assembly_file = build_directory_path / std::format("{}.ll", module.value().name);
+            h::compiler::write_bitcode_to_file(llvm_data, *llvm_module_data.module, output_assembly_file);*/
+
+            std::filesystem::path const output_assembly_file = build_directory_path / std::format("{}.o", module.value().name);
+            h::compiler::write_object_file(llvm_data, *llvm_module_data.module, output_assembly_file);
 
             object_file_paths.push_back(output_assembly_file);
         }
@@ -303,87 +309,70 @@ namespace h::builder
         std::filesystem::path const& configuration_file_path,
         std::filesystem::path const& build_directory_path,
         std::span<std::filesystem::path const> const header_search_paths,
-        std::span<h::compiler::Repository const> const repositories
+        std::span<h::compiler::Repository const> const repositories,
+        h::compiler::Compilation_options const& compilation_options
     )
     {
         create_directory_if_it_does_not_exist(build_directory_path);
 
-        std::optional<std::pmr::string> const json_data = h::common::get_file_contents(configuration_file_path);
-        if (!json_data.has_value())
-            h::common::print_message_and_exit(std::format("Failed to read contents of {}", configuration_file_path.generic_string()));
+        h::compiler::Artifact const artifact = h::compiler::get_artifact(configuration_file_path);
 
-        nlohmann::json const json = nlohmann::json::parse(json_data.value());
-
-        std::string const& artifact_name = json.at("name").get<std::string>();
-
-        std::filesystem::path const output_directory_path = build_directory_path / artifact_name;
+        std::filesystem::path const output_directory_path = build_directory_path / artifact.name;
         create_directory_if_it_does_not_exist(output_directory_path);
 
-        if (json.contains("c_headers"))
+        for (h::compiler::Dependency const& dependency : artifact.dependencies)
         {
-            for (nlohmann::json const& element : json.at("c_headers"))
-            {
-                std::string const header_name = element.at("name").get<std::string>();
-                std::string const header = element.at("header").get<std::string>();
+            std::optional<std::filesystem::path> const dependency_location = h::compiler::get_artifact_location(repositories, dependency.artifact_name);
+            if (!dependency_location.has_value())
+                h::common::print_message_and_exit(std::format("Could not find dependency {}.", dependency.artifact_name));
 
-                std::optional<std::filesystem::path> const header_path = search_file(header, header_search_paths);
+            std::filesystem::path const dependency_configuration_file_path = dependency_location.value();
+
+            build_artifact_auxiliary(module_name_to_file_path_map, libraries, target, parser, dependency_configuration_file_path, build_directory_path, header_search_paths, repositories, compilation_options);
+        }
+
+        if (artifact.info.has_value() && std::holds_alternative<h::compiler::Library_info>(*artifact.info))
+        {
+            h::compiler::Library_info const& library_info = std::get<h::compiler::Library_info>(*artifact.info);
+
+            for (h::compiler::C_header const& c_header : library_info.c_headers)
+            {
+                std::string_view const header_module_name = c_header.module_name;
+                std::string_view const header_filename = c_header.header;
+
+                std::optional<std::filesystem::path> const header_path = h::compiler::find_c_header_path(header_filename, header_search_paths);
                 if (!header_path.has_value())
-                    h::common::print_message_and_exit(std::format("Could not find header {}. Please provide its location using --header-search-path.", header));
+                    h::common::print_message_and_exit(std::format("Could not find header {}. Please provide its location using --header-search-path.", header_filename));
 
                 std::filesystem::path const header_module_filename = header_path.value().filename().replace_extension("hl");
                 std::filesystem::path const output_header_module_path = output_directory_path / header_module_filename;
 
-                h::c::import_header_and_write_to_file(header_name, header_path.value(), output_header_module_path);
+                h::c::import_header_and_write_to_file(header_module_name, header_path.value(), output_header_module_path);
 
-                module_name_to_file_path_map.insert(std::make_pair(std::pmr::string{ header_name }, output_header_module_path));
+                module_name_to_file_path_map.insert(std::make_pair(std::pmr::string{ header_module_name }, output_header_module_path));
             }
-        }
 
-        if (json.contains("external_library"))
-        {
-            std::optional<std::pmr::string> const external_library = get_external_library(json, target);
+            std::optional<h::compiler::External_library_info> const external_library = h::compiler::get_external_library(library_info.external_libraries, target, true);
             if (external_library.has_value())
             {
-                libraries.push_back(external_library.value());
+                libraries.push_back(external_library.value().name);
             }
         }
 
-        if (json.contains("dependencies"))
+        if (artifact.info.has_value() && std::holds_alternative<h::compiler::Executable_info>(*artifact.info))
         {
-            for (nlohmann::json const& element : json.at("dependencies"))
+            h::compiler::Executable_info const& executable_info = std::get<h::compiler::Executable_info>(*artifact.info);
+
+            std::filesystem::path const output_location = build_directory_path / "bin" / artifact.name;
+
+            h::compiler::Linker_options const linker_options
             {
-                std::string const dependency_name = element.at("name").get<std::string>();
+                .entry_point = executable_info.entry_point
+            };
 
-                std::optional<std::filesystem::path> const dependency_location = get_artifact_location(repositories, dependency_name);
-                if (!dependency_location.has_value())
-                    h::common::print_message_and_exit(std::format("Could not find dependency {}.", dependency_name));
+            std::pmr::vector<std::filesystem::path> const source_file_paths = h::compiler::find_included_files(artifact, {});
 
-                std::filesystem::path const dependency_configuration_file_path = dependency_location.value();
-
-                build_artifact_auxiliary(module_name_to_file_path_map, libraries, target, parser, dependency_configuration_file_path, build_directory_path, header_search_paths, repositories);
-            }
-        }
-
-        std::string const& type = json.at("type").get<std::string>();
-
-        if (type == "executable")
-        {
-            if (json.contains("executable"))
-            {
-                nlohmann::json const& executable_json = json.at("executable");
-                std::string const& entry_point = executable_json.at("entry_point").get<std::string>();
-
-                std::filesystem::path const output_location = build_directory_path / "bin" / artifact_name;
-
-                h::compiler::Linker_options const linker_options
-                {
-                    .entry_point = entry_point
-                };
-
-                std::pmr::vector<std::filesystem::path> const source_file_paths = find_included_files(executable_json, configuration_file_path.parent_path(), module_name_to_file_path_map);
-
-                build_executable(target, parser, source_file_paths, libraries, build_directory_path / artifact_name, output_location, module_name_to_file_path_map, linker_options);
-            }
+            build_executable(target, parser, source_file_paths, libraries, build_directory_path / artifact.name, output_location, module_name_to_file_path_map, compilation_options, linker_options);
         }
     }
 
@@ -393,11 +382,12 @@ namespace h::builder
         std::filesystem::path const& configuration_file_path,
         std::filesystem::path const& build_directory_path,
         std::span<std::filesystem::path const> const header_search_paths,
-        std::span<h::compiler::Repository const> const repositories
+        std::span<h::compiler::Repository const> const repositories,
+        h::compiler::Compilation_options const& compilation_options
     )
     {
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> module_name_to_file_path_map;
         std::pmr::vector<std::pmr::string> libraries;
-        build_artifact_auxiliary(module_name_to_file_path_map, libraries, target, parser, configuration_file_path, build_directory_path, header_search_paths, repositories);
+        build_artifact_auxiliary(module_name_to_file_path_map, libraries, target, parser, configuration_file_path, build_directory_path, header_search_paths, repositories, compilation_options);
     }
 }
