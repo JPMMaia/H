@@ -1,0 +1,8 @@
+module Debug_information;
+
+export function run() -> (result: Int32)
+{
+    mutable i = 0;
+    i = 2;
+    return i;
+}
