@@ -28,6 +28,7 @@ using h::json::operators::operator<<;
 namespace h
 {
   static std::filesystem::path const g_test_files_path = std::filesystem::path{ TEST_FILES_PATH };
+  static std::filesystem::path const g_test_source_files_path = std::filesystem::path{ TEST_SOURCE_FILES_PATH };
   static std::filesystem::path const g_standard_library_path = std::filesystem::path{ C_STANDARD_LIBRARY_PATH };
 
   std::string_view exclude_header(std::string_view const llvm_ir)
@@ -807,89 +808,47 @@ while_loop_after:                                 ; preds = %while_loop_conditio
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile with debug information")
+  TEST_CASE("Compile Debug Information Variables")
   {
-    char const* const input_file = "debug_information.hl";
+    char const* const input_file = "debug_information_variables.hl";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
     };
 
-    char const* const expected_llvm_ir = R"(
-%Debug_information_My_struct = type { i32, i64 }
-%Debug_information_My_union = type { [4 x i8] }
-
-define i32 @Debug_information_run(i32 %arguments.parameter_0, i32 %arguments.parameter_1, i32 %arguments.parameter_2, i32 %arguments.parameter_3, %Debug_information_My_struct %arguments.parameter_4, %Debug_information_My_union %arguments.parameter_5) !dbg !8 {
+    std::string const expected_llvm_ir = std::format(R"(
+define i32 @Debug_information_run() !dbg !3 {{
 entry:
-  %parameter_0 = alloca i32, align 4
-  call void @llvm.dbg.declare(metadata ptr %parameter_0, metadata !23, metadata !DIExpression()), !dbg !29
-  store i32 %arguments.parameter_0, ptr %parameter_0, align 4
-  %parameter_1 = alloca i32, align 4
-  call void @llvm.dbg.declare(metadata ptr %parameter_1, metadata !24, metadata !DIExpression()), !dbg !30
-  store i32 %arguments.parameter_1, ptr %parameter_1, align 4
-  %parameter_2 = alloca i32, align 4
-  call void @llvm.dbg.declare(metadata ptr %parameter_2, metadata !25, metadata !DIExpression()), !dbg !31
-  store i32 %arguments.parameter_2, ptr %parameter_2, align 4
-  %parameter_3 = alloca i32, align 4
-  call void @llvm.dbg.declare(metadata ptr %parameter_3, metadata !26, metadata !DIExpression()), !dbg !32
-  store i32 %arguments.parameter_3, ptr %parameter_3, align 4
-  %parameter_4 = alloca %Debug_information_My_struct, align 8
-  call void @llvm.dbg.declare(metadata ptr %parameter_4, metadata !27, metadata !DIExpression()), !dbg !33
-  store %Debug_information_My_struct %arguments.parameter_4, ptr %parameter_4, align 8
-  %parameter_5 = alloca %Debug_information_My_union, align 8
-  call void @llvm.dbg.declare(metadata ptr %parameter_5, metadata !28, metadata !DIExpression()), !dbg !34
-  store %Debug_information_My_union %arguments.parameter_5, ptr %parameter_5, align 1
-  %0 = load i32, ptr %parameter_0, align 4, !dbg !35
-  %1 = load i32, ptr %parameter_1, align 4, !dbg !36
-  %2 = add i32 %0, %1, !dbg !36
-  ret i32 %2, !dbg !36
-}
+  %i = alloca i32, align 4, !dbg !8
+  call void @llvm.dbg.declare(metadata ptr %i, metadata !9, metadata !DIExpression()), !dbg !8
+  store i32 0, ptr %i, align 4, !dbg !8
+  store i32 2, ptr %i, align 4, !dbg !10
+  %0 = load i32, ptr %i, align 4, !dbg !11
+  ret i32 %0, !dbg !12
+}}
 
 ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
 declare void @llvm.dbg.declare(metadata, metadata, metadata) #0
 
-attributes #0 = { nocallback nofree nosync nounwind speculatable willreturn memory(none) }
+attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
 
-!llvm.dbg.cu = !{!0}
+!llvm.module.flags = !{{!0}}
+!llvm.dbg.cu = !{{!1}}
 
-!0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "Hlang Compiler", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug, enums: !2)
-!1 = !DIFile(filename: "debug_information.hltxt", directory: "C:/Users/JPMMa/Desktop/source/H/Examples/txt")
-!2 = !{!3}
-!3 = !DICompositeType(tag: DW_TAG_enumeration_type, name: "My_enum", file: !1, line: 5, baseType: !4, size: 32, align: 8, elements: !5)
-!4 = !DIBasicType(name: "Int32", size: 32, encoding: DW_ATE_signed)
-!5 = !{!6, !7}
-!6 = !DIEnumerator(name: "A", value: 0)
-!7 = !DIEnumerator(name: "B", value: 1)
-!8 = distinct !DISubprogram(name: "run", linkageName: "Debug_information_run", scope: null, file: !1, line: 23, type: !9, scopeLine: 31, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !0, retainedNodes: !22)
-!9 = !DISubroutineType(types: !10)
-!10 = !{!4, !4, !4, !11, !3, !12, !17}
-!11 = !DIDerivedType(tag: DW_TAG_typedef, name: "My_alias", file: !1, line: 3, baseType: !4)
-!12 = !DICompositeType(tag: DW_TAG_structure_type, name: "Debug_information_My_struct", file: !1, line: 11, size: 128, align: 8, elements: !13)
-!13 = !{!14, !15}
-!14 = !DIDerivedType(tag: DW_TAG_member, name: "a", file: !1, line: 13, baseType: !4, size: 32, align: 8)
-!15 = !DIDerivedType(tag: DW_TAG_member, name: "b", file: !1, line: 14, baseType: !16, size: 64, align: 8, offset: 32)
-!16 = !DIBasicType(name: "Int64", size: 64, encoding: DW_ATE_signed)
-!17 = !DICompositeType(tag: DW_TAG_union_type, name: "Debug_information_My_union", file: !1, line: 17, size: 32, align: 8, elements: !18)
-!18 = !{!19, !20}
-!19 = !DIDerivedType(tag: DW_TAG_member, name: "a", file: !1, line: 19, baseType: !4, size: 32, align: 8)
-!20 = !DIDerivedType(tag: DW_TAG_member, name: "b", file: !1, line: 20, baseType: !21, size: 32, align: 8)
-!21 = !DIBasicType(name: "Float32", size: 32, encoding: DW_ATE_float)
-!22 = !{!23, !24, !25, !26, !27, !28}
-!23 = !DILocalVariable(name: "parameter_0", arg: 1, scope: !8, file: !1, line: 24, type: !4)
-!24 = !DILocalVariable(name: "parameter_1", arg: 2, scope: !8, file: !1, line: 25, type: !4)
-!25 = !DILocalVariable(name: "parameter_2", arg: 3, scope: !8, file: !1, line: 26, type: !11)
-!26 = !DILocalVariable(name: "parameter_3", arg: 4, scope: !8, file: !1, line: 27, type: !3)
-!27 = !DILocalVariable(name: "parameter_4", arg: 5, scope: !8, file: !1, line: 28, type: !12)
-!28 = !DILocalVariable(name: "parameter_5", arg: 6, scope: !8, file: !1, line: 29, type: !17)
-!29 = !DILocation(line: 24, column: 5, scope: !8)
-!30 = !DILocation(line: 25, column: 5, scope: !8)
-!31 = !DILocation(line: 26, column: 5, scope: !8)
-!32 = !DILocation(line: 27, column: 5, scope: !8)
-!33 = !DILocation(line: 28, column: 5, scope: !8)
-!34 = !DILocation(line: 29, column: 5, scope: !8)
-!35 = !DILocation(line: 32, column: 12, scope: !8)
-!36 = !DILocation(line: 32, column: 26, scope: !8)
-)";
+!0 = !{{i32 2, !"Debug Info Version", i32 3}}
+!1 = distinct !DICompileUnit(language: DW_LANG_C, file: !2, producer: "Hlang Compiler", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+!2 = !DIFile(filename: "debug_information_variables.hltxt", directory: "{}")
+!3 = distinct !DISubprogram(name: "run", linkageName: "Debug_information_run", scope: null, file: !2, line: 3, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !1, retainedNodes: !7)
+!4 = !DISubroutineType(types: !5)
+!5 = !{{!6}}
+!6 = !DIBasicType(name: "Int32", size: 32, encoding: DW_ATE_signed)
+!7 = !{{}}
+!8 = !DILocation(line: 5, column: 5, scope: !3)
+!9 = !DILocalVariable(name: "i", scope: !3, file: !2, line: 5, type: !6)
+!10 = !DILocation(line: 6, column: 5, scope: !3)
+!11 = !DILocation(line: 7, column: 12, scope: !3)
+!12 = !DILocation(line: 7, column: 5, scope: !3)
+)", g_test_source_files_path.generic_string());
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, true);
   }
