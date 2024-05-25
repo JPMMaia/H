@@ -493,7 +493,6 @@ namespace h::compiler
 
         for (std::string_view const& regular_expression : regular_expressions)
         {
-            temporaries_buffer_resource.release();
             std::pmr::vector<std::filesystem::path> const found_files = find_included_files(root_path, regular_expression, temporaries_allocator);
 
             all_found_files.insert(all_found_files.end(), found_files.begin(), found_files.end());
@@ -519,7 +518,7 @@ namespace h::compiler
             {
                 Executable_info const& executable_info = std::get<Executable_info>(*artifact.info);
 
-                return find_included_files(artifact.file_path, executable_info.include, output_allocator);
+                return find_included_files(artifact.file_path.parent_path(), executable_info.include, output_allocator);
             }
         }
 
