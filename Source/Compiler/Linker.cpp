@@ -30,6 +30,10 @@ namespace h::compiler
         arguments_storage.push_back("link");
         arguments_storage.push_back(std::format("/entry:{}", options.entry_point));
         arguments_storage.push_back(std::format("/out:{}", output.generic_string()));
+        arguments_storage.push_back("/subsystem:console");
+
+        if (options.debug)
+            arguments_storage.push_back("/debug:dwarf");
 
         for (std::string_view const library : libraries)
         {

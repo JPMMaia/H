@@ -149,7 +149,8 @@ int main(int const argc, char const* const* argv)
 
         h::compiler::Linker_options const linker_options
         {
-            .entry_point = entry
+            .entry_point = entry,
+            .debug = !no_debug
         };
 
         h::compiler::Target const target = h::compiler::get_default_target();

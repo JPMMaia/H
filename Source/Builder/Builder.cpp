@@ -367,7 +367,8 @@ namespace h::builder
 
             h::compiler::Linker_options const linker_options
             {
-                .entry_point = executable_info.entry_point
+                .entry_point = executable_info.entry_point,
+                .debug = compilation_options.debug
             };
 
             std::pmr::vector<std::filesystem::path> const source_file_paths = h::compiler::find_included_files(artifact, {});
