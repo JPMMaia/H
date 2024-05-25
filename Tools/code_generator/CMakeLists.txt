@@ -6,9 +6,13 @@ target_compile_features(H_Tools_Code_generator PUBLIC cxx_std_23)
 find_package(RapidJSON CONFIG REQUIRED)
 target_link_libraries(H_Tools_Code_generator PRIVATE rapidjson)
 
-target_sources(H_Tools_Code_generator PRIVATE
-    "Code_generator.cppm"
-    "Code_generator.cpp"
+target_sources(H_Tools_Code_generator 
+    PUBLIC
+        FILE_SET CXX_MODULES
+        FILES
+            "Code_generator.cppm"
+    PRIVATE
+        "Code_generator.cpp"
 )
 
 
