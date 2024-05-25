@@ -13,6 +13,7 @@ namespace h::compiler
     export struct Linker_options
     {
         std::string_view entry_point = "main";
+        bool debug = false;
     };
 
     export bool link(
