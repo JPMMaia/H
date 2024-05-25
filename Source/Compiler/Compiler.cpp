@@ -1168,7 +1168,7 @@ namespace h::compiler
         return output;
     }
 
-    void write_to_file(
+    void write_bitcode_to_file(
         LLVM_data const& llvm_data,
         llvm::Module& llvm_module,
         std::filesystem::path const& output_file_path
@@ -1185,6 +1185,33 @@ namespace h::compiler
         }
 
         llvm::WriteBitcodeToFile(llvm_module, output_stream);
+    }
+
+    void write_object_file(
+        LLVM_data const& llvm_data,
+        llvm::Module& llvm_module,
+        std::filesystem::path const& output_file_path
+    )
+    {
+        std::error_code error_code;
+        llvm::raw_fd_ostream output_stream(output_file_path.generic_string(), error_code, llvm::sys::fs::OF_None);
+
+        if (error_code)
+        {
+            std::string const error_message = error_code.message();
+            llvm::errs() << "Could not open file: " << error_message;
+            throw std::runtime_error{ error_message };
+        }
+
+        llvm::legacy::PassManager pass_manager;
+        if (llvm_data.target_machine->addPassesToEmitFile(pass_manager, output_stream, nullptr, llvm::CGFT_ObjectFile))
+        {
+            std::string const error_message = error_code.message();
+            llvm::errs() << "Could not emit object file: " << error_message;
+            throw std::runtime_error{ error_message };
+        }
+
+        pass_manager.run(llvm_module);
     }
 
     void generate_object_file(
