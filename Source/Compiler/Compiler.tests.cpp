@@ -808,6 +808,76 @@ while_loop_after:                                 ; preds = %while_loop_conditio
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
+  TEST_CASE("Compile Debug Information Function Call")
+  {
+    char const* const input_file = "debug_information_function_call.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    std::string const expected_llvm_ir = std::format(R"(
+define i32 @Debug_information_run() !dbg !3 {{
+entry:
+  %0 = call i32 @Debug_information_add(i32 1, i32 2), !dbg !8
+  %value = alloca i32, align 4, !dbg !9
+  call void @llvm.dbg.declare(metadata ptr %value, metadata !10, metadata !DIExpression()), !dbg !9
+  store i32 %0, ptr %value, align 4, !dbg !9
+  %1 = load i32, ptr %value, align 4, !dbg !11
+  ret i32 %1, !dbg !12
+}}
+
+define private i32 @Debug_information_add(i32 %arguments.lhs, i32 %arguments.rhs) !dbg !13 {{
+entry:
+  %lhs = alloca i32, align 4
+  call void @llvm.dbg.declare(metadata ptr %lhs, metadata !17, metadata !DIExpression()), !dbg !19
+  store i32 %arguments.lhs, ptr %lhs, align 4
+  %rhs = alloca i32, align 4
+  call void @llvm.dbg.declare(metadata ptr %rhs, metadata !18, metadata !DIExpression()), !dbg !20
+  store i32 %arguments.rhs, ptr %rhs, align 4
+  %0 = load i32, ptr %lhs, align 4, !dbg !21
+  %1 = load i32, ptr %rhs, align 4, !dbg !22
+  %2 = add i32 %0, %1, !dbg !21
+  ret i32 %2, !dbg !23
+}}
+
+; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
+declare void @llvm.dbg.declare(metadata, metadata, metadata) #0
+
+attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
+
+!llvm.module.flags = !{{!0}}
+!llvm.dbg.cu = !{{!1}}
+
+!0 = !{{i32 2, !"Debug Info Version", i32 3}}
+!1 = distinct !DICompileUnit(language: DW_LANG_C, file: !2, producer: "Hlang Compiler", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+!2 = !DIFile(filename: "debug_information_function_call.hltxt", directory: "{}")
+!3 = distinct !DISubprogram(name: "run", linkageName: "Debug_information_run", scope: null, file: !2, line: 8, type: !4, scopeLine: 9, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !1, retainedNodes: !7)
+!4 = !DISubroutineType(types: !5)
+!5 = !{{!6}}
+!6 = !DIBasicType(name: "Int32", size: 32, encoding: DW_ATE_signed)
+!7 = !{{}}
+!8 = !DILocation(line: 10, column: 17, scope: !3)
+!9 = !DILocation(line: 10, column: 5, scope: !3)
+!10 = !DILocalVariable(name: "value", scope: !3, file: !2, line: 10, type: !6)
+!11 = !DILocation(line: 11, column: 12, scope: !3)
+!12 = !DILocation(line: 11, column: 5, scope: !3)
+!13 = distinct !DISubprogram(name: "add", linkageName: "Debug_information_add", scope: null, file: !2, line: 3, type: !14, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !1, retainedNodes: !16)
+!14 = !DISubroutineType(types: !15)
+!15 = !{{!6, !6, !6}}
+!16 = !{{!17, !18}}
+!17 = !DILocalVariable(name: "lhs", arg: 1, scope: !13, file: !2, line: 3, type: !6)
+!18 = !DILocalVariable(name: "rhs", arg: 2, scope: !13, file: !2, line: 3, type: !6)
+!19 = !DILocation(line: 3, column: 14, scope: !13)
+!20 = !DILocation(line: 3, column: 26, scope: !13)
+!21 = !DILocation(line: 5, column: 12, scope: !13)
+!22 = !DILocation(line: 5, column: 18, scope: !13)
+!23 = !DILocation(line: 5, column: 5, scope: !13)
+)", g_test_source_files_path.generic_string());
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, true);
+  }
+
   TEST_CASE("Compile Debug Information Variables")
   {
     char const* const input_file = "debug_information_variables.hl";

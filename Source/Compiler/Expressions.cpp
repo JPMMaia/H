@@ -541,6 +541,9 @@ namespace h::compiler
             right_hand_side_parameters.expression_type = left_hand_side_value.type;
             Value_and_type const right_hand_side_value = create_loaded_expression_value(right_hand_side.expression_index, statement, right_hand_side_parameters);
 
+            if (parameters.debug_info != nullptr)
+                set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
+
             Value_and_type const result = create_binary_operation_instruction(llvm_builder, left_hand_side_value, right_hand_side_value, operation);
 
             return result;
@@ -1030,6 +1033,9 @@ namespace h::compiler
         Value_and_type const& right_hand_side = create_loaded_expression_value(expression.right_hand_side.expression_index, statement, parameters);
         Binary_operation const operation = expression.operation;
 
+        if (parameters.debug_info != nullptr)
+            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
+
         Value_and_type value = create_binary_operation_instruction(llvm_builder, left_hand_side, right_hand_side, operation);
         return value;
     }
@@ -1138,6 +1144,9 @@ namespace h::compiler
 
             llvm_arguments[i] = temporary.value;
         }
+
+        if (parameters.debug_info != nullptr)
+            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
 
         llvm::Value* call_instruction = llvm_builder.CreateCall(llvm_function, llvm_arguments);
 
