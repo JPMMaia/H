@@ -59,11 +59,17 @@ namespace h::compiler
 
     std::unique_ptr<JIT_data> create_jit_data(
         llvm::DataLayout& llvm_data_layout,
-        std::pmr::vector<std::filesystem::path> search_library_paths
+        std::pmr::vector<std::filesystem::path> search_library_paths,
+        bool const debug
     )
     {
         llvm::orc::LLJITBuilder builder;
         builder.setDataLayout(llvm_data_layout);
+
+        if (debug)
+        {
+            builder.setEnableDebuggerSupport(true);
+        }
 
         llvm::Expected<std::unique_ptr<llvm::orc::LLJIT>> llvm_jit_result = builder.create();
 
@@ -119,9 +125,6 @@ namespace h::compiler
         jit_data->core_module_layer = std::move(core_module_layer);
         jit_data->recompile_module_layer = std::move(recompile_module_layer);
         jit_data->search_library_paths = std::move(search_library_paths);
-
-        // TODO link libLLVMOrcDebugging.a
-        // TODO enable llvm::orc::enableDebuggerSupport(*llvm_jit);
 
         return jit_data;
     }
