@@ -30,8 +30,16 @@ target_link_libraries(H_compiler PUBLIC ${lldCOFF})
 
 target_link_libraries(H_compiler PUBLIC "wtr.hdr_watcher")
 
-find_package(xxHash CONFIG REQUIRED)
-target_link_libraries(H_compiler PRIVATE xxHash::xxhash)
+if(WIN32)
+   find_package(xxHash CONFIG REQUIRED)
+   target_link_libraries(H_compiler PRIVATE xxHash::xxhash)
+else()
+   find_package(PkgConfig REQUIRED)
+   pkg_check_modules(XXHASH REQUIRED IMPORTED_TARGET libxxhash)
+
+   target_include_directories(H_compiler PRIVATE ${XXHASH_INCLUDE_DIRS})
+   target_link_libraries(H_compiler PRIVATE PkgConfig::XXHASH)
+endif()
 
 target_sources(H_compiler PRIVATE
    "Common.cppm"
