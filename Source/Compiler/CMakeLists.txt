@@ -91,6 +91,7 @@ if(BUILD_TESTING)
       H_compiler_tests
       PRIVATE
          TEST_FILES_PATH="${CMAKE_SOURCE_DIR}/Examples/hl"
+         TEST_SOURCE_FILES_PATH="${CMAKE_SOURCE_DIR}/Examples/txt"
          C_STANDARD_LIBRARY_PATH="${CMAKE_BINARY_DIR}/C_standard_library"
          STANDARD_REPOSITORY_FILE_PATH="${CMAKE_SOURCE_DIR}/Libraries/hlang_repository.json"
          C_HEADERS_LOCATION="${c_headers_location}"
