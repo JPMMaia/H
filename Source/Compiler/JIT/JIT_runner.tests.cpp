@@ -22,6 +22,7 @@
 #include <iostream>
 
 import h.common;
+import h.compiler;
 import h.compiler.artifact;
 import h.compiler.jit_runner;
 import h.compiler.target;
@@ -116,7 +117,12 @@ namespace h
         h::common::write_to_file(main_file_path, initial_code);
 
         h::compiler::Target const target = h::compiler::get_default_target();
-        std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, {}, build_directory_path, {}, target);
+        h::compiler::Compilation_options const compilation_options =
+        {
+            .debug = false,
+            .is_optimized = false
+        };
+        std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, {}, build_directory_path, {}, target, compilation_options);
 
         int(*function_pointer)() = h::compiler::get_function<int(*)()>(*jit_runner, "test_main");
         REQUIRE(function_pointer != nullptr);
@@ -202,7 +208,12 @@ namespace h
         h::common::write_to_file(m1_file_path, m1_code);
 
         h::compiler::Target const target = h::compiler::get_default_target();
-        std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, {}, build_directory_path, {}, target);
+        h::compiler::Compilation_options const compilation_options =
+        {
+            .debug = false,
+            .is_optimized = false
+        };
+        std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, {}, build_directory_path, {}, target, compilation_options);
 
         int(*function_pointer)() = h::compiler::get_function<int(*)()>(*jit_runner, "m0_main");
         REQUIRE(function_pointer != nullptr);
@@ -276,7 +287,12 @@ namespace h
         };
 
         h::compiler::Target const target = h::compiler::get_default_target();
-        std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, repositories, build_directory_path, header_search_paths, target);
+        h::compiler::Compilation_options const compilation_options =
+        {
+            .debug = false,
+            .is_optimized = false
+        };
+        std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, repositories, build_directory_path, header_search_paths, target, compilation_options);
 
         int(*function_pointer)() = h::compiler::get_function<int(*)()>(*jit_runner, "m0_main");
         REQUIRE(function_pointer != nullptr);
@@ -331,7 +347,12 @@ namespace h
         h::common::write_to_file(m0_file_path, m0_code_with_errors);
 
         h::compiler::Target const target = h::compiler::get_default_target();
-        std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, {}, build_directory_path, {}, target);
+        h::compiler::Compilation_options const compilation_options =
+        {
+            .debug = false,
+            .is_optimized = false
+        };
+        std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, {}, build_directory_path, {}, target, compilation_options);
 
         {
             int(*function_pointer)() = h::compiler::get_function<int(*)()>(*jit_runner, "m0_main");
@@ -448,7 +469,12 @@ namespace h
         h::common::write_to_file(m1_file_path, m1_code);
 
         h::compiler::Target const target = h::compiler::get_default_target();
-        std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, {}, build_directory_path, {}, target);
+        h::compiler::Compilation_options const compilation_options =
+        {
+            .debug = false,
+            .is_optimized = false
+        };
+        std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, {}, build_directory_path, {}, target, compilation_options);
 
         {
             int(*function_pointer)() = h::compiler::get_function<int(*)()>(*jit_runner, "m0_main");
@@ -519,7 +545,12 @@ namespace h
         h::common::write_to_file(m1_file_path, m1_code);
 
         h::compiler::Target const target = h::compiler::get_default_target();
-        std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, {}, build_directory_path, {}, target);
+        h::compiler::Compilation_options const compilation_options =
+        {
+            .debug = false,
+            .is_optimized = false
+        };
+        std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, {}, build_directory_path, {}, target, compilation_options);
 
         {
             int(*function_pointer)() = h::compiler::get_function<int(*)()>(*jit_runner, "m0_main");
@@ -597,7 +628,12 @@ namespace h
         h::common::write_to_file(m0_file_path, m0_code);
 
         h::compiler::Target const target = h::compiler::get_default_target();
-        std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, {}, build_directory_path, {}, target);
+        h::compiler::Compilation_options const compilation_options =
+        {
+            .debug = false,
+            .is_optimized = false
+        };
+        std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, {}, build_directory_path, {}, target, compilation_options);
 
         {
             int(*function_pointer)() = h::compiler::get_function<int(*)()>(*jit_runner, "m0_main");
@@ -688,7 +724,12 @@ namespace h
         h::common::write_to_file(m1_file_path, m1_code);
 
         h::compiler::Target const target = h::compiler::get_default_target();
-        std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, {}, build_directory_path, {}, target);
+        h::compiler::Compilation_options const compilation_options =
+        {
+            .debug = false,
+            .is_optimized = false
+        };
+        std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, {}, build_directory_path, {}, target, compilation_options);
 
         {
             int(*function_pointer)() = h::compiler::get_function<int(*)()>(*jit_runner, "m0_main");
@@ -786,7 +827,12 @@ namespace h
         h::common::write_to_file(m1_file_path, m1_code);
 
         h::compiler::Target const target = h::compiler::get_default_target();
-        std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, {}, build_directory_path, {}, target);
+        h::compiler::Compilation_options const compilation_options =
+        {
+            .debug = false,
+            .is_optimized = false
+        };
+        std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, {}, build_directory_path, {}, target, compilation_options);
 
         {
             int(*function_pointer)() = h::compiler::get_function<int(*)()>(*jit_runner, "m0_main");

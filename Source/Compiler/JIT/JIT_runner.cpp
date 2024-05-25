@@ -379,11 +379,7 @@ namespace h::compiler
             .llvm_data = *unprotected_data.llvm_data,
             .core_module = std::move(*core_module),
             .core_module_dependencies = std::move(*core_module_dependencies),
-            // TODO
-            .compilation_options = {
-                .debug = false,
-                .is_optimized = false
-            }
+            .compilation_options = unprotected_data.compilation_options,
         };
         return add_core_module(*unprotected_data.jit_data, library, std::move(core_compilation_data));
     }
@@ -706,7 +702,8 @@ namespace h::compiler
         std::span<std::filesystem::path const> const repositories_file_paths,
         std::filesystem::path const& build_directory_path,
         std::span<std::filesystem::path const> const header_search_paths,
-        Target const& target
+        Target const& target,
+        Compilation_options const& compilation_options
     )
     {
         // Print internal LLVM messages:
@@ -717,7 +714,7 @@ namespace h::compiler
         // Create readonly and protected data:
         {
             std::unique_ptr<h::compiler::LLVM_data> llvm_data = std::make_unique<h::compiler::LLVM_data>(h::compiler::initialize_llvm());
-            std::unique_ptr<JIT_data> jit_data = create_jit_data(llvm_data->data_layout, h::common::get_default_library_directories());
+            std::unique_ptr<JIT_data> jit_data = create_jit_data(llvm_data->data_layout, h::common::get_default_library_directories(), compilation_options.debug);
 
             jit_runner->unprotected_data =
             {
@@ -727,7 +724,8 @@ namespace h::compiler
                 .parser = h::parser::create_parser(),
                 .llvm_data = std::move(llvm_data),
                 .jit_data = std::move(jit_data),
-                .log_level = 1
+                .log_level = 1,
+                .compilation_options = compilation_options
             };
 
             for (std::filesystem::path const& repository_file_path : repositories_file_paths)

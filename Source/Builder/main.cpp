@@ -68,6 +68,13 @@ argparse::Argument& add_repository_argument(argparse::ArgumentParser& command)
         .append();
 }
 
+argparse::Argument& add_no_debug_argument(argparse::ArgumentParser& command)
+{
+    return command.add_argument("--no-debug")
+        .help("Do not add debug information")
+        .flag();
+}
+
 int main(int const argc, char const* const* argv)
 {
     argparse::ArgumentParser program("hlang");
@@ -104,6 +111,7 @@ int main(int const argc, char const* const* argv)
     add_build_directory_argument(run_with_jit_command);
     add_header_search_path_argument(run_with_jit_command);
     add_repository_argument(run_with_jit_command);
+    add_no_debug_argument(run_with_jit_command);
     program.add_subparser(run_with_jit_command);
 
     try
@@ -164,10 +172,17 @@ int main(int const argc, char const* const* argv)
         std::pmr::vector<std::filesystem::path> const header_search_paths = convert_to_path(subprogram.get<std::vector<std::string>>("--header-search-path"));
         std::pmr::vector<std::filesystem::path> const repository_paths = convert_to_path(subprogram.get<std::vector<std::string>>("--repository"));
         std::pmr::vector<h::compiler::Repository> const repositories = h::compiler::get_repositories(repository_paths);
+        bool const no_debug = subprogram.get<bool>("--no-debug");
 
         h::compiler::Target const target = h::compiler::get_default_target();
 
-        std::unique_ptr<h::compiler::JIT_runner> const jit_runner = h::compiler::setup_jit_and_watch(artifact_file_path, repository_paths, build_directory_path, header_search_paths, target);
+        h::compiler::Compilation_options const compilation_options =
+        {
+            .debug = !no_debug,
+            .is_optimized = false // TODO
+        };
+
+        std::unique_ptr<h::compiler::JIT_runner> const jit_runner = h::compiler::setup_jit_and_watch(artifact_file_path, repository_paths, build_directory_path, header_search_paths, target, compilation_options);
 
         void(*function_pointer)() = h::compiler::get_entry_point_function<void(*)()>(*jit_runner, artifact_file_path);
         if (function_pointer == nullptr)

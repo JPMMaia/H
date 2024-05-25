@@ -42,7 +42,8 @@ namespace h::compiler
 
     export std::unique_ptr<JIT_data> create_jit_data(
         llvm::DataLayout& llvm_data_layout,
-        std::pmr::vector<std::filesystem::path> search_library_paths
+        std::pmr::vector<std::filesystem::path> search_library_paths,
+        bool const debug
     );
 
     export bool add_core_module(

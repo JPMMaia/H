@@ -37,6 +37,7 @@ namespace h::compiler
         std::unique_ptr<h::compiler::LLVM_data> llvm_data;
         std::unique_ptr<JIT_data> jit_data;
         int log_level;
+        Compilation_options compilation_options;
     };
 
     struct JIT_runner_protected_data
@@ -67,7 +68,8 @@ namespace h::compiler
         std::span<std::filesystem::path const> repositories_file_paths,
         std::filesystem::path const& build_directory_path,
         std::span<std::filesystem::path const> header_search_paths,
-        Target const& target
+        Target const& target,
+        Compilation_options const& compilation_options
     );
 
     export
