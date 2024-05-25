@@ -1,0 +1,12 @@
+module Debug_information;
+
+function add(lhs: Int32, rhs: Int32) -> (result: Int32)
+{
+    return lhs + rhs;
+}
+
+export function run() -> (result: Int32)
+{
+    var value = add(1, 2);
+    return value;
+}
