@@ -573,6 +573,9 @@ namespace h::compiler
             parameters
         );
 
+        if (parameters.debug_info != nullptr)
+            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
+
         llvm::Value* store_instruction = llvm_builder.CreateStore(result.value, left_hand_side.value);
 
         return
@@ -1845,6 +1848,9 @@ namespace h::compiler
         new_parameters.expression_type = function_output_type.has_value() ? fix_custom_type_reference(function_output_type.value(), parameters.core_module.name) : std::optional<Type_reference>{};
         Value_and_type const temporary = create_loaded_expression_value(expression.expression.expression_index, statement, new_parameters);
 
+        if (parameters.debug_info != nullptr)
+            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
+
         llvm::Value* const instruction = llvm_builder.CreateRet(temporary.value);
 
         return
@@ -2152,6 +2158,9 @@ namespace h::compiler
 
         Value_and_type const& right_hand_side = create_loaded_expression_value(expression.right_hand_side.expression_index, statement, parameters);
 
+        if (parameters.debug_info != nullptr)
+            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
+
         llvm::Value* const alloca = llvm_builder.CreateAlloca(right_hand_side.value->getType(), nullptr, expression.name.c_str());
 
         if (parameters.debug_info != nullptr)
@@ -2188,6 +2197,9 @@ namespace h::compiler
             expression.right_hand_side,
             new_parameters
         );
+
+        if (parameters.debug_info != nullptr)
+            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
 
         llvm::Value* const alloca = llvm_builder.CreateAlloca(llvm_type, nullptr, expression.name.c_str());
 
@@ -2385,13 +2397,6 @@ namespace h::compiler
         {
             Source_location const source_location = *expression.source_location;
             new_parameters.source_location = source_location;
-
-            set_debug_location(
-                parameters.llvm_builder,
-                *parameters.debug_info,
-                source_location.line,
-                source_location.column
-            );
         }
 
         if (std::holds_alternative<Access_expression>(expression.data))
@@ -2533,6 +2538,11 @@ namespace h::compiler
             {
                 return value;
             }
+
+            h::Expression const& expression = statement.expressions[expression_index];
+
+            if (parameters.debug_info != nullptr)
+                set_debug_location(parameters.llvm_builder, *parameters.debug_info, expression.source_location->line, expression.source_location->column);
 
             llvm::Value* const loaded_value = parameters.llvm_builder.CreateLoad(llvm_type, value.value);
             return Value_and_type

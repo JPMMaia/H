@@ -881,6 +881,12 @@ namespace h::compiler
         if (!compilation_options.debug)
             return nullptr;
 
+        llvm_module.addModuleFlag(
+            llvm::Module::Warning,
+            "Debug Info Version",
+            llvm::LLVMConstants::DEBUG_METADATA_VERSION
+        );
+
         std::unique_ptr<llvm::DIBuilder> llvm_debug_builder = std::make_unique<llvm::DIBuilder>(llvm_module);
 
         std::pmr::unordered_map<std::pmr::string, llvm::DICompileUnit*> module_name_to_llvm_debug_compile_unit;
@@ -1058,7 +1064,12 @@ namespace h::compiler
         char const* const features = "";
         llvm::TargetOptions const target_options;
         std::optional<llvm::Reloc::Model> const code_model;
+        // TODO investigate JIT argument to createTargetMachine
         llvm::TargetMachine* target_machine = target.createTargetMachine(target_triple, cpu, features, target_options, code_model);
+
+        // TODO set according to optimization level
+        target_machine->setOptLevel(llvm::CodeGenOpt::Level::None);
+
         llvm::DataLayout llvm_data_layout = target_machine->createDataLayout();
 
         std::unique_ptr<llvm::LLVMContext> llvm_context = std::make_unique<llvm::LLVMContext>();
@@ -1068,6 +1079,7 @@ namespace h::compiler
         std::unique_ptr<llvm::CGSCCAnalysisManager> cgscc_analysis_manager = std::make_unique<llvm::CGSCCAnalysisManager>();
         std::unique_ptr<llvm::ModuleAnalysisManager> module_analysis_manager = std::make_unique<llvm::ModuleAnalysisManager>();
 
+        // TODO set according to optimization level
         llvm::PassBuilder pass_builder;
         pass_builder.registerModuleAnalyses(*module_analysis_manager);
         pass_builder.registerCGSCCAnalyses(*cgscc_analysis_manager);
@@ -1226,6 +1238,6 @@ namespace h::compiler
 
         llvm_module_data.module->print(llvm::errs(), nullptr);
 
-        write_to_file(llvm_data, *llvm_module_data.module, output_file_path);
+        write_object_file(llvm_data, *llvm_module_data.module, output_file_path);
     }
 }
