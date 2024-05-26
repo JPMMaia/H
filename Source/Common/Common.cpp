@@ -44,7 +44,11 @@ namespace h::common
     {
         std::FILE* const file = std::fopen(path, "w");
         if (file == nullptr)
-            throw std::runtime_error{ std::format("Cannot write to '{}'", path) };
+        {
+            std::string const message = std::format("Cannot write to '{}'", path);
+            std::perror(message.c_str());
+            throw std::runtime_error{ message };
+        }
 
         std::fwrite(content.data(), sizeof(std::string_view::value_type), content.size(), file);
 
