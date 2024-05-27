@@ -81,8 +81,9 @@ namespace h::compiler
             if (std::holds_alternative<h::Custom_type_reference>(type_reference.data))
             {
                 h::Custom_type_reference const& custom_type_reference = std::get<h::Custom_type_reference>(type_reference.data);
+                std::string_view const type_module_name = find_module_name(core_module, custom_type_reference.module_reference);
 
-                if (custom_type_reference.module_reference.name == "" || custom_type_reference.module_reference.name == core_module.name)
+                if (type_module_name == core_module.name)
                 {
                     if (!visited_symbols.contains(custom_type_reference.name))
                     {
@@ -126,8 +127,9 @@ namespace h::compiler
             if (std::holds_alternative<h::Custom_type_reference>(type_reference.data))
             {
                 h::Custom_type_reference const& custom_type_reference = std::get<h::Custom_type_reference>(type_reference.data);
+                std::string_view const type_module_name = find_module_name(core_module, custom_type_reference.module_reference);
 
-                if (custom_type_reference.module_reference.name == dependency_module.name)
+                if (type_module_name == dependency_module.name)
                 {
                     if (dependency_symbols_that_changed.contains(custom_type_reference.name))
                     {
@@ -136,7 +138,7 @@ namespace h::compiler
                     }
                 }
 
-                if (custom_type_reference.module_reference.name == "" || custom_type_reference.module_reference.name == core_module.name)
+                if (type_module_name == core_module.name)
                 {
                     if (!visited_symbols.contains(custom_type_reference.name))
                     {

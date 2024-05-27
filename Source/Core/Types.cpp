@@ -12,6 +12,7 @@ module;
 
 module h.core.types;
 
+import h.common;
 import h.core;
 
 namespace h
@@ -53,19 +54,42 @@ namespace h
         return std::holds_alternative<Custom_type_reference>(type.data);
     }
 
-    void set_custom_type_reference_module_name_if_empty(Type_reference& type, std::string_view const module_name)
+    Custom_type_reference fix_custom_type_reference(
+        Custom_type_reference type,
+        Module const& core_module
+    )
+    {
+        if (type.module_reference.name.empty() || type.module_reference.name == core_module.name)
+        {
+            type.module_reference.name = core_module.name;
+        }
+        else
+        {
+            auto const location = std::find_if(
+                core_module.dependencies.alias_imports.begin(),
+                core_module.dependencies.alias_imports.end(),
+                [&](Import_module_with_alias const& alias_import) { return alias_import.alias == type.module_reference.name; }
+            );
+
+            if (location == core_module.dependencies.alias_imports.end())
+                h::common::print_message_and_exit(std::format("Could not find import alias '{}' in module '{}'", type.module_reference.name, core_module.name));
+
+            type.module_reference.name = location->module_name;
+        }
+
+        return type;
+    }
+
+    Type_reference fix_custom_type_reference(
+        Type_reference type,
+        Module const& core_module
+    )
     {
         if (std::holds_alternative<Custom_type_reference>(type.data))
         {
-            Custom_type_reference& custom_type_reference = std::get<Custom_type_reference>(type.data);
-            if (custom_type_reference.module_reference.name.empty())
-                custom_type_reference.module_reference.name = module_name;
+            type.data = fix_custom_type_reference(std::get<Custom_type_reference>(type.data), core_module);
         }
-    }
 
-    Type_reference fix_custom_type_reference(Type_reference type, std::string_view module_name)
-    {
-        set_custom_type_reference_module_name_if_empty(type, module_name);
         return type;
     }
 
@@ -78,24 +102,24 @@ namespace h
         };
     }
 
-    std::optional<Type_reference> get_function_output_type_reference(Function_type const& function_type)
+    std::optional<Type_reference> get_function_output_type_reference(Function_type const& function_type, Module const& core_module)
     {
         if (function_type.output_parameter_types.empty())
             return std::nullopt;
 
         if (function_type.output_parameter_types.size() == 1)
-            return function_type.output_parameter_types.front();
+            return fix_custom_type_reference(function_type.output_parameter_types.front(), core_module);
 
         // TODO function with multiple output arguments
         return std::nullopt;
     }
 
-    std::optional<Type_reference> get_function_output_type_reference(Type_reference const& type)
+    std::optional<Type_reference> get_function_output_type_reference(Type_reference const& type, Module const& core_module)
     {
         if (std::holds_alternative<Function_type>(type.data))
         {
             Function_type const& function_type = std::get<Function_type>(type.data);
-            return get_function_output_type_reference(function_type);
+            return get_function_output_type_reference(function_type, core_module);
         }
 
         throw std::runtime_error{ "Type is not a function type!" };

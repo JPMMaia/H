@@ -72,7 +72,7 @@ namespace h::compiler
     llvm::FunctionType* to_function_type(
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
-        std::string_view const current_module_name,
+        Module const& core_module,
         std::span<Type_reference const> const input_parameter_types,
         std::span<Type_reference const> const output_parameter_types,
         bool const is_var_arg,
@@ -80,8 +80,8 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        std::pmr::vector<llvm::Type*> const llvm_input_parameter_types = type_references_to_llvm_types(llvm_context, llvm_data_layout, current_module_name, input_parameter_types, type_database, temporaries_allocator);
-        std::pmr::vector<llvm::Type*> const llvm_output_parameter_types = type_references_to_llvm_types(llvm_context, llvm_data_layout, current_module_name, output_parameter_types, type_database, temporaries_allocator);
+        std::pmr::vector<llvm::Type*> const llvm_input_parameter_types = type_references_to_llvm_types(llvm_context, llvm_data_layout, core_module, input_parameter_types, type_database, temporaries_allocator);
+        std::pmr::vector<llvm::Type*> const llvm_output_parameter_types = type_references_to_llvm_types(llvm_context, llvm_data_layout, core_module, output_parameter_types, type_database, temporaries_allocator);
 
         llvm::Type* llvm_return_type = [&]() -> llvm::Type*
         {
@@ -100,7 +100,7 @@ namespace h::compiler
     static llvm::DISubroutineType* create_debug_function_type(
         llvm::DIBuilder& llvm_debug_builder,
         llvm::DataLayout const& llvm_data_layout,
-        std::string_view const current_module_name,
+        Module const& core_module,
         std::span<Type_reference const> const input_parameter_types,
         std::span<Type_reference const> const output_parameter_types,
         std::span<std::pmr::string const> const output_parameter_names,
@@ -110,8 +110,8 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        std::pmr::vector<llvm::DIType*> const llvm_input_parameter_debug_types = type_references_to_llvm_debug_types(llvm_debug_builder, llvm_data_layout, current_module_name, input_parameter_types, debug_type_database, temporaries_allocator);
-        std::pmr::vector<llvm::DIType*> const llvm_output_parameter_debug_types = type_references_to_llvm_debug_types(llvm_debug_builder, llvm_data_layout, current_module_name, output_parameter_types, debug_type_database, temporaries_allocator);
+        std::pmr::vector<llvm::DIType*> const llvm_input_parameter_debug_types = type_references_to_llvm_debug_types(llvm_debug_builder, llvm_data_layout, core_module, input_parameter_types, debug_type_database, temporaries_allocator);
+        std::pmr::vector<llvm::DIType*> const llvm_output_parameter_debug_types = type_references_to_llvm_debug_types(llvm_debug_builder, llvm_data_layout, core_module, output_parameter_types, debug_type_database, temporaries_allocator);
 
         llvm::DIType* llvm_return_debug_type = [&]() -> llvm::DIType*
         {
@@ -226,7 +226,7 @@ namespace h::compiler
         llvm::FunctionType* const llvm_function_type = to_function_type(
             llvm_context,
             llvm_data_layout,
-            core_module.name,
+            core_module,
             function_declaration.type.input_parameter_types,
             function_declaration.type.output_parameter_types,
             function_declaration.type.is_variadic,
@@ -429,7 +429,7 @@ namespace h::compiler
             llvm::DISubroutineType* const llvm_function_debug_type = create_debug_function_type(
                 *debug_info->llvm_builder,
                 llvm_data_layout,
-                core_module.name,
+                core_module,
                 function_declaration.type.input_parameter_types,
                 function_declaration.type.output_parameter_types,
                 function_declaration.output_parameter_names,
@@ -473,7 +473,7 @@ namespace h::compiler
             {
                 llvm::Argument* const llvm_argument = llvm_function.getArg(argument_index);
                 std::pmr::string const& name = function_declaration.input_parameter_names[argument_index];
-                Type_reference core_type = fix_custom_type_reference(function_declaration.type.input_parameter_types[argument_index], core_module.name);
+                Type_reference core_type = fix_custom_type_reference(function_declaration.type.input_parameter_types[argument_index], core_module);
 
                 llvm::AllocaInst* const alloca_instruction = llvm_builder.CreateAlloca(llvm_argument->getType(), nullptr, name.c_str());
 
@@ -489,7 +489,7 @@ namespace h::compiler
                     llvm::DIType* const llvm_argument_debug_type = type_reference_to_llvm_debug_type(
                         *debug_info->llvm_builder,
                         llvm_data_layout,
-                        core_module.name,
+                        core_module,
                         core_type,
                         debug_info->type_database
                     );
@@ -779,12 +779,13 @@ namespace h::compiler
             remove_unused(dependency_core_module.export_declarations.alias_type_declarations);
             remove_unused(dependency_core_module.internal_declarations.alias_type_declarations);
 
-            auto const add_alias_usage = [&alias_usages](Type_reference const type_reference) -> bool
+            auto const add_alias_usage = [&](Type_reference const type_reference) -> bool
             {
                 if (std::holds_alternative<Custom_type_reference>(type_reference.data))
                 {
                     Custom_type_reference const& custom_type_reference = std::get<Custom_type_reference>(type_reference.data);
-                    if (custom_type_reference.module_reference.name.empty())
+                    std::string_view const module_name = find_module_name(dependency_core_module, custom_type_reference.module_reference);
+                    if (module_name == dependency_core_module.name)
                     {
                         alias_usages.push_back(custom_type_reference.name);
                     }

@@ -28,7 +28,7 @@ namespace h::c
         C_declarations declarations;
     };
 
-    export C_header import_header(std::filesystem::path const& header_path);
+    export h::Module import_header(std::string_view const header_name, std::filesystem::path const& header_path);
 
     export void import_header_and_write_to_file(std::string_view const header_name, std::filesystem::path const& header_path, std::filesystem::path const& output_path);
 }
