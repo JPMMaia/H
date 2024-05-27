@@ -20,41 +20,41 @@ namespace h::c
     constexpr char const* g_c_headers_location = C_HEADERS_LOCATION;
     constexpr char const* g_vulkan_headers_location = VULKAN_HEADERS_LOCATION;
 
-    h::Alias_type_declaration const& find_alias_type_declaration(h::c::C_header const& header, std::string_view const name)
+    h::Alias_type_declaration const& find_alias_type_declaration(h::Module const& header_module, std::string_view const name)
     {
-        std::span<h::Alias_type_declaration const> const declarations = header.declarations.alias_type_declarations;
+        std::span<h::Alias_type_declaration const> const declarations = header_module.export_declarations.alias_type_declarations;
         auto const location = std::find_if(declarations.begin(), declarations.end(), [name](h::Alias_type_declaration const& value) -> bool { return value.name == name; });
         REQUIRE(location != declarations.end());
         return *location;
     }
 
-    h::Enum_declaration const& find_enum_declaration(h::c::C_header const& header, std::string_view const name)
+    h::Enum_declaration const& find_enum_declaration(h::Module const& header_module, std::string_view const name)
     {
-        std::span<h::Enum_declaration const> const declarations = header.declarations.enum_declarations;
+        std::span<h::Enum_declaration const> const declarations = header_module.export_declarations.enum_declarations;
         auto const location = std::find_if(declarations.begin(), declarations.end(), [name](h::Enum_declaration const& value) -> bool { return value.name == name; });
         REQUIRE(location != declarations.end());
         return *location;
     }
 
-    h::Function_declaration const& find_function_declaration(h::c::C_header const& header, std::string_view const name)
+    h::Function_declaration const& find_function_declaration(h::Module const& header_module, std::string_view const name)
     {
-        std::span<h::Function_declaration const> const function_declarations = header.declarations.function_declarations;
+        std::span<h::Function_declaration const> const function_declarations = header_module.export_declarations.function_declarations;
         auto const location = std::find_if(function_declarations.begin(), function_declarations.end(), [name](h::Function_declaration const& function_declaration) -> bool { return function_declaration.name == name; });
         REQUIRE(location != function_declarations.end());
         return *location;
     }
 
-    h::Struct_declaration const& find_struct_declaration(h::c::C_header const& header, std::string_view const name)
+    h::Struct_declaration const& find_struct_declaration(h::Module const& header_module, std::string_view const name)
     {
-        std::span<h::Struct_declaration const> const struct_declarations = header.declarations.struct_declarations;
+        std::span<h::Struct_declaration const> const struct_declarations = header_module.export_declarations.struct_declarations;
         auto const location = std::find_if(struct_declarations.begin(), struct_declarations.end(), [name](h::Struct_declaration const& struct_declaration) -> bool { return struct_declaration.name == name; });
         REQUIRE(location != struct_declarations.end());
         return *location;
     }
 
-    h::Union_declaration const& find_union_declaration(h::c::C_header const& header, std::string_view const name)
+    h::Union_declaration const& find_union_declaration(h::Module const& header_module, std::string_view const name)
     {
-        std::span<h::Union_declaration const> const union_declarations = header.declarations.union_declarations;
+        std::span<h::Union_declaration const> const union_declarations = header_module.export_declarations.union_declarations;
         auto const location = std::find_if(union_declarations.begin(), union_declarations.end(), [name](h::Union_declaration const& union_declaration) -> bool { return union_declaration.name == name; });
         REQUIRE(location != union_declarations.end());
         return *location;
@@ -81,11 +81,11 @@ namespace h::c
         std::filesystem::path const c_headers_path = g_c_headers_location;
         std::filesystem::path const stdio_header_path = c_headers_path / "stdio.h";
 
-        h::c::C_header const header = h::c::import_header(stdio_header_path);
+        h::Module const header_module = h::c::import_header("c.stdio", stdio_header_path);
 
-        CHECK(header.path == stdio_header_path);
+        CHECK(header_module.source_file_path == stdio_header_path);
 
-        h::Function_declaration const& actual = find_function_declaration(header, "puts");
+        h::Function_declaration const& actual = find_function_declaration(header_module, "puts");
 
         CHECK(actual.name == "puts");
 
@@ -117,11 +117,11 @@ namespace h::c
         std::filesystem::path const c_headers_path = g_c_headers_location;
         std::filesystem::path const time_header_path = c_headers_path / "time.h";
 
-        h::c::C_header const header = h::c::import_header(time_header_path);
+        h::Module const header_module = h::c::import_header("c.time", time_header_path);
 
-        CHECK(header.path == time_header_path);
+        CHECK(header_module.source_file_path == time_header_path);
 
-        h::Alias_type_declaration const& actual = find_alias_type_declaration(header, "time_t");
+        h::Alias_type_declaration const& actual = find_alias_type_declaration(header_module, "time_t");
 
         CHECK(actual.name == "time_t");
 
@@ -136,11 +136,11 @@ namespace h::c
         std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
         std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
 
-        h::c::C_header const header = h::c::import_header(vulkan_header_path);
+        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path);
 
-        CHECK(header.path == vulkan_header_path);
+        CHECK(header_module.source_file_path == vulkan_header_path);
 
-        h::Enum_declaration const& actual = find_enum_declaration(header, "VkPhysicalDeviceType");
+        h::Enum_declaration const& actual = find_enum_declaration(header_module, "VkPhysicalDeviceType");
 
         CHECK(actual.name == "VkPhysicalDeviceType");
         REQUIRE(actual.unique_name.has_value());
@@ -169,11 +169,11 @@ namespace h::c
         std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
         std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
 
-        h::c::C_header const header = h::c::import_header(vulkan_header_path);
+        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path);
 
-        CHECK(header.path == vulkan_header_path);
+        CHECK(header_module.source_file_path == vulkan_header_path);
 
-        h::Struct_declaration const& actual = find_struct_declaration(header, "VkCommandPoolCreateInfo");
+        h::Struct_declaration const& actual = find_struct_declaration(header_module, "VkCommandPoolCreateInfo");
 
         CHECK(actual.name == "VkCommandPoolCreateInfo");
 
@@ -212,11 +212,11 @@ namespace h::c
         std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
         std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
 
-        h::c::C_header const header = h::c::import_header(vulkan_header_path);
+        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path);
 
-        CHECK(header.path == vulkan_header_path);
+        CHECK(header_module.source_file_path == vulkan_header_path);
 
-        h::Struct_declaration const& actual = find_struct_declaration(header, "VkExtent2D");
+        h::Struct_declaration const& actual = find_struct_declaration(header_module, "VkExtent2D");
 
         CHECK(actual.name == "VkExtent2D");
 
@@ -268,11 +268,11 @@ namespace h::c
         std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
         std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
 
-        h::c::C_header const header = h::c::import_header(vulkan_header_path);
+        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path);
 
-        CHECK(header.path == vulkan_header_path);
+        CHECK(header_module.source_file_path == vulkan_header_path);
 
-        h::Struct_declaration const& actual = find_struct_declaration(header, "VkRect2D");
+        h::Struct_declaration const& actual = find_struct_declaration(header_module, "VkRect2D");
 
         CHECK(actual.name == "VkRect2D");
 
@@ -349,11 +349,11 @@ namespace h::c
         std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
         std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
 
-        h::c::C_header const header = h::c::import_header(vulkan_header_path);
+        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path);
 
-        CHECK(header.path == vulkan_header_path);
+        CHECK(header_module.source_file_path == vulkan_header_path);
 
-        h::Struct_declaration const& actual = find_struct_declaration(header, "VkClearAttachment");
+        h::Struct_declaration const& actual = find_struct_declaration(header_module, "VkClearAttachment");
 
         CHECK(actual.name == "VkClearAttachment");
 
@@ -507,11 +507,11 @@ namespace h::c
         std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
         std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
 
-        h::c::C_header const header = h::c::import_header(vulkan_header_path);
+        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path);
 
-        CHECK(header.path == vulkan_header_path);
+        CHECK(header_module.source_file_path == vulkan_header_path);
 
-        h::Struct_declaration const& actual = find_struct_declaration(header, "VkBufferCreateInfo");
+        h::Struct_declaration const& actual = find_struct_declaration(header_module, "VkBufferCreateInfo");
 
         CHECK(actual.name == "VkBufferCreateInfo");
 
@@ -578,11 +578,11 @@ namespace h::c
         std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
         std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
 
-        h::c::C_header const header = h::c::import_header(vulkan_header_path);
+        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path);
 
-        CHECK(header.path == vulkan_header_path);
+        CHECK(header_module.source_file_path == vulkan_header_path);
 
-        h::Union_declaration const& actual = find_union_declaration(header, "VkClearColorValue");
+        h::Union_declaration const& actual = find_union_declaration(header_module, "VkClearColorValue");
 
         CHECK(actual.name == "VkClearColorValue");
 

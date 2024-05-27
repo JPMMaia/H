@@ -5,6 +5,7 @@ module;
 #include <memory_resource>
 #include <optional>
 #include <ostream>
+#include <span>
 #include <string>
 #include <unordered_map>
 #include <variant>
@@ -47,8 +48,6 @@ namespace h
         C_longlong,
         C_ulonglong
     };
-
-    export std::uint16_t get_precision(Fundamental_type type);
 
     export struct Integer_type
     {
@@ -616,4 +615,15 @@ namespace h
 
         friend auto operator<=>(Module const&, Module const&) = default;
     };
+
+    export Module const& find_module(
+        Module const& core_module,
+        std::span<Module const> const core_module_dependencies,
+        std::string_view name
+    );
+
+    export std::string_view find_module_name(
+        Module const& core_module,
+        Module_reference const& module_reference
+    );
 }

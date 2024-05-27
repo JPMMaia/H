@@ -59,19 +59,22 @@ namespace h
 
     export std::optional<Type_reference> get_underlying_type(
         Declaration_database const& declaration_database,
-        std::string_view current_module_name,
-        Type_reference const& type_reference
+        Type_reference const& type_reference,
+        Module const& current_core_module,
+        std::span<Module const> const dependency_core_modules
     );
 
     export std::optional<Type_reference> get_underlying_type(
         Declaration_database const& declaration_database,
-        std::string_view current_module_name,
-        Alias_type_declaration const& declaration
+        Alias_type_declaration const& declaration,
+        Module const& current_core_module,
+        std::span<Module const> const dependency_core_modules
     );
 
     export std::optional<Declaration> get_underlying_declaration(
         Declaration_database const& declaration_database,
-        std::string_view current_module_name,
-        Alias_type_declaration const& declaration
+        Alias_type_declaration const& declaration,
+        Module const& current_core_module,
+        std::span<Module const> const dependency_core_modules
     );
 }

@@ -12,6 +12,8 @@ module h.core.declarations;
 
 import h.core;
 
+import h.common;
+
 namespace h
 {
     Declaration_database create_declaration_database()
@@ -101,41 +103,32 @@ namespace h
         return declaration_location->second;
     }
 
-    void set_custom_type_reference_module_name_if_not_set(
-        Type_reference& type_reference,
-        std::string_view const module_name
-    )
-    {
-        if (std::holds_alternative<Custom_type_reference>(type_reference.data))
-        {
-            Custom_type_reference& data = std::get<Custom_type_reference>(type_reference.data);
-            if (data.module_reference.name.empty())
-                data.module_reference.name = module_name;
-        }
-    }
-
     std::optional<Type_reference> get_underlying_type(
         Declaration_database const& declaration_database,
-        std::string_view const current_module_name,
-        Type_reference const& type_reference
+        Type_reference const& type_reference,
+        Module const& current_core_module,
+        std::span<Module const> const dependency_core_modules
     )
     {
         if (std::holds_alternative<Custom_type_reference>(type_reference.data))
         {
             Custom_type_reference const& data = std::get<Custom_type_reference>(type_reference.data);
-            std::string_view const module_name = data.module_reference.name.empty() ? current_module_name : std::string_view{ data.module_reference.name };
+            std::string_view const module_name = find_module_name(current_core_module, data.module_reference);
+
             Declaration_map const& declaration_map = declaration_database.map.at(module_name.data());
             Declaration const& declaration = declaration_map.at(data.name);
             if (std::holds_alternative<Alias_type_declaration const*>(declaration.data))
             {
                 Alias_type_declaration const* alias_declaration = std::get<Alias_type_declaration const*>(declaration.data);
-                std::optional<Type_reference> alias_type = get_underlying_type(declaration_database, module_name, *alias_declaration);
+
+                Module const& found_module = find_module(current_core_module, dependency_core_modules, module_name);
+
+                // TODO dependency_core_modules needs to be changed, if found_module != current_core_module
+                std::optional<Type_reference> alias_type = get_underlying_type(declaration_database, *alias_declaration, found_module, dependency_core_modules);
                 return alias_type;
             }
             else
             {
-                Type_reference fixed_type_reference = type_reference;
-                set_custom_type_reference_module_name_if_not_set(fixed_type_reference, module_name);
                 return type_reference;
             }
         }
@@ -147,29 +140,32 @@ namespace h
 
     std::optional<Type_reference> get_underlying_type(
         Declaration_database const& declaration_database,
-        std::string_view const current_module_name,
-        Alias_type_declaration const& declaration
+        Alias_type_declaration const& declaration,
+        Module const& current_core_module,
+        std::span<Module const> const dependency_core_modules
     )
     {
         if (declaration.type.empty())
             return std::nullopt;
 
-        return get_underlying_type(declaration_database, current_module_name, declaration.type[0]);
+        return get_underlying_type(declaration_database, declaration.type[0], current_core_module, dependency_core_modules);
     }
 
     std::optional<Declaration> get_underlying_declaration(
         Declaration_database const& declaration_database,
-        std::string_view current_module_name,
-        Alias_type_declaration const& declaration
+        Alias_type_declaration const& declaration,
+        Module const& current_core_module,
+        std::span<Module const> const dependency_core_modules
     )
     {
-        std::optional<Type_reference> const type_reference = get_underlying_type(declaration_database, current_module_name, declaration);
+        std::optional<Type_reference> const type_reference = get_underlying_type(declaration_database, declaration, current_core_module, dependency_core_modules);
         if (type_reference.has_value())
         {
             if (std::holds_alternative<Custom_type_reference>(type_reference.value().data))
             {
                 Custom_type_reference const& data = std::get<Custom_type_reference>(type_reference.value().data);
-                std::string_view const module_name = data.module_reference.name.empty() ? current_module_name : std::string_view{ data.module_reference.name };
+                std::string_view const module_name = find_module_name(current_core_module, data.module_reference);
+
                 std::optional<Declaration> const underlying_declaration = find_declaration(declaration_database, module_name, data.name);
                 if (underlying_declaration.has_value())
                 {
@@ -177,7 +173,11 @@ namespace h
                     if (std::holds_alternative<Alias_type_declaration const*>(underlying_declaration_value.data))
                     {
                         Alias_type_declaration const* underlying_alias = std::get<Alias_type_declaration const*>(underlying_declaration_value.data);
-                        return get_underlying_declaration(declaration_database, module_name, *underlying_alias);
+
+                        Module const& found_module = find_module(current_core_module, dependency_core_modules, module_name);
+
+                        // TODO dependency_core_modules needs to be changed, if found_module != current_core_module
+                        return get_underlying_declaration(declaration_database, *underlying_alias, found_module, dependency_core_modules);
                     }
                     else
                     {

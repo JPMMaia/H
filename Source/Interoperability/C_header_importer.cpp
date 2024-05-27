@@ -1022,7 +1022,7 @@ namespace h::c
 
     h::Statement create_struct_member_default_value(
         Type_reference const& member_type,
-        std::string_view const module_name,
+        h::Module const& core_module,
         h::Declaration_database const& declaration_database
     )
     {
@@ -1035,7 +1035,7 @@ namespace h::c
         {
             h::Constant_array_type const& constant_array_type = std::get<h::Constant_array_type>(member_type.data);
 
-            h::Statement const element_default_value = create_struct_member_default_value(constant_array_type.value_type[0], module_name, declaration_database);
+            h::Statement const element_default_value = create_struct_member_default_value(constant_array_type.value_type[0], core_module, declaration_database);
 
             std::pmr::vector<h::Statement> array_data;
             array_data.resize(constant_array_type.size);
@@ -1054,7 +1054,7 @@ namespace h::c
         {
             h::Custom_type_reference const& custom_type_reference = std::get<h::Custom_type_reference>(member_type.data);
 
-            std::optional<Declaration> const member_declaration_optional = h::find_declaration(declaration_database, module_name, custom_type_reference.name);
+            std::optional<Declaration> const member_declaration_optional = h::find_declaration(declaration_database, core_module.name, custom_type_reference.name);
             if (member_declaration_optional.has_value())
             {
                 h::Declaration const& member_declaration = member_declaration_optional.value();
@@ -1064,12 +1064,12 @@ namespace h::c
                     if (alias_type_declaration->type.empty())
                         throw std::runtime_error{ std::format("Alias type '{}' is void!", alias_type_declaration->name) };
 
-                    std::optional<Type_reference> const underlying_type_optional = h::get_underlying_type(declaration_database, module_name, alias_type_declaration->type[0]);
+                    std::optional<Type_reference> const underlying_type_optional = h::get_underlying_type(declaration_database, alias_type_declaration->type[0], core_module, {});
                     if (!underlying_type_optional.has_value())
                         throw std::runtime_error{ std::format("Alias type '{}' is void!", alias_type_declaration->name) };
 
                     Type_reference const& underlying_type = underlying_type_optional.value();
-                    return create_struct_member_default_value(underlying_type, module_name, declaration_database);
+                    return create_struct_member_default_value(underlying_type, core_module, declaration_database);
                 }
                 else if (std::holds_alternative<h::Enum_declaration const*>(member_declaration.data))
                 {
@@ -1105,7 +1105,7 @@ namespace h::c
                     h::Instantiate_member_value_pair member_value
                     {
                         .member_name = union_declaration->member_names[0],
-                        .value = create_struct_member_default_value(union_declaration->member_types[0], module_name, declaration_database)
+                        .value = create_struct_member_default_value(union_declaration->member_types[0], core_module, declaration_database)
                     };
 
                     return h::create_statement(
@@ -1212,8 +1212,8 @@ namespace h::c
     }
 
     void add_struct_member_default_values(
-        std::string_view const module_name,
-        C_declarations& declarations,
+        h::Module const& core_module,
+        h::Module_declarations& declarations,
         h::Declaration_database const& declaration_database
     )
     {
@@ -1225,16 +1225,17 @@ namespace h::c
             {
                 Type_reference const& member_type = struct_declaration.member_types[index];
 
-                h::Statement default_value = create_struct_member_default_value(member_type, module_name, declaration_database);
+                h::Statement default_value = create_struct_member_default_value(member_type, core_module, declaration_database);
                 struct_declaration.member_default_values.push_back(std::move(default_value));
             }
         }
     }
 
-    C_header import_header(std::filesystem::path const& header_path)
+    h::Module import_header(
+        std::string_view const header_name,
+        std::filesystem::path const& header_path
+    )
     {
-        char const* const module_name = "header";
-
         CXIndex index = clang_createIndex(0, 0);
 
         CXTranslationUnit unit;
@@ -1327,7 +1328,7 @@ namespace h::c
         h::Declaration_database declaration_database = h::create_declaration_database();
         h::add_declarations(
             declaration_database,
-            module_name,
+            header_name,
             declarations_with_fixed_width_integers.alias_type_declarations,
             declarations_with_fixed_width_integers.enum_declarations,
             declarations_with_fixed_width_integers.struct_declarations,
@@ -1335,39 +1336,36 @@ namespace h::c
             declarations_with_fixed_width_integers.function_declarations
         );
 
-        add_struct_member_default_values(module_name, declarations_with_fixed_width_integers, declaration_database);
-
-        return C_header
+        h::Module header_module
         {
             .language_version = {
                 .major = 0,
                 .minor = 1,
                 .patch = 0
             },
-            .path = header_path,
-            .declarations = std::move(declarations_with_fixed_width_integers)
+            .name = std::pmr::string{ header_name },
+            .dependencies = {},
+            .export_declarations = {
+                .alias_type_declarations = std::move(declarations_with_fixed_width_integers.alias_type_declarations),
+                .enum_declarations = std::move(declarations_with_fixed_width_integers.enum_declarations),
+                .struct_declarations = std::move(declarations_with_fixed_width_integers.struct_declarations),
+                .union_declarations = std::move(declarations_with_fixed_width_integers.union_declarations),
+                .function_declarations = std::move(declarations_with_fixed_width_integers.function_declarations),
+            },
+            .internal_declarations = {},
+            .definitions = {},
+            .source_file_path = header_path
         };
+
+        add_struct_member_default_values(header_module, header_module.export_declarations, declaration_database);
+
+        return header_module;
     }
 
     void import_header_and_write_to_file(std::string_view const header_name, std::filesystem::path const& header_path, std::filesystem::path const& output_path)
     {
-        C_header const header = import_header(header_path);
+        h::Module const header_module = import_header(header_name, header_path);
 
-        h::Module const module
-        {
-            .language_version = header.language_version,
-            .name = std::pmr::string{ header_name },
-            .dependencies = {},
-            .export_declarations = {
-                .alias_type_declarations = header.declarations.alias_type_declarations,
-                .enum_declarations = header.declarations.enum_declarations,
-                .struct_declarations = header.declarations.struct_declarations,
-                .function_declarations = header.declarations.function_declarations,
-            },
-            .internal_declarations = {},
-            .definitions = {},
-        };
-
-        h::json::write<h::Module>(output_path, module);
+        h::json::write<h::Module>(output_path, header_module);
     }
 }
