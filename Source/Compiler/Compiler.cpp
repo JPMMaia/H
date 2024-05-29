@@ -847,8 +847,6 @@ namespace h::compiler
 
         std::unique_ptr<llvm::DIBuilder> llvm_debug_builder = std::make_unique<llvm::DIBuilder>(llvm_module);
 
-        std::pmr::unordered_map<std::pmr::string, llvm::DICompileUnit*> module_name_to_llvm_debug_compile_unit;
-
         llvm::DIFile* const llvm_debug_file = llvm_debug_builder->createFile(core_module.source_file_path->filename().generic_string(), core_module.source_file_path->parent_path().generic_string());
 
         llvm::DICompileUnit* const llvm_debug_compile_unit = llvm_debug_builder->createCompileUnit(
@@ -859,8 +857,6 @@ namespace h::compiler
             "",
             0
         );
-
-        module_name_to_llvm_debug_compile_unit.insert(std::make_pair(core_module.name, llvm_debug_compile_unit));
 
         Debug_type_database debug_type_database = create_debug_type_database(
             *llvm_debug_builder,
@@ -884,22 +880,23 @@ namespace h::compiler
             Module const& module_dependency = pair.second;
 
             if (!module_dependency.source_file_path)
-                h::common::print_message_and_exit("Module did not contain source file path!");
+            {
+                //h::common::print_message_and_exit(std::format("Module '{}' did not contain source file path for debugging!", module_dependency.name));
+                continue;
+            }
 
             llvm::DIFile* const llvm_dependency_debug_file = llvm_debug_builder->createFile(module_dependency.source_file_path->filename().generic_string(), module_dependency.source_file_path->parent_path().generic_string());
 
             add_module_debug_types(
                 debug_type_database,
                 *llvm_debug_builder,
-                *llvm_dependency_debug_compile_unit,
+                *llvm_debug_compile_unit,
                 *llvm_dependency_debug_file,
                 llvm_data_layout,
                 module_dependency,
                 enum_value_constants.map,
                 type_database
             );
-
-            module_name_to_llvm_debug_compile_unit.insert(std::make_pair(module_dependency.name, llvm_dependency_debug_compile_unit));
         }
 
         if (!core_module.source_file_path)
@@ -908,7 +905,6 @@ namespace h::compiler
         return std::make_unique<Debug_info>(
             std::move(llvm_debug_builder),
             std::move(debug_type_database),
-            std::move(module_name_to_llvm_debug_compile_unit),
             llvm_debug_compile_unit
         );
     }
