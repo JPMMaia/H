@@ -19,7 +19,6 @@ namespace h::compiler
     {
         std::unique_ptr<llvm::DIBuilder> llvm_builder;
         Debug_type_database type_database;
-        std::pmr::unordered_map<std::pmr::string, llvm::DICompileUnit*> module_name_to_llvm_debug_compile_unit;
         llvm::DICompileUnit* main_llvm_compile_unit;
         std::pmr::vector<llvm::DIScope*> llvm_scopes;
     };

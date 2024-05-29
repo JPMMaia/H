@@ -1,0 +1,11 @@
+module Debug_information;
+
+import c.vector2i as vector2i;
+
+export function run() -> (result: C_int)
+{
+    var a: vector2i.Vector2i = { x: 1, y: -1 };
+    var b: vector2i.Vector2i = { x: 2, y: -2 };
+    var c = vector2i.add(a, b);
+    return c.x + c.y;
+}
