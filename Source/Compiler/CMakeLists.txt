@@ -83,7 +83,7 @@ endif()
 
 if(BUILD_TESTING)
    add_executable(H_compiler_tests)
-   target_link_libraries(H_compiler_tests PRIVATE H::Compiler H::JSON_serializer)
+   target_link_libraries(H_compiler_tests PRIVATE H::C_header_importer H::Compiler H::JSON_serializer)
 
    find_package(Catch2 CONFIG REQUIRED)
    target_link_libraries(H_compiler_tests PRIVATE Catch2::Catch2 Catch2::Catch2WithMain)

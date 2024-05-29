@@ -29,13 +29,13 @@ import h.compiler.types;
 
 namespace h::compiler
 {
-    std::optional<Module const*> get_module(std::span<Module const> const core_modules, std::string_view const name)
+    std::optional<Module const*> get_module(std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies, std::string_view const name)
     {
-        auto const location = std::find_if(core_modules.begin(), core_modules.end(), [name](Module const& module) { return module.name == name; });
-        if (location == core_modules.end())
+        auto const location = core_module_dependencies.find(name.data());
+        if (location == core_module_dependencies.end())
             return std::nullopt;
 
-        return &(*location);
+        return &location->second;
     }
 
     std::optional<std::string_view> get_module_name_from_alias(Module const& module, std::string_view const alias_name)
@@ -234,7 +234,7 @@ namespace h::compiler
         Value_and_type const& left_hand_side,
         Statement const& statement,
         Module const& core_module,
-        std::span<Module const> const core_module_dependencies
+        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies
     )
     {
         if (left_hand_side.value == nullptr)
@@ -261,7 +261,8 @@ namespace h::compiler
     std::optional<Custom_type_reference> get_custom_type_reference_from_access_expression(
         Access_expression const& expression,
         Value_and_type const& left_hand_side,
-        Statement const& statement
+        Statement const& statement,
+        std::string_view const current_module_name
     )
     {
         if (left_hand_side.value == nullptr)
@@ -282,7 +283,7 @@ namespace h::compiler
                 {
                     .module_reference =
                     {
-                        .name = "",
+                        .name = std::pmr::string{ current_module_name },
                     },
                     .name = variable_expression.name
                 };
@@ -307,7 +308,7 @@ namespace h::compiler
     )
     {
         Module const& core_module = parameters.core_module;
-        std::span<Module const> const core_module_dependencies = parameters.core_module_dependencies;
+        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies = parameters.core_module_dependencies;
         llvm::LLVMContext& llvm_context = parameters.llvm_context;
         llvm::Module& llvm_module = parameters.llvm_module;
         llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
@@ -378,7 +379,7 @@ namespace h::compiler
         }
 
         {
-            std::optional<Custom_type_reference> custom_type_reference = get_custom_type_reference_from_access_expression(expression, left_hand_side, statement);
+            std::optional<Custom_type_reference> custom_type_reference = get_custom_type_reference_from_access_expression(expression, left_hand_side, statement, core_module.name);
 
             if (custom_type_reference.has_value())
             {
@@ -443,7 +444,7 @@ namespace h::compiler
 
                             unsigned const member_index = static_cast<unsigned>(std::distance(struct_declaration.member_names.begin(), member_location));
 
-                            Type_reference member_type = fix_custom_type_reference(struct_declaration.member_types[member_index], parameters.core_module);
+                            Type_reference const& member_type = struct_declaration.member_types[member_index];
 
                             std::array<llvm::Value*, 2> const indices
                             {
@@ -481,7 +482,7 @@ namespace h::compiler
 
                             unsigned const member_index = static_cast<unsigned>(std::distance(union_declaration.member_names.begin(), member_location));
 
-                            Type_reference member_type = fix_custom_type_reference(union_declaration.member_types[member_index], parameters.core_module);
+                            Type_reference const& member_type = union_declaration.member_types[member_index];
 
                             llvm::Type* const llvm_member_type = type_reference_to_llvm_type(
                                 parameters.llvm_context,
@@ -1141,7 +1142,7 @@ namespace h::compiler
             std::uint64_t const expression_index = expression.arguments[i].expression_index;
 
             Expression_parameters new_parameters = parameters;
-            new_parameters.expression_type = i < function_type.input_parameter_types.size() ? fix_custom_type_reference(function_type.input_parameter_types[i], parameters.core_module) : std::optional<Type_reference>{};
+            new_parameters.expression_type = i < function_type.input_parameter_types.size() ? function_type.input_parameter_types[i] : std::optional<Type_reference>{};
             Value_and_type const temporary = create_loaded_expression_value(expression_index, statement, new_parameters);
 
             llvm_arguments[i] = temporary.value;
@@ -1247,7 +1248,7 @@ namespace h::compiler
 
         Value_and_type const source = create_loaded_expression_value(expression.source.expression_index, statement, parameters);
 
-        Type_reference const destination_type = fix_custom_type_reference(expression.destination_type, core_module);
+        Type_reference const& destination_type = expression.destination_type;
 
         llvm::Type* const source_llvm_type = source.value->getType();
         llvm::Type* const destination_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, destination_type, type_database);
@@ -1693,7 +1694,7 @@ namespace h::compiler
             for (std::size_t member_index = 0; member_index < struct_declaration.member_names.size(); ++member_index)
             {
                 std::string_view const member_name = struct_declaration.member_names[member_index];
-                Type_reference const member_type = fix_custom_type_reference(struct_declaration.member_types[member_index], core_module);
+                Type_reference const& member_type = struct_declaration.member_types[member_index];
 
                 auto const expression_pair_location = std::find_if(expression.members.begin(), expression.members.end(), [member_name](Instantiate_member_value_pair const& pair) { return pair.member_name == member_name; });
                 Statement const& member_value_statement = expression_pair_location != expression.members.end() ? expression_pair_location->value : struct_declaration.member_default_values[member_index];
@@ -1717,7 +1718,7 @@ namespace h::compiler
             for (std::size_t member_index = 0; member_index < struct_declaration.member_names.size(); ++member_index)
             {
                 std::string_view const member_name = struct_declaration.member_names[member_index];
-                Type_reference const member_type = fix_custom_type_reference(struct_declaration.member_types[member_index], core_module);
+                Type_reference const& member_type = struct_declaration.member_types[member_index];
 
                 if (member_index >= expression.members.size())
                     throw std::runtime_error{ std::format("The struct member '{}' of struct '{}.{}' is not explicitly initialized!", member_name, module_name, struct_declaration.name) };
@@ -1780,7 +1781,7 @@ namespace h::compiler
             throw std::runtime_error{ std::format("Could not find member '{}' while instantiating union ''!", member_value_pair.member_name, union_declaration.name) };
 
         auto const member_index = std::distance(union_declaration.member_names.begin(), member_name_location);
-        Type_reference const member_type = fix_custom_type_reference(union_declaration.member_types[member_index], core_module);
+        Type_reference const& member_type = union_declaration.member_types[member_index];
 
         Expression_parameters new_parameters = parameters;
         new_parameters.expression_type = member_type;
@@ -1854,7 +1855,7 @@ namespace h::compiler
         std::optional<Type_reference> const function_output_type = get_function_output_type_reference(function_type, parameters.core_module);
 
         Expression_parameters new_parameters = parameters;
-        new_parameters.expression_type = function_output_type.has_value() ? fix_custom_type_reference(function_output_type.value(), parameters.core_module) : std::optional<Type_reference>{};
+        new_parameters.expression_type = function_output_type.has_value() ? function_output_type.value() : std::optional<Type_reference>{};
         Value_and_type const temporary = create_loaded_expression_value(expression.expression.expression_index, statement, new_parameters);
 
         if (parameters.debug_info != nullptr)
@@ -2196,7 +2197,7 @@ namespace h::compiler
         Module const& core_module = parameters.core_module;
         Type_database const& type_database = parameters.type_database;
 
-        Type_reference const core_type = fix_custom_type_reference(expression.type, core_module);
+        Type_reference const& core_type = expression.type;
 
         llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, core_type, type_database);
 
@@ -2228,7 +2229,7 @@ namespace h::compiler
     Value_and_type create_variable_expression_value(
         Variable_expression const& expression,
         Module const& core_module,
-        std::span<Module const> const core_module_dependencies,
+        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies,
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
         llvm::Module& llvm_module,

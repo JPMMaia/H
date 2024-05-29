@@ -20,6 +20,7 @@ import h.compiler;
 import h.compiler.common;
 import h.json_serializer;
 import h.json_serializer.operators;
+import h.c_header_converter;
 
 using h::json::operators::operator<<;
 
@@ -49,11 +50,8 @@ namespace h
     bool const debug = false
   )
   {
-    std::optional<std::pmr::string> const json_data = h::common::get_file_contents(g_test_files_path / input_file);
-    REQUIRE(json_data.has_value());
-
-    std::optional<h::Module> const module = h::json::read<h::Module>(json_data.value().c_str());
-    REQUIRE(module.has_value());
+    std::optional<h::Module> core_module = h::compiler::read_core_module(g_test_files_path / input_file);
+    REQUIRE(core_module.has_value());
 
     h::compiler::LLVM_data llvm_data = h::compiler::initialize_llvm();
 
@@ -63,7 +61,7 @@ namespace h
       .is_optimized = false,
     };
 
-    h::compiler::LLVM_module_data llvm_module_data = h::compiler::create_llvm_module(llvm_data, module.value(), module_name_to_file_path_map, compilation_options);
+    h::compiler::LLVM_module_data llvm_module_data = h::compiler::create_llvm_module(llvm_data, core_module.value(), module_name_to_file_path_map, compilation_options);
     std::string const llvm_ir = h::compiler::to_string(*llvm_module_data.module);
 
     std::string_view const llvm_ir_body = exclude_header(llvm_ir);
@@ -808,6 +806,41 @@ while_loop_after:                                 ; preds = %while_loop_conditio
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
+  TEST_CASE("Compile Debug Information C Headers")
+  {
+    char const* const input_file = "debug_information_c_headers.hl";
+
+    std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "debug_information_c_headers";
+    std::filesystem::create_directories(root_directory_path);
+
+    std::string const header_content = R"(
+struct Vector2i
+{
+    int x;
+    int y;
+};
+
+Vector2i add(Vector2i lhs, Vector2i rhs);
+)";
+
+    std::filesystem::path const header_file_path = root_directory_path / "vector2i.h";
+    h::common::write_to_file(header_file_path, header_content);
+
+    std::filesystem::path const header_module_file_path = root_directory_path / "vector2i.hl";
+    h::c::import_header_and_write_to_file("c.vector2i", header_file_path, header_module_file_path);
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+      { "c.vector2i", header_module_file_path }
+    };
+
+    std::string const expected_llvm_ir = std::format(R"(
+{}
+)", g_test_source_files_path.generic_string());
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, true);
+  }
+
   TEST_CASE("Compile Debug Information Function Call")
   {
     char const* const input_file = "debug_information_function_call.hl";
@@ -1194,6 +1227,42 @@ entry:
 
 define void @name_with_dots_other_function_name() {
 entry:
+  ret void
+}
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
+
+  TEST_CASE("Compile Multiple Modules")
+  {
+    char const* const input_file = "multiple_modules_a.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+      { "MB", g_test_files_path / "multiple_modules_b.hl" },
+      { "MC", g_test_files_path / "multiple_modules_c.hl" },
+    };
+
+    char const* const expected_llvm_ir = R"(
+%MC_Struct_c = type { %MC_Private_struct_c }
+%MC_Private_struct_c = type { i32 }
+%MA_Struct_a = type { %MB_Struct_b }
+%MB_Struct_b = type { %MC_Struct_c }
+%MA_Private_struct_a = type { %MB_Private_struct_b }
+%MB_Private_struct_b = type { %MC_Private_struct_c }
+
+define void @MA_run(%MC_Struct_c %arguments.a, %MC_Private_struct_c %arguments.b, %MA_Struct_a %arguments.c, %MA_Private_struct_a %arguments.d) {
+entry:
+  %a = alloca %MC_Struct_c, align 8
+  store %MC_Struct_c %arguments.a, ptr %a, align 4
+  %b = alloca %MC_Private_struct_c, align 8
+  store %MC_Private_struct_c %arguments.b, ptr %b, align 4
+  %c = alloca %MA_Struct_a, align 8
+  store %MA_Struct_a %arguments.c, ptr %c, align 4
+  %d = alloca %MA_Private_struct_a, align 8
+  store %MA_Private_struct_a %arguments.d, ptr %d, align 4
   ret void
 }
 )";

@@ -22,7 +22,7 @@ macro(Convert_hltxt_to_hl)
             WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/working_directory"
             VERBATIM
             COMMENT "Generating ${output_path}"
-            DEPENDS Parser "${text_file}"
+            DEPENDS Parser "${text_file}" "${CMAKE_BINARY_DIR}/Source/Parser/js/dist/main.js"
         )
     endforeach()
 
@@ -45,12 +45,16 @@ Convert_hltxt_to_hl(
         "${CMAKE_CURRENT_LIST_DIR}/txt/break_expressions.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/comment_expressions.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/debug_information_all.hltxt"
+        "${CMAKE_CURRENT_LIST_DIR}/txt/debug_information_c_headers.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/debug_information_function_call.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/debug_information_variables.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/for_loop_expressions.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/hello_world.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/if_expressions.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/module_with_dots.hltxt"
+        "${CMAKE_CURRENT_LIST_DIR}/txt/multiple_modules_a.hltxt"
+        "${CMAKE_CURRENT_LIST_DIR}/txt/multiple_modules_b.hltxt"
+        "${CMAKE_CURRENT_LIST_DIR}/txt/multiple_modules_c.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/numbers.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/numeric_casts.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/pointers.hltxt"

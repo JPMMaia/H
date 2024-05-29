@@ -226,17 +226,18 @@ namespace h::compiler
         return std::nullopt;
     }
 
-    std::optional<std::pmr::vector<h::Module>> find_and_parse_core_module_dependencies(
+    bool find_and_parse_core_module_dependencies(
         h::Module const& core_module,
         JIT_runner_unprotected_data const& unprotected_data,
-        JIT_runner_protected_data& protected_data
+        JIT_runner_protected_data& protected_data,
+        std::pmr::unordered_map<std::pmr::string, h::Module>& core_module_dependecies
     )
     {
-        std::pmr::vector<h::Module> module_dependecies;
-        module_dependecies.reserve(core_module.dependencies.alias_imports.size());
-
         for (Import_module_with_alias const& import_alias : core_module.dependencies.alias_imports)
         {
+            if (core_module_dependecies.contains(import_alias.module_name))
+                continue;
+
             std::optional<Parsed_module_info> const parsed_module_info = find_module_and_parse(
                 import_alias.module_name,
                 unprotected_data,
@@ -244,7 +245,7 @@ namespace h::compiler
             );
 
             if (!parsed_module_info)
-                return std::nullopt;
+                return false;
 
             {
                 std::unique_lock<std::shared_mutex> lock{ protected_data.mutex };
@@ -257,34 +258,71 @@ namespace h::compiler
             if (!import_core_module.has_value())
             {
                 ::printf("Failed to read contents of %s (invalid module)\n", module_file_path.generic_string().c_str());
-                return std::nullopt;
+                return false;
             }
 
-            module_dependecies.push_back(std::move(*import_core_module));
+            core_module_dependecies.insert(std::make_pair(import_alias.module_name, std::move(*import_core_module)));
+
+            bool const success = find_and_parse_core_module_dependencies(
+                core_module_dependecies.at(import_alias.module_name),
+                unprotected_data,
+                protected_data,
+                core_module_dependecies
+            );
+            if (!success)
+                return false;
         }
 
-        remove_unused_declarations(core_module, module_dependecies);
+        return true;
+    }
+
+    std::optional<std::pmr::unordered_map<std::pmr::string, h::Module>> find_and_parse_core_module_dependencies(
+        h::Module const& core_module,
+        JIT_runner_unprotected_data const& unprotected_data,
+        JIT_runner_protected_data& protected_data
+    )
+    {
+        std::pmr::unordered_map<std::pmr::string, h::Module> module_dependecies;
+        module_dependecies.reserve(core_module.dependencies.alias_imports.size());
+
+        bool const success = find_and_parse_core_module_dependencies(
+            core_module,
+            unprotected_data,
+            protected_data,
+            module_dependecies
+        );
+        if (!success)
+            return std::nullopt;
 
         return module_dependecies;
     }
 
+    inline void insert_symbol_to_module_name_entries(
+        h::Module const& core_module,
+        llvm::orc::MangleAndInterner& mangle,
+        llvm::DenseMap<llvm::orc::SymbolStringPtr, std::pmr::string>& symbol_to_module_name_map
+    )
+    {
+        for (h::Function_declaration const& declaration : core_module.export_declarations.function_declarations)
+        {
+            std::string const mangled_name = mangle_name(core_module, declaration.name, declaration.unique_name);
+            llvm::orc::SymbolStringPtr const symbol = mangle(mangled_name);
+
+            symbol_to_module_name_map.insert(std::make_pair(symbol, core_module.name));
+        }
+    }
+
     void insert_symbol_to_module_name_entries(
-        std::span<h::Module const> const core_modules,
+        std::pmr::unordered_map<std::pmr::string, h::Module> const& core_modules,
         llvm::orc::MangleAndInterner& mangle,
         JIT_runner_protected_data& protected_data
     )
     {
         std::unique_lock<std::shared_mutex> lock{ protected_data.mutex };
 
-        for (h::Module const& core_module : core_modules)
+        for (std::pair<std::pmr::string, h::Module> const& core_module : core_modules)
         {
-            for (h::Function_declaration const& declaration : core_module.export_declarations.function_declarations)
-            {
-                std::string const mangled_name = mangle_name(core_module, declaration.name, declaration.unique_name);
-                llvm::orc::SymbolStringPtr const symbol = mangle(mangled_name);
-
-                protected_data.symbol_to_module_name_map.insert(std::make_pair(symbol, core_module.name));
-            }
+            insert_symbol_to_module_name_entries(core_module.second, mangle, protected_data.symbol_to_module_name_map);
         }
     }
 
@@ -310,9 +348,12 @@ namespace h::compiler
             return false;
         }
 
-        insert_symbol_to_module_name_entries({ &*core_module, 1 }, *unprotected_data.jit_data->mangle, protected_data);
+        {
+            std::unique_lock<std::shared_mutex> lock{ protected_data.mutex };
+            insert_symbol_to_module_name_entries(*core_module, *unprotected_data.jit_data->mangle, protected_data.symbol_to_module_name_map);
+        }
 
-        std::optional<std::pmr::vector<h::Module>> core_module_dependencies =
+        std::optional<std::pmr::unordered_map<std::pmr::string, h::Module>> core_module_dependencies =
             find_and_parse_core_module_dependencies(*core_module, unprotected_data, protected_data);
         if (!core_module_dependencies.has_value())
         {
@@ -327,9 +368,9 @@ namespace h::compiler
 
             // TODO remove all entries where pair.second == core_module->name
 
-            for (h::Module const& core_module_dependency : *core_module_dependencies)
+            for (std::pair<std::pmr::string, h::Module> const& core_module_dependency : *core_module_dependencies)
             {
-                protected_data.module_name_to_reverse_dependencies.insert(std::make_pair(core_module_dependency.name, core_module->name));
+                protected_data.module_name_to_reverse_dependencies.insert(std::make_pair(core_module_dependency.first, core_module->name));
             }
         }
 

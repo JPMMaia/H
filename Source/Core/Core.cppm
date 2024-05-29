@@ -618,7 +618,7 @@ namespace h
 
     export Module const& find_module(
         Module const& core_module,
-        std::span<Module const> const core_module_dependencies,
+        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies,
         std::string_view name
     );
 

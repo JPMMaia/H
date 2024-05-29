@@ -58,7 +58,7 @@ namespace h::compiler
         llvm::Function* const llvm_parent_function;
         llvm::Module& llvm_module;
         Module const& core_module;
-        std::span<Module const> core_module_dependencies;
+        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies;
         Declaration_database const& declaration_database;
         Type_database const& type_database;
         Enum_value_constants const& enum_value_constants;

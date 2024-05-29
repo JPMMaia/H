@@ -93,6 +93,21 @@ namespace h
         return type;
     }
 
+    void fix_custom_type_references(
+        Module& core_module
+    )
+    {
+        auto const process_type_reference = [&](std::string_view const declaration_name, Type_reference const& type_reference) -> bool
+        {
+            Type_reference* const reference = const_cast<Type_reference*>(&type_reference);
+            *reference = fix_custom_type_reference(type_reference, core_module);
+            return false;
+        };
+
+        visit_type_references(core_module.export_declarations, process_type_reference);
+        visit_type_references(core_module.internal_declarations, process_type_reference);
+    }
+
 
     Type_reference create_function_type_type_reference(Function_type const& function_type)
     {
@@ -108,7 +123,7 @@ namespace h
             return std::nullopt;
 
         if (function_type.output_parameter_types.size() == 1)
-            return fix_custom_type_reference(function_type.output_parameter_types.front(), core_module);
+            return function_type.output_parameter_types.front();
 
         // TODO function with multiple output arguments
         return std::nullopt;
