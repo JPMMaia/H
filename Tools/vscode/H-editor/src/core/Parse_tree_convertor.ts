@@ -1011,6 +1011,10 @@ export function update_import_module_usages(module: Core_intermediate_representa
     }
 
     const add_unique_usage = (module_name: string, usage: string): void => {
+        if (module_name === "") {
+            return;
+        }
+
         const import_module = module.imports.find(element => element.alias === module_name);
         if (import_module !== undefined) {
             const index = import_module.usages.findIndex(value => value === usage);
