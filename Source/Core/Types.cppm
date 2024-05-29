@@ -103,7 +103,7 @@ namespace h
     }
 
     export template <typename Function_t>
-        void visit_type_references(
+        bool visit_type_references(
             h::Struct_declaration const& declaration,
             Function_t predicate
         )
@@ -111,8 +111,10 @@ namespace h
         for (h::Type_reference const& type_reference : declaration.member_types)
         {
             if (visit_type_references(type_reference, predicate))
-                return;
+                return true;
         }
+
+        return visit_type_references(declaration.member_default_values, predicate);
     }
 
     export template <typename Function_t>
@@ -144,6 +146,166 @@ namespace h
         {
             if (visit_type_references(type_reference, predicate))
                 return;
+        }
+    }
+
+    export template <typename Function_t>
+        bool visit_type_references(
+            h::Expression const& expression,
+            Function_t predicate
+        );
+
+    export template <typename Function_t>
+        bool visit_type_references(
+            h::Statement const& statement,
+            Function_t predicate
+        )
+    {
+        for (h::Expression const& expression : statement.expressions)
+        {
+            if (visit_type_references(expression, predicate))
+                return true;
+        }
+
+        return false;
+    }
+
+    export template <typename Function_t>
+        bool visit_type_references(
+            std::span<h::Statement const> const statements,
+            Function_t predicate
+        )
+    {
+        for (h::Statement const& statement : definition.statements)
+        {
+            for (h::Expression const& expression : statement.expressions)
+            {
+                if (visit_type_references(expression, predicate))
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    export template <typename Function_t>
+        bool visit_type_references(
+            h::Expression const& expression,
+            Function_t predicate
+        )
+    {
+        if (std::holds_alternative<Block_expression>(expression.data))
+        {
+            Block_expression const& data = std::get<Block_expression>(expression.data);
+            return visit_type_references(data.statements, predicate);
+        }
+        else if (std::holds_alternative<Cast_expression>(expression.data))
+        {
+            Cast_expression const& data = std::get<Cast_expression>(expression.data);
+            return predicate(data.destination_type);
+        }
+        else if (std::holds_alternative<Constant_expression>(expression.data))
+        {
+            Constant_expression const& data = std::get<Constant_expression>(expression.data);
+            return predicate(data.type);
+        }
+        else if (std::holds_alternative<Constant_array_expression>(expression.data))
+        {
+            Constant_array_expression const& data = std::get<Constant_array_expression>(expression.data);
+            if (predicate(data.type))
+                return true;
+
+            return visit_type_references(data.array_data, predicate);
+        }
+        else if (std::holds_alternative<For_loop_expression>(expression.data))
+        {
+            For_loop_expression const& data = std::get<For_loop_expression>(expression.data);
+
+            if (visit_type_references(data.range_end, predicate))
+                return true;
+
+            return visit_type_references(data.then_statements, predicate);
+        }
+        else if (std::holds_alternative<If_expression>(expression.data))
+        {
+            If_expression const& data = std::get<If_expression>(expression.data);
+
+            for (Condition_statement_pair const& pair : data.series)
+            {
+                if (pair.condition)
+                {
+                    if (visit_type_references(*pair.condition, predicate))
+                        return true;
+                }
+
+                if (visit_type_references(pair.then_statements, predicate))
+                    return true;
+            }
+        }
+        else if (std::holds_alternative<Instantiate_expression>(expression.data))
+        {
+            Instantiate_expression const& data = std::get<Instantiate_expression>(expression.data);
+
+            for (Instantiate_member_value_pair const& pair : data.members)
+            {
+                if (visit_type_references(pair.value, predicate))
+                    return true;
+            }
+        }
+        else if (std::holds_alternative<Switch_expression>(expression.data))
+        {
+            Switch_expression const& data = std::get<Switch_expression>(expression.data);
+
+            for (Switch_case_expression_pair const& pair : data.cases)
+            {
+                if (visit_type_references(pair.statements, predicate))
+                    return true;
+            }
+        }
+        else if (std::holds_alternative<Ternary_condition_expression>(expression.data))
+        {
+            Ternary_condition_expression const& data = std::get<Ternary_condition_expression>(expression.data);
+
+            if (visit_type_references(data.then_statement, predicate))
+                return true;
+
+            if (visit_type_references(data.else_statement, predicate))
+                return true;
+        }
+        else if (std::holds_alternative<Variable_declaration_with_type_expression>(expression.data))
+        {
+            Variable_declaration_with_type_expression const& data = std::get<Variable_declaration_with_type_expression>(expression.data);
+            if (predicate(data.type))
+                return true;
+
+            return visit_type_references(data.right_hand_side, predicate);
+        }
+        else if (std::holds_alternative<While_loop_expression>(expression.data))
+        {
+            While_loop_expression const& data = std::get<While_loop_expression>(expression.data);
+
+            if (visit_type_references(data.condition, predicate))
+                return true;
+
+            if (visit_type_references(data.then_statements, predicate))
+                return true;
+        }
+
+        return false;
+    }
+
+    export template <typename Function_t>
+        void visit_type_references(
+            h::Function_definition const& definition,
+            Function_t predicate
+        )
+    {
+        for (h::Statement const& statement : definition.statements)
+        {
+            for (h::Expression const& expression : statement.expressions)
+            {
+                visit_type_references(expression, predicate);
+            }
         }
     }
 
