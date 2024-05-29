@@ -61,20 +61,20 @@ namespace h
         Declaration_database const& declaration_database,
         Type_reference const& type_reference,
         Module const& current_core_module,
-        std::span<Module const> const dependency_core_modules
+        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies
     );
 
     export std::optional<Type_reference> get_underlying_type(
         Declaration_database const& declaration_database,
         Alias_type_declaration const& declaration,
         Module const& current_core_module,
-        std::span<Module const> const dependency_core_modules
+        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies
     );
 
     export std::optional<Declaration> get_underlying_declaration(
         Declaration_database const& declaration_database,
         Alias_type_declaration const& declaration,
         Module const& current_core_module,
-        std::span<Module const> const dependency_core_modules
+        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies
     );
 }

@@ -44,7 +44,7 @@ namespace h::compiler
 
     export struct LLVM_module_data
     {
-        std::pmr::vector<Module> dependencies;
+        std::pmr::unordered_map<std::pmr::string, h::Module> dependencies;
         std::unique_ptr<llvm::Module> module;
     };
 
@@ -54,12 +54,14 @@ namespace h::compiler
         bool is_optimized;
     };
 
+    export std::optional<h::Module> read_core_module(std::filesystem::path const& path);
+
     export LLVM_data initialize_llvm();
 
     export std::unique_ptr<llvm::Module> create_llvm_module(
         LLVM_data& llvm_data,
         Module const& core_module,
-        std::span<Module const> const core_module_dependencies,
+        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies,
         std::optional<std::span<std::string_view const>> const functions_to_compile,
         Compilation_options const& compilation_options
     );
@@ -67,7 +69,7 @@ namespace h::compiler
     export std::unique_ptr<llvm::Module> create_llvm_module(
         LLVM_data& llvm_data,
         Module const& core_module,
-        std::span<Module const> const core_module_dependencies,
+        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies,
         Compilation_options const& compilation_options
     );
 
@@ -76,11 +78,6 @@ namespace h::compiler
         Module const& core_module,
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map,
         Compilation_options const& compilation_options
-    );
-
-    export void remove_unused_declarations(
-        Module const& core_module,
-        std::span<Module> dependency_core_modules
     );
 
     export void optimize_llvm_module(

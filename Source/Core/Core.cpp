@@ -21,23 +21,19 @@ namespace h
 {
     Module const& find_module(
         Module const& core_module,
-        std::span<Module const> const core_module_dependencies,
+        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies,
         std::string_view const name
     )
     {
         if (core_module.name == name)
             return core_module;
 
-        auto const location = std::find_if(
-            core_module_dependencies.begin(),
-            core_module_dependencies.end(),
-            [name](Module const& core_module_dependency) { return core_module_dependency.name == name; }
-        );
-
+        auto const location = core_module_dependencies.find(name.data());
         if (location != core_module_dependencies.end())
-            return *location;
+            return location->second;
 
         h::common::print_message_and_exit(std::format("Could not find module '{}'", name));
+        std::unreachable();
     }
 
     std::string_view find_module_name(
@@ -45,7 +41,8 @@ namespace h
         Module_reference const& module_reference
     )
     {
-        if (module_reference.name == "" || module_reference.name == core_module.name)
+        return module_reference.name;
+        /*if (module_reference.name == "" || module_reference.name == core_module.name)
             return core_module.name;
 
         auto const location = std::find_if(
@@ -57,6 +54,6 @@ namespace h
         if (location == core_module.dependencies.alias_imports.end())
             h::common::print_message_and_exit(std::format("Could not find import alias '{}' in module '{}'", module_reference.name, core_module.name));
 
-        return location->module_name;
+        return location->module_name;*/
     }
 }

@@ -143,7 +143,7 @@ namespace h::compiler
         {
             if (std::holds_alternative<Custom_type_reference>(type_reference.data))
             {
-                Custom_type_reference const custom_type_reference = std::get<Custom_type_reference>(type_reference.data);
+                Custom_type_reference const& custom_type_reference = std::get<Custom_type_reference>(type_reference.data);
                 std::string_view const type_module_name = find_module_name(core_module, custom_type_reference.module_reference);
                 if (type_module_name == core_module.name)
                 {
@@ -841,7 +841,7 @@ namespace h::compiler
         Type_database const& type_database
     )
     {
-        llvm::Type* pointed_type = !type.element_type.empty() ? type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, type.element_type[0], type_database) : llvm::Type::getVoidTy(llvm_context);
+        llvm::Type* pointed_type = !type.element_type.empty() ? type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, type.element_type[0], type_database) : llvm::Type::getInt8PtrTy(llvm_context);
         return pointed_type->getPointerTo();
     }
 
@@ -879,8 +879,13 @@ namespace h::compiler
         {
             Custom_type_reference const& data = std::get<Custom_type_reference>(type_reference.data);
             std::string_view const module_name = find_module_name(current_module, data.module_reference);
+
             LLVM_type_map const& llvm_type_map = type_database.name_to_llvm_type.at(module_name.data());
-            llvm::Type* const llvm_type = llvm_type_map.at(data.name);
+            auto const location = llvm_type_map.find(data.name);
+            if (location == llvm_type_map.end())
+                return llvm::StructType::create(llvm_context, "__hl_opaque_type");
+
+            llvm::Type* const llvm_type = location->second;
             return llvm_type;
         }
         else if (std::holds_alternative<Fundamental_type>(type_reference.data))

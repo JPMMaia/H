@@ -10,9 +10,9 @@ module;
 
 module h.core.declarations;
 
-import h.core;
-
 import h.common;
+import h.core;
+import h.core.types;
 
 namespace h
 {
@@ -107,7 +107,7 @@ namespace h
         Declaration_database const& declaration_database,
         Type_reference const& type_reference,
         Module const& current_core_module,
-        std::span<Module const> const dependency_core_modules
+        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies
     )
     {
         if (std::holds_alternative<Custom_type_reference>(type_reference.data))
@@ -121,10 +121,8 @@ namespace h
             {
                 Alias_type_declaration const* alias_declaration = std::get<Alias_type_declaration const*>(declaration.data);
 
-                Module const& found_module = find_module(current_core_module, dependency_core_modules, module_name);
-
-                // TODO dependency_core_modules needs to be changed, if found_module != current_core_module
-                std::optional<Type_reference> alias_type = get_underlying_type(declaration_database, *alias_declaration, found_module, dependency_core_modules);
+                Module const& found_module = find_module(current_core_module, core_module_dependencies, module_name);
+                std::optional<Type_reference> alias_type = get_underlying_type(declaration_database, *alias_declaration, found_module, core_module_dependencies);
                 return alias_type;
             }
             else
@@ -142,23 +140,23 @@ namespace h
         Declaration_database const& declaration_database,
         Alias_type_declaration const& declaration,
         Module const& current_core_module,
-        std::span<Module const> const dependency_core_modules
+        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies
     )
     {
         if (declaration.type.empty())
             return std::nullopt;
 
-        return get_underlying_type(declaration_database, declaration.type[0], current_core_module, dependency_core_modules);
+        return get_underlying_type(declaration_database, declaration.type[0], current_core_module, core_module_dependencies);
     }
 
     std::optional<Declaration> get_underlying_declaration(
         Declaration_database const& declaration_database,
         Alias_type_declaration const& declaration,
         Module const& current_core_module,
-        std::span<Module const> const dependency_core_modules
+        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies
     )
     {
-        std::optional<Type_reference> const type_reference = get_underlying_type(declaration_database, declaration, current_core_module, dependency_core_modules);
+        std::optional<Type_reference> const type_reference = get_underlying_type(declaration_database, declaration, current_core_module, core_module_dependencies);
         if (type_reference.has_value())
         {
             if (std::holds_alternative<Custom_type_reference>(type_reference.value().data))
@@ -174,10 +172,8 @@ namespace h
                     {
                         Alias_type_declaration const* underlying_alias = std::get<Alias_type_declaration const*>(underlying_declaration_value.data);
 
-                        Module const& found_module = find_module(current_core_module, dependency_core_modules, module_name);
-
-                        // TODO dependency_core_modules needs to be changed, if found_module != current_core_module
-                        return get_underlying_declaration(declaration_database, *underlying_alias, found_module, dependency_core_modules);
+                        Module const& found_module = find_module(current_core_module, core_module_dependencies, module_name);
+                        return get_underlying_declaration(declaration_database, *underlying_alias, found_module, core_module_dependencies);
                     }
                     else
                     {

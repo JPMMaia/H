@@ -1,0 +1,20 @@
+module MA;
+
+import MB as mb;
+
+export using Alias_a = mb.Alias_b;
+export using Alias_to_private_a = mb.Alias_to_private_b;
+
+export struct Struct_a
+{
+    b: mb.Struct_b = {};
+}
+
+export struct Private_struct_a
+{
+    b: mb.Private_struct_b = {};
+}
+
+export function run(a: Alias_a, b: Alias_to_private_a, c: Struct_a, d: Private_struct_a) -> ()
+{
+}

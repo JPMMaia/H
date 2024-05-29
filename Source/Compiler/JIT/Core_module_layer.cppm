@@ -20,7 +20,7 @@ namespace h::compiler
     {
         LLVM_data& llvm_data;
         h::Module core_module;
-        std::pmr::vector<h::Module> core_module_dependencies;
+        std::pmr::unordered_map<std::pmr::string, h::Module> core_module_dependencies;
         Compilation_options compilation_options;
     };
 
