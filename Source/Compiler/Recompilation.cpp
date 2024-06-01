@@ -1,7 +1,5 @@
 module;
 
-
-
 #include <cstdio>
 #include <filesystem>
 #include <format>
@@ -16,6 +14,7 @@ module;
 module h.compiler.recompilation;
 
 import h.common;
+import h.compiler;
 import h.compiler.common;
 import h.compiler.hash;
 import h.core;
@@ -33,15 +32,6 @@ namespace h::compiler
         if (location == symbol_name_to_hash.end())
             return std::nullopt;
         return location->second;
-    }
-
-    static std::optional<h::Module> read_core_module_declarations(
-        std::filesystem::path const& file_path
-    )
-    {
-        // TODO no need to import definitions
-        std::optional<h::Module> core_module = h::json::read_module(file_path);
-        return core_module;
     }
 
     std::pmr::unordered_set<std::pmr::string> compute_symbols_that_changed(
@@ -175,7 +165,7 @@ namespace h::compiler
 
             std::filesystem::path const& reverse_dependency_file_path = module_name_to_file_path.at(reverse_dependency_name);
 
-            std::optional<h::Module> const reverse_dependency = read_core_module_declarations(reverse_dependency_file_path);
+            std::optional<h::Module> const reverse_dependency = h::compiler::read_core_module_declarations(reverse_dependency_file_path);
             if (!reverse_dependency)
             {
                 std::puts(std::format("Could not read '{}'!", reverse_dependency_file_path.generic_string()).c_str());

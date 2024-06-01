@@ -93,24 +93,20 @@ namespace h::builder
         // Compile each module:
         for (std::filesystem::path const& parsed_file_path : parsed_source_file_paths)
         {
-            std::optional<std::pmr::string> const json_data = h::common::get_file_contents(parsed_file_path);
-            if (!json_data.has_value())
-                h::common::print_message_and_exit(std::format("Failed to read contents of {}", parsed_file_path.generic_string()));
-
-            std::optional<h::Module> const module = h::json::read<h::Module>(json_data.value().c_str());
-            if (!module.has_value())
+            std::optional<h::Module> const core_module = h::compiler::read_core_module(parsed_file_path);
+            if (!core_module.has_value())
                 h::common::print_message_and_exit(std::format("Failed to read module contents of {}", parsed_file_path.generic_string()));
 
             std::string_view const entry_point = linker_options.entry_point;
 
             h::compiler::LLVM_data llvm_data = h::compiler::initialize_llvm();
-            h::compiler::LLVM_module_data llvm_module_data = h::compiler::create_llvm_module(llvm_data, module.value(), module_name_to_file_path_map, compilation_options);
+            h::compiler::LLVM_module_data llvm_module_data = h::compiler::create_llvm_module(llvm_data, core_module.value(), module_name_to_file_path_map, compilation_options);
 
             // TODO For link time optimization (LTO) we need to output bitcode instead of objects
-            //std::filesystem::path const output_assembly_file = build_directory_path / std::format("{}.ll", module.value().name);
+            //std::filesystem::path const output_assembly_file = build_directory_path / std::format("{}.ll", core_module.value().name);
             //h::compiler::write_bitcode_to_file(llvm_data, *llvm_module_data.module, output_assembly_file);*/
 
-            std::filesystem::path const output_assembly_file = build_directory_path / std::format("{}.o", module.value().name);
+            std::filesystem::path const output_assembly_file = build_directory_path / std::format("{}.o", core_module.value().name);
             h::compiler::write_object_file(llvm_data, *llvm_module_data.module, output_assembly_file);
 
             object_file_paths.push_back(output_assembly_file);

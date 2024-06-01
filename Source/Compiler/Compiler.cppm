@@ -54,7 +54,13 @@ namespace h::compiler
         bool is_optimized;
     };
 
-    export std::optional<h::Module> read_core_module(std::filesystem::path const& path);
+    export std::optional<h::Module> read_core_module(
+        std::filesystem::path const& path
+    );
+
+    export std::optional<h::Module> read_core_module_declarations(
+        std::filesystem::path const& path
+    );
 
     export LLVM_data initialize_llvm();
 

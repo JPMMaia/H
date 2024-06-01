@@ -104,8 +104,7 @@ namespace h
             return false;
         };
 
-        visit_type_references(core_module.export_declarations, process_type_reference);
-        visit_type_references(core_module.internal_declarations, process_type_reference);
+        visit_type_references(core_module, process_type_reference);
     }
 
 

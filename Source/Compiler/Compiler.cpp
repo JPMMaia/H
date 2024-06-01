@@ -979,7 +979,9 @@ namespace h::compiler
         return llvm_module;
     }
 
-    std::optional<h::Module> read_core_module(std::filesystem::path const& path)
+    std::optional<h::Module> read_core_module(
+        std::filesystem::path const& path
+    )
     {
         std::optional<Module> core_module = h::json::read_module(path);
         if (!core_module)
@@ -988,6 +990,14 @@ namespace h::compiler
         fix_custom_type_references(*core_module);
 
         return core_module;
+    }
+
+    std::optional<h::Module> read_core_module_declarations(
+        std::filesystem::path const& path
+    )
+    {
+        // TODO read only declarations
+        return read_core_module(path);
     }
 
     LLVM_data initialize_llvm()

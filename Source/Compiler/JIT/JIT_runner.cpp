@@ -254,7 +254,7 @@ namespace h::compiler
 
             std::filesystem::path const& module_file_path = parsed_module_info->parsed_file_path;
 
-            std::optional<h::Module> import_core_module = h::json::read_module_export_declarations(module_file_path);
+            std::optional<h::Module> import_core_module = h::compiler::read_core_module_declarations(module_file_path);
             if (!import_core_module.has_value())
             {
                 ::printf("Failed to read contents of %s (invalid module)\n", module_file_path.generic_string().c_str());
@@ -334,14 +334,7 @@ namespace h::compiler
         bool const recompile_reverse_dependencies
     )
     {
-        std::optional<std::pmr::string> const json_data = h::common::get_file_contents(module_file_path);
-        if (!json_data.has_value())
-        {
-            ::printf("Failed to read contents of %s\n", module_file_path.generic_string().c_str());
-            return false;
-        }
-
-        std::optional<h::Module> const core_module = h::json::read<h::Module>(json_data.value().c_str());
+        std::optional<h::Module> const core_module = h::compiler::read_core_module(module_file_path);
         if (!core_module.has_value())
         {
             ::printf("Failed to read contents of module %s\n", module_file_path.generic_string().c_str());

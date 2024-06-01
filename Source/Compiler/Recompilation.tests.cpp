@@ -7,6 +7,7 @@
 #include <catch2/catch_all.hpp>
 
 import h.common;
+import h.compiler;
 import h.compiler.hash;
 import h.compiler.recompilation;
 import h.core;
@@ -53,7 +54,7 @@ namespace h
         std::filesystem::path const& file_path
     )
     {
-        std::optional<h::Module> core_module = h::json::read_module(file_path);
+        std::optional<h::Module> core_module = h::compiler::read_core_module(file_path);
         REQUIRE(core_module.has_value());
 
         return *core_module;
