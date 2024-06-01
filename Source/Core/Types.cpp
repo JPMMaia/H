@@ -195,9 +195,31 @@ namespace h
         };
     }
 
+    bool is_integer(Fundamental_type const type)
+    {
+        switch (type)
+        {
+        case Fundamental_type::C_char:
+        case Fundamental_type::C_schar:
+        case Fundamental_type::C_uchar:
+        case Fundamental_type::C_short:
+        case Fundamental_type::C_ushort:
+        case Fundamental_type::C_int:
+        case Fundamental_type::C_uint:
+        case Fundamental_type::C_long:
+        case Fundamental_type::C_ulong:
+        case Fundamental_type::C_longlong:
+        case Fundamental_type::C_ulonglong:
+            return true;
+        default:
+            return false;
+        }
+    }
+
     bool is_integer(Type_reference const& type)
     {
-        return std::holds_alternative<Integer_type>(type.data);
+        return std::holds_alternative<Integer_type>(type.data)
+            || (std::holds_alternative<Fundamental_type>(type.data) && is_integer(std::get<Fundamental_type>(type.data)));
     }
 
     bool is_signed_integer(Type_reference const& type)
@@ -206,6 +228,30 @@ namespace h
         {
             Integer_type const& data = std::get<Integer_type>(type.data);
             return data.is_signed;
+        }
+        else if (std::holds_alternative<Fundamental_type>(type.data))
+        {
+            Fundamental_type const& data = std::get<Fundamental_type>(type.data);
+
+            switch (data)
+            {
+            case Fundamental_type::C_char:
+                // TODO this is implementation defined
+            case Fundamental_type::C_schar:
+            case Fundamental_type::C_short:
+            case Fundamental_type::C_int:
+            case Fundamental_type::C_long:
+            case Fundamental_type::C_longlong:
+                return true;
+            case Fundamental_type::C_uchar:
+            case Fundamental_type::C_ushort:
+            case Fundamental_type::C_uint:
+            case Fundamental_type::C_ulong:
+            case Fundamental_type::C_ulonglong:
+                return false;
+            default:
+                return false;
+            }
         }
 
         return false;
