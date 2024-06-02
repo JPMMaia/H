@@ -8,6 +8,7 @@
 #include <variant>
 #include <vector>
 
+import h.common;
 import h.core;
 import h.core.expressions;
 import h.core.types;
@@ -649,6 +650,66 @@ namespace h::c
             };
 
             CHECK(actual.member_types[2] == h::Type_reference{ .data = expected_type });
+        }
+    }
+
+    TEST_CASE("Include debug information")
+    {
+        std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "c_header_importer" / "debug_information";
+        std::filesystem::create_directories(root_directory_path);
+
+        std::string const header_content = R"(
+struct Vector2i
+{
+    int x;
+    int y;
+};
+
+Vector2i add(Vector2i lhs, Vector2i rhs);
+    )";
+
+        std::filesystem::path const header_file_path = root_directory_path / "vector2i.h";
+        h::common::write_to_file(header_file_path, header_content);
+
+        h::Module const header_module = h::c::import_header("c.vector2i", header_file_path);
+
+        CHECK(header_module.source_file_path == header_file_path);
+
+        {
+            h::Struct_declaration const& declaration = header_module.export_declarations.struct_declarations[0];
+            CHECK(declaration.name == "Vector2i");
+
+            CHECK(declaration.source_location == h::Source_location{ .line = 2, .column = 8 });
+
+            std::pmr::vector<h::Source_location> expected_member_source_locations
+            {
+                {.line = 4, .column = 9},
+                {.line = 5, .column = 9},
+            };
+
+            CHECK(declaration.member_source_locations == expected_member_source_locations);
+        }
+
+        {
+            h::Function_declaration const& declaration = header_module.export_declarations.function_declarations[0];
+            CHECK(declaration.name == "add");
+
+            CHECK(declaration.source_location == h::Source_location{ .line = 8, .column = 10 });
+
+            std::pmr::vector<h::Source_location> expected_input_parameter_source_locations
+            {
+                {.line = 8, .column = 23},
+                {.line = 8, .column = 37},
+            };
+
+            CHECK(declaration.input_parameter_source_locations == expected_input_parameter_source_locations);
+
+            std::pmr::vector<h::Source_location> expected_output_parameter_source_locations
+            {
+                {.line = 8, .column = 1},
+            };
+
+            CHECK(declaration.output_parameter_source_locations == expected_output_parameter_source_locations);
         }
     }
 }
