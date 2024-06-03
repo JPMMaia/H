@@ -653,9 +653,9 @@ namespace h::c
         }
     }
 
-    TEST_CASE("Include debug information")
+    TEST_CASE("Include debug information of function declarations")
     {
-        std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "c_header_importer" / "debug_information";
+        std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "c_header_importer" / "debug_information_functions";
         std::filesystem::create_directories(root_directory_path);
 
         std::string const header_content = R"(
@@ -666,7 +666,52 @@ struct Vector2i
 };
 
 Vector2i add(Vector2i lhs, Vector2i rhs);
-    )";
+)";
+
+        std::filesystem::path const header_file_path = root_directory_path / "vector2i.h";
+        h::common::write_to_file(header_file_path, header_content);
+
+        h::Module const header_module = h::c::import_header("c.vector2i", header_file_path);
+
+        CHECK(header_module.source_file_path == header_file_path);
+
+        {
+            h::Function_declaration const& declaration = header_module.export_declarations.function_declarations[0];
+            CHECK(declaration.name == "add");
+
+            CHECK(declaration.source_location == h::Source_location{ .line = 8, .column = 10 });
+
+            std::pmr::vector<h::Source_location> expected_input_parameter_source_locations
+            {
+                {.line = 8, .column = 23},
+                {.line = 8, .column = 37},
+            };
+
+            CHECK(declaration.input_parameter_source_locations == expected_input_parameter_source_locations);
+
+            std::pmr::vector<h::Source_location> expected_output_parameter_source_locations
+            {
+                {.line = 8, .column = 1},
+            };
+
+            CHECK(declaration.output_parameter_source_locations == expected_output_parameter_source_locations);
+        }
+    }
+
+    TEST_CASE("Include debug information of structs")
+    {
+        std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "c_header_importer" / "debug_information_structs";
+        std::filesystem::create_directories(root_directory_path);
+
+        std::string const header_content = R"(
+struct Vector2i
+{
+    int x;
+    int y;
+};
+
+Vector2i add(Vector2i lhs, Vector2i rhs);
+)";
 
         std::filesystem::path const header_file_path = root_directory_path / "vector2i.h";
         h::common::write_to_file(header_file_path, header_content);
@@ -689,27 +734,101 @@ Vector2i add(Vector2i lhs, Vector2i rhs);
 
             CHECK(declaration.member_source_locations == expected_member_source_locations);
         }
+    }
+
+    TEST_CASE("Include debug information of unions")
+    {
+        std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "c_header_importer" / "debug_information_unions";
+        std::filesystem::create_directories(root_directory_path);
+
+        std::string const header_content = R"(
+union Value
+{
+    int a;
+    float b; 
+};
+)";
+
+        std::filesystem::path const header_file_path = root_directory_path / "value.h";
+        h::common::write_to_file(header_file_path, header_content);
+
+        h::Module const header_module = h::c::import_header("c.value", header_file_path);
+
+        CHECK(header_module.source_file_path == header_file_path);
 
         {
-            h::Function_declaration const& declaration = header_module.export_declarations.function_declarations[0];
-            CHECK(declaration.name == "add");
+            h::Union_declaration const& declaration = header_module.export_declarations.union_declarations[0];
+            CHECK(declaration.name == "Value");
 
-            CHECK(declaration.source_location == h::Source_location{ .line = 8, .column = 10 });
+            CHECK(declaration.source_location == h::Source_location{ .line = 2, .column = 7 });
 
-            std::pmr::vector<h::Source_location> expected_input_parameter_source_locations
+            std::pmr::vector<h::Source_location> expected_member_source_locations
             {
-                {.line = 8, .column = 23},
-                {.line = 8, .column = 37},
+                {.line = 4, .column = 9},
+                {.line = 5, .column = 11},
             };
 
-            CHECK(declaration.input_parameter_source_locations == expected_input_parameter_source_locations);
+            CHECK(declaration.member_source_locations == expected_member_source_locations);
+        }
+    }
 
-            std::pmr::vector<h::Source_location> expected_output_parameter_source_locations
-            {
-                {.line = 8, .column = 1},
-            };
+    TEST_CASE("Include debug information of enums")
+    {
+        std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "c_header_importer" / "debug_information_enums";
+        std::filesystem::create_directories(root_directory_path);
 
-            CHECK(declaration.output_parameter_source_locations == expected_output_parameter_source_locations);
+        std::string const header_content = R"(
+enum My_enum
+{
+    A = 0,
+    B,
+};
+)";
+
+        std::filesystem::path const header_file_path = root_directory_path / "my_enum.h";
+        h::common::write_to_file(header_file_path, header_content);
+
+        h::Module const header_module = h::c::import_header("c.my_enum", header_file_path);
+
+        CHECK(header_module.source_file_path == header_file_path);
+
+        {
+            h::Enum_declaration const& declaration = header_module.export_declarations.enum_declarations[0];
+            CHECK(declaration.name == "My_enum");
+
+            CHECK(declaration.source_location == h::Source_location{ .line = 2, .column = 6 });
+        }
+    }
+
+    TEST_CASE("Include debug information of alias")
+    {
+        std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "c_header_importer" / "debug_information_alias";
+        std::filesystem::create_directories(root_directory_path);
+
+        std::string const header_content = R"(
+typedef int My_int;
+typedef My_int My_alias;
+)";
+
+        std::filesystem::path const header_file_path = root_directory_path / "alias.h";
+        h::common::write_to_file(header_file_path, header_content);
+
+        h::Module const header_module = h::c::import_header("c.alias", header_file_path);
+
+        CHECK(header_module.source_file_path == header_file_path);
+
+        {
+            h::Alias_type_declaration const& declaration = header_module.export_declarations.alias_type_declarations[0];
+            CHECK(declaration.name == "My_int");
+
+            CHECK(declaration.source_location == h::Source_location{ .line = 2, .column = 13 });
+        }
+
+        {
+            h::Alias_type_declaration const& declaration = header_module.export_declarations.alias_type_declarations[1];
+            CHECK(declaration.name == "My_alias");
+
+            CHECK(declaration.source_location == h::Source_location{ .line = 3, .column = 16 });
         }
     }
 }
