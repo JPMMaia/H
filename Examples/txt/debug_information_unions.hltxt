@@ -1,0 +1,13 @@
+module Debug_information;
+
+union My_int
+{
+    x: Int32;
+    y: Float32;
+}
+
+function instantiate() -> (result: My_int)
+{
+    var instance: My_int = { x: 0 };
+    return instance;
+}
