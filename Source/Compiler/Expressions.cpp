@@ -1787,6 +1787,9 @@ namespace h::compiler
         new_parameters.expression_type = member_type;
         Value_and_type const member_value = create_loaded_statement_value(member_value_pair.value, new_parameters);
 
+        if (parameters.debug_info != nullptr)
+            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
+
         llvm::Value* const union_instance = llvm_builder.CreateAlloca(llvm_union_type);
         llvm::Value* const bitcast_instruction = llvm_builder.CreateBitCast(union_instance, member_value.value->getType()->getPointerTo());
         llvm_builder.CreateStore(member_value.value, bitcast_instruction);

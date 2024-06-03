@@ -835,7 +835,6 @@ Vector2i add(Vector2i lhs, Vector2i rhs);
     };
 
     std::string const expected_llvm_ir = std::format(R"(
-{}
 )", g_test_source_files_path.generic_string());
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, true);
@@ -906,6 +905,109 @@ attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !21 = !DILocation(line: 5, column: 12, scope: !13)
 !22 = !DILocation(line: 5, column: 18, scope: !13)
 !23 = !DILocation(line: 5, column: 5, scope: !13)
+)", g_test_source_files_path.generic_string());
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, true);
+  }
+
+  TEST_CASE("Compile Debug Information Struct")
+  {
+    char const* const input_file = "debug_information_structs.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    std::string const expected_llvm_ir = std::format(R"(
+%Debug_information_Vector2i = type {{ i32, i32 }}
+
+define private %Debug_information_Vector2i @Debug_information_instantiate() !dbg !3 {{
+entry:
+  %instance = alloca %Debug_information_Vector2i, align 8, !dbg !12
+  call void @llvm.dbg.declare(metadata ptr %instance, metadata !13, metadata !DIExpression()), !dbg !12
+  store %Debug_information_Vector2i {{ i32 1, i32 2 }}, ptr %instance, align 4, !dbg !12
+  %0 = load %Debug_information_Vector2i, ptr %instance, align 4, !dbg !14
+  ret %Debug_information_Vector2i %0, !dbg !15
+}}
+
+; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
+declare void @llvm.dbg.declare(metadata, metadata, metadata) #0
+
+attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
+
+!llvm.module.flags = !{{!0}}
+!llvm.dbg.cu = !{{!1}}
+
+!0 = !{{i32 2, !"Debug Info Version", i32 3}}
+!1 = distinct !DICompileUnit(language: DW_LANG_C, file: !2, producer: "Hlang Compiler", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+!2 = !DIFile(filename: "debug_information_structs.hltxt", directory: "{}")
+!3 = distinct !DISubprogram(name: "instantiate", linkageName: "Debug_information_instantiate", scope: null, file: !2, line: 9, type: !4, scopeLine: 10, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !1, retainedNodes: !11)
+!4 = !DISubroutineType(types: !5)
+!5 = !{{!6}}
+!6 = !DICompositeType(tag: DW_TAG_structure_type, name: "Debug_information_Vector2i", file: !2, line: 3, size: 64, align: 8, elements: !7)
+!7 = !{{!8, !10}}
+!8 = !DIDerivedType(tag: DW_TAG_member, name: "x", file: !2, line: 5, baseType: !9, size: 32, align: 8)
+!9 = !DIBasicType(name: "Int32", size: 32, encoding: DW_ATE_signed)
+!10 = !DIDerivedType(tag: DW_TAG_member, name: "y", file: !2, line: 6, baseType: !9, size: 32, align: 8, offset: 32)
+!11 = !{{}}
+!12 = !DILocation(line: 11, column: 5, scope: !3)
+!13 = !DILocalVariable(name: "instance", scope: !3, file: !2, line: 11, type: !6)
+!14 = !DILocation(line: 12, column: 12, scope: !3)
+!15 = !DILocation(line: 12, column: 5, scope: !3)
+)", g_test_source_files_path.generic_string());
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, true);
+  }
+
+  TEST_CASE("Compile Debug Information Union")
+  {
+    char const* const input_file = "debug_information_unions.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    std::string const expected_llvm_ir = std::format(R"(
+%Debug_information_My_int = type {{ [4 x i8] }}
+
+define private %Debug_information_My_int @Debug_information_instantiate() !dbg !3 {{
+entry:
+  %0 = alloca %Debug_information_My_int, align 8, !dbg !13
+  store i32 0, ptr %0, align 4, !dbg !13
+  %1 = load %Debug_information_My_int, ptr %0, align 1, !dbg !13
+  %instance = alloca %Debug_information_My_int, align 8, !dbg !14
+  call void @llvm.dbg.declare(metadata ptr %instance, metadata !15, metadata !DIExpression()), !dbg !14
+  store %Debug_information_My_int %1, ptr %instance, align 1, !dbg !14
+  %2 = load %Debug_information_My_int, ptr %instance, align 1, !dbg !16
+  ret %Debug_information_My_int %2, !dbg !17
+}}
+
+; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
+declare void @llvm.dbg.declare(metadata, metadata, metadata) #0
+
+attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
+
+!llvm.module.flags = !{{!0}}
+!llvm.dbg.cu = !{{!1}}
+
+!0 = !{{i32 2, !"Debug Info Version", i32 3}}
+!1 = distinct !DICompileUnit(language: DW_LANG_C, file: !2, producer: "Hlang Compiler", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+!2 = !DIFile(filename: "debug_information_unions.hltxt", directory: "{}")
+!3 = distinct !DISubprogram(name: "instantiate", linkageName: "Debug_information_instantiate", scope: null, file: !2, line: 9, type: !4, scopeLine: 10, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !1, retainedNodes: !12)
+!4 = !DISubroutineType(types: !5)
+!5 = !{{!6}}
+!6 = !DICompositeType(tag: DW_TAG_union_type, name: "Debug_information_My_int", file: !2, line: 3, size: 32, align: 8, elements: !7)
+!7 = !{{!8, !10}}
+!8 = !DIDerivedType(tag: DW_TAG_member, name: "x", file: !2, line: 5, baseType: !9, size: 32, align: 8)
+!9 = !DIBasicType(name: "Int32", size: 32, encoding: DW_ATE_signed)
+!10 = !DIDerivedType(tag: DW_TAG_member, name: "y", file: !2, line: 6, baseType: !11, size: 32, align: 8)
+!11 = !DIBasicType(name: "Float32", size: 32, encoding: DW_ATE_float)
+!12 = !{{}}
+!13 = !DILocation(line: 11, column: 28, scope: !3)
+!14 = !DILocation(line: 11, column: 5, scope: !3)
+!15 = !DILocalVariable(name: "instance", scope: !3, file: !2, line: 11, type: !6)
+!16 = !DILocation(line: 12, column: 12, scope: !3)
+!17 = !DILocation(line: 12, column: 5, scope: !3)
 )", g_test_source_files_path.generic_string());
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, true);

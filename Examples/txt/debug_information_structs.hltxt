@@ -1,0 +1,13 @@
+module Debug_information;
+
+struct Vector2i
+{
+    x: Int32 = 1;
+    y: Int32 = 2;
+}
+
+function instantiate() -> (result: Vector2i)
+{
+    var instance: Vector2i = {};
+    return instance;
+}
