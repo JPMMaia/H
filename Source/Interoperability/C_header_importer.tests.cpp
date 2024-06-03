@@ -189,7 +189,7 @@ namespace h::c
 
         {
             CHECK(actual.member_names[0] == "sType");
-            CHECK(actual.member_types[0] == h::create_custom_type_reference("", "VkStructureType"));
+            CHECK(actual.member_types[0] == h::create_custom_type_reference("vulkan", "VkStructureType"));
         }
 
         {
@@ -199,7 +199,7 @@ namespace h::c
 
         {
             CHECK(actual.member_names[2] == "flags");
-            CHECK(actual.member_types[2] == h::create_custom_type_reference("", "VkCommandPoolCreateFlags"));
+            CHECK(actual.member_types[2] == h::create_custom_type_reference("vulkan", "VkCommandPoolCreateFlags"));
         }
 
         {
@@ -290,7 +290,7 @@ namespace h::c
             h::Custom_type_reference const expected_type =
             {
                 .module_reference = {
-                    .name = ""
+                    .name = "vulkan"
                 },
                 .name = "VkOffset2D"
             };
@@ -320,7 +320,7 @@ namespace h::c
             h::Custom_type_reference const expected_type =
             {
                 .module_reference = {
-                    .name = ""
+                    .name = "vulkan"
                 },
                 .name = "VkExtent2D"
             };
@@ -380,7 +380,7 @@ namespace h::c
             h::Custom_type_reference const expected_type =
             {
                 .module_reference = {
-                    .name = ""
+                    .name = "vulkan"
                 },
                 .name = "VkImageAspectFlags"
             };
@@ -431,7 +431,7 @@ namespace h::c
             h::Custom_type_reference const expected_type =
             {
                 .module_reference = {
-                    .name = ""
+                    .name = "vulkan"
                 },
                 .name = "VkClearValue"
             };
@@ -542,7 +542,7 @@ namespace h::c
         };
 
         CHECK(actual.member_names[0] == "sType");
-        CHECK(actual.member_types[0] == create_custom_type_reference("", "VkStructureType"));
+        CHECK(actual.member_types[0] == create_custom_type_reference("vulkan", "VkStructureType"));
         CHECK(actual.member_default_values[0] == h::create_statement(h::create_enum_value_expressions("VkStructureType", "VK_STRUCTURE_TYPE_APPLICATION_INFO")));
 
         CHECK(actual.member_names[1] == "pNext");
@@ -550,19 +550,19 @@ namespace h::c
         CHECK(actual.member_default_values[1] == h::create_statement({ h::create_null_pointer_expression() }));
 
         CHECK(actual.member_names[2] == "flags");
-        CHECK(actual.member_types[2] == create_custom_type_reference("", "VkBufferCreateFlags"));
+        CHECK(actual.member_types[2] == create_custom_type_reference("vulkan", "VkBufferCreateFlags"));
         CHECK(actual.member_default_values[2] == h::create_statement({ h::create_constant_expression(uint32_type, "0") }));
 
         CHECK(actual.member_names[3] == "size");
-        CHECK(actual.member_types[3] == create_custom_type_reference("", "VkDeviceSize"));
+        CHECK(actual.member_types[3] == create_custom_type_reference("vulkan", "VkDeviceSize"));
         CHECK(actual.member_default_values[3] == h::create_statement({ h::create_constant_expression(uint64_type, "0") }));
 
         CHECK(actual.member_names[4] == "usage");
-        CHECK(actual.member_types[4] == create_custom_type_reference("", "VkBufferUsageFlags"));
+        CHECK(actual.member_types[4] == create_custom_type_reference("vulkan", "VkBufferUsageFlags"));
         CHECK(actual.member_default_values[4] == h::create_statement({ h::create_constant_expression(uint32_type, "0") }));
 
         CHECK(actual.member_names[5] == "sharingMode");
-        CHECK(actual.member_types[5] == create_custom_type_reference("", "VkSharingMode"));
+        CHECK(actual.member_types[5] == create_custom_type_reference("vulkan", "VkSharingMode"));
         CHECK(actual.member_default_values[5] == h::create_statement(h::create_enum_value_expressions("VkSharingMode", "VK_SHARING_MODE_EXCLUSIVE")));
 
         CHECK(actual.member_names[6] == "queueFamilyIndexCount");
