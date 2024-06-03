@@ -1465,6 +1465,7 @@ namespace h::c
             .source_file_path = header_path
         };
 
+        h::fix_custom_type_references(header_module);
         add_struct_member_default_values(header_module, header_module.export_declarations, declaration_database);
 
         return header_module;
