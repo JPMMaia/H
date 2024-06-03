@@ -910,6 +910,21 @@ attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, true);
   }
 
+  TEST_CASE("Compile Debug Information If")
+  {
+    char const* const input_file = "debug_information_if.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    std::string const expected_llvm_ir = std::format(R"(
+{}
+)", g_test_source_files_path.generic_string());
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, true);
+  }
+
   TEST_CASE("Compile Debug Information Struct")
   {
     char const* const input_file = "debug_information_structs.hl";
@@ -1296,6 +1311,20 @@ entry:
 }
 
 declare i32 @printf(ptr, ...)
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
+  TEST_CASE("Compile If Return Expressions")
+  {
+    char const* const input_file = "if_return_expressions.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
