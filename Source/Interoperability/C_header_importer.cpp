@@ -450,11 +450,16 @@ namespace h::c
             alias_type.push_back(*underlying_type_reference);
         }
 
+        Header_source_location const cursor_location = get_cursor_source_location(
+            cursor
+        );
+
         return h::Alias_type_declaration
         {
             .name = std::pmr::string{type_name},
             .unique_name = std::pmr::string{type_name},
-            .type = std::move(alias_type)
+            .type = std::move(alias_type),
+            .source_location = cursor_location.source_location,
         };
     }
 
@@ -520,11 +525,16 @@ namespace h::c
             &values
         );
 
+        Header_source_location const cursor_location = get_cursor_source_location(
+            cursor
+        );
+
         return h::Enum_declaration
         {
             .name = std::pmr::string{enum_type_name},
             .unique_name = std::pmr::string{enum_type_name},
-            .values = std::move(values)
+            .values = std::move(values),
+            .source_location = cursor_location.source_location,
         };
     }
 
@@ -824,17 +834,33 @@ namespace h::c
                     data->union_declaration->member_names.push_back(std::pmr::string{ member_name });
                     data->union_declaration->member_types.push_back(std::move(*member_type_reference));
                 }
+
+                {
+                    Header_source_location const cursor_location = get_cursor_source_location(
+                        current_cursor
+                    );
+
+                    data->union_declaration->member_source_locations->push_back(
+                        cursor_location.source_location
+                    );
+                }
             }
 
             return CXChildVisit_Continue;
         };
+
+        Header_source_location const cursor_location = get_cursor_source_location(
+            cursor
+        );
 
         h::Union_declaration union_declaration
         {
             .name = std::pmr::string{union_name},
             .unique_name = std::pmr::string{union_name},
             .member_types = {},
-            .member_names = {}
+            .member_names = {},
+            .source_location = cursor_location.source_location,
+            .member_source_locations = std::pmr::vector<h::Source_location>{}
         };
 
         Client_data client_data
