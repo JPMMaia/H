@@ -79,6 +79,12 @@ add_custom_target(Parser DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/js/dist/main.js")
 
 set_property(GLOBAL PROPERTY parser_javascript_location "${CMAKE_CURRENT_BINARY_DIR}/js/dist/main.js")
 
+install(
+    FILES "${CMAKE_CURRENT_BINARY_DIR}/js/dist/main.js"
+    TYPE BIN
+    RENAME "parser.js"
+)
+
 macro(copy_parser_javascript_to_folder target)
 
     get_property(parser_javascript_location GLOBAL PROPERTY parser_javascript_location)

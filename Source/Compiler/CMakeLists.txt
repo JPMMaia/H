@@ -26,6 +26,18 @@ target_link_libraries(H_compiler PUBLIC ${lldCommon})
 find_library(lldCOFF lldCOFF REQUIRED)
 target_link_libraries(H_compiler PUBLIC ${lldCOFF})
 
+if(WIN32)
+   find_package(ZLIB REQUIRED)
+   get_target_property(ZLIB_IMPORTED_LOCATION_DEBUG ZLIB::ZLIB IMPORTED_LOCATION_DEBUG)
+   cmake_path(GET ZLIB_IMPORTED_LOCATION_DEBUG PARENT_PATH ZLIB_IMPORTED_LOCATION_DIRECTORY)
+
+   find_program(ZLIB_DLL_DEBUG "zlibd1.dll")
+   install(FILES ${ZLIB_DLL_DEBUG} TYPE BIN CONFIGURATIONS Debug)
+   
+   find_file(ZLIB_DLL_RELEASE "zlib1.dll")
+   install(FILES ${ZLIB_DLL_RELEASE} TYPE BIN CONFIGURATIONS Release)
+endif()
+
 ## End LLVM ##
 
 target_link_libraries(H_compiler PUBLIC "wtr.hdr_watcher")
@@ -33,6 +45,7 @@ target_link_libraries(H_compiler PUBLIC "wtr.hdr_watcher")
 if(WIN32)
    find_package(xxHash CONFIG REQUIRED)
    target_link_libraries(H_compiler PRIVATE xxHash::xxhash)
+   install(IMPORTED_RUNTIME_ARTIFACTS xxHash::xxhash)
 else()
    find_package(PkgConfig REQUIRED)
    pkg_check_modules(XXHASH REQUIRED IMPORTED_TARGET libxxhash)
