@@ -1325,6 +1325,20 @@ declare i32 @printf(ptr, ...)
     };
 
     char const* const expected_llvm_ir = R"(
+define private i32 @If_return_expressions_run(i32 %arguments.value) {
+entry:
+  %value = alloca i32, align 4
+  store i32 %arguments.value, ptr %value, align 4
+  %0 = load i32, ptr %value, align 4
+  %1 = icmp eq i32 %0, 0
+  br i1 %1, label %if_s0_then, label %if_s1_else
+
+if_s0_then:                                       ; preds = %entry
+  ret i32 1
+
+if_s1_else:                                       ; preds = %entry
+  ret i32 2
+}
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
