@@ -557,6 +557,9 @@ namespace h::compiler
 
         auto const return_void_is_missing = [&]() -> bool
         {
+            if (!function_declaration.type.output_parameter_types.empty())
+                return false;
+
             if (!function_definition.statements.empty())
             {
                 Statement const& statement = function_definition.statements.back();
@@ -574,6 +577,17 @@ namespace h::compiler
         if (return_void_is_missing())
         {
             llvm_builder.CreateRetVoid();
+        }
+
+        // Delete the last block if it has no predecessors.
+        // This can happen, for example, if the last statement of a function is a if expression that returns non-void.
+        if (llvm_function.size() > 1)
+        {
+            llvm::BasicBlock& last_block = llvm_function.back();
+            if (llvm::pred_empty(&last_block))
+            {
+                last_block.eraseFromParent();
+            }
         }
 
         if (debug_info != nullptr)
