@@ -835,7 +835,66 @@ Vector2i add(Vector2i lhs, Vector2i rhs);
     };
 
     std::string const expected_llvm_ir = std::format(R"(
-)", g_test_source_files_path.generic_string());
+%Vector2i = type {{ i32, i32 }}
+
+define i32 @Debug_information_run() !dbg !3 {{
+entry:
+  %a = alloca %Vector2i, align 8, !dbg !8
+  call void @llvm.dbg.declare(metadata ptr %a, metadata !9, metadata !DIExpression()), !dbg !8
+  store %Vector2i {{ i32 1, i32 -1 }}, ptr %a, align 4, !dbg !8
+  %b = alloca %Vector2i, align 8, !dbg !15
+  call void @llvm.dbg.declare(metadata ptr %b, metadata !16, metadata !DIExpression()), !dbg !15
+  store %Vector2i {{ i32 2, i32 -2 }}, ptr %b, align 4, !dbg !15
+  %0 = load %Vector2i, ptr %a, align 4, !dbg !17
+  %1 = load %Vector2i, ptr %b, align 4, !dbg !18
+  %2 = call %Vector2i @add(%Vector2i %0, %Vector2i %1), !dbg !19
+  %c = alloca %Vector2i, align 8, !dbg !20
+  call void @llvm.dbg.declare(metadata ptr %c, metadata !21, metadata !DIExpression()), !dbg !20
+  store %Vector2i %2, ptr %c, align 4, !dbg !20
+  %3 = getelementptr inbounds %Vector2i, ptr %c, i32 0, i32 0, !dbg !20
+  %4 = load i32, ptr %3, align 4, !dbg !22
+  %5 = getelementptr inbounds %Vector2i, ptr %c, i32 0, i32 1, !dbg !22
+  %6 = load i32, ptr %5, align 4, !dbg !23
+  %7 = add i32 %4, %6, !dbg !22
+  ret i32 %7, !dbg !24
+}}
+
+declare %Vector2i @add(%Vector2i, %Vector2i)
+
+; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
+declare void @llvm.dbg.declare(metadata, metadata, metadata) #0
+
+attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
+
+!llvm.module.flags = !{{!0}}
+!llvm.dbg.cu = !{{!1}}
+
+!0 = !{{i32 2, !"Debug Info Version", i32 3}}
+!1 = distinct !DICompileUnit(language: DW_LANG_C, file: !2, producer: "Hlang Compiler", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+!2 = !DIFile(filename: "debug_information_c_headers.hltxt", directory: "{}")
+!3 = distinct !DISubprogram(name: "run", linkageName: "Debug_information_run", scope: null, file: !2, line: 5, type: !4, scopeLine: 6, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !1, retainedNodes: !7)
+!4 = !DISubroutineType(types: !5)
+!5 = !{{!6}}
+!6 = !DIBasicType(name: "c_int", size: 32, encoding: DW_ATE_signed)
+!7 = !{{}}
+!8 = !DILocation(line: 7, column: 5, scope: !3)
+!9 = !DILocalVariable(name: "a", scope: !3, file: !2, line: 7, type: !10)
+!10 = !DICompositeType(tag: DW_TAG_structure_type, name: "Vector2i", file: !11, line: 2, size: 64, align: 8, elements: !12)
+!11 = !DIFile(filename: "vector2i.h", directory: "{}")
+!12 = !{{!13, !14}}
+!13 = !DIDerivedType(tag: DW_TAG_member, name: "x", file: !11, line: 4, baseType: !6, size: 32, align: 8)
+!14 = !DIDerivedType(tag: DW_TAG_member, name: "y", file: !11, line: 5, baseType: !6, size: 32, align: 8, offset: 32)
+!15 = !DILocation(line: 8, column: 5, scope: !3)
+!16 = !DILocalVariable(name: "b", scope: !3, file: !2, line: 8, type: !10)
+!17 = !DILocation(line: 9, column: 26, scope: !3)
+!18 = !DILocation(line: 9, column: 29, scope: !3)
+!19 = !DILocation(line: 9, column: 13, scope: !3)
+!20 = !DILocation(line: 9, column: 5, scope: !3)
+!21 = !DILocalVariable(name: "c", scope: !3, file: !2, line: 9, type: !10)
+!22 = !DILocation(line: 10, column: 12, scope: !3)
+!23 = !DILocation(line: 10, column: 18, scope: !3)
+!24 = !DILocation(line: 10, column: 5, scope: !3)
+)", g_test_source_files_path.generic_string(), root_directory_path.generic_string());
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, true);
   }
@@ -919,7 +978,56 @@ attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
     };
 
     std::string const expected_llvm_ir = std::format(R"(
-{}
+define private i32 @Debug_information_run(i32 %arguments.value) !dbg !3 {{
+entry:
+  %value = alloca i32, align 4
+  call void @llvm.dbg.declare(metadata ptr %value, metadata !8, metadata !DIExpression()), !dbg !9
+  store i32 %arguments.value, ptr %value, align 4
+  %0 = load i32, ptr %value, align 4, !dbg !10
+  %1 = icmp eq i32 %0, 0, !dbg !10
+  br i1 %1, label %if_s0_then, label %if_s1_else, !dbg !10
+
+if_s0_then:                                       ; preds = %entry
+  ret i32 1, !dbg !11
+
+if_s1_else:                                       ; preds = %entry
+  %2 = load i32, ptr %value, align 4, !dbg !13
+  %3 = icmp eq i32 %2, 1, !dbg !13
+  br i1 %3, label %if_s2_then, label %if_s3_else, !dbg !13
+
+if_s2_then:                                       ; preds = %if_s1_else
+  ret i32 2, !dbg !14
+
+if_s3_else:                                       ; preds = %if_s1_else
+  ret i32 3, !dbg !16
+}}
+
+; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
+declare void @llvm.dbg.declare(metadata, metadata, metadata) #0
+
+attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
+
+!llvm.module.flags = !{{!0}}
+!llvm.dbg.cu = !{{!1}}
+
+!0 = !{{i32 2, !"Debug Info Version", i32 3}}
+!1 = distinct !DICompileUnit(language: DW_LANG_C, file: !2, producer: "Hlang Compiler", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+!2 = !DIFile(filename: "debug_information_if.hltxt", directory: "{}")
+!3 = distinct !DISubprogram(name: "run", linkageName: "Debug_information_run", scope: null, file: !2, line: 3, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !1, retainedNodes: !7)
+!4 = !DISubroutineType(types: !5)
+!5 = !{{!6, !6}}
+!6 = !DIBasicType(name: "Int32", size: 32, encoding: DW_ATE_signed)
+!7 = !{{!8}}
+!8 = !DILocalVariable(name: "value", arg: 1, scope: !3, file: !2, line: 3, type: !6)
+!9 = !DILocation(line: 3, column: 14, scope: !3)
+!10 = !DILocation(line: 5, column: 8, scope: !3)
+!11 = !DILocation(line: 7, column: 9, scope: !12)
+!12 = distinct !DILexicalBlock(scope: !3, file: !2, line: 6, column: 5)
+!13 = !DILocation(line: 9, column: 13, scope: !3)
+!14 = !DILocation(line: 11, column: 9, scope: !15)
+!15 = distinct !DILexicalBlock(scope: !3, file: !2, line: 10, column: 5)
+!16 = !DILocation(line: 15, column: 9, scope: !17)
+!17 = distinct !DILexicalBlock(scope: !3, file: !2, line: 14, column: 5)
 )", g_test_source_files_path.generic_string());
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, true);
