@@ -1376,14 +1376,14 @@ module Switch_expressions;
 
 export function run_switch(value: Int32) -> (result: Int32)
 {
-    switch value:
+    switch value
     {
     case 0:
         var return_value = 0;
         return return_value;
     }
 
-    switch value:
+    switch value
     {
     case 1:
         return 1;
@@ -1397,7 +1397,7 @@ export function run_switch(value: Int32) -> (result: Int32)
         return 3;
     }
 
-    switch value:
+    switch value
     {
     default:
     case 6:
@@ -1656,7 +1656,7 @@ export function use_enums(enum_argument: My_enum) -> (result: Int32)
 {
     var my_value = My_enum.Value_1;
 
-    switch enum_argument:
+    switch enum_argument
     {
         case My_enum.Value_0:
         case My_enum.Value_1:
