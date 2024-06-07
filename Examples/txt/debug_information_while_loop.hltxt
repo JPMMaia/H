@@ -1,0 +1,15 @@
+module Debug_information;
+
+export function run() -> (result: Int32)
+{
+    mutable value = 0;
+
+    mutable index = 0;
+    while index < 10
+    {
+        value += index;
+        index += 1;
+    }
+
+    return value;
+}

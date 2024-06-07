@@ -1253,6 +1253,77 @@ attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, true);
   }
 
+  TEST_CASE("Compile Debug Information While Loop")
+  {
+    char const* const input_file = "debug_information_while_loop.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    std::string const expected_llvm_ir = std::format(R"(
+define i32 @Debug_information_run() !dbg !3 {{
+entry:
+  %value = alloca i32, align 4, !dbg !8
+  call void @llvm.dbg.declare(metadata ptr %value, metadata !9, metadata !DIExpression()), !dbg !8
+  store i32 0, ptr %value, align 4, !dbg !8
+  %index = alloca i32, align 4, !dbg !10
+  call void @llvm.dbg.declare(metadata ptr %index, metadata !11, metadata !DIExpression()), !dbg !10
+  store i32 0, ptr %index, align 4, !dbg !10
+  br label %while_loop_condition, !dbg !10
+
+while_loop_condition:                             ; preds = %while_loop_then, %entry
+  %0 = load i32, ptr %index, align 4, !dbg !12
+  %1 = icmp slt i32 %0, 10, !dbg !12
+  br i1 %1, label %while_loop_then, label %while_loop_after, !dbg !12
+
+while_loop_then:                                  ; preds = %while_loop_condition
+  %2 = load i32, ptr %value, align 4, !dbg !13
+  %3 = load i32, ptr %index, align 4, !dbg !15
+  %4 = add i32 %2, %3, !dbg !13
+  store i32 %4, ptr %value, align 4, !dbg !13
+  %5 = load i32, ptr %index, align 4, !dbg !16
+  %6 = add i32 %5, 1, !dbg !16
+  store i32 %6, ptr %index, align 4, !dbg !16
+  br label %while_loop_condition, !dbg !16
+
+while_loop_after:                                 ; preds = %while_loop_condition
+  %7 = load i32, ptr %value, align 4, !dbg !17
+  ret i32 %7, !dbg !18
+}}
+
+; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
+declare void @llvm.dbg.declare(metadata, metadata, metadata) #0
+
+attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
+
+!llvm.module.flags = !{{!0}}
+!llvm.dbg.cu = !{{!1}}
+
+!0 = !{{i32 2, !"Debug Info Version", i32 3}}
+!1 = distinct !DICompileUnit(language: DW_LANG_C, file: !2, producer: "Hlang Compiler", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+!2 = !DIFile(filename: "debug_information_while_loop.hltxt", directory: "{}")
+!3 = distinct !DISubprogram(name: "run", linkageName: "Debug_information_run", scope: null, file: !2, line: 3, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !1, retainedNodes: !7)
+!4 = !DISubroutineType(types: !5)
+!5 = !{{!6}}
+!6 = !DIBasicType(name: "Int32", size: 32, encoding: DW_ATE_signed)
+!7 = !{{}}
+!8 = !DILocation(line: 5, column: 5, scope: !3)
+!9 = !DILocalVariable(name: "value", scope: !3, file: !2, line: 5, type: !6)
+!10 = !DILocation(line: 7, column: 5, scope: !3)
+!11 = !DILocalVariable(name: "index", scope: !3, file: !2, line: 7, type: !6)
+!12 = !DILocation(line: 8, column: 11, scope: !3)
+!13 = !DILocation(line: 10, column: 9, scope: !14)
+!14 = distinct !DILexicalBlock(scope: !3, file: !2, line: 8, column: 5)
+!15 = !DILocation(line: 10, column: 18, scope: !14)
+!16 = !DILocation(line: 11, column: 9, scope: !14)
+!17 = !DILocation(line: 14, column: 12, scope: !3)
+!18 = !DILocation(line: 14, column: 5, scope: !3)
+)", g_test_source_files_path.generic_string());
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, true);
+  }
+
   TEST_CASE("Compile For Loop Expressions")
   {
     char const* const input_file = "for_loop_expressions.hl";
