@@ -15,7 +15,7 @@ export function use_enums(enum_argument: My_enum) -> (result: Int32)
 {
     var my_value = My_enum.Value_1;
 
-    switch enum_argument:
+    switch enum_argument
     {
         case My_enum.Value_0:
         case My_enum.Value_1:
