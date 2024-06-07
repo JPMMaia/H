@@ -1,0 +1,16 @@
+module Debug_information;
+
+function run(value: Int32) -> (result: Int32)
+{
+    switch value
+    {
+    case 0:
+        return 10;
+    case 1:
+        break;
+    default:
+        break;
+    }
+
+    return value;
+}

@@ -50,6 +50,7 @@ Convert_hltxt_to_hl(
         "${CMAKE_CURRENT_LIST_DIR}/txt/debug_information_function_call.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/debug_information_if.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/debug_information_structs.hltxt"
+        "${CMAKE_CURRENT_LIST_DIR}/txt/debug_information_switch.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/debug_information_unions.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/debug_information_variables.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/debug_information_while_loop.hltxt"

@@ -1073,7 +1073,8 @@ namespace h::compiler
     Value_and_type create_break_expression_value(
         Break_expression const& break_expression,
         llvm::IRBuilder<>& llvm_builder,
-        std::span<Block_info const> const blocks
+        std::span<Block_info const> const blocks,
+        Expression_parameters const& parameters
     )
     {
         auto const find_target_block = [&]() -> llvm::BasicBlock*
@@ -1101,6 +1102,10 @@ namespace h::compiler
         };
 
         llvm::BasicBlock* const target_block = find_target_block();
+
+        if (parameters.debug_info != nullptr)
+            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
+
         llvm_builder.CreateBr(target_block);
 
         return Value_and_type
@@ -1402,7 +1407,8 @@ namespace h::compiler
     Value_and_type create_continue_expression_value(
         Continue_expression const& continue_expression,
         llvm::IRBuilder<>& llvm_builder,
-        std::span<Block_info const> const block_infos
+        std::span<Block_info const> const block_infos,
+        Expression_parameters const& parameters
     )
     {
         auto const find_target_block = [&]() -> llvm::BasicBlock*
@@ -1422,6 +1428,10 @@ namespace h::compiler
         };
 
         llvm::BasicBlock* const target_block = find_target_block();
+
+        if (parameters.debug_info != nullptr)
+            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
+
         llvm_builder.CreateBr(target_block);
 
         return Value_and_type
@@ -2445,7 +2455,7 @@ namespace h::compiler
         else if (std::holds_alternative<Break_expression>(expression.data))
         {
             Break_expression const& data = std::get<Break_expression>(expression.data);
-            return create_break_expression_value(data, new_parameters.llvm_builder, new_parameters.blocks);
+            return create_break_expression_value(data, new_parameters.llvm_builder, new_parameters.blocks, new_parameters);
         }
         else if (std::holds_alternative<Call_expression>(expression.data))
         {
@@ -2465,7 +2475,7 @@ namespace h::compiler
         else if (std::holds_alternative<Continue_expression>(expression.data))
         {
             Continue_expression const& data = std::get<Continue_expression>(expression.data);
-            return create_continue_expression_value(data, new_parameters.llvm_builder, new_parameters.blocks);
+            return create_continue_expression_value(data, new_parameters.llvm_builder, new_parameters.blocks, new_parameters);
         }
         else if (std::holds_alternative<For_loop_expression>(expression.data))
         {
