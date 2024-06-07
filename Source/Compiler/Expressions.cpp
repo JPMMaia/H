@@ -1448,7 +1448,13 @@ namespace h::compiler
         std::span<Block_info const> block_infos = parameters.blocks;
         std::span<Value_and_type const> const local_variables = parameters.local_variables;
 
+        if (parameters.debug_info != nullptr)
+            push_debug_lexical_block_scope(*parameters.debug_info, *parameters.source_location);
+
         Value_and_type const& range_begin_temporary = create_loaded_expression_value(expression.range_begin.expression_index, statement, parameters);
+
+        if (parameters.debug_info != nullptr)
+            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
 
         // Loop variable declaration:
         Type_reference const& variable_type = range_begin_temporary.type.value();
@@ -1470,13 +1476,13 @@ namespace h::compiler
         {
             llvm_builder.SetInsertPoint(condition_block);
 
-            if (parameters.debug_info != nullptr)
-                push_debug_lexical_block_scope(*parameters.debug_info, *parameters.source_location);
-
             Value_and_type const& range_end_value = create_loaded_statement_value(
                 expression.range_end,
                 parameters
             );
+
+            if (parameters.debug_info != nullptr)
+                set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
 
             Value_and_type const loaded_variable_value
             {
@@ -1531,6 +1537,9 @@ namespace h::compiler
                 expression.step_by.has_value() ?
                 create_loaded_expression_value(expression.step_by.value().expression_index, statement, parameters) :
                 create_constant_expression_value(default_step_constant, llvm_context, llvm_data_layout, llvm_module, core_module, type_database);
+
+            if (parameters.debug_info != nullptr)
+                set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
 
             llvm::Value* const loaded_value_value = llvm_builder.CreateLoad(variable_llvm_type, variable_value.value);
             llvm::Value* new_variable_value = llvm_builder.CreateAdd(loaded_value_value, step_by_value.value);

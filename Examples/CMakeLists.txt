@@ -46,6 +46,7 @@ Convert_hltxt_to_hl(
         "${CMAKE_CURRENT_LIST_DIR}/txt/comment_expressions.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/debug_information_all.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/debug_information_c_headers.hltxt"
+        "${CMAKE_CURRENT_LIST_DIR}/txt/debug_information_for_loop.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/debug_information_function_call.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/debug_information_if.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/debug_information_structs.hltxt"
