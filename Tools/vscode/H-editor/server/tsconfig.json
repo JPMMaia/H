@@ -1,0 +1,36 @@
+{
+	"compilerOptions": {
+		"target": "es2020",
+		"lib": [
+			"es2020"
+		],
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
+		"sourceMap": true,
+		"strict": true,
+		"outDir": "../out/server",
+		"rootDir": "src",
+		"baseUrl": ".",
+		"paths": {
+			"@core/*": [
+				"../src/core/*"
+			],
+			"@utilities/*": [
+				"../src/utilities/*"
+			]
+		},
+		"composite": true,
+	},
+	"include": [
+		"src"
+	],
+	"exclude": [
+		"node_modules",
+		".vscode-test"
+	],
+	"references": [
+		{
+			"path": "../src"
+		}
+	]
+}

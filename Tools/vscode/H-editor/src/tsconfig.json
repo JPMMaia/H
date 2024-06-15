@@ -1,0 +1,22 @@
+{
+    "compilerOptions": {
+        "target": "es2020",
+        "lib": [
+            "es2020"
+        ],
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "sourceMap": true,
+        "strict": true,
+        "outDir": "../out/shared",
+        "rootDir": ".",
+        "composite": true
+    },
+    "include": [
+        "core",
+        "utilities"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}

@@ -11,152 +11,83 @@
 		"url": "https://github.com/JPMMaia/H"
 	},
 	"engines": {
-		"vscode": "^1.52.0"
+		"vscode": "^1.75.0"
 	},
-	"categories": [
-		"Other"
-	],
+	"categories": [],
+	"main": "./out/client/extension",
 	"activationEvents": [
-		"onFileSystem:heditor"
+		"onLanguage:hlang"
 	],
-	"main": "./out/extension.js",
 	"contributes": {
-		"commands": [
-			{
-				"command": "HEditor.initialize_workspace",
-				"title": "Initialize Workspace",
-				"category": "HEditor"
-			},
-			{
-				"command": "hello-world.showHelloWorld",
-				"title": "Hello World (Vue): Show"
-			},
-			{
-				"command": "HEditorExplorer.refresh",
-				"title": "Refresh HEditorExplorer",
-				"icon": "$(refresh)"
-			},
-			{
-				"command": "HEditorExplorer.addAlias",
-				"title": "Add alias",
-				"icon": "$(symbol-parameter)"
-			},
-			{
-				"command": "HEditorExplorer.addEnum",
-				"title": "Add enum",
-				"icon": "$(symbol-enum)"
-			},
-			{
-				"command": "HEditorExplorer.addStruct",
-				"title": "Add struct",
-				"icon": "$(symbol-namespace)"
-			},
-			{
-				"command": "HEditorExplorer.addFunction",
-				"title": "Add function",
-				"icon": "$(symbol-method)"
-			},
-			{
-				"command": "HEditorExplorer.delete",
-				"title": "Delete",
-				"icon": "$(remove)"
-			},
-			{
-				"command": "HEditorExplorer.editName",
-				"title": "Edit name",
-				"icon": "$(edit)"
+		"configuration": {
+			"type": "object",
+			"title": "Configuration",
+			"properties": {
+				"languageServerExample.maxNumberOfProblems": {
+					"scope": "resource",
+					"type": "number",
+					"default": 100,
+					"description": "Controls the maximum number of problems produced by the server."
+				},
+				"languageServerExample.trace.server": {
+					"scope": "window",
+					"type": "string",
+					"enum": [
+						"off",
+						"messages",
+						"verbose"
+					],
+					"default": "off",
+					"description": "Traces the communication between VS Code and the language server."
+				}
 			}
-		],
+		},
 		"languages": [
 			{
-				"id": "hl",
+				"id": "hlang",
 				"extensions": [
-					".hl"
-				],
-				"aliases": [
-					"H",
-					"hl",
-					"hlanguage"
-				],
-				"filenames": []
+					".hltxt"
+				]
 			}
-		],
-		"menus": {
-			"view/title": [
-				{
-					"command": "HEditorExplorer.refresh",
-					"when": "view == HEditorExplorer",
-					"group": "navigation"
-				}
-			],
-			"view/item/context": [
-				{
-					"command": "HEditorExplorer.addAlias",
-					"when": "view == HEditorExplorer && viewItem == hl_module_content",
-					"group": "inline"
-				},
-				{
-					"command": "HEditorExplorer.addEnum",
-					"when": "view == HEditorExplorer && viewItem == hl_module_content",
-					"group": "inline"
-				},
-				{
-					"command": "HEditorExplorer.addStruct",
-					"when": "view == HEditorExplorer && viewItem == hl_module_content",
-					"group": "inline"
-				},
-				{
-					"command": "HEditorExplorer.addFunction",
-					"when": "view == HEditorExplorer && viewItem == hl_module_content",
-					"group": "inline"
-				},
-				{
-					"command": "HEditorExplorer.delete",
-					"when": "view == HEditorExplorer && viewItem == alias_type_declaration || viewItem == enum_declaration || viewItem == struct_declaration || viewItem == function_declaration"
-				},
-				{
-					"command": "HEditorExplorer.editName",
-					"when": "view == HEditorExplorer && viewItem == alias_type_declaration || viewItem == enum_declaration || viewItem == struct_declaration || viewItem == function_declaration",
-					"group": "inline"
-				}
-			]
-		},
-		"views": {
-			"explorer": [
-				{
-					"id": "HEditorExplorer",
-					"name": "H Editor Explorer"
-				}
-			]
-		}
+		]
 	},
 	"scripts": {
-		"install:all": "npm install && npm --prefix ./webview-ui install ./webview-ui",
-		"start:webview": "npm --prefix ./webview-ui run start",
-		"build:webview": "npm --prefix ./webview-ui run build",
 		"vscode:prepublish": "npm run compile",
-		"compile": "tsc -p ./",
+		"compile": "tsc -b",
 		"pretest": "npm run compile && npm run lint",
-		"lint": "eslint . --ext .ts,.tsx",
-		"watch": "tsc -w -p ./",
-		"test": "mocha --require ts-node/register src/**/*.test.ts"
+		"lint": "eslint ./client/src ./server/src --ext .ts,.tsx",
+		"watch": "tsc -b -w",
+		"test:extension": "sh ./scripts/e2e.sh",
+		"test:scripts": "mocha --require ts-node/register src/**/*.test.ts",
+		"clean": "rimraf out"
 	},
 	"devDependencies": {
 		"@types/node": "^12.12.0",
 		"@types/object-hash": "^3.0.6",
 		"@types/vscode": "^1.52.0",
-		"@typescript-eslint/eslint-plugin": "^4.16.0",
-		"@typescript-eslint/parser": "^4.16.0",
+		"@typescript-eslint/eslint-plugin": "^7.1.0",
+		"@typescript-eslint/parser": "^7.1.0",
 		"@vscode/codicons": "0.0.32",
-		"eslint": "^7.21.0",
+		"eslint": "^8.57.0",
 		"mocha": "^10.0.0",
+		"rimraf": "^5.0.7",
 		"ts-node": "latest",
-		"typescript": "^4.5.5"
+		"tsconfig-paths": "^4.2.0",
+		"typescript": "^5.3.3"
 	},
 	"dependencies": {
 		"@types/mocha": "^9.1.1",
 		"@vscode/codicons": "0.0.32",
 		"fast-array-diff": "^1.1.0",
+		"module-alias": "^2.2.3",
 		"object-hash": "^3.0.0"
+	},
+	"workspaces": [
+		"client",
+		"server"
+	],
+	"_moduleAliases": {
+		"@core": "out/shared/core",
+		"@utilities": "out/shared/utilities"
 	}
 }
