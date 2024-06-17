@@ -7,13 +7,27 @@ import * as vscode from 'vscode';
 import * as assert from 'assert';
 import { get_document_uri, activate } from './helper';
 
-suite('Should do completion', () => {
+suite("Should do completion", () => {
 	test("Completes 'module' at the beginning of file", async () => {
-
 		const document_uri = get_document_uri('completion_00.hltxt');
 		await test_completion(document_uri, new vscode.Position(0, 0), {
 			items: [
 				{ label: 'module', kind: vscode.CompletionItemKind.Keyword }
+			]
+		});
+	});
+
+	test("Completes after module declaration", async () => {
+		const document_uri = get_document_uri('completion_01.hltxt');
+		await test_completion(document_uri, new vscode.Position(2, 0), {
+			items: [
+				{ label: "enum", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "export", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "function", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "import", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "struct", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "union", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "using", kind: vscode.CompletionItemKind.Keyword },
 			]
 		});
 	});

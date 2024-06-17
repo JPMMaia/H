@@ -6,6 +6,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import * as Document from "@core/Document";
 import * as Language from "@core/Language";
 import * as Parser from "@core/Parser";
+import * as Parse_tree_text_iterator from "@core/Parse_tree_text_iterator";
 import * as Scan_new_changes from "@core/Scan_new_changes";
 import * as Scanner from "@core/Scanner";
 import * as Storage_cache from "@core/Storage_cache";
@@ -333,9 +334,11 @@ function get_allowed_terminals(text_document_position: vscode_node.TextDocumentP
 			) :
 			undefined;
 
+	const node_position = start_change_node_iterator !== undefined ? Parse_tree_text_iterator.next(start_change_node_iterator).node_position : undefined;
+
 	const allowed_labels = Parser.get_allowed_labels(
 		document_state.parse_tree,
-		start_change_node_iterator?.node_position,
+		node_position?.length === 0 ? undefined : node_position,
 		language_description.array_infos,
 		language_description.actions_table
 	);
