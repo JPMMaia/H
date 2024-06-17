@@ -8,16 +8,15 @@ import * as assert from 'assert';
 import { get_document_uri, activate } from './helper';
 
 suite('Should do completion', () => {
-	const document_uri = get_document_uri('completion.hltxt');
+	test("Completes 'module' at the beginning of file", async () => {
 
-	/*test('Completes JS/TS in txt file', async () => {
+		const document_uri = get_document_uri('completion_00.hltxt');
 		await test_completion(document_uri, new vscode.Position(0, 0), {
 			items: [
-				{ label: 'JavaScript', kind: vscode.CompletionItemKind.Text },
-				{ label: 'TypeScript', kind: vscode.CompletionItemKind.Text }
+				{ label: 'module', kind: vscode.CompletionItemKind.Keyword }
 			]
 		});
-	});*/
+	});
 });
 
 async function test_completion(
@@ -34,7 +33,7 @@ async function test_completion(
 		position
 	)) as vscode.CompletionList;
 
-	assert.ok(actual_completion_list.items.length >= 2);
+	assert.ok(actual_completion_list.items.length >= expected_completion_list.items.length);
 	expected_completion_list.items.forEach((expected_item, i) => {
 		const actual_item = actual_completion_list.items[i];
 		assert.equal(actual_item.label, expected_item.label);

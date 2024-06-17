@@ -93,7 +93,7 @@ function is_letter(character: string): boolean {
     return (character >= 'A' && character <= 'Z') || (character >= 'a' && character <= 'z') || (character === '_');
 }
 
-function is_alphanumeric(character: string): boolean {
+export function is_alphanumeric(character: string): boolean {
     return is_number(character) || is_letter(character);
 }
 

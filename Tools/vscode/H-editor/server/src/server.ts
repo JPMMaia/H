@@ -5,6 +5,9 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import * as Document from "@core/Document";
 import * as Language from "@core/Language";
+import * as Parser from "@core/Parser";
+import * as Scan_new_changes from "@core/Scan_new_changes";
+import * as Scanner from "@core/Scanner";
 import * as Storage_cache from "@core/Storage_cache";
 import * as Text_change from "@core/Text_change";
 import * as Validation from "@core/Validation";
@@ -306,45 +309,73 @@ connection.onDidChangeWatchedFiles(_change => {
 	connection.console.log('We received a file change event');
 });
 
-// This handler provides the initial list of the completion items.
-connection.onCompletion(
-	(_text_document_position: vscode_node.TextDocumentPositionParams): vscode_node.CompletionItem[] => {
-		// The pass parameter contains the position of the text document in
-		// which code complete got requested. For the example we ignore this
-		// info and always provide the same completion items.
-		return [
-			{
-				label: 'TypeScript',
-				kind: vscode_node.CompletionItemKind.Text,
-				data: 1
-			},
-			{
-				label: 'JavaScript',
-				kind: vscode_node.CompletionItemKind.Text,
-				data: 2
+function get_allowed_terminals(text_document_position: vscode_node.TextDocumentPositionParams): string[] {
+	const document = documents.get(text_document_position.textDocument.uri);
+	if (document === undefined) {
+		return [];
+	}
+
+	const document_state = document_states.get(text_document_position.textDocument.uri);
+	if (document_state === undefined) {
+		return [];
+	}
+
+	if (document_state.diagnostics.length > 0) {
+		return [];
+	}
+
+	const start_change_node_iterator =
+		document_state.parse_tree !== undefined ?
+			Scan_new_changes.get_node_before_text_position(
+				document_state.parse_tree,
+				document.getText(),
+				document.offsetAt(text_document_position.position)
+			) :
+			undefined;
+
+	const allowed_labels = Parser.get_allowed_labels(
+		document_state.parse_tree,
+		start_change_node_iterator?.node_position,
+		language_description.array_infos,
+		language_description.actions_table
+	);
+
+	const allowed_terminals = allowed_labels.filter(
+		label => {
+			if (!language_description.terminals.has(label)) {
+				return false;
 			}
-		];
+
+			return Scanner.is_alphanumeric(label);
+		}
+	);
+
+	return allowed_terminals;
+}
+
+connection.onCompletion(
+	(text_document_position: vscode_node.TextDocumentPositionParams): vscode_node.CompletionItem[] => {
+
+		const allowed_terminals = get_allowed_terminals(text_document_position);
+
+		const items = allowed_terminals.map(
+			(value, index) => {
+				return {
+					label: value,
+					kind: vscode_node.CompletionItemKind.Keyword,
+					data: index
+				};
+			}
+		);
+
+		return items;
 	}
 );
 
-// This handler resolves additional information for the item selected in
-// the completion list.
 connection.onCompletionResolve(
 	(item: vscode_node.CompletionItem): vscode_node.CompletionItem => {
-		if (item.data === 1) {
-			item.detail = 'TypeScript details';
-			item.documentation = 'TypeScript documentation';
-		} else if (item.data === 2) {
-			item.detail = 'JavaScript details';
-			item.documentation = 'JavaScript documentation';
-		}
 		return item;
 	}
 );
 
-// Make the text document manager listen on the connection
-// for open, change and close text document events
-// documents.listen(connection);
-
-// Listen on the connection
 connection.listen();

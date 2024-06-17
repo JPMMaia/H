@@ -710,6 +710,19 @@ function print_array_changes(changes: Change[]): void {
     }
 }
 
+export function get_allowed_labels(
+    original_node_tree: Node | undefined,
+    start_change_node_position: number[] | undefined,
+    array_infos: Map<string, Grammar.Array_info>,
+    parsing_table: Grammar.Action_column[][]
+): string[] {
+    const mark = get_initial_mark_node(original_node_tree, start_change_node_position, array_infos);
+    const top_of_stack = get_top_of_stack([], mark);
+    const row = parsing_table[top_of_stack.node.state];
+    const allowed_labels = row.map(value => value.label);
+    return allowed_labels;
+}
+
 export function parse_incrementally(
     document_uri: string,
     original_node_tree: Node | undefined,
@@ -742,25 +755,17 @@ export function parse_incrementally(
 
             const error_message = `Did not expect '${current_word.value}'.`;
 
-            const current_word_source_location = current_word.source_location;
-            if (current_word_index >= new_words.length) {
-                // TODO recalculate new word source location
-
-
-
-            }
-
             const diagnostic: Validation.Diagnostic = {
                 location: {
                     uri: document_uri,
                     range: {
                         start: {
-                            line: current_word_source_location.line,
-                            column: current_word_source_location.column
+                            line: current_word.source_location.line,
+                            column: current_word.source_location.column
                         },
                         end: {
-                            line: current_word_source_location.line,
-                            column: current_word_source_location.column + current_word.value.length
+                            line: current_word.source_location.line,
+                            column: current_word.source_location.column + current_word.value.length
                         }
                     }
                 },
