@@ -128,7 +128,8 @@ function is_terminal_node_with_text(node: Parser_node.Node, position: number[]):
 
 function go_to_next_word(text: string, current_word_offset: number, current_word_length: number): number {
     let current_offset = current_word_offset + current_word_length;
-    current_offset += Scanner.ignore_whitespace_or_new_lines(text, current_offset);
+    const ignore_result = Scanner.ignore_whitespace_or_new_lines(text, current_offset, { line: 0, column: 0 });
+    current_offset += ignore_result.processed_characters;
     return current_offset;
 }
 

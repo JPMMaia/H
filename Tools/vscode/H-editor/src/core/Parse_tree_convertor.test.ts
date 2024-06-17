@@ -1301,17 +1301,17 @@ function create_module_changes(
     if (g_debug) {
         console.log(initial_parse_tree_text);
     }
-    const scanned_words = Scanner.scan(initial_parse_tree_text, 0, initial_parse_tree_text.length);
+    const scanned_words = Scanner.scan(initial_parse_tree_text, 0, initial_parse_tree_text.length, { line: 1, column: 1 });
 
-    const parse_tree = Parser.parse(scanned_words, language_description.actions_table, language_description.go_to_table, language_description.array_infos, language_description.map_word_to_terminal);
+    const parse_result = Parser.parse("", scanned_words, language_description.actions_table, language_description.go_to_table, language_description.array_infos, language_description.map_word_to_terminal);
 
-    assert.notEqual(parse_tree, undefined);
-    if (parse_tree === undefined) {
+    assert.notEqual(parse_result.parse_tree, undefined);
+    if (parse_result.parse_tree === undefined) {
         return [];
     }
 
     // Also sets parse_tree Text_position:
-    const text = Text_formatter.to_string(parse_tree, text_cache, []);
+    const text = Text_formatter.to_string(parse_result.parse_tree, text_cache, []);
     if (g_debug) {
         console.log(text);
     }
@@ -1320,7 +1320,7 @@ function create_module_changes(
     const end_text_offset = text_position_to_offset(text, end_text_position);
 
     const scanned_input_change = scan_new_change(
-        parse_tree,
+        parse_result.parse_tree,
         text,
         start_text_offset,
         end_text_offset,
@@ -1330,8 +1330,9 @@ function create_module_changes(
     const start_change_position = scanned_input_change.start_change !== undefined ? scanned_input_change.start_change.node_position : [];
     const after_change_position = scanned_input_change.after_change !== undefined ? scanned_input_change.after_change.node_position : [];
 
-    const parse_result = Parser.parse_incrementally(
-        parse_tree,
+    const parse_incrementally_result = Parser.parse_incrementally(
+        "",
+        parse_result.parse_tree,
         start_change_position,
         scanned_input_change.new_words,
         after_change_position,
@@ -1341,14 +1342,14 @@ function create_module_changes(
         language_description.map_word_to_terminal
     );
 
-    assert.equal(parse_result.status, Parser.Parse_status.Accept);
+    assert.equal(parse_incrementally_result.status, Parser.Parse_status.Accept);
 
-    const simplified_changes = Parser.simplify_changes(parse_tree, parse_result.changes);
+    const simplified_changes = Parser.simplify_changes(parse_result.parse_tree, parse_incrementally_result.changes);
 
     const module_changes = Parse_tree_convertor.create_module_changes(
         module,
         language_description.production_rules,
-        parse_tree,
+        parse_result.parse_tree,
         simplified_changes,
         mappings,
         language_description.key_to_production_rule_indices

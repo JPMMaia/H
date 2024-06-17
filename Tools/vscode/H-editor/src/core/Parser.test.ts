@@ -95,13 +95,13 @@ describe("Parser.parse", () => {
         const array_infos = new Map<string, Grammar.Array_info>();
 
         const input = "1 + 1";
-        const scanned_words = Scanner.scan(input, 0, input.length);
+        const scanned_words = Scanner.scan(input, 0, input.length, { line: 1, column: 1 });
 
         const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
             return word.value;
         };
 
-        const output_node = Parser.parse(scanned_words, action_table, go_to_table, array_infos, map_word_to_terminal);
+        const output_node = Parser.parse("", scanned_words, action_table, go_to_table, array_infos, map_word_to_terminal).parse_tree;
 
         assert.notEqual(output_node, undefined);
 
@@ -173,7 +173,7 @@ describe("Parser.parse", () => {
         const array_infos = Grammar.create_array_infos(production_rules);
 
         const input = "1 + 2 * 3";
-        const scanned_words = Scanner.scan(input, 0, input.length);
+        const scanned_words = Scanner.scan(input, 0, input.length, { line: 1, column: 1 });
 
         const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
 
@@ -184,7 +184,7 @@ describe("Parser.parse", () => {
             return word.value;
         };
 
-        const output_node = Parser.parse(scanned_words, parsing_tables.action_table, parsing_tables.go_to_table, array_infos, map_word_to_terminal);
+        const output_node = Parser.parse("", scanned_words, parsing_tables.action_table, parsing_tables.go_to_table, array_infos, map_word_to_terminal).parse_tree;
 
         assert.notEqual(output_node, undefined);
 
@@ -287,13 +287,13 @@ describe("Parser.parse", () => {
         const array_infos = Grammar.create_array_infos(production_rules);
 
         const input = "id id id";
-        const scanned_words = Scanner.scan(input, 0, input.length);
+        const scanned_words = Scanner.scan(input, 0, input.length, { line: 1, column: 1 });
 
         const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
             return word.value;
         };
 
-        const output_node = Parser.parse(scanned_words, parsing_tables.action_table, parsing_tables.go_to_table, array_infos, map_word_to_terminal);
+        const output_node = Parser.parse("", scanned_words, parsing_tables.action_table, parsing_tables.go_to_table, array_infos, map_word_to_terminal).parse_tree;
 
         assert.notEqual(output_node, undefined);
 
@@ -329,13 +329,13 @@ describe("Parser.parse", () => {
         const array_infos = Grammar.create_array_infos(production_rules);
 
         const input = "id, id, id";
-        const scanned_words = Scanner.scan(input, 0, input.length);
+        const scanned_words = Scanner.scan(input, 0, input.length, { line: 1, column: 1 });
 
         const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
             return word.value;
         };
 
-        const output_node = Parser.parse(scanned_words, parsing_tables.action_table, parsing_tables.go_to_table, array_infos, map_word_to_terminal);
+        const output_node = Parser.parse("", scanned_words, parsing_tables.action_table, parsing_tables.go_to_table, array_infos, map_word_to_terminal).parse_tree;
 
         assert.notEqual(output_node, undefined);
 
@@ -388,8 +388,9 @@ describe("Parser.parse_incrementally", () => {
         };
 
         const first_input = "a a h h h l h h h b b c b c c";
-        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length);
+        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length, { line: 1, column: 1 });
         const first_parse_result = Parser.parse_incrementally(
+            "",
             undefined,
             [],
             first_scanned_words,
@@ -580,7 +581,7 @@ describe("Parser.parse_incrementally", () => {
         }
 
         const second_input = "g g";
-        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length);
+        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length, { line: 1, column: 1 });
         const start_change_node_position: number[] = [0, 1, 2, 1, 0];
         const after_change_node_position: number[] = [0, 1, 2, 1, 1, 0];
 
@@ -593,6 +594,7 @@ describe("Parser.parse_incrementally", () => {
         // reduce C -> D c [[0,$], [2,a], [2,a], [8,A] | [15,C]] b 
         // accept matching condition at position [0,1]: A -> a A C [[0,$], [2,a], [2,a], [8,A] | [15,C]]
         const second_parse_result = Parser.parse_incrementally(
+            "",
             (first_parse_result.changes[0].value as Parser.Modify_change).new_node,
             start_change_node_position,
             second_scanned_words,
@@ -739,8 +741,9 @@ describe("Parser.parse_incrementally", () => {
         const language_description = Language.create_default_description(cache);
 
         const first_input = "module module_name;";
-        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length);
+        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length, { line: 1, column: 1 });
         const first_parse_result = Parser.parse_incrementally(
+            "",
             undefined,
             [],
             first_scanned_words,
@@ -754,7 +757,7 @@ describe("Parser.parse_incrementally", () => {
         assert.equal(first_parse_result.status, Parser.Parse_status.Accept);
 
         const second_input = "module_name_2";
-        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length);
+        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length, { line: 1, column: 1 });
         const start_change_node_position: number[] = [0, 0, 2, 0];
         const after_change_node_position: number[] = [0, 0, 3];
 
@@ -764,6 +767,7 @@ describe("Parser.parse_incrementally", () => {
         // shift [[0,$], [3,module] | [13,Module_name], [22,;]] 
         // accept matching condition at position [0,0]: Module_declaration -> module Module_name ; [[0,$], [3,module] | [13,Module_name], [22,;]]
         const second_parse_result = Parser.parse_incrementally(
+            "",
             (first_parse_result.changes[0].value as Parser.Modify_change).new_node,
             start_change_node_position,
             second_scanned_words,
@@ -846,8 +850,9 @@ describe("Parser.parse_incrementally", () => {
         };
 
         const first_input = "0 1 2 3 4 5";
-        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length);
+        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length, { line: 1, column: 1 });
         const first_parse_result = Parser.parse_incrementally(
+            "",
             undefined,
             [],
             first_scanned_words,
@@ -862,7 +867,7 @@ describe("Parser.parse_incrementally", () => {
 
         // This is important to test the skip to rightmost brother incremental parser part.
         const second_input = "10";
-        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length);
+        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length, { line: 1, column: 1 });
         const start_change_node_position: number[] = [0, 1];
         const after_change_node_position: number[] = [0, 2];
 
@@ -872,6 +877,7 @@ describe("Parser.parse_incrementally", () => {
         // skip 3 nodes to rightmost brother: [[0,$], [2,0] | [3,10], [4,2], [5,3], [6,4], [7,5]]
         // accept matching condition at position [0]: List -> 0 10 2 3 4 5 [[0,$], [2,0] | [3,10], [4,2], [5,3], [6,4], [7,5]]
         const second_parse_result = Parser.parse_incrementally(
+            "",
             (first_parse_result.changes[0].value as Parser.Modify_change).new_node,
             start_change_node_position,
             second_scanned_words,
@@ -926,8 +932,9 @@ describe("Parser.parse_incrementally array without separator", () => {
         };
 
         const first_input = "id id id id id id id id id id";
-        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length);
+        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length, { line: 1, column: 1 });
         const first_parse_result = Parser.parse_incrementally(
+            "",
             undefined,
             [],
             first_scanned_words,
@@ -939,11 +946,12 @@ describe("Parser.parse_incrementally array without separator", () => {
         );
 
         const second_input = "id id";
-        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length);
+        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length, { line: 1, column: 1 });
         const start_change_node_position: number[] = [0, 1, 0];
         const after_change_node_position: number[] = [0, 1, 0];
 
         const second_parse_result = Parser.parse_incrementally(
+            "",
             (first_parse_result.changes[0].value as Parser.Modify_change).new_node,
             start_change_node_position,
             second_scanned_words,
@@ -1003,8 +1011,9 @@ describe("Parser.parse_incrementally array without separator", () => {
         };
 
         const first_input = "id id id id id id id id id id";
-        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length);
+        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length, { line: 1, column: 1 });
         const first_parse_result = Parser.parse_incrementally(
+            "",
             undefined,
             [],
             first_scanned_words,
@@ -1016,11 +1025,12 @@ describe("Parser.parse_incrementally array without separator", () => {
         );
 
         const second_input = "id";
-        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length);
+        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length, { line: 1, column: 1 });
         const start_change_node_position: number[] = [0, 0, 0];
         const after_change_node_position: number[] = [0, 0, 0];
 
         const second_parse_result = Parser.parse_incrementally(
+            "",
             (first_parse_result.changes[0].value as Parser.Modify_change).new_node,
             start_change_node_position,
             second_scanned_words,
@@ -1072,8 +1082,9 @@ describe("Parser.parse_incrementally array without separator", () => {
         };
 
         const first_input = "id id id id id id id id id id";
-        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length);
+        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length, { line: 1, column: 1 });
         const first_parse_result = Parser.parse_incrementally(
+            "",
             undefined,
             [],
             first_scanned_words,
@@ -1085,11 +1096,12 @@ describe("Parser.parse_incrementally array without separator", () => {
         );
 
         const second_input = "id id";
-        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length);
+        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length, { line: 1, column: 1 });
         const start_change_node_position: number[] = [0, 10, 0];
         const after_change_node_position: number[] = [0, 10, 0];
 
         const second_parse_result = Parser.parse_incrementally(
+            "",
             (first_parse_result.changes[0].value as Parser.Modify_change).new_node,
             start_change_node_position,
             second_scanned_words,
@@ -1149,8 +1161,9 @@ describe("Parser.parse_incrementally array without separator", () => {
         };
 
         const first_input = "id id id id id id id id id id";
-        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length);
+        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length, { line: 1, column: 1 });
         const first_parse_result = Parser.parse_incrementally(
+            "",
             undefined,
             [],
             first_scanned_words,
@@ -1162,11 +1175,12 @@ describe("Parser.parse_incrementally array without separator", () => {
         );
 
         const second_input = "";
-        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length);
+        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length, { line: 1, column: 1 });
         const start_change_node_position: number[] = [0, 3, 0];
         const after_change_node_position: number[] = [0, 5, 0];
 
         const second_parse_result = Parser.parse_incrementally(
+            "",
             (first_parse_result.changes[0].value as Parser.Modify_change).new_node,
             start_change_node_position,
             second_scanned_words,
@@ -1210,8 +1224,9 @@ describe("Parser.parse_incrementally array without separator", () => {
         };
 
         const first_input = "id id id id id id id id id id";
-        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length);
+        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length, { line: 1, column: 1 });
         const first_parse_result = Parser.parse_incrementally(
+            "",
             undefined,
             [],
             first_scanned_words,
@@ -1223,11 +1238,12 @@ describe("Parser.parse_incrementally array without separator", () => {
         );
 
         const second_input = "";
-        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length);
+        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length, { line: 1, column: 1 });
         const start_change_node_position: number[] = [0, 0, 0];
         const after_change_node_position: number[] = [0, 2, 0];
 
         const second_parse_result = Parser.parse_incrementally(
+            "",
             (first_parse_result.changes[0].value as Parser.Modify_change).new_node,
             start_change_node_position,
             second_scanned_words,
@@ -1271,8 +1287,9 @@ describe("Parser.parse_incrementally array without separator", () => {
         };
 
         const first_input = "id id id id";
-        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length);
+        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length, { line: 1, column: 1 });
         const first_parse_result = Parser.parse_incrementally(
+            "",
             undefined,
             [],
             first_scanned_words,
@@ -1284,11 +1301,12 @@ describe("Parser.parse_incrementally array without separator", () => {
         );
 
         const second_input = "";
-        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length);
+        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length, { line: 1, column: 1 });
         const start_change_node_position: number[] = [0, 3, 0];
         const after_change_node_position: number[] = [0, 4, 0];
 
         const second_parse_result = Parser.parse_incrementally(
+            "",
             (first_parse_result.changes[0].value as Parser.Modify_change).new_node,
             start_change_node_position,
             second_scanned_words,
@@ -1332,8 +1350,9 @@ describe("Parser.parse_incrementally array without separator", () => {
         };
 
         const first_input = "id id id id id id id id id id";
-        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length);
+        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length, { line: 1, column: 1 });
         const first_parse_result = Parser.parse_incrementally(
+            "",
             undefined,
             [],
             first_scanned_words,
@@ -1345,11 +1364,12 @@ describe("Parser.parse_incrementally array without separator", () => {
         );
 
         const second_input = "id id";
-        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length);
+        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length, { line: 1, column: 1 });
         const start_change_node_position: number[] = [0, 1, 0];
         const after_change_node_position: number[] = [0, 2, 0];
 
         const second_parse_result = Parser.parse_incrementally(
+            "",
             (first_parse_result.changes[0].value as Parser.Modify_change).new_node,
             start_change_node_position,
             second_scanned_words,
@@ -1426,8 +1446,9 @@ describe("Parser.parse_incrementally array with separators", () => {
         };
 
         const first_input = "id, id, id, id, id, id, id, id, id, id";
-        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length);
+        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length, { line: 1, column: 1 });
         const first_parse_result = Parser.parse_incrementally(
+            "",
             undefined,
             [],
             first_scanned_words,
@@ -1439,11 +1460,12 @@ describe("Parser.parse_incrementally array with separators", () => {
         );
 
         const second_input = "id, id,";
-        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length);
+        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length, { line: 1, column: 1 });
         const start_change_node_position: number[] = [0, 2, 0];
         const after_change_node_position: number[] = [0, 2, 0];
 
         const second_parse_result = Parser.parse_incrementally(
+            "",
             (first_parse_result.changes[0].value as Parser.Modify_change).new_node,
             start_change_node_position,
             second_scanned_words,
@@ -1515,8 +1537,9 @@ describe("Parser.parse_incrementally array with separators", () => {
         };
 
         const first_input = "id, id, id, id, id, id, id, id, id, id";
-        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length);
+        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length, { line: 1, column: 1 });
         const first_parse_result = Parser.parse_incrementally(
+            "",
             undefined,
             [],
             first_scanned_words,
@@ -1528,11 +1551,12 @@ describe("Parser.parse_incrementally array with separators", () => {
         );
 
         const second_input = "id,";
-        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length);
+        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length, { line: 1, column: 1 });
         const start_change_node_position: number[] = [0, 0, 0];
         const after_change_node_position: number[] = [0, 0, 0];
 
         const second_parse_result = Parser.parse_incrementally(
+            "",
             (first_parse_result.changes[0].value as Parser.Modify_change).new_node,
             start_change_node_position,
             second_scanned_words,
@@ -1590,8 +1614,9 @@ describe("Parser.parse_incrementally array with separators", () => {
         };
 
         const first_input = "id, id, id, id, id, id, id, id, id, id";
-        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length);
+        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length, { line: 1, column: 1 });
         const first_parse_result = Parser.parse_incrementally(
+            "",
             undefined,
             [],
             first_scanned_words,
@@ -1603,11 +1628,12 @@ describe("Parser.parse_incrementally array with separators", () => {
         );
 
         const second_input = ", id, id";
-        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length);
+        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length, { line: 1, column: 1 });
         const start_change_node_position: number[] = [0, 19];
         const after_change_node_position: number[] = [0, 19];
 
         const second_parse_result = Parser.parse_incrementally(
+            "",
             (first_parse_result.changes[0].value as Parser.Modify_change).new_node,
             start_change_node_position,
             second_scanned_words,
@@ -1679,8 +1705,9 @@ describe("Parser.parse_incrementally array with separators", () => {
         };
 
         const first_input = "id, id, id, id, id, id, id, id, id, id";
-        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length);
+        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length, { line: 1, column: 1 });
         const first_parse_result = Parser.parse_incrementally(
+            "",
             undefined,
             [],
             first_scanned_words,
@@ -1692,11 +1719,12 @@ describe("Parser.parse_incrementally array with separators", () => {
         );
 
         const second_input = "";
-        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length);
+        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length, { line: 1, column: 1 });
         const start_change_node_position: number[] = [0, 3];
         const after_change_node_position: number[] = [0, 7];
 
         const second_parse_result = Parser.parse_incrementally(
+            "",
             (first_parse_result.changes[0].value as Parser.Modify_change).new_node,
             start_change_node_position,
             second_scanned_words,
@@ -1740,8 +1768,9 @@ describe("Parser.parse_incrementally array with separators", () => {
         };
 
         const first_input = "id, id, id, id, id, id, id, id, id, id";
-        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length);
+        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length, { line: 1, column: 1 });
         const first_parse_result = Parser.parse_incrementally(
+            "",
             undefined,
             [],
             first_scanned_words,
@@ -1753,11 +1782,12 @@ describe("Parser.parse_incrementally array with separators", () => {
         );
 
         const second_input = "";
-        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length);
+        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length, { line: 1, column: 1 });
         const start_change_node_position: number[] = [0, 0, 0];
         const after_change_node_position: number[] = [0, 2, 0];
 
         const second_parse_result = Parser.parse_incrementally(
+            "",
             (first_parse_result.changes[0].value as Parser.Modify_change).new_node,
             start_change_node_position,
             second_scanned_words,
@@ -1801,8 +1831,9 @@ describe("Parser.parse_incrementally array with separators", () => {
         };
 
         const first_input = "id, id, id, id";
-        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length);
+        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length, { line: 1, column: 1 });
         const first_parse_result = Parser.parse_incrementally(
+            "",
             undefined,
             [],
             first_scanned_words,
@@ -1814,11 +1845,12 @@ describe("Parser.parse_incrementally array with separators", () => {
         );
 
         const second_input = "";
-        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length);
+        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length, { line: 1, column: 1 });
         const start_change_node_position: number[] = [0, 5];
         const after_change_node_position: number[] = [0, 7];
 
         const second_parse_result = Parser.parse_incrementally(
+            "",
             (first_parse_result.changes[0].value as Parser.Modify_change).new_node,
             start_change_node_position,
             second_scanned_words,
@@ -1862,8 +1894,9 @@ describe("Parser.parse_incrementally array with separators", () => {
         };
 
         const first_input = "id, id, id, id, id, id, id, id, id, id";
-        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length);
+        const first_scanned_words = Scanner.scan(first_input, 0, first_input.length, { line: 1, column: 1 });
         const first_parse_result = Parser.parse_incrementally(
+            "",
             undefined,
             [],
             first_scanned_words,
@@ -1875,11 +1908,12 @@ describe("Parser.parse_incrementally array with separators", () => {
         );
 
         const second_input = ", id";
-        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length);
+        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length, { line: 1, column: 1 });
         const start_change_node_position: number[] = [0, 1];
         const after_change_node_position: number[] = [0, 3];
 
         const second_parse_result = Parser.parse_incrementally(
+            "",
             (first_parse_result.changes[0].value as Parser.Modify_change).new_node,
             start_change_node_position,
             second_scanned_words,

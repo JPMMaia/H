@@ -7,6 +7,7 @@ import * as Document from "@core/Document";
 import * as Language from "@core/Language";
 import * as Storage_cache from "@core/Storage_cache";
 import * as Text_change from "@core/Text_change";
+import * as Validation from "@core/Validation";
 
 const connection = vscode_node.createConnection(vscode_node.ProposedFeatures.all);
 
@@ -120,21 +121,65 @@ function get_document_settings(resource: string): Thenable<Example_settings> {
 	return result;
 }
 
-connection.languages.diagnostics.on(async (params) => {
-	const document = documents.get(params.textDocument.uri);
-	if (document !== undefined) {
-		return {
-			kind: vscode_node.DocumentDiagnosticReportKind.Full,
-			items: await validate_text_document(document)
-		} satisfies vscode_node.DocumentDiagnosticReport;
-	} else {
-		// We don't know the document. We can either try to read it from disk
-		// or we don't report problems for it.
+connection.languages.diagnostics.on(async (parameters) => {
+
+	const document_state = document_states.get(parameters.textDocument.uri);
+	if (document_state === undefined) {
 		return {
 			kind: vscode_node.DocumentDiagnosticReportKind.Full,
 			items: []
 		} satisfies vscode_node.DocumentDiagnosticReport;
 	}
+
+	const diagnostics = document_state.diagnostics;
+
+	// TODO await validate_text_document(document)
+
+	const items = diagnostics.map((value: Validation.Diagnostic): vscode_node.Diagnostic => {
+
+		const related_information = value.related_information.map(
+			(value: Validation.Related_information): vscode_node.DiagnosticRelatedInformation => {
+				return {
+					location: {
+						uri: value.location.uri,
+						range: {
+							start: {
+								line: value.location.range.start.line - 1,
+								character: value.location.range.start.column - 1
+							},
+							end: {
+								line: value.location.range.end.line - 1,
+								character: value.location.range.end.column - 1
+							}
+						}
+					},
+					message: value.message
+				};
+			}
+		);
+
+		return {
+			range: {
+				start: {
+					line: value.location.range.start.line - 1,
+					character: value.location.range.start.column - 1
+				},
+				end: {
+					line: value.location.range.end.line - 1,
+					character: value.location.range.end.column - 1
+				}
+			},
+			severity: value.severity,
+			source: value.source,
+			message: value.message,
+			relatedInformation: related_information
+		};
+	});
+
+	return {
+		kind: vscode_node.DocumentDiagnosticReportKind.Full,
+		items: items
+	} satisfies vscode_node.DocumentDiagnosticReport;
 });
 
 connection.onDidOpenTextDocument((parameters) => {
@@ -146,8 +191,20 @@ connection.onDidOpenTextDocument((parameters) => {
 	);
 	documents.set(parameters.textDocument.uri, document);
 
-	const document_state = Document.create_empty_state(language_description.production_rules);
-	document_states.set(parameters.textDocument.uri, document_state);
+	const document_state = Document.create_empty_state(parameters.textDocument.uri, language_description.production_rules);
+
+	const text_changes: Text_change.Text_change[] = [
+		{
+			range: {
+				start: 0,
+				end: parameters.textDocument.text.length,
+			},
+			text: parameters.textDocument.text
+		}
+	];
+
+	const new_document_state = Text_change.update(language_description, document_state, text_changes, parameters.textDocument.text);
+	document_states.set(parameters.textDocument.uri, new_document_state);
 });
 
 connection.onDidChangeTextDocument((parameters) => {
@@ -185,6 +242,7 @@ connection.onDidChangeTextDocument((parameters) => {
 		}
 	);
 
+	TextDocument.update(document, parameters.contentChanges, parameters.textDocument.version);
 	const text_after_changes = document.getText();
 
 	const new_document_state = Text_change.update(language_description, document_state, text_changes, text_after_changes);

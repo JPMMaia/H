@@ -43,6 +43,7 @@ export function update(
         const after_change_node_position = (scanned_input_change.after_change !== undefined && scanned_input_change.after_change.node !== undefined) ? scanned_input_change.after_change.node_position : undefined;
 
         const parse_result = Parser.parse_incrementally(
+            state.document_uri,
             state.parse_tree,
             start_change_node_position,
             scanned_input_change.new_words,
@@ -81,16 +82,16 @@ export function update(
 
             state.text = text_after_changes;
             state.pending_text_changes = [];
-            state.messages = [];
+            state.diagnostics = [];
         }
         else {
             state.pending_text_changes = [text_change];
-            state.messages = parse_result.messages;
+            state.diagnostics = parse_result.diagnostics;
         }
 
         if (g_debug_validate) {
-            const scanned_words = Scanner.scan(text_after_changes, 0, text_after_changes.length);
-            const expected_parse_tree = Parser.parse(scanned_words, language_description.actions_table, language_description.go_to_table, language_description.array_infos, language_description.map_word_to_terminal);
+            const scanned_words = Scanner.scan(text_after_changes, 0, text_after_changes.length, { line: 1, column: 1 });
+            const expected_parse_tree = Parser.parse(state.document_uri, scanned_words, language_description.actions_table, language_description.go_to_table, language_description.array_infos, language_description.map_word_to_terminal).parse_tree;
 
             if ((state.parse_tree === undefined && expected_parse_tree !== undefined) || (state.parse_tree !== undefined && expected_parse_tree === undefined)) {
                 console.log("Error: state.parse_tree does not match expected_parse_tree");
@@ -117,6 +118,7 @@ export function update(
     else {
         state.text = text_after_changes;
         state.pending_text_changes = [];
+        state.diagnostics = [];
     }
 
     return state;

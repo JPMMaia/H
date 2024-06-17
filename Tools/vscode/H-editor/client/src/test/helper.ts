@@ -31,14 +31,14 @@ async function sleep(ms: number) {
 	return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export const getDocPath = (p: string) => {
-	return path.resolve(__dirname, '../../testFixture', p);
+export const get_document_path = (p: string) => {
+	return path.resolve(__dirname, '../../../client/test_fixture', p);
 };
-export const getDocUri = (p: string) => {
-	return vscode.Uri.file(getDocPath(p));
+export const get_document_uri = (p: string) => {
+	return vscode.Uri.file(get_document_path(p));
 };
 
-export async function setTestContent(content: string): Promise<boolean> {
+export async function set_test_content(content: string): Promise<boolean> {
 	const all = new vscode.Range(
 		doc.positionAt(0),
 		doc.positionAt(doc.getText().length)

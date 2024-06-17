@@ -271,3 +271,29 @@ export function add_source_locations_to_parse_tree_nodes(
         }
     }
 }
+
+export function get_node_source_location(
+    root: Parser_node.Node,
+    text: string,
+    node_position: number[]
+): Parser_node.Source_location | undefined {
+    for (let iterator = begin(root, text); iterator.node !== undefined; iterator = next(iterator)) {
+
+        if (iterator.node_position.length !== node_position.length) {
+            continue;
+        }
+
+        for (let index = 0; index < iterator.node_position.length; ++index) {
+            if (iterator.node_position[index] !== node_position[index]) {
+                continue;
+            }
+        }
+
+        return {
+            line: iterator.line,
+            column: iterator.column
+        };
+    }
+
+    return undefined;
+}

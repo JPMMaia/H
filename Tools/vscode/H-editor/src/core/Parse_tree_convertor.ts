@@ -215,7 +215,7 @@ export function module_to_parse_tree(
                 value: module
             },
             node: {
-                word: { value: production_rules[0].lhs, type: Grammar.Word_type.Symbol },
+                word: { value: production_rules[0].lhs, type: Grammar.Word_type.Symbol, source_location: { line: 0, column: 0 } },
                 state: -1,
                 production_rule_index: 0,
                 children: []
@@ -289,7 +289,7 @@ export function module_to_parse_tree(
                 production_rule_index: next_production_rule_index,
                 state: next_state,
                 node: {
-                    word: { value: next_production_rule.lhs, type: Grammar.Word_type.Symbol },
+                    word: { value: next_production_rule.lhs, type: Grammar.Word_type.Symbol, source_location: { line: 0, column: 0 } },
                     state: -1,
                     production_rule_index: next_production_rule_index,
                     children: []
@@ -500,18 +500,19 @@ export function map_terminal_to_word(
             return {
                 value: word.value,
                 type: word.type,
-                newlines_after: newlines_after
+                newlines_after: newlines_after,
+                source_location: { line: 0, column: 0 }
             };
         }
     }
 
     if (terminal !== "identifier" && terminal !== "number") {
-        return { value: terminal, type: Scanner.get_word_type(terminal), newlines_after: newlines_after };
+        return { value: terminal, type: Scanner.get_word_type(terminal), newlines_after: newlines_after, source_location: { line: 0, column: 0 } };
     }
 
     const position_with_placeholders = mappings.value_map.get(label);
     if (position_with_placeholders === undefined) {
-        return { value: terminal, type: Scanner.get_word_type(terminal), newlines_after: newlines_after };
+        return { value: terminal, type: Scanner.get_word_type(terminal), newlines_after: newlines_after, source_location: { line: 0, column: 0 } };
     }
 
     const position = replace_placeholders_by_values(module, position_with_placeholders, production_rules, stack, mappings);
@@ -527,7 +528,7 @@ export function map_terminal_to_word(
     const transformed_value = transform !== undefined ? transform(object_reference.value) : object_reference.value.toString();
 
     return {
-        value: transformed_value, type: Scanner.get_word_type(transformed_value), newlines_after: newlines_after
+        value: transformed_value, type: Scanner.get_word_type(transformed_value), newlines_after: newlines_after, source_location: { line: 0, column: 0 }
     };
 }
 

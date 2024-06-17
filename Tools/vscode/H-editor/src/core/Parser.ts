@@ -1,6 +1,8 @@
 import * as Grammar from "./Grammar";
 import * as Fast_array_diff from "fast-array-diff";
+import * as Parse_tree_text_iterator from "./Parse_tree_text_iterator";
 import * as Scanner from "./Scanner";
+import * as Validation from "./Validation";
 import { clone_node, find_descendant_position_if, find_node_common_root, get_next_terminal_node, get_next_sibling_terminal_node, get_node_at_position, get_parent_position, get_rightmost_brother, get_rightmost_terminal_descendant, have_same_parent, is_same_position, is_terminal_node, is_valid_position, join_all_child_node_values, Node, iterate_backward, } from "./Parser_node";
 
 const g_debug = false;
@@ -292,9 +294,10 @@ export function get_previous_node_on_stack(root: Node, current_position: number[
     };
 }
 
-export function parse(input: Scanner.Scanned_word[], parsing_table: Grammar.Action_column[][], go_to_table: Grammar.Go_to_column[][], array_infos: Map<string, Grammar.Array_info>, map_word_to_terminal: (word: Scanner.Scanned_word) => string): Node | undefined {
+export function parse(document_uri: string, input: Scanner.Scanned_word[], parsing_table: Grammar.Action_column[][], go_to_table: Grammar.Go_to_column[][], array_infos: Map<string, Grammar.Array_info>, map_word_to_terminal: (word: Scanner.Scanned_word) => string): { parse_tree: Node | undefined, diagnostics: Validation.Diagnostic[] } {
 
     const result = parse_incrementally(
+        document_uri,
         undefined,
         undefined,
         input,
@@ -306,11 +309,17 @@ export function parse(input: Scanner.Scanned_word[], parsing_table: Grammar.Acti
     );
 
     if (result.status !== Parse_status.Accept) {
-        return undefined;
+        return {
+            parse_tree: undefined,
+            diagnostics: result.diagnostics
+        };
     }
 
     const change = result.changes[0].value as Modify_change;
-    return change.new_node;
+    return {
+        parse_tree: change.new_node,
+        diagnostics: result.diagnostics
+    };
 }
 
 export enum Parse_status {
@@ -535,7 +544,7 @@ export interface Words_change {
 
 function create_bottom_of_stack_node(): Node {
     return {
-        word: { value: "$", type: Grammar.Word_type.Symbol },
+        word: { value: "$", type: Grammar.Word_type.Symbol, source_location: { line: 1, column: 1 } },
         state: 0,
         production_rule_index: undefined,
         children: []
@@ -558,7 +567,7 @@ function get_next_word(
         return node.word;
     }
 
-    return { value: "$", type: Grammar.Word_type.Symbol };
+    return { value: "$", type: Grammar.Word_type.Symbol, source_location: { line: 1, column: 1 } };
 }
 
 function get_end_of_tree(root: Node): { position: number[], node: Node } | undefined {
@@ -702,6 +711,7 @@ function print_array_changes(changes: Change[]): void {
 }
 
 export function parse_incrementally(
+    document_uri: string,
     original_node_tree: Node | undefined,
     start_change_node_position: number[] | undefined,
     new_words: Scanner.Scanned_word[],
@@ -710,7 +720,7 @@ export function parse_incrementally(
     go_to_table: Grammar.Go_to_column[][],
     array_infos: Map<string, Grammar.Array_info>,
     map_word_to_terminal: (word: Scanner.Scanned_word) => string
-): { status: Parse_status, processed_words: number, changes: Change[], messages: string[] } {
+): { status: Parse_status, processed_words: number, changes: Change[], diagnostics: Validation.Diagnostic[] } {
 
     let mark = get_initial_mark_node(original_node_tree, start_change_node_position, array_infos);
 
@@ -732,11 +742,39 @@ export function parse_incrementally(
 
             const error_message = `Did not expect '${current_word.value}'.`;
 
+            const current_word_source_location = current_word.source_location;
+            if (current_word_index >= new_words.length) {
+                // TODO recalculate new word source location
+
+
+
+            }
+
+            const diagnostic: Validation.Diagnostic = {
+                location: {
+                    uri: document_uri,
+                    range: {
+                        start: {
+                            line: current_word_source_location.line,
+                            column: current_word_source_location.column
+                        },
+                        end: {
+                            line: current_word_source_location.line,
+                            column: current_word_source_location.column + current_word.value.length
+                        }
+                    }
+                },
+                source: Validation.Source.Parser,
+                severity: Validation.Diagnostic_severity.Error,
+                message: error_message,
+                related_information: []
+            };
+
             return {
                 status: Parse_status.Failed,
                 processed_words: current_word_index,
                 changes: [],
-                messages: [error_message]
+                diagnostics: [diagnostic]
             };
         }
 
@@ -805,7 +843,7 @@ export function parse_incrementally(
                                         status: Parse_status.Accept,
                                         processed_words: current_word_index,
                                         changes: changes,
-                                        messages: []
+                                        diagnostics: []
                                     };
                                 }
                             }
@@ -815,8 +853,13 @@ export function parse_incrementally(
                     const children = get_top_elements_from_stack(original_node_tree, stack, mark, accept_action.rhs_count, array_infos.get(accept_action.lhs), map_word_to_terminal) as Parsing_stack_element[];
                     children.reverse();
 
+                    const source_location: Scanner.Source_location =
+                        children.length > 0 ?
+                            children[0].node.word.source_location :
+                            { line: 1, column: 1 };
+
                     const new_node: Node = {
-                        word: { value: accept_action.lhs, type: Grammar.Word_type.Symbol },
+                        word: { value: accept_action.lhs, type: Grammar.Word_type.Symbol, source_location: source_location },
                         state: -1,
                         production_rule_index: 0,
                         children: children.map(element => element.node)
@@ -834,7 +877,7 @@ export function parse_incrementally(
                         changes: [
                             create_modify_change([], new_node)
                         ],
-                        messages: []
+                        diagnostics: []
                     };
                 }
             case Grammar.Action_type.Shift:
@@ -865,7 +908,7 @@ export function parse_incrementally(
                             status: Parse_status.Failed,
                             processed_words: 1,
                             changes: [],
-                            messages: []
+                            diagnostics: []
                         };
                     }
 
@@ -883,7 +926,7 @@ export function parse_incrementally(
                                 status: Parse_status.Failed,
                                 processed_words: 1,
                                 changes: [],
-                                messages: []
+                                diagnostics: []
                             };
                         }
                         mark = result.new_mark;
@@ -911,7 +954,7 @@ export function parse_incrementally(
                             status: Parse_status.Failed,
                             processed_words: 1,
                             changes: [],
-                            messages: []
+                            diagnostics: []
                         };
                     }
 
@@ -926,7 +969,7 @@ export function parse_incrementally(
         status: Parse_status.Failed,
         processed_words: current_word_index,
         changes: [],
-        messages: []
+        diagnostics: []
     };
 }
 
@@ -943,7 +986,7 @@ function parse_incrementally_after_changes_if_ready(
     go_to_table: Grammar.Go_to_column[][],
     array_infos: Map<string, Grammar.Array_info>,
     map_word_to_terminal: (word: Scanner.Scanned_word) => string
-): { status: Parse_status, processed_words: number, changes: Change[], messages: string[] } | undefined {
+): { status: Parse_status, processed_words: number, changes: Change[], diagnostics: Validation.Diagnostic[] } | undefined {
     if (current_word_index === new_words.length && original_node_tree !== undefined && start_change_node_position !== undefined && after_change_node_position !== undefined && after_change_node_position.length > 0) {
         if (elements_to_reduce === undefined || elements_to_reduce.length === 0) {
             const result = parse_incrementally_after_change(
@@ -963,7 +1006,7 @@ function parse_incrementally_after_changes_if_ready(
                     status: Parse_status.Accept,
                     processed_words: new_words.length + result.processed_words,
                     changes: result.changes,
-                    messages: []
+                    diagnostics: []
                 };
             }
             else {
@@ -971,7 +1014,7 @@ function parse_incrementally_after_changes_if_ready(
                     status: Parse_status.Failed,
                     processed_words: 1,
                     changes: [],
-                    messages: []
+                    diagnostics: []
                 };
             }
         }
@@ -1081,7 +1124,13 @@ function apply_reduction(
     }
 
     node.children = children.map(element => element.node);
-    node.word = { value: production_lhs, type: Grammar.Word_type.Symbol };
+
+    const source_location: Scanner.Source_location =
+        children.length > 0 ?
+            children[0].node.word.source_location :
+            next_word.source_location;
+
+    node.word = { value: production_lhs, type: Grammar.Word_type.Symbol, source_location: source_location };
     node.state = go_to_column.next_state;
     node.production_rule_index = production_rule_index;
 
@@ -1180,7 +1229,7 @@ function create_apply_matching_changes(
     top_nodes.reverse();
 
     const mark_parent_clone: Node = {
-        word: { value: mark_parent_node.word.value, type: mark_parent_node.word.type },
+        word: { value: mark_parent_node.word.value, type: mark_parent_node.word.type, source_location: { line: mark_parent_node.word.source_location.line, column: mark_parent_node.word.source_location.column } },
         state: mark_parent_node.state,
         production_rule_index: mark_parent_node.production_rule_index,
         children: top_nodes.map(value => value.node)
@@ -1705,8 +1754,13 @@ function perform_actions(
                     const children = get_top_elements_from_stack(original_node_tree, stack, mark, accept_action.rhs_count, array_infos.get(accept_action.lhs), map_word_to_terminal) as Parsing_stack_element[];
                     children.reverse();
 
+                    const source_location: Scanner.Source_location =
+                        children.length > 0 ?
+                            children[0].node.word.source_location :
+                            { line: 1, column: 1 };
+
                     const new_node: Node = {
-                        word: { value: accept_action.lhs, type: Grammar.Word_type.Symbol },
+                        word: { value: accept_action.lhs, type: Grammar.Word_type.Symbol, source_location: source_location },
                         state: -1,
                         production_rule_index: 0,
                         children: children.map(element => element.node)

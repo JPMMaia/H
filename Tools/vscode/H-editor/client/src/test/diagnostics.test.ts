@@ -5,35 +5,35 @@
 
 import * as vscode from 'vscode';
 import * as assert from 'assert';
-import { getDocUri, activate } from './helper';
+import { get_document_uri, activate } from './helper';
 
 suite('Should get diagnostics', () => {
-	const docUri = getDocUri('diagnostics.hltxt');
+	const document_uri = get_document_uri('diagnostics.hltxt');
 
 	test('Diagnoses parsing error', async () => {
-		await testDiagnostics(docUri, [
-			{ message: "Did not expect '{'.", range: toRange(3, 15, 3, 16), severity: vscode.DiagnosticSeverity.Error, source: 'hlang' },
+		await test_diagnostics(document_uri, [
+			{ message: "Did not expect '{'.", range: to_range(4, 1, 4, 2), severity: vscode.DiagnosticSeverity.Error, source: 'hlang' },
 		]);
 	});
 });
 
-function toRange(sLine: number, sChar: number, eLine: number, eChar: number) {
+function to_range(sLine: number, sChar: number, eLine: number, eChar: number) {
 	const start = new vscode.Position(sLine, sChar);
 	const end = new vscode.Position(eLine, eChar);
 	return new vscode.Range(start, end);
 }
 
-async function testDiagnostics(docUri: vscode.Uri, expectedDiagnostics: vscode.Diagnostic[]) {
-	await activate(docUri);
+async function test_diagnostics(document_uri: vscode.Uri, expected_diagnostics: vscode.Diagnostic[]) {
+	await activate(document_uri);
 
-	const actualDiagnostics = vscode.languages.getDiagnostics(docUri);
+	const actual_diagnostics = vscode.languages.getDiagnostics(document_uri);
 
-	assert.equal(actualDiagnostics.length, expectedDiagnostics.length);
+	assert.equal(actual_diagnostics.length, expected_diagnostics.length);
 
-	expectedDiagnostics.forEach((expectedDiagnostic, i) => {
-		const actualDiagnostic = actualDiagnostics[i];
-		assert.equal(actualDiagnostic.message, expectedDiagnostic.message);
-		assert.deepEqual(actualDiagnostic.range, expectedDiagnostic.range);
-		assert.equal(actualDiagnostic.severity, expectedDiagnostic.severity);
+	expected_diagnostics.forEach((expected_diagnostic, i) => {
+		const actual_diagnostic = actual_diagnostics[i];
+		assert.equal(actual_diagnostic.message, expected_diagnostic.message);
+		assert.deepEqual(actual_diagnostic.range, expected_diagnostic.range);
+		assert.equal(actual_diagnostic.severity, expected_diagnostic.severity);
 	});
 }

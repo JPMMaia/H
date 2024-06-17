@@ -15,7 +15,11 @@ export interface Node {
 
 export function clone_node(node: Node): Node {
     const output: Node = {
-        word: { value: node.word.value, type: node.word.type },
+        word: {
+            value: node.word.value,
+            type: node.word.type,
+            source_location: { line: node.word.source_location.line, column: node.word.source_location.column },
+        },
         state: node.state,
         production_rule_index: node.production_rule_index,
         children: node.children,

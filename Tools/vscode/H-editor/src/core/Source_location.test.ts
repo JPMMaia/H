@@ -2,19 +2,18 @@ import "mocha";
 
 import * as assert from "assert";
 import * as Core_intermediate_representation from "./Core_intermediate_representation";
-import * as Document from "./Document";
 import * as Language from "./Language";
 import * as Parse_tree_convertor from "../core/Parse_tree_convertor";
 import * as Parse_tree_text_iterator from "../core/Parse_tree_text_iterator";
 import * as Parser from "../core/Parser";
 import * as Scanner from "../core/Scanner";
 import * as Storage_cache from "./Storage_cache";
-import * as Text_change from "./Text_change";
 
 function run_test(language_description: Language.Description, input_text: string): Core_intermediate_representation.Module {
-    const scanned_words = Scanner.scan(input_text, 0, input_text.length);
+    const scanned_words = Scanner.scan(input_text, 0, input_text.length, { line: 1, column: 1 });
 
     const parse_tree_result = Parser.parse_incrementally(
+        "",
         undefined,
         undefined,
         scanned_words,
@@ -26,7 +25,7 @@ function run_test(language_description: Language.Description, input_text: string
     );
 
     if (parse_tree_result.status !== Parser.Parse_status.Accept) {
-        const messages = parse_tree_result.messages.join("\n");
+        const messages = parse_tree_result.diagnostics.map(value => value.message).join("\n");
         console.log(`Failed to parse:\n${messages}`);
         process.exit(-1);
     }

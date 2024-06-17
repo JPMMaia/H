@@ -33,6 +33,7 @@ export function get_node_after_text_position(root: Node, text: string, offset: n
 }
 
 export function get_text_before_start(
+    text: string,
     start_text_offset: number,
     start_iterator: Parse_tree_text_iterator.Iterator | undefined,
 ): string {
@@ -44,7 +45,7 @@ export function get_text_before_start(
     const node = start_iterator.node;
 
     if ((start_iterator.offset + node.word.value.length) < start_text_offset) {
-        return node.word.value + " ";
+        return node.word.value + text.substring(start_iterator.offset + node.word.value.length, start_text_offset);
     }
 
     const new_length = start_text_offset - start_iterator.offset;
@@ -179,6 +180,62 @@ function calculate_end_text_offset_to_include_newlines(
     };
 }
 
+function calculate_start_source_location(
+    before_iterator: Parse_tree_text_iterator.Iterator | undefined,
+    text: string,
+    start_text_offset: number
+): Scanner.Source_location {
+
+    if (before_iterator !== undefined) {
+
+        /*const source_location: Scanner.Source_location = {
+            line: 1,
+            column: 1
+        };
+
+        let current_text_offset = before_iterator.offset;
+
+        while (current_text_offset !== start_text_offset) {
+
+            if (Scanner.is_new_line(text[current_text_offset])) {
+                source_location.line += 1;
+                source_location.column = 1;
+            }
+            else {
+                source_location.column += 1;
+            }
+
+            current_text_offset += 1;
+        }
+
+        return source_location;*/
+
+        return {
+            line: before_iterator.line,
+            column: before_iterator.column
+        };
+    }
+
+    const source_location: Scanner.Source_location = {
+        line: 1,
+        column: 1
+    };
+
+    for (let index = 0; index < start_text_offset; ++index) {
+        const character = text[index];
+
+        if (Scanner.is_new_line(character)) {
+            source_location.line += 1;
+            source_location.column = 1;
+        }
+        else {
+            source_location.column += 1;
+        }
+    }
+
+    return source_location;
+}
+
 export function scan_new_change(
     root: Node | undefined,
     text: string,
@@ -188,7 +245,7 @@ export function scan_new_change(
 ): { start_change: Parse_tree_text_iterator.Iterator | undefined, after_change: Parse_tree_text_iterator.Iterator | undefined, new_words: Scanner.Scanned_word[] } {
 
     if (root === undefined) {
-        const new_words = Scanner.scan(new_text, 0, new_text.length);
+        const new_words = Scanner.scan(new_text, 0, new_text.length, { line: 1, column: 1 });
         return {
             start_change: undefined,
             after_change: undefined,
@@ -209,16 +266,25 @@ export function scan_new_change(
     const after_iterator = get_node_after_text_position(root, text, end_text_offset);
 
     // Concatenate text before start + new text + text after end:
-    const text_before = get_text_before_start(start_text_offset, before_iterator);
+    const text_before = get_text_before_start(text, start_text_offset, before_iterator);
     const text_after = get_text_after_end(end_text_offset, after_iterator);
     const concatenated_text = text_before + new_text + text_after;
 
     // Scan new words:
-    const new_words = Scanner.scan(concatenated_text, 0, concatenated_text.length);
+    const start_source_location = calculate_start_source_location(before_iterator, text, start_text_offset);
+    const new_words = Scanner.scan(concatenated_text, 0, concatenated_text.length, start_source_location);
 
     // Skip unchanged words and calculate start and after change nodes:
     const start_change = try_to_skip_first_word_and_calulate_start_change_node(root, before_iterator, after_iterator, new_words);
     const after_change = try_to_skip_last_word_and_calculate_after_change_node(root, before_iterator, after_iterator, new_words);
+
+    // Update after change node word source location:
+    if (after_change.node !== undefined) {
+        after_change.node.word.source_location = {
+            line: after_change.line,
+            column: after_change.column
+        };
+    }
 
     return {
         start_change: start_change,
