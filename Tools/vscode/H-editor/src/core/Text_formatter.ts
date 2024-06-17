@@ -154,7 +154,7 @@ export function to_string(root: Node, cache: Parse_tree_text_position_cache.Cach
     let current_node: Node | undefined = root;
     let current_position: number[] = [];
     let current_direction = Iterate_direction.Down;
-    let previous_word: Scanner.Scanned_word = { value: "", type: Grammar.Word_type.Invalid };
+    let previous_word: Scanner.Scanned_word = { value: "", type: Grammar.Word_type.Invalid, source_location: { line: 0, column: 0 } };
 
     const state_stack: State[] = [State.Global];
 

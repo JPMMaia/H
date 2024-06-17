@@ -7,7 +7,7 @@ import * as Parse_tree_text_iterator from "./Parse_tree_text_iterator";
 
 function create_parse_node(value: string, production_rule_index: number | undefined, children: Parser_node.Node[]): Parser_node.Node {
     return {
-        word: { value: value, type: Grammar.Word_type.Alphanumeric },
+        word: { value: value, type: Grammar.Word_type.Alphanumeric, source_location: { line: 0, column: 0 } },
         state: -1,
         production_rule_index: production_rule_index,
         children: children

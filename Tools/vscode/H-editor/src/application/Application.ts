@@ -10,6 +10,7 @@ import * as Parser from "../core/Parser";
 import * as Scanner from "../core/Scanner";
 import * as Storage_cache from "../core/Storage_cache";
 import * as Text_formatter from "../core/Text_formatter";
+import * as Validation from "../core/Validation";
 
 const command = process.argv[2];
 
@@ -37,9 +38,10 @@ else if (command === "write") {
     const input_text = input_file !== undefined ? fs.readFileSync(input_file, "utf8") : process.stdin.read() as string;
 
     const language_description = Language.create_default_description(cache);
-    const scanned_words = Scanner.scan(input_text, 0, input_text.length);
+    const scanned_words = Scanner.scan(input_text, 0, input_text.length, { line: 1, column: 1 });
 
     const parse_tree_result = Parser.parse_incrementally(
+        input_file,
         undefined,
         undefined,
         scanned_words,
@@ -51,8 +53,8 @@ else if (command === "write") {
     );
 
     if (parse_tree_result.status !== Parser.Parse_status.Accept) {
-        const messages = parse_tree_result.messages.join("\n");
-        console.log(`Failed to parse:\n${messages}`);
+        const messages = Validation.to_string(parse_tree_result.diagnostics).join("\n");
+        console.log(messages);
         process.exit(-1);
     }
 

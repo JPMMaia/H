@@ -9,6 +9,18 @@ import * as Storage_cache from "./Storage_cache";
 import * as Text_change from "./Text_change";
 import * as Type_utilities from "./Type_utilities";
 
+function apply_text_changes(text: string, changes: Text_change.Text_change[]): string {
+    let new_text = text;
+
+    for (const change of changes) {
+        const before_text = new_text.substring(0, change.range.start);
+        const after_text = new_text.substring(change.range.end, new_text.length);
+        new_text = before_text + change.text + after_text;
+    }
+
+    return new_text;
+}
+
 describe("Text_change.update", () => {
 
     let language_description: any;
@@ -20,7 +32,7 @@ describe("Text_change.update", () => {
 
     it("Handles add first character", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const text_changes: Text_change.Text_change[] = [
             {
@@ -44,7 +56,7 @@ describe("Text_change.update", () => {
 
     it("Handles adding module declaration", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const text_changes: Text_change.Text_change[] = [
             {
@@ -70,7 +82,7 @@ describe("Text_change.update", () => {
 
     it("Handles aggregating multiple text changes", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const text_changes: Text_change.Text_change[] = [
             {
@@ -103,7 +115,7 @@ describe("Text_change.update", () => {
 
     it("Handles updating module name", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         {
             const text_changes: Text_change.Text_change[] = [
@@ -154,7 +166,7 @@ describe("Text_change.update", () => {
 
     it("Handles compilation errors", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         {
             const text_changes: Text_change.Text_change[] = [
@@ -203,7 +215,7 @@ describe("Text_change.update", () => {
 
     it("Handles add first declaration", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         {
             const text_changes: Text_change.Text_change[] = [
@@ -267,7 +279,7 @@ describe("Text_change.update", () => {
 
     it("Handles remove first declaration", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         {
             const text_changes: Text_change.Text_change[] = [
@@ -335,7 +347,7 @@ describe("Text_change.update", () => {
 
     it("Handles adding spaces", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         {
             const text_changes: Text_change.Text_change[] = [
@@ -450,7 +462,7 @@ describe("Text_change.update", () => {
 
     it("Handles changing alias type", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         {
             const text_changes: Text_change.Text_change[] = [
@@ -529,7 +541,7 @@ describe("Text_change.update", () => {
 
     it("Handles adding first function parameter", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         {
             const text_changes: Text_change.Text_change[] = [
@@ -621,7 +633,7 @@ describe("Text_change.update", () => {
 
     it("Handles hello world!", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const hello_world_program = `
 module Hello_world;
@@ -731,7 +743,7 @@ export function hello() -> ()
 
     it("Handles adding return statement", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const hello_world_program = `
 module Hello_world;
@@ -785,7 +797,7 @@ export function hello() -> ()
 
     it("Handles variable declaration expressions", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const program = `
 module Variables;
@@ -818,7 +830,7 @@ export function main() -> (result: Int32)
 
     it("Handles numbers", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const program = `
 module Numbers;
@@ -862,7 +874,7 @@ export function main() -> (result: Int32)
 
     it("Handles numeric casts", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const program = `
 module Numeric_casts;
@@ -914,7 +926,7 @@ export function main() -> (result: Int32)
 
     it("Handles booleans", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const program = `
 module Booleans;
@@ -945,7 +957,7 @@ export function foo() -> ()
 
     it("Handles binary expressions", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const program = `
 module Binary_expressions;
@@ -1001,7 +1013,7 @@ export function foo(
 
     it("Handles binary expressions operator precedence", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const program = `
 module Binary_expressions_operator_precedence;
@@ -1065,7 +1077,7 @@ export function foo(
 
     it("Handles assignment expressions", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const program = `
 module Assignment_expressions;
@@ -1111,7 +1123,7 @@ export function foo(
 
     it("Handles unary expressions", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const program = `
 module Unary_expressions;
@@ -1152,7 +1164,7 @@ export function foo(
 
     it("Handles pointer types", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const program = `
 module Pointer_types;
@@ -1201,7 +1213,7 @@ export function run(
 
     it("Handles block expressions", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const program = `
 module Block_expressions;
@@ -1237,7 +1249,7 @@ export function run_blocks() -> ()
 
     it("Handles for loop expressions", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const program = `
 module For_loop_expressions;
@@ -1292,7 +1304,7 @@ export function run_for_loops() -> ()
 
     it("Handles if expressions", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const program = `
 module If_expressions;
@@ -1369,7 +1381,7 @@ export function run_ifs(value: Int32) -> ()
 
     it("Handles switch expressions", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const program = `
 module Switch_expressions;
@@ -1427,7 +1439,7 @@ export function run_switch(value: Int32) -> (result: Int32)
 
     it("Handles ternary condition expressions", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const program = `
 module Ternary_condition_expressions;
@@ -1460,7 +1472,7 @@ export function run_ternary_conditions(first_boolean: Bool, second_boolean: Bool
 
     it("Handles while loop expressions", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const program = `
 module While_loop_expressions;
@@ -1523,7 +1535,7 @@ export function run_while_loops(size: Int32) -> ()
 
     it("Handles break expressions", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const program = `
 module Break_expressions;
@@ -1606,7 +1618,7 @@ export function run_breaks(size: Int32) -> ()
 
     it("Handles using alias", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const program = `
 module Alias;
@@ -1637,7 +1649,7 @@ export function use_alias(size: My_int) -> ()
 
     it("Handles using enums", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const program = `
 module Enums;
@@ -1691,7 +1703,7 @@ export function use_enums(enum_argument: My_enum) -> (result: Int32)
 
     it("Handles using enum flags", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const program = `
 module Enum_flags;
@@ -1749,7 +1761,7 @@ export function use_enums(enum_argument: My_enum_flag) -> (result: Int32)
 
     it("Handles using structs", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const program = `
 module Structs;
@@ -1833,7 +1845,7 @@ function return_struct() -> (my_struct: My_struct)
 
     it("Handles using unions", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const program = `
 module Unions;
@@ -1926,7 +1938,7 @@ function return_union() -> (my_union: My_union)
 
     it("Handles comments in the module declaration", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const program = `
 // This is a very long
@@ -1953,7 +1965,7 @@ module Comments_in_module_declaration;
 
     it("Handles comments in alias", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const program = `
 module Comments_in_alias;
@@ -1982,7 +1994,7 @@ using My_int = Int32;
 
     it("Handles comments in enums", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const program = `
 module Comments_in_enums;
@@ -2018,7 +2030,7 @@ enum My_enum
 
     it("Handles comments in functions", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const program = `
 module Comments_in_functions;
@@ -2055,7 +2067,7 @@ export function use_comments() -> ()
 
     it("Handles comments in structs", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const program = `
 module Comments_in_structs;
@@ -2092,7 +2104,7 @@ struct My_struct
 
     it("Handles comments in unions", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const program = `
 module Comments_in_unions;
@@ -2129,7 +2141,7 @@ union My_union
 
     it("Handles newlines after statements", () => {
 
-        const document_state = Document.create_empty_state(language_description.production_rules);
+        const document_state = Document.create_empty_state("", language_description.production_rules);
 
         const program = `
 module Newlines_after_statements;

@@ -1,4 +1,4 @@
-import * as object_hash from "object-hash";
+import objectHash = require('object-hash');
 import * as fs from 'fs';
 
 export interface Storage_cache {
@@ -26,7 +26,7 @@ export function clear_storage_cache(cache: Storage_cache): void {
 }
 
 export function write(cache: Storage_cache, group: string, key: any, value: string): void {
-    const hash = object_hash(key);
+    const hash = objectHash(key);
 
     const group_path = `${cache.path}/${group}`;
     const file_path = `${group_path}/${hash}.json`;
@@ -38,7 +38,7 @@ export function write(cache: Storage_cache, group: string, key: any, value: stri
 }
 
 export function read(cache: Storage_cache, group: string, key: any): string | undefined {
-    const hash = object_hash(key);
+    const hash = objectHash(key);
 
     const group_path = `${cache.path}/${group}`;
     const file_path = `${group_path}/${hash}.json`;
