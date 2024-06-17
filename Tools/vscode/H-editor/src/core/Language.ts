@@ -1,5 +1,3 @@
-import * as fs from "fs";
-
 import * as Default_grammar from "./Default_grammar";
 import * as Grammar from "./Grammar";
 import * as Parse_tree_convertor from "./Parse_tree_convertor";
@@ -14,6 +12,7 @@ export interface Description {
     map_word_to_terminal: (word: Grammar.Word) => string;
     key_to_production_rule_indices: Map<string, number[]>;
     mappings: Parse_tree_convertor.Parse_tree_mappings;
+    terminals: Set<string>;
 }
 
 function create_parsing_tables(
@@ -44,6 +43,14 @@ function create_parsing_tables(
     return parsing_tables;
 }
 
+function delete_non_keyword_terminals(terminals_set: Set<string>): void {
+    terminals_set.delete("boolean");
+    terminals_set.delete("comment");
+    terminals_set.delete("identifier");
+    terminals_set.delete("number");
+    terminals_set.delete("string");
+}
+
 export function create_description(
     grammar_description: string[],
     map_word_to_terminal: (word: Grammar.Word) => string,
@@ -58,6 +65,9 @@ export function create_description(
     const key_to_production_rule_indices = Parse_tree_convertor.create_key_to_production_rule_indices_map(production_rules);
     const mappings = Parse_tree_convertor_mappings.create_mapping();
 
+    const terminals_set = new Set<string>(terminals);
+    delete_non_keyword_terminals(terminals_set);
+
     return {
         production_rules: production_rules,
         actions_table: parsing_tables.action_table,
@@ -65,7 +75,8 @@ export function create_description(
         array_infos: array_infos,
         map_word_to_terminal,
         key_to_production_rule_indices,
-        mappings
+        mappings,
+        terminals: terminals_set
     };
 }
 
@@ -84,11 +95,7 @@ export function create_default_description(
     const mappings = Parse_tree_convertor_mappings.create_mapping();
 
     const terminals_set = new Set<string>(terminals);
-    terminals_set.delete("boolean");
-    terminals_set.delete("comment");
-    terminals_set.delete("identifier");
-    terminals_set.delete("number");
-    terminals_set.delete("string");
+    delete_non_keyword_terminals(terminals_set);
 
     const map_word_to_terminal = (word: Grammar.Word): string => {
         if (terminals_set.has(word.value)) {
@@ -125,6 +132,7 @@ export function create_default_description(
         array_infos: array_infos,
         map_word_to_terminal,
         key_to_production_rule_indices,
-        mappings
+        mappings,
+        terminals: terminals_set
     };
 }

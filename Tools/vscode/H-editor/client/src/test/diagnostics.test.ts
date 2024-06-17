@@ -12,7 +12,7 @@ suite('Should get diagnostics', () => {
 
 	test('Diagnoses parsing error', async () => {
 		await test_diagnostics(document_uri, [
-			{ message: "Did not expect '{'.", range: to_range(4, 1, 4, 2), severity: vscode.DiagnosticSeverity.Error, source: 'hlang' },
+			{ message: "Did not expect '{'.", range: to_range(3, 0, 3, 1), severity: vscode.DiagnosticSeverity.Error, source: 'hlang' },
 		]);
 	});
 });
