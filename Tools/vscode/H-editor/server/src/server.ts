@@ -13,6 +13,8 @@ import * as Storage_cache from "@core/Storage_cache";
 import * as Text_change from "@core/Text_change";
 import * as Validation from "@core/Validation";
 
+import * as Semantic_tokens_provider from "./Semantic_tokens_provider";
+
 const connection = vscode_node.createConnection(vscode_node.ProposedFeatures.all);
 
 const storage_cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
@@ -57,6 +59,17 @@ connection.onInitialize((params: vscode_node.InitializeParams) => {
 			diagnosticProvider: {
 				interFileDependencies: false,
 				workspaceDiagnostics: false
+			},
+			semanticTokensProvider: {
+				documentSelector: Semantic_tokens_provider.selector,
+				legend: {
+					tokenTypes: Semantic_tokens_provider.token_types,
+					tokenModifiers: Semantic_tokens_provider.token_modifiers
+				},
+				range: false,
+				full: {
+					delta: false
+				}
 			}
 		}
 	};
@@ -378,6 +391,18 @@ connection.onCompletion(
 connection.onCompletionResolve(
 	(item: vscode_node.CompletionItem): vscode_node.CompletionItem => {
 		return item;
+	}
+);
+
+connection.languages.semanticTokens.on(
+	async (parameters: vscode_node.SemanticTokensParams): Promise<vscode_node.SemanticTokens> => {
+
+		const document_state = document_states.get(parameters.textDocument.uri);
+		if (document_state === undefined || document_state.parse_tree === undefined) {
+			return { data: [] };
+		}
+
+		return Semantic_tokens_provider.provider(parameters, document_state);
 	}
 );
 
