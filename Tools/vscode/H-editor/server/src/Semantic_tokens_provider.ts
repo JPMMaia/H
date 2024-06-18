@@ -43,7 +43,7 @@ function get_token(iterator: Parse_tree_text_iterator.Iterator): { type: string,
     switch (parent_node.word.value) {
         case "Module_name":
         case "Import_alias":
-        case "Module_type_module_name":
+        case "Identifier_with_dots":
             return { type: "namespace", modifiers: [] };
         case "Type":
         case "Type_name":
