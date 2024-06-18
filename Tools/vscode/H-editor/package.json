@@ -42,6 +42,13 @@
 				}
 			}
 		},
+		"grammars": [
+			{
+				"language": "hlang",
+				"scopeName": "source.hlang",
+				"path": "./syntaxes/hlang.tmGrammar.json"
+			}
+		],
 		"languages": [
 			{
 				"id": "hlang",
