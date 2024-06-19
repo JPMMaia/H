@@ -43,8 +43,14 @@ function get_token(iterator: Parse_tree_text_iterator.Iterator): { type: string,
     switch (parent_node.word.value) {
         case "Module_name":
         case "Import_alias":
-        case "Identifier_with_dots":
-            return { type: "namespace", modifiers: [] };
+        case "Identifier_with_dots": {
+            const is_declaration = is_namespace_declaration(iterator.root, parent_position);
+            const modifiers: string[] = [];
+            if (is_declaration) {
+                modifiers.push("declaration");
+            }
+            return { type: "namespace", modifiers: modifiers };
+        }
         case "Type":
         case "Type_name":
         case "Module_type_type_name":
@@ -88,6 +94,29 @@ function get_token(iterator: Parse_tree_text_iterator.Iterator): { type: string,
     }
 
     return undefined;
+}
+
+function is_namespace_declaration(
+    root: Parser_node.Node,
+    node_position: number[]
+): boolean {
+
+    let current_node_position = node_position;
+
+    while (current_node_position.length > 0) {
+
+        const parent_node_position = Parser_node.get_parent_position(current_node_position);
+        const parent_node = Parser_node.get_node_at_position(root, parent_node_position);
+
+        if (parent_node.word.value === "Module_name") {
+            return true;
+        }
+
+        current_node_position = parent_node_position;
+    }
+
+    return false;
+
 }
 
 function is_left_side_of_expression_assignment(
