@@ -8,7 +8,7 @@ import {
 	TransportKind
 } from 'vscode-languageclient/node';
 
-let client: LanguageClient;
+export let client: LanguageClient;
 
 export function activate(context: ExtensionContext) {
 	// The server is implemented in node
