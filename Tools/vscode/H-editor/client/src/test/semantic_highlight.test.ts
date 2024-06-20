@@ -12,31 +12,183 @@ interface Decoded_semantic_token {
 }
 
 suite("Should add semantic highlights", () => {
-	test("Provides tokens for semantic_highlight_00.hltxt", async () => {
-		const document_uri = get_document_uri("semantic_highlight_00.hltxt");
-		await test_semantic_highlight(document_uri, [
-			{ line: 0, character: 0, length: 6, token_type: "keyword", token_modifiers: [] },
-			{ line: 0, character: 7, length: 9, token_type: "namespace", token_modifiers: ["declaration"] },
-			{ line: 0, character: 16, length: 1, token_type: "operator", token_modifiers: [] },
-		]);
+
+	test("Provides tokens for semantic_highlight_alias.hltxt", async () => {
+		const document_uri = get_document_uri("semantic_highlight_alias.hltxt");
+		await test_semantic_highlight(
+			document_uri,
+			[
+				{ line: 2, character: 0, length: 5, token_type: "keyword", token_modifiers: [] },
+				{ line: 2, character: 6, length: 8, token_type: "type", token_modifiers: ["declaration"] },
+				{ line: 2, character: 15, length: 1, token_type: "operator", token_modifiers: [] },
+				{ line: 2, character: 17, length: 5, token_type: "type", token_modifiers: [] },
+				{ line: 2, character: 22, length: 1, token_type: "operator", token_modifiers: [] },
+			],
+			to_range(1, 0, 3, 0)
+		);
+	});
+
+	test("Provides tokens for semantic_highlight_enum.hltxt", async () => {
+		const document_uri = get_document_uri("semantic_highlight_enum.hltxt");
+		await test_semantic_highlight(
+			document_uri,
+			[
+				{ line: 2, character: 0, length: 6, token_type: "keyword", token_modifiers: [] },
+				{ line: 2, character: 7, length: 4, token_type: "keyword", token_modifiers: [] },
+				{ line: 2, character: 12, length: 7, token_type: "enum", token_modifiers: ["declaration"] },
+				{ line: 3, character: 0, length: 1, token_type: "operator", token_modifiers: [] },
+				{ line: 4, character: 4, length: 7, token_type: "enumMember", token_modifiers: ["declaration"] },
+				{ line: 4, character: 12, length: 1, token_type: "operator", token_modifiers: [] },
+				{ line: 4, character: 14, length: 1, token_type: "number", token_modifiers: [] },
+				{ line: 4, character: 15, length: 1, token_type: "operator", token_modifiers: [] },
+				{ line: 5, character: 4, length: 7, token_type: "enumMember", token_modifiers: ["declaration"] },
+				{ line: 5, character: 12, length: 1, token_type: "operator", token_modifiers: [] },
+				{ line: 5, character: 14, length: 1, token_type: "number", token_modifiers: [] },
+				{ line: 5, character: 15, length: 1, token_type: "operator", token_modifiers: [] },
+				{ line: 6, character: 0, length: 1, token_type: "operator", token_modifiers: [] }
+			],
+			to_range(1, 0, 7, 0)
+		);
+	});
+
+	test("Provides tokens for semantic_highlight_function.hltxt", async () => {
+		const document_uri = get_document_uri("semantic_highlight_function.hltxt");
+		await test_semantic_highlight(
+			document_uri,
+			[
+				{ line: 2, character: 0, length: 8, token_type: "keyword", token_modifiers: [] },
+				{ line: 2, character: 9, length: 3, token_type: "function", token_modifiers: ["declaration"] },
+				{ line: 2, character: 12, length: 1, token_type: "operator", token_modifiers: [] },
+				{ line: 2, character: 13, length: 3, token_type: "parameter", token_modifiers: ["readonly"] },
+				{ line: 2, character: 16, length: 1, token_type: "operator", token_modifiers: [] },
+				{ line: 2, character: 18, length: 5, token_type: "type", token_modifiers: [] },
+				{ line: 2, character: 23, length: 1, token_type: "operator", token_modifiers: [] },
+				{ line: 2, character: 25, length: 3, token_type: "parameter", token_modifiers: ["readonly"] },
+				{ line: 2, character: 28, length: 1, token_type: "operator", token_modifiers: [] },
+				{ line: 2, character: 30, length: 5, token_type: "type", token_modifiers: [] },
+				{ line: 2, character: 35, length: 1, token_type: "operator", token_modifiers: [] },
+				{ line: 2, character: 37, length: 2, token_type: "operator", token_modifiers: [] },
+				{ line: 2, character: 40, length: 1, token_type: "operator", token_modifiers: [] },
+				{ line: 2, character: 41, length: 6, token_type: "parameter", token_modifiers: ["readonly"] },
+				{ line: 2, character: 47, length: 1, token_type: "operator", token_modifiers: [] },
+				{ line: 2, character: 49, length: 5, token_type: "type", token_modifiers: [] },
+				{ line: 2, character: 54, length: 1, token_type: "operator", token_modifiers: [] },
+				{ line: 3, character: 0, length: 1, token_type: "operator", token_modifiers: [] },
+				{ line: 4, character: 4, length: 3, token_type: "keyword", token_modifiers: [] },
+				{ line: 4, character: 8, length: 6, token_type: "variable", token_modifiers: ["declaration", "readonly"] },
+				{ line: 4, character: 15, length: 1, token_type: "operator", token_modifiers: [] },
+				{ line: 4, character: 17, length: 3, token_type: "variable", token_modifiers: [] },
+				{ line: 4, character: 21, length: 1, token_type: "operator", token_modifiers: [] },
+				{ line: 4, character: 23, length: 3, token_type: "variable", token_modifiers: [] },
+				{ line: 4, character: 26, length: 1, token_type: "operator", token_modifiers: [] },
+				{ line: 5, character: 4, length: 6, token_type: "keyword", token_modifiers: [] },
+				{ line: 5, character: 11, length: 6, token_type: "variable", token_modifiers: [] },
+				{ line: 5, character: 17, length: 1, token_type: "operator", token_modifiers: [] },
+				{ line: 6, character: 0, length: 1, token_type: "operator", token_modifiers: [] },
+			],
+			to_range(1, 0, 7, 0)
+		);
+	});
+
+	test("Provides tokens for semantic_highlight_module_declaration.hltxt", async () => {
+		const document_uri = get_document_uri("semantic_highlight_module_declaration.hltxt");
+		await test_semantic_highlight(
+			document_uri,
+			[
+				{ line: 0, character: 0, length: 6, token_type: "keyword", token_modifiers: [] },
+				{ line: 0, character: 7, length: 9, token_type: "namespace", token_modifiers: ["declaration"] },
+				{ line: 0, character: 16, length: 1, token_type: "operator", token_modifiers: [] },
+			]
+		);
+	});
+
+	test("Provides tokens for semantic_highlight_struct.hltxt", async () => {
+		const document_uri = get_document_uri("semantic_highlight_struct.hltxt");
+		await test_semantic_highlight(
+			document_uri,
+			[
+				{ line: 2, character: 0, length: 6, token_type: "keyword", token_modifiers: [] },
+				{ line: 2, character: 7, length: 6, token_type: "keyword", token_modifiers: [] },
+				{ line: 2, character: 14, length: 9, token_type: "struct", token_modifiers: ["declaration"] },
+				{ line: 3, character: 0, length: 1, token_type: "operator", token_modifiers: [] },
+				{ line: 4, character: 4, length: 8, token_type: "property", token_modifiers: ["declaration"] },
+				{ line: 4, character: 12, length: 1, token_type: "operator", token_modifiers: [] },
+				{ line: 4, character: 14, length: 5, token_type: "type", token_modifiers: [] },
+				{ line: 4, character: 20, length: 1, token_type: "operator", token_modifiers: [] },
+				{ line: 4, character: 22, length: 1, token_type: "number", token_modifiers: [] },
+				{ line: 4, character: 23, length: 1, token_type: "operator", token_modifiers: [] },
+				{ line: 5, character: 0, length: 1, token_type: "operator", token_modifiers: [] }
+			],
+			to_range(1, 0, 6, 0)
+		);
+	});
+
+	test("Provides tokens for semantic_highlight_union.hltxt", async () => {
+		const document_uri = get_document_uri("semantic_highlight_union.hltxt");
+		await test_semantic_highlight(
+			document_uri,
+			[
+				{ line: 2, character: 0, length: 6, token_type: "keyword", token_modifiers: [] },
+				{ line: 2, character: 7, length: 5, token_type: "keyword", token_modifiers: [] },
+				{ line: 2, character: 13, length: 8, token_type: "type", token_modifiers: ["declaration"] },
+				{ line: 3, character: 0, length: 1, token_type: "operator", token_modifiers: [] },
+				{ line: 4, character: 4, length: 8, token_type: "property", token_modifiers: ["declaration"] },
+				{ line: 4, character: 12, length: 1, token_type: "operator", token_modifiers: [] },
+				{ line: 4, character: 14, length: 5, token_type: "type", token_modifiers: [] },
+				{ line: 4, character: 19, length: 1, token_type: "operator", token_modifiers: [] },
+				{ line: 5, character: 4, length: 8, token_type: "property", token_modifiers: ["declaration"] },
+				{ line: 5, character: 12, length: 1, token_type: "operator", token_modifiers: [] },
+				{ line: 5, character: 14, length: 7, token_type: "type", token_modifiers: [] },
+				{ line: 5, character: 21, length: 1, token_type: "operator", token_modifiers: [] },
+				{ line: 6, character: 0, length: 1, token_type: "operator", token_modifiers: [] },
+			],
+			to_range(1, 0, 7, 0)
+		);
 	});
 });
 
+function to_range(start_line: number, start_character: number, end_line: number, end_character: number): vscode.Range {
+	const start = new vscode.Position(start_line, start_character);
+	const end = new vscode.Position(end_line, end_character);
+	return new vscode.Range(start, end);
+}
+
+async function get_semantic_tokens(
+	document_uri: vscode.Uri,
+	range?: vscode.Range
+): Promise<Decoded_semantic_token[]> {
+
+	const legend = client.initializeResult.capabilities.semanticTokensProvider.legend;
+
+	if (range !== undefined) {
+		const actual_semantic_tokens = (await vscode.commands.executeCommand(
+			"vscode.provideDocumentRangeSemanticTokens",
+			document_uri,
+			range
+		)) as vscode.SemanticTokens;
+
+		return decode_semantic_tokens(actual_semantic_tokens.data, legend);
+	}
+	else {
+		const actual_semantic_tokens = (await vscode.commands.executeCommand(
+			"vscode.provideDocumentSemanticTokens",
+			document_uri
+		)) as vscode.SemanticTokens;
+
+		return decode_semantic_tokens(actual_semantic_tokens.data, legend);
+	}
+}
+
 async function test_semantic_highlight(
 	document_uri: vscode.Uri,
-	expected_decoded_semantic_tokens: Decoded_semantic_token[]
+	expected_decoded_semantic_tokens: Decoded_semantic_token[],
+	range?: vscode.Range
 ) {
 	await activate(document_uri);
 
-	const actual_semantic_tokens = (await vscode.commands.executeCommand(
-		"vscode.provideDocumentSemanticTokens",
-		document_uri
-	)) as vscode.SemanticTokens;
+	const actual_decoded_semantic_tokens = await get_semantic_tokens(document_uri, range);
 
-	const legend = client.initializeResult.capabilities.semanticTokensProvider.legend;
-	const actual_decoded_semantic_tokens = decode_semantic_tokens(actual_semantic_tokens.data, legend);
-
-	assert.ok(actual_decoded_semantic_tokens.length >= expected_decoded_semantic_tokens.length);
+	assert.ok(actual_decoded_semantic_tokens.length === expected_decoded_semantic_tokens.length);
 	expected_decoded_semantic_tokens.forEach((expected_token, index) => {
 		const actual_token = actual_decoded_semantic_tokens[index];
 		assert.deepEqual(actual_token, expected_token);

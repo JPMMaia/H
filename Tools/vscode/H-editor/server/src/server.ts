@@ -66,7 +66,7 @@ connection.onInitialize((params: vscode_node.InitializeParams) => {
 					tokenTypes: Semantic_tokens_provider.token_types,
 					tokenModifiers: Semantic_tokens_provider.token_modifiers
 				},
-				range: false,
+				range: true,
 				full: {
 					delta: false
 				}
@@ -396,6 +396,36 @@ connection.onCompletionResolve(
 
 connection.languages.semanticTokens.on(
 	async (parameters: vscode_node.SemanticTokensParams): Promise<vscode_node.SemanticTokens> => {
+
+		const document_state = document_states.get(parameters.textDocument.uri);
+		if (document_state === undefined || document_state.parse_tree === undefined) {
+			return { data: [] };
+		}
+
+		const document = documents.get(parameters.textDocument.uri);
+		if (document === undefined) {
+			return { data: [] };
+		}
+
+		const end = document.positionAt(document.getText().length);
+
+		const range_parameters: vscode_node.SemanticTokensRangeParams = {
+			textDocument: parameters.textDocument,
+			range: {
+				start: {
+					line: 0,
+					character: 0
+				},
+				end: end
+			}
+		};
+
+		return Semantic_tokens_provider.provider(range_parameters, document_state);
+	}
+);
+
+connection.languages.semanticTokens.onRange(
+	async (parameters: vscode_node.SemanticTokensRangeParams): Promise<vscode_node.SemanticTokens> => {
 
 		const document_state = document_states.get(parameters.textDocument.uri);
 		if (document_state === undefined || document_state.parse_tree === undefined) {

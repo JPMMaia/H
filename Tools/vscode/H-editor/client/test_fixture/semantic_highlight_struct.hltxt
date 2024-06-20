@@ -1,0 +1,6 @@
+module my_module;
+
+export struct My_struct
+{
+    member_0: Int32 = 0;
+}
