@@ -54,7 +54,8 @@
 				"id": "hlang",
 				"extensions": [
 					".hltxt"
-				]
+				],
+				"configuration": "./language_configuration.json"
 			}
 		]
 	},
