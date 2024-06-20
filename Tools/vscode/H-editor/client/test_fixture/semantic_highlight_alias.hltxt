@@ -1,0 +1,3 @@
+module my_module;
+
+using My_alias = Int32;

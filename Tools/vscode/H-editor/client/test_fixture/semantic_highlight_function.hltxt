@@ -1,0 +1,7 @@
+module my_module;
+
+function add(lhs: Int32, rhs: Int32) -> (result: Int32)
+{
+    var result = lhs + rhs;
+    return result;
+}

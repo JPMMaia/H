@@ -181,7 +181,7 @@ function get_variable_token(
 }
 
 export const provider =
-    async (parameters: vscode_node.SemanticTokensParams, document_state: Document.State): Promise<vscode_node.SemanticTokens> => {
+    async (parameters: vscode_node.SemanticTokensRangeParams, document_state: Document.State): Promise<vscode_node.SemanticTokens> => {
 
         if (document_state.parse_tree === undefined) {
             return { data: [] };
@@ -191,7 +191,11 @@ export const provider =
 
         let iterator = Parse_tree_text_iterator.begin(document_state.parse_tree, document_state.text);
 
-        while (iterator.node !== undefined) {
+        while (iterator.node !== undefined && ((iterator.line - 1) < parameters.range.start.line || ((iterator.line - 1) === parameters.range.start.line && (iterator.column - 1) < parameters.range.start.character))) {
+            iterator = Parse_tree_text_iterator.next(iterator);
+        }
+
+        while (iterator.node !== undefined && ((iterator.line - 1) < parameters.range.end.line || ((iterator.line - 1) === parameters.range.end.line && (iterator.column - 1) < parameters.range.end.character))) {
 
             const token = get_token(iterator);
             if (token !== undefined) {
