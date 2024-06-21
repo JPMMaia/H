@@ -414,7 +414,7 @@ namespace h
 
     export struct Return_expression
     {
-        Expression_index expression;
+        std::optional<Expression_index> expression;
 
         friend auto operator<=>(Return_expression const&, Return_expression const&) = default;
     };

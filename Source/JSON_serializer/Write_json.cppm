@@ -1342,8 +1342,7 @@ namespace h::json
         )
     {
         writer.StartObject();
-        writer.Key("expression");
-        write_object(writer, output.expression);
+        write_optional_object(writer, "expression", output.expression);
         writer.EndObject();
     }
 

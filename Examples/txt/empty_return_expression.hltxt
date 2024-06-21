@@ -1,0 +1,6 @@
+module Empty_return_expression;
+
+function run() -> ()
+{
+    return;
+}

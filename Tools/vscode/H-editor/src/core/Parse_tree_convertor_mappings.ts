@@ -1454,10 +1454,13 @@ function get_generic_expression(
         case Core_intermediate_representation.Expression_enum.Return_expression: {
             const return_expression = expression.data.value as Core_intermediate_representation.Return_expression;
             const next_expression = return_expression.expression;
-            return {
-                expression: next_expression,
-                label: map_expression_type_to_production_rule_label(next_expression)
-            };
+            if (next_expression !== undefined) {
+                return {
+                    expression: next_expression,
+                    label: map_expression_type_to_production_rule_label(next_expression)
+                };
+            }
+            break;
         }
         case Core_intermediate_representation.Expression_enum.Switch_expression: {
             const switch_expression = expression.data.value as Core_intermediate_representation.Switch_expression;
@@ -1512,12 +1515,11 @@ function get_generic_expression(
                 label: map_expression_type_to_production_rule_label(next_expression)
             };
         }
-        default: {
-            const message = `Parse_tree_convertor_mappings.get_generic_expression(): expression type not handled: '${expression.data.type}'`;
-            onThrowError(message);
-            throw message;
-        }
     }
+
+    const message = `Parse_tree_convertor_mappings.get_generic_expression(): expression type not handled: '${expression.data.type}'`;
+    onThrowError(message);
+    throw message;
 }
 
 function choose_production_rule_generic_expression(
@@ -2920,7 +2922,7 @@ function node_to_expression_parenthesis(node: Parser_node.Node, key_to_productio
 function node_to_expression_return(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Return_expression {
 
     const generic_expression_node = find_node(node, "Generic_expression_or_instantiate", key_to_production_rule_indices) as Parser_node.Node;
-    const generic_expression = node_to_expression(generic_expression_node, key_to_production_rule_indices);
+    const generic_expression = generic_expression_node !== undefined ? node_to_expression(generic_expression_node, key_to_production_rule_indices) : undefined;
 
     const return_expression: Core_intermediate_representation.Return_expression = {
         expression: generic_expression

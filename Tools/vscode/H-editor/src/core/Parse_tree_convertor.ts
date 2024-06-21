@@ -943,7 +943,9 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
         }
         case Core_intermediate_representation.Expression_enum.Return_expression: {
             const value = expression.data.value as Core_intermediate_representation.Return_expression;
-            visit_expressions(value.expression, predicate);
+            if (value.expression !== undefined) {
+                visit_expressions(value.expression, predicate);
+            }
             break;
         }
         case Core_intermediate_representation.Expression_enum.Switch_expression: {
