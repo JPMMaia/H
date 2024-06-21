@@ -1163,6 +1163,55 @@ attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
     };
 
     std::string const expected_llvm_ir = std::format(R"(
+define private i32 @Debug_information_run(i32 %arguments.value) !dbg !3 {{
+entry:
+  %value = alloca i32, align 4
+  call void @llvm.dbg.declare(metadata ptr %value, metadata !8, metadata !DIExpression()), !dbg !9
+  store i32 %arguments.value, ptr %value, align 4
+  %0 = load i32, ptr %value, align 4, !dbg !10
+  switch i32 %0, label %switch_case_default [
+    i32 0, label %switch_case_i0_
+    i32 1, label %switch_case_i1_
+  ], !dbg !10
+
+switch_after:                                     ; preds = %switch_case_default, %switch_case_i1_
+  %1 = load i32, ptr %value, align 4, !dbg !11
+  ret i32 %1, !dbg !12
+
+switch_case_i0_:                                  ; preds = %entry
+  ret i32 10, !dbg !13
+
+switch_case_i1_:                                  ; preds = %entry
+  br label %switch_after, !dbg !14
+
+switch_case_default:                              ; preds = %entry
+  br label %switch_after, !dbg !15
+}}
+
+; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
+declare void @llvm.dbg.declare(metadata, metadata, metadata) #0
+
+attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
+
+!llvm.module.flags = !{{!0}}
+!llvm.dbg.cu = !{{!1}}
+
+!0 = !{{i32 2, !"Debug Info Version", i32 3}}
+!1 = distinct !DICompileUnit(language: DW_LANG_C, file: !2, producer: "Hlang Compiler", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+!2 = !DIFile(filename: "debug_information_switch.hltxt", directory: "{}")
+!3 = distinct !DISubprogram(name: "run", linkageName: "Debug_information_run", scope: null, file: !2, line: 3, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !1, retainedNodes: !7)
+!4 = !DISubroutineType(types: !5)
+!5 = !{{!6, !6}}
+!6 = !DIBasicType(name: "Int32", size: 32, encoding: DW_ATE_signed)
+!7 = !{{!8}}
+!8 = !DILocalVariable(name: "value", arg: 1, scope: !3, file: !2, line: 3, type: !6)
+!9 = !DILocation(line: 3, column: 14, scope: !3)
+!10 = !DILocation(line: 5, column: 12, scope: !3)
+!11 = !DILocation(line: 15, column: 12, scope: !3)
+!12 = !DILocation(line: 15, column: 5, scope: !3)
+!13 = !DILocation(line: 8, column: 9, scope: !3)
+!14 = !DILocation(line: 10, column: 9, scope: !3)
+!15 = !DILocation(line: 12, column: 9, scope: !3)
 )", g_test_source_files_path.generic_string());
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, true);
