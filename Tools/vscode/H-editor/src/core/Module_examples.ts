@@ -2478,6 +2478,44 @@ export function create_while_loop_expressions(): IR.Module {
     };
 }
 
+export function create_function_with_empty_return_expression(): IR.Module {
+
+    const statements: IR.Statement[] = [
+        create_statement(
+            IR.create_return_expression(undefined)
+        )
+    ];
+
+    return {
+        name: "Empty_return_expression",
+        imports: [],
+        declarations: [
+            {
+                name: "run",
+                type: IR.Declaration_type.Function,
+                is_export: false,
+                value: {
+                    declaration: {
+                        name: "run",
+                        type: {
+                            input_parameter_types: [],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: [],
+                        output_parameter_names: [],
+                        linkage: IR.Linkage.Private
+                    },
+                    definition: {
+                        name: "run",
+                        statements: statements
+                    }
+                }
+            }
+        ]
+    };
+}
+
 export function create_break_expressions(): IR.Module {
 
     const c_string_type = create_pointer_type([create_fundamental_type(IR.Fundamental_type.C_char)], false);

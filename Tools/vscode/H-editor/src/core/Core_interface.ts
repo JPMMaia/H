@@ -327,7 +327,7 @@ export interface Parenthesis_expression {
 }
 
 export interface Return_expression {
-    expression: Expression_index;
+    expression?: Expression_index;
 }
 
 export interface Switch_case_expression_pair {

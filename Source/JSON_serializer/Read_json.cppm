@@ -2216,12 +2216,12 @@ namespace h::json
 
         if (key == "expression")
         {
-
+            parent->expression = Expression_index{};
             return Stack_state
             {
-                .pointer = &parent->expression,
+                .pointer = &parent->expression.value(),
                 .type = "Expression_index",
-                .get_next_state = get_next_state_expression_index,
+                .get_next_state = get_next_state_expression_index
             };
         }
 

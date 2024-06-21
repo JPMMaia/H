@@ -1647,12 +1647,12 @@ export function create_parenthesis_expression(expression: Expression): Expressio
     };
 }
 export interface Return_expression {
-    expression: Expression;
+    expression?: Expression;
 }
 
 function core_to_intermediate_return_expression(core_value: Core.Return_expression, statement: Core.Statement): Return_expression {
     return {
-        expression: core_to_intermediate_expression(statement.expressions.elements[core_value.expression.expression_index], statement),
+        expression: core_value.expression !== undefined ? core_to_intermediate_expression(statement.expressions.elements[core_value.expression.expression_index], statement) : undefined,
     };
 }
 
@@ -1663,20 +1663,20 @@ function intermediate_to_core_return_expression(intermediate_value: Return_expre
         data: {
             type: Core.Expression_enum.Return_expression,
             value: {
-                expression: {
-                    expression_index: -1
-                },
+                expression: intermediate_value.expression !== undefined ? { expression_index: -1 } : undefined,
             }
         }
     };
 
     expressions[index] = core_value;
 
-    (core_value.data.value as Core.Return_expression).expression.expression_index = expressions.length;
-    intermediate_to_core_expression(intermediate_value.expression, expressions);
+    if (intermediate_value.expression !== undefined) {
+        (core_value.data.value as Core.Return_expression).expression = { expression_index: expressions.length };
+        intermediate_to_core_expression(intermediate_value.expression, expressions);
+    }
 }
 
-export function create_return_expression(expression: Expression): Expression {
+export function create_return_expression(expression: Expression | undefined): Expression {
     const return_expression: Return_expression = {
         expression: expression,
     };

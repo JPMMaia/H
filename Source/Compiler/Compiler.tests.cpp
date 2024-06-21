@@ -1387,6 +1387,24 @@ attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, true);
   }
 
+  TEST_CASE("Compile Empty Return Expression")
+  {
+    char const* const input_file = "empty_return_expression.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    std::string const expected_llvm_ir = R"(
+define private void @Empty_return_expression_run() {
+entry:
+  ret void
+}
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
   TEST_CASE("Compile For Loop Expressions")
   {
     char const* const input_file = "for_loop_expressions.hl";

@@ -1873,12 +1873,27 @@ namespace h::compiler
     {
         llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
 
+        if (!expression.expression.has_value())
+        {
+            if (parameters.debug_info != nullptr)
+                set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
+
+            llvm::Value* const instruction = llvm_builder.CreateRetVoid();
+
+            return
+            {
+                .name = "",
+                .value = instruction,
+                .type = std::nullopt
+            };
+        }
+
         Function_type const& function_type = parameters.function_declaration.value()->type;
         std::optional<Type_reference> const function_output_type = get_function_output_type_reference(function_type, parameters.core_module);
 
         Expression_parameters new_parameters = parameters;
         new_parameters.expression_type = function_output_type.has_value() ? function_output_type.value() : std::optional<Type_reference>{};
-        Value_and_type const temporary = create_loaded_expression_value(expression.expression.expression_index, statement, new_parameters);
+        Value_and_type const temporary = create_loaded_expression_value(expression.expression->expression_index, statement, new_parameters);
 
         if (parameters.debug_info != nullptr)
             set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
