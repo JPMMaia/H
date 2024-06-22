@@ -2516,6 +2516,48 @@ export function create_function_with_empty_return_expression(): IR.Module {
     };
 }
 
+export function create_function_with_int32_return_expression(): IR.Module {
+
+    const int32_type = create_integer_type(32, true);
+
+    const statements: IR.Statement[] = [
+        create_statement(
+            IR.create_return_expression(
+                IR.create_constant_expression(int32_type, "0")
+            )
+        )
+    ];
+
+    return {
+        name: "Empty_return_expression",
+        imports: [],
+        declarations: [
+            {
+                name: "run",
+                type: IR.Declaration_type.Function,
+                is_export: false,
+                value: {
+                    declaration: {
+                        name: "run",
+                        type: {
+                            input_parameter_types: [],
+                            output_parameter_types: [int32_type],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: [],
+                        output_parameter_names: ["result"],
+                        linkage: IR.Linkage.Private
+                    },
+                    definition: {
+                        name: "run",
+                        statements: statements
+                    }
+                }
+            }
+        ]
+    };
+}
+
 export function create_break_expressions(): IR.Module {
 
     const c_string_type = create_pointer_type([create_fundamental_type(IR.Fundamental_type.C_char)], false);

@@ -1336,7 +1336,7 @@ describe("Parser.parse_incrementally array without separator", () => {
 
     it("Parses adding and removing element in the middle of an array", () => {
 
-        const grammar_description = Grammar_examples.create_test_grammar_10_description();
+        const grammar_description = Grammar_examples.create_test_grammar_14_description();
         const production_rules = Grammar.create_production_rules(grammar_description);
         const non_terminals = Grammar.get_non_terminals(production_rules);
         const terminals = Grammar.get_terminals(production_rules, non_terminals);
@@ -1363,7 +1363,7 @@ describe("Parser.parse_incrementally array without separator", () => {
             map_word_to_terminal
         );
 
-        const second_input = "id id";
+        const second_input = "id2 id3";
         const second_scanned_words = Scanner.scan(second_input, 0, second_input.length, { line: 1, column: 1 });
         const start_change_node_position: number[] = [0, 1, 0];
         const after_change_node_position: number[] = [0, 2, 0];
@@ -1414,7 +1414,7 @@ describe("Parser.parse_incrementally array without separator", () => {
                 assert.equal(new_node.word.value, "Element");
 
                 const child_node = new_node.children[0];
-                assert.equal(child_node.word.value, "id");
+                assert.equal(child_node.word.value, "id2");
             }
 
             {
@@ -1422,7 +1422,7 @@ describe("Parser.parse_incrementally array without separator", () => {
                 assert.equal(new_node.word.value, "Element");
 
                 const child_node = new_node.children[0];
-                assert.equal(child_node.word.value, "id");
+                assert.equal(child_node.word.value, "id3");
             }
         }
     });

@@ -668,7 +668,7 @@ function get_initial_mark_node(original_node_tree: Node | undefined, start_chang
 
         while (true) {
 
-            if ((is_terminal_node(previous.node) || !is_last_descendant_empty(previous.node)) && !array_infos.has(previous.node.word.value)) {
+            if (is_terminal_node(previous.node) && !array_infos.has(previous.node.word.value)) {
                 break;
             }
 
@@ -1393,6 +1393,19 @@ function get_parent_array_element(
         }
     }
 
+    if (start_change_original_node_position !== undefined && after_change_original_node_position !== undefined) {
+        const parent_node_position = find_node_common_root(start_change_original_node_position, after_change_original_node_position);
+        const parent_node = get_node_at_position(original_node_tree, parent_node_position);
+        const array_info = array_infos.get(parent_node.word.value);
+        if (array_info !== undefined) {
+            return {
+                parent: parent_node,
+                position: parent_node_position,
+                array_info: array_info
+            };
+        }
+    }
+
     return undefined;
 }
 
@@ -1412,65 +1425,43 @@ function handle_array_changes(
 
     const changes: Change[] = [];
 
-    // Handle deletes:
-    if (!is_same_position(start_change_original_node_position, after_change_original_node_position)) {
-
-        const parent_node_position = find_node_common_root(start_change_original_node_position, after_change_original_node_position);
-        const parent_node = get_node_at_position(original_node_tree, parent_node_position);
-
-        const array_info = array_infos.get(parent_node.word.value);
-        if (array_info !== undefined) {
-
-            const element_labels = array_info.separator_label.length > 0 ? [array_info.element_label, array_info.separator_label] : [array_info.element_label];
-
-            const start_change_original_node_element = get_parent_node_with_labels_in_original_tree(original_node_tree, start_change_original_node_position, element_labels, map_word_to_terminal);
-            const after_change_element = get_parent_node_with_labels_in_original_tree(original_node_tree, after_change_original_node_position, element_labels, map_word_to_terminal);
-
-            if (start_change_original_node_element !== undefined && after_change_element !== undefined) {
-
-                const start_index = start_change_original_node_element.position[start_change_original_node_element.position.length - 1];
-                const end_index = after_change_element.position[after_change_element.position.length - 1];
-                const count = end_index - start_index;
-
-                if (count > 0) {
-
-                    const parent_node_position = get_parent_position(start_change_original_node_element.position);
-
-                    const remove_change = create_remove_change(parent_node_position, start_index, count);
-                    changes.push(remove_change);
-                }
-            }
-        }
-    }
-
-    // Handle additions:
     {
         const top_of_stack = get_top_of_stack(stack, mark);
         const top_of_stack_label = map_word_to_terminal(top_of_stack.node.word);
 
         const result = get_parent_array_element(top_of_stack_label, original_node_tree, start_change_original_node_position, after_change_original_node_position, stack, 1, mark, array_infos, map_word_to_terminal);
         if (result !== undefined) {
-            const parent_position = result.position;
+            const parent_node_position = result.position;
             const parent_node = result.parent;
             const array_info = result.array_info;
 
-            const mark_element_child_index = find_array_element_child_index(parent_position, mark.original_tree_position as number[]);
-            const mark_element = parent_node.children[mark_element_child_index];
-            const array_stack_elements = get_array_elements_from_stack_until_mark(original_node_tree, stack, mark, array_info, map_word_to_terminal);
+            const start_index_in_original = start_change_original_node_position[parent_node_position.length];
+            const after_index_in_original = after_change_original_node_position[parent_node_position.length];
+            const original_elements = parent_node.children.slice(start_index_in_original, after_index_in_original);
 
-            const is_mark_included = array_stack_elements[0].node === mark_element;
-            const after_change_original_node_index = array_stack_elements.findIndex(element => element.original_tree_position !== undefined && is_same_position(element.original_tree_position, after_change_original_node_position));
+            const new_elements = stack.filter(element => {
+                if (element.node.word.value === array_info.element_label || element.node.word.value === array_info.separator_label) {
+                    if (element.original_tree_position !== undefined && element.original_tree_position.length >= parent_node_position.length) {
+                        const index_in_original = element.original_tree_position[parent_node_position.length];
+                        return start_index_in_original <= index_in_original && index_in_original < after_index_in_original;
+                    }
+                    else {
+                        return true;
+                    }
+                }
+            }).map(element => element.node);
 
-            const start_index = is_mark_included ? 1 : 0;
-            const end_index = after_change_original_node_index !== -1 ? after_change_original_node_index : array_stack_elements.length;
+            const patches = Fast_array_diff.getPatch(original_elements, new_elements, deep_equal);
 
-            const new_node_elements = array_stack_elements.slice(start_index, end_index);
-            const new_nodes = new_node_elements.map(element => element.node);
-            const insert_index_in_parent = is_mark_included ? mark_element_child_index + 1 : 0;
-
-            if (new_nodes.length > 0) {
-                const add_change = create_add_change(parent_position, insert_index_in_parent, new_nodes);
-                changes.push(add_change);
+            for (const patch of patches) {
+                if (patch.type === "add") {
+                    const new_change = create_add_change(parent_node_position, start_index_in_original + patch.newPos, patch.items);
+                    changes.push(new_change);
+                }
+                else if (patch.type === "remove") {
+                    const new_change = create_remove_change(parent_node_position, start_index_in_original + patch.newPos, patch.items.length);
+                    changes.push(new_change);
+                }
             }
         }
     }
