@@ -318,3 +318,11 @@ export function create_test_grammar_13_description(): string[] {
         "B -> id || id"
     ];
 }
+
+export function create_test_grammar_14_description(): string[] {
+    return [
+        "S -> List",
+        "List -> Element $0_or_more",
+        "Element -> id | id2 | id3"
+    ];
+}
