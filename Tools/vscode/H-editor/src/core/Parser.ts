@@ -668,7 +668,7 @@ function get_initial_mark_node(original_node_tree: Node | undefined, start_chang
 
         while (true) {
 
-            if (is_terminal_node(previous.node) && !array_infos.has(previous.node.word.value)) {
+            if (is_terminal_node(previous.node) && previous.node.word.type !== Grammar.Word_type.Invalid && !array_infos.has(previous.node.word.value)) {
                 break;
             }
 
@@ -723,6 +723,61 @@ export function get_allowed_labels(
     return allowed_labels;
 }
 
+function get_action_column_and_try_to_recover_from_error(
+    document_uri: string,
+    row: Grammar.Action_column[],
+    terminal: string,
+    current_word: Scanner.Scanned_word,
+    diagnostics: Validation.Diagnostic[]
+): { column: Grammar.Action_column, current_word: Scanner.Scanned_word } | undefined {
+    const column = row.find(column => column.label === terminal);
+    if (column !== undefined) {
+        return { column: column, current_word: current_word };
+    }
+
+    const error_message = `Did not expect '${current_word.value}'.`;
+
+    const diagnostic: Validation.Diagnostic = {
+        location: {
+            uri: document_uri,
+            range: {
+                start: {
+                    line: current_word.source_location.line,
+                    column: current_word.source_location.column
+                },
+                end: {
+                    line: current_word.source_location.line,
+                    column: current_word.source_location.column + current_word.value.length
+                }
+            }
+        },
+        source: Validation.Source.Parser,
+        severity: Validation.Diagnostic_severity.Error,
+        message: error_message,
+        related_information: []
+    };
+
+    if (diagnostics.find(value => deep_equal(value, diagnostic)) === undefined) {
+        diagnostics.push(diagnostic);
+    }
+
+    // Try to recover from error:
+    const new_column = row.find(column => column.label === "identifier" || column.label === ";");
+
+    if (new_column !== undefined) {
+        const new_word: Scanner.Scanned_word = {
+            value: "",
+            type: Grammar.Word_type.Invalid,
+            source_location: current_word.source_location,
+            newlines_after: current_word.newlines_after
+        };
+
+        return { column: new_column, current_word: new_word };
+    }
+
+    return undefined;
+}
+
 export function parse_incrementally(
     document_uri: string,
     original_node_tree: Node | undefined,
@@ -734,6 +789,8 @@ export function parse_incrementally(
     array_infos: Map<string, Grammar.Array_info>,
     map_word_to_terminal: (word: Scanner.Scanned_word) => string
 ): { status: Parse_status, processed_words: number, changes: Change[], diagnostics: Validation.Diagnostic[] } {
+
+    const diagnostics: Validation.Diagnostic[] = [];
 
     let mark = get_initial_mark_node(original_node_tree, start_change_node_position, array_infos);
 
@@ -749,41 +806,18 @@ export function parse_incrementally(
 
         const row = parsing_table[top_of_stack.node.state];
         const terminal = map_word_to_terminal(current_word);
-        const column = row.find(column => column.label === terminal);
+        const column_and_word = get_action_column_and_try_to_recover_from_error(document_uri, row, terminal, current_word, diagnostics);
 
-        if (column === undefined) {
-
-            const error_message = `Did not expect '${current_word.value}'.`;
-
-            const diagnostic: Validation.Diagnostic = {
-                location: {
-                    uri: document_uri,
-                    range: {
-                        start: {
-                            line: current_word.source_location.line,
-                            column: current_word.source_location.column
-                        },
-                        end: {
-                            line: current_word.source_location.line,
-                            column: current_word.source_location.column + current_word.value.length
-                        }
-                    }
-                },
-                source: Validation.Source.Parser,
-                severity: Validation.Diagnostic_severity.Error,
-                message: error_message,
-                related_information: []
-            };
-
+        if (column_and_word === undefined) {
             return {
                 status: Parse_status.Failed,
                 processed_words: current_word_index,
                 changes: [],
-                diagnostics: [diagnostic]
+                diagnostics: diagnostics
             };
         }
 
-        const action = column.action;
+        const action = column_and_word.column.action;
 
         switch (action.type) {
             case Grammar.Action_type.Accept:
@@ -848,7 +882,7 @@ export function parse_incrementally(
                                         status: Parse_status.Accept,
                                         processed_words: current_word_index,
                                         changes: changes,
-                                        diagnostics: []
+                                        diagnostics: diagnostics
                                     };
                                 }
                             }
@@ -882,7 +916,7 @@ export function parse_incrementally(
                         changes: [
                             create_modify_change([], new_node)
                         ],
-                        diagnostics: []
+                        diagnostics: diagnostics
                     };
                 }
             case Grammar.Action_type.Shift:
@@ -897,9 +931,13 @@ export function parse_incrementally(
                     const shift_action = action.value as Grammar.Shift_action;
 
                     const node_to_shift = create_bottom_of_stack_node();
-                    node_to_shift.word = current_word;
+                    node_to_shift.word = column_and_word.current_word;
                     apply_shift(stack, node_to_shift, undefined, shift_action.next_state, original_node_tree, mark);
-                    current_word_index += 1;
+
+                    // If the word type is invalid, then it means that it was inserted by get_action_column_and_try_to_recover_from_error(). In that case, don't go to the next word.
+                    if (node_to_shift.word.type !== Grammar.Word_type.Invalid) {
+                        current_word_index += 1;
+                    }
 
                     break;
                 }
@@ -913,7 +951,7 @@ export function parse_incrementally(
                             status: Parse_status.Failed,
                             processed_words: 1,
                             changes: [],
-                            diagnostics: []
+                            diagnostics: diagnostics
                         };
                     }
 
@@ -931,7 +969,7 @@ export function parse_incrementally(
                                 status: Parse_status.Failed,
                                 processed_words: 1,
                                 changes: [],
-                                diagnostics: []
+                                diagnostics: diagnostics
                             };
                         }
                         mark = result.new_mark;
@@ -959,7 +997,7 @@ export function parse_incrementally(
                             status: Parse_status.Failed,
                             processed_words: 1,
                             changes: [],
-                            diagnostics: []
+                            diagnostics: diagnostics
                         };
                     }
 
@@ -974,7 +1012,7 @@ export function parse_incrementally(
         status: Parse_status.Failed,
         processed_words: current_word_index,
         changes: [],
-        diagnostics: []
+        diagnostics: diagnostics
     };
 }
 
