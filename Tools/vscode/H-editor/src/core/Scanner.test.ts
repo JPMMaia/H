@@ -110,10 +110,10 @@ describe("Scanner.scan", () => {
     });
 
     it("Scans symbols", () => {
-        const input = ". != == /= %";
+        const input = ". != == /= % ?";
         const scanned_words = Scanner.scan(input, 0, input.length, { line: 1, column: 1 });
 
-        assert.equal(scanned_words.length, 5);
+        assert.equal(scanned_words.length, 6);
 
         assert.equal(scanned_words[0].value, ".");
         assert.equal(scanned_words[0].type, Grammar.Word_type.Symbol);
@@ -129,6 +129,9 @@ describe("Scanner.scan", () => {
 
         assert.equal(scanned_words[4].value, "%");
         assert.equal(scanned_words[4].type, Grammar.Word_type.Symbol);
+
+        assert.equal(scanned_words[5].value, "?");
+        assert.equal(scanned_words[5].type, Grammar.Word_type.Symbol);
     });
 
     it("Scans symbols 2", () => {
