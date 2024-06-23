@@ -1,0 +1,11 @@
+module my_module;
+
+function add_implementation(lhs: Int32, rhs: Int32) -> (result: Int32)
+{
+    return lhs + rhs;
+}
+
+function add(lhs: Int32, rhs: Int32) -> (result: Int32)
+{
+    return 
+}

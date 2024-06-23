@@ -1,26 +1,22 @@
 import "module-alias/register";
 
+import * as Completion from "./Completion";
+import * as Server_data from "./Server_data";
+import * as Semantic_tokens_provider from "./Semantic_tokens_provider";
+
 import * as vscode_node from "vscode-languageserver/node";
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 import * as Document from "@core/Document";
 import * as Language from "@core/Language";
-import * as Parser from "@core/Parser";
-import * as Parse_tree_text_iterator from "@core/Parse_tree_text_iterator";
-import * as Scan_new_changes from "@core/Scan_new_changes";
-import * as Scanner from "@core/Scanner";
 import * as Storage_cache from "@core/Storage_cache";
 import * as Text_change from "@core/Text_change";
 import * as Validation from "@core/Validation";
 
-import * as Semantic_tokens_provider from "./Semantic_tokens_provider";
 
 const connection = vscode_node.createConnection(vscode_node.ProposedFeatures.all);
 
-const storage_cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
-const language_description = Language.create_default_description(storage_cache, "out/tests/graphviz.gv");
-const documents = new Map<string, TextDocument>();
-const document_states = new Map<string, Document.State>();
+const server_data = Server_data.create_server_data();
 
 let has_configuration_capability = false;
 let has_workspace_folder_capability = false;
@@ -140,7 +136,7 @@ function get_document_settings(resource: string): Thenable<Example_settings> {
 
 connection.languages.diagnostics.on(async (parameters) => {
 
-	const document_state = document_states.get(parameters.textDocument.uri);
+	const document_state = server_data.document_states.get(parameters.textDocument.uri);
 	if (document_state === undefined) {
 		return {
 			kind: vscode_node.DocumentDiagnosticReportKind.Full,
@@ -206,9 +202,9 @@ connection.onDidOpenTextDocument((parameters) => {
 		parameters.textDocument.version,
 		parameters.textDocument.text
 	);
-	documents.set(parameters.textDocument.uri, document);
+	server_data.documents.set(parameters.textDocument.uri, document);
 
-	const document_state = Document.create_empty_state(parameters.textDocument.uri, language_description.production_rules);
+	const document_state = Document.create_empty_state(parameters.textDocument.uri, server_data.language_description.production_rules);
 
 	const text_changes: Text_change.Text_change[] = [
 		{
@@ -220,18 +216,18 @@ connection.onDidOpenTextDocument((parameters) => {
 		}
 	];
 
-	const new_document_state = Text_change.update(language_description, document_state, text_changes, parameters.textDocument.text);
-	document_states.set(parameters.textDocument.uri, new_document_state);
+	const new_document_state = Text_change.update(server_data.language_description, document_state, text_changes, parameters.textDocument.text);
+	server_data.document_states.set(parameters.textDocument.uri, new_document_state);
 });
 
 connection.onDidChangeTextDocument((parameters) => {
 
-	const document = documents.get(parameters.textDocument.uri);
+	const document = server_data.documents.get(parameters.textDocument.uri);
 	if (document === undefined) {
 		return;
 	}
 
-	const document_state = document_states.get(parameters.textDocument.uri);
+	const document_state = server_data.document_states.get(parameters.textDocument.uri);
 	if (document_state === undefined) {
 		return;
 	}
@@ -262,14 +258,14 @@ connection.onDidChangeTextDocument((parameters) => {
 	TextDocument.update(document, parameters.contentChanges, parameters.textDocument.version);
 	const text_after_changes = document.getText();
 
-	const new_document_state = Text_change.update(language_description, document_state, text_changes, text_after_changes);
-	document_states.set(parameters.textDocument.uri, new_document_state);
+	const new_document_state = Text_change.update(server_data.language_description, document_state, text_changes, text_after_changes);
+	server_data.document_states.set(parameters.textDocument.uri, new_document_state);
 });
 
 connection.onDidCloseTextDocument((parameters) => {
 	document_settings.delete(parameters.textDocument.uri);
-	document_states.delete(parameters.textDocument.uri);
-	documents.delete(parameters.textDocument.uri);
+	server_data.document_states.delete(parameters.textDocument.uri);
+	server_data.documents.delete(parameters.textDocument.uri);
 });
 
 
@@ -323,68 +319,9 @@ connection.onDidChangeWatchedFiles(_change => {
 	connection.console.log('We received a file change event');
 });
 
-function get_allowed_terminals(text_document_position: vscode_node.TextDocumentPositionParams): string[] {
-	const document = documents.get(text_document_position.textDocument.uri);
-	if (document === undefined) {
-		return [];
-	}
-
-	const document_state = document_states.get(text_document_position.textDocument.uri);
-	if (document_state === undefined) {
-		return [];
-	}
-
-	if (document_state.diagnostics.length > 0) {
-		return [];
-	}
-
-	const start_change_node_iterator =
-		document_state.parse_tree !== undefined ?
-			Scan_new_changes.get_node_before_text_position(
-				document_state.parse_tree,
-				document.getText(),
-				document.offsetAt(text_document_position.position)
-			) :
-			undefined;
-
-	const node_position = start_change_node_iterator !== undefined ? Parse_tree_text_iterator.next(start_change_node_iterator).node_position : undefined;
-
-	const allowed_labels = Parser.get_allowed_labels(
-		document_state.parse_tree,
-		node_position?.length === 0 ? undefined : node_position,
-		language_description.array_infos,
-		language_description.actions_table
-	);
-
-	const allowed_terminals = allowed_labels.filter(
-		label => {
-			if (!language_description.terminals.has(label)) {
-				return false;
-			}
-
-			return Scanner.is_alphanumeric(label);
-		}
-	);
-
-	return allowed_terminals;
-}
-
 connection.onCompletion(
 	(text_document_position: vscode_node.TextDocumentPositionParams): vscode_node.CompletionItem[] => {
-
-		const allowed_terminals = get_allowed_terminals(text_document_position);
-
-		const items = allowed_terminals.map(
-			(value, index) => {
-				return {
-					label: value,
-					kind: vscode_node.CompletionItemKind.Keyword,
-					data: index
-				};
-			}
-		);
-
-		return items;
+		return Completion.on_completion(text_document_position, server_data);
 	}
 );
 
@@ -397,12 +334,12 @@ connection.onCompletionResolve(
 connection.languages.semanticTokens.on(
 	async (parameters: vscode_node.SemanticTokensParams): Promise<vscode_node.SemanticTokens> => {
 
-		const document_state = document_states.get(parameters.textDocument.uri);
+		const document_state = server_data.document_states.get(parameters.textDocument.uri);
 		if (document_state === undefined || document_state.parse_tree === undefined) {
 			return { data: [] };
 		}
 
-		const document = documents.get(parameters.textDocument.uri);
+		const document = server_data.documents.get(parameters.textDocument.uri);
 		if (document === undefined) {
 			return { data: [] };
 		}
@@ -427,7 +364,7 @@ connection.languages.semanticTokens.on(
 connection.languages.semanticTokens.onRange(
 	async (parameters: vscode_node.SemanticTokensRangeParams): Promise<vscode_node.SemanticTokens> => {
 
-		const document_state = document_states.get(parameters.textDocument.uri);
+		const document_state = server_data.document_states.get(parameters.textDocument.uri);
 		if (document_state === undefined || document_state.parse_tree === undefined) {
 			return { data: [] };
 		}
