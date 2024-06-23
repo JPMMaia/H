@@ -829,6 +829,102 @@ describe("Parser.parse_incrementally", () => {
         }
     });
 
+    it("Parses text with errors and subsequent change", () => {
+
+        const cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
+        const language_description = Language.create_default_description(cache);
+
+        const program_with_errors = `
+module Empty_return_expression;
+
+function run() -> ()
+{
+    return
+}
+`;
+
+        const first_scanned_words = Scanner.scan(program_with_errors, 0, program_with_errors.length, { line: 1, column: 1 });
+        const first_parse_result = Parser.parse_incrementally(
+            "",
+            undefined,
+            [],
+            first_scanned_words,
+            [],
+            language_description.actions_table,
+            language_description.go_to_table,
+            language_description.array_infos,
+            language_description.map_word_to_terminal
+        );
+
+        assert.equal(first_parse_result.status, Parser.Parse_status.Accept);
+        assert.equal(first_parse_result.diagnostics.length, 1);
+
+        {
+            const new_node = (first_parse_result.changes[0].value as Parser.Modify_change).new_node;
+            const module_body = new_node.children[1];
+            const declaration = module_body.children[0];
+            const function_value = declaration.children[1];
+            const function_definition = function_value.children[1];
+            const block = function_definition.children[0];
+            const function_body = block.children[1];
+            const statement = function_body.children[0];
+
+            const expression_return = statement.children[0];
+            assert.equal(expression_return.word.value, "Expression_return");
+            assert.equal(expression_return.children.length, 1);
+
+            const return_keyword = expression_return.children[0];
+            assert.equal(return_keyword.word.value, "return");
+            assert.equal(return_keyword.word.type, Grammar.Word_type.Alphanumeric);
+
+            const missing_semicolon = statement.children[1];
+            assert.equal(missing_semicolon.word.value, "");
+            assert.equal(missing_semicolon.word.type, Grammar.Word_type.Invalid);
+        }
+
+        const second_input = " 0;";
+        const second_scanned_words = Scanner.scan(second_input, 0, second_input.length, { line: 1, column: 1 });
+        const start_change_node_position: number[] = [1, 0, 1, 1, 0, 2];
+        const after_change_node_position: number[] = [1, 0, 1, 1, 0, 2];
+
+        const second_parse_result = Parser.parse_incrementally(
+            "",
+            (first_parse_result.changes[0].value as Parser.Modify_change).new_node,
+            start_change_node_position,
+            second_scanned_words,
+            after_change_node_position,
+            language_description.actions_table,
+            language_description.go_to_table,
+            language_description.array_infos,
+            language_description.map_word_to_terminal
+        );
+
+        assert.equal(second_parse_result.status, Parser.Parse_status.Accept);
+        assert.equal(second_parse_result.diagnostics.length, 0);
+        assert.equal(second_parse_result.changes.length, 1);
+
+        {
+            const block = (second_parse_result.changes[0].value as Parser.Modify_change).new_node;
+            const function_body = block.children[1];
+            const statement = function_body.children[0];
+
+            const expression_return = statement.children[0];
+            assert.equal(expression_return.word.value, "Expression_return");
+            assert.equal(expression_return.children.length, 2);
+
+            const return_keyword = expression_return.children[0];
+            assert.equal(return_keyword.word.value, "return");
+            assert.equal(return_keyword.word.type, Grammar.Word_type.Alphanumeric);
+
+            const generic_expression = expression_return.children[1];
+            assert.equal(generic_expression.word.value, "Generic_expression_or_instantiate");
+
+            const missing_semicolon = statement.children[1];
+            assert.equal(missing_semicolon.word.value, ";");
+            assert.equal(missing_semicolon.word.type, Grammar.Word_type.Symbol);
+        }
+    });
+
     it("Parses long list and subsequent change", () => {
 
         const grammar_description = Grammar_examples.create_test_grammar_12_description();

@@ -82,7 +82,7 @@ export function update(
 
             state.text = text_after_changes;
             state.pending_text_changes = [];
-            state.diagnostics = [];
+            state.diagnostics = parse_result.diagnostics;
         }
         else {
             state.pending_text_changes = [text_change];
@@ -118,7 +118,6 @@ export function update(
     else {
         state.text = text_after_changes;
         state.pending_text_changes = [];
-        state.diagnostics = [];
     }
 
     return state;
