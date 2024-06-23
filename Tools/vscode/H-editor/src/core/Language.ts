@@ -66,7 +66,6 @@ export function create_description(
     const mappings = Parse_tree_convertor_mappings.create_mapping();
 
     const terminals_set = new Set<string>(terminals);
-    delete_non_keyword_terminals(terminals_set);
 
     return {
         production_rules: production_rules,
@@ -133,6 +132,6 @@ export function create_default_description(
         map_word_to_terminal,
         key_to_production_rule_indices,
         mappings,
-        terminals: terminals_set
+        terminals: new Set<string>(terminals)
     };
 }
