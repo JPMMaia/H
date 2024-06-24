@@ -97,8 +97,8 @@ describe("Parser.parse", () => {
         const input = "1 + 1";
         const scanned_words = Scanner.scan(input, 0, input.length, { line: 1, column: 1 });
 
-        const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
-            return word.value;
+        const map_word_to_terminal = (word: Scanner.Scanned_word): string[] => {
+            return [word.value];
         };
 
         const output_node = Parser.parse("", scanned_words, action_table, go_to_table, array_infos, map_word_to_terminal).parse_tree;
@@ -175,13 +175,13 @@ describe("Parser.parse", () => {
         const input = "1 + 2 * 3";
         const scanned_words = Scanner.scan(input, 0, input.length, { line: 1, column: 1 });
 
-        const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
+        const map_word_to_terminal = (word: Scanner.Scanned_word): string[] => {
 
             if (word.type === Grammar.Word_type.Number) {
-                return "number";
+                return ["number"];
             }
 
-            return word.value;
+            return [word.value];
         };
 
         const output_node = Parser.parse("", scanned_words, parsing_tables.action_table, parsing_tables.go_to_table, array_infos, map_word_to_terminal).parse_tree;
@@ -289,8 +289,8 @@ describe("Parser.parse", () => {
         const input = "id id id";
         const scanned_words = Scanner.scan(input, 0, input.length, { line: 1, column: 1 });
 
-        const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
-            return word.value;
+        const map_word_to_terminal = (word: Scanner.Scanned_word): string[] => {
+            return [word.value];
         };
 
         const output_node = Parser.parse("", scanned_words, parsing_tables.action_table, parsing_tables.go_to_table, array_infos, map_word_to_terminal).parse_tree;
@@ -331,8 +331,8 @@ describe("Parser.parse", () => {
         const input = "id, id, id";
         const scanned_words = Scanner.scan(input, 0, input.length, { line: 1, column: 1 });
 
-        const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
-            return word.value;
+        const map_word_to_terminal = (word: Scanner.Scanned_word): string[] => {
+            return [word.value];
         };
 
         const output_node = Parser.parse("", scanned_words, parsing_tables.action_table, parsing_tables.go_to_table, array_infos, map_word_to_terminal).parse_tree;
@@ -383,8 +383,8 @@ describe("Parser.parse_incrementally", () => {
         const parsing_tables = Grammar.create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
         const array_infos = Grammar.create_array_infos(production_rules);
 
-        const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
-            return word.value;
+        const map_word_to_terminal = (word: Scanner.Scanned_word): string[] => {
+            return [word.value];
         };
 
         const first_input = "a a h h h l h h h b b c b c c";
@@ -936,13 +936,13 @@ function run() -> ()
         const parsing_tables = Grammar.create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
         const array_infos = Grammar.create_array_infos(production_rules);
 
-        const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
+        const map_word_to_terminal = (word: Scanner.Scanned_word): string[] => {
 
             if (word.type === Grammar.Word_type.Number) {
-                return "number";
+                return ["number"];
             }
 
-            return word.value;
+            return [word.value];
         };
 
         const first_input = "0 1 2 3 4 5";
@@ -1023,8 +1023,8 @@ describe("Parser.parse_incrementally array without separator", () => {
         const parsing_tables = Grammar.create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
         const array_infos = Grammar.create_array_infos(production_rules);
 
-        const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
-            return word.value;
+        const map_word_to_terminal = (word: Scanner.Scanned_word): string[] => {
+            return [word.value];
         };
 
         const first_input = "id id id id id id id id id id";
@@ -1102,8 +1102,8 @@ describe("Parser.parse_incrementally array without separator", () => {
         const parsing_tables = Grammar.create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
         const array_infos = Grammar.create_array_infos(production_rules);
 
-        const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
-            return word.value;
+        const map_word_to_terminal = (word: Scanner.Scanned_word): string[] => {
+            return [word.value];
         };
 
         const first_input = "id id id id id id id id id id";
@@ -1173,8 +1173,8 @@ describe("Parser.parse_incrementally array without separator", () => {
         const parsing_tables = Grammar.create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
         const array_infos = Grammar.create_array_infos(production_rules);
 
-        const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
-            return word.value;
+        const map_word_to_terminal = (word: Scanner.Scanned_word): string[] => {
+            return [word.value];
         };
 
         const first_input = "id id id id id id id id id id";
@@ -1252,8 +1252,8 @@ describe("Parser.parse_incrementally array without separator", () => {
         const parsing_tables = Grammar.create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
         const array_infos = Grammar.create_array_infos(production_rules);
 
-        const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
-            return word.value;
+        const map_word_to_terminal = (word: Scanner.Scanned_word): string[] => {
+            return [word.value];
         };
 
         const first_input = "id id id id id id id id id id";
@@ -1315,8 +1315,8 @@ describe("Parser.parse_incrementally array without separator", () => {
         const parsing_tables = Grammar.create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
         const array_infos = Grammar.create_array_infos(production_rules);
 
-        const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
-            return word.value;
+        const map_word_to_terminal = (word: Scanner.Scanned_word): string[] => {
+            return [word.value];
         };
 
         const first_input = "id id id id id id id id id id";
@@ -1378,8 +1378,8 @@ describe("Parser.parse_incrementally array without separator", () => {
         const parsing_tables = Grammar.create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
         const array_infos = Grammar.create_array_infos(production_rules);
 
-        const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
-            return word.value;
+        const map_word_to_terminal = (word: Scanner.Scanned_word): string[] => {
+            return [word.value];
         };
 
         const first_input = "id id id id";
@@ -1441,8 +1441,8 @@ describe("Parser.parse_incrementally array without separator", () => {
         const parsing_tables = Grammar.create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
         const array_infos = Grammar.create_array_infos(production_rules);
 
-        const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
-            return word.value;
+        const map_word_to_terminal = (word: Scanner.Scanned_word): string[] => {
+            return [word.value];
         };
 
         const first_input = "id id id id id id id id id id";
@@ -1537,8 +1537,8 @@ describe("Parser.parse_incrementally array with separators", () => {
         const parsing_tables = Grammar.create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
         const array_infos = Grammar.create_array_infos(production_rules);
 
-        const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
-            return word.value;
+        const map_word_to_terminal = (word: Scanner.Scanned_word): string[] => {
+            return [word.value];
         };
 
         const first_input = "id, id, id, id, id, id, id, id, id, id";
@@ -1628,8 +1628,8 @@ describe("Parser.parse_incrementally array with separators", () => {
         const parsing_tables = Grammar.create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
         const array_infos = Grammar.create_array_infos(production_rules);
 
-        const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
-            return word.value;
+        const map_word_to_terminal = (word: Scanner.Scanned_word): string[] => {
+            return [word.value];
         };
 
         const first_input = "id, id, id, id, id, id, id, id, id, id";
@@ -1705,8 +1705,8 @@ describe("Parser.parse_incrementally array with separators", () => {
         const parsing_tables = Grammar.create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
         const array_infos = Grammar.create_array_infos(production_rules);
 
-        const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
-            return word.value;
+        const map_word_to_terminal = (word: Scanner.Scanned_word): string[] => {
+            return [word.value];
         };
 
         const first_input = "id, id, id, id, id, id, id, id, id, id";
@@ -1796,8 +1796,8 @@ describe("Parser.parse_incrementally array with separators", () => {
         const parsing_tables = Grammar.create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
         const array_infos = Grammar.create_array_infos(production_rules);
 
-        const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
-            return word.value;
+        const map_word_to_terminal = (word: Scanner.Scanned_word): string[] => {
+            return [word.value];
         };
 
         const first_input = "id, id, id, id, id, id, id, id, id, id";
@@ -1859,8 +1859,8 @@ describe("Parser.parse_incrementally array with separators", () => {
         const parsing_tables = Grammar.create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
         const array_infos = Grammar.create_array_infos(production_rules);
 
-        const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
-            return word.value;
+        const map_word_to_terminal = (word: Scanner.Scanned_word): string[] => {
+            return [word.value];
         };
 
         const first_input = "id, id, id, id, id, id, id, id, id, id";
@@ -1922,8 +1922,8 @@ describe("Parser.parse_incrementally array with separators", () => {
         const parsing_tables = Grammar.create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
         const array_infos = Grammar.create_array_infos(production_rules);
 
-        const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
-            return word.value;
+        const map_word_to_terminal = (word: Scanner.Scanned_word): string[] => {
+            return [word.value];
         };
 
         const first_input = "id, id, id, id";
@@ -1985,8 +1985,8 @@ describe("Parser.parse_incrementally array with separators", () => {
         const parsing_tables = Grammar.create_parsing_tables(production_rules, terminals, graph.states, graph.edges);
         const array_infos = Grammar.create_array_infos(production_rules);
 
-        const map_word_to_terminal = (word: Scanner.Scanned_word): string => {
-            return word.value;
+        const map_word_to_terminal = (word: Scanner.Scanned_word): string[] => {
+            return [word.value];
         };
 
         const first_input = "id, id, id, id, id, id, id, id, id, id";

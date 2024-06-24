@@ -9,7 +9,7 @@ export interface Description {
     actions_table: Grammar.Action_column[][];
     go_to_table: Grammar.Go_to_column[][];
     array_infos: Map<string, Grammar.Array_info>;
-    map_word_to_terminal: (word: Grammar.Word) => string;
+    map_word_to_terminal: (word: Grammar.Word) => string[];
     key_to_production_rule_indices: Map<string, number[]>;
     mappings: Parse_tree_convertor.Parse_tree_mappings;
     terminals: Set<string>;
@@ -53,7 +53,7 @@ function delete_non_keyword_terminals(terminals_set: Set<string>): void {
 
 export function create_description(
     grammar_description: string[],
-    map_word_to_terminal: (word: Grammar.Word) => string,
+    map_word_to_terminal: (word: Grammar.Word) => string[],
     cache?: Storage_cache.Storage_cache,
     graphviz_output_path?: string
 ): Description {
@@ -96,32 +96,34 @@ export function create_default_description(
     const terminals_set = new Set<string>(terminals);
     delete_non_keyword_terminals(terminals_set);
 
-    const map_word_to_terminal = (word: Grammar.Word): string => {
-        if (terminals_set.has(word.value)) {
-            return word.value;
-        }
+    const map_word_to_terminal = (word: Grammar.Word): string[] => {
+
+        const possible_terminals: string[] = [];
 
         if (word.type === Grammar.Word_type.Comment) {
-            return "comment";
+            possible_terminals.push("comment");
+        }
+        else if (word.type === Grammar.Word_type.String) {
+            possible_terminals.push("string");
+        }
+        else if (word.type === Grammar.Word_type.Number) {
+            possible_terminals.push("number");
+        }
+        else if (word.type === Grammar.Word_type.Alphanumeric && (word.value === "true" || word.value === "false")) {
+            possible_terminals.push("boolean");
+        }
+        else if (terminals_set.has(word.value)) {
+            possible_terminals.push(word.value);
         }
 
         if (word.type === Grammar.Word_type.Alphanumeric) {
-            if (word.value === "true" || word.value === "false") {
-                return "boolean";
-            }
-
-            return "identifier";
+            possible_terminals.push("identifier");
+        }
+        else if (word.type === Grammar.Word_type.Symbol || word.type === Grammar.Word_type.Invalid) {
+            possible_terminals.push(word.value);
         }
 
-        if (word.type === Grammar.Word_type.String) {
-            return "string";
-        }
-
-        if (word.type === Grammar.Word_type.Number) {
-            return "number";
-        }
-
-        return word.value;
+        return possible_terminals;
     };
 
     return {
