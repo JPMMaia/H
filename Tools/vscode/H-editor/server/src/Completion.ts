@@ -43,12 +43,23 @@ export function on_completion(
         server_data.language_description.actions_table
     );
 
-    const items: vscode.CompletionItem[] = [];
-    items.push(...get_keyword_and_value_items(allowed_labels, server_data));
+    const can_be_identifier = is_identifier_allowed(allowed_labels);
 
-    if (is_identifier_allowed(allowed_labels) && start_change_node_iterator !== undefined && is_inside_statements_block(start_change_node_iterator.root, start_change_node_iterator.node_position)) {
+    const items: vscode.CompletionItem[] = [];
+
+    if (can_be_identifier && start_change_node_iterator !== undefined && is_inside_statements_block(start_change_node_iterator.root, start_change_node_iterator.node_position)) {
+        items.push(...get_keyword_and_value_items(allowed_labels, server_data));
         items.push(...get_function_declaration_items(document_state));
         items.push(...get_function_local_variable_items(document_state, start_change_node_iterator));
+        // TODO import module names
+    }
+    else if (can_be_identifier && start_change_node_iterator !== undefined && is_cursor_at_type(start_change_node_iterator.root, start_change_node_iterator.node_position)) {
+        items.push(...get_builtin_type_items());
+        items.push(...get_module_type_items(document_state));
+        // TODO import module names
+    }
+    else {
+        items.push(...get_keyword_and_value_items(allowed_labels, server_data));
     }
 
     return items;
@@ -166,6 +177,60 @@ function get_function_local_variable_items(
     ];
 }
 
+function get_builtin_type_items(): vscode.CompletionItem[] {
+
+    const builtin_types = [
+        "Int8", "Int16", "Int32", "Int64",
+        "Uint8", "Uint16", "Uint32", "Uint64",
+        ...Object.keys(Core.Fundamental_type).filter((value) => isNaN(Number(value)))
+    ];
+
+    const items: vscode.CompletionItem[] = builtin_types.map(
+        label => {
+            return {
+                label: label,
+                kind: vscode.CompletionItemKind.Keyword,
+                data: 0
+            };
+        }
+    );
+
+    return items;
+}
+
+function declaration_type_to_completion_item_kind(declaration_type: Core.Declaration_type): vscode.CompletionItemKind {
+    switch (declaration_type) {
+        case Core.Declaration_type.Alias:
+            return vscode.CompletionItemKind.TypeParameter;
+        case Core.Declaration_type.Enum:
+            return vscode.CompletionItemKind.Enum;
+        case Core.Declaration_type.Function:
+            return vscode.CompletionItemKind.Function;
+        case Core.Declaration_type.Struct:
+        case Core.Declaration_type.Union:
+            return vscode.CompletionItemKind.Struct;
+    }
+}
+
+function get_module_type_items(
+    document_state: Document.State
+): vscode.CompletionItem[] {
+
+    return document_state.module.declarations
+        .filter(declaration => declaration.type !== Core.Declaration_type.Function)
+        .map(
+            declaration => {
+                const kind = declaration_type_to_completion_item_kind(declaration.type);
+
+                return {
+                    label: declaration.name,
+                    kind: kind,
+                    data: 0
+                };
+            }
+        );
+}
+
 function is_identifier_allowed(
     allowed_labels: string[]
 ): boolean {
@@ -202,6 +267,44 @@ function is_inside_statements_block(
     return false;
 }
 
+
+function is_cursor_at_type(
+    root: Parser_node.Node,
+    node_position: number[]
+): boolean {
+    if (is_cursor_at_function_parameter_type(root, node_position)) {
+        return true;
+    }
+
+    return false;
+}
+
+function is_cursor_at_function_parameter_type(
+    root: Parser_node.Node,
+    node_position: number[]
+): boolean {
+
+    let current_node_position = node_position;
+
+    while (current_node_position.length > 0) {
+        const parent_position = Parser_node.get_parent_position(current_node_position);
+        const parent_node = Parser_node.get_node_at_position(root, parent_position);
+
+        switch (parent_node.word.value) {
+            case "Function_parameter": {
+                const child_index = node_position[node_position.length - 1];
+                return child_index > 0;
+            }
+            case "Function":
+                return false;
+        }
+
+        current_node_position = parent_position;
+    }
+
+    return false;
+}
+
 function get_current_function(
     core_module: Core.Module,
     root: Parser_node.Node,
@@ -226,5 +329,4 @@ function get_current_function(
     }
 
     return undefined;
-
 }

@@ -1,0 +1,15 @@
+module my_module;
+
+using My_alias = Int32;
+
+enum My_enum
+{
+}
+
+struct My_struct
+{
+}
+
+function add(lhs: ) -> ()
+{
+}
