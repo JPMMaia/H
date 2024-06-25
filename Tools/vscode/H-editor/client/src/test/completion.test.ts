@@ -42,6 +42,44 @@ suite("Should do completion", () => {
 			]
 		});
 	});
+
+	test("Completes function parameter type", async () => {
+		const document_uri = get_document_uri('completion_03.hltxt');
+		await test_completion(document_uri, new vscode.Position(12, 18), {
+			items: [
+				{ label: "Any_type", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "Bool", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "Byte", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "C_bool", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "C_char", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "C_int", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "C_long", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "C_longlong", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "C_schar", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "C_short", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "C_uchar", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "C_uint", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "C_ulong", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "C_ulonglong", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "C_ushort", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "Float16", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "Float32", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "Float64", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "Int16", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "Int32", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "Int64", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "Int8", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "My_alias", kind: vscode.CompletionItemKind.TypeParameter },
+				{ label: "My_enum", kind: vscode.CompletionItemKind.Enum },
+				{ label: "My_struct", kind: vscode.CompletionItemKind.Struct },
+				{ label: "String", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "Uint16", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "Uint32", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "Uint64", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "Uint8", kind: vscode.CompletionItemKind.Keyword },
+			]
+		});
+	});
 });
 
 async function test_completion(
