@@ -216,6 +216,8 @@ connection.onDidOpenTextDocument((parameters) => {
 		}
 	];
 
+	server_data.document_states.set(parameters.textDocument.uri, document_state);
+
 	try {
 		const new_document_state = Text_change.update(server_data.language_description, document_state, text_changes, parameters.textDocument.text);
 		server_data.document_states.set(parameters.textDocument.uri, new_document_state);

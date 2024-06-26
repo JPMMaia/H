@@ -2,12 +2,19 @@ import * as vscode from 'vscode';
 import * as assert from 'assert';
 import { get_document_uri, activate } from './helper';
 
-suite('Should get diagnostics', () => {
-	const document_uri = get_document_uri('diagnostics.hltxt');
+suite("Should get diagnostics", () => {
 
-	test('Diagnoses parsing error', async () => {
+	test("Diagnoses parsing error", async () => {
+		const document_uri = get_document_uri("diagnostics_parser_error.hltxt");
 		await test_diagnostics(document_uri, [
-			{ message: "Did not expect '{'.", range: to_range(3, 0, 3, 1), severity: vscode.DiagnosticSeverity.Error, source: 'hlang' },
+			{ message: "Did not expect '{'.", range: to_range(3, 0, 3, 1), severity: vscode.DiagnosticSeverity.Error, source: "Parser" },
+		]);
+	});
+
+	test("Diagnoses incorrect float suffix", async () => {
+		const document_uri = get_document_uri("diagnostics_float_suffix.hltxt");
+		await test_diagnostics(document_uri, [
+			{ message: "Did not expect 'f' suffix. Did you mean 'f16', 'f32' or 'f64'?", range: to_range(4, 12, 4, 16), severity: vscode.DiagnosticSeverity.Error, source: "Parse Tree Validation" },
 		]);
 	});
 });
@@ -30,5 +37,6 @@ async function test_diagnostics(document_uri: vscode.Uri, expected_diagnostics: 
 		assert.equal(actual_diagnostic.message, expected_diagnostic.message);
 		assert.deepEqual(actual_diagnostic.range, expected_diagnostic.range);
 		assert.equal(actual_diagnostic.severity, expected_diagnostic.severity);
+		assert.equal(actual_diagnostic.source, expected_diagnostic.source);
 	});
 }

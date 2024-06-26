@@ -109,21 +109,20 @@ function validate_current_parser_node(
                 case Grammar.Word_type.Number: {
                     const suffix = Scanner.get_suffix(word);
                     const first_character = suffix.charAt(0);
-                    if (first_character === 'f') {
-                        const is_float = first_character === "f";
-                        if (is_float) {
-                            const number_of_bits = Number(suffix.substring(1, suffix.length));
-                            if (number_of_bits !== 16 && number_of_bits !== 32 && number_of_bits !== 64) {
-                                return [
-                                    {
-                                        location: get_parser_node_source_location(uri, terminal_node),
-                                        source: Source.Parse_tree_validation,
-                                        severity: Diagnostic_severity.Error,
-                                        message: `Did not expect '${suffix}' suffix. Did you mean 'f16', 'f32' or 'f64'?`,
-                                        related_information: [],
-                                    }
-                                ];
-                            }
+
+                    const is_float = first_character === "f";
+                    if (is_float) {
+                        const number_of_bits = Number(suffix.substring(1, suffix.length));
+                        if (number_of_bits !== 16 && number_of_bits !== 32 && number_of_bits !== 64) {
+                            return [
+                                {
+                                    location: get_parser_node_source_location(uri, terminal_node),
+                                    source: Source.Parse_tree_validation,
+                                    severity: Diagnostic_severity.Error,
+                                    message: `Did not expect '${suffix}' suffix. Did you mean 'f16', 'f32' or 'f64'?`,
+                                    related_information: [],
+                                }
+                            ];
                         }
                     }
                 }
@@ -138,12 +137,7 @@ function get_parser_node_source_location(
     uri: string,
     node: Parser_node.Node
 ): Location {
-    const source_location = node.source_location;
-    if (source_location === undefined) {
-        const message = "Expecting node to contain source location for validation!";
-        onThrowError(message);
-        throw Error(message);
-    }
+    const source_location = node.word.source_location;
 
     return {
         uri: uri,
