@@ -7,6 +7,7 @@ import * as Parse_tree_convertor from "./Parse_tree_convertor";
 import * as Parse_tree_text_position_cache from "./Parse_tree_text_position_cache";
 import { has_meaningful_content, scan_new_change } from "./Scan_new_changes";
 import * as Scanner from "./Scanner";
+import * as Validation from "./Validation";
 
 const g_debug_validate = false;
 
@@ -28,6 +29,7 @@ export function update(
 ): Document.State {
 
     const text_change = aggregate_text_changes(state.text, [...state.pending_text_changes, ...text_changes]);
+    state.pending_text_changes = [text_change];
 
     const scanned_input_change = scan_new_change(
         state.parse_tree,
@@ -53,8 +55,17 @@ export function update(
             language_description.array_infos,
             language_description.map_word_to_terminal
         );
+        state.diagnostics = parse_result.diagnostics;
 
         if (parse_result.status === Parser.Parse_status.Accept) {
+
+            {
+                const diagnostics = validate_parse_changes(state.document_uri, parse_result.changes);
+                if (diagnostics.length > 0) {
+                    state.diagnostics.push(...diagnostics);
+                    return state;
+                }
+            }
 
             if (is_replacing_root(parse_result.changes)) {
                 const modify_change = parse_result.changes[0].value as Parser.Modify_change;
@@ -82,11 +93,6 @@ export function update(
 
             state.text = text_after_changes;
             state.pending_text_changes = [];
-            state.diagnostics = parse_result.diagnostics;
-        }
-        else {
-            state.pending_text_changes = [text_change];
-            state.diagnostics = parse_result.diagnostics;
         }
 
         if (g_debug_validate) {
@@ -121,6 +127,38 @@ export function update(
     }
 
     return state;
+}
+
+function validate_parse_changes(
+    document_uri: string,
+    changes: Parser.Change[]
+): Validation.Diagnostic[] {
+
+    for (const change of changes) {
+        if (change.type === Parser.Change_type.Add) {
+            const add_change = change.value as Parser.Add_change;
+
+            for (let node_index = 0; node_index < add_change.new_nodes.length; ++node_index) {
+                const new_node_position = [...add_change.parent_position, add_change.index + node_index];
+                const new_node = add_change.new_nodes[node_index];
+
+                const diagnostics = Validation.validate_parser_node(document_uri, new_node_position, new_node);
+                if (diagnostics.length > 0) {
+                    return diagnostics;
+                }
+            }
+        }
+        else if (change.type === Parser.Change_type.Modify) {
+            const modify_change = change.value as Parser.Modify_change;
+
+            const diagnostics = Validation.validate_parser_node(document_uri, modify_change.position, modify_change.new_node);
+            if (diagnostics.length > 0) {
+                return diagnostics;
+            }
+        }
+    }
+
+    return [];
 }
 
 function is_replacing_root(changes: Parser.Change[]): boolean {
