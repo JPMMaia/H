@@ -1,0 +1,20 @@
+module project_0.main;
+
+import c.complex as complex;
+
+export function main() -> (result: Int32)
+{
+    var a: complex.Complex = explicit {
+        real: 1.0f,
+        imaginary: 0.0f
+    };
+
+    var b: complex.Complex = explicit {
+        real: 0.0f,
+        imaginary: 1.0f
+    };
+
+    var c = complex.add(a, b);
+
+    return 0;
+}
