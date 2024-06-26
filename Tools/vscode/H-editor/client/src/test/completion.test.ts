@@ -80,6 +80,42 @@ suite("Should do completion", () => {
 			]
 		});
 	});
+
+	test("Completes import module name", async () => {
+		const document_uri = get_document_uri('projects/project_0/main.hltxt');
+		await test_completion(document_uri, new vscode.Position(2, 7), {
+			items: [
+				{ label: "c.complex", kind: vscode.CompletionItemKind.Module },
+			]
+		});
+	});
+
+	test("Completes import module alias when expecting type", async () => {
+		const document_uri = get_document_uri('projects/project_0/main.hltxt');
+		await test_completion(document_uri, new vscode.Position(6, 11), {
+			items: [
+				{ label: "complex", kind: vscode.CompletionItemKind.Module },
+			]
+		});
+	});
+
+	test("Completes import module type when using module alias and expecting a type", async () => {
+		const document_uri = get_document_uri('projects/project_0/main.hltxt');
+		await test_completion(document_uri, new vscode.Position(6, 19), {
+			items: [
+				{ label: "Complex", kind: vscode.CompletionItemKind.Struct },
+			]
+		});
+	});
+
+	test("Completes import module function when using module alias and expecting a value", async () => {
+		const document_uri = get_document_uri('projects/project_0/main.hltxt');
+		await test_completion(document_uri, new vscode.Position(16, 20), {
+			items: [
+				{ label: "add", kind: vscode.CompletionItemKind.Function },
+			]
+		});
+	});
 });
 
 async function test_completion(
