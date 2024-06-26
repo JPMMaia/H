@@ -216,8 +216,13 @@ connection.onDidOpenTextDocument((parameters) => {
 		}
 	];
 
-	const new_document_state = Text_change.update(server_data.language_description, document_state, text_changes, parameters.textDocument.text);
-	server_data.document_states.set(parameters.textDocument.uri, new_document_state);
+	try {
+		const new_document_state = Text_change.update(server_data.language_description, document_state, text_changes, parameters.textDocument.text);
+		server_data.document_states.set(parameters.textDocument.uri, new_document_state);
+	}
+	catch (error: any) {
+		console.log(`server.onDidOpenTextDocument(): Exception thrown: '${error}'`);
+	}
 });
 
 connection.onDidChangeTextDocument((parameters) => {
@@ -258,8 +263,13 @@ connection.onDidChangeTextDocument((parameters) => {
 	TextDocument.update(document, parameters.contentChanges, parameters.textDocument.version);
 	const text_after_changes = document.getText();
 
-	const new_document_state = Text_change.update(server_data.language_description, document_state, text_changes, text_after_changes);
-	server_data.document_states.set(parameters.textDocument.uri, new_document_state);
+	try {
+		const new_document_state = Text_change.update(server_data.language_description, document_state, text_changes, text_after_changes);
+		server_data.document_states.set(parameters.textDocument.uri, new_document_state);
+	}
+	catch (error: any) {
+		console.log(`server.onDidChangeTextDocument(): Exception thrown: '${error}'`);
+	}
 });
 
 connection.onDidCloseTextDocument((parameters) => {
