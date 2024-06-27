@@ -1,11 +1,14 @@
 import "module-alias/register";
 
 import * as Completion from "./Completion";
+import * as Platform from "./Platform";
+import * as Project from "./Project";
 import * as Server_data from "./Server_data";
 import * as Semantic_tokens_provider from "./Semantic_tokens_provider";
 
 import * as vscode_node from "vscode-languageserver/node";
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import * as vscode_uri from "vscode-uri";
 
 import * as Document from "@core/Document";
 import * as Language from "@core/Language";
@@ -22,7 +25,7 @@ let has_configuration_capability = false;
 let has_workspace_folder_capability = false;
 let has_diagnostic_related_information_capability = false;
 
-connection.onInitialize((params: vscode_node.InitializeParams) => {
+connection.onInitialize(async (params: vscode_node.InitializeParams) => {
 	const capabilities = params.capabilities;
 
 	// Does the client support the `workspace/configuration` request?
@@ -76,6 +79,22 @@ connection.onInitialize((params: vscode_node.InitializeParams) => {
 			}
 		};
 	}
+
+	if (params.workspaceFolders !== undefined && params.workspaceFolders !== null && params.workspaceFolders.length > 0) {
+		// TODO add support for more than one workspace folder
+		const workspace_folder = params.workspaceFolders[0];
+		const workspace_folder_uri = vscode_uri.URI.parse(workspace_folder.uri);
+		const workspace_folder_fs_path = workspace_folder_uri.fsPath;
+
+		const artifacts = Project.read_artifacts(workspace_folder_fs_path);
+
+		const header_search_paths: string[] = Platform.get_default_c_header_search_paths();
+		const artifact_to_source_files_map = await Project.create_artifact_to_source_files(artifacts, header_search_paths);
+
+		server_data.artifacts = artifacts;
+		server_data.artifact_to_source_files_map = artifact_to_source_files_map;
+	}
+
 	return result;
 });
 
