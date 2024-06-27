@@ -408,7 +408,7 @@ function scan_comments(
     };
 }
 
-function scan_word(
+export function scan_word(
     code: string,
     start_offset: number,
     start_source_location: Source_location
