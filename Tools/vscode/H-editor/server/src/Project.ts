@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
-
 import * as glob from "glob";
+import * as vscode_uri from "vscode-uri";
 
 import * as Build from "@core/Build";
 import * as Grammar from "@core/Grammar";
@@ -64,10 +64,10 @@ function read_artifacts(
         const artifact_name = artifact.name;
 
         for (const dependency of artifact.dependencies) {
-            if (!map.has(dependency.artifact_name)) {
-                const file_path = find_artifact_file_path(repositories, dependency.artifact_name);
+            if (!map.has(dependency.name)) {
+                const file_path = find_artifact_file_path(repositories, dependency.name);
                 if (file_path === undefined) {
-                    console.log(`Could not find artifact '${dependency.artifact_name}' which is a dependency of '${artifact_name}'.`);
+                    console.log(`Could not find artifact '${dependency.name}' which is a dependency of '${artifact_name}'.`);
                     continue;
                 }
                 const artifact = read_artifact(file_path);
@@ -83,6 +83,9 @@ function read_artifact(file_path: string): Build.Artifact {
     const data = fs.readFileSync(file_path, "utf-8");
     const json_data = JSON.parse(data);
     json_data.file_path = file_path;
+    if (json_data.dependencies === undefined) {
+        json_data.dependencies = [];
+    }
     const artifact = json_data as Build.Artifact;
     return artifact;
 }
@@ -115,8 +118,9 @@ async function create_artifact_to_source_files(
 
         if (artifact.library !== undefined) {
             for (const c_header of artifact.library.c_headers) {
+                const search_paths = [path.dirname(artifact.file_path), ...header_search_paths];
 
-                const header_file_path = find_file(c_header.header, header_search_paths);
+                const header_file_path = find_file(c_header.header, search_paths);
                 if (header_file_path === undefined) {
                     console.log(`Could not find C header '${c_header.header} of artifact '${artifact.name} (${artifact.file_path}).`);
                     continue;
@@ -124,7 +128,7 @@ async function create_artifact_to_source_files(
 
                 included_files.push({
                     file_path: header_file_path,
-                    module_name: c_header.module_name
+                    module_name: c_header.name
                 });
             }
         }
@@ -158,6 +162,25 @@ export function get_artifact_of_module(
     for (const pair of project_data.artifact_to_source_files_map) {
         for (const source_file of pair[1]) {
             if (source_file.module_name === module_name) {
+                const artifact_name = pair[0];
+                return project_data.artifacts.get(artifact_name);
+            }
+        }
+    }
+
+    return undefined;
+}
+
+export function get_artifact_of_document(
+    project_data: Project_data,
+    document_uri: string
+): Build.Artifact | undefined {
+
+    const document_file_path = vscode_uri.URI.parse(document_uri).fsPath;
+
+    for (const pair of project_data.artifact_to_source_files_map) {
+        for (const source_file of pair[1]) {
+            if (source_file.file_path === document_file_path) {
                 const artifact_name = pair[0];
                 return project_data.artifacts.get(artifact_name);
             }

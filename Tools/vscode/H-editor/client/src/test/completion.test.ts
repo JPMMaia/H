@@ -82,10 +82,11 @@ suite("Should do completion", () => {
 	});
 
 	test("Completes import module name", async () => {
-		const document_uri = get_document_uri('projects/project_0/main.hltxt');
+		const document_uri = get_document_uri('projects/project_0/import_completion.hltxt');
 		await test_completion(document_uri, new vscode.Position(2, 7), {
 			items: [
 				{ label: "c.complex", kind: vscode.CompletionItemKind.Module },
+				{ label: "project_0.main", kind: vscode.CompletionItemKind.Module },
 			]
 		});
 	});

@@ -295,7 +295,7 @@ connection.onDidChangeTextDocument((parameters) => {
 });
 
 connection.onDidCloseTextDocument((parameters) => {
-	document_settings.delete(parameters.textDocument.uri);
+	extension_settings_map.delete(parameters.textDocument.uri);
 	server_data.document_states.delete(parameters.textDocument.uri);
 	server_data.documents.delete(parameters.textDocument.uri);
 });
@@ -306,8 +306,9 @@ connection.onDidChangeWatchedFiles(_change => {
 });
 
 connection.onCompletion(
-	(text_document_position: vscode_node.TextDocumentPositionParams): vscode_node.CompletionItem[] => {
-		return Completion.on_completion(text_document_position, server_data);
+	async (text_document_position: vscode_node.TextDocumentPositionParams): Promise<vscode_node.CompletionItem[]> => {
+		const workspace_folder_uri = await get_workspace_folder_uri_for_document(text_document_position.textDocument.uri);
+		return Completion.on_completion(text_document_position, server_data, workspace_folder_uri);
 	}
 );
 
@@ -360,3 +361,18 @@ connection.languages.semanticTokens.onRange(
 );
 
 connection.listen();
+
+async function get_workspace_folder_uri_for_document(document_uri: string): Promise<string | undefined> {
+	const workspace_folders = await connection.workspace.getWorkspaceFolders();
+	if (!workspace_folders) {
+		return undefined;
+	}
+
+	for (const folder of workspace_folders) {
+		if (document_uri.startsWith(folder.uri)) {
+			return folder.uri;
+		}
+	}
+
+	return undefined;
+}
