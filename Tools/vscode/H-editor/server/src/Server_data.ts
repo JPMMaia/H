@@ -1,6 +1,8 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
-import * as Build from "@core/Build";
+import * as Project from "./Project";
+
+import * as Core from "@core/Core_intermediate_representation";
 import * as Document from "@core/Document";
 import * as Language from "@core/Language";
 import * as Storage_cache from "@core/Storage_cache";
@@ -10,9 +12,7 @@ export interface Server_data {
     language_description: Language.Description;
     documents: Map<string, TextDocument>;
     document_states: Map<string, Document.State>;
-    artifacts: Build.Artifact[];
-    artifact_to_source_files_map: Map<string, Build.Source_file_info[]>;
-    repositories: Build.Repository[];
+    projects: Map<string, Project.Project_data>;
 }
 
 export function create_server_data(): Server_data {
@@ -20,17 +20,29 @@ export function create_server_data(): Server_data {
     const language_description = Language.create_default_description(storage_cache, "out/tests/graphviz.gv");
     const documents = new Map<string, TextDocument>();
     const document_states = new Map<string, Document.State>();
-    const artifacts: Build.Artifact[] = [];
-    const artifact_to_source_files_map = new Map<string, Build.Source_file_info[]>();
-    const repositories: Build.Repository[] = [];
+    const projects = new Map<string, Project.Project_data>();
 
     return {
         storage_cache,
         language_description,
         documents,
         document_states,
-        artifacts,
-        artifact_to_source_files_map,
-        repositories
+        projects
     };
+}
+
+export function get_core_module(
+    server_data: Server_data,
+    workspace_folder_uri: string,
+    module_name: string
+): Core.Module | undefined {
+    return undefined;
+}
+
+export function map_module_name_to_parsed_file_path(
+    server_data: Server_data,
+    workspace_folder_uri: string,
+    module_name: string
+): string | undefined {
+    return undefined;
 }
