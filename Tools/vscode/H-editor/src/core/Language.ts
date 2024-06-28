@@ -116,7 +116,7 @@ export function create_default_description(
             possible_terminals.push(word.value);
         }
 
-        if (word.type === Grammar.Word_type.Alphanumeric) {
+        if (can_be_identifier(word)) {
             possible_terminals.push("identifier");
         }
         else if (word.type === Grammar.Word_type.Symbol || word.type === Grammar.Word_type.Invalid) {
@@ -136,4 +136,22 @@ export function create_default_description(
         mappings,
         terminals: new Set<string>(terminals)
     };
+}
+
+function can_be_identifier(word: Grammar.Word): boolean {
+
+    if (word.type !== Grammar.Word_type.Alphanumeric) {
+        return false;
+    }
+
+    switch (word.value) {
+        case "export":
+        case "function":
+        case "enum":
+        case "struct":
+        case "union":
+            return false;
+        default:
+            return true;
+    }
 }
