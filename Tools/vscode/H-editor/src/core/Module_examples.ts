@@ -2516,6 +2516,21 @@ export function create_function_with_empty_return_expression(): IR.Module {
     };
 }
 
+export function create_import_module(): IR.Module {
+
+    return {
+        name: "Complete_import",
+        imports: [
+            {
+                module_name: "some_module",
+                alias: "some_module_alias",
+                usages: []
+            }
+        ],
+        declarations: []
+    };
+}
+
 export function create_function_with_int32_return_expression(): IR.Module {
 
     const int32_type = create_integer_type(32, true);
