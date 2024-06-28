@@ -190,7 +190,7 @@ function get_top_elements_from_stack(
             const index_on_stack = stack.length - 1 - index;
             const current = stack[index_on_stack];
 
-            if (!is_node_part_of_array(top_elements.length, has_separator, current.node)) {
+            if (current.node.word.type !== Grammar.Word_type.Invalid && !is_node_part_of_array(top_elements.length, has_separator, current.node)) {
                 return top_elements;
             }
 
@@ -764,7 +764,8 @@ function get_action_column_and_try_to_recover_from_error(
         return { column: column, current_word: current_word };
     }
 
-    const error_message = `Did not expect '${current_word.value}'.`;
+    const error_message_word = current_word.value === "$" ? "end of file" : current_word.value;
+    const error_message = `Did not expect '${error_message_word}'.`;
 
     const diagnostic: Validation.Diagnostic = {
         location: {
@@ -791,7 +792,7 @@ function get_action_column_and_try_to_recover_from_error(
     }
 
     // Try to recover from error:
-    const new_column = row.find(column => column.label === "identifier" || column.label === ";");
+    const new_column = row.find(column => column.label === "identifier" || column.label === ";" || column.label === "as");
 
     if (new_column !== undefined) {
         const new_word: Scanner.Scanned_word = {
