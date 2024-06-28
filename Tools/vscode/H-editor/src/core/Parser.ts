@@ -1074,6 +1074,28 @@ function parse_incrementally_after_changes_if_ready(
 ): { status: Parse_status, processed_words: number, changes: Change[] } | undefined {
     if (current_word_index === new_words.length && original_node_tree !== undefined && start_change_node_position !== undefined && after_change_node_position !== undefined && after_change_node_position.length > 0) {
         if (elements_to_reduce === undefined || elements_to_reduce.length === 0) {
+
+            // Recover from errors:
+            {
+                const after_change_node = get_node_at_position(original_node_tree, after_change_node_position);
+
+                const top_of_stack = get_top_of_stack(stack, mark);
+                const row = parsing_table[top_of_stack.node.state];
+
+                const column_and_word = get_action_column_and_try_to_recover_from_error(document_uri, row, map_word_to_terminal(after_change_node.word), after_change_node.word, diagnostics);
+                if (column_and_word === undefined) {
+                    return {
+                        status: Parse_status.Failed,
+                        processed_words: 1,
+                        changes: []
+                    };
+                }
+
+                if (column_and_word.current_word.type === Grammar.Word_type.Invalid) {
+                    return undefined;
+                }
+            }
+
             const result = parse_incrementally_after_change(
                 document_uri,
                 original_node_tree,

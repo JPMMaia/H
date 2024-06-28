@@ -2355,6 +2355,94 @@ import
         assert.deepEqual(new_document_state_2.module, expected_module);
     });
 
+    it("Recovers from errors 2", () => {
+
+        const document_state = Document.create_empty_state("", language_description.production_rules);
+
+        const program = `
+module Complete_import_with_function;
+
+import 
+
+export function run() -> ()
+{
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+        assert.equal(new_document_state.diagnostics.length, 1);
+
+        const text_changes_2: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 47,
+                    end: 47
+                },
+                text: "some_module as some_module_alias;"
+            }
+        ];
+
+        const program_2 = apply_text_changes(program, text_changes_2);
+
+        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2);
+        assert.equal(new_document_state_2.pending_text_changes.length, 0);
+        assert.equal(new_document_state_2.diagnostics.length, 0);
+
+        const expected_module = Module_examples.create_import_module_with_empty_function();
+        assert.deepEqual(new_document_state_2.module, expected_module);
+    });
+
+    it("Recovers from errors 3", () => {
+
+        const document_state = Document.create_empty_state("", language_description.production_rules);
+
+        const program = `
+module Complete_import_with_function;
+
+
+
+export function run() -> ()
+{
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+        assert.equal(new_document_state.diagnostics.length, 0);
+
+        const new_document_state_2 = simulate_typing(language_description, new_document_state, program, { start: 39, end: 39 }, "import ");
+        assert.equal(new_document_state_2.pending_text_changes.length, 0);
+        assert.equal(new_document_state_2.diagnostics.length, 1);
+
+        const new_document_state_3 = simulate_typing(language_description, new_document_state_2, new_document_state_2.text, { start: 46, end: 46 }, "some_module as some_module_alias;");
+        assert.equal(new_document_state_3.pending_text_changes.length, 0);
+        assert.equal(new_document_state_3.diagnostics.length, 0);
+
+        const expected_module = Module_examples.create_import_module_with_empty_function();
+        assert.deepEqual(new_document_state_3.module, expected_module);
+    });
+
     it("Handles keywords as identifiers depending on the context", () => {
 
         const document_state = Document.create_empty_state("", language_description.production_rules);
@@ -2698,4 +2786,94 @@ describe("Text_change.aggregate_changes", () => {
         assert.equal(aggregated_changes.range.end, 3);
         assert.equal(aggregated_changes.text, "def");
     });
+
+    it("Handles typing 0", () => {
+        const original_text = "";
+        const text = "import ";
+        const aggregated_changes = simulate_typing_aggretate_changes(original_text, { start: 0, end: 0 }, text);
+
+        assert.equal(aggregated_changes.length, 1);
+        assert.equal(aggregated_changes[0].range.start, 0);
+        assert.equal(aggregated_changes[0].range.end, 0);
+        assert.equal(aggregated_changes[0].text, text);
+    });
 });
+
+function simulate_typing(
+    language_description: Language.Description,
+    document_state: Document.State,
+    program: string,
+    start_range: Text_change.Text_range,
+    text: string
+): Document.State {
+
+    const range: Text_change.Text_range = {
+        start: start_range.start,
+        end: start_range.end
+    };
+
+    let current_program = program;
+    let current_document_state = document_state;
+
+    for (let index = 0; index < text.length; ++index) {
+
+        const character = text.charAt(index);
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: range,
+                text: character
+            }
+        ];
+
+        const new_program = apply_text_changes(current_program, text_changes);
+
+        const new_document_state = Text_change.update(language_description, current_document_state, text_changes, new_program);
+
+        current_program = new_program;
+        current_document_state = new_document_state;
+        range.start += 1;
+        range.end += 1;
+    }
+
+    return current_document_state;
+}
+
+function simulate_typing_aggretate_changes(
+    program: string,
+    start_range: Text_change.Text_range,
+    text: string
+): Text_change.Text_change[] {
+
+    const range: Text_change.Text_range = {
+        start: start_range.start,
+        end: start_range.end
+    };
+
+    let current_program = program;
+
+    let pending_text_changes: Text_change.Text_change[] = [];
+
+    for (let index = 0; index < text.length; ++index) {
+
+        const character = text.charAt(index);
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: range,
+                text: character
+            },
+        ];
+
+        const new_program = apply_text_changes(current_program, text_changes);
+
+        const aggregated_changes = Text_change.aggregate_text_changes(program, [...pending_text_changes, ...text_changes]);
+        pending_text_changes = [aggregated_changes];
+
+        current_program = new_program;
+        range.start += 1;
+        range.end += 1;
+    }
+
+    return pending_text_changes;
+}
