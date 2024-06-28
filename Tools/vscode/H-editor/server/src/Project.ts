@@ -38,6 +38,16 @@ function read_repositories(
         const data = fs.readFileSync(file_path, "utf-8");
         const json_data = JSON.parse(data);
         json_data.file_path = file_path;
+
+        const artifact_to_location = new Map<string, string>();
+        if (json_data.artifacts !== undefined) {
+            for (const pair of json_data.artifacts) {
+                artifact_to_location.set(pair.name, pair.location);
+            }
+        }
+        delete json_data.artifacts;
+        json_data.artifact_to_location = artifact_to_location;
+
         return json_data as Build.Repository;
     });
 
@@ -98,7 +108,7 @@ function find_artifact_file_path(
     for (const repository of repositories) {
         const location = repository.artifact_to_location.get(artifact_name);
         if (location !== undefined) {
-            const file_path = path.resolve(repository.file_path, location);
+            const file_path = path.resolve(path.dirname(repository.file_path), location);
             return file_path;
         }
     }

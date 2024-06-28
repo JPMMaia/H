@@ -81,12 +81,34 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test("Completes import module name", async () => {
-		const document_uri = get_document_uri('projects/project_0/import_completion.hltxt');
+	test("Completes import module name 1", async () => {
+		const document_uri = get_document_uri('projects/project_0/import_completion_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(2, 7), {
 			items: [
 				{ label: "c.complex", kind: vscode.CompletionItemKind.Module },
+				{ label: "project_0.import_completion_1", kind: vscode.CompletionItemKind.Module },
 				{ label: "project_0.main", kind: vscode.CompletionItemKind.Module },
+			]
+		});
+	});
+
+	test("Completes import module name 2", async () => {
+		const document_uri = get_document_uri('projects/project_0/import_completion_1.hltxt');
+		await test_completion(document_uri, new vscode.Position(2, 7), {
+			items: [
+				{ label: "c.complex", kind: vscode.CompletionItemKind.Module },
+				{ label: "project_0.import_completion_0", kind: vscode.CompletionItemKind.Module },
+				{ label: "project_0.main", kind: vscode.CompletionItemKind.Module },
+			]
+		});
+	});
+
+	test("Completes import module name 3", async () => {
+		const document_uri = get_document_uri('projects/project_0/main.hltxt');
+		await test_completion(document_uri, new vscode.Position(2, 10), {
+			items: [
+				{ label: "project_0.import_completion_0", kind: vscode.CompletionItemKind.Module },
+				{ label: "project_0.import_completion_1", kind: vscode.CompletionItemKind.Module },
 			]
 		});
 	});
