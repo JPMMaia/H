@@ -7,32 +7,110 @@ import * as Build from "@core/Build";
 import * as Grammar from "@core/Grammar";
 import * as Scanner from "@core/Scanner";
 
-export function read_artifacts(
-    root_path: string
-): Build.Artifact[] {
+export interface Project_data {
+    repositories: Build.Repository[];
+    artifacts: Map<string, Build.Artifact>;
+    artifact_to_source_files_map: Map<string, Build.Source_file_info[]>;
+}
+
+export async function create_project_data(
+    root_path: string,
+    repository_paths: string[],
+    header_search_paths: string[]
+): Promise<Project_data> {
+
+    const repositories = read_repositories(repository_paths);
+    const artifacts = read_artifacts(root_path, repositories);
+    const artifact_to_source_files_map = await create_artifact_to_source_files(artifacts, header_search_paths);
+
+    return {
+        repositories: repositories,
+        artifacts: artifacts,
+        artifact_to_source_files_map: artifact_to_source_files_map,
+    };
+}
+
+function read_repositories(
+    repository_paths: string[]
+): Build.Repository[] {
+
+    const repositories = repository_paths.map(file_path => {
+        const data = fs.readFileSync(file_path, "utf-8");
+        const json_data = JSON.parse(data);
+        json_data.file_path = file_path;
+        return json_data as Build.Repository;
+    });
+
+    return repositories;
+}
+
+function read_artifacts(
+    root_path: string,
+    repositories: Build.Repository[]
+): Map<string, Build.Artifact> {
 
     const all_file_paths = read_files_recursively(root_path);
 
     const artifact_file_paths = all_file_paths.filter(file_path => path.basename(file_path) === "hlang_artifact.json");
 
-    const artifacts = artifact_file_paths.map(file_path => {
-        const data = fs.readFileSync(file_path, "utf-8");
-        const json_data = JSON.parse(data);
-        json_data.file_path = file_path;
-        return json_data as Build.Artifact;
-    });
+    const map = new Map<string, Build.Artifact>();
 
-    return artifacts;
+    for (const file_path of artifact_file_paths) {
+        const artifact = read_artifact(file_path);
+        map.set(artifact.name, artifact);
+    }
+
+    for (const artifact of map.values()) {
+        const artifact_name = artifact.name;
+
+        for (const dependency of artifact.dependencies) {
+            if (!map.has(dependency.artifact_name)) {
+                const file_path = find_artifact_file_path(repositories, dependency.artifact_name);
+                if (file_path === undefined) {
+                    console.log(`Could not find artifact '${dependency.artifact_name}' which is a dependency of '${artifact_name}'.`);
+                    continue;
+                }
+                const artifact = read_artifact(file_path);
+                map.set(artifact.name, artifact);
+            }
+        }
+    }
+
+    return map;
 }
 
-export async function create_artifact_to_source_files(
-    artifacts: Build.Artifact[],
+function read_artifact(file_path: string): Build.Artifact {
+    const data = fs.readFileSync(file_path, "utf-8");
+    const json_data = JSON.parse(data);
+    json_data.file_path = file_path;
+    const artifact = json_data as Build.Artifact;
+    return artifact;
+}
+
+function find_artifact_file_path(
+    repositories: Build.Repository[],
+    artifact_name: string
+): string | undefined {
+
+    for (const repository of repositories) {
+        const location = repository.artifact_to_location.get(artifact_name);
+        if (location !== undefined) {
+            const file_path = path.resolve(repository.file_path, location);
+            return file_path;
+        }
+    }
+
+    return undefined;
+}
+
+async function create_artifact_to_source_files(
+    artifacts: Map<string, Build.Artifact>,
     header_search_paths: string[]
 ): Promise<Map<string, Build.Source_file_info[]>> {
 
     const map = new Map<string, Build.Source_file_info[]>();
 
-    for (const artifact of artifacts) {
+    for (const artifact of artifacts.values()) {
         const included_files: Build.Source_file_info[] = [];
 
         if (artifact.library !== undefined) {
@@ -73,16 +151,15 @@ export async function create_artifact_to_source_files(
 }
 
 export function get_artifact_of_module(
-    artifacts: Build.Artifact[],
-    artifact_to_source_files: Map<string, Build.Source_file_info[]>,
+    project_data: Project_data,
     module_name: string
 ): Build.Artifact | undefined {
 
-    for (const pair of artifact_to_source_files) {
+    for (const pair of project_data.artifact_to_source_files_map) {
         for (const source_file of pair[1]) {
             if (source_file.module_name === module_name) {
                 const artifact_name = pair[0];
-                return artifacts.find(artifact => artifact.name === artifact_name);
+                return project_data.artifacts.get(artifact_name);
             }
         }
     }

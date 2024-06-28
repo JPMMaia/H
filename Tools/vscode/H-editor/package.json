@@ -15,21 +15,19 @@
 	},
 	"categories": [],
 	"main": "./out/client/extension",
-	"activationEvents": [
-		"onLanguage:hlang"
-	],
+	"activationEvents": [],
 	"contributes": {
 		"configuration": {
 			"type": "object",
 			"title": "Configuration",
 			"properties": {
-				"languageServerExample.maxNumberOfProblems": {
+				"hlang_language_server.repositories": {
 					"scope": "resource",
-					"type": "number",
-					"default": 100,
-					"description": "Controls the maximum number of problems produced by the server."
+					"type": "array",
+					"default": [],
+					"description": "Specify repositories that specify additional projects that can be added as dependencies to your project."
 				},
-				"languageServerExample.trace.server": {
+				"hlang_language_server.trace.server": {
 					"scope": "window",
 					"type": "string",
 					"enum": [

@@ -80,21 +80,6 @@ connection.onInitialize(async (params: vscode_node.InitializeParams) => {
 		};
 	}
 
-	if (params.workspaceFolders !== undefined && params.workspaceFolders !== null && params.workspaceFolders.length > 0) {
-		// TODO add support for more than one workspace folder
-		const workspace_folder = params.workspaceFolders[0];
-		const workspace_folder_uri = vscode_uri.URI.parse(workspace_folder.uri);
-		const workspace_folder_fs_path = workspace_folder_uri.fsPath;
-
-		const artifacts = Project.read_artifacts(workspace_folder_fs_path);
-
-		const header_search_paths: string[] = Platform.get_default_c_header_search_paths();
-		const artifact_to_source_files_map = await Project.create_artifact_to_source_files(artifacts, header_search_paths);
-
-		server_data.artifacts = artifacts;
-		server_data.artifact_to_source_files_map = artifact_to_source_files_map;
-	}
-
 	return result;
 });
 
@@ -108,47 +93,63 @@ connection.onInitialized(() => {
 			connection.console.log('Workspace folder change event received.');
 		});
 	}
+
+	create_projects_data();
 });
 
-interface Example_settings {
-	maxNumberOfProblems: number;
+async function create_projects_data(): Promise<void> {
+	if (has_workspace_folder_capability) {
+		const workspace_folders = await connection.workspace.getWorkspaceFolders();
+		if (workspace_folders !== null) {
+			for (const workspace_folder of workspace_folders) {
+				const workspace_folder_uri = vscode_uri.URI.parse(workspace_folder.uri);
+				const workspace_folder_fs_path = workspace_folder_uri.fsPath;
+
+				const extension_settings = await get_extension_settings(workspace_folder.uri);
+
+				const repository_paths = extension_settings.repositories;
+				const header_search_paths: string[] = Platform.get_default_c_header_search_paths();
+				const project_data = await Project.create_project_data(workspace_folder_fs_path, repository_paths, header_search_paths);
+
+				server_data.projects.set(workspace_folder.uri, project_data);
+			}
+		}
+	}
 }
 
-// The global settings, used when the `workspace/configuration` request is not supported by the client.
-// Please note that this is not the case when using this server with the client provided in this example
-// but could happen with other clients.
-const defaultSettings: Example_settings = { maxNumberOfProblems: 1000 };
-let globalSettings: Example_settings = defaultSettings;
+interface Extension_settings {
+	repositories: string[];
+}
 
-// Cache the settings of all open documents
-const document_settings: Map<string, Thenable<Example_settings>> = new Map();
+const default_settings: Extension_settings = {
+	repositories: []
+};
+
+let global_settings: Extension_settings = default_settings;
+
+const extension_settings_map: Map<string, Thenable<Extension_settings>> = new Map();
 
 connection.onDidChangeConfiguration(change => {
 	if (has_configuration_capability) {
-		// Reset all cached document settings
-		document_settings.clear();
+		extension_settings_map.clear();
 	} else {
-		globalSettings = <Example_settings>(
-			(change.settings.languageServerExample || defaultSettings)
+		global_settings = <Extension_settings>(
+			(change.settings.hlang_language_server || default_settings)
 		);
 	}
-	// Refresh the diagnostics since the `maxNumberOfProblems` could have changed.
-	// We could optimize things here and re-fetch the setting first can compare it
-	// to the existing setting, but this is out of scope for this example.
-	connection.languages.diagnostics.refresh();
 });
 
-function get_document_settings(resource: string): Thenable<Example_settings> {
+function get_extension_settings(scope_uri: string): Thenable<Extension_settings> {
 	if (!has_configuration_capability) {
-		return Promise.resolve(globalSettings);
+		return Promise.resolve(global_settings);
 	}
-	let result = document_settings.get(resource);
+	let result = extension_settings_map.get(scope_uri);
 	if (!result) {
 		result = connection.workspace.getConfiguration({
-			scopeUri: resource,
-			section: 'languageServerExample'
+			scopeUri: scope_uri,
+			section: 'hlang_language_server'
 		});
-		document_settings.set(resource, result);
+		extension_settings_map.set(scope_uri, result);
 	}
 	return result;
 }
@@ -298,52 +299,6 @@ connection.onDidCloseTextDocument((parameters) => {
 	server_data.document_states.delete(parameters.textDocument.uri);
 	server_data.documents.delete(parameters.textDocument.uri);
 });
-
-
-async function validate_text_document(textDocument: TextDocument): Promise<vscode_node.Diagnostic[]> {
-	// In this simple example we get the settings for every validate run.
-	const settings = await get_document_settings(textDocument.uri);
-
-	// The validator creates diagnostics for all uppercase words length 2 and more
-	const text = textDocument.getText();
-	const pattern = /\b[A-Z]{2,}\b/g;
-	let m: RegExpExecArray | null;
-
-	let problems = 0;
-	const diagnostics: vscode_node.Diagnostic[] = [];
-	while ((m = pattern.exec(text)) && problems < settings.maxNumberOfProblems) {
-		problems++;
-		const diagnostic: vscode_node.Diagnostic = {
-			severity: vscode_node.DiagnosticSeverity.Warning,
-			range: {
-				start: textDocument.positionAt(m.index),
-				end: textDocument.positionAt(m.index + m[0].length)
-			},
-			message: `${m[0]} is all uppercase.`,
-			source: 'ex'
-		};
-		if (has_diagnostic_related_information_capability) {
-			diagnostic.relatedInformation = [
-				{
-					location: {
-						uri: textDocument.uri,
-						range: Object.assign({}, diagnostic.range)
-					},
-					message: 'Spelling matters'
-				},
-				{
-					location: {
-						uri: textDocument.uri,
-						range: Object.assign({}, diagnostic.range)
-					},
-					message: 'Particularly for names'
-				}
-			];
-		}
-		diagnostics.push(diagnostic);
-	}
-	return diagnostics;
-}
 
 connection.onDidChangeWatchedFiles(_change => {
 	// Monitored files have change in VSCode
