@@ -2531,6 +2531,44 @@ export function create_import_module(): IR.Module {
     };
 }
 
+export function create_import_module_with_empty_function(): IR.Module {
+
+    return {
+        name: "Complete_import_with_function",
+        imports: [
+            {
+                module_name: "some_module",
+                alias: "some_module_alias",
+                usages: []
+            }
+        ],
+        declarations: [
+            {
+                name: "run",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "run",
+                        type: {
+                            input_parameter_types: [],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: [],
+                        output_parameter_names: [],
+                        linkage: IR.Linkage.External
+                    },
+                    definition: {
+                        name: "run",
+                        statements: []
+                    }
+                }
+            }
+        ]
+    };
+}
+
 export function create_function_with_int32_return_expression(): IR.Module {
 
     const int32_type = create_integer_type(32, true);

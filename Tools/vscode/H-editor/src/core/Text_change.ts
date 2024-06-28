@@ -204,11 +204,13 @@ function compose_text_changes(original_text: string, first: Text_change, second:
 
 export function aggregate_text_changes(original_text: string, text_changes: Text_change[]): Text_change {
 
-    if (text_changes.length === 1) {
-        return text_changes[0];
-    }
-
-    let composed = text_changes[0];
+    let composed: Text_change = {
+        range: {
+            start: text_changes[0].range.start,
+            end: text_changes[0].range.end
+        },
+        text: text_changes[0].text
+    };
 
     for (let index = 1; index < text_changes.length; ++index) {
         const next_change = text_changes[index];
