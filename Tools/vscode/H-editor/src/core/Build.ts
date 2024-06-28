@@ -10,11 +10,11 @@ export enum Artifact_type {
 }
 
 export interface Dependency {
-    artifact_name: string;
+    name: string;
 }
 
 export interface C_header {
-    module_name: string;
+    name: string;
     header: string;
 }
 
