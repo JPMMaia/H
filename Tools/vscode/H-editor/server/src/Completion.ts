@@ -51,22 +51,25 @@ export function on_completion(
 
     const items: vscode.CompletionItem[] = [];
 
-    if (can_be_identifier && start_change_node_iterator !== undefined) {
-        if (is_inside_statements_block(start_change_node_iterator.root, start_change_node_iterator.node_position)) {
+    if (start_change_node_iterator !== undefined) {
+        if (can_be_identifier && is_inside_statements_block(start_change_node_iterator.root, start_change_node_iterator.node_position)) {
             items.push(...get_keyword_and_value_items(allowed_labels, server_data));
             items.push(...get_function_declaration_items(document_state));
             items.push(...get_function_local_variable_items(document_state, start_change_node_iterator));
             // TODO import module alias
         }
-        else if (is_cursor_at_type(start_change_node_iterator.root, start_change_node_iterator.node_position)) {
+        else if (can_be_identifier && is_cursor_at_type(start_change_node_iterator.root, start_change_node_iterator.node_position)) {
             items.push(...get_builtin_type_items());
             items.push(...get_module_type_items(document_state));
             // TODO import module alias
         }
-        else if (is_cursor_at_import_module_name(start_change_node_iterator.root, start_change_node_iterator.node_position, node_position)) {
+        else if (is_cursor_at_import_module_name(start_change_node_iterator.root, start_change_node_iterator.node_position)) {
             if (project_data !== undefined) {
                 items.push(...get_import_module_name_items(project_data, text_document_position.textDocument.uri, document_state.module));
             }
+        }
+        else if (is_cursor_at_module_body(allowed_labels)) {
+            items.push(...get_keyword_and_value_items(allowed_labels, server_data));
         }
     }
     else {
@@ -301,20 +304,21 @@ function has_ancestor_with_name(
 
 function is_cursor_at_import_module_name(
     root: Parser_node.Node,
-    before_cursor_node_position: number[],
-    after_cursor_node_position: number[] | undefined
+    before_cursor_node_position: number[]
 ): boolean {
 
     const before_cursor_node = Parser_node.get_node_at_position(root, before_cursor_node_position);
-    if (before_cursor_node.word.value === "import") {
-        return true;
-    }
-
-    if (after_cursor_node_position !== undefined && has_ancestor_with_name(root, after_cursor_node_position, "Import_name")) {
+    if (before_cursor_node.word.value === "import" || has_ancestor_with_name(root, before_cursor_node_position, "Import_name")) {
         return true;
     }
 
     return false;
+}
+
+function is_cursor_at_module_body(
+    allowed_labels: string[]
+): boolean {
+    return allowed_labels.find(label => label === "export") !== undefined;
 }
 
 function get_import_module_name_items(
