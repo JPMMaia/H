@@ -1059,11 +1059,13 @@ export function foo(
 
         const expected_module = Module_examples.create_binary_expressions_operator_precedence();
         const expected_function_value = expected_module.declarations[0].value as Core_intermediate_representation.Function;
-        const expected_statements = expected_function_value.definition.statements;
+        const expected_statements = (expected_function_value.definition as Core_intermediate_representation.Function_definition).statements;
 
         const actual_module = new_document_state.module;
         const actual_function_value = actual_module.declarations[0].value as Core_intermediate_representation.Function;
-        const actual_statements = actual_function_value.definition.statements;
+
+        assert.notEqual(actual_function_value.definition, undefined);
+        const actual_statements = (actual_function_value.definition as Core_intermediate_representation.Function_definition).statements;
 
         for (let statement_index = 0; statement_index < expected_statements.length; ++statement_index) {
             const expected_statement = expected_statements[statement_index];

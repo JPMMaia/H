@@ -1441,8 +1441,11 @@ describe("Parse_tree_convertor.create_module_changes", () => {
             assert.deepEqual(function_declaration, expected_function_declaration);
 
             const function_definition = function_value.definition;
-            assert.equal(function_definition.name, "function_name");
-            assert.deepEqual(function_definition.statements, []);
+            assert.notEqual(function_definition, undefined);
+            if (function_definition !== undefined) {
+                assert.equal(function_definition.name, "function_name");
+                assert.deepEqual(function_definition.statements, []);
+            }
         }
     });
 
@@ -1508,7 +1511,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
             expected_declaration.name = "Another_name";
             assert.deepEqual(function_value.declaration, expected_declaration);
 
-            const expected_definition = expected_function_value.definition;
+            const expected_definition = expected_function_value.definition as Core_intermediate_representation.Function_definition;
             expected_definition.name = "Another_name";
             assert.deepEqual(function_value.definition, expected_definition);
         }
@@ -2176,15 +2179,18 @@ function assert_declarations(actual_declarations: Core_intermediate_representati
             assert.deepEqual(actual_value.declaration.input_parameter_names, expected_value.declaration.input_parameter_names);
             assert.deepEqual(actual_value.declaration.output_parameter_names, expected_value.declaration.output_parameter_names);
 
-            assert.equal(actual_value.definition.name, expected_value.definition.name);
+            assert.notEqual(actual_value.definition, undefined);
+            if (actual_value.definition !== undefined && expected_value.definition !== undefined) {
+                assert.equal(actual_value.definition.name, expected_value.definition.name);
 
-            assert.equal(actual_value.definition.statements.length, expected_value.definition.statements.length);
+                assert.equal(actual_value.definition.statements.length, expected_value.definition.statements.length);
 
-            for (let statement_index = 0; statement_index < actual_value.definition.statements.length; ++statement_index) {
-                const actual_statement = actual_value.definition.statements[statement_index];
-                const expected_statement = expected_value.definition.statements[statement_index];
+                for (let statement_index = 0; statement_index < actual_value.definition.statements.length; ++statement_index) {
+                    const actual_statement = actual_value.definition.statements[statement_index];
+                    const expected_statement = expected_value.definition.statements[statement_index];
 
-                assert.deepEqual(actual_statement, expected_statement);
+                    assert.deepEqual(actual_statement, expected_statement);
+                }
             }
         }
         else if (actual_declaration.type === Core_intermediate_representation.Declaration_type.Struct) {

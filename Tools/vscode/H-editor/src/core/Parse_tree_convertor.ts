@@ -1116,8 +1116,10 @@ export function update_import_module_usages(module: Core_intermediate_representa
                 process_type(type);
             }
 
-            for (const statement of function_value.definition.statements) {
-                visit_expressions(statement.expression, process_expression);
+            if (function_value.definition !== undefined) {
+                for (const statement of function_value.definition.statements) {
+                    visit_expressions(statement.expression, process_expression);
+                }
             }
         }
         else if (declaration.type === Core_intermediate_representation.Declaration_type.Struct) {
