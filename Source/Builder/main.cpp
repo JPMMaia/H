@@ -10,6 +10,7 @@
 
 import h.builder;
 
+import h.c_header_converter;
 import h.compiler;
 import h.compiler.jit_runner;
 import h.compiler.linker;
@@ -116,6 +117,17 @@ int main(int const argc, char const* const* argv)
     add_no_debug_argument(run_with_jit_command);
     program.add_subparser(run_with_jit_command);
 
+    // hlang import-c-header <module_name> <header> <output>
+    argparse::ArgumentParser import_c_header_command("import-c-header");
+    import_c_header_command.add_description("Parse a C header file, convert it into an hlang module and write the result to a file.");
+    import_c_header_command.add_argument("module_name")
+        .help("Module name of the output hlang module");
+    import_c_header_command.add_argument("header")
+        .help("C Header file path to import");
+    build_executable_command.add_argument("output")
+        .help("Write hlang module to this location");
+    program.add_subparser(import_c_header_command);
+
     try
     {
         program.parse_args(argc, argv);
@@ -209,6 +221,16 @@ int main(int const argc, char const* const* argv)
         }
 
         function_pointer();
+    }
+    else if (program.is_subcommand_used("import-c-header"))
+    {
+        argparse::ArgumentParser const& subprogram = program.at<argparse::ArgumentParser>("import-c-header");
+
+        std::string const module_name = subprogram.get<std::string>("module_name");
+        std::filesystem::path const input_file_path = subprogram.get<std::string>("header");
+        std::filesystem::path const output_file_path = subprogram.get<std::string>("output");
+
+        h::c::import_header_and_write_to_file(module_name, input_file_path, output_file_path);
     }
 
     return 0;
