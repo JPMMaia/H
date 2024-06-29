@@ -1,0 +1,7 @@
+module project_1.completion_4;
+
+import c.complex as complex;
+
+struct My_struct
+{
+    value: 

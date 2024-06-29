@@ -1,0 +1,17 @@
+{
+    "name": "Project_1",
+    "version": "0.1.0",
+    "type": "executable",
+    "dependencies": [
+        {
+            "name": "Complex"
+        }
+    ],
+    "executable": {
+        "source": "main.hltxt",
+        "entry_point": "project_1_main_main",
+        "include": [
+            "./**/*.hltxt"
+        ]
+    }
+}

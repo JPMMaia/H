@@ -113,11 +113,97 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test("Completes import module alias when expecting type", async () => {
-		const document_uri = get_document_uri('projects/project_0/main.hltxt');
+	test("Completes import module alias when expecting type 0", async () => {
+		const document_uri = get_document_uri('projects/project_1/completion_0.hltxt');
+		await test_completion(document_uri, new vscode.Position(4, 27), {
+			items: [
+				{ label: "complex", kind: vscode.CompletionItemKind.Module },
+			]
+		},
+			true);
+	});
+
+	test("Completes import module alias when expecting type 1", async () => {
+		const document_uri = get_document_uri('projects/project_1/completion_1.hltxt');
+		await test_completion(document_uri, new vscode.Position(4, 35), {
+			items: [
+				{ label: "Complex", kind: vscode.CompletionItemKind.Struct },
+			]
+		});
+	});
+
+	test("Completes import module alias when expecting type 2", async () => {
+		const document_uri = get_document_uri('projects/project_1/completion_2.hltxt');
+		await test_completion(document_uri, new vscode.Position(6, 15), {
+			items: [
+				{ label: "complex", kind: vscode.CompletionItemKind.Module },
+			]
+		},
+			true);
+	});
+
+	test("Completes import module alias when expecting type 3", async () => {
+		const document_uri = get_document_uri('projects/project_1/completion_3.hltxt');
+		await test_completion(document_uri, new vscode.Position(6, 23), {
+			items: [
+				{ label: "Complex", kind: vscode.CompletionItemKind.Struct },
+			]
+		});
+	});
+
+	test("Completes import module alias when expecting type 4", async () => {
+		const document_uri = get_document_uri('projects/project_1/completion_4.hltxt');
 		await test_completion(document_uri, new vscode.Position(6, 11), {
 			items: [
 				{ label: "complex", kind: vscode.CompletionItemKind.Module },
+			]
+		},
+			true);
+	});
+
+	test("Completes import module alias when expecting type 5", async () => {
+		const document_uri = get_document_uri('projects/project_1/completion_5.hltxt');
+		await test_completion(document_uri, new vscode.Position(6, 19), {
+			items: [
+				{ label: "Complex", kind: vscode.CompletionItemKind.Struct },
+			]
+		});
+	});
+
+	test("Completes import module alias when expecting type 6", async () => {
+		const document_uri = get_document_uri('projects/project_1/completion_6.hltxt');
+		await test_completion(document_uri, new vscode.Position(6, 11), {
+			items: [
+				{ label: "complex", kind: vscode.CompletionItemKind.Module },
+			]
+		},
+			true);
+	});
+
+	test("Completes import module alias when expecting type 7", async () => {
+		const document_uri = get_document_uri('projects/project_1/completion_7.hltxt');
+		await test_completion(document_uri, new vscode.Position(6, 19), {
+			items: [
+				{ label: "Complex", kind: vscode.CompletionItemKind.Struct },
+			]
+		});
+	});
+
+	test("Completes import module alias when expecting type 8", async () => {
+		const document_uri = get_document_uri('projects/project_1/completion_8.hltxt');
+		await test_completion(document_uri, new vscode.Position(4, 19), {
+			items: [
+				{ label: "complex", kind: vscode.CompletionItemKind.Module },
+			]
+		},
+			true);
+	});
+
+	test("Completes import module alias when expecting type 9", async () => {
+		const document_uri = get_document_uri('projects/project_1/completion_9.hltxt');
+		await test_completion(document_uri, new vscode.Position(4, 27), {
+			items: [
+				{ label: "Complex", kind: vscode.CompletionItemKind.Struct },
 			]
 		});
 	});
@@ -144,7 +230,8 @@ suite("Should do completion", () => {
 async function test_completion(
 	document_uri: vscode.Uri,
 	position: vscode.Position,
-	expected_completion_list: vscode.CompletionList
+	expected_completion_list: vscode.CompletionList,
+	match_only_expected?: boolean
 ) {
 	await activate(document_uri);
 
@@ -157,8 +244,18 @@ async function test_completion(
 
 	assert.ok(actual_completion_list.items.length >= expected_completion_list.items.length);
 	expected_completion_list.items.forEach((expected_item, i) => {
-		const actual_item = actual_completion_list.items[i];
-		assert.equal(actual_item.label, expected_item.label);
-		assert.equal(actual_item.kind, expected_item.kind);
+		if (match_only_expected !== undefined && match_only_expected) {
+			const actual_item = actual_completion_list.items.find(value => value.label === expected_item.label);
+			assert.notEqual(actual_item, undefined);
+			if (actual_item !== undefined) {
+				assert.equal(actual_item.label, expected_item.label);
+				assert.equal(actual_item.kind, expected_item.kind);
+			}
+		}
+		else {
+			const actual_item = actual_completion_list.items[i];
+			assert.equal(actual_item.label, expected_item.label);
+			assert.equal(actual_item.kind, expected_item.kind);
+		}
 	});
 }
