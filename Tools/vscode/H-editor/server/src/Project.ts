@@ -1,19 +1,27 @@
+import * as child_process from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import * as glob from "glob";
 import * as vscode_uri from "vscode-uri";
 
 import * as Build from "@core/Build";
+import * as Core from "@core/Core_intermediate_representation";
+import * as Core_file from "@core/Core_interface";
+import * as Document from "@core/Document";
 import * as Grammar from "@core/Grammar";
+import * as Language from "@core/Language";
 import * as Scanner from "@core/Scanner";
+import * as Text_change from "@core/Text_change";
 
 export interface Project_data {
+    hlang_executable: string | undefined;
     repositories: Build.Repository[];
     artifacts: Map<string, Build.Artifact>;
     artifact_to_source_files_map: Map<string, Build.Source_file_info[]>;
 }
 
 export async function create_project_data(
+    hlang_executable: string | undefined,
     root_path: string,
     repository_paths: string[],
     header_search_paths: string[]
@@ -24,6 +32,7 @@ export async function create_project_data(
     const artifact_to_source_files_map = await create_artifact_to_source_files(artifacts, header_search_paths);
 
     return {
+        hlang_executable: hlang_executable,
         repositories: repositories,
         artifacts: artifacts,
         artifact_to_source_files_map: artifact_to_source_files_map,
@@ -330,4 +339,138 @@ function find_file(
     }
 
     return undefined;
+}
+
+export async function parse_source_file_and_write_to_disk(
+    module_name: string,
+    source_file_path: string,
+    language_description: Language.Description,
+    destination_file_path: string,
+    hlang_executable: string | undefined
+): Promise<Core.Module | undefined> {
+    const file_extension = path.extname(source_file_path);
+
+    if (file_extension === ".h") {
+        if (hlang_executable !== undefined) {
+            if (!validate_input(module_name)) {
+                return undefined;
+            }
+
+            const success = await execute_command(hlang_executable, "import-c-header", [module_name, normalize_path(source_file_path), normalize_path(destination_file_path)]);
+            if (success) {
+                return read_parsed_file(destination_file_path);
+            }
+        }
+    }
+    else if (file_extension === ".hltxt") {
+
+        const text = fs.readFileSync(source_file_path, "utf-8");
+
+        const document_state = Document.create_empty_state(source_file_path, language_description.production_rules);
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: text.length,
+                },
+                text: text
+            }
+        ];
+
+        try {
+            const new_document_state = Text_change.update(language_description, document_state, text_changes, text);
+            if (new_document_state.pending_text_changes.length === 0) {
+
+                const core_module = Core.create_core_module(document_state.module, { major: 0, minor: 0, patch: 1 });
+                const core_module_json_data = JSON.stringify(core_module);
+
+                const destination_directory_path = path.dirname(destination_file_path);
+                if (!fs.existsSync(destination_directory_path)) {
+                    fs.mkdirSync(destination_directory_path, { recursive: true });
+                }
+
+                fs.writeFileSync(destination_file_path, core_module_json_data);
+
+                return document_state.module;
+            }
+        }
+        catch (error: any) {
+            console.log(`parse_source_file_and_write_to_disk(): Exception thrown: '${error}'`);
+        }
+    }
+
+    return undefined;
+}
+
+export function read_parsed_file(
+    parsed_file_path: string
+): Core.Module | undefined {
+    try {
+        const json_data = fs.readFileSync(parsed_file_path, "utf-8");
+        const core_module = JSON.parse(json_data) as Core_file.Module;
+        return Core.create_intermediate_representation(core_module);
+    }
+    catch (error: any) {
+        return undefined;
+    }
+}
+
+function validate_input(input: string): boolean {
+    const regex = /^[a-zA-Z0-9\.]+$/;
+    return regex.test(input);
+}
+
+function normalize_path(value: string): string {
+    const normalized_path = path.normalize(value);
+    return normalized_path.replace(/\\/g, "/");
+}
+
+async function execute_command(
+    executable_file_path: string,
+    command: string,
+    args: string[]
+): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+
+        //const quoted_arguments = args.map(value => `"${value}"`);
+        const process = child_process.spawn(executable_file_path, [command, ...args]);
+
+        process.stdout.on("data", (data: any) => {
+            const message = data.toString("utf-8");
+            console.log(message);
+        });
+
+        process.stderr.on("data", (data: Buffer) => {
+            const message = data.toString("utf-8");
+            console.log(message);
+        });
+
+        process.on("close", (code: number) => {
+            if (code === 0) {
+                return resolve(true);
+            } else {
+                return resolve(false);
+            }
+        });
+    });
+}
+
+export function map_module_name_to_parsed_file_path(
+    workspace_folder_uri: string,
+    artifact: Build.Artifact,
+    module_name: string
+): string | undefined {
+
+    const workspace_folder_file_path = vscode_uri.URI.parse(workspace_folder_uri).fsPath;
+
+    const artifact_build_path = path.join(workspace_folder_file_path, "build", artifact.name);
+    if (!fs.existsSync(artifact_build_path)) {
+        fs.mkdirSync(artifact_build_path, { recursive: true });
+    }
+
+    const module_file_name = `${module_name}.hl`;
+    const module_build_path = path.join(artifact_build_path, module_file_name);
+
+    return module_build_path;
 }

@@ -109,7 +109,7 @@ async function create_projects_data(): Promise<void> {
 
 				const repository_paths = extension_settings.repositories;
 				const header_search_paths: string[] = Platform.get_default_c_header_search_paths();
-				const project_data = await Project.create_project_data(workspace_folder_fs_path, repository_paths, header_search_paths);
+				const project_data = await Project.create_project_data(extension_settings.hlang_executable, workspace_folder_fs_path, repository_paths, header_search_paths);
 
 				server_data.projects.set(workspace_folder.uri, project_data);
 			}
@@ -118,10 +118,12 @@ async function create_projects_data(): Promise<void> {
 }
 
 interface Extension_settings {
+	hlang_executable: string | undefined;
 	repositories: string[];
 }
 
 const default_settings: Extension_settings = {
+	hlang_executable: undefined,
 	repositories: []
 };
 
