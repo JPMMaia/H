@@ -21,6 +21,12 @@
 			"type": "object",
 			"title": "Configuration",
 			"properties": {
+				"hlang_language_server.hlang_executable": {
+					"scope": "resource",
+					"type": "string",
+					"default": [],
+					"description": "Specify the file path to the hlang executable."
+				},
 				"hlang_language_server.repositories": {
 					"scope": "resource",
 					"type": "array",

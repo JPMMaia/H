@@ -789,6 +789,7 @@ function find_column_in_case_of_error(
             switch (column.label) {
                 case "{":
                 case "(":
+                case "=":
                     return true;
                 default:
                     return false;

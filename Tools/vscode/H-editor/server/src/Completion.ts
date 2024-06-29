@@ -11,11 +11,11 @@ import * as Parse_tree_text_iterator from "@core/Parse_tree_text_iterator";
 import * as Scan_new_changes from "@core/Scan_new_changes";
 import * as Scanner from "@core/Scanner";
 
-export function on_completion(
+export async function on_completion(
     text_document_position: vscode.TextDocumentPositionParams,
     server_data: Server_data.Server_data,
     workspace_uri: string | undefined
-): vscode.CompletionItem[] {
+): Promise<vscode.CompletionItem[]> {
 
     const document = server_data.documents.get(text_document_position.textDocument.uri);
     if (document === undefined) {
@@ -29,7 +29,7 @@ export function on_completion(
 
     const project_data = workspace_uri !== undefined ? server_data.projects.get(workspace_uri) : undefined;
 
-    const start_change_node_iterator =
+    const before_cursor_node_iterator =
         document_state.parse_tree !== undefined ?
             Scan_new_changes.get_node_before_text_position(
                 document_state.parse_tree,
@@ -38,11 +38,12 @@ export function on_completion(
             ) :
             undefined;
 
-    const node_position = start_change_node_iterator !== undefined ? Parse_tree_text_iterator.next(start_change_node_iterator).node_position : undefined;
+    const after_cursor = (before_cursor_node_iterator !== undefined && before_cursor_node_iterator.node !== undefined) ? Parser_node.get_next_terminal_node(before_cursor_node_iterator.root, before_cursor_node_iterator.node, before_cursor_node_iterator.node_position) : undefined;
+    const after_cursor_node_position = after_cursor !== undefined ? after_cursor.position : [];
 
     const allowed_labels = Parser.get_allowed_labels(
         document_state.parse_tree,
-        node_position?.length === 0 ? undefined : node_position,
+        after_cursor_node_position.length > 0 ? after_cursor_node_position : undefined,
         server_data.language_description.array_infos,
         server_data.language_description.actions_table
     );
@@ -51,19 +52,33 @@ export function on_completion(
 
     const items: vscode.CompletionItem[] = [];
 
-    if (start_change_node_iterator !== undefined) {
-        if (can_be_identifier && is_inside_statements_block(start_change_node_iterator.root, start_change_node_iterator.node_position)) {
-            items.push(...get_keyword_and_value_items(allowed_labels, server_data));
-            items.push(...get_function_declaration_items(document_state));
-            items.push(...get_function_local_variable_items(document_state, start_change_node_iterator));
-            items.push(...get_module_import_alias_items(document_state.module));
+    if (before_cursor_node_iterator !== undefined) {
+        if (can_be_identifier && is_cursor_at_type(before_cursor_node_iterator.root, before_cursor_node_iterator.node_position, after_cursor_node_position)) {
+            if (is_cursor_at_import_module_type(before_cursor_node_iterator.root, before_cursor_node_iterator.node_position)) {
+                if (workspace_uri !== undefined) {
+                    items.push(...await get_import_module_type_items(server_data, workspace_uri, document_state.module, before_cursor_node_iterator.root, before_cursor_node_iterator.node_position));
+                }
+            }
+            else {
+                items.push(...get_builtin_type_items());
+                items.push(...get_module_type_items(document_state.module, false));
+                items.push(...get_module_import_alias_items(document_state.module));
+            }
         }
-        else if (can_be_identifier && is_cursor_at_type(start_change_node_iterator.root, start_change_node_iterator.node_position)) {
-            items.push(...get_builtin_type_items());
-            items.push(...get_module_type_items(document_state));
-            items.push(...get_module_import_alias_items(document_state.module));
+        else if (can_be_identifier && is_inside_statements_block(before_cursor_node_iterator.root, before_cursor_node_iterator.node_position)) {
+            if (is_cursor_at_expression_access(before_cursor_node_iterator.root, before_cursor_node_iterator.node_position)) {
+                if (workspace_uri !== undefined) {
+                    items.push(...await get_expression_access_items(server_data, workspace_uri, document_state.module, before_cursor_node_iterator.root, before_cursor_node_iterator.node_position));
+                }
+            }
+            else {
+                items.push(...get_keyword_and_value_items(allowed_labels, server_data));
+                items.push(...get_function_declaration_items(document_state.module, false));
+                items.push(...get_function_local_variable_items(document_state, before_cursor_node_iterator));
+                items.push(...get_module_import_alias_items(document_state.module));
+            }
         }
-        else if (is_cursor_at_import_module_name(start_change_node_iterator.root, start_change_node_iterator.node_position)) {
+        else if (is_cursor_at_import_module_name(before_cursor_node_iterator.root, before_cursor_node_iterator.node_position)) {
             if (project_data !== undefined) {
                 items.push(...get_import_module_name_items(project_data, text_document_position.textDocument.uri, document_state.module));
             }
@@ -141,12 +156,17 @@ function get_keyword_and_value_items(
 }
 
 function get_function_declaration_items(
-    document_state: Document.State
+    core_module: Core.Module,
+    public_only: boolean
 ): vscode.CompletionItem[] {
 
-    const function_declarations = document_state.module.declarations.filter(value => value.type === Core.Declaration_type.Function);
+    const function_declarations = core_module.declarations.filter(value => value.type === Core.Declaration_type.Function);
 
-    const items = function_declarations.map(
+    const visible_function_declarations = public_only ?
+        function_declarations.filter(declaration => declaration.is_export) :
+        function_declarations;
+
+    const items = visible_function_declarations.map(
         (declaration, index): vscode.CompletionItem => {
             return {
                 label: declaration.name,
@@ -227,11 +247,17 @@ function declaration_type_to_completion_item_kind(declaration_type: Core.Declara
 }
 
 function get_module_type_items(
-    document_state: Document.State
+    core_module: Core.Module,
+    public_only: boolean
 ): vscode.CompletionItem[] {
 
-    return document_state.module.declarations
-        .filter(declaration => declaration.type !== Core.Declaration_type.Function)
+    const type_declarations = core_module.declarations.filter(declaration => declaration.type !== Core.Declaration_type.Function);
+
+    const visible_type_declarations = public_only ?
+        type_declarations.filter(declaration => declaration.is_export)
+        : type_declarations;
+
+    return visible_type_declarations
         .map(
             declaration => {
                 const kind = declaration_type_to_completion_item_kind(declaration.type);
@@ -245,6 +271,19 @@ function get_module_type_items(
         );
 }
 
+function is_cursor_at_import_module_type(
+    root: Parser_node.Node,
+    before_cursor_node_position: number[]
+): boolean {
+
+    const before_cursor_node = Parser_node.get_node_at_position(root, before_cursor_node_position);
+    if (before_cursor_node.word.value === "." || has_ancestor_with_name(root, before_cursor_node_position, ["Module_type_type_name"])) {
+        return true;
+    }
+
+    return false;
+}
+
 function get_module_import_alias_items(
     core_module: Core.Module
 ): vscode.CompletionItem[] {
@@ -255,6 +294,102 @@ function get_module_import_alias_items(
             data: 0
         };
     });
+}
+
+async function get_import_module_type_items(
+    server_data: Server_data.Server_data,
+    workspace_folder_uri: string,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    before_cursor_node_position: number[]
+): Promise<vscode.CompletionItem[]> {
+
+    const module_type_node = get_ancestor_with_name(root, before_cursor_node_position, "Module_type");
+    if (module_type_node === undefined) {
+        return [];
+    }
+
+    if (module_type_node.node.children.length === 0) {
+        return [];
+    }
+
+    const module_alias_name_node = module_type_node.node.children[0];
+    if (module_alias_name_node.children.length === 0) {
+        return [];
+    }
+
+    const module_alias_name = module_alias_name_node.children[0].word.value;
+
+    const import_alias = core_module.imports.find(value => value.alias === module_alias_name);
+    if (import_alias === undefined) {
+        return [];
+    }
+
+    const imported_module = await Server_data.get_core_module(server_data, workspace_folder_uri, import_alias.module_name);
+    if (imported_module === undefined) {
+        return [];
+    }
+
+    return get_module_type_items(imported_module, true);
+}
+
+function is_cursor_at_expression_access(
+    root: Parser_node.Node,
+    before_cursor_node_position: number[]
+): boolean {
+
+    const before_cursor_node = Parser_node.get_node_at_position(root, before_cursor_node_position);
+    if (before_cursor_node.word.value === "." || has_ancestor_with_name(root, before_cursor_node_position, ["Expression_access"])) {
+        return true;
+    }
+
+    return false;
+}
+
+async function get_expression_access_items(
+    server_data: Server_data.Server_data,
+    workspace_folder_uri: string,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    before_cursor_node_position: number[]
+): Promise<vscode.CompletionItem[]> {
+
+    const expression_access = get_ancestor_with_name(root, before_cursor_node_position, "Expression_access");
+    if (expression_access === undefined || expression_access.node.children.length === 0) {
+        return [];
+    }
+
+    const components = expression_access.node.children
+        .filter((_, index) => index % 2 === 0)
+        .map(node => get_terminal_value(node));
+
+    if (components.length === 0) {
+        return [];
+    }
+
+    const first_component = components[0];
+
+    const import_module = core_module.imports.find(value => value.alias === first_component);
+    if (import_module !== undefined) {
+        const imported_module = await Server_data.get_core_module(server_data, workspace_folder_uri, import_module.module_name);
+        if (imported_module === undefined) {
+            return [];
+        }
+
+        if (components.length <= 2) {
+            return get_function_declaration_items(imported_module, true);
+        }
+
+        // TODO if enum
+        // TODO if alias
+    }
+
+    // TODO if enum
+    // TODO if struct
+    // TODO if union
+    // TODO if alias
+
+    return [];
 }
 
 function is_identifier_allowed(
@@ -296,7 +431,7 @@ function is_inside_statements_block(
 function has_ancestor_with_name(
     root: Parser_node.Node,
     node_position: number[],
-    name: string
+    names: string[]
 ): boolean {
     let current_node_position = node_position;
 
@@ -304,7 +439,8 @@ function has_ancestor_with_name(
         const parent_position = Parser_node.get_parent_position(current_node_position);
         const parent_node = Parser_node.get_node_at_position(root, parent_position);
 
-        if (parent_node.word.value === name) {
+
+        if (names.find(name => name === parent_node.word.value) !== undefined) {
             return true;
         }
 
@@ -314,13 +450,37 @@ function has_ancestor_with_name(
     return false;
 }
 
+function get_ancestor_with_name(
+    root: Parser_node.Node,
+    node_position: number[],
+    name: string
+): { node: Parser_node.Node, position: number[] } | undefined {
+    let current_node_position = node_position;
+
+    while (current_node_position.length > 0) {
+        const parent_position = Parser_node.get_parent_position(current_node_position);
+        const parent_node = Parser_node.get_node_at_position(root, parent_position);
+
+        if (parent_node.word.value === name) {
+            return {
+                node: parent_node,
+                position: parent_position
+            };
+        }
+
+        current_node_position = parent_position;
+    }
+
+    return undefined;
+}
+
 function is_cursor_at_import_module_name(
     root: Parser_node.Node,
     before_cursor_node_position: number[]
 ): boolean {
 
     const before_cursor_node = Parser_node.get_node_at_position(root, before_cursor_node_position);
-    if (before_cursor_node.word.value === "import" || has_ancestor_with_name(root, before_cursor_node_position, "Import_name")) {
+    if (before_cursor_node.word.value === "import" || has_ancestor_with_name(root, before_cursor_node_position, ["Import_name"])) {
         return true;
     }
 
@@ -330,7 +490,7 @@ function is_cursor_at_import_module_name(
 function is_cursor_at_module_body(
     allowed_labels: string[]
 ): boolean {
-    return allowed_labels.find(label => label === "export") !== undefined;
+    return allowed_labels.find(label => label === "struct") !== undefined;
 }
 
 function get_import_module_name_items(
@@ -392,36 +552,19 @@ function get_import_module_name_items(
 
 function is_cursor_at_type(
     root: Parser_node.Node,
-    node_position: number[]
-): boolean {
-    if (is_cursor_at_function_parameter_type(root, node_position)) {
-        return true;
-    }
-
-    return false;
-}
-
-function is_cursor_at_function_parameter_type(
-    root: Parser_node.Node,
-    node_position: number[]
+    before_cursor_node_position: number[],
+    after_cursor_node_position: number[]
 ): boolean {
 
-    let current_node_position = node_position;
+    const before_cursor_node = Parser_node.get_node_at_position(root, before_cursor_node_position);
 
-    while (current_node_position.length > 0) {
-        const parent_position = Parser_node.get_parent_position(current_node_position);
-        const parent_node = Parser_node.get_node_at_position(root, parent_position);
-
-        switch (parent_node.word.value) {
-            case "Function_parameter": {
-                const child_index = node_position[node_position.length - 1];
-                return child_index > 0;
-            }
-            case "Function":
-                return false;
+    if (before_cursor_node.word.value === ":" || before_cursor_node.word.value === "as" || before_cursor_node.word.value === "=") {
+        if (has_ancestor_with_name(root, after_cursor_node_position, ["Type"])) {
+            return true;
         }
-
-        current_node_position = parent_position;
+    }
+    else if (has_ancestor_with_name(root, before_cursor_node_position, ["Type"])) {
+        return true;
     }
 
     return false;
@@ -451,4 +594,14 @@ function get_current_function(
     }
 
     return undefined;
+}
+
+function get_terminal_value(node: Parser_node.Node): string {
+    let current_node = node;
+
+    while (current_node.children.length > 0) {
+        current_node = current_node.children[0];
+    }
+
+    return current_node.word.value;
 }

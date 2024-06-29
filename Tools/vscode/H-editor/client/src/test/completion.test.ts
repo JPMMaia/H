@@ -217,9 +217,18 @@ suite("Should do completion", () => {
 		});
 	});
 
+	test("Completes import module alias when expecting a value", async () => {
+		const document_uri = get_document_uri('projects/project_1/completion_10.hltxt');
+		await test_completion(document_uri, new vscode.Position(6, 16), {
+			items: [
+				{ label: "complex", kind: vscode.CompletionItemKind.Module },
+			]
+		});
+	});
+
 	test("Completes import module function when using module alias and expecting a value", async () => {
-		const document_uri = get_document_uri('projects/project_0/main.hltxt');
-		await test_completion(document_uri, new vscode.Position(16, 20), {
+		const document_uri = get_document_uri('projects/project_1/completion_11.hltxt');
+		await test_completion(document_uri, new vscode.Position(6, 24), {
 			items: [
 				{ label: "add", kind: vscode.CompletionItemKind.Function },
 			]
