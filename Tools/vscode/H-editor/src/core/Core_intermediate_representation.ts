@@ -60,7 +60,9 @@ export function create_core_module(module: Module, language_version: Core.Langua
                 const array = declaration.is_export ? export_functions : internal_functions;
                 const function_value = declaration.value as Function;
                 array.push(intermediate_to_core_function_declaration(function_value.declaration));
-                function_definitions.push(intermediate_to_core_function_definition(function_value.definition));
+                if (function_value.definition !== undefined) {
+                    function_definitions.push(intermediate_to_core_function_definition(function_value.definition));
+                }
                 break;
             }
             case Declaration_type.Struct: {
@@ -175,17 +177,17 @@ function create_declarations(module: Core.Module): Declaration[] {
 
 export interface Function {
     declaration: Function_declaration;
-    definition: Function_definition;
+    definition: Function_definition | undefined;
 }
 
 function core_to_intermediate_function(module: Core.Module, declaration: Core.Function_declaration): Function {
 
     const definition_index = module.definitions.function_definitions.elements.findIndex(value => value.name === declaration.name);
-    const definition = module.definitions.function_definitions.elements[definition_index];
+    const definition = definition_index !== -1 ? module.definitions.function_definitions.elements[definition_index] : undefined;
 
     const value: Function = {
         declaration: core_to_intermediate_function_declaration(declaration),
-        definition: core_to_intermediate_function_definition(definition)
+        definition: definition !== undefined ? core_to_intermediate_function_definition(definition) : undefined
     };
 
     return value;

@@ -180,7 +180,7 @@ function my_function(a: Int32, b: Int32) -> (c: Int32)
             { line: 5, column: 46 }
         ]);
 
-        const definition = function_value.definition;
+        const definition = function_value.definition as Core_intermediate_representation.Function_definition;
         assert.deepEqual(definition.source_location, { line: 6, column: 1 });
 
         {
