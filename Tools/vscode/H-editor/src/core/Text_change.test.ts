@@ -2487,6 +2487,47 @@ function run() -> (result: Int32)
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 0);
     });
+
+    it("Recovers from errors 4", () => {
+
+        const document_state = Document.create_empty_state("", language_description.production_rules);
+
+        const program = `
+module Recover_from_error;
+
+function run(value: 
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+        assert.equal(new_document_state.diagnostics.length, 1);
+
+        const text_changes_2: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 49,
+                    end: 49
+                },
+                text: "Int32) -> (){}"
+            }
+        ];
+
+        const program_2 = apply_text_changes(program, text_changes_2);
+
+        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2);
+        assert.equal(new_document_state_2.pending_text_changes.length, 0);
+        assert.equal(new_document_state_2.diagnostics.length, 0);
+    });
 });
 
 describe("Text_change.aggregate_changes", () => {
