@@ -124,7 +124,7 @@ int main(int const argc, char const* const* argv)
         .help("Module name of the output hlang module");
     import_c_header_command.add_argument("header")
         .help("C Header file path to import");
-    build_executable_command.add_argument("output")
+    import_c_header_command.add_argument("output")
         .help("Write hlang module to this location");
     program.add_subparser(import_c_header_command);
 
