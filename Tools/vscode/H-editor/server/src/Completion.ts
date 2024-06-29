@@ -56,12 +56,12 @@ export function on_completion(
             items.push(...get_keyword_and_value_items(allowed_labels, server_data));
             items.push(...get_function_declaration_items(document_state));
             items.push(...get_function_local_variable_items(document_state, start_change_node_iterator));
-            // TODO import module alias
+            items.push(...get_module_import_alias_items(document_state.module));
         }
         else if (can_be_identifier && is_cursor_at_type(start_change_node_iterator.root, start_change_node_iterator.node_position)) {
             items.push(...get_builtin_type_items());
             items.push(...get_module_type_items(document_state));
-            // TODO import module alias
+            items.push(...get_module_import_alias_items(document_state.module));
         }
         else if (is_cursor_at_import_module_name(start_change_node_iterator.root, start_change_node_iterator.node_position)) {
             if (project_data !== undefined) {
@@ -243,6 +243,18 @@ function get_module_type_items(
                 };
             }
         );
+}
+
+function get_module_import_alias_items(
+    core_module: Core.Module
+): vscode.CompletionItem[] {
+    return core_module.imports.map((value): vscode.CompletionItem => {
+        return {
+            label: value.alias,
+            kind: vscode.CompletionItemKind.Module,
+            data: 0
+        };
+    });
 }
 
 function is_identifier_allowed(

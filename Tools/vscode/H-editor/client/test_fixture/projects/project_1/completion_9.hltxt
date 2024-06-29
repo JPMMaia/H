@@ -1,0 +1,5 @@
+module project_1.completion_9;
+
+import c.complex as complex;
+
+using My_complex = complex.
