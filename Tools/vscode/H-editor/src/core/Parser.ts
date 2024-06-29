@@ -191,6 +191,10 @@ function get_top_elements_from_stack(
             const current = stack[index_on_stack];
 
             if (current.node.word.type !== Grammar.Word_type.Invalid && !is_node_part_of_array(top_elements.length, has_separator, current.node)) {
+                if (top_elements.every(element => element.node.word.type === Grammar.Word_type.Invalid) && count === 0) {
+                    return [];
+                }
+
                 return top_elements;
             }
 
@@ -752,6 +756,67 @@ function choose_label(
     return undefined;
 }
 
+// TODO this is grammar/language specific
+function find_column_in_case_of_error(
+    row: Grammar.Action_column[]
+): Grammar.Action_column | undefined {
+    {
+        const found = row.find(column => {
+            switch (column.label) {
+                case ";":
+                case "}":
+                case ")":
+                case "->":
+                    return true;
+                default:
+                    return false;
+            }
+        });
+        if (found !== undefined) {
+            return found;
+        }
+    }
+
+    {
+        const found = row.find(column => column.label === "identifier");
+        if (found !== undefined) {
+            return found;
+        }
+    }
+
+    {
+        const found = row.find(column => {
+            switch (column.label) {
+                case "{":
+                case "(":
+                    return true;
+                default:
+                    return false;
+            }
+        });
+        if (found !== undefined) {
+            return found;
+        }
+    }
+
+    {
+        const found = row.find(column => {
+            switch (column.label) {
+                case "as":
+                case ",":
+                    return true;
+                default:
+                    return false;
+            }
+        });
+        if (found !== undefined) {
+            return found;
+        }
+    }
+
+    return undefined;
+}
+
 function get_action_column_and_try_to_recover_from_error(
     document_uri: string,
     row: Grammar.Action_column[],
@@ -792,8 +857,7 @@ function get_action_column_and_try_to_recover_from_error(
     }
 
     // Try to recover from error:
-    const new_column = row.find(column => column.label === "identifier" || column.label === ";" || column.label === "as");
-
+    const new_column = find_column_in_case_of_error(row);
     if (new_column !== undefined) {
         const new_word: Scanner.Scanned_word = {
             value: "",
@@ -801,6 +865,10 @@ function get_action_column_and_try_to_recover_from_error(
             source_location: current_word.source_location,
             newlines_after: current_word.newlines_after
         };
+
+        if (g_debug) {
+            console.log(`Recover from error assuming '${new_column.label}'`);
+        }
 
         return { column: new_column, current_word: new_word };
     }
