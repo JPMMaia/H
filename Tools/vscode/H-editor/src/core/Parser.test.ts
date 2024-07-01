@@ -6,6 +6,7 @@ import * as Grammar from "./Grammar";
 import * as Grammar_examples from "./Grammar_examples";
 import * as Language from "./Language";
 import * as Parser from "./Parser";
+import * as Parser_node from "./Parser_node";
 import * as Scanner from "./Scanner";
 import * as Storage_cache from "./Storage_cache";
 
@@ -1522,6 +1523,93 @@ describe("Parser.parse_incrementally array without separator", () => {
             }
         }
     });
+
+    it("Parses and recovers from error", () => {
+
+        const cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
+        const language_description = Language.create_default_description(cache, "out/tests/graphviz.gv");
+
+        const program = `
+module Recover_from_error;
+
+import dependency as dep;
+
+function run() -> ()
+{
+    
+    // a comment
+}
+`;
+
+        const input_0 = Scanner.scan(program, 0, program.length, { line: 1, column: 1 });
+        const parse_result_0 = Parser.parse_incrementally(
+            "",
+            undefined,
+            [],
+            input_0,
+            [],
+            language_description.actions_table,
+            language_description.go_to_table,
+            language_description.array_infos,
+            language_description.map_word_to_terminal
+        );
+        assert.equal(parse_result_0.status, Parser.Parse_status.Accept);
+
+        const root = (parse_result_0.changes[0].value as Parser.Modify_change).new_node;
+
+        {
+            const statements_node = Parser_node.get_node_at_position(root, [1, 0, 1, 1, 0, 1]);
+            assert.equal(statements_node.children.length, 1);
+        }
+
+        const input_1 = "dep";
+        const scanned_words_1 = Scanner.scan(input_1, 0, input_1.length, { line: 1, column: 1 });
+        const start_change_node_position_1: number[] = [1, 0, 1, 1, 0, 1, 0, 0, 0];
+        const after_change_node_position_1: number[] = [1, 0, 1, 1, 0, 1, 0, 0, 0];
+
+        const parse_result_1 = Parser.parse_incrementally(
+            "",
+            root,
+            start_change_node_position_1,
+            scanned_words_1,
+            after_change_node_position_1,
+            language_description.actions_table,
+            language_description.go_to_table,
+            language_description.array_infos,
+            language_description.map_word_to_terminal
+        );
+
+        Parser.apply_changes(root, parse_result_1.changes);
+
+        {
+            const statements_node = Parser_node.get_node_at_position(root, [1, 0, 1, 1, 0, 1]);
+            assert.equal(statements_node.children.length, 2);
+        }
+
+        const input_2 = ".";
+        const scanned_words_2 = Scanner.scan(input_2, 0, input_2.length, { line: 1, column: 1 });
+        const start_change_node_position_2: number[] = [1, 0, 1, 1, 0, 1, 1, 0, 0];
+        const after_change_node_position_2: number[] = [1, 0, 1, 1, 0, 1, 1, 0, 0];
+
+        const parse_result_2 = Parser.parse_incrementally(
+            "",
+            root,
+            start_change_node_position_2,
+            scanned_words_2,
+            after_change_node_position_2,
+            language_description.actions_table,
+            language_description.go_to_table,
+            language_description.array_infos,
+            language_description.map_word_to_terminal
+        );
+
+        Parser.apply_changes(root, parse_result_2.changes);
+
+        {
+            const statements_node = Parser_node.get_node_at_position(root, [1, 0, 1, 1, 0, 1]);
+            assert.equal(statements_node.children.length, 2);
+        }
+    });
 });
 
 describe("Parser.parse_incrementally array with separators", () => {
@@ -1976,7 +2064,7 @@ describe("Parser.parse_incrementally array with separators", () => {
 
     it("Parses adding and removing element in the middle of an array with separators", () => {
 
-        const grammar_description = Grammar_examples.create_test_grammar_11_description();
+        const grammar_description = Grammar_examples.create_test_grammar_15_description();
         const production_rules = Grammar.create_production_rules(grammar_description);
         const non_terminals = Grammar.get_non_terminals(production_rules);
         const terminals = Grammar.get_terminals(production_rules, non_terminals);
@@ -2003,7 +2091,7 @@ describe("Parser.parse_incrementally array with separators", () => {
             map_word_to_terminal
         );
 
-        const second_input = ", id";
+        const second_input = ", id2";
         const second_scanned_words = Scanner.scan(second_input, 0, second_input.length, { line: 1, column: 1 });
         const start_change_node_position: number[] = [0, 1];
         const after_change_node_position: number[] = [0, 3];
@@ -2034,8 +2122,8 @@ describe("Parser.parse_incrementally array with separators", () => {
             const remove_change = change.value as Parser.Remove_change;
 
             assert.deepEqual(remove_change.parent_position, [0]);
-            assert.equal(remove_change.index, 1);
-            assert.equal(remove_change.count, 2);
+            assert.equal(remove_change.index, 2);
+            assert.equal(remove_change.count, 1);
         }
 
         {
@@ -2046,21 +2134,15 @@ describe("Parser.parse_incrementally array with separators", () => {
             const add_change = change.value as Parser.Add_change;
 
             assert.deepEqual(add_change.parent_position, [0]);
-            assert.equal(add_change.index, 1);
-            assert.equal(add_change.new_nodes.length, 2);
+            assert.equal(add_change.index, 2);
+            assert.equal(add_change.new_nodes.length, 1);
 
             {
                 const new_node = add_change.new_nodes[0];
-                assert.equal(new_node.word.value, ",");
-                assert.equal(new_node.children.length, 0);
-            }
-
-            {
-                const new_node = add_change.new_nodes[1];
                 assert.equal(new_node.word.value, "Element");
 
                 const child_node = new_node.children[0];
-                assert.equal(child_node.word.value, "id");
+                assert.equal(child_node.word.value, "id2");
             }
         }
     });
