@@ -53,7 +53,10 @@ connection.onInitialize(async (params: vscode_node.InitializeParams) => {
 			},
 			// Tell the client that this server supports code completion.
 			completionProvider: {
-				resolveProvider: true
+				resolveProvider: true,
+				triggerCharacters: [
+					".", " "
+				]
 			},
 			diagnosticProvider: {
 				interFileDependencies: false,
