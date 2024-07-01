@@ -531,6 +531,10 @@ function deep_equal(obj1: any, obj2: any): boolean {
     }
 
     for (const key of keys1) {
+        if (key === "source_location") {
+            continue;
+        }
+
         if (!deep_equal(obj1[key], obj2[key])) {
             return false;
         }
@@ -559,18 +563,18 @@ function get_next_word(
     current_word_index: number,
     original_node_tree: Node | undefined,
     after_change_node_position: number[] | undefined
-): Scanner.Scanned_word {
+): { word: Scanner.Scanned_word, original_node_tree_position: number[] | undefined } {
 
     if (current_word_index < new_words.length) {
-        return new_words[current_word_index];
+        return { word: new_words[current_word_index], original_node_tree_position: undefined };
     }
 
     if (original_node_tree !== undefined && after_change_node_position !== undefined && is_valid_position(original_node_tree, after_change_node_position)) {
         const node = get_node_at_position(original_node_tree, after_change_node_position);
-        return node.word;
+        return { word: node.word, original_node_tree_position: after_change_node_position };
     }
 
-    return { value: "$", type: Grammar.Word_type.Symbol, source_location: { line: 1, column: 1 } };
+    return { word: { value: "$", type: Grammar.Word_type.Symbol, source_location: { line: 1, column: 1 } }, original_node_tree_position: undefined };
 }
 
 function get_end_of_tree(root: Node): { position: number[], node: Node } | undefined {
@@ -901,7 +905,8 @@ export function parse_incrementally(
 
         const top_of_stack = get_top_of_stack(stack, mark);
 
-        const current_word = get_next_word(new_words, current_word_index, original_node_tree, after_change_node_position);
+        const current_word_and_position = get_next_word(new_words, current_word_index, original_node_tree, after_change_node_position);
+        const current_word = current_word_and_position.word;
 
         const row = parsing_table[top_of_stack.node.state];
         const terminals = map_word_to_terminal(current_word);
@@ -1086,6 +1091,8 @@ export function parse_incrementally(
 
                     const new_node = create_bottom_of_stack_node();
 
+                    const next_word_node_position = current_word_and_position.original_node_tree_position;
+
                     const result = apply_reduction(
                         new_node,
                         reduce_action.production_rule_index,
@@ -1097,7 +1104,7 @@ export function parse_incrementally(
                         mark,
                         go_to_table,
                         current_word,
-                        undefined,
+                        next_word_node_position,
                         map_word_to_terminal
                     );
 
@@ -1229,17 +1236,16 @@ function find_original_node_position_of_reduced_node(
     children_elements: Parsing_stack_element[]
 ): number[] | undefined {
 
-    if (children_elements.length === 0) {
-        if (original_node_tree !== undefined && next_word_position !== undefined) {
-            const previous = get_previous_node_on_stack(original_node_tree, next_word_position);
-            if (previous !== undefined) {
-                if (previous.node.production_rule_index === production_rule_index) {
-                    return previous.position;
-                }
+    if (original_node_tree !== undefined && next_word_position !== undefined) {
+        const previous = get_previous_node_on_stack(original_node_tree, next_word_position);
+        if (previous !== undefined) {
+            if (previous.node.production_rule_index === production_rule_index) {
+                return previous.position;
             }
         }
     }
-    else if (children_elements.length === 1) {
+
+    if (children_elements.length === 1) {
         const position = children_elements[0].original_tree_position;
         if (position !== undefined) {
             const parent_position = get_parent_position(position);
@@ -1550,29 +1556,35 @@ function handle_array_changes(
 
             const start_index_in_original = start_change_original_node_position[parent_node_position.length];
             const after_index_in_original = after_change_original_node_position[parent_node_position.length];
-            const original_elements = parent_node.children.slice(start_index_in_original, after_index_in_original);
 
-            const new_elements = stack.filter(element => {
-                if (element.node.word.value === array_info.element_label || element.node.word.value === array_info.separator_label) {
-                    if (element.original_tree_position !== undefined && element.original_tree_position.length >= parent_node_position.length) {
-                        const index_in_original = element.original_tree_position[parent_node_position.length];
-                        return start_index_in_original <= index_in_original && index_in_original < after_index_in_original;
+            const new_elements = stack
+                .filter(value => {
+                    if (value.node.word.value !== array_info.element_label && value.node.word.value !== array_info.separator_label) {
+                        return false;
                     }
-                    else {
+
+                    if (value.original_tree_position === undefined) {
                         return true;
                     }
-                }
-            }).map(element => element.node);
 
-            const patches = Fast_array_diff.getPatch(original_elements, new_elements, deep_equal);
+                    const index = value.original_tree_position[parent_node_position.length];
+                    return index <= start_index_in_original;
+                });
+
+            const start_index = new_elements.length > 0 &&
+                new_elements[0].original_tree_position !== undefined ? new_elements[0].original_tree_position[parent_node_position.length] :
+                start_index_in_original;
+
+            const original_elements = parent_node.children.slice(start_index, after_index_in_original);
+            const patches = Fast_array_diff.getPatch(original_elements, new_elements.map(element => element.node), deep_equal);
 
             for (const patch of patches) {
                 if (patch.type === "add") {
-                    const new_change = create_add_change(parent_node_position, start_index_in_original + patch.newPos, patch.items);
+                    const new_change = create_add_change(parent_node_position, start_index + patch.newPos, patch.items);
                     changes.push(new_change);
                 }
                 else if (patch.type === "remove") {
-                    const new_change = create_remove_change(parent_node_position, start_index_in_original + patch.newPos, patch.items.length);
+                    const new_change = create_remove_change(parent_node_position, start_index + patch.newPos, patch.items.length);
                     changes.push(new_change);
                 }
             }

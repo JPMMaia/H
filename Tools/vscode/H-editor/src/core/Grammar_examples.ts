@@ -326,3 +326,11 @@ export function create_test_grammar_14_description(): string[] {
         "Element -> id | id2 | id3"
     ];
 }
+
+export function create_test_grammar_15_description(): string[] {
+    return [
+        "S -> List",
+        "List -> Element , $0_or_more",
+        "Element -> id | id2 | id3"
+    ];
+}
