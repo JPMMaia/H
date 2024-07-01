@@ -2433,11 +2433,11 @@ export function run() -> ()
         assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 0);
 
-        const new_document_state_2 = simulate_typing(language_description, new_document_state, program, { start: 39, end: 39 }, "import ");
+        const new_document_state_2 = simulate_typing(language_description, new_document_state, 39, "import ");
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 1);
 
-        const new_document_state_3 = simulate_typing(language_description, new_document_state_2, new_document_state_2.text, { start: 46, end: 46 }, "some_module as some_module_alias;");
+        const new_document_state_3 = simulate_typing(language_description, new_document_state_2, 46, "some_module as some_module_alias;");
         assert.equal(new_document_state_3.pending_text_changes.length, 0);
         assert.equal(new_document_state_3.diagnostics.length, 0);
 
@@ -2529,6 +2529,49 @@ function run(value:
         const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 0);
+    });
+
+    it("Recovers from errors 5", () => {
+
+        const document_state = Document.create_empty_state("", language_description.production_rules);
+
+        const program = `
+module Recover_from_error;
+
+import dependency as dep;
+
+function run() -> ()
+{
+    
+    // a comment
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+        assert.equal(new_document_state.diagnostics.length, 0);
+
+        const new_document_state_2 = simulate_typing(language_description, new_document_state, 83, "dep.");
+        assert.equal(new_document_state_2.pending_text_changes.length, 0);
+        assert.equal(new_document_state_2.diagnostics.length, 1);
+
+        const new_document_state_3 = simulate_erasing(language_description, new_document_state_2, 83, 87);
+        assert.equal(new_document_state_3.pending_text_changes.length, 0);
+        assert.equal(new_document_state_3.diagnostics.length, 0);
+
+        const new_document_state_4 = simulate_typing(language_description, new_document_state_3, 83, "dep.");
+        assert.equal(new_document_state_4.pending_text_changes.length, 0);
+        assert.equal(new_document_state_4.diagnostics.length, 1);
     });
 });
 
@@ -2845,17 +2888,16 @@ describe("Text_change.aggregate_changes", () => {
 function simulate_typing(
     language_description: Language.Description,
     document_state: Document.State,
-    program: string,
-    start_range: Text_change.Text_range,
+    start_range: number,
     text: string
 ): Document.State {
 
     const range: Text_change.Text_range = {
-        start: start_range.start,
-        end: start_range.end
+        start: start_range,
+        end: start_range
     };
 
-    let current_program = program;
+    let current_program = apply_text_changes(document_state.text, document_state.pending_text_changes);
     let current_document_state = document_state;
 
     for (let index = 0; index < text.length; ++index) {
@@ -2877,6 +2919,45 @@ function simulate_typing(
         current_document_state = new_document_state;
         range.start += 1;
         range.end += 1;
+    }
+
+    return current_document_state;
+}
+
+function simulate_erasing(
+    language_description: Language.Description,
+    document_state: Document.State,
+    start_range: number,
+    end_range: number
+): Document.State {
+
+    const range: Text_change.Text_range = {
+        start: end_range - 1,
+        end: end_range
+    };
+
+    let current_program = apply_text_changes(document_state.text, document_state.pending_text_changes);
+    let current_document_state = document_state;
+
+    const characters_to_erase_count = end_range - start_range;
+
+    for (let index = 0; index < characters_to_erase_count; ++index) {
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: range,
+                text: ""
+            }
+        ];
+
+        const new_program = apply_text_changes(current_program, text_changes);
+
+        const new_document_state = Text_change.update(language_description, current_document_state, text_changes, new_program);
+
+        current_program = new_program;
+        current_document_state = new_document_state;
+        range.start -= 1;
+        range.end -= 1;
     }
 
     return current_document_state;
