@@ -1,0 +1,15 @@
+module completion_union_0;
+
+union Number
+{
+    int16: Int16;
+    int32: Int32;
+    float32: Float32;
+}
+
+export function run() -> ()
+{
+    var value: Number = {
+        int32: 0i32
+    };
+    value.

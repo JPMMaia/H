@@ -1,0 +1,7 @@
+module project_1.completion_enum_1;
+
+import c.complex as complex;
+
+export function run() -> ()
+{
+    var value = complex.Precision_t.
