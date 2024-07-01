@@ -1,0 +1,12 @@
+module completion_struct_0;
+
+struct Complex
+{
+    float real = 0.0f;
+    float imaginary = 0.0f;
+}
+
+export function run() -> ()
+{
+    var value: Complex = {};
+    value.

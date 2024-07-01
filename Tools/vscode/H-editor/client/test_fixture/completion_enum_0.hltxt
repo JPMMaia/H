@@ -1,0 +1,12 @@
+module completion_enum_0;
+
+enum Precision
+{
+    Low,
+    Medium,
+    High,
+}
+
+export function run() -> ()
+{
+    var value = Precision.

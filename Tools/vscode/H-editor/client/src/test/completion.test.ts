@@ -128,6 +128,9 @@ suite("Should do completion", () => {
 		await test_completion(document_uri, new vscode.Position(4, 35), {
 			items: [
 				{ label: "Complex", kind: vscode.CompletionItemKind.Struct },
+				{ label: "Number", kind: vscode.CompletionItemKind.TypeParameter },
+				{ label: "Precision", kind: vscode.CompletionItemKind.Enum },
+				{ label: "Precision_t", kind: vscode.CompletionItemKind.TypeParameter },
 			]
 		});
 	});
@@ -147,6 +150,9 @@ suite("Should do completion", () => {
 		await test_completion(document_uri, new vscode.Position(6, 23), {
 			items: [
 				{ label: "Complex", kind: vscode.CompletionItemKind.Struct },
+				{ label: "Number", kind: vscode.CompletionItemKind.TypeParameter },
+				{ label: "Precision", kind: vscode.CompletionItemKind.Enum },
+				{ label: "Precision_t", kind: vscode.CompletionItemKind.TypeParameter },
 			]
 		});
 	});
@@ -166,6 +172,9 @@ suite("Should do completion", () => {
 		await test_completion(document_uri, new vscode.Position(6, 19), {
 			items: [
 				{ label: "Complex", kind: vscode.CompletionItemKind.Struct },
+				{ label: "Number", kind: vscode.CompletionItemKind.TypeParameter },
+				{ label: "Precision", kind: vscode.CompletionItemKind.Enum },
+				{ label: "Precision_t", kind: vscode.CompletionItemKind.TypeParameter },
 			]
 		});
 	});
@@ -185,6 +194,9 @@ suite("Should do completion", () => {
 		await test_completion(document_uri, new vscode.Position(6, 19), {
 			items: [
 				{ label: "Complex", kind: vscode.CompletionItemKind.Struct },
+				{ label: "Number", kind: vscode.CompletionItemKind.TypeParameter },
+				{ label: "Precision", kind: vscode.CompletionItemKind.Enum },
+				{ label: "Precision_t", kind: vscode.CompletionItemKind.TypeParameter },
 			]
 		});
 	});
@@ -204,6 +216,9 @@ suite("Should do completion", () => {
 		await test_completion(document_uri, new vscode.Position(4, 27), {
 			items: [
 				{ label: "Complex", kind: vscode.CompletionItemKind.Struct },
+				{ label: "Number", kind: vscode.CompletionItemKind.TypeParameter },
+				{ label: "Precision", kind: vscode.CompletionItemKind.Enum },
+				{ label: "Precision_t", kind: vscode.CompletionItemKind.TypeParameter },
 			]
 		});
 	});
@@ -213,6 +228,9 @@ suite("Should do completion", () => {
 		await test_completion(document_uri, new vscode.Position(6, 19), {
 			items: [
 				{ label: "Complex", kind: vscode.CompletionItemKind.Struct },
+				{ label: "Number", kind: vscode.CompletionItemKind.TypeParameter },
+				{ label: "Precision", kind: vscode.CompletionItemKind.Enum },
+				{ label: "Precision_t", kind: vscode.CompletionItemKind.TypeParameter },
 			]
 		});
 	});
@@ -231,6 +249,92 @@ suite("Should do completion", () => {
 		await test_completion(document_uri, new vscode.Position(6, 24), {
 			items: [
 				{ label: "add", kind: vscode.CompletionItemKind.Function },
+			]
+		});
+	});
+
+	test("Completes enum values", async () => {
+		const document_uri = get_document_uri('completion_enum_0.hltxt');
+		await test_completion(document_uri, new vscode.Position(11, 26), {
+			items: [
+				{ label: "Low", kind: vscode.CompletionItemKind.EnumMember },
+				{ label: "Medium", kind: vscode.CompletionItemKind.EnumMember },
+				{ label: "High", kind: vscode.CompletionItemKind.EnumMember },
+			]
+		});
+	});
+
+	test("Completes enum values through alias", async () => {
+		const document_uri = get_document_uri('completion_enum_1.hltxt');
+		await test_completion(document_uri, new vscode.Position(13, 28), {
+			items: [
+				{ label: "Low", kind: vscode.CompletionItemKind.EnumMember },
+				{ label: "Medium", kind: vscode.CompletionItemKind.EnumMember },
+				{ label: "High", kind: vscode.CompletionItemKind.EnumMember },
+			]
+		});
+	});
+
+	test("Completes import module enum values", async () => {
+		const document_uri = get_document_uri('projects/project_1/completion_enum_0.hltxt');
+		await test_completion(document_uri, new vscode.Position(6, 34), {
+			items: [
+				{ label: "Low", kind: vscode.CompletionItemKind.EnumMember },
+				{ label: "Medium", kind: vscode.CompletionItemKind.EnumMember },
+				{ label: "High", kind: vscode.CompletionItemKind.EnumMember },
+			]
+		});
+	});
+
+	test("Completes import module enum values through alias", async () => {
+		const document_uri = get_document_uri('projects/project_1/completion_enum_1.hltxt');
+		await test_completion(document_uri, new vscode.Position(6, 36), {
+			items: [
+				{ label: "Low", kind: vscode.CompletionItemKind.EnumMember },
+				{ label: "Medium", kind: vscode.CompletionItemKind.EnumMember },
+				{ label: "High", kind: vscode.CompletionItemKind.EnumMember },
+			]
+		});
+	});
+
+	test("Completes struct members", async () => {
+		const document_uri = get_document_uri('completion_struct_0.hltxt');
+		await test_completion(document_uri, new vscode.Position(11, 10), {
+			items: [
+				{ label: "real", kind: vscode.CompletionItemKind.Property },
+				{ label: "imaginary", kind: vscode.CompletionItemKind.Property },
+			]
+		});
+	});
+
+	test("Completes import module struct members", async () => {
+		const document_uri = get_document_uri('projects/project_1/completion_struct_0.hltxt');
+		await test_completion(document_uri, new vscode.Position(7, 10), {
+			items: [
+				{ label: "real", kind: vscode.CompletionItemKind.Property },
+				{ label: "imaginary", kind: vscode.CompletionItemKind.Property },
+			]
+		});
+	});
+
+	test("Completes union members", async () => {
+		const document_uri = get_document_uri('completion_union_0.hltxt');
+		await test_completion(document_uri, new vscode.Position(14, 10), {
+			items: [
+				{ label: "int16", kind: vscode.CompletionItemKind.Property },
+				{ label: "int32", kind: vscode.CompletionItemKind.Property },
+				{ label: "float32", kind: vscode.CompletionItemKind.Property },
+			]
+		});
+	});
+
+	test("Completes import module union members", async () => {
+		const document_uri = get_document_uri('projects/project_1/completion_union_0.hltxt');
+		await test_completion(document_uri, new vscode.Position(9, 10), {
+			items: [
+				{ label: "int16", kind: vscode.CompletionItemKind.Property },
+				{ label: "int32", kind: vscode.CompletionItemKind.Property },
+				{ label: "float32", kind: vscode.CompletionItemKind.Property },
 			]
 		});
 	});

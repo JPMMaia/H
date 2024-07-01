@@ -1,0 +1,8 @@
+module project_1.completion_struct_0;
+
+import c.complex as complex;
+
+export function run() -> ()
+{
+    var value: complex.Complex = {};
+    value.

@@ -241,8 +241,9 @@ function declaration_type_to_completion_item_kind(declaration_type: Core.Declara
         case Core.Declaration_type.Function:
             return vscode.CompletionItemKind.Function;
         case Core.Declaration_type.Struct:
-        case Core.Declaration_type.Union:
             return vscode.CompletionItemKind.Struct;
+        case Core.Declaration_type.Union:
+            return vscode.CompletionItemKind.TypeParameter;
     }
 }
 
