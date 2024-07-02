@@ -7,6 +7,7 @@ import * as Core from "@core/Core_intermediate_representation";
 import * as Document from "@core/Document";
 import * as Parser from "@core/Parser";
 import * as Parser_node from "@core/Parser_node";
+import * as Parse_tree_analysis from "@core/Parse_tree_analysis";
 import * as Parse_tree_text_iterator from "@core/Parse_tree_text_iterator";
 import * as Scan_new_changes from "@core/Scan_new_changes";
 import * as Scanner from "@core/Scanner";
@@ -278,7 +279,7 @@ function is_cursor_at_import_module_type(
 ): boolean {
 
     const before_cursor_node = Parser_node.get_node_at_position(root, before_cursor_node_position);
-    if (before_cursor_node.word.value === "." || has_ancestor_with_name(root, before_cursor_node_position, ["Module_type_type_name"])) {
+    if (before_cursor_node.word.value === "." || Parser_node.has_ancestor_with_name(root, before_cursor_node_position, ["Module_type_type_name"])) {
         return true;
     }
 
@@ -305,7 +306,7 @@ async function get_import_module_type_items(
     before_cursor_node_position: number[]
 ): Promise<vscode.CompletionItem[]> {
 
-    const module_type_node = get_ancestor_with_name(root, before_cursor_node_position, "Module_type");
+    const module_type_node = Parser_node.get_ancestor_with_name(root, before_cursor_node_position, "Module_type");
     if (module_type_node === undefined) {
         return [];
     }
@@ -340,7 +341,7 @@ function is_cursor_at_expression_access(
 ): boolean {
 
     const before_cursor_node = Parser_node.get_node_at_position(root, before_cursor_node_position);
-    if (before_cursor_node.word.value === "." || has_ancestor_with_name(root, before_cursor_node_position, ["Expression_access"])) {
+    if (before_cursor_node.word.value === "." || Parser_node.has_ancestor_with_name(root, before_cursor_node_position, ["Expression_access"])) {
         return true;
     }
 
@@ -355,7 +356,7 @@ async function get_expression_access_items(
     before_cursor_node_position: number[]
 ): Promise<vscode.CompletionItem[]> {
 
-    const expression_access = get_ancestor_with_name(root, before_cursor_node_position, "Expression_access");
+    const expression_access = Parser_node.get_ancestor_with_name(root, before_cursor_node_position, "Expression_access");
     if (expression_access === undefined || expression_access.node.children.length === 0) {
         return [];
     }
@@ -370,26 +371,92 @@ async function get_expression_access_items(
 
     const first_component = components[0];
 
-    const import_module = core_module.imports.find(value => value.alias === first_component);
-    if (import_module !== undefined) {
-        const imported_module = await Server_data.get_core_module(server_data, workspace_folder_uri, import_module.module_name);
-        if (imported_module === undefined) {
-            return [];
-        }
+    {
+        const import_module = core_module.imports.find(value => value.alias === first_component);
+        if (import_module !== undefined) {
+            const imported_module = await Server_data.get_core_module(server_data, workspace_folder_uri, import_module.module_name);
+            if (imported_module === undefined) {
+                return [];
+            }
 
-        if (components.length <= 2) {
-            return get_function_declaration_items(imported_module, true);
-        }
+            if (components.length <= 2) {
+                return get_function_declaration_items(imported_module, true);
+            }
 
-        // TODO if enum
-        // TODO if alias
+            const second_component = components[1];
+            const declaration = find_core_declaration_of_variable_type(server_data, workspace_folder_uri, imported_module, second_component, root, before_cursor_node_position);
+            if (declaration !== undefined) {
+                if (declaration.type === Core.Declaration_type.Enum) {
+                    const enum_declaration = declaration.value as Core.Enum_declaration;
+                    return get_enum_value_completion_items(enum_declaration);
+                }
+            }
+        }
     }
 
-    // TODO if enum
-    // TODO if struct
-    // TODO if union
-    // TODO if alias
+    const declaration = find_core_declaration_of_variable_type(server_data, workspace_folder_uri, core_module, first_component, root, before_cursor_node_position);
+    if (declaration !== undefined) {
+        if (declaration.type === Core.Declaration_type.Enum) {
+            const enum_declaration = declaration.value as Core.Enum_declaration;
+            return get_enum_value_completion_items(enum_declaration);
+        }
+        else if (declaration.type === Core.Declaration_type.Struct) {
+            const struct_declaration = declaration.value as Core.Struct_declaration;
+            return get_struct_member_completion_items(struct_declaration);
+        }
+        else if (declaration.type === Core.Declaration_type.Union) {
+            const union_declaration = declaration.value as Core.Union_declaration;
+            return get_union_member_completion_items(union_declaration);
+        }
+    }
 
+    return [];
+}
+
+function find_core_declaration_of_variable_type(
+    server_data: Server_data.Server_data,
+    workspace_folder_uri: string,
+    core_module: Core.Module,
+    variable_name: string,
+    root: Parser_node.Node,
+    before_cursor_node_position: number[]
+): Core.Declaration | undefined {
+    const function_value = get_current_function(core_module, root, before_cursor_node_position);
+    if (function_value !== undefined) {
+        const variable_type: Core.Type_reference | undefined = Parse_tree_analysis.find_variable_type(function_value.value as Core.Function, root, before_cursor_node_position, variable_name);
+        if (variable_type !== undefined) {
+            if (variable_type.data.type === Core.Type_reference_enum.Custom_type_reference) {
+                const custom_type_reference = variable_type.data.value as Core.Custom_type_reference;
+                const declaration: Core.Declaration | undefined = find_custom_type_reference_declaration(custom_type_reference);
+                return declaration;
+            }
+        }
+    }
+
+    return undefined;
+}
+
+function find_custom_type_reference_declaration(
+    custom_type_reference: Core.Custom_type_reference
+): Core.Declaration | undefined {
+    return undefined;
+}
+
+function get_enum_value_completion_items(
+    enum_declaration: Core.Enum_declaration
+): vscode.CompletionItem[] {
+    return [];
+}
+
+function get_struct_member_completion_items(
+    struct_declaration: Core.Struct_declaration
+): vscode.CompletionItem[] {
+    return [];
+}
+
+function get_union_member_completion_items(
+    union_declaration: Core.Union_declaration
+): vscode.CompletionItem[] {
     return [];
 }
 
@@ -429,59 +496,13 @@ function is_inside_statements_block(
     return false;
 }
 
-function has_ancestor_with_name(
-    root: Parser_node.Node,
-    node_position: number[],
-    names: string[]
-): boolean {
-    let current_node_position = node_position;
-
-    while (current_node_position.length > 0) {
-        const parent_position = Parser_node.get_parent_position(current_node_position);
-        const parent_node = Parser_node.get_node_at_position(root, parent_position);
-
-
-        if (names.find(name => name === parent_node.word.value) !== undefined) {
-            return true;
-        }
-
-        current_node_position = parent_position;
-    }
-
-    return false;
-}
-
-function get_ancestor_with_name(
-    root: Parser_node.Node,
-    node_position: number[],
-    name: string
-): { node: Parser_node.Node, position: number[] } | undefined {
-    let current_node_position = node_position;
-
-    while (current_node_position.length > 0) {
-        const parent_position = Parser_node.get_parent_position(current_node_position);
-        const parent_node = Parser_node.get_node_at_position(root, parent_position);
-
-        if (parent_node.word.value === name) {
-            return {
-                node: parent_node,
-                position: parent_position
-            };
-        }
-
-        current_node_position = parent_position;
-    }
-
-    return undefined;
-}
-
 function is_cursor_at_import_module_name(
     root: Parser_node.Node,
     before_cursor_node_position: number[]
 ): boolean {
 
     const before_cursor_node = Parser_node.get_node_at_position(root, before_cursor_node_position);
-    if (before_cursor_node.word.value === "import" || has_ancestor_with_name(root, before_cursor_node_position, ["Import_name"])) {
+    if (before_cursor_node.word.value === "import" || Parser_node.has_ancestor_with_name(root, before_cursor_node_position, ["Import_name"])) {
         return true;
     }
 
@@ -560,11 +581,11 @@ function is_cursor_at_type(
     const before_cursor_node = Parser_node.get_node_at_position(root, before_cursor_node_position);
 
     if (before_cursor_node.word.value === ":" || before_cursor_node.word.value === "as" || before_cursor_node.word.value === "=") {
-        if (has_ancestor_with_name(root, after_cursor_node_position, ["Type"])) {
+        if (Parser_node.has_ancestor_with_name(root, after_cursor_node_position, ["Type"])) {
             return true;
         }
     }
-    else if (has_ancestor_with_name(root, before_cursor_node_position, ["Type"])) {
+    else if (Parser_node.has_ancestor_with_name(root, before_cursor_node_position, ["Type"])) {
         return true;
     }
 

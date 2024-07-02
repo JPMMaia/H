@@ -465,3 +465,49 @@ export function find_descendant_position_if(node: Node, predicate: (node: Node) 
 
     return undefined;
 }
+
+export function has_ancestor_with_name(
+    root: Node,
+    node_position: number[],
+    names: string[]
+): boolean {
+    let current_node_position = node_position;
+
+    while (current_node_position.length > 0) {
+        const parent_position = get_parent_position(current_node_position);
+        const parent_node = get_node_at_position(root, parent_position);
+
+
+        if (names.find(name => name === parent_node.word.value) !== undefined) {
+            return true;
+        }
+
+        current_node_position = parent_position;
+    }
+
+    return false;
+}
+
+export function get_ancestor_with_name(
+    root: Node,
+    node_position: number[],
+    name: string
+): { node: Node, position: number[] } | undefined {
+    let current_node_position = node_position;
+
+    while (current_node_position.length > 0) {
+        const parent_position = get_parent_position(current_node_position);
+        const parent_node = get_node_at_position(root, parent_position);
+
+        if (parent_node.word.value === name) {
+            return {
+                node: parent_node,
+                position: parent_position
+            };
+        }
+
+        current_node_position = parent_position;
+    }
+
+    return undefined;
+}
