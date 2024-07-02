@@ -4368,6 +4368,144 @@ export function create_newlines_after_statements(): IR.Module {
     };
 }
 
+export function create_add_function(): IR.Module {
+
+    const int32_type = create_integer_type(32, true);
+
+    return {
+        name: "Add",
+        imports: [],
+        declarations: [
+            {
+                name: "add",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "add",
+                        type: {
+                            input_parameter_types: [int32_type, int32_type],
+                            output_parameter_types: [int32_type],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: ["lhs", "rhs"],
+                        output_parameter_names: ["result"],
+                        linkage: IR.Linkage.External
+                    },
+                    definition: {
+                        name: "add",
+                        statements: [
+                            create_statement(
+                                IR.create_return_expression(
+                                    IR.create_binary_expression(
+                                        IR.create_variable_expression("lhs", IR.Access_type.Read),
+                                        IR.create_variable_expression("rhs", IR.Access_type.Read),
+                                        IR.Binary_operation.Add
+                                    )
+                                )
+                            )
+                        ]
+                    }
+                }
+            }
+        ]
+    };
+}
+
+export function create_function_with_variable_declaration(): IR.Module {
+
+    const int32_type = create_integer_type(32, true);
+
+    return {
+        name: "Variable_declaration",
+        imports: [],
+        declarations: [
+            {
+                name: "run",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "run",
+                        type: {
+                            input_parameter_types: [],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: [],
+                        output_parameter_names: [],
+                        linkage: IR.Linkage.External
+                    },
+                    definition: {
+                        name: "run",
+                        statements: [
+                            create_statement(
+                                IR.create_variable_declaration_expression(
+                                    "a", true, IR.create_constant_expression(int32_type, "0")
+                                )
+                            ),
+                            create_statement(
+                                IR.create_assignment_expression(
+                                    IR.create_variable_expression("a", IR.Access_type.Write),
+                                    IR.create_constant_expression(int32_type, "1"),
+                                    undefined
+                                )
+                            )
+                        ]
+                    }
+                }
+            }
+        ]
+    };
+}
+
+export function create_function_with_variable_declaration_with_type(): IR.Module {
+
+    const int32_type = create_integer_type(32, true);
+
+    return {
+        name: "Variable_declaration_with_type",
+        imports: [],
+        declarations: [
+            {
+                name: "run",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "run",
+                        type: {
+                            input_parameter_types: [],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: [],
+                        output_parameter_names: [],
+                        linkage: IR.Linkage.External
+                    },
+                    definition: {
+                        name: "run",
+                        statements: [
+                            create_statement(
+                                IR.create_variable_declaration_with_type_expression(
+                                    "a", true, int32_type, create_statement(IR.create_constant_expression(int32_type, "0"))
+                                )
+                            ),
+                            create_statement(
+                                IR.create_assignment_expression(
+                                    IR.create_variable_expression("a", IR.Access_type.Write),
+                                    IR.create_constant_expression(int32_type, "1"),
+                                    undefined
+                                )
+                            )
+                        ]
+                    }
+                }
+            }
+        ]
+    };
+}
+
 function create_custom_type_reference(module_name: string, name: string): IR.Type_reference {
     return {
         data: {
