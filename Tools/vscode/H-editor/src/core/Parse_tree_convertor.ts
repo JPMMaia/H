@@ -108,6 +108,9 @@ export function get_if_serie_index(
         if (state.node.word.value === "Expression_if_else") {
             serie_index += 1;
         }
+        else if (state.node.word.value === "Statement") {
+            break;
+        }
     }
 
     return serie_index;
