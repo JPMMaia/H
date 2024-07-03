@@ -384,7 +384,7 @@ async function get_expression_access_items(
             }
 
             const second_component = components[1];
-            const declaration = find_core_declaration_of_variable_type(server_data, workspace_folder_uri, imported_module, second_component, root, before_cursor_node_position);
+            const declaration = await find_core_declaration_of_variable_type(server_data, workspace_folder_uri, imported_module, second_component, root, before_cursor_node_position);
             if (declaration !== undefined) {
                 if (declaration.type === Core.Declaration_type.Enum) {
                     const enum_declaration = declaration.value as Core.Enum_declaration;
@@ -394,7 +394,7 @@ async function get_expression_access_items(
         }
     }
 
-    const declaration = find_core_declaration_of_variable_type(server_data, workspace_folder_uri, core_module, first_component, root, before_cursor_node_position);
+    const declaration = await find_core_declaration_of_variable_type(server_data, workspace_folder_uri, core_module, first_component, root, before_cursor_node_position);
     if (declaration !== undefined) {
         if (declaration.type === Core.Declaration_type.Enum) {
             const enum_declaration = declaration.value as Core.Enum_declaration;
@@ -413,17 +413,21 @@ async function get_expression_access_items(
     return [];
 }
 
-function find_core_declaration_of_variable_type(
+async function find_core_declaration_of_variable_type(
     server_data: Server_data.Server_data,
     workspace_folder_uri: string,
     core_module: Core.Module,
     variable_name: string,
     root: Parser_node.Node,
     before_cursor_node_position: number[]
-): Core.Declaration | undefined {
+): Promise<Core.Declaration | undefined> {
     const function_value = get_current_function(core_module, root, before_cursor_node_position);
     if (function_value !== undefined) {
-        const variable_type: Core.Type_reference | undefined = Parse_tree_analysis.find_variable_type(function_value.value as Core.Function, root, before_cursor_node_position, variable_name);
+
+        // TODO
+        const get_core_module = (module_name: string): Promise<Core.Module | undefined> => { return Promise.resolve(undefined); };
+
+        const variable_type = await Parse_tree_analysis.find_variable_type(core_module, function_value.value as Core.Function, root, before_cursor_node_position, variable_name, get_core_module);
         if (variable_type !== undefined) {
             if (variable_type.data.type === Core.Type_reference_enum.Custom_type_reference) {
                 const custom_type_reference = variable_type.data.value as Core.Custom_type_reference;

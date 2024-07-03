@@ -4711,6 +4711,126 @@ export function create_variable_declaration_inside_switch_case(): IR.Module {
     };
 }
 
+export function create_access_struct_of_imported_module(): IR.Module {
+
+    const statements: IR.Statement[] = [
+        create_statement(
+            IR.create_variable_declaration_with_type_expression(
+                "instance",
+                false,
+                create_custom_type_reference("Structs", "My_struct"),
+                create_statement(IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, []))
+            )
+        ),
+        create_statement(
+            IR.create_variable_declaration_expression(
+                "a",
+                false,
+                IR.create_access_expression(
+                    IR.create_variable_expression("instance", IR.Access_type.Read),
+                    "a",
+                    IR.Access_type.Read
+                )
+            )
+        )
+    ];
+
+    return {
+        name: "Variable_declaration_inside_switch_case",
+        imports: [
+            {
+                module_name: "Structs",
+                alias: "my_external_module",
+                usages: []
+            }
+        ],
+        declarations: [
+            {
+                name: "run",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "run",
+                        type: {
+                            input_parameter_types: [],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: [],
+                        output_parameter_names: [],
+                        linkage: IR.Linkage.External
+                    },
+                    definition: {
+                        name: "run",
+                        statements: statements
+                    }
+                }
+            }
+        ]
+    };
+}
+
+export function create_call_of_function_of_imported_module(): IR.Module {
+
+    const int32_type = create_integer_type(32, true);
+
+    const statements: IR.Statement[] = [
+        create_statement(
+            IR.create_variable_declaration_expression(
+                "result",
+                false,
+                IR.create_call_expression(
+                    IR.create_access_expression(
+                        IR.create_variable_expression("my_external_module", IR.Access_type.Read),
+                        "add",
+                        IR.Access_type.Read
+                    ),
+                    [
+                        IR.create_constant_expression(int32_type, "1"),
+                        IR.create_constant_expression(int32_type, "2"),
+                    ]
+                )
+            )
+        )
+    ];
+
+    return {
+        name: "Call_of_imported_module_function",
+        imports: [
+            {
+                module_name: "Add",
+                alias: "my_external_module",
+                usages: []
+            }
+        ],
+        declarations: [
+            {
+                name: "run",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "run",
+                        type: {
+                            input_parameter_types: [],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: [],
+                        output_parameter_names: [],
+                        linkage: IR.Linkage.External
+                    },
+                    definition: {
+                        name: "run",
+                        statements: statements
+                    }
+                }
+            }
+        ]
+    };
+}
+
 function create_custom_type_reference(module_name: string, name: string): IR.Type_reference {
     return {
         data: {

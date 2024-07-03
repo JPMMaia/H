@@ -18,64 +18,67 @@ describe("Parse_tree_analysis.find_variable_type", () => {
         language_description = Language.create_default_description(cache, "out/tests/graphviz.gv");
     });
 
-    it("Finds variable type of input parameter", () => {
+    it("Finds variable type of input parameter", async () => {
         const expected_variable_type = create_integer_type(32, true);
-        test_find_variable_type(language_description, Module_examples.create_add_function(), 0, [1, 0, 1, 1, 0, 1, 0, 0, 0], "lhs", expected_variable_type);
+        await test_find_variable_type(language_description, Module_examples.create_add_function(), 0, [1, 0, 1, 1, 0, 1, 0, 0, 0], "lhs", expected_variable_type);
     });
 
-    it("Finds variable type of variable declared with explicit type", () => {
+    it("Finds variable type of variable declared with explicit type", async () => {
         const expected_variable_type = create_integer_type(32, true);
-        test_find_variable_type(language_description, Module_examples.create_function_with_variable_declaration_with_type(), 0, [1, 0, 1, 1, 0, 1, 1, 0, 0], "a", expected_variable_type);
+        await test_find_variable_type(language_description, Module_examples.create_function_with_variable_declaration_with_type(), 0, [1, 0, 1, 1, 0, 1, 1, 0, 0], "a", expected_variable_type);
     });
 
-    it("Finds variable type of variable declared without explicit type", () => {
+    it("Finds variable type of variable declared without explicit type", async () => {
         const expected_variable_type = create_integer_type(32, true);
-        test_find_variable_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0, 0], "a", expected_variable_type);
+        await test_find_variable_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0, 0], "a", expected_variable_type);
     });
 
-    it("Finds variable type of for loop variable", () => {
+    it("Finds variable type of for loop variable", async () => {
         const expected_variable_type = create_integer_type(32, true);
-        test_find_variable_type(language_description, Module_examples.create_for_loop_expressions(), 1, [1, 1, 1, 1, 0, 1, 0, 0, 9, 0, 0], "index", expected_variable_type);
+        await test_find_variable_type(language_description, Module_examples.create_for_loop_expressions(), 1, [1, 1, 1, 1, 0, 1, 0, 0, 9, 0, 0], "index", expected_variable_type);
     });
 
-    it("Finds variable type of variable inside while loop", () => {
+    it("Finds variable type of variable inside while loop", async () => {
         const expected_variable_type = create_integer_type(32, true);
-        test_find_variable_type(language_description, Module_examples.create_variable_declaration_inside_while_loop(), 0, [1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 3, 1, 0, 0], "index", expected_variable_type);
+        await test_find_variable_type(language_description, Module_examples.create_variable_declaration_inside_while_loop(), 0, [1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 3, 1, 0, 0], "index", expected_variable_type);
     });
 
-    it("Finds variable type of variable inside if statement 0", () => {
+    it("Finds variable type of variable inside if statement 0", async () => {
         const expected_variable_type = create_integer_type(32, true);
-        test_find_variable_type(language_description, Module_examples.create_variable_declaration_inside_if_expression(), 0, [1, 0, 1, 1, 0, 1, 0, 0, 3, 1, 0], "a", expected_variable_type);
+        await test_find_variable_type(language_description, Module_examples.create_variable_declaration_inside_if_expression(), 0, [1, 0, 1, 1, 0, 1, 0, 0, 3, 1, 0], "a", expected_variable_type);
     });
 
-    it("Finds variable type of variable inside if statement 1", () => {
+    it("Finds variable type of variable inside if statement 1", async () => {
         const expected_variable_type = create_integer_type(32, false);
-        test_find_variable_type(language_description, Module_examples.create_variable_declaration_inside_if_expression(), 0, [1, 0, 1, 1, 0, 1, 0, 0, 5, 2, 1, 0], "b", expected_variable_type);
+        await test_find_variable_type(language_description, Module_examples.create_variable_declaration_inside_if_expression(), 0, [1, 0, 1, 1, 0, 1, 0, 0, 5, 2, 1, 0], "b", expected_variable_type);
     });
 
-    it("Finds variable type of variable inside switch case 0", () => {
+    it("Finds variable type of variable inside switch case 0", async () => {
         const expected_variable_type = create_integer_type(32, true);
-        test_find_variable_type(language_description, Module_examples.create_variable_declaration_inside_switch_case(), 0, [1, 0, 1, 1, 0, 1, 0, 0, 3, 0, 3, 1, 0], "a", expected_variable_type);
+        await test_find_variable_type(language_description, Module_examples.create_variable_declaration_inside_switch_case(), 0, [1, 0, 1, 1, 0, 1, 0, 0, 3, 0, 3, 1, 0], "a", expected_variable_type);
     });
 
-    it("Finds variable type of variable inside switch case 1", () => {
+    it("Finds variable type of variable inside switch case 1", async () => {
         const expected_variable_type = create_integer_type(32, false);
-        test_find_variable_type(language_description, Module_examples.create_variable_declaration_inside_switch_case(), 0, [1, 0, 1, 1, 0, 1, 0, 0, 3, 1, 3, 1, 0], "b", expected_variable_type);
+        await test_find_variable_type(language_description, Module_examples.create_variable_declaration_inside_switch_case(), 0, [1, 0, 1, 1, 0, 1, 0, 0, 3, 1, 3, 1, 0], "b", expected_variable_type);
     });
 });
 
-function test_find_variable_type(
+async function test_find_variable_type(
     language_description: Language.Description,
     core_module: Core.Module,
     declaration_index: number,
     variable_node_position: number[],
     variable_name: string,
-    expected_variable_type: Core.Type_reference
-): void {
+    expected_variable_type: Core.Type_reference,
+    get_core_module?: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<void> {
     const function_value = core_module.declarations[declaration_index].value as Core.Function;
 
+    const get_core_module_function = get_core_module !== undefined ? get_core_module : create_default_get_core_module(core_module);
+
     const root = Parse_tree_convertor.module_to_parse_tree(core_module, language_description.production_rules, language_description.mappings);
-    const actual_variable_type = Parse_tree_analysis.find_variable_type(function_value, root, variable_node_position, variable_name);
+    const actual_variable_type = await Parse_tree_analysis.find_variable_type(core_module, function_value, root, variable_node_position, variable_name, get_core_module_function);
 
     assert.deepEqual(actual_variable_type, expected_variable_type);
 }
@@ -89,71 +92,210 @@ describe("Parse_tree_analysis.get_expression_type", () => {
         language_description = Language.create_default_description(cache, "out/tests/graphviz.gv");
     });
 
-    it("Finds expression type of cast expression", () => {
+    it("Finds expression type of access expression of struct", async () => {
+        const expression = Core.create_access_expression(
+            Core.create_variable_expression("instance_0", Core.Access_type.Read),
+            "b",
+            Core.Access_type.Read
+        );
+        const expected_expression_type = create_integer_type(32, true);
+        await test_get_expression_type(language_description, Module_examples.create_using_structs(), 2, [1, 2, 1, 1, 0, 1, 2, 0, 0], expression, expected_expression_type);
+    });
+
+    it("Finds expression type of access expression of union", async () => {
+        const expression = Core.create_access_expression(
+            Core.create_variable_expression("instance_0", Core.Access_type.Read),
+            "b",
+            Core.Access_type.Read
+        );
+        const expected_expression_type = create_fundamental_type(Core.Fundamental_type.Float32);
+        await test_get_expression_type(language_description, Module_examples.create_using_unions(), 5, [1, 5, 1, 1, 0, 1, 3, 0, 0], expression, expected_expression_type);
+    });
+
+    it("Finds expression type of access expression of struct of imported module", async () => {
+        const expression = Core.create_access_expression(
+            Core.create_variable_expression("instance", Core.Access_type.Read),
+            "b",
+            Core.Access_type.Read
+        );
+        const expected_expression_type = create_integer_type(32, true);
+        const core_module = Module_examples.create_access_struct_of_imported_module();
+
+        const get_core_module = (module_name: string): Promise<Core.Module | undefined> => {
+            if (module_name.length === 0 || module_name === core_module.name) {
+                return Promise.resolve(core_module);
+            }
+
+            if (module_name === "Structs") {
+                return Promise.resolve(Module_examples.create_using_structs());
+            }
+
+            return Promise.resolve(undefined);
+        };
+
+        await test_get_expression_type(language_description, core_module, 0, [1, 0, 1, 1, 0, 1, 1, 0, 0], expression, expected_expression_type, get_core_module);
+    });
+
+    // TODO test access through alias type
+
+    it("Finds expression type of binary expression with numeric operator", async () => {
+        const expression = Core.create_binary_expression(
+            Core.create_variable_expression("a", Core.Access_type.Read),
+            Core.create_variable_expression("a", Core.Access_type.Read),
+            Core.Binary_operation.Add
+        );
+        const expected_expression_type = create_integer_type(32, true);
+        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, expected_expression_type);
+    });
+
+    it("Finds expression type of binary expression with logical operator", async () => {
+        const expression = Core.create_binary_expression(
+            Core.create_variable_expression("a", Core.Access_type.Read),
+            Core.create_variable_expression("a", Core.Access_type.Read),
+            Core.Binary_operation.Equal
+        );
+        const expected_expression_type = create_boolean_type();
+        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, expected_expression_type);
+    });
+
+    it("Finds expression type of cast expression", async () => {
         const expression = Core.create_cast_expression(
             Core.create_constant_expression(create_integer_type(32, false), "0"),
             create_integer_type(32, true),
             Core.Cast_type.Numeric
         );
         const expected_expression_type = create_integer_type(32, true);
-        const actual_expression_type = Parse_tree_analysis.get_expression_type(expression);
-        assert.deepEqual(actual_expression_type, expected_expression_type);
+        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, expected_expression_type);
     });
 
-    it("Finds expression type of constant array expression", () => {
+    it("Finds expression type of constant array expression", async () => {
         const expression = Core.create_constant_array_expression(
             create_integer_type(32, true),
             [
             ]
         );
         const expected_expression_type = create_integer_type(32, true);
-        const actual_expression_type = Parse_tree_analysis.get_expression_type(expression);
-        assert.deepEqual(actual_expression_type, expected_expression_type);
+        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, expected_expression_type);
     });
 
-    it("Finds expression type of constant expression", () => {
+    it("Finds expression type of constant expression", async () => {
         const expression = Core.create_constant_expression(create_integer_type(32, true), "0");
         const expected_expression_type = create_integer_type(32, true);
-        const actual_expression_type = Parse_tree_analysis.get_expression_type(expression);
-        assert.deepEqual(actual_expression_type, expected_expression_type);
+        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, expected_expression_type);
     });
 
-    it("Finds expression type of call expression", () => {
-        const expression = Core.create_call_expression(
-            Core.create_variable_expression("add", Core.Access_type.Read), [
-            Core.create_constant_expression(create_integer_type(32, true), "1"),
-            Core.create_constant_expression(create_integer_type(32, true), "2"),
-        ]);
-        // TODO get_expression_type needs more information
-        const expected_expression_type = create_integer_type(32, true);
-        const actual_expression_type = Parse_tree_analysis.get_expression_type(expression);
-        assert.deepEqual(actual_expression_type, expected_expression_type);
+    it("Finds expression type of call expression", async () => {
+        const int32_type = create_integer_type(32, true);
+        const expression = Core.create_variable_declaration_expression(
+            "result",
+            false,
+            Core.create_call_expression(
+                Core.create_access_expression(
+                    Core.create_variable_expression("my_external_module", Core.Access_type.Read),
+                    "add",
+                    Core.Access_type.Read
+                ),
+                [
+                    Core.create_constant_expression(int32_type, "1"),
+                    Core.create_constant_expression(int32_type, "2"),
+                ]
+            )
+        );
+
+        const core_module = Module_examples.create_access_struct_of_imported_module();
+        const get_core_module = (module_name: string): Promise<Core.Module | undefined> => {
+            if (module_name.length === 0 || module_name === core_module.name) {
+                return Promise.resolve(core_module);
+            }
+
+            if (module_name === "Add") {
+                return Promise.resolve(Module_examples.create_add_function());
+            }
+
+            return Promise.resolve(undefined);
+        };
+
+        const expected_expression_type = int32_type;
+        await test_get_expression_type(language_description, Module_examples.create_call_of_function_of_imported_module(), 0, [1, 0, 1, 1, 0, 1, 0, 0], expression, expected_expression_type, get_core_module);
     });
 
-    it("Finds expression type of parenthesis expression", () => {
+    it("Finds expression type of parenthesis expression", async () => {
         const expression = Core.create_parenthesis_expression(Core.create_constant_expression(create_integer_type(32, true), "0"));
         const expected_expression_type = create_integer_type(32, true);
-        const actual_expression_type = Parse_tree_analysis.get_expression_type(expression);
-        assert.deepEqual(actual_expression_type, expected_expression_type);
+        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, expected_expression_type);
     });
 
-    it("Finds expression type of ternary condition expression", () => {
+    it("Finds expression type of ternary condition expression", async () => {
         const expression = Core.create_ternary_condition_expression(
             Core.create_constant_expression(create_boolean_type(), "true"),
             create_statement(Core.create_constant_expression(create_integer_type(32, true), "0")),
             create_statement(Core.create_constant_expression(create_integer_type(32, true), "1"))
         );
         const expected_expression_type = create_integer_type(32, true);
-        const actual_expression_type = Parse_tree_analysis.get_expression_type(expression);
-        assert.deepEqual(actual_expression_type, expected_expression_type);
+        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, expected_expression_type);
+    });
+
+    it("Finds expression type of unary expression", async () => {
+        const expression = Core.create_unary_expression(Core.create_variable_expression("a", Core.Access_type.Read), Core.Unary_operation.Minus);
+        const expected_expression_type = create_integer_type(32, true);
+        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, expected_expression_type);
+    });
+
+    it("Finds expression type of unary expression with address of", async () => {
+        const expression = Core.create_unary_expression(Core.create_variable_expression("a", Core.Access_type.Read), Core.Unary_operation.Address_of);
+        const expected_expression_type = create_pointer_type([create_integer_type(32, true)], false);
+        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, expected_expression_type);
+    });
+
+    it("Finds expression type of unary expression with indirection", async () => {
+        const expression = Core.create_unary_expression(
+            Core.create_unary_expression(Core.create_variable_expression("a", Core.Access_type.Read), Core.Unary_operation.Address_of),
+            Core.Unary_operation.Indirection
+        );
+        const expected_expression_type = create_integer_type(32, true);
+        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, expected_expression_type);
+    });
+
+    it("Finds expression type of variable expression", async () => {
+        const expression = Core.create_variable_expression("a", Core.Access_type.Read);
+        const expected_expression_type = create_integer_type(32, true);
+        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, expected_expression_type);
     });
 });
+
+async function test_get_expression_type(
+    language_description: Language.Description,
+    core_module: Core.Module,
+    declaration_index: number,
+    variable_node_position: number[],
+    expression: Core.Expression,
+    expected_expression_type: Core.Type_reference,
+    get_core_module?: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<void> {
+    const function_value = core_module.declarations[declaration_index].value as Core.Function;
+
+    const get_core_module_function = get_core_module !== undefined ? get_core_module : create_default_get_core_module(core_module);
+
+    const root = Parse_tree_convertor.module_to_parse_tree(core_module, language_description.production_rules, language_description.mappings);
+    const actual_expression_type = await Parse_tree_analysis.get_expression_type(core_module, function_value, root, variable_node_position, expression, get_core_module_function);
+
+    assert.deepEqual(actual_expression_type, expected_expression_type);
+}
 
 function create_boolean_type(): Core.Type_reference {
     return {
         data: {
             type: Core.Type_reference_enum.Fundamental_type,
             value: Core.Fundamental_type.Bool
+        }
+    };
+}
+
+function create_fundamental_type(value: Core.Fundamental_type): Core.Type_reference {
+    return {
+        data: {
+            type: Core.Type_reference_enum.Fundamental_type,
+            value: value
         }
     };
 }
@@ -170,6 +312,18 @@ function create_integer_type(number_of_bits: number, is_signed: boolean): Core.T
     };
 }
 
+function create_pointer_type(element_type: Core.Type_reference[], is_mutable: boolean): Core.Type_reference {
+    return {
+        data: {
+            type: Core.Type_reference_enum.Pointer_type,
+            value: {
+                element_type: element_type,
+                is_mutable: is_mutable
+            }
+        }
+    };
+}
+
 function create_statement(expression: Core.Expression, newlines_after?: number): Core.Statement {
 
     const statement: Core.Statement = {
@@ -181,4 +335,13 @@ function create_statement(expression: Core.Expression, newlines_after?: number):
     }
 
     return statement;
+}
+
+function create_default_get_core_module(core_module: Core.Module): (module_name: string) => Promise<Core.Module | undefined> {
+    return (module_name: string): Promise<Core.Module | undefined> => {
+        if (module_name.length === 0 || module_name === core_module.name) {
+            return Promise.resolve(core_module);
+        }
+        return Promise.resolve(undefined);
+    };
 }
