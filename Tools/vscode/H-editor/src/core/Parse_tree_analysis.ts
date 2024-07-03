@@ -33,7 +33,7 @@ export function find_variable_type(
     let current_statement_index = variable_node_position[current_statements_block_position.length];
 
     while (current_statements_block !== undefined && current_statement_index < current_statements_block.length) {
-        for (let index = 0; index < current_statement_index; ++index) {
+        for (let index = 0; index <= current_statement_index; ++index) {
             const core_statement = current_statements_block[index];
 
             if (core_statement.expression.data.type === Core.Expression_enum.Variable_declaration_expression) {
@@ -63,67 +63,117 @@ export function find_variable_type(
         }
 
         const core_statement = current_statements_block[current_statement_index];
-
-        switch (core_statement.expression.data.type) {
-            case Core.Expression_enum.Block_expression: {
-                const expression = core_statement.expression.data.value as Core.Block_expression;
-                const result = go_to_next_block(variable_node_position, current_statements_block_node, current_statements_block_position, "Expression_block_statements");
-                if (result === undefined) {
-                    break;
-                }
-                current_statements_block_node = result.node;
-                current_statements_block_position = result.position;
-                current_statements_block = expression.statements;
-            }
-            case Core.Expression_enum.For_loop_expression: {
-                const expression = core_statement.expression.data.value as Core.For_loop_expression;
-                const result = go_to_next_block(variable_node_position, current_statements_block_node, current_statements_block_position, "Expression_for_loop_statements");
-                if (result === undefined) {
-                    break;
-                }
-                current_statements_block_node = result.node;
-                current_statements_block_position = result.position;
-                current_statements_block = expression.then_statements;
-            }
-            case Core.Expression_enum.If_expression: {
-                const expression = core_statement.expression.data.value as Core.If_expression;
-                const result = go_to_next_block(variable_node_position, current_statements_block_node, current_statements_block_position, "Expression_if_statements");
-                if (result === undefined) {
-                    break;
-                }
-                // TODO find which serie
-                current_statements_block = expression.series[0].then_statements;
-            }
-            case Core.Expression_enum.Switch_expression: {
-                const expression = core_statement.expression.data.value as Core.Switch_expression;
-                const result = go_to_next_block(variable_node_position, current_statements_block_node, current_statements_block_position, "Expression_switch_case_statements");
-                if (result === undefined) {
-                    break;
-                }
-                // TODO find which case
-                current_statements_block = expression.cases[0].statements;
-            }
-            case Core.Expression_enum.While_loop_expression: {
-                const expression = core_statement.expression.data.value as Core.While_loop_expression;
-                const result = go_to_next_block(variable_node_position, current_statements_block_node, current_statements_block_position, "Expression_while_loop_statements");
-                if (result === undefined) {
-                    break;
-                }
-                current_statements_block_node = result.node;
-                current_statements_block_position = result.position;
-                current_statements_block = expression.then_statements;
-            }
-            default: {
-                current_statements_block = undefined;
-            }
+        const result = go_to_next_block_with_expression(core_statement, root, variable_node_position, current_statements_block_node, current_statements_block_position);
+        if (result === undefined) {
+            break;
         }
-
-        if (current_statements_block !== undefined) {
-            current_statement_index = variable_node_position[current_statements_block_position.length];
-        }
+        current_statements_block_node = result.node;
+        current_statements_block_position = result.position;
+        current_statements_block = result.statements;
+        current_statement_index = variable_node_position[current_statements_block_position.length];
     }
 
     return matches.length > 0 ? matches[matches.length - 1] : undefined;
+}
+
+function go_to_next_block_with_expression(
+    core_statement: Core.Statement,
+    root: Parser_node.Node,
+    variable_node_position: number[],
+    current_node: Parser_node.Node,
+    current_node_position: number[]
+): { node: Parser_node.Node, position: number[], statements: Core.Statement[] } | undefined {
+    switch (core_statement.expression.data.type) {
+        case Core.Expression_enum.Block_expression: {
+            const expression = core_statement.expression.data.value as Core.Block_expression;
+            const result = go_to_next_block(variable_node_position, current_node, current_node_position, "Expression_block_statements");
+            if (result !== undefined) {
+                return {
+                    node: result.node,
+                    position: result.position,
+                    statements: expression.statements
+                };
+            }
+            break;
+        }
+        case Core.Expression_enum.For_loop_expression: {
+            const expression = core_statement.expression.data.value as Core.For_loop_expression;
+            const result = go_to_next_block(variable_node_position, current_node, current_node_position, "Expression_for_loop_statements");
+            if (result !== undefined) {
+                return {
+                    node: result.node,
+                    position: result.position,
+                    statements: expression.then_statements
+                };
+            }
+            break;
+        }
+        case Core.Expression_enum.If_expression: {
+            const expression = core_statement.expression.data.value as Core.If_expression;
+            const result = go_to_next_block(variable_node_position, current_node, current_node_position, "Expression_if_statements");
+            if (result !== undefined) {
+                const serie_index = get_if_serie_index(root, result.position);
+                return {
+                    node: result.node,
+                    position: result.position,
+                    statements: expression.series[serie_index].then_statements
+                };
+            }
+            break;
+        }
+        case Core.Expression_enum.Switch_expression: {
+            const expression = core_statement.expression.data.value as Core.Switch_expression;
+            const result = go_to_next_block(variable_node_position, current_node, current_node_position, "Expression_switch_case_statements");
+            if (result !== undefined) {
+                const switch_case_index = result.position[result.position.length - 2];
+                return {
+                    node: result.node,
+                    position: result.position,
+                    statements: expression.cases[switch_case_index].statements
+                };
+            }
+            break;
+        }
+        case Core.Expression_enum.While_loop_expression: {
+            const expression = core_statement.expression.data.value as Core.While_loop_expression;
+            const result = go_to_next_block(variable_node_position, current_node, current_node_position, "Expression_while_loop_statements");
+            if (result !== undefined) {
+                return {
+                    node: result.node,
+                    position: result.position,
+                    statements: expression.then_statements
+                };
+            }
+            break;
+        }
+    }
+
+    return undefined;
+}
+
+function get_if_serie_index(
+    root: Parser_node.Node,
+    node_position: number[]
+): number {
+    let serie_index = 0;
+
+    let current_node_position = Parser_node.get_parent_position(node_position);
+
+    for (let position_index = 0; position_index < node_position.length; ++position_index) {
+
+        const current_node = Parser_node.get_node_at_position(root, current_node_position);
+
+        if (current_node.word.value === "Expression_if_else") {
+            serie_index += 1;
+        }
+        else if (current_node.word.value === "Statement") {
+            break;
+        }
+
+        current_node_position = Parser_node.get_parent_position(current_node_position);
+    }
+
+    return serie_index;
 }
 
 function go_to_next_block(
@@ -135,11 +185,11 @@ function go_to_next_block(
 
     while (current_node_position.length < before_cursor_node_position.length) {
         const child_index = before_cursor_node_position[current_node_position.length];
-        const child_node = current_node.children[child_index];
+        current_node = current_node.children[child_index];
         current_node_position = [...current_node_position, child_index];
 
-        if (child_node.word.value === statements_label) {
-            return { node: child_node, position: current_node_position };
+        if (current_node.word.value === statements_label) {
+            return { node: current_node, position: current_node_position };
         }
     }
 
