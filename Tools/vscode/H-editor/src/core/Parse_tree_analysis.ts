@@ -211,6 +211,31 @@ export async function get_expression_type(
         case Core.Expression_enum.Access_expression: {
             const value = expression.data.value as Core.Access_expression;
 
+            if (value.expression.data.type === Core.Expression_enum.Variable_expression) {
+                const variable_expression = value.expression.data.value as Core.Variable_expression;
+                const import_module = core_module.imports.find(import_module => import_module.alias === variable_expression.name);
+                if (import_module !== undefined) {
+                    const custom_type_reference = {
+                        module_reference: {
+                            name: import_module.module_name
+                        },
+                        name: value.member_name
+                    };
+                    const declaration = await get_custom_type_reference_declaration(custom_type_reference, get_core_module);
+                    if (declaration !== undefined) {
+                        if (declaration.type === Core.Declaration_type.Function) {
+                            const function_value = declaration.value as Core.Function;
+                            return {
+                                data: {
+                                    type: Core.Type_reference_enum.Function_type,
+                                    value: function_value.declaration.type
+                                }
+                            };
+                        }
+                    }
+                }
+            }
+
             const left_hand_side_type = await get_expression_type(core_module, function_value, root, scope_node_position, value.expression, get_core_module);
             if (left_hand_side_type !== undefined) {
                 if (left_hand_side_type.data.type === Core.Type_reference_enum.Custom_type_reference) {
@@ -232,6 +257,15 @@ export async function get_expression_type(
                                 if (member_index !== -1) {
                                     return union_declaration.member_types[member_index];
                                 }
+                            }
+                            else if (declaration.type === Core.Declaration_type.Function) {
+                                const function_value = declaration.value as Core.Function;
+                                return {
+                                    data: {
+                                        type: Core.Type_reference_enum.Function_type,
+                                        value: function_value.declaration.type
+                                    }
+                                };
                             }
                         }
                     }
@@ -258,7 +292,17 @@ export async function get_expression_type(
             return get_expression_type(core_module, function_value, root, scope_node_position, value.left_hand_side, get_core_module);
         }
         case Core.Expression_enum.Call_expression: {
-            // TODO
+            const value = expression.data.value as Core.Call_expression;
+            const left_hand_side_type = await get_expression_type(core_module, function_value, root, scope_node_position, value.expression, get_core_module);
+            if (left_hand_side_type !== undefined) {
+                if (left_hand_side_type.data.type === Core.Type_reference_enum.Function_type) {
+                    const function_type = left_hand_side_type.data.value as Core.Function_type;
+                    if (function_type.output_parameter_types.length > 0) {
+                        // TODO multiple return types
+                        return function_type.output_parameter_types[0];
+                    }
+                }
+            }
             return undefined;
         }
         case Core.Expression_enum.Cast_expression: {

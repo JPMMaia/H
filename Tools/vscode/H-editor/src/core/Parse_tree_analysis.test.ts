@@ -186,23 +186,19 @@ describe("Parse_tree_analysis.get_expression_type", () => {
 
     it("Finds expression type of call expression", async () => {
         const int32_type = create_integer_type(32, true);
-        const expression = Core.create_variable_declaration_expression(
-            "result",
-            false,
-            Core.create_call_expression(
-                Core.create_access_expression(
-                    Core.create_variable_expression("my_external_module", Core.Access_type.Read),
-                    "add",
-                    Core.Access_type.Read
-                ),
-                [
-                    Core.create_constant_expression(int32_type, "1"),
-                    Core.create_constant_expression(int32_type, "2"),
-                ]
-            )
+        const expression = Core.create_call_expression(
+            Core.create_access_expression(
+                Core.create_variable_expression("my_external_module", Core.Access_type.Read),
+                "add",
+                Core.Access_type.Read
+            ),
+            [
+                Core.create_constant_expression(int32_type, "1"),
+                Core.create_constant_expression(int32_type, "2"),
+            ]
         );
 
-        const core_module = Module_examples.create_access_struct_of_imported_module();
+        const core_module = Module_examples.create_call_of_function_of_imported_module();
         const get_core_module = (module_name: string): Promise<Core.Module | undefined> => {
             if (module_name.length === 0 || module_name === core_module.name) {
                 return Promise.resolve(core_module);
@@ -218,6 +214,8 @@ describe("Parse_tree_analysis.get_expression_type", () => {
         const expected_expression_type = int32_type;
         await test_get_expression_type(language_description, Module_examples.create_call_of_function_of_imported_module(), 0, [1, 0, 1, 1, 0, 1, 0, 0], expression, expected_expression_type, get_core_module);
     });
+
+    // TODO call of function type
 
     it("Finds expression type of parenthesis expression", async () => {
         const expression = Core.create_parenthesis_expression(Core.create_constant_expression(create_integer_type(32, true), "0"));
