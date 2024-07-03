@@ -20,33 +20,59 @@ describe("Parse_tree_analysis.find_variable_type", () => {
 
     it("Finds variable type of input parameter", () => {
         const expected_variable_type = create_integer_type(32, true);
-        test_find_variable_type(language_description, Module_examples.create_add_function(), [1, 0, 1, 1, 0, 1, 0, 0, 0], "lhs", expected_variable_type);
+        test_find_variable_type(language_description, Module_examples.create_add_function(), 0, [1, 0, 1, 1, 0, 1, 0, 0, 0], "lhs", expected_variable_type);
     });
 
     it("Finds variable type of variable declared with explicit type", () => {
         const expected_variable_type = create_integer_type(32, true);
-        test_find_variable_type(language_description, Module_examples.create_function_with_variable_declaration_with_type(), [1, 0, 1, 1, 0, 1, 1, 0, 0], "a", expected_variable_type);
+        test_find_variable_type(language_description, Module_examples.create_function_with_variable_declaration_with_type(), 0, [1, 0, 1, 1, 0, 1, 1, 0, 0], "a", expected_variable_type);
     });
 
     it("Finds variable type of variable declared without explicit type", () => {
         const expected_variable_type = create_integer_type(32, true);
-        test_find_variable_type(language_description, Module_examples.create_function_with_variable_declaration(), [1, 0, 1, 1, 0, 1, 1, 0, 0], "a", expected_variable_type);
+        test_find_variable_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0, 0], "a", expected_variable_type);
     });
 
     it("Finds variable type of for loop variable", () => {
         const expected_variable_type = create_integer_type(32, true);
-        test_find_variable_type(language_description, Module_examples.create_for_loop_expressions(), [1, 1, 1, 1, 0, 1, 0, 0, 9, 0, 0], "index", expected_variable_type);
+        test_find_variable_type(language_description, Module_examples.create_for_loop_expressions(), 1, [1, 1, 1, 1, 0, 1, 0, 0, 9, 0, 0], "index", expected_variable_type);
+    });
+
+    it("Finds variable type of variable inside while loop", () => {
+        const expected_variable_type = create_integer_type(32, true);
+        test_find_variable_type(language_description, Module_examples.create_variable_declaration_inside_while_loop(), 0, [1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 3, 1, 0, 0], "index", expected_variable_type);
+    });
+
+    it("Finds variable type of variable inside if statement 0", () => {
+        const expected_variable_type = create_integer_type(32, true);
+        test_find_variable_type(language_description, Module_examples.create_variable_declaration_inside_if_expression(), 0, [1, 0, 1, 1, 0, 1, 0, 0, 3, 1, 0], "a", expected_variable_type);
+    });
+
+    it("Finds variable type of variable inside if statement 1", () => {
+        const expected_variable_type = create_integer_type(32, false);
+        test_find_variable_type(language_description, Module_examples.create_variable_declaration_inside_if_expression(), 0, [1, 0, 1, 1, 0, 1, 0, 0, 5, 2, 1, 0], "b", expected_variable_type);
+    });
+
+    it("Finds variable type of variable inside switch case 0", () => {
+        const expected_variable_type = create_integer_type(32, true);
+        test_find_variable_type(language_description, Module_examples.create_variable_declaration_inside_switch_case(), 0, [1, 0, 1, 1, 0, 1, 0, 0, 3, 0, 3, 1, 0], "a", expected_variable_type);
+    });
+
+    it("Finds variable type of variable inside switch case 1", () => {
+        const expected_variable_type = create_integer_type(32, false);
+        test_find_variable_type(language_description, Module_examples.create_variable_declaration_inside_switch_case(), 0, [1, 0, 1, 1, 0, 1, 0, 0, 3, 1, 3, 1, 0], "b", expected_variable_type);
     });
 });
 
 function test_find_variable_type(
     language_description: Language.Description,
     core_module: Core.Module,
+    declaration_index: number,
     variable_node_position: number[],
     variable_name: string,
     expected_variable_type: Core.Type_reference
 ): void {
-    const function_value = core_module.declarations[0].value as Core.Function;
+    const function_value = core_module.declarations[declaration_index].value as Core.Function;
 
     const root = Parse_tree_convertor.module_to_parse_tree(core_module, language_description.production_rules, language_description.mappings);
     const actual_variable_type = Parse_tree_analysis.find_variable_type(function_value, root, variable_node_position, variable_name);
