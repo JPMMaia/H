@@ -242,24 +242,24 @@ export async function get_expression_type(
                     const custom_type_reference = left_hand_side_type.data.value as Core.Custom_type_reference;
                     const declaration = await get_custom_type_reference_declaration(custom_type_reference, get_core_module);
                     if (declaration !== undefined) {
-                        const underlying_declaration = get_underlying_type_declaration(declaration);
+                        const underlying_declaration = await get_underlying_type_declaration(declaration, get_core_module);
                         if (underlying_declaration !== undefined) {
-                            if (declaration.type === Core.Declaration_type.Struct) {
-                                const struct_declaration = declaration.value as Core.Struct_declaration;
+                            if (underlying_declaration.type === Core.Declaration_type.Struct) {
+                                const struct_declaration = underlying_declaration.value as Core.Struct_declaration;
                                 const member_index = struct_declaration.member_names.findIndex(member_name => member_name === value.member_name);
                                 if (member_index !== -1) {
                                     return struct_declaration.member_types[member_index];
                                 }
                             }
-                            else if (declaration.type === Core.Declaration_type.Union) {
-                                const union_declaration = declaration.value as Core.Union_declaration;
+                            else if (underlying_declaration.type === Core.Declaration_type.Union) {
+                                const union_declaration = underlying_declaration.value as Core.Union_declaration;
                                 const member_index = union_declaration.member_names.findIndex(member_name => member_name === value.member_name);
                                 if (member_index !== -1) {
                                     return union_declaration.member_types[member_index];
                                 }
                             }
-                            else if (declaration.type === Core.Declaration_type.Function) {
-                                const function_value = declaration.value as Core.Function;
+                            else if (underlying_declaration.type === Core.Declaration_type.Function) {
+                                const function_value = underlying_declaration.value as Core.Function;
                                 return {
                                     data: {
                                         type: Core.Type_reference_enum.Function_type,
@@ -369,11 +369,33 @@ async function get_custom_type_reference_declaration(
     return declaration;
 }
 
-function get_underlying_type_declaration(
-    declaration: Core.Declaration
-): Core.Declaration | undefined {
-    // TODO if declaration is alias, then get declaration recursively until it's not an alias
-    return declaration;
+async function get_underlying_type_declaration(
+    declaration: Core.Declaration,
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Core.Declaration | undefined> {
+
+    if (declaration.type !== Core.Declaration_type.Alias) {
+        return declaration;
+    }
+
+    let current_declaration = declaration;
+
+    while (current_declaration.type === Core.Declaration_type.Alias) {
+        const alias_type_declaration = current_declaration.value as Core.Alias_type_declaration;
+        if (alias_type_declaration.type.length === 0 || alias_type_declaration.type[0].data.type !== Core.Type_reference_enum.Custom_type_reference) {
+            return undefined;
+        }
+
+        const custom_type_reference = alias_type_declaration.type[0].data.value as Core.Custom_type_reference;
+        const next_declaration = await get_custom_type_reference_declaration(custom_type_reference, get_core_module);
+        if (next_declaration === undefined) {
+            return undefined;
+        }
+
+        current_declaration = next_declaration;
+    }
+
+    return current_declaration;
 }
 
 function create_pointer_type(element_type: Core.Type_reference[], is_mutable: boolean): Core.Type_reference {

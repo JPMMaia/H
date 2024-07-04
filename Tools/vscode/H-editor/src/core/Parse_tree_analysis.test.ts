@@ -3,11 +3,13 @@ import "mocha";
 import * as assert from "assert";
 
 import * as Core from "./Core_intermediate_representation";
+import * as Document from "./Document";
 import * as Language from "./Language";
 import * as Module_examples from "./Module_examples";
 import * as Storage_cache from "./Storage_cache";
 import * as Parse_tree_analysis from "./Parse_tree_analysis";
 import * as Parse_tree_convertor from "./Parse_tree_convertor";
+import * as Text_change from "./Text_change";
 
 describe("Parse_tree_analysis.find_variable_type", () => {
 
@@ -136,7 +138,36 @@ describe("Parse_tree_analysis.get_expression_type", () => {
         await test_get_expression_type(language_description, core_module, 0, [1, 0, 1, 1, 0, 1, 1, 0, 0], expression, expected_expression_type, get_core_module);
     });
 
-    // TODO test access through alias type
+    it("Finds expression type of access expression of struct through alias", async () => {
+
+        const program = `
+module Test;
+
+struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = 0;
+}
+
+using My_alias_0 = My_struct;
+using My_alias_1 = My_alias_0;
+
+function run() -> ()
+{
+    var instance: My_alias_1 = {};
+    var a = instance.a;
+}
+`;
+
+        const expression = Core.create_access_expression(
+            Core.create_variable_expression("instance", Core.Access_type.Read),
+            "b",
+            Core.Access_type.Read
+        );
+        const expected_expression_type = create_integer_type(32, true);
+
+        await test_get_expression_type(language_description, create_core_module_from_text(language_description, program), 3, [1, 3, 1, 1, 0, 1, 1, 0, 0], expression, expected_expression_type);
+    });
 
     it("Finds expression type of binary expression with numeric operator", async () => {
         const expression = Core.create_binary_expression(
@@ -214,8 +245,6 @@ describe("Parse_tree_analysis.get_expression_type", () => {
         const expected_expression_type = int32_type;
         await test_get_expression_type(language_description, Module_examples.create_call_of_function_of_imported_module(), 0, [1, 0, 1, 1, 0, 1, 0, 0], expression, expected_expression_type, get_core_module);
     });
-
-    // TODO call of function type
 
     it("Finds expression type of parenthesis expression", async () => {
         const expression = Core.create_parenthesis_expression(Core.create_constant_expression(create_integer_type(32, true), "0"));
@@ -342,4 +371,23 @@ function create_default_get_core_module(core_module: Core.Module): (module_name:
         }
         return Promise.resolve(undefined);
     };
+}
+
+function create_core_module_from_text(
+    language_description: Language.Description,
+    text: string
+): Core.Module {
+    const text_changes: Text_change.Text_change[] = [
+        {
+            range: {
+                start: 0,
+                end: 0
+            },
+            text: text
+        }
+    ];
+
+    const document_state = Document.create_empty_state("", language_description.production_rules);
+    const new_document_state = Text_change.update(language_description, document_state, text_changes, text);
+    return new_document_state.module;
 }
