@@ -384,8 +384,15 @@ async function get_expression_access_items(
             }
 
             const second_component = components[1];
-            const declaration = await find_core_declaration_of_variable_type(server_data, workspace_folder_uri, imported_module, second_component, root, before_cursor_node_position);
-            if (declaration !== undefined) {
+
+            const expression = Core.create_access_expression(
+                Core.create_variable_expression(first_component, Core.Access_type.Read),
+                second_component,
+                Core.Access_type.Read
+            );
+            const module_declaration = await find_core_declaration_of_expression_type(server_data, workspace_folder_uri, imported_module, root, before_cursor_node_position, expression, true);
+            if (module_declaration !== undefined) {
+                const declaration = module_declaration.declaration;
                 if (declaration.type === Core.Declaration_type.Enum) {
                     const enum_declaration = declaration.value as Core.Enum_declaration;
                     return get_enum_value_completion_items(enum_declaration);
@@ -394,45 +401,62 @@ async function get_expression_access_items(
         }
     }
 
-    const declaration = await find_core_declaration_of_variable_type(server_data, workspace_folder_uri, core_module, first_component, root, before_cursor_node_position);
-    if (declaration !== undefined) {
-        if (declaration.type === Core.Declaration_type.Enum) {
-            const enum_declaration = declaration.value as Core.Enum_declaration;
-            return get_enum_value_completion_items(enum_declaration);
-        }
-        else if (declaration.type === Core.Declaration_type.Struct) {
-            const struct_declaration = declaration.value as Core.Struct_declaration;
-            return get_struct_member_completion_items(struct_declaration);
-        }
-        else if (declaration.type === Core.Declaration_type.Union) {
-            const union_declaration = declaration.value as Core.Union_declaration;
-            return get_union_member_completion_items(union_declaration);
+    {
+        const expression = Core.create_variable_expression(first_component, Core.Access_type.Read);
+        const module_declaration = await find_core_declaration_of_expression_type(server_data, workspace_folder_uri, core_module, root, before_cursor_node_position, expression, true);
+        if (module_declaration !== undefined) {
+            const declaration = module_declaration.declaration;
+            if (declaration.type === Core.Declaration_type.Enum) {
+                const enum_declaration = declaration.value as Core.Enum_declaration;
+                return get_enum_value_completion_items(enum_declaration);
+            }
+            else if (declaration.type === Core.Declaration_type.Struct) {
+                const struct_declaration = declaration.value as Core.Struct_declaration;
+                return get_struct_member_completion_items(struct_declaration);
+            }
+            else if (declaration.type === Core.Declaration_type.Union) {
+                const union_declaration = declaration.value as Core.Union_declaration;
+                return get_union_member_completion_items(union_declaration);
+            }
         }
     }
 
     return [];
 }
 
-async function find_core_declaration_of_variable_type(
+async function find_core_declaration_of_expression_type(
     server_data: Server_data.Server_data,
     workspace_folder_uri: string,
     core_module: Core.Module,
-    variable_name: string,
     root: Parser_node.Node,
-    before_cursor_node_position: number[]
-): Promise<Core.Declaration | undefined> {
+    before_cursor_node_position: number[],
+    expression: Core.Expression,
+    underlying_declaration: boolean
+): Promise<{ module_name: string, declaration: Core.Declaration } | undefined> {
     const function_value = get_current_function(core_module, root, before_cursor_node_position);
     if (function_value !== undefined) {
 
-        // TODO
-        const get_core_module = (module_name: string): Promise<Core.Module | undefined> => { return Promise.resolve(undefined); };
+        const get_core_module = (module_name: string): Promise<Core.Module | undefined> => {
 
-        const variable_type = await Parse_tree_analysis.find_variable_type(core_module, function_value.value as Core.Function, root, before_cursor_node_position, variable_name, get_core_module);
-        if (variable_type !== undefined) {
-            if (variable_type.data.type === Core.Type_reference_enum.Custom_type_reference) {
-                const custom_type_reference = variable_type.data.value as Core.Custom_type_reference;
-                const declaration: Core.Declaration | undefined = find_custom_type_reference_declaration(custom_type_reference);
-                return declaration;
+            if (core_module.name === module_name) {
+                return Promise.resolve(core_module);
+            }
+
+            return Server_data.get_core_module(server_data, workspace_folder_uri, module_name);
+        };
+
+        const expression_type = await Parse_tree_analysis.get_expression_type(core_module, function_value.value as Core.Function, root, before_cursor_node_position, expression, get_core_module);
+        if (expression_type !== undefined) {
+            if (expression_type.data.type === Core.Type_reference_enum.Custom_type_reference) {
+                const custom_type_reference = expression_type.data.value as Core.Custom_type_reference;
+                const module_declaration = await Parse_tree_analysis.get_custom_type_reference_declaration(custom_type_reference, get_core_module);
+
+                if (module_declaration !== undefined && underlying_declaration) {
+                    return await Parse_tree_analysis.get_underlying_type_declaration(module_declaration.module_name, module_declaration.declaration, get_core_module);
+                }
+                else {
+                    return module_declaration;
+                }
             }
         }
     }
@@ -440,16 +464,25 @@ async function find_core_declaration_of_variable_type(
     return undefined;
 }
 
-function find_custom_type_reference_declaration(
-    custom_type_reference: Core.Custom_type_reference
-): Core.Declaration | undefined {
-    return undefined;
-}
-
 function get_enum_value_completion_items(
     enum_declaration: Core.Enum_declaration
 ): vscode.CompletionItem[] {
-    return [];
+
+    const items: vscode.CompletionItem[] = [];
+
+    for (let index = 0; index < enum_declaration.values.length; ++index) {
+        const member = enum_declaration.values[index];
+
+        items.push(
+            {
+                label: member.name,
+                kind: vscode.CompletionItemKind.EnumMember,
+                data: 0
+            }
+        );
+    }
+
+    return items;
 }
 
 function get_struct_member_completion_items(

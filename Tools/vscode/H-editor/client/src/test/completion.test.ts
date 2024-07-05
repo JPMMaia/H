@@ -257,9 +257,9 @@ suite("Should do completion", () => {
 		const document_uri = get_document_uri('completion_enum_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(11, 26), {
 			items: [
+				{ label: "High", kind: vscode.CompletionItemKind.EnumMember },
 				{ label: "Low", kind: vscode.CompletionItemKind.EnumMember },
 				{ label: "Medium", kind: vscode.CompletionItemKind.EnumMember },
-				{ label: "High", kind: vscode.CompletionItemKind.EnumMember },
 			]
 		});
 	});
@@ -268,9 +268,9 @@ suite("Should do completion", () => {
 		const document_uri = get_document_uri('completion_enum_1.hltxt');
 		await test_completion(document_uri, new vscode.Position(13, 28), {
 			items: [
+				{ label: "High", kind: vscode.CompletionItemKind.EnumMember },
 				{ label: "Low", kind: vscode.CompletionItemKind.EnumMember },
 				{ label: "Medium", kind: vscode.CompletionItemKind.EnumMember },
-				{ label: "High", kind: vscode.CompletionItemKind.EnumMember },
 			]
 		});
 	});

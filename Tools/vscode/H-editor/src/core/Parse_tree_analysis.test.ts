@@ -94,6 +94,53 @@ describe("Parse_tree_analysis.get_expression_type", () => {
         language_description = Language.create_default_description(cache, "out/tests/graphviz.gv");
     });
 
+    it("Finds expression type of access expression of enum of imported module", async () => {
+
+        const program_a = `
+module Module_A;
+
+export enum Precision
+{
+    Low = 0,
+    Medium = 1,
+    High = 2,
+}
+`;
+
+        const program_b = `
+module Module_B;
+
+import Module_A as my_import;
+
+function run() -> ()
+{
+    var precision = Precision.Low;
+}
+`;
+
+        const expression = Core.create_access_expression(
+            Core.create_variable_expression("my_import", Core.Access_type.Read),
+            "Precision",
+            Core.Access_type.Read
+        );
+        const expected_expression_type = create_custom_type_reference("Module_A", "Precision");
+        const core_module = create_core_module_from_text(language_description, program_b);
+
+        const get_core_module = (module_name: string): Promise<Core.Module | undefined> => {
+            if (module_name.length === 0 || module_name === core_module.name) {
+                return Promise.resolve(core_module);
+            }
+
+            if (module_name === "Module_A") {
+                return Promise.resolve(create_core_module_from_text(language_description, program_a));
+            }
+
+            return Promise.resolve(undefined);
+        };
+
+        await test_get_expression_type(language_description, core_module, 0, [1, 0, 1, 1, 0, 1, 0], expression, expected_expression_type, get_core_module);
+    });
+
     it("Finds expression type of access expression of struct", async () => {
         const expression = Core.create_access_expression(
             Core.create_variable_expression("instance_0", Core.Access_type.Read),
@@ -288,6 +335,31 @@ function run() -> ()
         const expected_expression_type = create_integer_type(32, true);
         await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, expected_expression_type);
     });
+
+    it("Finds expression type of variable expression of enum", async () => {
+
+        const program = `
+module Test;
+
+enum Precision
+{
+    Low = 0,
+    Medium = 1,
+    High = 2,
+}
+
+function run() -> ()
+{
+    var precision = Precision.Low;
+}
+`;
+
+        const expression = Core.create_variable_expression("Precision", Core.Access_type.Read);
+        const expected_expression_type = create_custom_type_reference("Test", "Precision");
+        const core_module = create_core_module_from_text(language_description, program);
+
+        await test_get_expression_type(language_description, core_module, 1, [1, 1, 1, 1, 0, 1, 0], expression, expected_expression_type);
+    });
 });
 
 async function test_get_expression_type(
@@ -346,6 +418,20 @@ function create_pointer_type(element_type: Core.Type_reference[], is_mutable: bo
             value: {
                 element_type: element_type,
                 is_mutable: is_mutable
+            }
+        }
+    };
+}
+
+function create_custom_type_reference(module_name: string, name: string): Core.Type_reference {
+    return {
+        data: {
+            type: Core.Type_reference_enum.Custom_type_reference,
+            value: {
+                module_reference: {
+                    name: module_name
+                },
+                name: name
             }
         }
     };
