@@ -87,7 +87,13 @@ export function update(
                 );
 
                 Parser.apply_changes(state.parse_tree, parse_result.changes);
+
+                const previous_module_name = state.module.name;
                 Module_change.update_module(state.module, module_changes);
+                if (previous_module_name !== state.module.name) {
+                    Parse_tree_convertor.update_custom_type_references_module_name(state.module, previous_module_name, state.module.name);
+                }
+
                 Parse_tree_convertor.update_import_module_usages(state.module);
             }
 
