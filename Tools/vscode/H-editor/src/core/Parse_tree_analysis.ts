@@ -221,8 +221,9 @@ export async function get_expression_type(
                         },
                         name: value.member_name
                     };
-                    const declaration = await get_custom_type_reference_declaration(custom_type_reference, get_core_module);
-                    if (declaration !== undefined) {
+                    const module_declaration = await get_custom_type_reference_declaration(custom_type_reference, get_core_module);
+                    if (module_declaration !== undefined) {
+                        const declaration = module_declaration.declaration;
                         if (declaration.type === Core.Declaration_type.Function) {
                             const function_value = declaration.value as Core.Function;
                             return {
@@ -232,6 +233,9 @@ export async function get_expression_type(
                                 }
                             };
                         }
+                        else {
+                            return create_custom_type_reference(import_module.module_name, declaration.name);
+                        }
                     }
                 }
             }
@@ -240,10 +244,11 @@ export async function get_expression_type(
             if (left_hand_side_type !== undefined) {
                 if (left_hand_side_type.data.type === Core.Type_reference_enum.Custom_type_reference) {
                     const custom_type_reference = left_hand_side_type.data.value as Core.Custom_type_reference;
-                    const declaration = await get_custom_type_reference_declaration(custom_type_reference, get_core_module);
-                    if (declaration !== undefined) {
-                        const underlying_declaration = await get_underlying_type_declaration(declaration, get_core_module);
-                        if (underlying_declaration !== undefined) {
+                    const module_declaration = await get_custom_type_reference_declaration(custom_type_reference, get_core_module);
+                    if (module_declaration !== undefined) {
+                        const underlying_module_declaration = await get_underlying_type_declaration(module_declaration.module_name, module_declaration.declaration, get_core_module);
+                        if (underlying_module_declaration !== undefined) {
+                            const underlying_declaration = underlying_module_declaration.declaration;
                             if (underlying_declaration.type === Core.Declaration_type.Struct) {
                                 const struct_declaration = underlying_declaration.value as Core.Struct_declaration;
                                 const member_index = struct_declaration.member_names.findIndex(member_name => member_name === value.member_name);
@@ -348,17 +353,26 @@ export async function get_expression_type(
         }
         case Core.Expression_enum.Variable_expression: {
             const value = expression.data.value as Core.Variable_expression;
-            return find_variable_type(core_module, function_value, root, scope_node_position, value.name, get_core_module);
+
+            const variable_type = await find_variable_type(core_module, function_value, root, scope_node_position, value.name, get_core_module);
+            if (variable_type !== undefined) {
+                return variable_type;
+            }
+
+            const declaration = core_module.declarations.find(declaration => declaration.name === value.name);
+            if (declaration !== undefined) {
+                return create_custom_type_reference(core_module.name, declaration.name);
+            }
         }
     }
 
     return undefined;
 }
 
-async function get_custom_type_reference_declaration(
+export async function get_custom_type_reference_declaration(
     custom_type_reference: Core.Custom_type_reference,
     get_core_module: (module_name: string) => Promise<Core.Module | undefined>
-): Promise<Core.Declaration | undefined> {
+): Promise<{ module_name: string, declaration: Core.Declaration } | undefined> {
 
     const core_module = await get_core_module(custom_type_reference.module_reference.name);
     if (core_module === undefined) {
@@ -366,18 +380,30 @@ async function get_custom_type_reference_declaration(
     }
 
     const declaration = core_module.declarations.find(declaration => declaration.name === custom_type_reference.name);
-    return declaration;
-}
-
-async function get_underlying_type_declaration(
-    declaration: Core.Declaration,
-    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
-): Promise<Core.Declaration | undefined> {
-
-    if (declaration.type !== Core.Declaration_type.Alias) {
-        return declaration;
+    if (declaration === undefined) {
+        return undefined;
     }
 
+    return {
+        module_name: core_module.name,
+        declaration: declaration
+    };
+}
+
+export async function get_underlying_type_declaration(
+    module_name: string,
+    declaration: Core.Declaration,
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<{ module_name: string, declaration: Core.Declaration } | undefined> {
+
+    if (declaration.type !== Core.Declaration_type.Alias) {
+        return {
+            module_name: module_name,
+            declaration: declaration
+        };
+    }
+
+    let current_module_name = module_name;
     let current_declaration = declaration;
 
     while (current_declaration.type === Core.Declaration_type.Alias) {
@@ -387,15 +413,23 @@ async function get_underlying_type_declaration(
         }
 
         const custom_type_reference = alias_type_declaration.type[0].data.value as Core.Custom_type_reference;
+        if (custom_type_reference.module_reference.name.length === 0) {
+            custom_type_reference.module_reference.name = current_module_name;
+        }
+
         const next_declaration = await get_custom_type_reference_declaration(custom_type_reference, get_core_module);
         if (next_declaration === undefined) {
             return undefined;
         }
 
-        current_declaration = next_declaration;
+        current_module_name = next_declaration.module_name;
+        current_declaration = next_declaration.declaration;
     }
 
-    return current_declaration;
+    return {
+        module_name: current_module_name,
+        declaration: current_declaration
+    };
 }
 
 function create_pointer_type(element_type: Core.Type_reference[], is_mutable: boolean): Core.Type_reference {
@@ -428,6 +462,18 @@ function create_custom_type_reference(module_name: string, name: string): Core.T
                     name: module_name
                 },
                 name: name
+            }
+        }
+    };
+}
+
+function create_integer_type(number_of_bits: number, is_signed: boolean): Core.Type_reference {
+    return {
+        data: {
+            type: Core.Type_reference_enum.Integer_type,
+            value: {
+                number_of_bits: number_of_bits,
+                is_signed: is_signed
             }
         }
     };
