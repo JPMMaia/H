@@ -793,6 +793,7 @@ export function parse_tree_to_module(
     Module_change.update_module(module, new_changes);
 
     update_import_module_usages(module);
+    update_custom_type_references_module_name(module, "", module.name);
 
     {
         const comments = mappings.extract_comments_from_node(root);
@@ -1010,38 +1011,31 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
     }
 }
 
-export function update_import_module_usages(module: Core_intermediate_representation.Module): void {
+function visit_expressions_of_module(module: Core_intermediate_representation.Module, predicate: (expression: Core_intermediate_representation.Expression) => void): void {
+    for (const declaration of module.declarations) {
+        if (declaration.type === Core_intermediate_representation.Declaration_type.Function) {
+            const function_value = declaration.value as Core_intermediate_representation.Function;
 
-    for (const import_module of module.imports) {
-        import_module.usages = [];
-    }
-
-    const add_unique_usage = (module_name: string, usage: string): void => {
-        if (module_name === "") {
-            return;
-        }
-
-        const import_module = module.imports.find(element => element.alias === module_name);
-        if (import_module !== undefined) {
-            const index = import_module.usages.findIndex(value => value === usage);
-            if (index === -1) {
-                import_module.usages.push(usage);
+            if (function_value.definition !== undefined) {
+                for (const statement of function_value.definition.statements) {
+                    visit_expressions(statement.expression, predicate);
+                }
             }
         }
-    };
+    }
+}
 
+function visit_types(module: Core_intermediate_representation.Module, visitor: (type: Core_intermediate_representation.Type_reference) => void): void {
     const process_type = (type: Core_intermediate_representation.Type_reference): void => {
+
+        visitor(type);
+
         switch (type.data.type) {
             case Core_intermediate_representation.Type_reference_enum.Constant_array_type: {
                 const value = type.data.value as Core_intermediate_representation.Constant_array_type;
                 if (value.value_type.length > 0) {
                     process_type(value.value_type[0]);
                 }
-                break;
-            }
-            case Core_intermediate_representation.Type_reference_enum.Custom_type_reference: {
-                const value = type.data.value as Core_intermediate_representation.Custom_type_reference;
-                add_unique_usage(value.module_reference.name, value.name);
                 break;
             }
             case Core_intermediate_representation.Type_reference_enum.Function_type: {
@@ -1062,6 +1056,7 @@ export function update_import_module_usages(module: Core_intermediate_representa
                 break;
             }
             case Core_intermediate_representation.Type_reference_enum.Builtin_type_reference:
+            case Core_intermediate_representation.Type_reference_enum.Custom_type_reference:
             case Core_intermediate_representation.Type_reference_enum.Fundamental_type:
             case Core_intermediate_representation.Type_reference_enum.Integer_type: {
                 break;
@@ -1070,32 +1065,6 @@ export function update_import_module_usages(module: Core_intermediate_representa
                 const message = `Parse_tree_convertor.update_import_module_usages(): Type '${type.data.type}' not handled!`;
                 onThrowError(message);
                 throw Error(message);
-            }
-        }
-    };
-
-    const process_expression = (expression: Core_intermediate_representation.Expression): void => {
-        switch (expression.data.type) {
-            case Core_intermediate_representation.Expression_enum.Access_expression: {
-                const access_expression = expression.data.value as Core_intermediate_representation.Access_expression;
-                if (access_expression.expression.data.type === Core_intermediate_representation.Expression_enum.Variable_expression) {
-                    const variable_expression = access_expression.expression.data.value as Core_intermediate_representation.Variable_expression;
-                    add_unique_usage(variable_expression.name, access_expression.member_name);
-                }
-                break;
-            }
-            case Core_intermediate_representation.Expression_enum.Cast_expression: {
-                const cast_expression = expression.data.value as Core_intermediate_representation.Cast_expression;
-                process_type(cast_expression.destination_type);
-                break;
-            }
-            case Core_intermediate_representation.Expression_enum.Variable_declaration_with_type_expression: {
-                const variable_declaration_with_type_expression = expression.data.value as Core_intermediate_representation.Variable_declaration_with_type_expression;
-                process_type(variable_declaration_with_type_expression.type);
-                break;
-            }
-            default: {
-                break;
             }
         }
     };
@@ -1118,12 +1087,6 @@ export function update_import_module_usages(module: Core_intermediate_representa
             for (const type of function_value.declaration.type.output_parameter_types) {
                 process_type(type);
             }
-
-            if (function_value.definition !== undefined) {
-                for (const statement of function_value.definition.statements) {
-                    visit_expressions(statement.expression, process_expression);
-                }
-            }
         }
         else if (declaration.type === Core_intermediate_representation.Declaration_type.Struct) {
             const struct_declaration = declaration.value as Core_intermediate_representation.Struct_declaration;
@@ -1141,7 +1104,83 @@ export function update_import_module_usages(module: Core_intermediate_representa
         }
     }
 
+    const process_expression = (expression: Core_intermediate_representation.Expression): void => {
+        switch (expression.data.type) {
+            case Core_intermediate_representation.Expression_enum.Cast_expression: {
+                const cast_expression = expression.data.value as Core_intermediate_representation.Cast_expression;
+                process_type(cast_expression.destination_type);
+                break;
+            }
+            case Core_intermediate_representation.Expression_enum.Variable_declaration_with_type_expression: {
+                const variable_declaration_with_type_expression = expression.data.value as Core_intermediate_representation.Variable_declaration_with_type_expression;
+                process_type(variable_declaration_with_type_expression.type);
+                break;
+            }
+            default: {
+                break;
+            }
+        }
+    };
+
+    visit_expressions_of_module(module, process_expression);
+}
+
+export function update_import_module_usages(module: Core_intermediate_representation.Module): void {
+
+    for (const import_module of module.imports) {
+        import_module.usages = [];
+    }
+
+    const add_unique_usage = (module_name: string, usage: string): void => {
+        if (module_name === "") {
+            return;
+        }
+
+        const import_module = module.imports.find(element => element.alias === module_name);
+        if (import_module !== undefined) {
+            const index = import_module.usages.findIndex(value => value === usage);
+            if (index === -1) {
+                import_module.usages.push(usage);
+            }
+        }
+    };
+
+    const process_type = (type: Core_intermediate_representation.Type_reference): void => {
+        if (type.data.type === Core_intermediate_representation.Type_reference_enum.Custom_type_reference) {
+            const custom_type_reference = type.data.value as Core_intermediate_representation.Custom_type_reference;
+            add_unique_usage(custom_type_reference.module_reference.name, custom_type_reference.name);
+        }
+    };
+
+    visit_types(module, process_type);
+
+    const process_expression = (expression: Core_intermediate_representation.Expression): void => {
+        if (expression.data.type === Core_intermediate_representation.Expression_enum.Access_expression) {
+            const access_expression = expression.data.value as Core_intermediate_representation.Access_expression;
+            if (access_expression.expression.data.type === Core_intermediate_representation.Expression_enum.Variable_expression) {
+                const variable_expression = access_expression.expression.data.value as Core_intermediate_representation.Variable_expression;
+                add_unique_usage(variable_expression.name, access_expression.member_name);
+            }
+        }
+    };
+
+    visit_expressions_of_module(module, process_expression);
+
     for (const import_module of module.imports) {
         import_module.usages.sort();
     }
+}
+
+export function update_custom_type_references_module_name(module: Core_intermediate_representation.Module, old_module_name: string, new_module_name: string): void {
+
+    const process_type = (type: Core_intermediate_representation.Type_reference): void => {
+        if (type.data.type === Core_intermediate_representation.Type_reference_enum.Custom_type_reference) {
+            const custom_type_reference = type.data.value as Core_intermediate_representation.Custom_type_reference;
+            if (custom_type_reference.module_reference.name.length === 0 || custom_type_reference.module_reference.name === old_module_name) {
+                custom_type_reference.module_reference.name = new_module_name;
+            }
+        }
+    };
+
+    visit_types(module, process_type);
 }

@@ -2912,7 +2912,7 @@ export function create_using_alias(): IR.Module {
                     declaration: {
                         name: "use_alias",
                         type: {
-                            input_parameter_types: [create_custom_type_reference("", "My_int")],
+                            input_parameter_types: [create_custom_type_reference("Alias", "My_int")],
                             output_parameter_types: [],
                             is_variadic: false,
                         },
@@ -2978,7 +2978,7 @@ export function create_using_enums(): IR.Module {
                     declaration: {
                         name: "use_enums",
                         type: {
-                            input_parameter_types: [create_custom_type_reference("", "My_enum")],
+                            input_parameter_types: [create_custom_type_reference("Enums", "My_enum")],
                             output_parameter_types: [int32_type],
                             is_variadic: false,
                         },
@@ -3123,7 +3123,7 @@ export function create_using_enum_flags(): IR.Module {
                     declaration: {
                         name: "use_enums",
                         type: {
-                            input_parameter_types: [create_custom_type_reference("", "My_enum_flag")],
+                            input_parameter_types: [create_custom_type_reference("Enum_flags", "My_enum_flag")],
                             output_parameter_types: [int32_type],
                             is_variadic: false,
                         },
@@ -3341,9 +3341,9 @@ export function create_using_structs(): IR.Module {
                 value: {
                     name: "My_struct_2",
                     member_types: [
-                        create_custom_type_reference("", "My_struct"),
-                        create_custom_type_reference("", "My_struct"),
-                        create_custom_type_reference("", "My_struct"),
+                        create_custom_type_reference("Structs", "My_struct"),
+                        create_custom_type_reference("Structs", "My_struct"),
+                        create_custom_type_reference("Structs", "My_struct"),
                     ],
                     member_names: [
                         "a",
@@ -3394,7 +3394,7 @@ export function create_using_structs(): IR.Module {
                     declaration: {
                         name: "use_structs",
                         type: {
-                            input_parameter_types: [create_custom_type_reference("", "My_struct")],
+                            input_parameter_types: [create_custom_type_reference("Structs", "My_struct")],
                             output_parameter_types: [],
                             is_variadic: false,
                         },
@@ -3421,7 +3421,7 @@ export function create_using_structs(): IR.Module {
                                 IR.create_variable_declaration_with_type_expression(
                                     "instance_0",
                                     false,
-                                    create_custom_type_reference("", "My_struct"),
+                                    create_custom_type_reference("Structs", "My_struct"),
                                     create_statement(
                                         IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [])
                                     )
@@ -3432,7 +3432,7 @@ export function create_using_structs(): IR.Module {
                                 IR.create_variable_declaration_with_type_expression(
                                     "instance_1",
                                     false,
-                                    create_custom_type_reference("", "My_struct"),
+                                    create_custom_type_reference("Structs", "My_struct"),
                                     create_statement(
                                         IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [
                                             {
@@ -3450,7 +3450,7 @@ export function create_using_structs(): IR.Module {
                                 IR.create_variable_declaration_with_type_expression(
                                     "instance_2",
                                     false,
-                                    create_custom_type_reference("", "My_struct_2"),
+                                    create_custom_type_reference("Structs", "My_struct_2"),
                                     create_statement(
                                         IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [])
                                     )
@@ -3461,7 +3461,7 @@ export function create_using_structs(): IR.Module {
                                 IR.create_variable_declaration_with_type_expression(
                                     "instance_3",
                                     false,
-                                    create_custom_type_reference("", "My_struct_2"),
+                                    create_custom_type_reference("Structs", "My_struct_2"),
                                     create_statement(
                                         IR.create_instantiate_expression(IR.Instantiate_expression_type.Explicit, [
                                             {
@@ -3520,7 +3520,7 @@ export function create_using_structs(): IR.Module {
                                 IR.create_variable_declaration_with_type_expression(
                                     "instance_4",
                                     true,
-                                    create_custom_type_reference("", "My_struct"),
+                                    create_custom_type_reference("Structs", "My_struct"),
                                     create_statement(
                                         IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [])
                                     )
@@ -3572,7 +3572,7 @@ export function create_using_structs(): IR.Module {
                     declaration: {
                         name: "pass_struct",
                         type: {
-                            input_parameter_types: [create_custom_type_reference("", "My_struct")],
+                            input_parameter_types: [create_custom_type_reference("Structs", "My_struct")],
                             output_parameter_types: [],
                             is_variadic: false,
                         },
@@ -3595,7 +3595,7 @@ export function create_using_structs(): IR.Module {
                         name: "return_struct",
                         type: {
                             input_parameter_types: [],
-                            output_parameter_types: [create_custom_type_reference("", "My_struct")],
+                            output_parameter_types: [create_custom_type_reference("Structs", "My_struct")],
                             is_variadic: false,
                         },
                         input_parameter_names: [],
@@ -3715,7 +3715,7 @@ export function create_using_unions(): IR.Module {
                     name: "My_union_3",
                     member_types: [
                         int64_type,
-                        create_custom_type_reference("", "My_struct")
+                        create_custom_type_reference("Unions", "My_struct")
                     ],
                     member_names: [
                         "a",
@@ -3732,7 +3732,7 @@ export function create_using_unions(): IR.Module {
                     declaration: {
                         name: "use_unions",
                         type: {
-                            input_parameter_types: [create_custom_type_reference("", "My_union"), create_custom_type_reference("", "My_union_tag")],
+                            input_parameter_types: [create_custom_type_reference("Unions", "My_union"), create_custom_type_reference("Unions", "My_union_tag")],
                             output_parameter_types: [],
                             is_variadic: false,
                         },
@@ -3806,7 +3806,7 @@ export function create_using_unions(): IR.Module {
                                 IR.create_variable_declaration_with_type_expression(
                                     "instance_0",
                                     false,
-                                    create_custom_type_reference("", "My_union"),
+                                    create_custom_type_reference("Unions", "My_union"),
                                     create_statement(
                                         IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [
                                             {
@@ -3823,7 +3823,7 @@ export function create_using_unions(): IR.Module {
                                 IR.create_variable_declaration_with_type_expression(
                                     "instance_1",
                                     false,
-                                    create_custom_type_reference("", "My_union"),
+                                    create_custom_type_reference("Unions", "My_union"),
                                     create_statement(
                                         IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [
                                             {
@@ -3841,7 +3841,7 @@ export function create_using_unions(): IR.Module {
                                 IR.create_variable_declaration_with_type_expression(
                                     "instance_2",
                                     false,
-                                    create_custom_type_reference("", "My_union_2"),
+                                    create_custom_type_reference("Unions", "My_union_2"),
                                     create_statement(
                                         IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [
                                             {
@@ -3858,7 +3858,7 @@ export function create_using_unions(): IR.Module {
                                 IR.create_variable_declaration_with_type_expression(
                                     "instance_3",
                                     false,
-                                    create_custom_type_reference("", "My_union_2"),
+                                    create_custom_type_reference("Unions", "My_union_2"),
                                     create_statement(
                                         IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [
                                             {
@@ -3876,7 +3876,7 @@ export function create_using_unions(): IR.Module {
                                 IR.create_variable_declaration_with_type_expression(
                                     "instance_4",
                                     false,
-                                    create_custom_type_reference("", "My_union_3"),
+                                    create_custom_type_reference("Unions", "My_union_3"),
                                     create_statement(
                                         IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [
                                             {
@@ -3893,7 +3893,7 @@ export function create_using_unions(): IR.Module {
                                 IR.create_variable_declaration_with_type_expression(
                                     "instance_5",
                                     false,
-                                    create_custom_type_reference("", "My_union_3"),
+                                    create_custom_type_reference("Unions", "My_union_3"),
                                     create_statement(
                                         IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [
                                             {
@@ -3910,7 +3910,7 @@ export function create_using_unions(): IR.Module {
                                 IR.create_variable_declaration_with_type_expression(
                                     "instance_6",
                                     false,
-                                    create_custom_type_reference("", "My_union_3"),
+                                    create_custom_type_reference("Unions", "My_union_3"),
                                     create_statement(
                                         IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [
                                             {
@@ -3951,7 +3951,7 @@ export function create_using_unions(): IR.Module {
                                 IR.create_variable_declaration_with_type_expression(
                                     "instance_7",
                                     true,
-                                    create_custom_type_reference("", "My_union"),
+                                    create_custom_type_reference("Unions", "My_union"),
                                     create_statement(
                                         IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [
                                             {
@@ -4020,7 +4020,7 @@ export function create_using_unions(): IR.Module {
                     declaration: {
                         name: "pass_union",
                         type: {
-                            input_parameter_types: [create_custom_type_reference("", "My_union")],
+                            input_parameter_types: [create_custom_type_reference("Unions", "My_union")],
                             output_parameter_types: [],
                             is_variadic: false,
                         },
@@ -4043,7 +4043,7 @@ export function create_using_unions(): IR.Module {
                         name: "return_union",
                         type: {
                             input_parameter_types: [],
-                            output_parameter_types: [create_custom_type_reference("", "My_union")],
+                            output_parameter_types: [create_custom_type_reference("Unions", "My_union")],
                             is_variadic: false,
                         },
                         input_parameter_names: [],
