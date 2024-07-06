@@ -279,9 +279,9 @@ suite("Should do completion", () => {
 		const document_uri = get_document_uri('projects/project_1/completion_enum_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(6, 34), {
 			items: [
+				{ label: "High", kind: vscode.CompletionItemKind.EnumMember },
 				{ label: "Low", kind: vscode.CompletionItemKind.EnumMember },
 				{ label: "Medium", kind: vscode.CompletionItemKind.EnumMember },
-				{ label: "High", kind: vscode.CompletionItemKind.EnumMember },
 			]
 		});
 	});
@@ -290,9 +290,9 @@ suite("Should do completion", () => {
 		const document_uri = get_document_uri('projects/project_1/completion_enum_1.hltxt');
 		await test_completion(document_uri, new vscode.Position(6, 36), {
 			items: [
+				{ label: "High", kind: vscode.CompletionItemKind.EnumMember },
 				{ label: "Low", kind: vscode.CompletionItemKind.EnumMember },
 				{ label: "Medium", kind: vscode.CompletionItemKind.EnumMember },
-				{ label: "High", kind: vscode.CompletionItemKind.EnumMember },
 			]
 		});
 	});
@@ -301,8 +301,8 @@ suite("Should do completion", () => {
 		const document_uri = get_document_uri('completion_struct_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(11, 10), {
 			items: [
-				{ label: "real", kind: vscode.CompletionItemKind.Property },
 				{ label: "imaginary", kind: vscode.CompletionItemKind.Property },
+				{ label: "real", kind: vscode.CompletionItemKind.Property },
 			]
 		});
 	});
@@ -311,8 +311,8 @@ suite("Should do completion", () => {
 		const document_uri = get_document_uri('projects/project_1/completion_struct_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(7, 10), {
 			items: [
-				{ label: "real", kind: vscode.CompletionItemKind.Property },
 				{ label: "imaginary", kind: vscode.CompletionItemKind.Property },
+				{ label: "real", kind: vscode.CompletionItemKind.Property },
 			]
 		});
 	});
@@ -321,9 +321,9 @@ suite("Should do completion", () => {
 		const document_uri = get_document_uri('completion_union_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(14, 10), {
 			items: [
+				{ label: "float32", kind: vscode.CompletionItemKind.Property },
 				{ label: "int16", kind: vscode.CompletionItemKind.Property },
 				{ label: "int32", kind: vscode.CompletionItemKind.Property },
-				{ label: "float32", kind: vscode.CompletionItemKind.Property },
 			]
 		});
 	});
@@ -332,9 +332,9 @@ suite("Should do completion", () => {
 		const document_uri = get_document_uri('projects/project_1/completion_union_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(9, 10), {
 			items: [
+				{ label: "float32", kind: vscode.CompletionItemKind.Property },
 				{ label: "int16", kind: vscode.CompletionItemKind.Property },
 				{ label: "int32", kind: vscode.CompletionItemKind.Property },
-				{ label: "float32", kind: vscode.CompletionItemKind.Property },
 			]
 		});
 	});

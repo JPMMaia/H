@@ -8,6 +8,7 @@ import * as Document from "@core/Document";
 import * as Parser from "@core/Parser";
 import * as Parser_node from "@core/Parser_node";
 import * as Parse_tree_analysis from "@core/Parse_tree_analysis";
+import * as Parse_tree_convertor_mappings from "@core/Parse_tree_convertor_mappings";
 import * as Parse_tree_text_iterator from "@core/Parse_tree_text_iterator";
 import * as Scan_new_changes from "@core/Scan_new_changes";
 import * as Scanner from "@core/Scanner";
@@ -356,22 +357,46 @@ async function get_expression_access_items(
     before_cursor_node_position: number[]
 ): Promise<vscode.CompletionItem[]> {
 
-    const expression_access = Parser_node.get_ancestor_with_name(root, before_cursor_node_position, "Expression_access");
-    if (expression_access === undefined || expression_access.node.children.length === 0) {
+    const ancestor = Parser_node.get_ancestor_with_name(root, before_cursor_node_position, "Expression_access");
+    if (ancestor === undefined) {
         return [];
     }
 
-    const components = expression_access.node.children
-        .filter((_, index) => index % 2 === 0)
-        .map(node => get_terminal_value(node));
+    const expression_access = Parse_tree_convertor_mappings.node_to_expression_access(ancestor.node, server_data.language_description.key_to_production_rule_indices);
+    const expression: Core.Expression = {
+        data: {
+            type: Core.Expression_enum.Access_expression,
+            value: expression_access
+        }
+    };
 
-    if (components.length === 0) {
-        return [];
+    const module_declaration = await find_core_declaration_of_expression_type(server_data, workspace_folder_uri, core_module, root, before_cursor_node_position, expression, true);
+    if (module_declaration !== undefined) {
+        const declaration = module_declaration.declaration;
+        if (declaration.type === Core.Declaration_type.Enum) {
+            const enum_declaration = declaration.value as Core.Enum_declaration;
+            return get_enum_value_completion_items(enum_declaration);
+        }
+        else if (declaration.type === Core.Declaration_type.Struct) {
+            const struct_declaration = declaration.value as Core.Struct_declaration;
+            return get_struct_member_completion_items(struct_declaration);
+        }
+        else if (declaration.type === Core.Declaration_type.Union) {
+            const union_declaration = declaration.value as Core.Union_declaration;
+            return get_union_member_completion_items(union_declaration);
+        }
     }
+    else {
+        const components = ancestor.node.children
+            .filter((_, index) => index % 2 === 0)
+            .map(node => get_terminal_value(node));
 
-    const first_component = components[0];
+        if (components.length === 0) {
+            return [];
+        }
 
-    {
+        const first_component = components[0];
+
         const import_module = core_module.imports.find(value => value.alias === first_component);
         if (import_module !== undefined) {
             const imported_module = await Server_data.get_core_module(server_data, workspace_folder_uri, import_module.module_name);
@@ -381,42 +406,6 @@ async function get_expression_access_items(
 
             if (components.length <= 2) {
                 return get_function_declaration_items(imported_module, true);
-            }
-
-            const second_component = components[1];
-
-            const expression = Core.create_access_expression(
-                Core.create_variable_expression(first_component, Core.Access_type.Read),
-                second_component,
-                Core.Access_type.Read
-            );
-            const module_declaration = await find_core_declaration_of_expression_type(server_data, workspace_folder_uri, imported_module, root, before_cursor_node_position, expression, true);
-            if (module_declaration !== undefined) {
-                const declaration = module_declaration.declaration;
-                if (declaration.type === Core.Declaration_type.Enum) {
-                    const enum_declaration = declaration.value as Core.Enum_declaration;
-                    return get_enum_value_completion_items(enum_declaration);
-                }
-            }
-        }
-    }
-
-    {
-        const expression = Core.create_variable_expression(first_component, Core.Access_type.Read);
-        const module_declaration = await find_core_declaration_of_expression_type(server_data, workspace_folder_uri, core_module, root, before_cursor_node_position, expression, true);
-        if (module_declaration !== undefined) {
-            const declaration = module_declaration.declaration;
-            if (declaration.type === Core.Declaration_type.Enum) {
-                const enum_declaration = declaration.value as Core.Enum_declaration;
-                return get_enum_value_completion_items(enum_declaration);
-            }
-            else if (declaration.type === Core.Declaration_type.Struct) {
-                const struct_declaration = declaration.value as Core.Struct_declaration;
-                return get_struct_member_completion_items(struct_declaration);
-            }
-            else if (declaration.type === Core.Declaration_type.Union) {
-                const union_declaration = declaration.value as Core.Union_declaration;
-                return get_union_member_completion_items(union_declaration);
             }
         }
     }
@@ -488,13 +477,43 @@ function get_enum_value_completion_items(
 function get_struct_member_completion_items(
     struct_declaration: Core.Struct_declaration
 ): vscode.CompletionItem[] {
-    return [];
+
+    const items: vscode.CompletionItem[] = [];
+
+    for (let index = 0; index < struct_declaration.member_names.length; ++index) {
+        const member_name = struct_declaration.member_names[index];
+
+        items.push(
+            {
+                label: member_name,
+                kind: vscode.CompletionItemKind.Property,
+                data: 0
+            }
+        );
+    }
+
+    return items;
 }
 
 function get_union_member_completion_items(
     union_declaration: Core.Union_declaration
 ): vscode.CompletionItem[] {
-    return [];
+
+    const items: vscode.CompletionItem[] = [];
+
+    for (let index = 0; index < union_declaration.member_names.length; ++index) {
+        const member_name = union_declaration.member_names[index];
+
+        items.push(
+            {
+                label: member_name,
+                kind: vscode.CompletionItemKind.Property,
+                data: 0
+            }
+        );
+    }
+
+    return items;
 }
 
 function is_identifier_allowed(
