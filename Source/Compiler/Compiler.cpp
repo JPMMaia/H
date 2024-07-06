@@ -1001,8 +1001,6 @@ namespace h::compiler
         if (!core_module)
             return std::nullopt;
 
-        fix_custom_type_references(*core_module);
-
         return core_module;
     }
 
