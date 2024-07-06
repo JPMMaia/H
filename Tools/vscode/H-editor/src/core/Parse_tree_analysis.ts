@@ -249,11 +249,25 @@ export async function get_expression_type(
                         const underlying_module_declaration = await get_underlying_type_declaration(module_declaration.module_name, module_declaration.declaration, get_core_module);
                         if (underlying_module_declaration !== undefined) {
                             const underlying_declaration = underlying_module_declaration.declaration;
-                            if (underlying_declaration.type === Core.Declaration_type.Struct) {
+                            if (underlying_declaration.type === Core.Declaration_type.Enum) {
+                                const enum_declaration = underlying_declaration.value as Core.Enum_declaration;
+                                const member_index = enum_declaration.values.findIndex(member => member.name === value.member_name);
+                                if (member_index !== -1) {
+                                    // TODO figure out enum value type
+                                    return create_integer_type(32, true);
+                                }
+                                else {
+                                    return create_custom_type_reference(underlying_module_declaration.module_name, enum_declaration.name);
+                                }
+                            }
+                            else if (underlying_declaration.type === Core.Declaration_type.Struct) {
                                 const struct_declaration = underlying_declaration.value as Core.Struct_declaration;
                                 const member_index = struct_declaration.member_names.findIndex(member_name => member_name === value.member_name);
                                 if (member_index !== -1) {
                                     return struct_declaration.member_types[member_index];
+                                }
+                                else {
+                                    return create_custom_type_reference(underlying_module_declaration.module_name, struct_declaration.name);
                                 }
                             }
                             else if (underlying_declaration.type === Core.Declaration_type.Union) {
@@ -261,6 +275,9 @@ export async function get_expression_type(
                                 const member_index = union_declaration.member_names.findIndex(member_name => member_name === value.member_name);
                                 if (member_index !== -1) {
                                     return union_declaration.member_types[member_index];
+                                }
+                                else {
+                                    return create_custom_type_reference(underlying_module_declaration.module_name, union_declaration.name);
                                 }
                             }
                             else if (underlying_declaration.type === Core.Declaration_type.Function) {
@@ -413,9 +430,6 @@ export async function get_underlying_type_declaration(
         }
 
         const custom_type_reference = alias_type_declaration.type[0].data.value as Core.Custom_type_reference;
-        if (custom_type_reference.module_reference.name.length === 0) {
-            custom_type_reference.module_reference.name = current_module_name;
-        }
 
         const next_declaration = await get_custom_type_reference_declaration(custom_type_reference, get_core_module);
         if (next_declaration === undefined) {

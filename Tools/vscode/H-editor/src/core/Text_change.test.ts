@@ -2664,6 +2664,102 @@ function run(a: Node) -> (b: Node)
 
         visit_custom_type_references(new_document_state_2.module, (type: Core_intermediate_representation.Custom_type_reference) => assert.equal(type.module_reference.name, "name_1"));
     });
+
+    it("Handles changing import module name and update custom type references", () => {
+
+        const document_state = Document.create_empty_state("", language_description.production_rules);
+
+        const program = `
+module my_module;
+
+import name_0 as alias_0;
+
+struct My_struct
+{
+    value: alias_0.My_struct = {};
+}
+
+function run(a: alias_0.My_struct) -> (b: alias_0.My_struct)
+{
+    var c: alias_0.My_struct = {};
+    return {};
+}
+`;
+
+        const visit_custom_type_references = (core_module: Core_intermediate_representation.Module, visitor: (type: Core_intermediate_representation.Custom_type_reference) => void): void => {
+            {
+                const declaration = new_document_state.module.declarations[0];
+                const struct_declaration = declaration.value as Core_intermediate_representation.Struct_declaration;
+                const member_type = struct_declaration.member_types[0];
+                const custom_type_reference = member_type.data.value as Core_intermediate_representation.Custom_type_reference;
+                visitor(custom_type_reference);
+            }
+
+            {
+                const declaration = new_document_state.module.declarations[1];
+                const function_value = declaration.value as Core_intermediate_representation.Function;
+
+                {
+                    const function_declaration = function_value.declaration;
+                    {
+                        const custom_type_reference = function_declaration.type.input_parameter_types[0].data.value as Core_intermediate_representation.Custom_type_reference;
+                        visitor(custom_type_reference);
+                    }
+                    {
+                        const custom_type_reference = function_declaration.type.output_parameter_types[0].data.value as Core_intermediate_representation.Custom_type_reference;
+                        visitor(custom_type_reference);
+                    }
+                }
+
+                {
+                    const function_definition = function_value.definition;
+                    if (function_definition !== undefined) {
+                        const variable_declaration = function_definition.statements[0].expression.data.value as Core_intermediate_representation.Variable_declaration_with_type_expression;
+                        const custom_type_reference = variable_declaration.type.data.value as Core_intermediate_representation.Custom_type_reference;
+                        visitor(custom_type_reference);
+                    }
+                }
+            }
+        };
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+        assert.equal(new_document_state.diagnostics.length, 0);
+
+        visit_custom_type_references(new_document_state.module, (type: Core_intermediate_representation.Custom_type_reference) => {
+            assert.equal(type.module_reference.name, "name_0");
+        });
+
+        const text_changes_2: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 27, // TODO
+                    end: 33
+                },
+                text: "name_1"
+            }
+        ];
+
+        const program_2 = apply_text_changes(program, text_changes_2);
+
+        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2);
+        assert.equal(new_document_state_2.pending_text_changes.length, 0);
+        assert.equal(new_document_state_2.diagnostics.length, 0);
+
+        visit_custom_type_references(new_document_state_2.module, (type: Core_intermediate_representation.Custom_type_reference) => {
+            assert.equal(type.module_reference.name, "name_1");
+        });
+    });
 });
 
 describe("Text_change.aggregate_changes", () => {
