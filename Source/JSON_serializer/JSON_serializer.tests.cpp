@@ -379,7 +379,8 @@ namespace h
                             {
                                 .data = Return_expression
                                 {
-                                    .expression = {
+                                    .expression = Expression_index
+                                    {
                                         .expression_index = 1
                                     }
                                 }
@@ -405,7 +406,8 @@ namespace h
                             {
                                 .data = Return_expression
                                 {
-                                    .expression = {
+                                    .expression = Expression_index
+                                    {
                                         .expression_index = 3
                                     }
                                 }
@@ -464,7 +466,8 @@ namespace h
                             {
                                 .data = Return_expression
                                 {
-                                    .expression = {
+                                    .expression = Expression_index
+                                    {
                                         .expression_index = 1
                                     }
                                 }
@@ -491,7 +494,8 @@ namespace h
                             {
                                 .data = Return_expression
                                 {
-                                    .expression = {
+                                    .expression = Expression_index
+                                    {
                                         .expression_index = 3
                                     }
                                 }
