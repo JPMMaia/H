@@ -2,8 +2,8 @@ module completion_struct_0;
 
 struct Complex
 {
-    float real = 0.0f;
-    float imaginary = 0.0f;
+    real: Float32 = 0.0f32;
+    imaginary: Float32 = 0.0f32;
 }
 
 export function run() -> ()
