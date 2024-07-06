@@ -2463,7 +2463,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node, key_
     }
 }
 
-function node_to_expression_access(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Access_expression {
+export function node_to_expression_access(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Access_expression {
 
     const generic_expression_node = node.children[0];
     const variable_expression_node = node.children[2];

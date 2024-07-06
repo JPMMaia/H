@@ -1458,7 +1458,7 @@ export function create_pointer_types(): IR.Module {
 
     const alias_type_declaration: IR.Alias_type_declaration = {
         name: "My_alias",
-        type: [create_pointer_type([create_custom_type_reference("stdio", "FILE")], true)]
+        type: [create_pointer_type([create_custom_type_reference("C.stdio", "FILE")], true)]
     };
 
     const alias_type_value_declaration: IR.Declaration = {
@@ -1478,7 +1478,7 @@ export function create_pointer_types(): IR.Module {
         member_types: [
             int32_type,
             create_pointer_type([int32_type], false),
-            create_pointer_type([create_custom_type_reference("stdio", "FILE")], true)
+            create_pointer_type([create_custom_type_reference("C.stdio", "FILE")], true)
         ],
         member_default_values: [
             create_statement(
@@ -1511,7 +1511,7 @@ export function create_pointer_types(): IR.Module {
         ["my_pointer_to_pointer_to_mutable_integer", create_pointer_type([create_pointer_type([int32_type], true)], false)],
         ["my_pointer_to_mutable_pointer_to_integer", create_pointer_type([create_pointer_type([int32_type], false)], true)],
         ["my_pointer_to_mutable_pointer_to_mutable_integer", create_pointer_type([create_pointer_type([int32_type], true)], true)],
-        ["file_stream", create_pointer_type([create_custom_type_reference("stdio", "FILE")], true)]
+        ["file_stream", create_pointer_type([create_custom_type_reference("C.stdio", "FILE")], true)]
     ];
 
     const function_value_declaration: IR.Declaration = {
