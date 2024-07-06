@@ -813,9 +813,7 @@ export function apply_module_changes(
 
     Module_change.update_module(module, changes);
 
-    if (previous_module_name !== module.name) {
-        update_custom_type_references_module_name(module, previous_module_name, module.name);
-    }
+    update_custom_type_references_module_name(module, previous_module_name, module.name);
 
     update_custom_type_references_import_module_name(module, previous_import_modules);
 
