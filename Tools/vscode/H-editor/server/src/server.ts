@@ -229,7 +229,8 @@ connection.onDidOpenTextDocument((parameters) => {
 	);
 	server_data.documents.set(parameters.textDocument.uri, document);
 
-	const document_state = Document.create_empty_state(parameters.textDocument.uri, server_data.language_description.production_rules);
+	const document_file_path = vscode_uri.URI.parse(parameters.textDocument.uri).fsPath.replace(/\\/g, "/");
+	const document_state = Document.create_empty_state(document_file_path, server_data.language_description.production_rules);
 
 	const text_changes: Text_change.Text_change[] = [
 		{
