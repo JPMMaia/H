@@ -45,7 +45,7 @@ export function update(
         const after_change_node_position = (scanned_input_change.after_change !== undefined && scanned_input_change.after_change.node !== undefined) ? scanned_input_change.after_change.node_position : undefined;
 
         const parse_result = Parser.parse_incrementally(
-            state.document_uri,
+            state.document_file_path,
             state.parse_tree,
             start_change_node_position,
             scanned_input_change.new_words,
@@ -60,7 +60,7 @@ export function update(
         if (parse_result.status === Parser.Parse_status.Accept) {
 
             {
-                const diagnostics = validate_parse_changes(state.document_uri, parse_result.changes);
+                const diagnostics = validate_parse_changes(state.document_file_path, parse_result.changes);
                 if (diagnostics.length > 0) {
                     state.diagnostics.push(...diagnostics);
                     return state;
@@ -73,6 +73,7 @@ export function update(
 
                 state.parse_tree = new_parse_tree;
                 state.module = Parse_tree_convertor.parse_tree_to_module(new_parse_tree, language_description.production_rules, language_description.mappings, language_description.key_to_production_rule_indices);
+                state.module.source_file_path = state.document_file_path;
             }
             else if (state.parse_tree !== undefined) {
                 const simplified_changes = Parser.simplify_changes(state.parse_tree, parse_result.changes);
@@ -97,7 +98,7 @@ export function update(
 
         if (g_debug_validate) {
             const scanned_words = Scanner.scan(text_after_changes, 0, text_after_changes.length, { line: 1, column: 1 });
-            const expected_parse_tree = Parser.parse(state.document_uri, scanned_words, language_description.actions_table, language_description.go_to_table, language_description.array_infos, language_description.map_word_to_terminal).parse_tree;
+            const expected_parse_tree = Parser.parse(state.document_file_path, scanned_words, language_description.actions_table, language_description.go_to_table, language_description.array_infos, language_description.map_word_to_terminal).parse_tree;
 
             if ((state.parse_tree === undefined && expected_parse_tree !== undefined) || (state.parse_tree !== undefined && expected_parse_tree === undefined)) {
                 console.log("Error: state.parse_tree does not match expected_parse_tree");
@@ -130,7 +131,7 @@ export function update(
 }
 
 function validate_parse_changes(
-    document_uri: string,
+    document_file_path: string,
     changes: Parser.Change[]
 ): Validation.Diagnostic[] {
 
@@ -142,7 +143,7 @@ function validate_parse_changes(
                 const new_node_position = [...add_change.parent_position, add_change.index + node_index];
                 const new_node = add_change.new_nodes[node_index];
 
-                const diagnostics = Validation.validate_parser_node(document_uri, new_node_position, new_node);
+                const diagnostics = Validation.validate_parser_node(document_file_path, new_node_position, new_node);
                 if (diagnostics.length > 0) {
                     return diagnostics;
                 }
@@ -151,7 +152,7 @@ function validate_parse_changes(
         else if (change.type === Parser.Change_type.Modify) {
             const modify_change = change.value as Parser.Modify_change;
 
-            const diagnostics = Validation.validate_parser_node(document_uri, modify_change.position, modify_change.new_node);
+            const diagnostics = Validation.validate_parser_node(document_file_path, modify_change.position, modify_change.new_node);
             if (diagnostics.length > 0) {
                 return diagnostics;
             }
