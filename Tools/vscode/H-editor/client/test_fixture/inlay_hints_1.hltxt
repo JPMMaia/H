@@ -1,0 +1,19 @@
+module my_module;
+
+// Represents a complex type
+// with real and imaginary parts
+struct Complex
+{
+    real: Float32 = 0.0f32;
+    imaginary: Float32 = 0.0f32;
+}
+
+function create_complex() -> (result: Complex)
+{
+    return {};
+}
+
+function run() -> ()
+{
+    var complex = create_complex();
+}

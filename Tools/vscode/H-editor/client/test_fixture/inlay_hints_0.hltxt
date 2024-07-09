@@ -1,0 +1,8 @@
+module my_module;
+
+function run() -> ()
+{
+    var a = 0;
+    var b = 0.0f32;
+    var c = 0i16;
+}
