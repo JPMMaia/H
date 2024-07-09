@@ -10,6 +10,7 @@ import * as Core_file from "@core/Core_interface";
 import * as Document from "@core/Document";
 import * as Grammar from "@core/Grammar";
 import * as Language from "@core/Language";
+import * as Language_version from "@core/Language_version";
 import * as Scanner from "@core/Scanner";
 import * as Text_change from "@core/Text_change";
 
@@ -366,34 +367,23 @@ export async function parse_source_file_and_write_to_disk(
 
         const text = fs.readFileSync(source_file_path, "utf-8");
 
-        const document_state = Document.create_empty_state(source_file_path, language_description.production_rules);
-
-        const text_changes: Text_change.Text_change[] = [
-            {
-                range: {
-                    start: 0,
-                    end: text.length,
-                },
-                text: text
-            }
-        ];
-
         try {
-            const new_document_state = Text_change.update(language_description, document_state, text_changes, text);
-            if (new_document_state.pending_text_changes.length === 0) {
-
-                const core_module = Core.create_core_module(document_state.module, { major: 0, minor: 0, patch: 1 });
-                const core_module_json_data = JSON.stringify(core_module);
-
-                const destination_directory_path = path.dirname(destination_file_path);
-                if (!fs.existsSync(destination_directory_path)) {
-                    fs.mkdirSync(destination_directory_path, { recursive: true });
-                }
-
-                fs.writeFileSync(destination_file_path, core_module_json_data);
-
-                return document_state.module;
+            const parse_result = Text_change.full_parse_with_source_locations(language_description, source_file_path, text);
+            if (parse_result.module === undefined) {
+                return undefined;
             }
+
+            const core_module = Core.create_core_module(parse_result.module, Language_version.language_version);
+            const core_module_json_data = JSON.stringify(core_module);
+
+            const destination_directory_path = path.dirname(destination_file_path);
+            if (!fs.existsSync(destination_directory_path)) {
+                fs.mkdirSync(destination_directory_path, { recursive: true });
+            }
+
+            fs.writeFileSync(destination_file_path, core_module_json_data);
+
+            return parse_result.module;
         }
         catch (error: any) {
             console.log(`parse_source_file_and_write_to_disk(): Exception thrown: '${error}'`);

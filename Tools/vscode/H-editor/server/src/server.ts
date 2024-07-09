@@ -90,7 +90,7 @@ connection.onInitialize(async (params: vscode_node.InitializeParams) => {
 	return result;
 });
 
-connection.onInitialized(() => {
+connection.onInitialized(async () => {
 	if (has_configuration_capability) {
 		// Register for all configuration changes.
 		connection.client.register(vscode_node.DidChangeConfigurationNotification.type, undefined);
@@ -101,7 +101,7 @@ connection.onInitialized(() => {
 		});
 	}
 
-	create_projects_data();
+	await create_projects_data();
 });
 
 async function create_projects_data(): Promise<void> {
@@ -269,6 +269,8 @@ connection.onDidChangeTextDocument((parameters) => {
 		return;
 	}
 
+	server_data.core_modules_with_source_locations.delete(parameters.textDocument.uri);
+
 	const text_changes = parameters.contentChanges.map(
 		(content_change): Text_change.Text_change => {
 			if (vscode_node.TextDocumentContentChangeEvent.isIncremental(content_change)) {
@@ -308,6 +310,7 @@ connection.onDidCloseTextDocument((parameters) => {
 	extension_settings_map.delete(parameters.textDocument.uri);
 	server_data.document_states.delete(parameters.textDocument.uri);
 	server_data.documents.delete(parameters.textDocument.uri);
+	server_data.core_modules_with_source_locations.delete(parameters.textDocument.uri);
 });
 
 connection.onDidChangeWatchedFiles(_change => {

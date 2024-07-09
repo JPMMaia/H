@@ -7,12 +7,14 @@ import * as Core from "@core/Core_intermediate_representation";
 import * as Document from "@core/Document";
 import * as Language from "@core/Language";
 import * as Storage_cache from "@core/Storage_cache";
+import * as Text_change from "@core/Text_change";
 
 export interface Server_data {
     storage_cache: Storage_cache.Storage_cache;
     language_description: Language.Description;
     documents: Map<string, TextDocument>;
     document_states: Map<string, Document.State>;
+    core_modules_with_source_locations: Map<string, Core.Module>;
     projects: Map<string, Project.Project_data>;
 }
 
@@ -21,6 +23,7 @@ export function create_server_data(): Server_data {
     const language_description = Language.create_default_description(storage_cache, "out/tests/graphviz.gv");
     const documents = new Map<string, TextDocument>();
     const document_states = new Map<string, Document.State>();
+    const core_modules_with_source_locations = new Map<string, Core.Module>();
     const projects = new Map<string, Project.Project_data>();
 
     return {
@@ -28,8 +31,22 @@ export function create_server_data(): Server_data {
         language_description,
         documents,
         document_states,
+        core_modules_with_source_locations,
         projects
     };
+}
+
+export function get_document_state(
+    server_data: Server_data,
+    module_name: string
+): { document_uri: string, document_state: Document.State } | undefined {
+    for (const [document_uri, document_state] of server_data.document_states) {
+        if (document_state.module.name === module_name) {
+            return { document_uri: document_uri, document_state: document_state };
+        }
+    }
+
+    return undefined;
 }
 
 export async function get_core_module(
@@ -39,9 +56,25 @@ export async function get_core_module(
 ): Promise<Core.Module | undefined> {
 
     {
-        const document_state = server_data.document_states.get(module_name);
-        if (document_state !== undefined) {
-            return document_state.module;
+        const document_state_and_uri = get_document_state(server_data, module_name);
+        if (document_state_and_uri !== undefined) {
+            const { document_uri, document_state } = document_state_and_uri;
+
+            {
+                const core_module_with_source_location = server_data.core_modules_with_source_locations.get(document_uri);
+                if (core_module_with_source_location !== undefined) {
+                    return core_module_with_source_location;
+                }
+            }
+
+            const core_module_with_source_location = Text_change.full_parse_with_source_locations(
+                server_data.language_description,
+                document_state.document_file_path,
+                document_state.text
+            );
+            if (core_module_with_source_location !== undefined) {
+                return core_module_with_source_location.module;
+            }
         }
     }
 
