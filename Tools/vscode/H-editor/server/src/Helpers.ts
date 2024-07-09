@@ -48,17 +48,14 @@ export function get_tooltip_of_declaration(
     declaration: Core.Declaration
 ): string {
 
-    const declaration_type = declaration.type.toString();
+    const declaration_type = Core.Declaration_type[declaration.type].toLowerCase();
     const comment = get_declaration_comment(declaration);
     const description = comment !== undefined ? `
-${comment}
-` : "";
+${comment}` : "";
 
-    const tooltip = `
-${declaration_type} ${declaration.name}
+    const tooltip = `${declaration_type} ${declaration.name}
 Module: ${core_module.name}
-${description}
-`;
+${description}`;
 
     return tooltip;
 }
@@ -124,9 +121,9 @@ export function get_declaration_source_location(
     };
 }
 
-function get_declaration_source_range(declaration: Core.Declaration): Range | undefined {
-
-    // TODO maybe use text position cache together with the text and parse tree?
+function get_declaration_source_range(
+    declaration: Core.Declaration
+): Range | undefined {
 
     switch (declaration.type) {
         case Core.Declaration_type.Alias: {

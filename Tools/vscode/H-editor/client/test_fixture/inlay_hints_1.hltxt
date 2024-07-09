@@ -1,4 +1,4 @@
-module my_module;
+module inlay_hints_1;
 
 // Represents a complex type
 // with real and imaginary parts

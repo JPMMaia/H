@@ -34,7 +34,7 @@ suite("Should get inlay hints", () => {
 					},
 					{
 						value: "Complex",
-						tooltip: "struct Complex\nModule: my_module\n\nRepresents a complex type\nwith real and imaginary parts",
+						tooltip: "struct Complex\nModule: inlay_hints_1\n\nRepresents a complex type\nwith real and imaginary parts",
 						location: {
 							uri: document_uri,
 							range: to_range(4, 0, 5, 0)
@@ -66,7 +66,26 @@ async function test_inlay_hints(document_uri: vscode.Uri, range: vscode.Range, e
 
 	expected_inlay_hints.forEach((expected_inlay_hint, i) => {
 		const actual_inlay_hint = actual_inlay_hints[i];
-		assert.deepEqual(actual_inlay_hint.label, expected_inlay_hint.label);
+
+		const actual_label_parts = actual_inlay_hint.label as vscode.InlayHintLabelPart[];
+		const expected_label_parts = expected_inlay_hint.label as vscode.InlayHintLabelPart[];
+
+		assert.equal(actual_label_parts.length, expected_label_parts.length);
+		for (let index = 0; index < expected_label_parts.length; ++index) {
+			const actual_label_part = actual_label_parts[index];
+			const expected_label_part = expected_label_parts[index];
+			assert.equal(actual_label_part.value, expected_label_part.value);
+			assert.equal(actual_label_part.tooltip, expected_label_part.tooltip);
+
+			if (expected_label_part.location === undefined) {
+				assert.equal(actual_label_part.location, undefined);
+			}
+			else {
+				assert.equal(actual_label_part.location.uri.toString(), expected_label_part.location.uri.toString());
+				assert.deepEqual(actual_label_part.location.range, expected_label_part.location.range);
+			}
+		}
+
 		assert.deepEqual(actual_inlay_hint.position, expected_inlay_hint.position);
 	});
 }

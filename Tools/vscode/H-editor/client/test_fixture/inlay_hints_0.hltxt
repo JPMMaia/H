@@ -1,4 +1,4 @@
-module my_module;
+module inlay_hints_0;
 
 function run() -> ()
 {

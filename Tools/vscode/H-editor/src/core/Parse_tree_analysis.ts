@@ -69,6 +69,10 @@ function get_statement_node_or_ancestor(
     node_position: number[]
 ): { node: Parser_node.Node, position: number[] } | undefined {
     const node = Parser_node.get_node_at_position(root, node_position);
+    if (node === undefined) {
+        return undefined;
+    }
+
     if (node.word.value === "Statement") {
         return { node: node, position: node_position };
     }

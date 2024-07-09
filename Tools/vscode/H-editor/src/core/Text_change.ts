@@ -1,10 +1,11 @@
 import * as Document from "./Document";
-import * as Module_change from "./Module_change";
+import * as Core from "./Core_intermediate_representation";
 import * as Language from "./Language";
 import * as Parser from "./Parser";
 import * as Parser_node from "./Parser_node";
 import * as Parse_tree_convertor from "./Parse_tree_convertor";
 import * as Parse_tree_text_position_cache from "./Parse_tree_text_position_cache";
+import * as Parse_tree_text_iterator from "./Parse_tree_text_iterator";
 import { has_meaningful_content, scan_new_change } from "./Scan_new_changes";
 import * as Scanner from "./Scanner";
 import * as Validation from "./Validation";
@@ -128,6 +129,38 @@ export function update(
     }
 
     return state;
+}
+
+export function full_parse_with_source_locations(
+    language_description: Language.Description,
+    document_file_path: string,
+    input_text: string
+): { module: Core.Module | undefined, diagnostics: Validation.Diagnostic[] } {
+    const scanned_words = Scanner.scan(input_text, 0, input_text.length, { line: 1, column: 1 });
+
+    const parse_tree_result = Parser.parse_incrementally(
+        document_file_path,
+        undefined,
+        undefined,
+        scanned_words,
+        undefined,
+        language_description.actions_table,
+        language_description.go_to_table,
+        language_description.array_infos,
+        language_description.map_word_to_terminal
+    );
+
+    if (parse_tree_result.status !== Parser.Parse_status.Accept) {
+        return { module: undefined, diagnostics: parse_tree_result.diagnostics };
+    }
+
+    const parse_tree = (parse_tree_result.changes[0].value as Parser.Modify_change).new_node;
+    Parse_tree_text_iterator.add_source_locations_to_parse_tree_nodes(parse_tree, input_text);
+
+    const module = Parse_tree_convertor.parse_tree_to_module(parse_tree, language_description.production_rules, language_description.mappings, language_description.key_to_production_rule_indices);
+    module.source_file_path = document_file_path.replace(/\\/g, "/");
+
+    return { module: module, diagnostics: parse_tree_result.diagnostics };
 }
 
 function validate_parse_changes(
