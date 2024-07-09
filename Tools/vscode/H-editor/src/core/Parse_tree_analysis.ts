@@ -1,6 +1,81 @@
 import * as Core from "./Core_intermediate_representation";
 import * as Parser_node from "./Parser_node";
 
+export function find_statement(
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    node_position: number[]
+): { function_value: Core.Function, statement: Core.Statement, node_position: number[], node: Parser_node.Node } | undefined {
+
+    const statement_ancestor = get_statement_node_or_ancestor(root, node_position);
+    if (statement_ancestor === undefined) {
+        return undefined;
+    }
+
+    const function_ancestor = Parser_node.get_ancestor_with_name(root, statement_ancestor.position, "Function");
+    if (function_ancestor === undefined) {
+        return undefined;
+    }
+
+    const declaration_index = function_ancestor.position[1];
+    const declaration = core_module.declarations[declaration_index];
+    if (declaration === undefined || declaration.type !== Core.Declaration_type.Function) {
+        return undefined;
+    }
+
+    const function_value = declaration.value as Core.Function;
+    if (function_value.definition === undefined) {
+        return undefined;
+    }
+
+    let current_block = function_value.definition.statements;
+    let current_statement_node_position = statement_ancestor.position.slice(0, 7);
+    let current_statement_node = Parser_node.get_node_at_position(root, current_statement_node_position);
+
+    while (true) {
+        const current_statement_index = current_statement_node_position[current_statement_node_position.length - 1];
+        const current_statement = current_block[current_statement_index];
+
+        const result = go_to_next_block_with_expression(current_statement, root, node_position, current_statement_node, current_statement_node_position);
+        if (result === undefined) {
+            return { function_value: function_value, statement: current_statement, node_position: current_statement_node_position, node: current_statement_node };
+        }
+
+        current_statement_node_position = result.position;
+        current_statement_node = result.node;
+        current_block = result.statements;
+    }
+}
+
+export function go_to_next_statement(
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    node_position: number[]
+): { function_value: Core.Function, statement: Core.Statement, node_position: number[], node: Parser_node.Node } | undefined {
+
+    const statement_ancestor = get_statement_node_or_ancestor(root, node_position);
+    if (statement_ancestor === undefined) {
+        return undefined;
+    }
+
+    const next_statment_index = statement_ancestor.position[statement_ancestor.position.length - 1] + 1;
+    const next_statement_node_position = [...statement_ancestor.position.slice(0, statement_ancestor.position.length - 1), next_statment_index];
+
+    return find_statement(core_module, root, next_statement_node_position);
+}
+
+function get_statement_node_or_ancestor(
+    root: Parser_node.Node,
+    node_position: number[]
+): { node: Parser_node.Node, position: number[] } | undefined {
+    const node = Parser_node.get_node_at_position(root, node_position);
+    if (node.word.value === "Statement") {
+        return { node: node, position: node_position };
+    }
+
+    return Parser_node.get_ancestor_with_name(root, node_position, "Statement");
+}
+
 export async function find_variable_type(
     core_module: Core.Module,
     function_value: Core.Function,
@@ -246,7 +321,7 @@ export async function get_expression_type(
                     const custom_type_reference = left_hand_side_type.data.value as Core.Custom_type_reference;
                     const module_declaration = await get_custom_type_reference_declaration(custom_type_reference, get_core_module);
                     if (module_declaration !== undefined) {
-                        const underlying_module_declaration = await get_underlying_type_declaration(module_declaration.module_name, module_declaration.declaration, get_core_module);
+                        const underlying_module_declaration = await get_underlying_type_declaration(module_declaration.core_module, module_declaration.declaration, get_core_module);
                         if (underlying_module_declaration !== undefined) {
                             const underlying_declaration = underlying_module_declaration.declaration;
                             if (underlying_declaration.type === Core.Declaration_type.Enum) {
@@ -257,7 +332,7 @@ export async function get_expression_type(
                                     return create_integer_type(32, true);
                                 }
                                 else {
-                                    return create_custom_type_reference(underlying_module_declaration.module_name, enum_declaration.name);
+                                    return create_custom_type_reference(underlying_module_declaration.core_module.name, enum_declaration.name);
                                 }
                             }
                             else if (underlying_declaration.type === Core.Declaration_type.Struct) {
@@ -267,7 +342,7 @@ export async function get_expression_type(
                                     return struct_declaration.member_types[member_index];
                                 }
                                 else {
-                                    return create_custom_type_reference(underlying_module_declaration.module_name, struct_declaration.name);
+                                    return create_custom_type_reference(underlying_module_declaration.core_module.name, struct_declaration.name);
                                 }
                             }
                             else if (underlying_declaration.type === Core.Declaration_type.Union) {
@@ -277,7 +352,7 @@ export async function get_expression_type(
                                     return union_declaration.member_types[member_index];
                                 }
                                 else {
-                                    return create_custom_type_reference(underlying_module_declaration.module_name, union_declaration.name);
+                                    return create_custom_type_reference(underlying_module_declaration.core_module.name, union_declaration.name);
                                 }
                             }
                             else if (underlying_declaration.type === Core.Declaration_type.Function) {
@@ -317,7 +392,18 @@ export async function get_expression_type(
             const value = expression.data.value as Core.Call_expression;
             const left_hand_side_type = await get_expression_type(core_module, function_value, root, scope_node_position, value.expression, get_core_module);
             if (left_hand_side_type !== undefined) {
-                if (left_hand_side_type.data.type === Core.Type_reference_enum.Function_type) {
+                if (left_hand_side_type.data.type === Core.Type_reference_enum.Custom_type_reference) {
+                    const custom_type_reference = left_hand_side_type.data.value as Core.Custom_type_reference;
+                    const declaration = await get_custom_type_reference_declaration(custom_type_reference, get_core_module);
+                    if (declaration !== undefined && declaration.declaration.type === Core.Declaration_type.Function) {
+                        const function_value = declaration.declaration.value as Core.Function;
+                        if (function_value.declaration.type.output_parameter_types.length > 0) {
+                            // TODO multiple return types
+                            return function_value.declaration.type.output_parameter_types[0];
+                        }
+                    }
+                }
+                else if (left_hand_side_type.data.type === Core.Type_reference_enum.Function_type) {
                     const function_type = left_hand_side_type.data.value as Core.Function_type;
                     if (function_type.output_parameter_types.length > 0) {
                         // TODO multiple return types
@@ -389,7 +475,7 @@ export async function get_expression_type(
 export async function get_custom_type_reference_declaration(
     custom_type_reference: Core.Custom_type_reference,
     get_core_module: (module_name: string) => Promise<Core.Module | undefined>
-): Promise<{ module_name: string, declaration: Core.Declaration } | undefined> {
+): Promise<{ core_module: Core.Module, declaration: Core.Declaration } | undefined> {
 
     const core_module = await get_core_module(custom_type_reference.module_reference.name);
     if (core_module === undefined) {
@@ -402,25 +488,25 @@ export async function get_custom_type_reference_declaration(
     }
 
     return {
-        module_name: core_module.name,
+        core_module: core_module,
         declaration: declaration
     };
 }
 
 export async function get_underlying_type_declaration(
-    module_name: string,
+    core_module: Core.Module,
     declaration: Core.Declaration,
     get_core_module: (module_name: string) => Promise<Core.Module | undefined>
-): Promise<{ module_name: string, declaration: Core.Declaration } | undefined> {
+): Promise<{ core_module: Core.Module, declaration: Core.Declaration } | undefined> {
 
     if (declaration.type !== Core.Declaration_type.Alias) {
         return {
-            module_name: module_name,
+            core_module: core_module,
             declaration: declaration
         };
     }
 
-    let current_module_name = module_name;
+    let current_core_module = core_module;
     let current_declaration = declaration;
 
     while (current_declaration.type === Core.Declaration_type.Alias) {
@@ -436,12 +522,12 @@ export async function get_underlying_type_declaration(
             return undefined;
         }
 
-        current_module_name = next_declaration.module_name;
+        current_core_module = next_declaration.core_module;
         current_declaration = next_declaration.declaration;
     }
 
     return {
-        module_name: current_module_name,
+        core_module: current_core_module,
         declaration: current_declaration
     };
 }

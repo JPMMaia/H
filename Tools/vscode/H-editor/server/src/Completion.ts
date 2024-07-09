@@ -421,7 +421,7 @@ async function find_core_declaration_of_expression_type(
     before_cursor_node_position: number[],
     expression: Core.Expression,
     underlying_declaration: boolean
-): Promise<{ module_name: string, declaration: Core.Declaration } | undefined> {
+): Promise<{ core_module: Core.Module, declaration: Core.Declaration } | undefined> {
     const function_value = get_current_function(core_module, root, before_cursor_node_position);
     if (function_value !== undefined) {
 
@@ -441,7 +441,7 @@ async function find_core_declaration_of_expression_type(
                 const module_declaration = await Parse_tree_analysis.get_custom_type_reference_declaration(custom_type_reference, get_core_module);
 
                 if (module_declaration !== undefined && underlying_declaration) {
-                    return await Parse_tree_analysis.get_underlying_type_declaration(module_declaration.module_name, module_declaration.declaration, get_core_module);
+                    return await Parse_tree_analysis.get_underlying_type_declaration(module_declaration.core_module, module_declaration.declaration, get_core_module);
                 }
                 else {
                     return module_declaration;

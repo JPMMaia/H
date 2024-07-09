@@ -1,6 +1,7 @@
 import "module-alias/register";
 
 import * as Completion from "./Completion";
+import * as Inlay_hints from "./Inlay_hints";
 import * as Platform from "./Platform";
 import * as Project from "./Project";
 import * as Server_data from "./Server_data";
@@ -61,6 +62,9 @@ connection.onInitialize(async (params: vscode_node.InitializeParams) => {
 			diagnosticProvider: {
 				interFileDependencies: false,
 				workspaceDiagnostics: false
+			},
+			inlayHintProvider: {
+				resolveProvider: false
 			},
 			semanticTokensProvider: {
 				documentSelector: Semantic_tokens_provider.selector,
@@ -321,6 +325,13 @@ connection.onCompletion(
 connection.onCompletionResolve(
 	(item: vscode_node.CompletionItem): vscode_node.CompletionItem => {
 		return item;
+	}
+);
+
+connection.languages.inlayHint.on(
+	async (parameters: vscode_node.InlayHintParams): Promise<vscode_node.InlayHint[]> => {
+		const workspace_folder_uri = await get_workspace_folder_uri_for_document(parameters.textDocument.uri);
+		return Inlay_hints.create(parameters, server_data, workspace_folder_uri);
 	}
 );
 
