@@ -23,7 +23,7 @@ export interface Text_change {
 }
 
 export interface State {
-    document_uri: string;
+    document_file_path: string;
     module: Core_intermediate_representation.Module;
     parse_tree: Parser_node.Node | undefined;
     parse_tree_text_position_cache: Parse_tree_text_position_cache.Cache | undefined;
@@ -32,15 +32,18 @@ export interface State {
     diagnostics: Validation.Diagnostic[];
 }
 
-export function create_empty_state(document_uri: string, production_rules: Grammar.Production_rule[]): State {
+export function create_empty_state(document_file_path: string, production_rules: Grammar.Production_rule[]): State {
 
     const module = Module_examples.create_empty();
+    module.source_file_path = document_file_path;
+
     const parse_tree = undefined;
     const text = "";
     const parse_tree_text_position_cache = undefined;
 
+
     return {
-        document_uri: document_uri,
+        document_file_path: document_file_path,
         module: module,
         parse_tree: parse_tree,
         parse_tree_text_position_cache: parse_tree_text_position_cache,
@@ -50,18 +53,20 @@ export function create_empty_state(document_uri: string, production_rules: Gramm
     };
 }
 
-export function create_state_from_module(document_uri: string, core_module: Core.Module, language_description: Language.Description, production_rules_to_cache: number[]): State {
+export function create_state_from_module(document_file_path: string, core_module: Core.Module, language_description: Language.Description, production_rules_to_cache: number[]): State {
 
     const module = Core_intermediate_representation.create_intermediate_representation(core_module);
+    module.source_file_path = document_file_path;
+
     const mappings = Parse_tree_convertor_mappings.create_mapping();
     const parse_tree_without_state = Parse_tree_convertor.module_to_parse_tree(module, language_description.production_rules, mappings);
     const parse_tree_text_position_cache = Parse_tree_text_position_cache.create_cache();
     const text = Text_formatter.to_string(parse_tree_without_state, parse_tree_text_position_cache, production_rules_to_cache);
     const scanned_words = Scanner.scan(text, 0, text.length, { line: 1, column: 1 });
-    const parse_tree = Parser.parse(document_uri, scanned_words, language_description.actions_table, language_description.go_to_table, language_description.array_infos, language_description.map_word_to_terminal).parse_tree;
+    const parse_tree = Parser.parse(document_file_path, scanned_words, language_description.actions_table, language_description.go_to_table, language_description.array_infos, language_description.map_word_to_terminal).parse_tree;
 
     return {
-        document_uri: document_uri,
+        document_file_path: document_file_path,
         module: module,
         parse_tree: parse_tree,
         parse_tree_text_position_cache: parse_tree_text_position_cache,
