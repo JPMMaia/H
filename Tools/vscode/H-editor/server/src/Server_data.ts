@@ -34,7 +34,7 @@ export function create_server_data(): Server_data {
 
 export async function get_core_module(
     server_data: Server_data,
-    workspace_folder_uri: string,
+    workspace_folder_uri: string | undefined,
     module_name: string
 ): Promise<Core.Module | undefined> {
 
@@ -43,6 +43,10 @@ export async function get_core_module(
         if (document_state !== undefined) {
             return document_state.module;
         }
+    }
+
+    if (workspace_folder_uri === undefined) {
+        return undefined;
     }
 
     const project = server_data.projects.get(workspace_folder_uri);
