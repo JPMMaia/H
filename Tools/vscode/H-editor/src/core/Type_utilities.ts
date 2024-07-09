@@ -152,8 +152,8 @@ export function get_type_name(
             {
                 const value = type_reference_value.data.value as Core_intermediate_representation.Pointer_type;
                 const valueTypeName = value.element_type.length === 0 ? "void" : get_type_name(value.element_type);
-                const mutableKeyword = value.is_mutable ? " mutable" : "";
-                return `${valueTypeName}${mutableKeyword}*`;
+                const mutableKeyword = value.is_mutable ? "mutable " : "";
+                return `*${mutableKeyword}${valueTypeName}`;
             }
     }
 
