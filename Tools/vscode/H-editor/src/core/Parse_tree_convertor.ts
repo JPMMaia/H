@@ -1040,81 +1040,81 @@ function visit_expressions_of_module(module: Core_intermediate_representation.Mo
     }
 }
 
-function visit_types(module: Core_intermediate_representation.Module, visitor: (type: Core_intermediate_representation.Type_reference) => void): void {
-    const process_type = (type: Core_intermediate_representation.Type_reference): void => {
+export function visit_types(type: Core_intermediate_representation.Type_reference, visitor: (type: Core_intermediate_representation.Type_reference) => void): void {
+    visitor(type);
 
-        visitor(type);
-
-        switch (type.data.type) {
-            case Core_intermediate_representation.Type_reference_enum.Constant_array_type: {
-                const value = type.data.value as Core_intermediate_representation.Constant_array_type;
-                if (value.value_type.length > 0) {
-                    process_type(value.value_type[0]);
-                }
-                break;
+    switch (type.data.type) {
+        case Core_intermediate_representation.Type_reference_enum.Constant_array_type: {
+            const value = type.data.value as Core_intermediate_representation.Constant_array_type;
+            if (value.value_type.length > 0) {
+                visit_types(value.value_type[0], visitor);
             }
-            case Core_intermediate_representation.Type_reference_enum.Function_type: {
-                const value = type.data.value as Core_intermediate_representation.Function_type;
-                for (const type of value.input_parameter_types) {
-                    process_type(type);
-                }
-                for (const type of value.output_parameter_types) {
-                    process_type(type);
-                }
-                break;
-            }
-            case Core_intermediate_representation.Type_reference_enum.Pointer_type: {
-                const value = type.data.value as Core_intermediate_representation.Pointer_type;
-                if (value.element_type.length > 0) {
-                    process_type(value.element_type[0]);
-                }
-                break;
-            }
-            case Core_intermediate_representation.Type_reference_enum.Builtin_type_reference:
-            case Core_intermediate_representation.Type_reference_enum.Custom_type_reference:
-            case Core_intermediate_representation.Type_reference_enum.Fundamental_type:
-            case Core_intermediate_representation.Type_reference_enum.Integer_type: {
-                break;
-            }
-            default: {
-                const message = `Parse_tree_convertor.update_import_module_usages(): Type '${type.data.type}' not handled!`;
-                onThrowError(message);
-                throw Error(message);
-            }
+            break;
         }
-    };
+        case Core_intermediate_representation.Type_reference_enum.Function_type: {
+            const value = type.data.value as Core_intermediate_representation.Function_type;
+            for (const type of value.input_parameter_types) {
+                visit_types(type, visitor);
+            }
+            for (const type of value.output_parameter_types) {
+                visit_types(type, visitor);
+            }
+            break;
+        }
+        case Core_intermediate_representation.Type_reference_enum.Pointer_type: {
+            const value = type.data.value as Core_intermediate_representation.Pointer_type;
+            if (value.element_type.length > 0) {
+                visit_types(value.element_type[0], visitor);
+            }
+            break;
+        }
+        case Core_intermediate_representation.Type_reference_enum.Builtin_type_reference:
+        case Core_intermediate_representation.Type_reference_enum.Custom_type_reference:
+        case Core_intermediate_representation.Type_reference_enum.Fundamental_type:
+        case Core_intermediate_representation.Type_reference_enum.Integer_type: {
+            break;
+        }
+        default: {
+            const message = `Parse_tree_convertor.update_import_module_usages(): Type '${type.data.type}' not handled!`;
+            onThrowError(message);
+            throw Error(message);
+        }
+    }
+}
+
+function visit_types_of_module(module: Core_intermediate_representation.Module, visitor: (type: Core_intermediate_representation.Type_reference) => void): void {
 
     for (const declaration of module.declarations) {
         if (declaration.type === Core_intermediate_representation.Declaration_type.Alias) {
             const alias_declaration = declaration.value as Core_intermediate_representation.Alias_type_declaration;
 
             if (alias_declaration.type.length > 0) {
-                process_type(alias_declaration.type[0]);
+                visit_types(alias_declaration.type[0], visitor);
             }
         }
         else if (declaration.type === Core_intermediate_representation.Declaration_type.Function) {
             const function_value = declaration.value as Core_intermediate_representation.Function;
 
             for (const type of function_value.declaration.type.input_parameter_types) {
-                process_type(type);
+                visit_types(type, visitor);
             }
 
             for (const type of function_value.declaration.type.output_parameter_types) {
-                process_type(type);
+                visit_types(type, visitor);
             }
         }
         else if (declaration.type === Core_intermediate_representation.Declaration_type.Struct) {
             const struct_declaration = declaration.value as Core_intermediate_representation.Struct_declaration;
 
             for (const type of struct_declaration.member_types) {
-                process_type(type);
+                visit_types(type, visitor);
             }
         }
         else if (declaration.type === Core_intermediate_representation.Declaration_type.Union) {
             const union_declaration = declaration.value as Core_intermediate_representation.Union_declaration;
 
             for (const type of union_declaration.member_types) {
-                process_type(type);
+                visit_types(type, visitor);
             }
         }
     }
@@ -1123,12 +1123,12 @@ function visit_types(module: Core_intermediate_representation.Module, visitor: (
         switch (expression.data.type) {
             case Core_intermediate_representation.Expression_enum.Cast_expression: {
                 const cast_expression = expression.data.value as Core_intermediate_representation.Cast_expression;
-                process_type(cast_expression.destination_type);
+                visit_types(cast_expression.destination_type, visitor);
                 break;
             }
             case Core_intermediate_representation.Expression_enum.Variable_declaration_with_type_expression: {
                 const variable_declaration_with_type_expression = expression.data.value as Core_intermediate_representation.Variable_declaration_with_type_expression;
-                process_type(variable_declaration_with_type_expression.type);
+                visit_types(variable_declaration_with_type_expression.type, visitor);
                 break;
             }
             default: {
@@ -1167,7 +1167,7 @@ function update_import_module_usages(module: Core_intermediate_representation.Mo
         }
     };
 
-    visit_types(module, process_type);
+    visit_types_of_module(module, process_type);
 
     const process_expression = (expression: Core_intermediate_representation.Expression): void => {
         if (expression.data.type === Core_intermediate_representation.Expression_enum.Access_expression) {
@@ -1200,7 +1200,7 @@ function update_custom_type_references_module_name(module: Core_intermediate_rep
         }
     };
 
-    visit_types(module, process_type);
+    visit_types_of_module(module, process_type);
 }
 
 function update_custom_type_references_import_module_name(module: Core_intermediate_representation.Module, previous_import_modules: { module_name: string, alias: string }[]): void {
@@ -1231,5 +1231,5 @@ function update_custom_type_references_import_module_name(module: Core_intermedi
         }
     };
 
-    visit_types(module, process_type);
+    visit_types_of_module(module, process_type);
 }
