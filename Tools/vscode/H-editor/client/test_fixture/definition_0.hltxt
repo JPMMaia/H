@@ -1,0 +1,12 @@
+module definition_0;
+
+struct My_struct
+{
+    a: Int32 = 0;
+}
+
+function run(input: My_struct) -> (result: My_struct)
+{
+    var instance: My_struct = {};
+    return instance;
+}

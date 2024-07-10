@@ -1,5 +1,6 @@
 import "module-alias/register";
 
+import * as Definition from "./Definition";
 import * as Completion from "./Completion";
 import * as Inlay_hints from "./Inlay_hints";
 import * as Platform from "./Platform";
@@ -59,6 +60,7 @@ connection.onInitialize(async (params: vscode_node.InitializeParams) => {
 					".", " "
 				]
 			},
+			definitionProvider: true,
 			diagnosticProvider: {
 				interFileDependencies: false,
 				workspaceDiagnostics: false
@@ -162,6 +164,11 @@ function get_extension_settings(scope_uri: string): Thenable<Extension_settings>
 	}
 	return result;
 }
+
+connection.onDefinition(async (parameters: vscode_node.DefinitionParams): Promise<vscode_node.Location[]> => {
+	const workspace_folder_uri = await get_workspace_folder_uri_for_document(parameters.textDocument.uri);
+	return Definition.find_definition_link(parameters, server_data, workspace_folder_uri);
+});
 
 connection.languages.diagnostics.on(async (parameters) => {
 
