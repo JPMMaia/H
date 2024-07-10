@@ -26,38 +26,50 @@ export function location_to_vscode_location(location: Location | undefined): vsc
         return undefined;
     }
 
-    const uri = vscode_uri.URI.file(location.file_path);
-
-    return {
-        uri: uri.toString(),
-        range: {
-            start: {
-                line: location.range.start.line - 1,
-                character: location.range.start.column - 1,
-            },
-            end: {
-                line: location.range.end.line - 1,
-                character: location.range.end.column - 1,
-            }
+    const range: vscode.Range = {
+        start: {
+            line: location.range.start.line - 1,
+            character: location.range.start.column - 1,
+        },
+        end: {
+            line: location.range.end.line - 1,
+            character: location.range.end.column - 1,
         }
     };
+
+    const uri = vscode_uri.URI.file(location.file_path).toString();
+
+    return vscode.Location.create(uri, range);
 }
 
 export function get_tooltip_of_declaration(
     core_module: Core.Module,
     declaration: Core.Declaration
-): string {
+): vscode.MarkupContent {
 
     const declaration_type = Core.Declaration_type[declaration.type].toLowerCase();
     const comment = get_declaration_comment(declaration);
-    const description = comment !== undefined ? `
-${comment}` : "";
 
-    const tooltip = `${declaration_type} ${declaration.name}
-Module: ${core_module.name}
-${description}`;
+    const tooltip: vscode.MarkupContent = {
+        kind: vscode.MarkupKind.Markdown,
+        value: [
+            '```hlang',
+            `module ${sanitize_input(core_module.name)}`,
+            `${declaration_type} ${sanitize_input(declaration.name)}`,
+            '```',
+            comment !== undefined ? `${sanitize_input(comment)}` : ''
+        ].join('\n')
+    };
 
     return tooltip;
+}
+
+function sanitize_input(input: string): string {
+    return input.replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
 export function get_tooltip_of_fundamental_type(
