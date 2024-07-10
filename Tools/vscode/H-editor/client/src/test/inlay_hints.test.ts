@@ -25,6 +25,17 @@ suite("Should get inlay hints", () => {
 
 	test("Creates hint for variable declaration of a struct", async () => {
 		const document_uri = get_document_uri("inlay_hints_1.hltxt");
+
+		const tooltip = new vscode.MarkdownString(
+			[
+				'```hlang',
+				'module inlay_hints_1',
+				'struct Complex',
+				'```',
+				'Represents a complex type\nwith real and imaginary parts'
+			].join("\n")
+		);
+
 		await test_inlay_hints(document_uri, to_range(17, 4, 17, 35), [
 			{
 				label: [
@@ -34,7 +45,7 @@ suite("Should get inlay hints", () => {
 					},
 					{
 						value: "Complex",
-						tooltip: "struct Complex\nModule: inlay_hints_1\n\nRepresents a complex type\nwith real and imaginary parts",
+						tooltip: tooltip,
 						location: {
 							uri: document_uri,
 							range: to_range(4, 0, 5, 0)
@@ -75,7 +86,7 @@ async function test_inlay_hints(document_uri: vscode.Uri, range: vscode.Range, e
 			const actual_label_part = actual_label_parts[index];
 			const expected_label_part = expected_label_parts[index];
 			assert.equal(actual_label_part.value, expected_label_part.value);
-			assert.equal(actual_label_part.tooltip, expected_label_part.tooltip);
+			assert.deepEqual(actual_label_part.tooltip, expected_label_part.tooltip);
 
 			if (expected_label_part.location === undefined) {
 				assert.equal(actual_label_part.location, undefined);
