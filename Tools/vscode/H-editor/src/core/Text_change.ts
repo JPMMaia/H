@@ -74,7 +74,9 @@ export function update(
 
                 state.parse_tree = new_parse_tree;
                 state.module = Parse_tree_convertor.parse_tree_to_module(new_parse_tree, language_description.production_rules, language_description.mappings, language_description.key_to_production_rule_indices);
-                state.module.source_file_path = state.document_file_path;
+                if (state.document_file_path.length > 0) {
+                    state.module.source_file_path = state.document_file_path;
+                }
             }
             else if (state.parse_tree !== undefined) {
                 const simplified_changes = Parser.simplify_changes(state.parse_tree, parse_result.changes);
