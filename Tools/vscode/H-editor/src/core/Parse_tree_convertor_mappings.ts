@@ -1856,7 +1856,7 @@ function create_new_module_change(
     }
 }
 
-function node_to_type_reference(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Type_reference[] {
+export function node_to_type_reference(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Type_reference[] {
 
     const child = node.children[0];
 
