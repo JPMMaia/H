@@ -1926,7 +1926,8 @@ function node_to_alias_type_declaration(node: Parser_node.Node, key_to_productio
     }
 
     if (alias_node.source_location !== undefined) {
-        output.source_location = alias_node.source_location;
+        const name_node = find_node(alias_node, "Alias_name", key_to_production_rule_indices) as Parser_node.Node;
+        output.source_location = name_node.source_location;
     }
 
     return output;
@@ -1974,7 +1975,8 @@ function node_to_enum_declaration(node: Parser_node.Node, key_to_production_rule
     }
 
     if (enum_node.source_location !== undefined) {
-        output.source_location = enum_node.source_location;
+        const name_node = find_node(enum_node, "Enum_name", key_to_production_rule_indices) as Parser_node.Node;
+        output.source_location = name_node.source_location;
     }
 
     return output;
@@ -2036,7 +2038,8 @@ function node_to_struct_declaration(node: Parser_node.Node, key_to_production_ru
     }
 
     if (struct_node.source_location !== undefined) {
-        output.source_location = struct_node.source_location;
+        const name_node = find_node(struct_node, "Struct_name", key_to_production_rule_indices) as Parser_node.Node;
+        output.source_location = name_node.source_location;
         output.member_source_locations = member_source_locations;
     }
 
@@ -2091,7 +2094,8 @@ function node_to_union_declaration(node: Parser_node.Node, key_to_production_rul
     }
 
     if (union_node.source_location !== undefined) {
-        output.source_location = union_node.source_location;
+        const name_node = find_node(union_node, "Union_name", key_to_production_rule_indices) as Parser_node.Node;
+        output.source_location = name_node.source_location;
         output.member_source_locations = member_source_locations;
     }
 
@@ -2161,7 +2165,8 @@ function node_to_function_declaration(node: Parser_node.Node, key_to_production_
     }
 
     if (function_declaration_node.source_location !== undefined) {
-        output.source_location = function_declaration_node.source_location;
+        const name_node = find_node(function_declaration_node, "Function_name", key_to_production_rule_indices) as Parser_node.Node;
+        output.source_location = name_node.source_location;
         output.input_parameter_source_locations = input_parameter_source_locations;
         output.output_parameter_source_locations = output_parameter_source_locations;
     }
