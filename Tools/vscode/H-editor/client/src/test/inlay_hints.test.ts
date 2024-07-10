@@ -48,7 +48,7 @@ suite("Should get inlay hints", () => {
 						tooltip: tooltip,
 						location: {
 							uri: document_uri,
-							range: to_range(4, 0, 5, 0)
+							range: to_range(4, 7, 4, 14)
 						}
 					}
 				],

@@ -147,8 +147,8 @@ function get_declaration_source_range(
                         column: value.source_location.column
                     },
                     end: {
-                        line: value.source_location.line + 1,
-                        column: 1
+                        line: value.source_location.line,
+                        column: value.source_location.column + value.name.length
                     }
                 };
             }
@@ -162,8 +162,8 @@ function get_declaration_source_range(
                         column: value.source_location.column
                     },
                     end: {
-                        line: value.source_location.line + 1,
-                        column: 1
+                        line: value.source_location.line,
+                        column: value.source_location.column + value.name.length
                     }
                 };
             }
@@ -177,8 +177,8 @@ function get_declaration_source_range(
                         column: value.declaration.source_location.column
                     },
                     end: {
-                        line: value.declaration.source_location.line + 1,
-                        column: 1
+                        line: value.declaration.source_location.line,
+                        column: value.declaration.source_location.column + value.declaration.name.length
                     }
                 };
             }
@@ -192,8 +192,8 @@ function get_declaration_source_range(
                         column: value.source_location.column
                     },
                     end: {
-                        line: value.source_location.line + 1,
-                        column: 1
+                        line: value.source_location.line,
+                        column: value.source_location.column + value.name.length
                     }
                 };
             }
@@ -207,8 +207,8 @@ function get_declaration_source_range(
                         column: value.source_location.column
                     },
                     end: {
-                        line: value.source_location.line + 1,
-                        column: 1
+                        line: value.source_location.line,
+                        column: value.source_location.column + value.name.length
                     }
                 };
             }
