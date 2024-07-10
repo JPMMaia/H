@@ -26,20 +26,19 @@ export function location_to_vscode_location(location: Location | undefined): vsc
         return undefined;
     }
 
-    const range: vscode.Range = {
-        start: {
-            line: location.range.start.line - 1,
-            character: location.range.start.column - 1,
-        },
-        end: {
-            line: location.range.end.line - 1,
-            character: location.range.end.column - 1,
-        }
-    };
-
     const uri = vscode_uri.URI.file(location.file_path).toString();
 
-    return vscode.Location.create(uri, range);
+    return vscode.Location.create(
+        uri,
+        range_to_vscode_range(location.range)
+    );
+}
+
+export function range_to_vscode_range(range: Range): vscode.Range {
+    return vscode.Range.create(
+        vscode.Position.create(range.start.line - 1, range.start.column - 1),
+        vscode.Position.create(range.end.line - 1, range.end.column - 1)
+    );
 }
 
 export function get_tooltip_of_declaration(
