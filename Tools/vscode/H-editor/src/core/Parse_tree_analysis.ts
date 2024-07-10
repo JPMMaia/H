@@ -1,4 +1,7 @@
 import * as Core from "./Core_intermediate_representation";
+import * as Language from "./Language";
+import * as Parse_tree_convertor from "./Parse_tree_convertor";
+import * as Parse_tree_convertor_mappings from "./Parse_tree_convertor_mappings";
 import * as Parser_node from "./Parser_node";
 
 export function find_statement(
@@ -471,6 +474,59 @@ export async function get_expression_type(
                 return create_custom_type_reference(core_module.name, declaration.name);
             }
         }
+    }
+
+    return undefined;
+}
+
+export function get_type_reference_from_node(
+    language_description: Language.Description,
+    core_module: Core.Module,
+    node: Parser_node.Node
+): Core.Type_reference[] {
+    const type_reference = Parse_tree_convertor_mappings.node_to_type_reference(node, language_description.key_to_production_rule_indices);
+
+    for (const type of type_reference) {
+        fix_custom_type_reference(core_module, type);
+    }
+
+    return type_reference;
+}
+
+function fix_custom_type_reference(
+    core_module: Core.Module,
+    type: Core.Type_reference
+) {
+    const visitor = (type: Core.Type_reference) => {
+        if (type.data.type === Core.Type_reference_enum.Custom_type_reference) {
+            const value = type.data.value as Core.Custom_type_reference;
+            if (value.module_reference.name.length === 0) {
+                value.module_reference.name = core_module.name;
+            }
+            else {
+                const import_module = core_module.imports.find(import_module => import_module.alias === value.module_reference.name);
+                if (import_module !== undefined) {
+                    value.module_reference.name = import_module.module_name;
+                }
+            }
+        }
+    };
+
+    Parse_tree_convertor.visit_types(type, visitor);
+}
+
+export async function get_type_reference_declaration(
+    type_reference: Core.Type_reference[],
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<{ core_module: Core.Module, declaration: Core.Declaration } | undefined> {
+
+    if (type_reference.length === 0) {
+        return undefined;
+    }
+
+    if (type_reference[0].data.type === Core.Type_reference_enum.Custom_type_reference) {
+        const custom_type_reference = type_reference[0].data.value as Core.Custom_type_reference;
+        return get_custom_type_reference_declaration(custom_type_reference, get_core_module);
     }
 
     return undefined;

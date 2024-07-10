@@ -126,3 +126,12 @@ export async function get_core_module(
 
     return core_module;
 }
+
+export function create_get_core_module(
+    server_data: Server_data,
+    workspace_folder_uri: string | undefined
+): (module_name: string) => Promise<Core.Module | undefined> {
+    return (module_name: string): Promise<Core.Module | undefined> => {
+        return get_core_module(server_data, workspace_folder_uri, module_name);
+    };
+}
