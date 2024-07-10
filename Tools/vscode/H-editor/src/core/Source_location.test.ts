@@ -58,7 +58,7 @@ using My_alias = Int32;
         const module = run_test(language_description, program);
 
         const declaration = module.declarations[0].value as Core_intermediate_representation.Enum_declaration;
-        assert.deepEqual(declaration.source_location, { line: 5, column: 1 });
+        assert.deepEqual(declaration.source_location, { line: 5, column: 7 });
     });
 
     it("Adds source location to enums", () => {
@@ -78,7 +78,7 @@ enum My_enum
         const module = run_test(language_description, program);
 
         const declaration = module.declarations[0].value as Core_intermediate_representation.Enum_declaration;
-        assert.deepEqual(declaration.source_location, { line: 5, column: 1 });
+        assert.deepEqual(declaration.source_location, { line: 5, column: 6 });
     });
 
     it("Adds source location to structs", () => {
@@ -99,7 +99,7 @@ struct My_struct
         const module = run_test(language_description, program);
 
         const declaration = module.declarations[0].value as Core_intermediate_representation.Struct_declaration;
-        assert.deepEqual(declaration.source_location, { line: 5, column: 1 });
+        assert.deepEqual(declaration.source_location, { line: 5, column: 8 });
 
         assert.deepEqual(declaration.member_source_locations, [
             { line: 8, column: 5 },
@@ -125,7 +125,7 @@ union My_union
         const module = run_test(language_description, program);
 
         const declaration = module.declarations[0].value as Core_intermediate_representation.Struct_declaration;
-        assert.deepEqual(declaration.source_location, { line: 5, column: 1 });
+        assert.deepEqual(declaration.source_location, { line: 5, column: 7 });
 
         assert.deepEqual(declaration.member_source_locations, [
             { line: 8, column: 5 },
@@ -169,7 +169,7 @@ function my_function(a: Int32, b: Int32) -> (c: Int32)
         const function_value = module.declarations[0].value as Core_intermediate_representation.Function;
 
         const declaration = function_value.declaration;
-        assert.deepEqual(declaration.source_location, { line: 5, column: 1 });
+        assert.deepEqual(declaration.source_location, { line: 5, column: 10 });
 
         assert.deepEqual(declaration.input_parameter_source_locations, [
             { line: 5, column: 22 },
