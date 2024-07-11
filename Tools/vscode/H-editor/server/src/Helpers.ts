@@ -41,23 +41,56 @@ export function range_to_vscode_range(range: Range): vscode.Range {
     );
 }
 
+export function get_tooltip_of_module(
+    core_module: Core.Module
+): vscode.MarkupContent {
+
+    const lines = [
+        '```hlang',
+        `module ${sanitize_input(core_module.name)}`,
+        '```'
+    ];
+
+    const is_c_header = core_module.source_file_path !== undefined && core_module.source_file_path.endsWith(".h");
+    if (is_c_header) {
+        lines.push("C Header");
+    }
+
+    const comment = core_module.comment;
+    if (comment !== undefined) {
+        lines.push(sanitize_input(comment));
+    }
+
+    const tooltip: vscode.MarkupContent = {
+        kind: vscode.MarkupKind.Markdown,
+        value: lines.join('\n')
+    };
+
+    return tooltip;
+}
+
 export function get_tooltip_of_declaration(
     core_module: Core.Module,
     declaration: Core.Declaration
 ): vscode.MarkupContent {
 
     const declaration_type = Core.Declaration_type[declaration.type].toLowerCase();
+
+    const lines = [
+        '```hlang',
+        `module ${sanitize_input(core_module.name)}`,
+        `${declaration_type} ${sanitize_input(declaration.name)}`,
+        '```'
+    ];
+
     const comment = get_declaration_comment(declaration);
+    if (comment !== undefined) {
+        lines.push(sanitize_input(comment));
+    }
 
     const tooltip: vscode.MarkupContent = {
         kind: vscode.MarkupKind.Markdown,
-        value: [
-            '```hlang',
-            `module ${sanitize_input(core_module.name)}`,
-            `${declaration_type} ${sanitize_input(declaration.name)}`,
-            '```',
-            comment !== undefined ? `${sanitize_input(comment)}` : ''
-        ].join('\n')
+        value: lines.join('\n')
     };
 
     return tooltip;
@@ -109,6 +142,32 @@ function get_declaration_comment(
             return value.comment;
         }
     }
+}
+
+export function get_module_source_location(
+    core_module: Core.Module
+): Location | undefined {
+
+    const file_path = core_module.source_file_path;
+    if (file_path === undefined) {
+        return undefined;
+    }
+
+    const range: Range = {
+        start: {
+            line: 1,
+            column: 1
+        },
+        end: {
+            line: 1,
+            column: 1
+        }
+    };
+
+    return {
+        file_path: file_path,
+        range: range
+    };
 }
 
 export function get_declaration_source_location(

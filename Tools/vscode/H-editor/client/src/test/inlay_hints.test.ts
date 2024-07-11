@@ -56,6 +56,61 @@ suite("Should get inlay hints", () => {
 			},
 		]);
 	});
+
+	test("Creates hint for variable declaration of a struct of a different module", async () => {
+		const document_uri = get_document_uri("projects/project_1/inlay_hints_0.hltxt");
+		const imported_module_document_uri = get_document_uri("projects/complex/complex.h");
+
+		const module_tooltip = new vscode.MarkdownString(
+			[
+				'```hlang',
+				'module c.complex',
+				'```',
+				'C Header'
+			].join("\n")
+		);
+
+		const type_tooltip = new vscode.MarkdownString(
+			[
+				'```hlang',
+				'module c.complex',
+				'struct Complex',
+				'```'
+			].join("\n")
+		);
+
+		await test_inlay_hints(document_uri, to_range(8, 4, 8, 30), [
+			{
+				label: [
+					{
+						value: ": ",
+						tooltip: undefined
+					},
+					{
+						value: "complex",
+						tooltip: module_tooltip,
+						location: {
+							uri: imported_module_document_uri,
+							range: to_range(0, 0, 0, 0)
+						}
+					},
+					{
+						value: ".",
+						tooltip: undefined
+					},
+					{
+						value: "Complex",
+						tooltip: type_tooltip,
+						location: {
+							uri: imported_module_document_uri,
+							range: to_range(0, 15, 0, 22)
+						}
+					}
+				],
+				position: new vscode.Position(8, 9)
+			},
+		]);
+	});
 });
 
 function to_range(start_line: number, start_character: number, end_line: number, end_character: number): vscode.Range {
@@ -86,7 +141,18 @@ async function test_inlay_hints(document_uri: vscode.Uri, range: vscode.Range, e
 			const actual_label_part = actual_label_parts[index];
 			const expected_label_part = expected_label_parts[index];
 			assert.equal(actual_label_part.value, expected_label_part.value);
-			assert.deepEqual(actual_label_part.tooltip, expected_label_part.tooltip);
+
+			if (expected_label_part.tooltip === undefined) {
+				assert.equal(actual_label_part.tooltip, undefined);
+			}
+			else {
+				assert.notEqual(actual_label_part.tooltip, undefined);
+				const actual_tooltip = actual_label_part.tooltip as vscode.MarkdownString;
+				const expected_tooltip = expected_label_part.tooltip as vscode.MarkdownString;
+
+				assert.equal(actual_tooltip.value, expected_tooltip.value);
+			}
+
 
 			if (expected_label_part.location === undefined) {
 				assert.equal(actual_label_part.location, undefined);

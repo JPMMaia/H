@@ -80,7 +80,7 @@ export async function create(
                                 character: variable_name_source_location.column - 1 + variable_name.length
                             };
 
-                            const label_parts = await create_label_parts(right_hand_side_type, document_state.module.name, get_core_module);
+                            const label_parts = await create_label_parts(right_hand_side_type, document_state.module, get_core_module);
 
                             inlay_hints.push(
                                 {
@@ -123,21 +123,21 @@ function get_start_iterator(
 
 async function create_label_parts(
     type: Core.Type_reference,
-    current_module_name: string,
+    current_core_module: Core.Module,
     get_core_module: (module_name: string) => Promise<Core.Module | undefined>
 ): Promise<vscode.InlayHintLabelPart[]> {
 
     const parts: vscode.InlayHintLabelPart[] = [];
     parts.push({ value: ": " });
 
-    await create_label_part_recursively(type, current_module_name, parts, get_core_module);
+    await create_label_part_recursively(type, current_core_module, parts, get_core_module);
 
     return parts;
 }
 
 export async function create_label_part_recursively(
     type: Core.Type_reference,
-    current_module_name: string,
+    current_core_module: Core.Module,
     parts: vscode.InlayHintLabelPart[],
     get_core_module: (module_name: string) => Promise<Core.Module | undefined>
 ): Promise<void> {
@@ -154,7 +154,7 @@ export async function create_label_part_recursively(
         }
         case Core.Type_reference_enum.Constant_array_type: {
             const value = type.data.value as Core.Constant_array_type;
-            await create_label_part_recursively(value.value_type[0], current_module_name, parts, get_core_module);
+            await create_label_part_recursively(value.value_type[0], current_core_module, parts, get_core_module);
             parts.push(
                 {
                     value: `[${value.size}]`
@@ -164,8 +164,37 @@ export async function create_label_part_recursively(
         }
         case Core.Type_reference_enum.Custom_type_reference: {
             const value = type.data.value as Core.Custom_type_reference;
+
             const module_name = value.module_reference.name;
-            const name = module_name !== current_module_name ? `${module_name}.${value.name}` : value.name;
+
+            if (module_name !== current_core_module.name) {
+                const import_module = current_core_module.imports.find(import_module => import_module.module_name === module_name);
+                if (import_module === undefined) {
+                    return;
+                }
+
+                const imported_core_module = await get_core_module(import_module.module_name);
+                if (imported_core_module === undefined) {
+                    return;
+                }
+
+                const location = Helpers.location_to_vscode_location(Helpers.get_module_source_location(imported_core_module));
+                const tooltip = Helpers.get_tooltip_of_module(imported_core_module);
+
+                parts.push(
+                    {
+                        value: import_module.alias,
+                        location: location,
+                        tooltip: tooltip
+                    }
+                );
+
+                parts.push(
+                    {
+                        value: "."
+                    }
+                );
+            }
 
             const declaration = await Parse_tree_analysis.get_custom_type_reference_declaration(value, get_core_module);
             const location = declaration !== undefined ? Helpers.location_to_vscode_location(Helpers.get_declaration_source_location(declaration.core_module, declaration.declaration)) : undefined;
@@ -173,7 +202,7 @@ export async function create_label_part_recursively(
 
             parts.push(
                 {
-                    value: name,
+                    value: value.name,
                     location: location,
                     tooltip: tooltip
                 }
@@ -195,7 +224,7 @@ export async function create_label_part_recursively(
             const value = type.data.value as Core.Function_type;
             const input_parameter_parts: vscode.InlayHintLabelPart[] = [];
             for (const type of value.input_parameter_types) {
-                await create_label_part_recursively(type, current_module_name, input_parameter_parts, get_core_module);
+                await create_label_part_recursively(type, current_core_module, input_parameter_parts, get_core_module);
             }
             if (value.is_variadic) {
                 input_parameter_parts.push({ value: "..." });
@@ -204,7 +233,7 @@ export async function create_label_part_recursively(
 
             const output_parameter_parts: vscode.InlayHintLabelPart[] = [];
             for (const type of value.output_parameter_types) {
-                await create_label_part_recursively(type, current_module_name, output_parameter_parts, get_core_module);
+                await create_label_part_recursively(type, current_core_module, output_parameter_parts, get_core_module);
             }
             add_comma_label_parts(output_parameter_parts);
 
@@ -257,7 +286,7 @@ export async function create_label_part_recursively(
                 );
             }
             else {
-                await create_label_part_recursively(value.element_type[0], current_module_name, parts, get_core_module);
+                await create_label_part_recursively(value.element_type[0], current_core_module, parts, get_core_module);
             }
             return;
         }
