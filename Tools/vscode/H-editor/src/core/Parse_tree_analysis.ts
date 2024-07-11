@@ -493,6 +493,22 @@ export function get_type_reference_from_node(
     return type_reference;
 }
 
+export function get_expression_from_node(
+    language_description: Language.Description,
+    core_module: Core.Module,
+    node: Parser_node.Node
+): Core.Expression {
+    const expression = Parse_tree_convertor_mappings.node_to_expression(node, language_description.key_to_production_rule_indices);
+
+    const visitor = (type: Core.Type_reference) => {
+        fix_custom_type_reference(core_module, type);
+    };
+
+    Parse_tree_convertor.visit_types_of_expression(expression, visitor);
+
+    return expression;
+}
+
 function fix_custom_type_reference(
     core_module: Core.Module,
     type: Core.Type_reference

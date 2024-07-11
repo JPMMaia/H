@@ -2217,7 +2217,7 @@ function node_to_statement(node: Parser_node.Node, key_to_production_rule_indice
     return output;
 }
 
-function node_to_expression(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Expression {
+export function node_to_expression(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Expression {
     const expression = node_to_expression_without_source_location(node, key_to_production_rule_indices);
 
     if (node.source_location !== undefined) {

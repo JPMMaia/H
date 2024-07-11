@@ -111,6 +111,76 @@ suite("Should get inlay hints", () => {
 			},
 		]);
 	});
+
+	test("Creates hint for function input parameter", async () => {
+		const document_uri = get_document_uri("inlay_hints_2.hltxt");
+
+		const lhs_tooltip = new vscode.MarkdownString(
+			[
+				'```hlang',
+				'lhs: Int32',
+				'```'
+			].join("\n")
+		);
+
+		const rhs_tooltip = new vscode.MarkdownString(
+			[
+				'```hlang',
+				'rhs: Int32',
+				'```'
+			].join("\n")
+		);
+
+		await test_inlay_hints(document_uri, to_range(9, 4, 9, 27), [
+			{
+				label: [
+					{
+						value: ": ",
+						tooltip: undefined
+					},
+					{
+						value: "Int32",
+						tooltip: "Built-in type: Int32"
+					}
+				],
+				position: new vscode.Position(9, 14)
+			},
+			{
+				label: [
+					{
+						value: "lhs",
+						tooltip: lhs_tooltip,
+						location: {
+							uri: document_uri,
+							range: to_range(2, 13, 2, 16)
+						}
+					},
+					{
+						value: ": ",
+						tooltip: undefined
+					}
+				],
+				position: new vscode.Position(9, 21)
+			},
+			{
+				label: [
+					{
+						value: "rhs",
+						tooltip: rhs_tooltip,
+						location: {
+							uri: document_uri,
+							range: to_range(2, 25, 2, 28)
+						}
+					},
+					{
+						value: ": ",
+						tooltip: undefined
+					}
+				],
+				position: new vscode.Position(9, 24)
+			},
+		]);
+	});
 });
 
 function to_range(start_line: number, start_character: number, end_line: number, end_character: number): vscode.Range {

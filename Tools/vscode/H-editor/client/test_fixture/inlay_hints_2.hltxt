@@ -1,0 +1,11 @@
+module inlay_hints_2;
+
+function add(lhs: Int32, rhs: Int32) -> (result: Int32)
+{
+    return {};
+}
+
+function run() -> ()
+{
+    var result = add(1, 2);
+}

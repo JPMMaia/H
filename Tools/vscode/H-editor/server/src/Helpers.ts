@@ -96,6 +96,28 @@ export function get_tooltip_of_declaration(
     return tooltip;
 }
 
+export function get_tooltip_of_function_input_parameter(
+    function_declaration: Core.Function_declaration,
+    input_parameter_index: number
+): vscode.MarkupContent {
+
+    const input_parameter_name = sanitize_input(function_declaration.input_parameter_names[input_parameter_index]);
+    const input_parameter_type = Type_utilities.get_type_name([function_declaration.type.input_parameter_types[input_parameter_index]]);
+
+    const lines = [
+        '```hlang',
+        `${input_parameter_name}: ${input_parameter_type}`,
+        '```'
+    ];
+
+    const tooltip: vscode.MarkupContent = {
+        kind: vscode.MarkupKind.Markdown,
+        value: lines.join('\n')
+    };
+
+    return tooltip;
+}
+
 function sanitize_input(input: string): string {
     return input.replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
@@ -274,4 +296,39 @@ function get_declaration_source_range(
     }
 
     return undefined;
+}
+
+export function get_function_input_parameter_source_location(
+    core_module: Core.Module,
+    function_declaration: Core.Function_declaration,
+    input_parameter_index: number
+): Location | undefined {
+
+    if (function_declaration.input_parameter_source_locations === undefined || input_parameter_index >= function_declaration.input_parameter_source_locations.length || input_parameter_index >= function_declaration.input_parameter_names.length) {
+        return undefined;
+    }
+
+    const file_path = core_module.source_file_path;
+    if (file_path === undefined) {
+        return undefined;
+    }
+
+    const input_parameter_name = function_declaration.input_parameter_names[input_parameter_index];
+    const input_parameter_source_location = function_declaration.input_parameter_source_locations[input_parameter_index];
+
+    const range: Range = {
+        start: {
+            line: input_parameter_source_location.line,
+            column: input_parameter_source_location.column
+        },
+        end: {
+            line: input_parameter_source_location.line,
+            column: input_parameter_source_location.column + input_parameter_name.length
+        }
+    }
+
+    return {
+        file_path: file_path,
+        range: range
+    };
 }
