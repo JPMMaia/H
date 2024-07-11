@@ -1082,6 +1082,29 @@ export function visit_types(type: Core_intermediate_representation.Type_referenc
     }
 }
 
+export function visit_types_of_expression(expression: Core_intermediate_representation.Expression, visitor: (type: Core_intermediate_representation.Type_reference) => void): void {
+
+    const process_expression = (expression: Core_intermediate_representation.Expression): void => {
+        switch (expression.data.type) {
+            case Core_intermediate_representation.Expression_enum.Cast_expression: {
+                const cast_expression = expression.data.value as Core_intermediate_representation.Cast_expression;
+                visit_types(cast_expression.destination_type, visitor);
+                break;
+            }
+            case Core_intermediate_representation.Expression_enum.Variable_declaration_with_type_expression: {
+                const variable_declaration_with_type_expression = expression.data.value as Core_intermediate_representation.Variable_declaration_with_type_expression;
+                visit_types(variable_declaration_with_type_expression.type, visitor);
+                break;
+            }
+            default: {
+                break;
+            }
+        }
+    };
+
+    visit_expressions(expression, process_expression);
+}
+
 function visit_types_of_module(module: Core_intermediate_representation.Module, visitor: (type: Core_intermediate_representation.Type_reference) => void): void {
 
     for (const declaration of module.declarations) {
@@ -1120,21 +1143,7 @@ function visit_types_of_module(module: Core_intermediate_representation.Module, 
     }
 
     const process_expression = (expression: Core_intermediate_representation.Expression): void => {
-        switch (expression.data.type) {
-            case Core_intermediate_representation.Expression_enum.Cast_expression: {
-                const cast_expression = expression.data.value as Core_intermediate_representation.Cast_expression;
-                visit_types(cast_expression.destination_type, visitor);
-                break;
-            }
-            case Core_intermediate_representation.Expression_enum.Variable_declaration_with_type_expression: {
-                const variable_declaration_with_type_expression = expression.data.value as Core_intermediate_representation.Variable_declaration_with_type_expression;
-                visit_types(variable_declaration_with_type_expression.type, visitor);
-                break;
-            }
-            default: {
-                break;
-            }
-        }
+        visit_types_of_expression(expression, visitor);
     };
 
     visit_expressions_of_module(module, process_expression);

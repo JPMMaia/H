@@ -466,6 +466,40 @@ export function find_descendant_position_if(node: Node, predicate: (node: Node) 
     return undefined;
 }
 
+export function find_descendants_if(node: Node, predicate: (node: Node) => boolean): { node: Node, position: number[] }[] {
+
+    const output: { node: Node, position: number[] }[] = [];
+
+    const list: Node[] = [];
+    const positions: number[][] = [];
+
+    for (let index = 0; index < node.children.length; ++index) {
+        const child = node.children[index];
+        list.push(child);
+        positions.push([index]);
+    }
+
+    while (list.length > 0) {
+        const node = list.splice(0, 1)[0];
+        const position = positions.splice(0, 1)[0];
+
+        if (predicate(node)) {
+            output.push({
+                node: node,
+                position: position
+            });
+        }
+
+        for (let index = 0; index < node.children.length; ++index) {
+            const child = node.children[index];
+            list.push(child);
+            positions.push([...position, index]);
+        }
+    }
+
+    return output;
+}
+
 export function has_ancestor_with_name(
     root: Node,
     node_position: number[],

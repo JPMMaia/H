@@ -326,14 +326,20 @@ export function get_node_source_location(
 ): Parser_node.Source_location | undefined {
     for (let iterator = begin(root, text); iterator.node !== undefined; iterator = next(iterator)) {
 
-        if (!is_same_position(iterator.node_position, node_position)) {
-            continue;
+        if (is_same_position(iterator.node_position, node_position)) {
+            return {
+                line: iterator.line,
+                column: iterator.column
+            };
         }
-
-        return {
-            line: iterator.line,
-            column: iterator.column
-        };
+        else if (node_position.length < iterator.node_position.length) {
+            if (is_same_position(node_position, iterator.node_position.slice(0, node_position.length))) {
+                return {
+                    line: iterator.line,
+                    column: iterator.column
+                };
+            }
+        }
     }
 
     return undefined;

@@ -61,39 +61,81 @@ export async function create(
     while (is_within_range(iterator)) {
 
         if (iterator.node !== undefined) {
-            if (Parser_node.has_ancestor_with_name(iterator.root, iterator.node_position, ["Expression_variable_declaration"])) {
+            if (Parser_node.has_ancestor_with_name(iterator.root, iterator.node_position, ["Statement"])) {
                 const result = Parse_tree_analysis.find_statement(document_state.module, iterator.root, iterator.node_position);
                 if (result !== undefined) {
-                    const function_value = result.function_value;
-                    const statement = result.statement;
-                    const statement_node_position = result.node_position;
-                    const statement_node = result.node;
-                    if (statement.expression.data.type === Core.Expression_enum.Variable_declaration_expression) {
-                        const expression = statement.expression.data.value as Core.Variable_declaration_expression;
-                        const right_hand_side_type = await Parse_tree_analysis.get_expression_type(document_state.module, function_value, iterator.root, statement_node_position, expression.right_hand_side, get_core_module);
-                        if (right_hand_side_type !== undefined) {
-                            const variable_name_descendant = Parser_node.find_descendant_position_if(statement_node, node => node.word.value === "Variable_name") as { node: Parser_node.Node, position: number[] };
-                            const variable_name_source_location = Parse_tree_text_iterator.get_node_source_location(iterator.root, iterator.text, [...statement_node_position, ...variable_name_descendant.position, 0]) as Parser_node.Source_location;
-                            const variable_name = variable_name_descendant.node.children[0].word.value;
-                            const position: vscode.Position = {
-                                line: variable_name_source_location.line - 1,
-                                character: variable_name_source_location.column - 1 + variable_name.length
-                            };
+                    const descendants = Parser_node.find_descendants_if(result.node, node => node.word.value === "Expression_variable_declaration" || node.word.value === "Expression_call");
+                    for (const descendant of descendants) {
 
-                            const label_parts = await create_label_parts(right_hand_side_type, document_state.module, get_core_module);
+                        const function_value = result.function_value;
+                        const statement = result.statement;
+                        const statement_node_position = result.node_position;
+                        const statement_node = result.node;
 
-                            inlay_hints.push(
-                                {
-                                    label: label_parts,
-                                    position: position,
-                                    kind: vscode.InlayHintKind.Type,
+                        if (descendant.node.word.value === "Expression_variable_declaration" && statement.expression.data.type === Core.Expression_enum.Variable_declaration_expression) {
+                            const expression = statement.expression.data.value as Core.Variable_declaration_expression;
+                            const right_hand_side_type = await Parse_tree_analysis.get_expression_type(document_state.module, function_value, iterator.root, statement_node_position, expression.right_hand_side, get_core_module);
+                            if (right_hand_side_type !== undefined) {
+                                const variable_name_descendant = Parser_node.find_descendant_position_if(statement_node, node => node.word.value === "Variable_name") as { node: Parser_node.Node, position: number[] };
+                                const variable_name_source_location = Parse_tree_text_iterator.get_node_source_location(iterator.root, iterator.text, [...statement_node_position, ...variable_name_descendant.position, 0]) as Parser_node.Source_location;
+                                const variable_name = variable_name_descendant.node.children[0].word.value;
+                                const position: vscode.Position = {
+                                    line: variable_name_source_location.line - 1,
+                                    character: variable_name_source_location.column - 1 + variable_name.length
+                                };
+
+                                const label_parts = await create_label_parts_for_type(right_hand_side_type, document_state.module, get_core_module);
+
+                                inlay_hints.push(
+                                    {
+                                        label: label_parts,
+                                        position: position,
+                                        kind: vscode.InlayHintKind.Type,
+                                    }
+                                );
+                            }
+                        }
+                        else if (descendant.node.word.value === "Expression_call") {
+                            const expression = Parse_tree_analysis.get_expression_from_node(server_data.language_description, document_state.module, descendant.node);
+                            if (expression.data.type === Core.Expression_enum.Call_expression) {
+                                const call_expression = expression.data.value as Core.Call_expression;
+                                const left_hand_side_type = await Parse_tree_analysis.get_expression_type(document_state.module, function_value, iterator.root, statement_node_position, call_expression.expression, get_core_module);
+                                if (left_hand_side_type !== undefined && left_hand_side_type.data.type === Core.Type_reference_enum.Custom_type_reference) {
+                                    const custom_type_reference = left_hand_side_type.data.value as Core.Custom_type_reference;
+                                    const declaration = await Parse_tree_analysis.get_custom_type_reference_declaration(custom_type_reference, get_core_module);
+                                    if (declaration !== undefined && declaration.declaration.type === Core.Declaration_type.Function) {
+                                        const call_function_value = declaration.declaration.value as Core.Function;
+
+                                        const arguments_node = descendant.node.children[2];
+                                        const arguments_node_position = [...descendant.position, 2];
+                                        for (let child_index = 0; child_index < arguments_node.children.length; child_index += 2) {
+
+                                            const argument_index = child_index / 2;
+
+                                            const argument_source_location = Parse_tree_text_iterator.get_node_source_location(iterator.root, iterator.text, [...statement_node_position, ...arguments_node_position, child_index]) as Parser_node.Source_location;
+                                            const position: vscode.Position = {
+                                                line: argument_source_location.line - 1,
+                                                character: argument_source_location.column - 1
+                                            };
+
+                                            const label_parts = create_label_parts_for_parameter(declaration.core_module, declaration.declaration, call_function_value.declaration, argument_index);
+
+                                            inlay_hints.push(
+                                                {
+                                                    label: label_parts,
+                                                    position: position,
+                                                    kind: vscode.InlayHintKind.Parameter,
+                                                }
+                                            );
+                                        }
+                                    }
                                 }
-                            );
-
-                            const rightmost_descendant = Parser_node.get_rightmost_descendant(statement_node, statement_node_position);
-                            iterator = Parse_tree_text_iterator.go_to_next_node_position(iterator, rightmost_descendant.position);
+                            }
                         }
                     }
+
+                    const rightmost_descendant = Parser_node.get_rightmost_descendant(result.node, result.node_position);
+                    iterator = Parse_tree_text_iterator.go_to_next_node_position(iterator, rightmost_descendant.position);
                 }
             }
         }
@@ -121,7 +163,36 @@ function get_start_iterator(
     return Parse_tree_text_iterator.begin(parse_tree, document.getText());
 }
 
-async function create_label_parts(
+function create_label_parts_for_parameter(
+    core_module: Core.Module,
+    declaration: Core.Declaration,
+    function_declaration: Core.Function_declaration,
+    input_parameter_index: number
+): vscode.InlayHintLabelPart[] {
+
+    if (input_parameter_index >= function_declaration.input_parameter_names.length) {
+        return [];
+    }
+
+    const parts: vscode.InlayHintLabelPart[] = [];
+
+    const input_parameter_name = function_declaration.input_parameter_names[input_parameter_index];
+
+    const location = Helpers.location_to_vscode_location(Helpers.get_function_input_parameter_source_location(core_module, function_declaration, input_parameter_index));
+    const tooltip = Helpers.get_tooltip_of_function_input_parameter(function_declaration, input_parameter_index);
+
+    parts.push({
+        value: input_parameter_name,
+        location: location,
+        tooltip: tooltip
+    });
+
+    parts.push({ value: ": " });
+
+    return parts;
+}
+
+async function create_label_parts_for_type(
     type: Core.Type_reference,
     current_core_module: Core.Module,
     get_core_module: (module_name: string) => Promise<Core.Module | undefined>
@@ -130,12 +201,12 @@ async function create_label_parts(
     const parts: vscode.InlayHintLabelPart[] = [];
     parts.push({ value: ": " });
 
-    await create_label_part_recursively(type, current_core_module, parts, get_core_module);
+    await create_label_parts_for_type_recursively(type, current_core_module, parts, get_core_module);
 
     return parts;
 }
 
-export async function create_label_part_recursively(
+export async function create_label_parts_for_type_recursively(
     type: Core.Type_reference,
     current_core_module: Core.Module,
     parts: vscode.InlayHintLabelPart[],
@@ -154,7 +225,7 @@ export async function create_label_part_recursively(
         }
         case Core.Type_reference_enum.Constant_array_type: {
             const value = type.data.value as Core.Constant_array_type;
-            await create_label_part_recursively(value.value_type[0], current_core_module, parts, get_core_module);
+            await create_label_parts_for_type_recursively(value.value_type[0], current_core_module, parts, get_core_module);
             parts.push(
                 {
                     value: `[${value.size}]`
@@ -224,7 +295,7 @@ export async function create_label_part_recursively(
             const value = type.data.value as Core.Function_type;
             const input_parameter_parts: vscode.InlayHintLabelPart[] = [];
             for (const type of value.input_parameter_types) {
-                await create_label_part_recursively(type, current_core_module, input_parameter_parts, get_core_module);
+                await create_label_parts_for_type_recursively(type, current_core_module, input_parameter_parts, get_core_module);
             }
             if (value.is_variadic) {
                 input_parameter_parts.push({ value: "..." });
@@ -233,7 +304,7 @@ export async function create_label_part_recursively(
 
             const output_parameter_parts: vscode.InlayHintLabelPart[] = [];
             for (const type of value.output_parameter_types) {
-                await create_label_part_recursively(type, current_core_module, output_parameter_parts, get_core_module);
+                await create_label_parts_for_type_recursively(type, current_core_module, output_parameter_parts, get_core_module);
             }
             add_comma_label_parts(output_parameter_parts);
 
@@ -286,7 +357,7 @@ export async function create_label_part_recursively(
                 );
             }
             else {
-                await create_label_part_recursively(value.element_type[0], current_core_module, parts, get_core_module);
+                await create_label_parts_for_type_recursively(value.element_type[0], current_core_module, parts, get_core_module);
             }
             return;
         }
