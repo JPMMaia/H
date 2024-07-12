@@ -54,6 +54,11 @@ namespace h::compiler
         bool is_optimized;
     };
 
+    export struct LLVM_options
+    {
+        std::optional<std::string_view> const target_triple;
+    };
+
     export std::optional<h::Module> read_core_module(
         std::filesystem::path const& path
     );
@@ -62,7 +67,9 @@ namespace h::compiler
         std::filesystem::path const& path
     );
 
-    export LLVM_data initialize_llvm();
+    export LLVM_data initialize_llvm(
+        LLVM_options const& options
+    );
 
     export std::unique_ptr<llvm::Module> create_llvm_module(
         LLVM_data& llvm_data,

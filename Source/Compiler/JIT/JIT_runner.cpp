@@ -747,7 +747,7 @@ namespace h::compiler
 
         // Create readonly and protected data:
         {
-            std::unique_ptr<h::compiler::LLVM_data> llvm_data = std::make_unique<h::compiler::LLVM_data>(h::compiler::initialize_llvm());
+            std::unique_ptr<h::compiler::LLVM_data> llvm_data = std::make_unique<h::compiler::LLVM_data>(h::compiler::initialize_llvm({}));
             std::unique_ptr<JIT_data> jit_data = create_jit_data(llvm_data->data_layout, h::common::get_default_library_directories(), compilation_options.debug);
 
             jit_runner->unprotected_data =
