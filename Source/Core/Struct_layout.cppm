@@ -37,7 +37,7 @@ namespace h
     export std::ostream& operator<<(std::ostream& output_stream, Struct_layout const& value)
     {
         output_stream << "{\n";
-        output_stream << "    \"offset\": " << value.size << "\n";
+        output_stream << "    \"size\": " << value.size << "\n";
         output_stream << "    \"alignment\": " << value.alignment << "\n";
         output_stream << "    \"members\": [\n";
 
@@ -52,7 +52,7 @@ namespace h
         }
 
         output_stream << "    ]\n";
-        output_stream << "}\n";
+        output_stream << "}";
 
         return output_stream;
     }
