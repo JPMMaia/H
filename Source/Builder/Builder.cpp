@@ -9,6 +9,7 @@ module;
 #include <string>
 #include <optional>
 #include <span>
+#include <sstream>
 #include <unordered_map>
 #include <variant>
 
@@ -16,12 +17,14 @@ module h.builder;
 
 import h.common;
 import h.core;
+import h.core.struct_layout;
 import h.compiler;
 import h.compiler.artifact;
 import h.compiler.common;
 import h.compiler.linker;
 import h.compiler.repository;
 import h.compiler.target;
+import h.compiler.types;
 import h.c_header_converter;
 import h.json_serializer;
 import h.parser;
@@ -387,5 +390,32 @@ namespace h::builder
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> module_name_to_file_path_map;
         std::pmr::vector<std::pmr::string> libraries;
         build_artifact_auxiliary(module_name_to_file_path_map, libraries, target, parser, configuration_file_path, build_directory_path, header_search_paths, repositories, compilation_options);
+    }
+
+    void print_struct_layout(
+        std::filesystem::path const input_file_path,
+        std::string_view const struct_name,
+        std::optional<std::string_view> const target_triple
+    )
+    {
+        std::optional<h::Module> core_module = h::compiler::read_core_module(input_file_path);
+        if (!core_module.has_value())
+            h::common::print_message_and_exit(std::format("Failed to read module of '{}'", input_file_path.generic_string()));
+
+        h::compiler::LLVM_options const options
+        {
+            .target_triple = target_triple
+        };
+        h::compiler::LLVM_data llvm_data = h::compiler::initialize_llvm(options);
+
+        h::compiler::Type_database type_database = h::compiler::create_type_database(*llvm_data.context);
+        h::compiler::add_module_types(type_database, *llvm_data.context, llvm_data.data_layout, *core_module);
+
+        h::Struct_layout const struct_layout = h::compiler::calculate_struct_layout(llvm_data.data_layout, type_database, core_module->name, struct_name);
+
+        std::stringstream string_stream;
+        string_stream << struct_layout;
+        std::string const output = string_stream.str();
+        std::puts(output.c_str());
     }
 }

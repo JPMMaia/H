@@ -36,4 +36,10 @@ namespace h::builder
         std::span<h::compiler::Repository const> repositories,
         h::compiler::Compilation_options const& compilation_options
     );
+
+    export void print_struct_layout(
+        std::filesystem::path const input_file_path,
+        std::string_view const struct_name,
+        std::optional<std::string_view> const target_triple
+    );
 }
