@@ -13,6 +13,7 @@ target_sources(H_core PRIVATE
     "Declarations.cpp"
     "Expressions.cppm"
     "Expressions.cpp"
+    "Struct_layout.cppm"
     "Types.cppm"
     "Types.cpp"
 )

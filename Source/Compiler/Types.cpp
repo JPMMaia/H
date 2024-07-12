@@ -445,7 +445,7 @@ namespace h::compiler
                     &llvm_debug_file,
                     member_line_number,
                     llvm_data_layout.getTypeSizeInBits(llvm_type),
-                    8,
+                    llvm_data_layout.getABITypeAlign(llvm_type).value() * 8,
                     current_offset_in_bits,
                     llvm::DINode::FlagZero,
                     llvm_debug_type
@@ -1032,5 +1032,55 @@ namespace h::compiler
         );
 
         return output;
+    }
+
+    Struct_layout calculate_struct_layout(
+        llvm::DataLayout const& llvm_data_layout,
+        Type_database const& type_database,
+        std::string_view const module_name,
+        std::string_view const struct_name
+    )
+    {
+        LLVM_type_map const& llvm_type_map = type_database.name_to_llvm_type.at(module_name.data());
+        llvm::Type* const llvm_type = llvm_type_map.at(struct_name.data());
+        if (llvm_type == nullptr)
+            h::common::print_message_and_exit(std::format("Could not calculate struct layout of '{}.{}'. llvm::Type is null!", module_name, struct_name));
+
+        if (!llvm::StructType::classof(llvm_type))
+            h::common::print_message_and_exit(std::format("Could not calculate struct layout of '{}.{}'. llvm::Type is not llvm::StructType!", module_name, struct_name));
+
+
+        llvm::StructType* const llvm_struct_type = static_cast<llvm::StructType*>(llvm_type);
+        llvm::StructLayout const* const llvm_struct_layout = llvm_data_layout.getStructLayout(llvm_struct_type);
+
+        std::uint64_t const struct_size = llvm_struct_layout->getSizeInBytes();
+        std::uint64_t const struct_alignment = llvm_struct_layout->getAlignment().value();
+
+        std::pmr::vector<Struct_member_layout> members;
+        members.reserve(llvm_struct_type->getNumElements());
+
+        for (unsigned index = 0; index < llvm_struct_type->getNumElements(); ++index)
+        {
+            std::uint64_t const member_offset = llvm_struct_layout->getElementOffset(index);
+
+            llvm::Type* const member_type = llvm_struct_type->getElementType(index);
+            std::uint64_t const member_size = llvm_data_layout.getTypeStoreSize(member_type);
+            std::uint64_t const member_alignment = llvm_data_layout.getABITypeAlign(member_type).value();
+
+            members.push_back(
+                {
+                    .offset = member_offset,
+                    .size = member_size,
+                    .alignment = member_alignment
+                }
+            );
+        }
+
+        return
+        {
+            .size = struct_size,
+            .alignment = struct_alignment,
+            .members = std::move(members)
+        };
     }
 }
