@@ -1012,7 +1012,9 @@ namespace h::compiler
         return read_core_module(path);
     }
 
-    LLVM_data initialize_llvm()
+    LLVM_data initialize_llvm(
+        LLVM_options const& options
+    )
     {
         // Initialize the target registry:
         llvm::InitializeAllTargetInfos();
@@ -1021,7 +1023,7 @@ namespace h::compiler
         llvm::InitializeAllAsmParsers();
         llvm::InitializeAllAsmPrinters();
 
-        std::string target_triple = llvm::sys::getDefaultTargetTriple();
+        std::string target_triple = options.target_triple.has_value() ? std::string{ *options.target_triple } : llvm::sys::getDefaultTargetTriple();
 
         llvm::Target const& target = [&]() -> llvm::Target const&
         {
@@ -1259,7 +1261,7 @@ namespace h::compiler
         Compilation_options const& compilation_options
     )
     {
-        LLVM_data llvm_data = initialize_llvm();
+        LLVM_data llvm_data = initialize_llvm({});
         LLVM_module_data llvm_module_data = create_llvm_module(llvm_data, core_module, module_name_to_file_path_map, compilation_options);
 
         llvm_module_data.module->print(llvm::errs(), nullptr);

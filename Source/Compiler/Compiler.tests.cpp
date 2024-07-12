@@ -56,7 +56,7 @@ namespace h
     std::optional<h::Module> core_module = h::compiler::read_core_module(g_test_files_path / input_file);
     REQUIRE(core_module.has_value());
 
-    h::compiler::LLVM_data llvm_data = h::compiler::initialize_llvm();
+    h::compiler::LLVM_data llvm_data = h::compiler::initialize_llvm({});
 
     h::compiler::Compilation_options const compilation_options
     {
@@ -2704,13 +2704,10 @@ struct My_struct
     std::optional<h::Module> core_module = h::compiler::read_core_module(header_module_file_path);
     REQUIRE(core_module.has_value());
 
-    h::compiler::LLVM_data llvm_data = h::compiler::initialize_llvm();
+    h::compiler::LLVM_data llvm_data = h::compiler::initialize_llvm({});
 
     h::compiler::Type_database type_database = h::compiler::create_type_database(*llvm_data.context);
     h::compiler::add_module_types(type_database, *llvm_data.context, llvm_data.data_layout, *core_module);
-
-    h::Declaration_database declaration_database = h::create_declaration_database();
-    h::add_declarations(declaration_database, *core_module);
 
     h::Struct_layout const actual_struct_layout = h::compiler::calculate_struct_layout(llvm_data.data_layout, type_database, "my_module", "My_struct");
 
