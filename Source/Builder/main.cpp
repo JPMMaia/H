@@ -128,6 +128,18 @@ int main(int const argc, char const* const* argv)
         .help("Write hlang module to this location");
     program.add_subparser(import_c_header_command);
 
+    // hlang print-struct-layout <file> <struct_name> [--target=<target_triple>]
+    argparse::ArgumentParser print_struct_layout_command("print-struct-layout");
+    print_struct_layout_command.add_description("Print a JSON describing the layout of the specified struct.");
+    print_struct_layout_command.add_argument("file")
+        .help("Path to the core module file that contains the struct");
+    print_struct_layout_command.add_argument("struct_name")
+        .help("Name of the struct");
+    print_struct_layout_command.add_argument("--target")
+        .help("Target triple that identifies the platform.")
+        .default_value("default");
+    program.add_subparser(print_struct_layout_command);
+
     try
     {
         program.parse_args(argc, argv);
@@ -231,6 +243,20 @@ int main(int const argc, char const* const* argv)
         std::filesystem::path const output_file_path = subprogram.get<std::string>("output");
 
         h::c::import_header_and_write_to_file(module_name, input_file_path, output_file_path, {});
+    }
+    else if (program.is_subcommand_used("print-struct-layout"))
+    {
+        argparse::ArgumentParser const& subprogram = program.at<argparse::ArgumentParser>("print-struct-layout");
+
+        std::filesystem::path const input_file_path = subprogram.get<std::string>("file");
+        std::string const struct_name = subprogram.get<std::string>("struct_name");
+        std::string const target_triple = subprogram.get<std::string>("--target");
+
+        h::builder::print_struct_layout(
+            input_file_path,
+            struct_name,
+            (!target_triple.empty() && target_triple != "default") ? std::optional<std::string_view>{target_triple} : std::nullopt
+        );
     }
 
     return 0;
