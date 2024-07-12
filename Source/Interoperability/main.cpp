@@ -13,8 +13,9 @@ int main(int const argc, char const* const argv[])
     std::string_view const header_name = argv[1];
     std::string_view const header_path_string = argv[2];
     std::string_view const output_path_string = argv[3];
+    h::c::Options const options = {};
 
-    h::c::import_header_and_write_to_file(header_name, header_path_string, output_path_string);
+    h::c::import_header_and_write_to_file(header_name, header_path_string, output_path_string, options);
 
     return 0;
 }

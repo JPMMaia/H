@@ -214,7 +214,7 @@ namespace h::compiler
         }
         else if (module_source_file_path->extension() == ".h")
         {
-            h::c::import_header_and_write_to_file(module_name, *module_source_file_path, parsed_file_path);
+            h::c::import_header_and_write_to_file(module_name, *module_source_file_path, parsed_file_path, {});
 
             return Parsed_module_info
             {

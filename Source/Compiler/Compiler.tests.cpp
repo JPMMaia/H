@@ -827,7 +827,7 @@ Vector2i add(Vector2i lhs, Vector2i rhs);
     h::common::write_to_file(header_file_path, header_content);
 
     std::filesystem::path const header_module_file_path = root_directory_path / "vector2i.hl";
-    h::c::import_header_and_write_to_file("c.vector2i", header_file_path, header_module_file_path);
+    h::c::import_header_and_write_to_file("c.vector2i", header_file_path, header_module_file_path, {});
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {

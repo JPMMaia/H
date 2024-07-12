@@ -1365,35 +1365,59 @@ namespace h::c
         }
     }
 
+    static CXTranslationUnit create_translation_unit(
+        CXIndex const index,
+        std::filesystem::path const& header_path,
+        Options const& options
+    )
+    {
+        std::string const source_filename = header_path.generic_string();
+
+        CXTranslationUnit unit;
+
+        std::pmr::vector<char const*> arguments;
+        arguments.reserve(2);
+
+        if (options.target_triple.has_value())
+        {
+            arguments.push_back("-target");
+            arguments.push_back(options.target_triple->data());
+        }
+
+        CXErrorCode const error = clang_parseTranslationUnit2(
+            index,
+            source_filename.c_str(),
+            arguments.data(),
+            arguments.size(),
+            nullptr,
+            0,
+            CXTranslationUnit_None,
+            &unit
+        );
+
+        if (error != CXError_Success)
+        {
+            constexpr char const* message = "Unable to parse translation unit. Quitting.";
+            std::cerr << message << std::endl;
+            throw std::runtime_error{ message };
+        }
+
+        CXTargetInfo targetInfo = clang_getTranslationUnitTargetInfo(unit);
+        String triple = { clang_TargetInfo_getTriple(targetInfo) };
+        auto v = triple.string_view();
+
+        return unit;
+    }
+
     h::Module import_header(
         std::string_view const header_name,
-        std::filesystem::path const& header_path
+        std::filesystem::path const& header_path,
+        Options const& options
     )
     {
         CXIndex index = clang_createIndex(0, 0);
 
-        CXTranslationUnit unit;
-        {
-            std::string const source_filename = header_path.generic_string();
-
-            CXErrorCode const error = clang_parseTranslationUnit2(
-                index,
-                source_filename.c_str(),
-                nullptr,
-                0,
-                nullptr,
-                0,
-                CXTranslationUnit_None,
-                &unit
-            );
-
-            if (error != CXError_Success)
-            {
-                constexpr char const* message = "Unable to parse translation unit. Quitting.";
-                std::cerr << message << std::endl;
-                throw std::runtime_error{ message };
-            }
-        }
+        CXTranslationUnit unit = create_translation_unit(index, header_path, options);
 
         auto const visitor = [](CXCursor current_cursor, CXCursor parent, CXClientData client_data) -> CXChildVisitResult
         {
@@ -1497,9 +1521,9 @@ namespace h::c
         return header_module;
     }
 
-    void import_header_and_write_to_file(std::string_view const header_name, std::filesystem::path const& header_path, std::filesystem::path const& output_path)
+    void import_header_and_write_to_file(std::string_view const header_name, std::filesystem::path const& header_path, std::filesystem::path const& output_path, Options const& options)
     {
-        h::Module const header_module = import_header(header_name, header_path);
+        h::Module const header_module = import_header(header_name, header_path, options);
 
         h::json::write<h::Module>(output_path, header_module);
     }
