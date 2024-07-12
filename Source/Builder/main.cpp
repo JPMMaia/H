@@ -230,7 +230,7 @@ int main(int const argc, char const* const* argv)
         std::filesystem::path const input_file_path = subprogram.get<std::string>("header");
         std::filesystem::path const output_file_path = subprogram.get<std::string>("output");
 
-        h::c::import_header_and_write_to_file(module_name, input_file_path, output_file_path);
+        h::c::import_header_and_write_to_file(module_name, input_file_path, output_file_path, {});
     }
 
     return 0;

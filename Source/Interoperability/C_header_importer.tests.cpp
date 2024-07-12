@@ -82,7 +82,7 @@ namespace h::c
         std::filesystem::path const c_headers_path = g_c_headers_location;
         std::filesystem::path const stdio_header_path = c_headers_path / "stdio.h";
 
-        h::Module const header_module = h::c::import_header("c.stdio", stdio_header_path);
+        h::Module const header_module = h::c::import_header("c.stdio", stdio_header_path, {});
 
         CHECK(header_module.source_file_path == stdio_header_path);
 
@@ -118,7 +118,7 @@ namespace h::c
         std::filesystem::path const c_headers_path = g_c_headers_location;
         std::filesystem::path const time_header_path = c_headers_path / "time.h";
 
-        h::Module const header_module = h::c::import_header("c.time", time_header_path);
+        h::Module const header_module = h::c::import_header("c.time", time_header_path, {});
 
         CHECK(header_module.source_file_path == time_header_path);
 
@@ -137,7 +137,7 @@ namespace h::c
         std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
         std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
 
-        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path);
+        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path, {});
 
         CHECK(header_module.source_file_path == vulkan_header_path);
 
@@ -170,7 +170,7 @@ namespace h::c
         std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
         std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
 
-        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path);
+        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path, {});
 
         CHECK(header_module.source_file_path == vulkan_header_path);
 
@@ -213,7 +213,7 @@ namespace h::c
         std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
         std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
 
-        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path);
+        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path, {});
 
         CHECK(header_module.source_file_path == vulkan_header_path);
 
@@ -269,7 +269,7 @@ namespace h::c
         std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
         std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
 
-        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path);
+        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path, {});
 
         CHECK(header_module.source_file_path == vulkan_header_path);
 
@@ -350,7 +350,7 @@ namespace h::c
         std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
         std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
 
-        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path);
+        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path, {});
 
         CHECK(header_module.source_file_path == vulkan_header_path);
 
@@ -508,7 +508,7 @@ namespace h::c
         std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
         std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
 
-        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path);
+        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path, {});
 
         CHECK(header_module.source_file_path == vulkan_header_path);
 
@@ -579,7 +579,7 @@ namespace h::c
         std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
         std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
 
-        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path);
+        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path, {});
 
         CHECK(header_module.source_file_path == vulkan_header_path);
 
@@ -671,7 +671,7 @@ Vector2i add(Vector2i lhs, Vector2i rhs);
         std::filesystem::path const header_file_path = root_directory_path / "vector2i.h";
         h::common::write_to_file(header_file_path, header_content);
 
-        h::Module const header_module = h::c::import_header("c.vector2i", header_file_path);
+        h::Module const header_module = h::c::import_header("c.vector2i", header_file_path, {});
 
         CHECK(header_module.source_file_path == header_file_path);
 
@@ -716,7 +716,7 @@ Vector2i add(Vector2i lhs, Vector2i rhs);
         std::filesystem::path const header_file_path = root_directory_path / "vector2i.h";
         h::common::write_to_file(header_file_path, header_content);
 
-        h::Module const header_module = h::c::import_header("c.vector2i", header_file_path);
+        h::Module const header_module = h::c::import_header("c.vector2i", header_file_path, {});
 
         CHECK(header_module.source_file_path == header_file_path);
 
@@ -752,7 +752,7 @@ union Value
         std::filesystem::path const header_file_path = root_directory_path / "value.h";
         h::common::write_to_file(header_file_path, header_content);
 
-        h::Module const header_module = h::c::import_header("c.value", header_file_path);
+        h::Module const header_module = h::c::import_header("c.value", header_file_path, {});
 
         CHECK(header_module.source_file_path == header_file_path);
 
@@ -788,7 +788,7 @@ enum My_enum
         std::filesystem::path const header_file_path = root_directory_path / "my_enum.h";
         h::common::write_to_file(header_file_path, header_content);
 
-        h::Module const header_module = h::c::import_header("c.my_enum", header_file_path);
+        h::Module const header_module = h::c::import_header("c.my_enum", header_file_path, {});
 
         CHECK(header_module.source_file_path == header_file_path);
 
@@ -813,7 +813,7 @@ typedef My_int My_alias;
         std::filesystem::path const header_file_path = root_directory_path / "alias.h";
         h::common::write_to_file(header_file_path, header_content);
 
-        h::Module const header_module = h::c::import_header("c.alias", header_file_path);
+        h::Module const header_module = h::c::import_header("c.alias", header_file_path, {});
 
         CHECK(header_module.source_file_path == header_file_path);
 

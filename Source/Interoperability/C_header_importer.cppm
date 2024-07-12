@@ -28,7 +28,12 @@ namespace h::c
         C_declarations declarations;
     };
 
-    export h::Module import_header(std::string_view const header_name, std::filesystem::path const& header_path);
+    export struct Options
+    {
+        std::optional<std::string_view> target_triple;
+    };
 
-    export void import_header_and_write_to_file(std::string_view const header_name, std::filesystem::path const& header_path, std::filesystem::path const& output_path);
+    export h::Module import_header(std::string_view const header_name, std::filesystem::path const& header_path, Options const& options);
+
+    export void import_header_and_write_to_file(std::string_view const header_name, std::filesystem::path const& header_path, std::filesystem::path const& output_path, Options const& options);
 }
