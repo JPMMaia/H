@@ -1,6 +1,7 @@
 import "module-alias/register";
 
 import * as Definition from "./Definition";
+import * as Code_lens from "./Code_lens";
 import * as Completion from "./Completion";
 import * as Inlay_hints from "./Inlay_hints";
 import * as Platform from "./Platform";
@@ -53,7 +54,9 @@ connection.onInitialize(async (params: vscode_node.InitializeParams) => {
 				willSaveWaitUntil: false,
 				save: false
 			},
-			// Tell the client that this server supports code completion.
+			codeLensProvider: {
+				resolveProvider: true
+			},
 			completionProvider: {
 				resolveProvider: true,
 				triggerCharacters: [
@@ -324,6 +327,23 @@ connection.onDidChangeWatchedFiles(_change => {
 	// Monitored files have change in VSCode
 	connection.console.log('We received a file change event');
 });
+
+connection.onCodeLens(
+	async (parameters: vscode_node.CodeLensParams): Promise<vscode_node.CodeLens[]> => {
+		const workspace_folder_uri = await get_workspace_folder_uri_for_document(parameters.textDocument.uri);
+		if (workspace_folder_uri === undefined) {
+			return [];
+		}
+
+		return Code_lens.create(parameters, server_data, workspace_folder_uri);
+	}
+);
+
+connection.onCodeLensResolve(
+	async (code_lens: vscode_node.CodeLens): Promise<vscode_node.CodeLens> => {
+		return Code_lens.resolve(code_lens);
+	}
+);
 
 connection.onCompletion(
 	async (text_document_position: vscode_node.TextDocumentPositionParams): Promise<vscode_node.CompletionItem[]> => {

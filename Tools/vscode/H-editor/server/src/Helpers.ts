@@ -1,3 +1,5 @@
+import * as child_process from "child_process";
+import * as path from "path";
 import * as vscode from "vscode-languageserver/node";
 import * as vscode_uri from "vscode-uri";
 
@@ -38,6 +40,13 @@ export function range_to_vscode_range(range: Range): vscode.Range {
     return vscode.Range.create(
         vscode.Position.create(range.start.line - 1, range.start.column - 1),
         vscode.Position.create(range.end.line - 1, range.end.column - 1)
+    );
+}
+
+export function create_vscode_range(start_line: number, start_column: number, end_line: number, end_column: number): vscode.Range {
+    return vscode.Range.create(
+        vscode.Position.create(start_line - 1, start_column - 1),
+        vscode.Position.create(end_line - 1, end_column - 1)
     );
 }
 
@@ -325,10 +334,56 @@ export function get_function_input_parameter_source_location(
             line: input_parameter_source_location.line,
             column: input_parameter_source_location.column + input_parameter_name.length
         }
-    }
+    };
 
     return {
         file_path: file_path,
         range: range
     };
+}
+
+
+export function validate_input(input: string): boolean {
+    const regex = /^[a-zA-Z0-9\.\_]+$/;
+    return regex.test(input);
+}
+
+export function validate_path(input: string): boolean {
+    const regex = /[;|&><$\\'\"`(){}*?[\]~#]/;
+    return !regex.test(input);
+}
+
+export function normalize_path(value: string): string {
+    const normalized_path = path.normalize(value);
+    return normalized_path.replace(/\\/g, "/");
+}
+
+export async function execute_command(
+    executable_file_path: string,
+    command: string,
+    args: string[],
+    on_stdout?: (data: any) => void
+): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+
+        const process = child_process.spawn(executable_file_path, [command, ...args]);
+
+        process.stdout.on("data", on_stdout ? on_stdout : (data: any) => {
+            const message = data.toString("utf-8");
+            console.log(message);
+        });
+
+        process.stderr.on("data", (data: Buffer) => {
+            const message = data.toString("utf-8");
+            console.log(message);
+        });
+
+        process.on("close", (code: number) => {
+            if (code === 0) {
+                return resolve(true);
+            } else {
+                return resolve(false);
+            }
+        });
+    });
 }
