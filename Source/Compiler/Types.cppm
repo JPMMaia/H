@@ -17,6 +17,7 @@ module;
 export module h.compiler.types;
 
 import h.core;
+import h.core.struct_layout;
 
 namespace h::compiler
 {
@@ -124,5 +125,12 @@ namespace h::compiler
         std::span<Type_reference const> const type_references,
         Debug_type_database const& debug_type_database,
         std::pmr::polymorphic_allocator<> const& output_allocator
+    );
+
+    export Struct_layout calculate_struct_layout(
+        llvm::DataLayout const& llvm_data_layout,
+        Type_database const& type_database,
+        std::string_view const module_name,
+        std::string_view const struct_name
     );
 }

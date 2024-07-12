@@ -15,9 +15,12 @@
 #include <llvm/Target/TargetMachine.h>
 
 import h.core;
+import h.core.declarations;
+import h.core.struct_layout;
 import h.common;
 import h.compiler;
 import h.compiler.common;
+import h.compiler.types;
 import h.json_serializer;
 import h.json_serializer.operators;
 import h.c_header_converter;
@@ -882,8 +885,8 @@ attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !10 = !DICompositeType(tag: DW_TAG_structure_type, name: "Vector2i", file: !11, line: 2, size: 64, align: 8, elements: !12)
 !11 = !DIFile(filename: "vector2i.h", directory: "{}")
 !12 = !{{!13, !14}}
-!13 = !DIDerivedType(tag: DW_TAG_member, name: "x", file: !11, line: 4, baseType: !6, size: 32, align: 8)
-!14 = !DIDerivedType(tag: DW_TAG_member, name: "y", file: !11, line: 5, baseType: !6, size: 32, align: 8, offset: 32)
+!13 = !DIDerivedType(tag: DW_TAG_member, name: "x", file: !11, line: 4, baseType: !6, size: 32, align: 32)
+!14 = !DIDerivedType(tag: DW_TAG_member, name: "y", file: !11, line: 5, baseType: !6, size: 32, align: 32, offset: 32)
 !15 = !DILocation(line: 8, column: 5, scope: !3)
 !16 = !DILocalVariable(name: "b", scope: !3, file: !2, line: 8, type: !10)
 !17 = !DILocation(line: 9, column: 26, scope: !3)
@@ -1141,9 +1144,9 @@ attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !5 = !{{!6}}
 !6 = !DICompositeType(tag: DW_TAG_structure_type, name: "Debug_information_Vector2i", file: !2, line: 3, size: 64, align: 8, elements: !7)
 !7 = !{{!8, !10}}
-!8 = !DIDerivedType(tag: DW_TAG_member, name: "x", file: !2, line: 5, baseType: !9, size: 32, align: 8)
+!8 = !DIDerivedType(tag: DW_TAG_member, name: "x", file: !2, line: 5, baseType: !9, size: 32, align: 32)
 !9 = !DIBasicType(name: "Int32", size: 32, encoding: DW_ATE_signed)
-!10 = !DIDerivedType(tag: DW_TAG_member, name: "y", file: !2, line: 6, baseType: !9, size: 32, align: 8, offset: 32)
+!10 = !DIDerivedType(tag: DW_TAG_member, name: "y", file: !2, line: 6, baseType: !9, size: 32, align: 32, offset: 32)
 !11 = !{{}}
 !12 = !DILocation(line: 11, column: 5, scope: !3)
 !13 = !DILocalVariable(name: "instance", scope: !3, file: !2, line: 11, type: !6)
@@ -2669,5 +2672,48 @@ declare i32 @printf(ptr, ...)
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
+  TEST_CASE("Struct layout of imported C header matches 0")
+  {
+    std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "struct_layout_0";
+    std::filesystem::create_directories(root_directory_path);
+
+    std::string const header_content = R"(
+#include "stdint.h"
+
+struct My_struct
+{
+    uint8_t v0;  // Offset: 0, Size: 1, Alignment: 1
+    uint16_t v1; // Offset: 2, Size: 2, Alignment: 2
+    uint8_t v2;  // Offset: 4, Size: 1, Alignment: 1
+    uint32_t v3; // Offset: 8, Size: 4, Alignment: 4
+    uint8_t v4;  // Offset: 12, Size: 1, Alignment: 1
+    uint64_t v5; // Offset: 16, Size: 8, Alignment: 8
+};
+)";
+
+    std::filesystem::path const header_file_path = root_directory_path / "my_struct.h";
+    h::common::write_to_file(header_file_path, header_content);
+
+    h::Struct_layout const expected_struct_layout = h::c::calculate_struct_layout(header_file_path, "My_struct", {});
+
+    std::filesystem::path const header_module_file_path = root_directory_path / "my_struct.hl";
+    h::c::import_header_and_write_to_file("my_module", header_file_path, header_module_file_path, {});
+
+    std::optional<h::Module> core_module = h::compiler::read_core_module(header_module_file_path);
+    REQUIRE(core_module.has_value());
+
+    h::compiler::LLVM_data llvm_data = h::compiler::initialize_llvm();
+
+    h::compiler::Type_database type_database = h::compiler::create_type_database(*llvm_data.context);
+    h::compiler::add_module_types(type_database, *llvm_data.context, llvm_data.data_layout, *core_module);
+
+    h::Declaration_database declaration_database = h::create_declaration_database();
+    h::add_declarations(declaration_database, *core_module);
+
+    h::Struct_layout const actual_struct_layout = h::compiler::calculate_struct_layout(llvm_data.data_layout, type_database, "my_module", "My_struct");
+
+    CHECK(actual_struct_layout == expected_struct_layout);
   }
 }

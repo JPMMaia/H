@@ -1527,4 +1527,121 @@ namespace h::c
 
         h::json::write<h::Module>(output_path, header_module);
     }
+
+    h::Struct_layout calculate_struct_layout(
+        CXCursor const current_cursor
+    )
+    {
+        struct Client_Data
+        {
+            CXType struct_type = {};
+            h::Struct_layout struct_layout = {};
+        };
+
+        auto const visitor = [](CXCursor current_cursor, CXCursor parent, CXClientData client_data) -> CXChildVisitResult
+        {
+            Client_Data* const data = reinterpret_cast<Client_Data*>(client_data);
+
+            CXCursorKind const cursor_kind = clang_getCursorKind(current_cursor);
+
+            if (cursor_kind == CXCursor_FieldDecl)
+            {
+                String const member_name = { clang_getCursorSpelling(current_cursor) };
+                long long const member_offset_in_bits = clang_Type_getOffsetOf(data->struct_type, clang_getCString(member_name.value));
+
+                CXType const member_type = clang_getCursorType(current_cursor);
+                long long const member_size = clang_Type_getSizeOf(member_type);
+                long long const member_alignment = clang_Type_getAlignOf(member_type);
+
+                data->struct_layout.members.push_back(
+                    {
+                        .offset = static_cast<std::uint64_t>(member_offset_in_bits / 8),
+                        .size = static_cast<std::uint64_t>(member_size),
+                        .alignment = static_cast<std::uint64_t>(member_alignment)
+                    }
+                );
+            }
+
+            return CXChildVisit_Continue;
+        };
+
+        CXType const struct_type = clang_getCursorType(current_cursor);
+        long long const struct_size = clang_Type_getSizeOf(struct_type);
+        long long const struct_alignment = clang_Type_getAlignOf(struct_type);
+
+        Client_Data client_data
+        {
+            .struct_type = struct_type,
+            .struct_layout =
+            {
+                .size = static_cast<std::uint64_t>(struct_size),
+                .alignment = static_cast<std::uint64_t>(struct_alignment),
+                .members = {}
+            }
+        };
+
+        clang_visitChildren(
+            current_cursor,
+            visitor,
+            &client_data
+        );
+
+        return client_data.struct_layout;
+    }
+
+    h::Struct_layout calculate_struct_layout(
+        std::filesystem::path const& header_path,
+        std::string_view const struct_name,
+        Options const& options
+    )
+    {
+        CXIndex index = clang_createIndex(0, 0);
+        CXTranslationUnit unit = create_translation_unit(index, header_path, options);
+
+        struct Client_data
+        {
+            std::string_view struct_name;
+            h::Struct_layout struct_layout = {};
+        };
+
+        auto const visitor = [](CXCursor current_cursor, CXCursor parent, CXClientData client_data) -> CXChildVisitResult
+        {
+            Client_data* const data = reinterpret_cast<Client_data*>(client_data);
+
+            CXCursorKind const cursor_kind = clang_getCursorKind(current_cursor);
+
+            if (cursor_kind == CXCursor_StructDecl)
+            {
+                String const cursor_spelling = { clang_getCursorSpelling(current_cursor) };
+                std::string_view const struct_name = cursor_spelling.string_view();
+
+                if (struct_name == data->struct_name)
+                {
+                    data->struct_layout = calculate_struct_layout(current_cursor);
+                    return CXChildVisit_Break;
+                }
+            }
+
+            return CXChildVisit_Continue;
+        };
+
+        CXCursor cursor = clang_getTranslationUnitCursor(unit);
+
+        Client_data client_data
+        {
+            .struct_name = struct_name,
+            .struct_layout = {}
+        };
+
+        clang_visitChildren(
+            cursor,
+            visitor,
+            &client_data
+        );
+
+        clang_disposeTranslationUnit(unit);
+        clang_disposeIndex(index);
+
+        return client_data.struct_layout;
+    }
 }
