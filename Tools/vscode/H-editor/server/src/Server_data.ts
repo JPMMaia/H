@@ -73,6 +73,9 @@ export async function get_core_module(
                 document_state.text
             );
             if (core_module_with_source_location !== undefined) {
+                if (core_module_with_source_location.module !== undefined) {
+                    server_data.core_modules_with_source_locations.set(document_uri, core_module_with_source_location.module);
+                }
                 return core_module_with_source_location.module;
             }
         }
@@ -107,24 +110,55 @@ export async function get_core_module(
         return undefined;
     }
 
+    const parse_result = await parse_source_file_and_write_to_disk_if_needed(server_data, workspace_folder_uri, project, module_name, source_file.file_path);
+    if (parse_result === undefined) {
+        return undefined;
+    }
+
+    return parse_result.core_module;
+}
+
+export async function parse_source_file_and_write_to_disk_if_needed(
+    server_data: Server_data,
+    workspace_folder_uri: string,
+    project: Project.Project_data,
+    module_name: string,
+    source_file_path: string
+): Promise<{ core_module: Core.Module, parsed_file_path: string } | undefined> {
+
+    const artifact = Project.get_artifact_of_module(project, module_name);
+
+    const parsed_file_path = Project.map_module_name_to_parsed_file_path(workspace_folder_uri, artifact, module_name);
+    if (parsed_file_path === undefined) {
+        return undefined;
+    }
+
     if (fs.existsSync(parsed_file_path)) {
         const parsed_file_stat = fs.statSync(parsed_file_path);
-        const source_file_stat = fs.statSync(source_file.file_path);
+        const source_file_stat = fs.statSync(source_file_path);
 
         if (parsed_file_stat.mtime > source_file_stat.mtime) {
-            return Project.read_parsed_file(parsed_file_path);
+            const core_module = Project.read_parsed_file(parsed_file_path);
+            if (core_module === undefined) {
+                return undefined;
+            }
+
+            return { core_module: core_module, parsed_file_path: parsed_file_path };
         }
     }
 
     const core_module = await Project.parse_source_file_and_write_to_disk(
         module_name,
-        source_file.file_path,
+        source_file_path,
         server_data.language_description,
         parsed_file_path,
         project.hlang_executable
     );
+    if (core_module === undefined) {
+        return undefined;
+    }
 
-    return core_module;
+    return { core_module: core_module, parsed_file_path: parsed_file_path };
 }
 
 export function create_get_core_module(

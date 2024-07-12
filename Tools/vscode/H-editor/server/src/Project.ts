@@ -1,8 +1,9 @@
-import * as child_process from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import * as glob from "glob";
 import * as vscode_uri from "vscode-uri";
+
+import * as Helpers from "./Helpers";
 
 import * as Build from "@core/Build";
 import * as Core from "@core/Core_intermediate_representation";
@@ -353,11 +354,11 @@ export async function parse_source_file_and_write_to_disk(
 
     if (file_extension === ".h") {
         if (hlang_executable !== undefined) {
-            if (!validate_input(module_name)) {
+            if (!Helpers.validate_input(module_name)) {
                 return undefined;
             }
 
-            const success = await execute_command(hlang_executable, "import-c-header", [module_name, normalize_path(source_file_path), normalize_path(destination_file_path)]);
+            const success = await Helpers.execute_command(hlang_executable, "import-c-header", [module_name, Helpers.normalize_path(source_file_path), Helpers.normalize_path(destination_file_path)]);
             if (success) {
                 return read_parsed_file(destination_file_path);
             }
@@ -406,55 +407,17 @@ export function read_parsed_file(
     }
 }
 
-function validate_input(input: string): boolean {
-    const regex = /^[a-zA-Z0-9\.]+$/;
-    return regex.test(input);
-}
-
-function normalize_path(value: string): string {
-    const normalized_path = path.normalize(value);
-    return normalized_path.replace(/\\/g, "/");
-}
-
-async function execute_command(
-    executable_file_path: string,
-    command: string,
-    args: string[]
-): Promise<boolean> {
-    return new Promise((resolve, reject) => {
-
-        //const quoted_arguments = args.map(value => `"${value}"`);
-        const process = child_process.spawn(executable_file_path, [command, ...args]);
-
-        process.stdout.on("data", (data: any) => {
-            const message = data.toString("utf-8");
-            console.log(message);
-        });
-
-        process.stderr.on("data", (data: Buffer) => {
-            const message = data.toString("utf-8");
-            console.log(message);
-        });
-
-        process.on("close", (code: number) => {
-            if (code === 0) {
-                return resolve(true);
-            } else {
-                return resolve(false);
-            }
-        });
-    });
-}
-
 export function map_module_name_to_parsed_file_path(
     workspace_folder_uri: string,
-    artifact: Build.Artifact,
+    artifact: Build.Artifact | undefined,
     module_name: string
 ): string | undefined {
 
     const workspace_folder_file_path = vscode_uri.URI.parse(workspace_folder_uri).fsPath;
 
-    const artifact_build_path = path.join(workspace_folder_file_path, "build", artifact.name);
+    const artifact_name = artifact !== undefined ? artifact.name : "no_artifact";
+
+    const artifact_build_path = path.join(workspace_folder_file_path, "build", artifact_name);
     if (!fs.existsSync(artifact_build_path)) {
         fs.mkdirSync(artifact_build_path, { recursive: true });
     }
@@ -462,5 +425,5 @@ export function map_module_name_to_parsed_file_path(
     const module_file_name = `${module_name}.hl`;
     const module_build_path = path.join(artifact_build_path, module_file_name);
 
-    return module_build_path;
+    return path.normalize(module_build_path).replace(/\\/g, "/");
 }

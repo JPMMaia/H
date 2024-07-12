@@ -20,7 +20,7 @@ namespace h
 
     export std::ostream& operator<<(std::ostream& output_stream, Struct_member_layout const& value)
     {
-        output_stream << std::format("{{\"offset\": {}, \"size\": {}, \"alignment\": {}}}", value.offset, value.size, value.alignment);
+        output_stream << std::format("{{\"offset\":{},\"size\":{},\"alignment\":{}}}", value.offset, value.size, value.alignment);
 
         return output_stream;
     }
@@ -36,22 +36,20 @@ namespace h
 
     export std::ostream& operator<<(std::ostream& output_stream, Struct_layout const& value)
     {
-        output_stream << "{\n";
-        output_stream << "    \"size\": " << value.size << "\n";
-        output_stream << "    \"alignment\": " << value.alignment << "\n";
-        output_stream << "    \"members\": [\n";
+        output_stream << "{";
+        output_stream << "\"size\":" << value.size << ",";
+        output_stream << "\"alignment\":" << value.alignment << ",";
+        output_stream << "\"members\":[";
 
         for (std::size_t index = 0; index < value.members.size(); ++index)
         {
             Struct_member_layout const& member = value.members[index];
-            output_stream << "        ";
             output_stream << member;
             if (index + 1 < value.members.size())
                 output_stream << ',';
-            output_stream << '\n';
         }
 
-        output_stream << "    ]\n";
+        output_stream << "]";
         output_stream << "}";
 
         return output_stream;

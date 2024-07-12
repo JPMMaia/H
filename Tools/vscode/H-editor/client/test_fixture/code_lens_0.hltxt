@@ -1,0 +1,11 @@
+module code_lens_0;
+
+struct My_struct
+{
+    v0: Int8 = 0i8;
+    v1: Int16 = 0i16;
+    v2: Int8 = 0i8;
+    v3: Int32 = 0i32;
+    v4: Int8 = 0i8;
+    v5: Int64 = 0i64;
+}
