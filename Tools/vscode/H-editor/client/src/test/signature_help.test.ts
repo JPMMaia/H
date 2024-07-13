@@ -45,11 +45,11 @@ function create_add_function_signature(): vscode.SignatureInformation {
         label: "add(lhs: Int32, rhs: Int32) -> (result: Int32)",
         parameters: [
             {
-                label: [4, 7],
+                label: [4, 14],
                 documentation: "Left hand side of add expression"
             },
             {
-                label: [16, 19],
+                label: [16, 26],
                 documentation: "Right hand side of add expression"
             }
         ],
