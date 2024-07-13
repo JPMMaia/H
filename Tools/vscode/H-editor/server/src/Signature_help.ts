@@ -64,7 +64,7 @@ export async function create(
                     label: function_label,
                     parameters: function_declaration.input_parameter_names.map(
                         name => {
-                            const range = find_parameter_name_range(function_label, name);
+                            const range = find_parameter_range(function_label, name);
                             const parameter_information: vscode.ParameterInformation = {
                                 label: range
                             };
@@ -121,7 +121,7 @@ function get_cursor_parameter_index_at_expression_call_arguments(
     }
 }
 
-function find_parameter_name_range(
+function find_parameter_range(
     function_label: string,
     input_parameter_name: string
 ): [number, number] {
@@ -145,7 +145,7 @@ function find_parameter_name_range(
                     break;
                 }
             }
-            return [whitespace_count + current_index, whitespace_count + current_index + name.length];
+            return [current_index + whitespace_count, current_index + input_parameter.length];
         }
 
         current_index += input_parameter.length + 1;
