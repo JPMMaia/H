@@ -8,14 +8,13 @@ import * as Platform from "./Platform";
 import * as Project from "./Project";
 import * as Server_data from "./Server_data";
 import * as Semantic_tokens_provider from "./Semantic_tokens_provider";
+import * as Signature_help from "./Signature_help";
 
 import * as vscode_node from "vscode-languageserver/node";
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import * as vscode_uri from "vscode-uri";
 
 import * as Document from "@core/Document";
-import * as Language from "@core/Language";
-import * as Storage_cache from "@core/Storage_cache";
 import * as Text_change from "@core/Text_change";
 import * as Validation from "@core/Validation";
 
@@ -81,6 +80,9 @@ connection.onInitialize(async (params: vscode_node.InitializeParams) => {
 				full: {
 					delta: false
 				}
+			},
+			signatureHelpProvider: {
+				triggerCharacters: ['(', ',']
 			}
 		}
 	};
@@ -404,6 +406,13 @@ connection.languages.semanticTokens.onRange(
 		}
 
 		return Semantic_tokens_provider.provider(parameters, document_state);
+	}
+);
+
+connection.onSignatureHelp(
+	async (parameters: vscode_node.SignatureHelpParams): Promise<vscode_node.SignatureHelp | null> => {
+		const workspace_folder_uri = await get_workspace_folder_uri_for_document(parameters.textDocument.uri);
+		return Signature_help.create(parameters, server_data, workspace_folder_uri);
 	}
 );
 

@@ -608,6 +608,29 @@ export async function get_underlying_type_declaration(
     };
 }
 
+export async function get_function_value_from_node(
+    language_description: Language.Description,
+    core_module: Core.Module,
+    node: Parser_node.Node,
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<{ core_module: Core.Module, function_value: Core.Function } | undefined> {
+    const expression = get_expression_from_node(language_description, core_module, node);
+    if (expression.data.type === Core.Expression_enum.Variable_expression) {
+        const variable_expression = expression.data.value as Core.Variable_expression;
+        const function_name = variable_expression.name;
+        const declaration = core_module.declarations.find(declaration => declaration.name === function_name);
+        if (declaration !== undefined && declaration.type === Core.Declaration_type.Function) {
+            const function_value = declaration.value as Core.Function;
+            return {
+                core_module: core_module,
+                function_value: function_value
+            };
+        }
+    }
+
+    return undefined;
+}
+
 function create_pointer_type(element_type: Core.Type_reference[], is_mutable: boolean): Core.Type_reference {
     return {
         data: {
