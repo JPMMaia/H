@@ -6,6 +6,7 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 
 import * as Comments from "@core/Comments";
 import * as Core from "@core/Core_intermediate_representation";
+import * as Language from "@core/Language";
 import * as Parse_tree_analysis from "@core/Parse_tree_analysis";
 import * as Parse_tree_text_iterator from "@core/Parse_tree_text_iterator";
 import * as Parser_node from "@core/Parser_node";
@@ -46,7 +47,7 @@ export async function create(
     const ancestor_expression_call = Parser_node.get_ancestor_with_name(root, before_cursor_iterator.node_position, "Expression_call");
     if (ancestor_expression_call !== undefined) {
 
-        const active_input_parameter_index = get_cursor_parameter_index_at_expression_call_arguments(
+        const active_input_parameter_index = get_cursor_parameter_index_at_expression(
             ancestor_expression_call.position,
             before_cursor_iterator
         );
@@ -64,7 +65,7 @@ export async function create(
                     label: function_label,
                     parameters: function_declaration.input_parameter_names.map(
                         name => {
-                            const range = find_parameter_range(function_label, name);
+                            const range = find_parameter_range(function_label, name, "(", ")", ",");
                             const parameter_information: vscode.ParameterInformation = {
                                 label: range
                             };
@@ -101,10 +102,63 @@ export async function create(
         }
     }
 
+    const ancestor_expression_instantiate = Parser_node.get_ancestor_with_name(root, before_cursor_iterator.node_position, "Expression_instantiate");
+    if (ancestor_expression_instantiate !== undefined) {
+
+        const active_parameter_index = get_cursor_parameter_index_at_expression(
+            ancestor_expression_instantiate.position,
+            before_cursor_iterator
+        );
+        if (active_parameter_index !== -1) {
+            const custom_type_reference = find_instantiate_custom_type_reference_from_node(server_data.language_description, document_state.module, before_cursor_iterator.root, ancestor_expression_instantiate.position);
+            if (custom_type_reference !== undefined) {
+                const module_declaration = await Parse_tree_analysis.get_custom_type_reference_declaration(custom_type_reference, get_core_module);
+                if (module_declaration !== undefined) {
+                    if (module_declaration.declaration.type === Core.Declaration_type.Struct) {
+                        const struct_declaration = module_declaration.declaration.value as Core.Struct_declaration;
+
+                        const struct_label = create_struct_label(document_state.module, struct_declaration);
+
+                        const signature_information: vscode.SignatureInformation = {
+                            label: struct_label,
+                            parameters: struct_declaration.member_names.map(
+                                (member_name, member_index) => {
+                                    const range = find_parameter_range(struct_label, member_name, "{", "}", ",");
+                                    const parameter_information: vscode.ParameterInformation = {
+                                        label: range
+                                    };
+
+                                    const comment = struct_declaration.member_comments.find(value => value.index === member_index);
+                                    if (comment !== undefined) {
+                                        parameter_information.documentation = comment.comment;
+                                    }
+
+                                    return parameter_information;
+                                }
+                            )
+                        };
+
+                        if (struct_declaration.comment !== undefined) {
+                            signature_information.documentation = struct_declaration.comment;
+                        }
+
+                        const signature_help: vscode.SignatureHelp = {
+                            signatures: [signature_information],
+                            activeSignature: 0,
+                            activeParameter: active_parameter_index
+                        };
+
+                        return signature_help;
+                    }
+                }
+            }
+        }
+    }
+
     return null;
 }
 
-function get_cursor_parameter_index_at_expression_call_arguments(
+function get_cursor_parameter_index_at_expression(
     expression_call_node_position: number[],
     iterator: Parse_tree_text_iterator.Iterator
 ): number {
@@ -123,14 +177,17 @@ function get_cursor_parameter_index_at_expression_call_arguments(
 
 function find_parameter_range(
     function_label: string,
-    input_parameter_name: string
+    input_parameter_name: string,
+    open_character: string,
+    close_character: string,
+    separate_character: string
 ): [number, number] {
-    const start_index = function_label.indexOf("(");
-    const end_index = function_label.indexOf(")");
+    const start_index = function_label.indexOf(open_character);
+    const end_index = function_label.indexOf(close_character);
 
     let current_index = start_index + 1;
 
-    const input_parameters = function_label.substring(current_index, end_index).split(",");
+    const input_parameters = function_label.substring(current_index, end_index).split(separate_character);
 
     for (const input_parameter of input_parameters) {
         const parts = input_parameter.split(":");
@@ -176,20 +233,42 @@ function format_function_parameters(
     ).join(", ");
 }
 
-function get_start_iterator(
-    document: TextDocument,
-    range: vscode.Range,
-    parse_tree: Parser_node.Node
-): Parse_tree_text_iterator.Iterator {
-    const start_node_iterator = Scan_new_changes.get_node_before_text_position(
-        parse_tree,
-        document.getText(),
-        document.offsetAt(range.start)
-    );
-    if (start_node_iterator !== undefined) {
-        return start_node_iterator;
+function find_instantiate_custom_type_reference_from_node(
+    language_description: Language.Description,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    node_position: number[]
+): Core.Custom_type_reference | undefined {
+
+    const ancestor_variable_declaration_with_type = Parser_node.get_ancestor_with_name(root, node_position, "Expression_variable_declaration_with_type");
+    if (ancestor_variable_declaration_with_type !== undefined) {
+        const declaration_type_node = ancestor_variable_declaration_with_type.node.children[3];
+        const type_reference = Parse_tree_analysis.get_type_reference_from_node(language_description, core_module, declaration_type_node.children[0]);
+        if (type_reference.length > 0) {
+            if (type_reference[0].data.type === Core.Type_reference_enum.Custom_type_reference) {
+                return type_reference[0].data.value as Core.Custom_type_reference;
+            }
+        }
     }
 
-    return Parse_tree_text_iterator.begin(parse_tree, document.getText());
+    return undefined;
 }
 
+function create_struct_label(
+    core_module: Core.Module,
+    struct_declaration: Core.Struct_declaration
+): string {
+
+    let members_string = struct_declaration.member_names.map(
+        (member_name, member_index) => {
+            const member_type = struct_declaration.member_types[member_index];
+            const member_type_name = Type_utilities.get_type_name([member_type], core_module);
+            return `    ${member_name}: ${member_type_name}`;
+        }
+    ).join(",\n");
+    if (members_string.length > 0) {
+        members_string = `\n${members_string}\n`;
+    }
+
+    return `${struct_declaration.name} {${members_string}}`;
+}

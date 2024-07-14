@@ -90,6 +90,107 @@ function create_complex_add_function_signature(): vscode.SignatureInformation {
     };
 }
 
+suite("Should display struct signature", () => {
+    test("Should show struct signature 0", async () => {
+        const document_uri = get_document_uri('signature_help_struct_0.hltxt');
+        await test_signature_help(document_uri, new vscode.Position(14, 31), {
+            signatures: [create_complex_struct_signature()],
+            activeSignature: 0,
+            activeParameter: 0
+        });
+    });
+
+    test("Should show struct signature 1", async () => {
+        const document_uri = get_document_uri('signature_help_struct_1.hltxt');
+        await test_signature_help(document_uri, new vscode.Position(15, 21), {
+            signatures: [create_complex_struct_signature()],
+            activeSignature: 0,
+            activeParameter: 1
+        });
+    });
+
+    test("Should show struct signature 2", async () => {
+        const document_uri = get_document_uri('signature_help_struct_2.hltxt');
+        await test_signature_help(document_uri, new vscode.Position(21, 30), {
+            signatures: [create_complex_struct_signature()],
+            activeSignature: 0,
+            activeParameter: 0
+        });
+    });
+
+    test("Should show struct signature 3", async () => {
+        const document_uri = get_document_uri('signature_help_struct_3.hltxt');
+        await test_signature_help(document_uri, new vscode.Position(26, 25), {
+            signatures: [create_complex_struct_signature()],
+            activeSignature: 0,
+            activeParameter: 1
+        });
+    });
+
+    test("Should show struct signature 4", async () => {
+        const document_uri = get_document_uri('signature_help_struct_4.hltxt');
+        await test_signature_help(document_uri, new vscode.Position(16, 19), {
+            signatures: [create_complex_struct_signature()],
+            activeSignature: 0,
+            activeParameter: 0
+        });
+    });
+
+    test("Should show struct signature 5", async () => {
+        const document_uri = get_document_uri('signature_help_struct_5.hltxt');
+        await test_signature_help(document_uri, new vscode.Position(17, 21), {
+            signatures: [create_complex_struct_signature()],
+            activeSignature: 0,
+            activeParameter: 1
+        });
+    });
+
+    test("Should show struct signature 6", async () => {
+        const document_uri = get_document_uri('signature_help_struct_6.hltxt');
+        await test_signature_help(document_uri, new vscode.Position(15, 21), {
+            signatures: [create_complex_struct_signature()],
+            activeSignature: 0,
+            activeParameter: 1
+        });
+    });
+
+    test("Should show struct signature 7", async () => {
+        const document_uri = get_document_uri('signature_help_struct_7.hltxt');
+        await test_signature_help(document_uri, new vscode.Position(18, 20), {
+            signatures: [create_complex_struct_signature()],
+            activeSignature: 0,
+            activeParameter: 1
+        });
+    });
+
+    test("Should show struct signature 8", async () => {
+        const document_uri = get_document_uri('signature_help_struct_8.hltxt');
+        await test_signature_help(document_uri, new vscode.Position(16, 21), {
+            signatures: [create_complex_struct_signature()],
+            activeSignature: 0,
+            activeParameter: 1
+        });
+    });
+});
+
+function create_complex_struct_signature(): vscode.SignatureInformation {
+    return {
+        label: "Complex {\n    real: Float32 = 0.0f32;\n    imaginary: Float32 = 0.0f32;\n}",
+        parameters: [
+            {
+                label: [15, 38],
+                documentation: "The real part."
+            },
+            {
+                label: [44, 72],
+                documentation: "The imaginary part."
+            }
+        ],
+        documentation: "Represents complex numbers. Uses 32-bit floats.",
+        activeParameter: undefined
+    };
+}
+
 async function test_signature_help(
     document_uri: vscode.Uri,
     position: vscode.Position,
