@@ -101,7 +101,8 @@ export function parse_type_name(name: string): Core_intermediate_representation.
 }
 
 export function get_type_name(
-    type_reference: Core_intermediate_representation.Type_reference[]
+    type_reference: Core_intermediate_representation.Type_reference[],
+    core_module?: Core_intermediate_representation.Module
 ): string {
 
     if (type_reference.length === 0) {
@@ -119,13 +120,25 @@ export function get_type_name(
         case Core_intermediate_representation.Type_reference_enum.Constant_array_type:
             {
                 const value = type_reference_value.data.value as Core_intermediate_representation.Constant_array_type;
-                const value_type_name = get_type_name(value.value_type);
+                const value_type_name = get_type_name(value.value_type, core_module);
                 return `${value_type_name}[${value.size}]`;
             }
         case Core_intermediate_representation.Type_reference_enum.Custom_type_reference:
             {
                 const value = type_reference_value.data.value as Core_intermediate_representation.Custom_type_reference;
                 const module_name = value.module_reference.name;
+                if (core_module !== undefined) {
+                    if (module_name === core_module.name) {
+                        return value.name;
+                    }
+                    else {
+                        const import_module = core_module.imports.find(value => value.module_name === module_name);
+                        if (import_module !== undefined) {
+                            return `${import_module.alias}.${value.name}`;
+                        }
+                    }
+                }
+
                 return module_name.length > 0 ? `${module_name}.${value.name}` : value.name;
             }
         case Core_intermediate_representation.Type_reference_enum.Fundamental_type:
@@ -136,10 +149,10 @@ export function get_type_name(
         case Core_intermediate_representation.Type_reference_enum.Function_type:
             {
                 const value = type_reference_value.data.value as Core_intermediate_representation.Function_type;
-                const parameterNames = value.input_parameter_types.map(value => get_type_name([value]));
+                const parameterNames = value.input_parameter_types.map(value => get_type_name([value]), core_module);
                 const parameterNamesPlusVariadic = value.is_variadic ? parameterNames.concat("...") : parameterNames;
                 const parametersString = "(" + parameterNamesPlusVariadic.join(", ") + ")";
-                const returnTypeNames = value.output_parameter_types.map(value => get_type_name([value]));
+                const returnTypeNames = value.output_parameter_types.map(value => get_type_name([value]), core_module);
                 const returnTypesString = "(" + returnTypeNames.join(", ") + ")";
                 return `${parametersString} -> ${returnTypesString}`;
             }
@@ -151,7 +164,7 @@ export function get_type_name(
         case Core_intermediate_representation.Type_reference_enum.Pointer_type:
             {
                 const value = type_reference_value.data.value as Core_intermediate_representation.Pointer_type;
-                const valueTypeName = value.element_type.length === 0 ? "void" : get_type_name(value.element_type);
+                const valueTypeName = value.element_type.length === 0 ? "void" : get_type_name(value.element_type, core_module);
                 const mutableKeyword = value.is_mutable ? "mutable " : "";
                 return `*${mutableKeyword}${valueTypeName}`;
             }

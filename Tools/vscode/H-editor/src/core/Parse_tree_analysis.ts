@@ -615,7 +615,28 @@ export async function get_function_value_from_node(
     get_core_module: (module_name: string) => Promise<Core.Module | undefined>
 ): Promise<{ core_module: Core.Module, function_value: Core.Function } | undefined> {
     const expression = get_expression_from_node(language_description, core_module, node);
-    if (expression.data.type === Core.Expression_enum.Variable_expression) {
+    if (expression.data.type === Core.Expression_enum.Access_expression) {
+        const access_expression = expression.data.value as Core.Access_expression;
+        const left_hand_side_expression = access_expression.expression;
+        if (left_hand_side_expression.data.type === Core.Expression_enum.Variable_expression) {
+            const module_alias_expression = left_hand_side_expression.data.value as Core.Variable_expression;
+            const import_module = core_module.imports.find(value => value.alias === module_alias_expression.name);
+            if (import_module !== undefined) {
+                const imported_core_module = await get_core_module(import_module.module_name);
+                if (imported_core_module !== undefined) {
+                    const declaration = imported_core_module.declarations.find(declaration => declaration.name === access_expression.member_name);
+                    if (declaration !== undefined && declaration.type === Core.Declaration_type.Function) {
+                        const function_value = declaration.value as Core.Function;
+                        return {
+                            core_module: imported_core_module,
+                            function_value: function_value
+                        };
+                    }
+                }
+            }
+        }
+    }
+    else if (expression.data.type === Core.Expression_enum.Variable_expression) {
         const variable_expression = expression.data.value as Core.Variable_expression;
         const function_name = variable_expression.name;
         const declaration = core_module.declarations.find(declaration => declaration.name === function_name);

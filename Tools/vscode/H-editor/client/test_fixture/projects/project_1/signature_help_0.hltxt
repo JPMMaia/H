@@ -1,0 +1,10 @@
+module project_1.signature_help_0;
+
+import c.complex as complex;
+
+function run() -> ()
+{
+    var a: complex.Complex = {};
+    var b: complex.Complex = {};
+    var c = complex.add(a, b);
+}
