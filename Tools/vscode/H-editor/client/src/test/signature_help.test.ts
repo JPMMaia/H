@@ -38,6 +38,20 @@ suite("Should display function signature", () => {
             activeParameter: 1
         });
     });
+
+    test("Should show function signature of imported function", async () => {
+        const document_uri = get_document_uri('projects/project_1/signature_help_0.hltxt');
+        await test_signature_help(document_uri, new vscode.Position(8, 24), {
+            signatures: [create_complex_add_function_signature()],
+            activeSignature: 0,
+            activeParameter: 0
+        });
+        await test_signature_help(document_uri, new vscode.Position(8, 27), {
+            signatures: [create_complex_add_function_signature()],
+            activeSignature: 0,
+            activeParameter: 1
+        });
+    });
 });
 
 function create_add_function_signature(): vscode.SignatureInformation {
@@ -54,6 +68,24 @@ function create_add_function_signature(): vscode.SignatureInformation {
             }
         ],
         documentation: "Add two integers\n\nAdd two 32-bit integers.\nIt returns the result of adding lhs and rhs.",
+        activeParameter: undefined
+    };
+}
+
+function create_complex_add_function_signature(): vscode.SignatureInformation {
+    return {
+        label: "add(lhs: complex.Complex, rhs: complex.Complex) -> (result: complex.Complex)",
+        parameters: [
+            {
+                label: [4, 24],
+                documentation: undefined
+            },
+            {
+                label: [26, 46],
+                documentation: undefined
+            }
+        ],
+        documentation: undefined,
         activeParameter: undefined
     };
 }
