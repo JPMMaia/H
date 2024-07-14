@@ -4,7 +4,7 @@ import { get_document_uri, activate } from './helper';
 
 suite("Should display function signature", () => {
     test("Should show function signature with first parameter selected, and documentation 0", async () => {
-        const document_uri = get_document_uri('signature_help_0.hltxt');
+        const document_uri = get_document_uri('signature_help_function_0.hltxt');
         await test_signature_help(document_uri, new vscode.Position(17, 21), {
             signatures: [create_add_function_signature()],
             activeSignature: 0,
@@ -13,7 +13,7 @@ suite("Should display function signature", () => {
     });
 
     test("Should show function signature with first parameter selected, and documentation 1", async () => {
-        const document_uri = get_document_uri('signature_help_1.hltxt');
+        const document_uri = get_document_uri('signature_help_function_1.hltxt');
         await test_signature_help(document_uri, new vscode.Position(17, 24), {
             signatures: [create_add_function_signature()],
             activeSignature: 0,
@@ -22,7 +22,7 @@ suite("Should display function signature", () => {
     });
 
     test("Should show function signature with second parameter selected, and documentation 0", async () => {
-        const document_uri = get_document_uri('signature_help_2.hltxt');
+        const document_uri = get_document_uri('signature_help_function_2.hltxt');
         await test_signature_help(document_uri, new vscode.Position(17, 25), {
             signatures: [create_add_function_signature()],
             activeSignature: 0,
@@ -31,7 +31,7 @@ suite("Should display function signature", () => {
     });
 
     test("Should show function signature with second parameter selected, and documentation 1", async () => {
-        const document_uri = get_document_uri('signature_help_3.hltxt');
+        const document_uri = get_document_uri('signature_help_function_3.hltxt');
         await test_signature_help(document_uri, new vscode.Position(17, 29), {
             signatures: [create_add_function_signature()],
             activeSignature: 0,
@@ -40,7 +40,7 @@ suite("Should display function signature", () => {
     });
 
     test("Should show function signature of imported function", async () => {
-        const document_uri = get_document_uri('projects/project_1/signature_help_0.hltxt');
+        const document_uri = get_document_uri('projects/project_1/signature_help_function_0.hltxt');
         await test_signature_help(document_uri, new vscode.Position(8, 24), {
             signatures: [create_complex_add_function_signature()],
             activeSignature: 0,
