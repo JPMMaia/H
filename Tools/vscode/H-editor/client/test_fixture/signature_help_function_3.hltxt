@@ -1,4 +1,4 @@
-module signature_help_3;
+module signature_help_function_3;
 
 // Add two integers
 //
