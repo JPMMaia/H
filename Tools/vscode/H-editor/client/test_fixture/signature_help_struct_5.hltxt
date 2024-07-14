@@ -1,0 +1,18 @@
+module signature_help_struct_5;
+
+// Represents complex numbers. Uses 32-bit floats.
+struct Complex
+{
+    // The real part.
+    real: Float32 = 0.0f32;
+
+    // The imaginary part.
+    imaginary: Float32 = 0.0f32;
+}
+
+// Holds two complex numbers
+struct My_data
+{
+    // Value 0
+    v0: Complex = {
+        real: 0.0f32,
