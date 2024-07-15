@@ -8,6 +8,7 @@ import * as Comments from "@core/Comments";
 import * as Core from "@core/Core_intermediate_representation";
 import * as Language from "@core/Language";
 import * as Parse_tree_analysis from "@core/Parse_tree_analysis";
+import * as Parse_tree_convertor_mappings from "@core/Parse_tree_convertor_mappings";
 import * as Parse_tree_text_iterator from "@core/Parse_tree_text_iterator";
 import * as Parser_node from "@core/Parser_node";
 import * as Scan_new_changes from "@core/Scan_new_changes";
@@ -176,18 +177,18 @@ function get_cursor_parameter_index_at_expression(
 }
 
 function find_parameter_range(
-    function_label: string,
+    label: string,
     input_parameter_name: string,
     open_character: string,
     close_character: string,
     separate_character: string
 ): [number, number] {
-    const start_index = function_label.indexOf(open_character);
-    const end_index = function_label.indexOf(close_character);
+    const start_index = label.indexOf(open_character);
+    const end_index = label.indexOf(close_character);
 
     let current_index = start_index + 1;
 
-    const input_parameters = function_label.substring(current_index, end_index).split(separate_character);
+    const input_parameters = label.substring(current_index, end_index).split(separate_character);
 
     for (const input_parameter of input_parameters) {
         const parts = input_parameter.split(":");
@@ -195,14 +196,24 @@ function find_parameter_range(
         if (name === input_parameter_name) {
             let whitespace_count = 0;
             for (let i = 0; i < parts[0].length; ++i) {
-                if (parts[0][i] === " ") {
+                if (parts[0][i] === " " || parts[0][i] === "\n") {
                     whitespace_count += 1;
                 }
                 else {
                     break;
                 }
             }
-            return [current_index + whitespace_count, current_index + input_parameter.length];
+            let whitespace_count_at_end = 0;
+            for (let i = 0; i < input_parameter.length; ++i) {
+                const reverse_index = input_parameter.length - 1 - i;
+                if (input_parameter[reverse_index] === " " || input_parameter[reverse_index] === "\n") {
+                    whitespace_count_at_end += 1;
+                }
+                else {
+                    break;
+                }
+            }
+            return [current_index + whitespace_count, current_index + input_parameter.length - whitespace_count_at_end];
         }
 
         current_index += input_parameter.length + 1;
@@ -263,7 +274,10 @@ function create_struct_label(
         (member_name, member_index) => {
             const member_type = struct_declaration.member_types[member_index];
             const member_type_name = Type_utilities.get_type_name([member_type], core_module);
-            return `    ${member_name}: ${member_type_name}`;
+            const member_default_value_statement = struct_declaration.member_default_values[member_index];
+            const member_default_value_text = create_struct_member_default_value_text(member_default_value_statement);
+            const default_value_text = member_default_value_text !== undefined ? ` = ${member_default_value_text}` : "";
+            return `    ${member_name}: ${member_type_name}${default_value_text}`;
         }
     ).join(",\n");
     if (members_string.length > 0) {
@@ -271,4 +285,15 @@ function create_struct_label(
     }
 
     return `${struct_declaration.name} {${members_string}}`;
+}
+
+function create_struct_member_default_value_text(
+    statement: Core.Statement
+): string | undefined {
+    if (statement.expression.data.type === Core.Expression_enum.Constant_expression) {
+        const word = Parse_tree_convertor_mappings.constant_expression_to_word(statement.expression.data.value as Core.Constant_expression);
+        return word.value;
+    }
+
+    return undefined;
 }

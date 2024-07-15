@@ -301,17 +301,9 @@ function map_expression_break_loop_count_to_word(
     return { value: break_expression.loop_count.toString(), type: Grammar.Word_type.Number };
 }
 
-function map_expression_constant_to_word(
-    module: Core_intermediate_representation.Module,
-    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    production_rules: Grammar.Production_rule[],
-    key_to_production_rule_indices: Map<string, number[]>,
-    terminal: string,
-    mappings: Parse_tree_convertor.Parse_tree_mappings
+export function constant_expression_to_word(
+    constant_expression: Core_intermediate_representation.Constant_expression
 ): Grammar.Word {
-    const top = stack[stack.length - 1];
-    const expression = top.state.value as Core_intermediate_representation.Expression;
-    const constant_expression = expression.data.value as Core_intermediate_representation.Constant_expression;
 
     const type_reference = constant_expression.type.data;
 
@@ -363,6 +355,20 @@ function map_expression_constant_to_word(
     const message = `Did not expect '${type_reference.type}' as a constant expression`;
     onThrowError(message);
     throw Error(message);
+}
+
+function map_expression_constant_to_word(
+    module: Core_intermediate_representation.Module,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    production_rules: Grammar.Production_rule[],
+    key_to_production_rule_indices: Map<string, number[]>,
+    terminal: string,
+    mappings: Parse_tree_convertor.Parse_tree_mappings
+): Grammar.Word {
+    const top = stack[stack.length - 1];
+    const expression = top.state.value as Core_intermediate_representation.Expression;
+    const constant_expression = expression.data.value as Core_intermediate_representation.Constant_expression;
+    return constant_expression_to_word(constant_expression);
 }
 
 function map_expression_instantiate_member_name_to_word(
