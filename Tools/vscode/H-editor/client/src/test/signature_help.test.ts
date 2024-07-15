@@ -175,14 +175,14 @@ suite("Should display struct signature", () => {
 
 function create_complex_struct_signature(): vscode.SignatureInformation {
     return {
-        label: "Complex {\n    real: Float32 = 0.0f32;\n    imaginary: Float32 = 0.0f32;\n}",
+        label: "Complex {\n    real: Float32 = 0.0f32,\n    imaginary: Float32 = 0.0f32\n}",
         parameters: [
             {
-                label: [15, 38],
+                label: [14, 36],
                 documentation: "The real part."
             },
             {
-                label: [44, 72],
+                label: [42, 69],
                 documentation: "The imaginary part."
             }
         ],
