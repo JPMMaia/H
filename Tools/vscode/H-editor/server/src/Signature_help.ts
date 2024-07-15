@@ -50,7 +50,7 @@ export async function create(
 
         const active_input_parameter_index = get_cursor_parameter_index_at_expression(
             ancestor_expression_call.position,
-            before_cursor_iterator
+            before_cursor_iterator.node_position
         );
         if (active_input_parameter_index !== -1) {
             const left_hand_side_node = ancestor_expression_call.node.children[0];
@@ -108,10 +108,10 @@ export async function create(
 
         const active_parameter_index = get_cursor_parameter_index_at_expression(
             ancestor_expression_instantiate.position,
-            before_cursor_iterator
+            before_cursor_iterator.node_position
         );
         if (active_parameter_index !== -1) {
-            const custom_type_reference = find_instantiate_custom_type_reference_from_node(server_data.language_description, document_state.module, before_cursor_iterator.root, ancestor_expression_instantiate.position);
+            const custom_type_reference = await find_instantiate_custom_type_reference_from_node(server_data.language_description, document_state.module, before_cursor_iterator.root, ancestor_expression_instantiate.position, get_core_module);
             if (custom_type_reference !== undefined) {
                 const module_declaration = await Parse_tree_analysis.get_custom_type_reference_declaration(custom_type_reference, get_core_module);
                 if (module_declaration !== undefined) {
@@ -161,14 +161,14 @@ export async function create(
 
 function get_cursor_parameter_index_at_expression(
     expression_call_node_position: number[],
-    iterator: Parse_tree_text_iterator.Iterator
+    before_cursor_node_position: number[]
 ): number {
-    const child_index = iterator.node_position[expression_call_node_position.length];
+    const child_index = before_cursor_node_position[expression_call_node_position.length];
     if (child_index === 1) {
         return 0;
     }
     else if (child_index === 2) {
-        const argument_index = iterator.node_position[expression_call_node_position.length + 1];
+        const argument_index = before_cursor_node_position[expression_call_node_position.length + 1];
         return Math.ceil(argument_index / 2);
     }
     else {
@@ -244,12 +244,31 @@ function format_function_parameters(
     ).join(", ");
 }
 
-function find_instantiate_custom_type_reference_from_node(
+async function find_instantiate_custom_type_reference_from_node(
     language_description: Language.Description,
     core_module: Core.Module,
     root: Parser_node.Node,
-    node_position: number[]
-): Core.Custom_type_reference | undefined {
+    node_position: number[],
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Core.Custom_type_reference | undefined> {
+
+    const ancestor_expression_instantiate = Parser_node.get_ancestor_with_name(root, node_position, "Expression_instantiate");
+    if (ancestor_expression_instantiate !== undefined) {
+        const custom_type_reference = await find_instantiate_custom_type_reference_from_node(language_description, core_module, root, ancestor_expression_instantiate.position, get_core_module);
+        if (custom_type_reference !== undefined) {
+            const declaration = await Parse_tree_analysis.get_custom_type_reference_declaration(custom_type_reference, get_core_module);
+            if (declaration !== undefined && declaration.declaration.type === Core.Declaration_type.Struct) {
+                const struct_declaration = declaration.declaration.value as Core.Struct_declaration;
+                const parameter_index = get_cursor_parameter_index_at_expression(ancestor_expression_instantiate.position, node_position);
+                if (parameter_index !== -1) {
+                    const type = struct_declaration.member_types[parameter_index];
+                    if (type.data.type === Core.Type_reference_enum.Custom_type_reference) {
+                        return type.data.value as Core.Custom_type_reference;
+                    }
+                }
+            }
+        }
+    }
 
     const ancestor_variable_declaration_with_type = Parser_node.get_ancestor_with_name(root, node_position, "Expression_variable_declaration_with_type");
     if (ancestor_variable_declaration_with_type !== undefined) {
