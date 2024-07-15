@@ -794,6 +794,7 @@ function find_column_in_case_of_error(
                 case "{":
                 case "(":
                 case "=":
+                case ":":
                     return true;
                 default:
                     return false;
