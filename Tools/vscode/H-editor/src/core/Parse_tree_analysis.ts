@@ -716,7 +716,7 @@ export async function get_function_value_and_parameter_index_from_expression_cal
     root: Parser_node.Node,
     before_cursor_node_position: number[],
     get_core_module: (module_name: string) => Promise<Core.Module | undefined>
-): Promise<{ core_module: Core.Module, function_value: Core.Function, input_parameter_index: number } | undefined> {
+): Promise<{ core_module: Core.Module, function_value: Core.Function, input_parameter_index: number, expression_call_node_position: number[] } | undefined> {
 
     const ancestor_expression_call = Parser_node.get_ancestor_with_name(root, before_cursor_node_position, "Expression_call");
     if (ancestor_expression_call !== undefined) {
@@ -733,7 +733,8 @@ export async function get_function_value_and_parameter_index_from_expression_cal
                 return {
                     core_module: module_function.core_module,
                     function_value: module_function.function_value,
-                    input_parameter_index: active_input_parameter_index
+                    input_parameter_index: active_input_parameter_index,
+                    expression_call_node_position: ancestor_expression_call.position
                 };
             }
         }
