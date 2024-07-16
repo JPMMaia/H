@@ -48,122 +48,128 @@ export async function create(
     const expression_call_info = await Parse_tree_analysis.get_function_value_and_parameter_index_from_expression_call(
         server_data.language_description, document_state.module, root, before_cursor_iterator.node_position, get_core_module
     );
-    if (expression_call_info !== undefined) {
-        const function_declaration = expression_call_info.function_value.declaration;
-
-        const function_comment = Comments.parse_function_comment(function_declaration);
-
-        const function_label = create_function_label(document_state.module, function_declaration);
-
-        const signature_information: vscode.SignatureInformation = {
-            label: function_label,
-            parameters: function_declaration.input_parameter_names.map(
-                name => {
-                    const range = find_parameter_range(function_label, name, "(", ")", ",");
-                    const parameter_information: vscode.ParameterInformation = {
-                        label: range
-                    };
-
-                    const comment = function_comment.input_parameters.find(value => value.parameter_name === name);
-                    if (comment !== undefined && comment.description !== undefined) {
-                        parameter_information.documentation = comment.description;
-                    }
-
-                    return parameter_information;
-                }
-            )
-        };
-
-        if (function_comment.short_description !== undefined || function_comment.long_description !== undefined) {
-            const parts: string[] = [];
-            if (function_comment.short_description !== undefined) {
-                parts.push(function_comment.short_description);
-            }
-            if (function_comment.long_description !== undefined) {
-                parts.push(function_comment.long_description);
-            }
-            signature_information.documentation = parts.join("\n\n");
-        }
-
-        const signature_help: vscode.SignatureHelp = {
-            signatures: [signature_information],
-            activeSignature: 0,
-            activeParameter: expression_call_info.input_parameter_index
-        };
-
-        return signature_help;
-    }
-
-    const ancestor_expression_call = Parser_node.get_ancestor_with_name(root, before_cursor_iterator.node_position, "Expression_call");
-    if (ancestor_expression_call !== undefined) {
-
-        const active_input_parameter_index = Parse_tree_analysis.get_cursor_parameter_index_at_expression(
-            ancestor_expression_call.position,
-            before_cursor_iterator.node_position
-        );
-        if (active_input_parameter_index !== -1) {
-            const left_hand_side_node = ancestor_expression_call.node.children[0];
-            const module_function = await Parse_tree_analysis.get_function_value_from_node(server_data.language_description, document_state.module, left_hand_side_node, get_core_module);
-            if (module_function !== undefined) {
-
-            }
-        }
-    }
 
     const ancestor_expression_instantiate = Parser_node.get_ancestor_with_name(root, before_cursor_iterator.node_position, "Expression_instantiate");
+
+    if (expression_call_info !== undefined && (ancestor_expression_instantiate === undefined || expression_call_info.expression_call_node_position.length > ancestor_expression_instantiate.position.length)) {
+        return get_function_signature_help(document_state.module, expression_call_info.function_value.declaration, expression_call_info.input_parameter_index);
+    }
+
     if (ancestor_expression_instantiate !== undefined) {
-
-        const active_parameter_index = Parse_tree_analysis.get_cursor_parameter_index_at_expression(
-            ancestor_expression_instantiate.position,
-            before_cursor_iterator.node_position
-        );
-        if (active_parameter_index !== -1) {
-            const custom_type_reference = await find_instantiate_custom_type_reference_from_node(server_data.language_description, document_state.module, before_cursor_iterator.root, ancestor_expression_instantiate.position, get_core_module);
-            if (custom_type_reference !== undefined) {
-                const module_declaration = await Parse_tree_analysis.get_custom_type_reference_declaration(custom_type_reference, get_core_module);
-                if (module_declaration !== undefined) {
-                    if (module_declaration.declaration.type === Core.Declaration_type.Struct) {
-                        const struct_declaration = module_declaration.declaration.value as Core.Struct_declaration;
-
-                        const struct_label = create_struct_label(document_state.module, struct_declaration);
-
-                        const signature_information: vscode.SignatureInformation = {
-                            label: struct_label,
-                            parameters: struct_declaration.member_names.map(
-                                (member_name, member_index) => {
-                                    const range = find_parameter_range(struct_label, member_name, "{", "}", ",");
-                                    const parameter_information: vscode.ParameterInformation = {
-                                        label: range
-                                    };
-
-                                    const comment = struct_declaration.member_comments.find(value => value.index === member_index);
-                                    if (comment !== undefined) {
-                                        parameter_information.documentation = comment.comment;
-                                    }
-
-                                    return parameter_information;
-                                }
-                            )
-                        };
-
-                        if (struct_declaration.comment !== undefined) {
-                            signature_information.documentation = struct_declaration.comment;
-                        }
-
-                        const signature_help: vscode.SignatureHelp = {
-                            signatures: [signature_information],
-                            activeSignature: 0,
-                            activeParameter: active_parameter_index
-                        };
-
-                        return signature_help;
-                    }
-                }
-            }
+        const signature_help = await get_struct_signature_help(server_data.language_description, document_state.module, before_cursor_iterator.root, ancestor_expression_instantiate.position, before_cursor_iterator.node_position, get_core_module);
+        if (signature_help !== undefined) {
+            return signature_help;
         }
     }
 
     return null;
+}
+
+function get_function_signature_help(
+    core_module: Core.Module,
+    function_declaration: Core.Function_declaration,
+    input_parameter_index: number
+): vscode.SignatureHelp {
+
+    const function_comment = Comments.parse_function_comment(function_declaration);
+
+    const function_label = create_function_label(core_module, function_declaration);
+
+    const signature_information: vscode.SignatureInformation = {
+        label: function_label,
+        parameters: function_declaration.input_parameter_names.map(
+            name => {
+                const range = find_parameter_range(function_label, name, "(", ")", ",");
+                const parameter_information: vscode.ParameterInformation = {
+                    label: range
+                };
+
+                const comment = function_comment.input_parameters.find(value => value.parameter_name === name);
+                if (comment !== undefined && comment.description !== undefined) {
+                    parameter_information.documentation = comment.description;
+                }
+
+                return parameter_information;
+            }
+        )
+    };
+
+    if (function_comment.short_description !== undefined || function_comment.long_description !== undefined) {
+        const parts: string[] = [];
+        if (function_comment.short_description !== undefined) {
+            parts.push(function_comment.short_description);
+        }
+        if (function_comment.long_description !== undefined) {
+            parts.push(function_comment.long_description);
+        }
+        signature_information.documentation = parts.join("\n\n");
+    }
+
+    const signature_help: vscode.SignatureHelp = {
+        signatures: [signature_information],
+        activeSignature: 0,
+        activeParameter: input_parameter_index
+    };
+
+    return signature_help;
+}
+
+async function get_struct_signature_help(
+    language_description: Language.Description,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    expression_instantiate_node_position: number[],
+    before_cursor_node_position: number[],
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<vscode.SignatureHelp | undefined> {
+    const active_parameter_index = Parse_tree_analysis.get_cursor_parameter_index_at_expression(
+        expression_instantiate_node_position,
+        before_cursor_node_position
+    );
+    if (active_parameter_index !== -1) {
+        const custom_type_reference = await find_instantiate_custom_type_reference_from_node(language_description, core_module, root, expression_instantiate_node_position, get_core_module);
+        if (custom_type_reference !== undefined) {
+            const module_declaration = await Parse_tree_analysis.get_custom_type_reference_declaration(custom_type_reference, get_core_module);
+            if (module_declaration !== undefined) {
+                if (module_declaration.declaration.type === Core.Declaration_type.Struct) {
+                    const struct_declaration = module_declaration.declaration.value as Core.Struct_declaration;
+
+                    const struct_label = create_struct_label(core_module, struct_declaration);
+
+                    const signature_information: vscode.SignatureInformation = {
+                        label: struct_label,
+                        parameters: struct_declaration.member_names.map(
+                            (member_name, member_index) => {
+                                const range = find_parameter_range(struct_label, member_name, "{", "}", ",");
+                                const parameter_information: vscode.ParameterInformation = {
+                                    label: range
+                                };
+
+                                const comment = struct_declaration.member_comments.find(value => value.index === member_index);
+                                if (comment !== undefined) {
+                                    parameter_information.documentation = comment.comment;
+                                }
+
+                                return parameter_information;
+                            }
+                        )
+                    };
+
+                    if (struct_declaration.comment !== undefined) {
+                        signature_information.documentation = struct_declaration.comment;
+                    }
+
+                    const signature_help: vscode.SignatureHelp = {
+                        signatures: [signature_information],
+                        activeSignature: 0,
+                        activeParameter: active_parameter_index
+                    };
+
+                    return signature_help;
+                }
+            }
+        }
+    }
 }
 
 function find_parameter_range(
@@ -306,12 +312,7 @@ async function find_instantiate_custom_type_reference_from_node(
         const function_declaration = expression_call_info.function_value.declaration;
         const parameter_type = function_declaration.type.input_parameter_types[expression_call_info.input_parameter_index];
         if (parameter_type !== undefined && parameter_type.data.type === Core.Type_reference_enum.Custom_type_reference) {
-            const custom_type_reference = parameter_type.data.value as Core.Custom_type_reference;
-            const declaration = await Parse_tree_analysis.get_custom_type_reference_declaration(custom_type_reference, get_core_module);
-            if (declaration !== undefined && declaration.declaration.type === Core.Declaration_type.Struct) {
-                const struct_declaration = declaration.declaration.value as Core.Struct_declaration;
-
-            }
+            return parameter_type.data.value as Core.Custom_type_reference;
         }
     }
 
