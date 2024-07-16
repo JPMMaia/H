@@ -14,5 +14,8 @@ struct Complex
 struct My_data
 {
     // Value 0
-    v0: Complex = {
-        real: 0.0f32,
+    v0: Int32 = 0i32;
+    
+    // Value 1
+    v1: Complex = {
+        real: 1.0f32,

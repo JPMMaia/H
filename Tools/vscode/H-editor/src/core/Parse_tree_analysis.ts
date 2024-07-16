@@ -652,6 +652,113 @@ export async function get_function_value_from_node(
     return undefined;
 }
 
+export function get_struct_declaration_that_contains_node_position(
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    node_position: number[]
+): Core.Struct_declaration | undefined {
+    const ancestor_struct = Parser_node.get_ancestor_with_name(root, node_position, "Struct");
+    if (ancestor_struct === undefined) {
+        return undefined;
+    }
+
+    const descendant_struct_name = Parser_node.find_descendant_position_if(ancestor_struct.node, node => node.word.value === "Struct_name");
+    if (descendant_struct_name === undefined) {
+        return undefined;
+    }
+
+    const child = descendant_struct_name.node.children[0];
+    if (child === undefined) {
+        return undefined;
+    }
+
+    const struct_name = child.word.value;
+    const declaration = core_module.declarations.find(declaration => declaration.name === struct_name);
+    if (declaration === undefined || declaration.type !== Core.Declaration_type.Struct) {
+        return undefined;
+    }
+
+    return declaration.value as Core.Struct_declaration;
+}
+
+export function get_function_value_that_contains_node_position(
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    node_position: number[]
+): Core.Function | undefined {
+    const ancestor_function = Parser_node.get_ancestor_with_name(root, node_position, "Function");
+    if (ancestor_function === undefined) {
+        return undefined;
+    }
+
+    const descendant_function_name = Parser_node.find_descendant_position_if(ancestor_function.node, node => node.word.value === "Function_name");
+    if (descendant_function_name === undefined) {
+        return undefined;
+    }
+
+    const child = descendant_function_name.node.children[0];
+    if (child === undefined) {
+        return undefined;
+    }
+
+    const function_name = child.word.value;
+    const declaration = core_module.declarations.find(declaration => declaration.name === function_name);
+    if (declaration === undefined || declaration.type !== Core.Declaration_type.Function) {
+        return undefined;
+    }
+
+    return declaration.value as Core.Function;
+}
+
+export async function get_function_value_and_parameter_index_from_expression_call(
+    language_description: Language.Description,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    before_cursor_node_position: number[],
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<{ core_module: Core.Module, function_value: Core.Function, input_parameter_index: number } | undefined> {
+
+    const ancestor_expression_call = Parser_node.get_ancestor_with_name(root, before_cursor_node_position, "Expression_call");
+    if (ancestor_expression_call !== undefined) {
+
+        const active_input_parameter_index = get_cursor_parameter_index_at_expression(
+            ancestor_expression_call.position,
+            before_cursor_node_position
+        );
+
+        if (active_input_parameter_index !== -1) {
+            const left_hand_side_node = ancestor_expression_call.node.children[0];
+            const module_function = await get_function_value_from_node(language_description, core_module, left_hand_side_node, get_core_module);
+            if (module_function !== undefined) {
+                return {
+                    core_module: module_function.core_module,
+                    function_value: module_function.function_value,
+                    input_parameter_index: active_input_parameter_index
+                };
+            }
+        }
+    }
+
+    return undefined;
+}
+
+export function get_cursor_parameter_index_at_expression(
+    expression_call_node_position: number[],
+    before_cursor_node_position: number[]
+): number {
+    const child_index = before_cursor_node_position[expression_call_node_position.length];
+    if (child_index === 1) {
+        return 0;
+    }
+    else if (child_index === 2) {
+        const argument_index = before_cursor_node_position[expression_call_node_position.length + 1];
+        return Math.ceil(argument_index / 2);
+    }
+    else {
+        return -1;
+    }
+}
+
 function create_pointer_type(element_type: Core.Type_reference[], is_mutable: boolean): Core.Type_reference {
     return {
         data: {

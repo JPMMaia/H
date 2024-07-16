@@ -138,7 +138,7 @@ suite("Should display struct signature", () => {
 
     test("Should show struct signature 5", async () => {
         const document_uri = get_document_uri('signature_help_struct_5.hltxt');
-        await test_signature_help(document_uri, new vscode.Position(17, 21), {
+        await test_signature_help(document_uri, new vscode.Position(20, 21), {
             signatures: [create_complex_struct_signature()],
             activeSignature: 0,
             activeParameter: 1
@@ -156,7 +156,7 @@ suite("Should display struct signature", () => {
 
     test("Should show struct signature 7", async () => {
         const document_uri = get_document_uri('signature_help_struct_7.hltxt');
-        await test_signature_help(document_uri, new vscode.Position(18, 20), {
+        await test_signature_help(document_uri, new vscode.Position(18, 26), {
             signatures: [create_complex_struct_signature()],
             activeSignature: 0,
             activeParameter: 1
