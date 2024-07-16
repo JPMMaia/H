@@ -16,4 +16,4 @@ function add(lhs: Complex, rhs: Complex) -> ()
 
 function run() -> ()
 {
-    add({}, {1.0f32,
+    add({}, {real: 1.0f32,
