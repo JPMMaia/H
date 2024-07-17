@@ -305,6 +305,19 @@ async function find_instantiate_custom_type_reference_from_node(
         }
     }
 
+    const ancestor_assignment_expression = Parser_node.get_ancestor_with_name(root, node_position, "Expression_assignment");
+    if (ancestor_assignment_expression !== undefined) {
+        const function_value = Parse_tree_analysis.get_function_value_that_contains_node_position(core_module, root, node_position);
+        if (function_value !== undefined) {
+            const left_hand_side_node = ancestor_assignment_expression.node.children[0];
+            const left_hand_side_expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, left_hand_side_node);
+            const left_hand_side_type = await Parse_tree_analysis.get_expression_type(core_module, function_value, root, node_position, left_hand_side_expression, get_core_module);
+            if (left_hand_side_type !== undefined && left_hand_side_type.data.type === Core.Type_reference_enum.Custom_type_reference) {
+                return left_hand_side_type.data.value as Core.Custom_type_reference;
+            }
+        }
+    }
+
     const expression_call_info = await Parse_tree_analysis.get_function_value_and_parameter_index_from_expression_call(
         language_description, core_module, root, node_position, get_core_module
     );
