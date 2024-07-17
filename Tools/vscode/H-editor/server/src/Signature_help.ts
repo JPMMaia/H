@@ -45,20 +45,25 @@ export async function create(
         return Server_data.get_core_module(server_data, workspace_uri, module_name);
     };
 
-    const expression_call_info = await Parse_tree_analysis.get_function_value_and_parameter_index_from_expression_call(
-        server_data.language_description, document_state.module, root, before_cursor_iterator.node_position, get_core_module
-    );
+    const ancestor = Parser_node.get_first_ancestor_with_name(root, before_cursor_iterator.node_position, [
+        "Expression_call",
+        "Expression_instantiate"
+    ]);
 
-    const ancestor_expression_instantiate = Parser_node.get_ancestor_with_name(root, before_cursor_iterator.node_position, "Expression_instantiate");
-
-    if (expression_call_info !== undefined && (ancestor_expression_instantiate === undefined || expression_call_info.expression_call_node_position.length > ancestor_expression_instantiate.position.length)) {
-        return get_function_signature_help(document_state.module, expression_call_info.function_value.declaration, expression_call_info.input_parameter_index);
-    }
-
-    if (ancestor_expression_instantiate !== undefined) {
-        const signature_help = await get_struct_signature_help(server_data.language_description, document_state.module, before_cursor_iterator.root, ancestor_expression_instantiate.position, before_cursor_iterator.node_position, get_core_module);
-        if (signature_help !== undefined) {
-            return signature_help;
+    if (ancestor !== undefined) {
+        if (ancestor.node.word.value === "Expression_call") {
+            const expression_call_info = await Parse_tree_analysis.get_function_value_and_parameter_index_from_expression_call(
+                server_data.language_description, document_state.module, root, before_cursor_iterator.node_position, get_core_module
+            );
+            if (expression_call_info !== undefined) {
+                return get_function_signature_help(document_state.module, expression_call_info.function_value.declaration, expression_call_info.input_parameter_index);
+            }
+        }
+        else if (ancestor.node.word.value === "Expression_instantiate") {
+            const signature_help = await get_struct_signature_help(server_data.language_description, document_state.module, before_cursor_iterator.root, ancestor.position, before_cursor_iterator.node_position, get_core_module);
+            if (signature_help !== undefined) {
+                return signature_help;
+            }
         }
     }
 
