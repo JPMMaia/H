@@ -10,7 +10,7 @@ import {
 
 export let client: LanguageClient;
 
-export function activate(context: ExtensionContext) {
+export async function activate(context: ExtensionContext) {
 	// The server is implemented in node
 	const serverModule = context.asAbsolutePath(
 		path.join("out", "server", "server.js")
@@ -45,7 +45,7 @@ export function activate(context: ExtensionContext) {
 	);
 
 	// Start the client. This will also launch the server
-	client.start();
+	await client.start();
 }
 
 export function deactivate(): Thenable<void> | undefined {
