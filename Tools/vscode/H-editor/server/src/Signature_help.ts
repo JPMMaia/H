@@ -122,54 +122,46 @@ async function get_struct_signature_help(
     before_cursor_node_position: number[],
     get_core_module: (module_name: string) => Promise<Core.Module | undefined>
 ): Promise<vscode.SignatureHelp | undefined> {
-    const active_parameter_index = Parse_tree_analysis.get_cursor_parameter_index_at_expression(
-        expression_instantiate_node_position,
-        before_cursor_node_position
-    );
-    if (active_parameter_index !== -1) {
-        const custom_type_reference = await find_instantiate_custom_type_reference_from_node(language_description, core_module, root, expression_instantiate_node_position, get_core_module);
-        if (custom_type_reference !== undefined) {
-            const module_declaration = await Parse_tree_analysis.get_custom_type_reference_declaration(custom_type_reference, get_core_module);
-            if (module_declaration !== undefined) {
-                if (module_declaration.declaration.type === Core.Declaration_type.Struct) {
-                    const struct_declaration = module_declaration.declaration.value as Core.Struct_declaration;
 
-                    const struct_label = create_struct_label(core_module, struct_declaration);
-
-                    const signature_information: vscode.SignatureInformation = {
-                        label: struct_label,
-                        parameters: struct_declaration.member_names.map(
-                            (member_name, member_index) => {
-                                const range = find_parameter_range(struct_label, member_name, "{", "}", ",");
-                                const parameter_information: vscode.ParameterInformation = {
-                                    label: range
-                                };
-
-                                const comment = struct_declaration.member_comments.find(value => value.index === member_index);
-                                if (comment !== undefined) {
-                                    parameter_information.documentation = comment.comment;
-                                }
-
-                                return parameter_information;
-                            }
-                        )
-                    };
-
-                    if (struct_declaration.comment !== undefined) {
-                        signature_information.documentation = struct_declaration.comment;
-                    }
-
-                    const signature_help: vscode.SignatureHelp = {
-                        signatures: [signature_information],
-                        activeSignature: 0,
-                        activeParameter: active_parameter_index
-                    };
-
-                    return signature_help;
-                }
-            }
-        }
+    const instantiate_struct_member_info = await Parse_tree_analysis.find_instantiate_struct_member_from_node(language_description, core_module, root, before_cursor_node_position, get_core_module);
+    if (instantiate_struct_member_info === undefined) {
+        return undefined;
     }
+
+    const struct_declaration = instantiate_struct_member_info.struct_declaration;
+
+    const struct_label = create_struct_label(core_module, struct_declaration);
+
+    const signature_information: vscode.SignatureInformation = {
+        label: struct_label,
+        parameters: struct_declaration.member_names.map(
+            (member_name, member_index) => {
+                const range = find_parameter_range(struct_label, member_name, "{", "}", ",");
+                const parameter_information: vscode.ParameterInformation = {
+                    label: range
+                };
+
+                const comment = struct_declaration.member_comments.find(value => value.index === member_index);
+                if (comment !== undefined) {
+                    parameter_information.documentation = comment.comment;
+                }
+
+                return parameter_information;
+            }
+        )
+    };
+
+    if (struct_declaration.comment !== undefined) {
+        signature_information.documentation = struct_declaration.comment;
+    }
+
+    const signature_help: vscode.SignatureHelp = {
+        signatures: [signature_information],
+        activeSignature: 0,
+        activeParameter: instantiate_struct_member_info.member_index
+    };
+
+    return signature_help;
 }
 
 function find_parameter_range(
@@ -238,98 +230,6 @@ function format_function_parameters(
             return `${value}: ${type_name}`;
         }
     ).join(", ");
-}
-
-async function find_instantiate_custom_type_reference_from_node(
-    language_description: Language.Description,
-    core_module: Core.Module,
-    root: Parser_node.Node,
-    node_position: number[],
-    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
-): Promise<Core.Custom_type_reference | undefined> {
-
-    const ancestor_expression_instantiate = Parser_node.get_ancestor_with_name(root, node_position, "Expression_instantiate");
-    if (ancestor_expression_instantiate !== undefined) {
-        const custom_type_reference = await find_instantiate_custom_type_reference_from_node(language_description, core_module, root, ancestor_expression_instantiate.position, get_core_module);
-        if (custom_type_reference !== undefined) {
-            const declaration = await Parse_tree_analysis.get_custom_type_reference_declaration(custom_type_reference, get_core_module);
-            if (declaration !== undefined && declaration.declaration.type === Core.Declaration_type.Struct) {
-                const struct_declaration = declaration.declaration.value as Core.Struct_declaration;
-                const parameter_index = Parse_tree_analysis.get_cursor_parameter_index_at_expression(ancestor_expression_instantiate.position, node_position);
-                if (parameter_index !== -1) {
-                    const type = struct_declaration.member_types[parameter_index];
-                    if (type.data.type === Core.Type_reference_enum.Custom_type_reference) {
-                        return type.data.value as Core.Custom_type_reference;
-                    }
-                }
-            }
-        }
-    }
-
-    const ancestor_variable_declaration_with_type = Parser_node.get_ancestor_with_name(root, node_position, "Expression_variable_declaration_with_type");
-    if (ancestor_variable_declaration_with_type !== undefined) {
-        const declaration_type_node = ancestor_variable_declaration_with_type.node.children[3];
-        const type_reference = Parse_tree_analysis.get_type_reference_from_node(language_description, core_module, declaration_type_node.children[0]);
-        if (type_reference.length > 0) {
-            if (type_reference[0].data.type === Core.Type_reference_enum.Custom_type_reference) {
-                return type_reference[0].data.value as Core.Custom_type_reference;
-            }
-        }
-    }
-
-    const ancestor_struct_member = Parser_node.get_ancestor_with_name(root, node_position, "Struct_member");
-    if (ancestor_struct_member !== undefined) {
-        const struct_declaration = Parse_tree_analysis.get_struct_declaration_that_contains_node_position(core_module, root, node_position);
-        if (struct_declaration !== undefined) {
-            const member_index = ancestor_struct_member.position[ancestor_struct_member.position.length - 1];
-            const member_type = struct_declaration.member_types[member_index];
-            if (member_type !== undefined) {
-                if (member_type.data.type === Core.Type_reference_enum.Custom_type_reference) {
-                    return member_type.data.value as Core.Custom_type_reference;
-                }
-            }
-        }
-    }
-
-    const ancestor_return_expression = Parser_node.get_ancestor_with_name(root, node_position, "Expression_return");
-    if (ancestor_return_expression !== undefined) {
-        const function_value = Parse_tree_analysis.get_function_value_that_contains_node_position(core_module, root, node_position);
-        if (function_value !== undefined) {
-            if (function_value.declaration.type.output_parameter_types.length > 0) {
-                // TODO multiple return types
-                const return_type = function_value.declaration.type.output_parameter_types[0];
-                if (return_type.data.type === Core.Type_reference_enum.Custom_type_reference) {
-                    return return_type.data.value as Core.Custom_type_reference;
-                }
-            }
-        }
-    }
-
-    const ancestor_assignment_expression = Parser_node.get_ancestor_with_name(root, node_position, "Expression_assignment");
-    if (ancestor_assignment_expression !== undefined) {
-        const function_value = Parse_tree_analysis.get_function_value_that_contains_node_position(core_module, root, node_position);
-        if (function_value !== undefined) {
-            const left_hand_side_node = ancestor_assignment_expression.node.children[0];
-            const left_hand_side_expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, left_hand_side_node);
-            const left_hand_side_type = await Parse_tree_analysis.get_expression_type(core_module, function_value, root, node_position, left_hand_side_expression, get_core_module);
-            if (left_hand_side_type !== undefined && left_hand_side_type.data.type === Core.Type_reference_enum.Custom_type_reference) {
-                return left_hand_side_type.data.value as Core.Custom_type_reference;
-            }
-        }
-    }
-
-    const expression_call_info = await Parse_tree_analysis.get_function_value_and_parameter_index_from_expression_call(
-        language_description, core_module, root, node_position, get_core_module
-    );
-    if (expression_call_info !== undefined) {
-        const function_declaration = expression_call_info.function_value.declaration;
-        const parameter_type = function_declaration.type.input_parameter_types[expression_call_info.input_parameter_index];
-        if (parameter_type !== undefined && parameter_type.data.type === Core.Type_reference_enum.Custom_type_reference) {
-            return parameter_type.data.value as Core.Custom_type_reference;
-        }
-    }
-
-    return undefined;
 }
 
 function create_struct_label(

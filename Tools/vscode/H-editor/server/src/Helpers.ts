@@ -342,6 +342,48 @@ export function get_function_input_parameter_source_location(
     };
 }
 
+export function get_struct_member_source_location(
+    core_module: Core.Module,
+    struct_declaration: Core.Struct_declaration,
+    member_index: number
+): Location | undefined {
+
+    if (struct_declaration.member_source_locations === undefined || member_index >= struct_declaration.member_source_locations.length) {
+        return undefined;
+    }
+
+    const file_path = core_module.source_file_path;
+    if (file_path === undefined) {
+        return undefined;
+    }
+
+    const member_name = struct_declaration.member_names[member_index];
+    if (member_name === undefined) {
+        return undefined;
+    }
+
+    const member_source_location = struct_declaration.member_source_locations[member_index];
+    if (member_source_location === undefined) {
+        return undefined;
+    }
+
+    const range: Range = {
+        start: {
+            line: member_source_location.line,
+            column: member_source_location.column
+        },
+        end: {
+            line: member_source_location.line,
+            column: member_source_location.column + member_name.length
+        }
+    };
+
+    return {
+        file_path: file_path,
+        range: range
+    };
+}
+
 
 export function validate_input(input: string): boolean {
     const regex = /^[a-zA-Z0-9\.\_]+$/;

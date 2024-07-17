@@ -24,20 +24,17 @@ export async function find_definition_link(
     }
     const root = document_state.parse_tree;
 
-    const before_cursor = Scan_new_changes.get_node_after_text_position(
+    const after_cursor = Scan_new_changes.get_node_after_text_position(
         root,
         document.getText(),
         document.offsetAt(parameters.position)
     );
-    if (before_cursor === undefined) {
+    if (after_cursor === undefined) {
         return [];
     }
-    const before_cursor_node_position = before_cursor.node_position;
+    const after_cursor_node_position = after_cursor.node_position;
 
-    const after_cursor = (before_cursor !== undefined && before_cursor.node !== undefined) ? Parser_node.get_next_terminal_node(before_cursor.root, before_cursor.node, before_cursor.node_position) : undefined;
-    const after_cursor_node_position = after_cursor !== undefined ? after_cursor.position : [];
-
-    const ancestor_type = Parser_node.get_ancestor_with_name(root, before_cursor_node_position, "Type");
+    const ancestor_type = Parser_node.get_ancestor_with_name(root, after_cursor_node_position, "Type");
     if (ancestor_type !== undefined) {
         const type_reference = Parse_tree_analysis.get_type_reference_from_node(server_data.language_description, document_state.module, ancestor_type.node);
         const get_core_module = Server_data.create_get_core_module(server_data, workspace_uri);
@@ -54,11 +51,11 @@ export async function find_definition_link(
         }
     }
 
-    const ancestor_struct_name = Parser_node.get_ancestor_with_name(root, before_cursor_node_position, "Struct_name");
-    if (ancestor_struct_name !== undefined && before_cursor.node !== undefined) {
+    const ancestor_struct_name = Parser_node.get_ancestor_with_name(root, after_cursor_node_position, "Struct_name");
+    if (ancestor_struct_name !== undefined && after_cursor.node !== undefined) {
         const core_module = await Server_data.get_core_module(server_data, workspace_uri, document_state.module.name);
         if (core_module !== undefined) {
-            const declaration_name = before_cursor.node.word.value;
+            const declaration_name = after_cursor.node.word.value;
             const declaration = core_module.declarations.find(declaration => declaration.name === declaration_name);
             if (declaration !== undefined) {
                 const location = Helpers.location_to_vscode_location(
@@ -68,6 +65,32 @@ export async function find_definition_link(
                     return [
                         location
                     ];
+                }
+            }
+        }
+    }
+
+    const before_cursor = Scan_new_changes.get_node_before_text_position(
+        root,
+        document.getText(),
+        document.offsetAt(parameters.position)
+    );
+    if (before_cursor === undefined) {
+        return [];
+    }
+
+    const get_core_module = Server_data.create_get_core_module(server_data, workspace_uri);
+
+    const ancestor = Parser_node.get_first_ancestor_with_name(root, before_cursor.node_position, ["Expression_instantiate"]);
+    if (ancestor !== undefined) {
+        if (ancestor.node.word.value === "Expression_instantiate") {
+            const instantiate_struct_member_info = await Parse_tree_analysis.find_instantiate_struct_member_from_node(server_data.language_description, document_state.module, root, before_cursor.node_position, get_core_module);
+            if (instantiate_struct_member_info !== undefined) {
+                const location = Helpers.location_to_vscode_location(
+                    Helpers.get_struct_member_source_location(instantiate_struct_member_info.core_module, instantiate_struct_member_info.struct_declaration, instantiate_struct_member_info.member_index)
+                );
+                if (location !== undefined) {
+                    return [location];
                 }
             }
         }

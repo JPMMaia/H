@@ -31,6 +31,20 @@ suite("Should get definition location", () => {
             new vscode.Location(get_document_uri("definition_0.hltxt"), to_range(2, 7, 2, 16))
         ]);
     });
+
+    test("Gets definition location of struct member 0", async () => {
+        const document_uri = get_document_uri("definition_1.hltxt");
+        await test_definitions(document_uri, new vscode.Position(11, 9), [
+            new vscode.Location(get_document_uri("definition_1.hltxt"), to_range(4, 4, 4, 5))
+        ]);
+    });
+
+    test("Gets definition location of struct member 1", async () => {
+        const document_uri = get_document_uri("definition_1.hltxt");
+        await test_definitions(document_uri, new vscode.Position(12, 8), [
+            new vscode.Location(get_document_uri("definition_1.hltxt"), to_range(5, 4, 5, 5))
+        ]);
+    });
 });
 
 function to_range(start_line: number, start_character: number, end_line: number, end_character: number): vscode.Range {
