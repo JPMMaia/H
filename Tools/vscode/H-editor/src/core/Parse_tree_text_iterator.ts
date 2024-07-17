@@ -350,7 +350,7 @@ export function go_to_next_node_position(
     node_position: number[]
 ): Iterator {
 
-    let iterator = next(start_iterator);
+    let iterator = start_iterator;
 
     while (iterator.node !== undefined) {
         if (is_same_position(iterator.node_position, node_position)) {
