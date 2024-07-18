@@ -1,0 +1,20 @@
+module definition_function_1;
+
+struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = 0;
+}
+
+function add(lhs: Int32, rhs: Int32) -> (result: Int32)
+{
+    return lhs + rhs;
+}
+
+function run() -> ()
+{
+    var instance: My_struct = {
+        a: 1,
+        b: add(1, 2)
+    };
+}
