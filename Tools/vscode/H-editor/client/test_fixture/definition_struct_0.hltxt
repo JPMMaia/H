@@ -1,4 +1,4 @@
-module definition_0;
+module definition_struct_0;
 
 struct My_struct
 {

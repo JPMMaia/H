@@ -760,6 +760,74 @@ export function get_cursor_parameter_index_at_expression(
     }
 }
 
+export function get_function_value_and_parameter_index_at_declaration(
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    before_cursor_node_position: number[]
+): { function_value: Core.Function, parameter_index: number, is_input: boolean } | undefined {
+
+    const ancestor_function_declaration = Parser_node.get_ancestor_with_name(root, before_cursor_node_position, "Function_declaration");
+    if (ancestor_function_declaration === undefined) {
+        return undefined;
+    }
+
+    const first_index = before_cursor_node_position[ancestor_function_declaration.position.length];
+    if (first_index === undefined) {
+        return undefined;
+    }
+
+    const function_value = get_function_value_that_contains_node_position(core_module, root, before_cursor_node_position);
+    if (function_value === undefined) {
+        return undefined;
+    }
+
+    const get_parameter_index = (begin_parameter_index: number): number | undefined => {
+        if (first_index === begin_parameter_index) {
+            return 0;
+        }
+
+        const second_index = before_cursor_node_position[ancestor_function_declaration.position.length + 1];
+        if (second_index === undefined) {
+            return undefined;
+        }
+
+        const parameter_index = Math.ceil(second_index / 2);
+        return parameter_index;
+    };
+
+    const begin_input_parameter_index = ancestor_function_declaration.node.children.findIndex(node => node.word.value === "(");
+    const end_input_parameter_index = ancestor_function_declaration.node.children.findIndex(node => node.word.value === ")");
+    const is_input_parameter = begin_input_parameter_index <= first_index && first_index < end_input_parameter_index;
+
+    if (is_input_parameter) {
+        const parameter_index = get_parameter_index(begin_input_parameter_index);
+        if (parameter_index !== undefined) {
+            return {
+                function_value: function_value,
+                parameter_index: parameter_index,
+                is_input: true
+            };
+        }
+    }
+
+    const begin_output_parameter_index = ancestor_function_declaration.node.children.findIndex((node, index) => node.word.value === "(" && index > end_input_parameter_index);
+    const end_output_parameter_index = ancestor_function_declaration.node.children.findIndex((node, index) => node.word.value === ")" && index > begin_output_parameter_index);
+    const is_output_parameter = begin_output_parameter_index <= first_index && first_index < end_output_parameter_index;
+
+    if (is_output_parameter) {
+        const parameter_index = get_parameter_index(begin_output_parameter_index);
+        if (parameter_index !== undefined) {
+            return {
+                function_value: function_value,
+                parameter_index: parameter_index,
+                is_input: false
+            };
+        }
+    }
+
+    return undefined;
+}
+
 export async function find_instantiate_custom_type_reference_from_node(
     language_description: Language.Description,
     core_module: Core.Module,

@@ -307,13 +307,88 @@ function get_declaration_source_range(
     return undefined;
 }
 
+export function get_function_declaration_source_location(
+    core_module: Core.Module,
+    function_declaration: Core.Function_declaration
+): Location | undefined {
+
+    if (function_declaration.source_location === undefined || core_module.source_file_path === undefined) {
+        return undefined;
+    }
+
+    const range: Range = {
+        start: {
+            line: function_declaration.source_location.line,
+            column: function_declaration.source_location.column
+        },
+        end: {
+            line: function_declaration.source_location.line,
+            column: function_declaration.source_location.column + function_declaration.name.length
+        }
+    };
+
+    return {
+        file_path: core_module.source_file_path,
+        range: range
+    };
+}
+
+export function get_function_parameter_source_location(
+    core_module: Core.Module,
+    function_declaration: Core.Function_declaration,
+    parameter_index: number,
+    is_input: boolean
+): Location | undefined {
+    if (is_input) {
+        return get_function_input_parameter_source_location(
+            core_module,
+            function_declaration,
+            parameter_index
+        );
+    }
+    else {
+        return get_function_output_parameter_source_location(
+            core_module,
+            function_declaration,
+            parameter_index
+        );
+    }
+}
+
 export function get_function_input_parameter_source_location(
     core_module: Core.Module,
     function_declaration: Core.Function_declaration,
     input_parameter_index: number
 ): Location | undefined {
+    return get_function_parameter_source_location_given_arrays(
+        core_module,
+        function_declaration.input_parameter_names,
+        function_declaration.input_parameter_source_locations,
+        input_parameter_index
+    );
+}
 
-    if (function_declaration.input_parameter_source_locations === undefined || input_parameter_index >= function_declaration.input_parameter_source_locations.length || input_parameter_index >= function_declaration.input_parameter_names.length) {
+export function get_function_output_parameter_source_location(
+    core_module: Core.Module,
+    function_declaration: Core.Function_declaration,
+    output_parameter_index: number
+): Location | undefined {
+    return get_function_parameter_source_location_given_arrays(
+        core_module,
+        function_declaration.output_parameter_names,
+        function_declaration.output_parameter_source_locations,
+        output_parameter_index
+    );
+}
+
+function get_function_parameter_source_location_given_arrays(
+    core_module: Core.Module,
+    parameter_names: string[],
+    parameter_source_locations: Core.Source_location[] | undefined,
+    parameter_index: number
+): Location | undefined {
+
+    if (parameter_source_locations === undefined || parameter_index >= parameter_source_locations.length || parameter_index >= parameter_names.length) {
         return undefined;
     }
 
@@ -322,17 +397,17 @@ export function get_function_input_parameter_source_location(
         return undefined;
     }
 
-    const input_parameter_name = function_declaration.input_parameter_names[input_parameter_index];
-    const input_parameter_source_location = function_declaration.input_parameter_source_locations[input_parameter_index];
+    const parameter_name = parameter_names[parameter_index];
+    const parameter_source_location = parameter_source_locations[parameter_index];
 
     const range: Range = {
         start: {
-            line: input_parameter_source_location.line,
-            column: input_parameter_source_location.column
+            line: parameter_source_location.line,
+            column: parameter_source_location.column
         },
         end: {
-            line: input_parameter_source_location.line,
-            column: input_parameter_source_location.column + input_parameter_name.length
+            line: parameter_source_location.line,
+            column: parameter_source_location.column + parameter_name.length
         }
     };
 
