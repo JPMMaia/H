@@ -1,0 +1,11 @@
+module definition_function_0;
+
+function add(lhs: Int32, rhs: Int32) -> (result: Int32)
+{
+    return lhs + rhs;
+}
+
+function run() -> ()
+{
+    var a = add(1, 2);
+}

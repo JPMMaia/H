@@ -2,49 +2,74 @@ import * as vscode from 'vscode';
 import * as assert from 'assert';
 import { get_document_uri, activate } from './helper';
 
-suite("Should get definition location", () => {
+suite("Should get definition location of structs", () => {
 
-    test("Gets definition location for itself (struct)", async () => {
-        const document_uri = get_document_uri("definition_0.hltxt");
+    test("Gets definition location of itself", async () => {
+        const document_uri = get_document_uri("definition_struct_0.hltxt");
         await test_definitions(document_uri, new vscode.Position(2, 9), [
-            new vscode.Location(get_document_uri("definition_0.hltxt"), to_range(2, 7, 2, 16))
+            new vscode.Location(get_document_uri("definition_struct_0.hltxt"), to_range(2, 7, 2, 16))
         ]);
     });
 
-    test("Gets definition location for input parameter type", async () => {
-        const document_uri = get_document_uri("definition_0.hltxt");
+    test("Gets definition location of struct as a function input parameter type", async () => {
+        const document_uri = get_document_uri("definition_struct_0.hltxt");
         await test_definitions(document_uri, new vscode.Position(7, 22), [
-            new vscode.Location(get_document_uri("definition_0.hltxt"), to_range(2, 7, 2, 16))
+            new vscode.Location(get_document_uri("definition_struct_0.hltxt"), to_range(2, 7, 2, 16))
         ]);
     });
 
-    test("Gets definition location for output parameter type", async () => {
-        const document_uri = get_document_uri("definition_0.hltxt");
+    test("Gets definition location of struct as a function output parameter type", async () => {
+        const document_uri = get_document_uri("definition_struct_0.hltxt");
         await test_definitions(document_uri, new vscode.Position(7, 43), [
-            new vscode.Location(get_document_uri("definition_0.hltxt"), to_range(2, 7, 2, 16))
+            new vscode.Location(get_document_uri("definition_struct_0.hltxt"), to_range(2, 7, 2, 16))
         ]);
     });
 
-    test("Gets definition location for variable declaration type", async () => {
-        const document_uri = get_document_uri("definition_0.hltxt");
+    test("Gets definition location of struct as a variable declaration type", async () => {
+        const document_uri = get_document_uri("definition_struct_0.hltxt");
         await test_definitions(document_uri, new vscode.Position(9, 21), [
-            new vscode.Location(get_document_uri("definition_0.hltxt"), to_range(2, 7, 2, 16))
+            new vscode.Location(get_document_uri("definition_struct_0.hltxt"), to_range(2, 7, 2, 16))
         ]);
     });
 
     test("Gets definition location of struct member 0", async () => {
-        const document_uri = get_document_uri("definition_1.hltxt");
+        const document_uri = get_document_uri("definition_struct_1.hltxt");
         await test_definitions(document_uri, new vscode.Position(11, 9), [
-            new vscode.Location(get_document_uri("definition_1.hltxt"), to_range(4, 4, 4, 5))
+            new vscode.Location(get_document_uri("definition_struct_1.hltxt"), to_range(4, 4, 4, 5))
         ]);
     });
 
     test("Gets definition location of struct member 1", async () => {
-        const document_uri = get_document_uri("definition_1.hltxt");
+        const document_uri = get_document_uri("definition_struct_1.hltxt");
         await test_definitions(document_uri, new vscode.Position(12, 8), [
-            new vscode.Location(get_document_uri("definition_1.hltxt"), to_range(5, 4, 5, 5))
+            new vscode.Location(get_document_uri("definition_struct_1.hltxt"), to_range(5, 4, 5, 5))
         ]);
     });
+});
+
+suite("Should get definition location of functions", () => {
+
+    test("Gets definition location of function name", async () => {
+        const document_uri = get_document_uri("definition_function_0.hltxt");
+        await test_definitions(document_uri, new vscode.Position(9, 12), [
+            new vscode.Location(get_document_uri("definition_function_0.hltxt"), to_range(2, 9, 2, 12))
+        ]);
+    });
+
+    test("Gets definition location of function input parameter name 0", async () => {
+        const document_uri = get_document_uri("definition_function_0.hltxt");
+        await test_definitions(document_uri, new vscode.Position(2, 13), [
+            new vscode.Location(get_document_uri("definition_function_0.hltxt"), to_range(2, 13, 2, 16))
+        ]);
+    });
+
+    test("Gets definition location of function input parameter name 1", async () => {
+        const document_uri = get_document_uri("definition_function_0.hltxt");
+        await test_definitions(document_uri, new vscode.Position(2, 28), [
+            new vscode.Location(get_document_uri("definition_function_0.hltxt"), to_range(2, 25, 2, 28))
+        ]);
+    });
+
 });
 
 function to_range(start_line: number, start_character: number, end_line: number, end_character: number): vscode.Range {
