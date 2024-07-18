@@ -94,12 +94,24 @@ export async function find_definition_link(
         }
     }
 
-
-    const ancestor = Parser_node.get_first_ancestor_with_name(root, before_cursor.node_position, [
+    const ancestor = get_first_ancestor_with_name_at_cursor_position(root, before_cursor.node_position, after_cursor.node_position, [
+        "Expression_call",
         "Expression_instantiate"
     ]);
+
     if (ancestor !== undefined) {
-        if (ancestor.node.word.value === "Expression_instantiate") {
+        if (ancestor.node.word.value === "Expression_call") {
+            const module_function = await Parse_tree_analysis.get_function_value_from_node(server_data.language_description, core_module, ancestor.node.children[0], get_core_module);
+            if (module_function !== undefined) {
+                const location = Helpers.location_to_vscode_location(
+                    Helpers.get_function_declaration_source_location(module_function.core_module, module_function.function_value.declaration)
+                );
+                if (location !== undefined) {
+                    return [location];
+                }
+            }
+        }
+        else if (ancestor.node.word.value === "Expression_instantiate") {
             const instantiate_struct_member_info = await Parse_tree_analysis.find_instantiate_struct_member_from_node(server_data.language_description, core_module, root, before_cursor.node_position, get_core_module);
             if (instantiate_struct_member_info !== undefined) {
                 const location = Helpers.location_to_vscode_location(
@@ -112,19 +124,30 @@ export async function find_definition_link(
         }
     }
 
-    const ancestor_expression_call = Parser_node.get_ancestor_with_name(root, after_cursor_node_position, "Expression_call");
-    if (ancestor_expression_call !== undefined && after_cursor.node !== undefined) {
-        const module_function = await Parse_tree_analysis.get_function_value_from_node(server_data.language_description, core_module, ancestor_expression_call.node.children[0], get_core_module);
-        if (module_function !== undefined) {
-            const location = Helpers.location_to_vscode_location(
-                Helpers.get_function_declaration_source_location(module_function.core_module, module_function.function_value.declaration)
-            );
-            if (location !== undefined) {
-                return [location];
-            }
-        }
-    }
-
     return [];
 }
 
+function get_first_ancestor_with_name_at_cursor_position(
+    root: Parser_node.Node,
+    before_cursor_node_position: number[],
+    after_cursor_node_position: number[],
+    names: string[]
+): { node: Parser_node.Node, position: number[] } | undefined {
+    const before_ancestor = Parser_node.get_first_ancestor_with_name(root, before_cursor_node_position, names);
+
+    const after_ancestor = Parser_node.get_first_ancestor_with_name(root, after_cursor_node_position, names);
+
+    if (before_ancestor === undefined) {
+        return after_ancestor;
+    }
+    else if (after_ancestor === undefined) {
+        return before_ancestor;
+    }
+
+    if (before_ancestor.position.length >= after_ancestor.position.length) {
+        return before_ancestor;
+    }
+    else {
+        return after_ancestor;
+    }
+}

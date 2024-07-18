@@ -45,14 +45,28 @@ suite("Should get definition location of structs", () => {
             new vscode.Location(get_document_uri("definition_struct_1.hltxt"), to_range(5, 4, 5, 5))
         ]);
     });
+
+    test("Gets definition location of struct member 2", async () => {
+        const document_uri = get_document_uri("definition_struct_2.hltxt");
+        await test_definitions(document_uri, new vscode.Position(14, 21), [
+            new vscode.Location(get_document_uri("definition_struct_2.hltxt"), to_range(5, 4, 5, 5))
+        ]);
+    });
 });
 
 suite("Should get definition location of functions", () => {
 
-    test("Gets definition location of function name", async () => {
+    test("Gets definition location of function name 0", async () => {
         const document_uri = get_document_uri("definition_function_0.hltxt");
         await test_definitions(document_uri, new vscode.Position(9, 12), [
             new vscode.Location(get_document_uri("definition_function_0.hltxt"), to_range(2, 9, 2, 12))
+        ]);
+    });
+
+    test("Gets definition location of function name 1", async () => {
+        const document_uri = get_document_uri("definition_function_1.hltxt");
+        await test_definitions(document_uri, new vscode.Position(17, 11), [
+            new vscode.Location(get_document_uri("definition_function_1.hltxt"), to_range(8, 9, 8, 12))
         ]);
     });
 
