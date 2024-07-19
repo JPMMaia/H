@@ -1,0 +1,22 @@
+module definition_union_0;
+
+union My_union
+{
+    a: Int32;
+    b: Float32;
+}
+
+function run(input: My_union) -> (result: My_union)
+{
+    var instance_0: My_union = {
+        a: 0
+    };
+    var a = instance_0.a;
+
+    var instance_1: My_union = {
+        b: 0.0f32
+    };
+    var b = instance_1.b;
+
+    return instance_0;
+}

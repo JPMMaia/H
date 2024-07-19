@@ -1,0 +1,16 @@
+module definition_union_1;
+
+union My_union
+{
+    a: Int32;
+    b: Float32;
+}
+
+function pass(first: My_union, second: My_union) -> ()
+{
+}
+
+function run() -> ()
+{
+    pass({ a: 1 }, { b: 1.0f32 });
+}
