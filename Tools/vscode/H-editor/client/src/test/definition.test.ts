@@ -86,6 +86,72 @@ suite("Should get definition location of functions", () => {
 
 });
 
+suite("Should get definition location of enums", () => {
+
+    test("Gets definition location of enum at itself", async () => {
+        const document_uri = get_document_uri("definition_enum_0.hltxt");
+        await test_definitions(document_uri, new vscode.Position(2, 5), [
+            new vscode.Location(get_document_uri("definition_enum_0.hltxt"), to_range(2, 5, 2, 12))
+        ]);
+    });
+
+    test("Gets definition location of enum at function input parameter type", async () => {
+        const document_uri = get_document_uri("definition_enum_0.hltxt");
+        await test_definitions(document_uri, new vscode.Position(9, 20), [
+            new vscode.Location(get_document_uri("definition_enum_0.hltxt"), to_range(2, 5, 2, 12))
+        ]);
+    });
+
+    test("Gets definition location of enum at function output parameter type", async () => {
+        const document_uri = get_document_uri("definition_enum_0.hltxt");
+        await test_definitions(document_uri, new vscode.Position(9, 41), [
+            new vscode.Location(get_document_uri("definition_enum_0.hltxt"), to_range(2, 5, 2, 12))
+        ]);
+    });
+
+    test("Gets definition location of enum at access expression 0", async () => {
+        const document_uri = get_document_uri("definition_enum_0.hltxt");
+        await test_definitions(document_uri, new vscode.Position(11, 12), [
+            new vscode.Location(get_document_uri("definition_enum_0.hltxt"), to_range(2, 5, 2, 12))
+        ]);
+    });
+
+    test("Gets definition location of enum at access expression 1", async () => {
+        const document_uri = get_document_uri("definition_enum_0.hltxt");
+        await test_definitions(document_uri, new vscode.Position(12, 19), [
+            new vscode.Location(get_document_uri("definition_enum_0.hltxt"), to_range(2, 5, 2, 12))
+        ]);
+    });
+
+    test("Gets definition location of enum at access expression 2", async () => {
+        const document_uri = get_document_uri("definition_enum_0.hltxt");
+        await test_definitions(document_uri, new vscode.Position(12, 15), [
+            new vscode.Location(get_document_uri("definition_enum_0.hltxt"), to_range(2, 5, 2, 12))
+        ]);
+    });
+
+    test("Gets definition location of enum value 0", async () => {
+        const document_uri = get_document_uri("definition_enum_0.hltxt");
+        await test_definitions(document_uri, new vscode.Position(11, 20), [
+            new vscode.Location(get_document_uri("definition_enum_0.hltxt"), to_range(4, 4, 4, 11))
+        ]);
+    });
+
+    test("Gets definition location of enum value 1", async () => {
+        const document_uri = get_document_uri("definition_enum_0.hltxt");
+        await test_definitions(document_uri, new vscode.Position(12, 27), [
+            new vscode.Location(get_document_uri("definition_enum_0.hltxt"), to_range(5, 4, 5, 11))
+        ]);
+    });
+
+    test("Gets definition location of enum value 2", async () => {
+        const document_uri = get_document_uri("definition_enum_0.hltxt");
+        await test_definitions(document_uri, new vscode.Position(13, 23), [
+            new vscode.Location(get_document_uri("definition_enum_0.hltxt"), to_range(6, 4, 6, 11))
+        ]);
+    });
+});
+
 function to_range(start_line: number, start_character: number, end_line: number, end_character: number): vscode.Range {
     const start = new vscode.Position(start_line, start_character);
     const end = new vscode.Position(end_line, end_character);

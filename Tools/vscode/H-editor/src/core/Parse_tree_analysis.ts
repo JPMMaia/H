@@ -961,6 +961,128 @@ export async function find_instantiate_struct_member_from_node(
     };
 }
 
+export enum Component_type {
+    Import_module,
+    Declaration,
+    Member_name
+}
+
+export interface Access_expression_component {
+    type: Component_type;
+    value: Core.Import_module_with_alias | { core_module: Core.Module, declaration: Core.Declaration } | string;
+    node: Parser_node.Node;
+    node_position: number[];
+}
+
+export async function get_access_expression_components(
+    core_module: Core.Module,
+    access_expression: Core.Access_expression,
+    root: Parser_node.Node,
+    access_expression_node: Parser_node.Node,
+    access_expression_node_position: number[],
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Access_expression_component[]> {
+
+    const components: Access_expression_component[] = [];
+
+    const left_hand_side_expression = access_expression.expression;
+    if (left_hand_side_expression.data.type === Core.Expression_enum.Access_expression) {
+        const descendant_left_hand_side = Parser_node.find_descendant_position_if(access_expression_node.children[0], child => child.word.value === "Expression_access");
+        if (descendant_left_hand_side !== undefined) {
+            const left_hand_side_components = await get_access_expression_components(core_module, left_hand_side_expression.data.value as Core.Access_expression, root, descendant_left_hand_side.node, [...access_expression_node_position, ...descendant_left_hand_side.position], get_core_module);
+            components.push(...left_hand_side_components);
+        }
+    }
+    else if (left_hand_side_expression.data.type === Core.Expression_enum.Variable_expression) {
+        const variable_expression = left_hand_side_expression.data.value as Core.Variable_expression;
+        const descendant_variable_expression = Parser_node.find_descendant_position_if(access_expression_node.children[0], child => child.word.value === "Expression_variable");
+        if (descendant_variable_expression !== undefined) {
+            const import_module = core_module.imports.find(import_module => import_module.alias === variable_expression.name);
+            if (import_module !== undefined) {
+                components.push(
+                    {
+                        type: Component_type.Import_module,
+                        value: import_module,
+                        node: descendant_variable_expression.node,
+                        node_position: [...access_expression_node_position, ...descendant_variable_expression.position]
+                    }
+                );
+            }
+            else {
+                const declaration = core_module.declarations.find(declaration => declaration.name === variable_expression.name);
+                if (declaration !== undefined) {
+                    components.push(
+                        {
+                            type: Component_type.Declaration,
+                            value: { core_module: core_module, declaration: declaration },
+                            node: descendant_variable_expression.node,
+                            node_position: [...access_expression_node_position, ...descendant_variable_expression.position]
+                        }
+                    );
+                }
+            }
+        }
+    }
+
+    if (components.length > 0) {
+        const last_component = components[components.length - 1];
+        if (last_component.type === Component_type.Declaration) {
+            components.push(
+                {
+                    type: Component_type.Member_name,
+                    value: access_expression.member_name,
+                    node: access_expression_node.children[2],
+                    node_position: [...access_expression_node_position, 2]
+                }
+            );
+        }
+    }
+
+    return components;
+}
+
+export function select_access_expression_component(
+    components: Access_expression_component[],
+    before_cursor_node: Parser_node.Node | undefined,
+    before_cursor_node_position: number[],
+    after_cursor_node_position: number[],
+): Access_expression_component {
+    const cursor_position = before_cursor_node !== undefined && before_cursor_node.word.value === "." ? after_cursor_node_position : before_cursor_node_position;
+
+    const selected_component = components.reduce((previous_value, current_value) => {
+        const previous_length = Parser_node.find_node_common_root(previous_value.node_position, cursor_position).length;
+        const current_length = Parser_node.find_node_common_root(current_value.node_position, cursor_position).length;
+        return previous_length >= current_length ? previous_value : current_value;
+    });
+
+    return selected_component;
+}
+
+export function get_first_ancestor_with_name_at_cursor_position(
+    root: Parser_node.Node,
+    before_cursor_node_position: number[],
+    after_cursor_node_position: number[],
+    names: string[]
+): { node: Parser_node.Node, position: number[] } | undefined {
+    const before_ancestor = Parser_node.get_first_ancestor_with_name(root, before_cursor_node_position, names);
+
+    const after_ancestor = Parser_node.get_first_ancestor_with_name(root, after_cursor_node_position, names);
+
+    if (before_ancestor === undefined) {
+        return after_ancestor;
+    }
+    else if (after_ancestor === undefined) {
+        return before_ancestor;
+    }
+
+    if (before_ancestor.position.length >= after_ancestor.position.length) {
+        return before_ancestor;
+    }
+    else {
+        return after_ancestor;
+    }
+}
+
 function create_pointer_type(element_type: Core.Type_reference[], is_mutable: boolean): Core.Type_reference {
     return {
         data: {
