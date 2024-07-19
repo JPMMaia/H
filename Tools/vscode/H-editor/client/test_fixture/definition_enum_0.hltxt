@@ -1,0 +1,16 @@
+module definition_enum_0;
+
+enum My_enum
+{
+    Value_0 = 0,
+    Value_1 = 1,
+    Value_2 = 2,
+}
+
+function run(input: My_enum) -> (result: My_enum)
+{
+    var a = My_enum.Value_0;
+    var b = My_enum.Value_1;
+    var c = My_enum.Value_2;
+    return a;
+}

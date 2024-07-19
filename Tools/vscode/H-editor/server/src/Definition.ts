@@ -3,6 +3,7 @@ import * as Server_data from "./Server_data";
 
 import * as vscode from "vscode-languageserver/node";
 
+import * as Core from "@core/Core_intermediate_representation";
 import * as Parse_tree_analysis from "@core/Parse_tree_analysis";
 import * as Parser_node from "@core/Parser_node";
 import * as Scan_new_changes from "@core/Scan_new_changes";
@@ -57,20 +58,20 @@ export async function find_definition_link(
         }
     }
 
-    const ancestor_struct_name = Parser_node.get_ancestor_with_name(root, after_cursor_node_position, "Struct_name");
-    if (ancestor_struct_name !== undefined && after_cursor.node !== undefined) {
-        if (core_module !== undefined) {
-            const declaration_name = after_cursor.node.word.value;
-            const declaration = core_module.declarations.find(declaration => declaration.name === declaration_name);
-            if (declaration !== undefined) {
-                const location = Helpers.location_to_vscode_location(
-                    Helpers.get_declaration_source_location(core_module, declaration)
-                );
-                if (location !== undefined) {
-                    return [
-                        location
-                    ];
-                }
+    const ancestor_declaration_name = Parser_node.get_first_ancestor_with_name(root, after_cursor_node_position, [
+        "Alias_name", "Enum_name", "Function_name", "Struct_name", "Union_name"
+    ]);
+    if (ancestor_declaration_name !== undefined && after_cursor.node !== undefined) {
+        const declaration_name = after_cursor.node.word.value;
+        const declaration = core_module.declarations.find(declaration => declaration.name === declaration_name);
+        if (declaration !== undefined) {
+            const location = Helpers.location_to_vscode_location(
+                Helpers.get_declaration_source_location(core_module, declaration)
+            );
+            if (location !== undefined) {
+                return [
+                    location
+                ];
             }
         }
     }
@@ -94,13 +95,46 @@ export async function find_definition_link(
         }
     }
 
-    const ancestor = get_first_ancestor_with_name_at_cursor_position(root, before_cursor.node_position, after_cursor.node_position, [
+    const ancestor = Parse_tree_analysis.get_first_ancestor_with_name_at_cursor_position(root, before_cursor.node_position, after_cursor.node_position, [
+        "Expression_access",
         "Expression_call",
         "Expression_instantiate"
     ]);
 
     if (ancestor !== undefined) {
-        if (ancestor.node.word.value === "Expression_call") {
+        if (ancestor.node.word.value === "Expression_access") {
+            const expression = Parse_tree_analysis.get_expression_from_node(server_data.language_description, core_module, ancestor.node);
+            if (expression.data.type === Core.Expression_enum.Access_expression) {
+                const access_expression = expression.data.value as Core.Access_expression;
+                const components = await Parse_tree_analysis.get_access_expression_components(core_module, access_expression, root, ancestor.node, ancestor.position, get_core_module);
+                const selected_component = Parse_tree_analysis.select_access_expression_component(components, before_cursor.node, before_cursor.node_position, after_cursor.node_position);
+                if (selected_component.type === Parse_tree_analysis.Component_type.Declaration) {
+                    const module_declaration = selected_component.value as { core_module: Core.Module, declaration: Core.Declaration };
+                    const location = Helpers.location_to_vscode_location(
+                        Helpers.get_declaration_source_location(module_declaration.core_module, module_declaration.declaration)
+                    );
+                    if (location !== undefined) {
+                        return [location];
+                    }
+                }
+                else if (selected_component.type === Parse_tree_analysis.Component_type.Member_name) {
+                    const previous_component = components[components.length - 2];
+                    if (previous_component !== undefined && previous_component.type === Parse_tree_analysis.Component_type.Declaration) {
+                        const module_declaration = previous_component.value as { core_module: Core.Module, declaration: Core.Declaration };
+                        const underlying_module_declaration = await Parse_tree_analysis.get_underlying_type_declaration(module_declaration.core_module, module_declaration.declaration, get_core_module);
+                        if (underlying_module_declaration !== undefined) {
+                            const location = Helpers.location_to_vscode_location(
+                                Helpers.get_declaration_member_source_location(underlying_module_declaration.core_module, underlying_module_declaration.declaration, selected_component.value as string)
+                            );
+                            if (location !== undefined) {
+                                return [location];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        else if (ancestor.node.word.value === "Expression_call") {
             const module_function = await Parse_tree_analysis.get_function_value_from_node(server_data.language_description, core_module, ancestor.node.children[0], get_core_module);
             if (module_function !== undefined) {
                 const location = Helpers.location_to_vscode_location(
@@ -125,29 +159,4 @@ export async function find_definition_link(
     }
 
     return [];
-}
-
-function get_first_ancestor_with_name_at_cursor_position(
-    root: Parser_node.Node,
-    before_cursor_node_position: number[],
-    after_cursor_node_position: number[],
-    names: string[]
-): { node: Parser_node.Node, position: number[] } | undefined {
-    const before_ancestor = Parser_node.get_first_ancestor_with_name(root, before_cursor_node_position, names);
-
-    const after_ancestor = Parser_node.get_first_ancestor_with_name(root, after_cursor_node_position, names);
-
-    if (before_ancestor === undefined) {
-        return after_ancestor;
-    }
-    else if (after_ancestor === undefined) {
-        return before_ancestor;
-    }
-
-    if (before_ancestor.position.length >= after_ancestor.position.length) {
-        return before_ancestor;
-    }
-    else {
-        return after_ancestor;
-    }
 }

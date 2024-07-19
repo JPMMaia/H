@@ -307,6 +307,103 @@ function get_declaration_source_range(
     return undefined;
 }
 
+export function get_declaration_member_source_location(
+    core_module: Core.Module,
+    declaration: Core.Declaration,
+    member_name: string
+): Location | undefined {
+
+    const file_path = core_module.source_file_path;
+    if (file_path === undefined) {
+        return undefined;
+    }
+
+    switch (declaration.type) {
+        case Core.Declaration_type.Enum: {
+            const enum_declaration = declaration.value as Core.Enum_declaration;
+            const enum_member = enum_declaration.values.find(value => value.name === member_name);
+            if (enum_member === undefined || enum_member.source_location === undefined) {
+                return undefined;
+            }
+
+            const source_location = enum_member.source_location;
+            const range = {
+                start: {
+                    line: source_location.line,
+                    column: source_location.column
+                },
+                end: {
+                    line: source_location.line,
+                    column: source_location.column + member_name.length
+                }
+            };
+
+            return {
+                file_path: file_path,
+                range: range
+            };
+        }
+        case Core.Declaration_type.Struct: {
+            const struct_declaration = declaration.value as Core.Struct_declaration;
+            if (struct_declaration.member_source_locations === undefined) {
+                return undefined;
+            }
+
+            const member_index = struct_declaration.member_names.findIndex(value => value === member_name);
+            if (member_index === -1) {
+                return undefined;
+            }
+
+            const source_location = struct_declaration.member_source_locations[member_index];
+            const range = {
+                start: {
+                    line: source_location.line,
+                    column: source_location.column
+                },
+                end: {
+                    line: source_location.line,
+                    column: source_location.column + member_name.length
+                }
+            };
+
+            return {
+                file_path: file_path,
+                range: range
+            };
+        }
+        case Core.Declaration_type.Union: {
+            const union_declaration = declaration.value as Core.Union_declaration;
+            if (union_declaration.member_source_locations === undefined) {
+                return undefined;
+            }
+
+            const member_index = union_declaration.member_names.findIndex(value => value === member_name);
+            if (member_index === -1) {
+                return undefined;
+            }
+
+            const source_location = union_declaration.member_source_locations[member_index];
+            const range = {
+                start: {
+                    line: source_location.line,
+                    column: source_location.column
+                },
+                end: {
+                    line: source_location.line,
+                    column: source_location.column + member_name.length
+                }
+            };
+
+            return {
+                file_path: file_path,
+                range: range
+            };
+        }
+    }
+
+    return undefined;
+}
+
 export function get_function_declaration_source_location(
     core_module: Core.Module,
     function_declaration: Core.Function_declaration
