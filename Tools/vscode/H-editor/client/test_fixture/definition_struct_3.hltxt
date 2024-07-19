@@ -1,0 +1,14 @@
+module definition_struct_3;
+
+struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = 0;
+}
+
+function run() -> ()
+{
+    var instance: My_struct = {};
+    var a = instance.a;
+    var b = instance.b;
+}

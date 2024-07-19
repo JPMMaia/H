@@ -1009,16 +1009,25 @@ export async function get_access_expression_components(
                 );
             }
             else {
-                const declaration = core_module.declarations.find(declaration => declaration.name === variable_expression.name);
-                if (declaration !== undefined) {
-                    components.push(
-                        {
-                            type: Component_type.Declaration,
-                            value: { core_module: core_module, declaration: declaration },
-                            node: descendant_variable_expression.node,
-                            node_position: [...access_expression_node_position, ...descendant_variable_expression.position]
+                const function_value = get_function_value_that_contains_node_position(core_module, root, access_expression_node_position);
+                if (function_value !== undefined) {
+                    const left_hand_side_type = await get_expression_type(core_module, function_value, root, access_expression_node_position, left_hand_side_expression, get_core_module);
+                    if (left_hand_side_type !== undefined) {
+                        if (left_hand_side_type.data.type === Core.Type_reference_enum.Custom_type_reference) {
+                            const custom_type_reference = left_hand_side_type.data.value as Core.Custom_type_reference;
+                            const module_declaration = await get_custom_type_reference_declaration(custom_type_reference, get_core_module);
+                            if (module_declaration !== undefined) {
+                                components.push(
+                                    {
+                                        type: Component_type.Declaration,
+                                        value: { core_module: module_declaration.core_module, declaration: module_declaration.declaration },
+                                        node: descendant_variable_expression.node,
+                                        node_position: [...access_expression_node_position, ...descendant_variable_expression.position]
+                                    }
+                                );
+                            }
                         }
-                    );
+                    }
                 }
             }
         }
