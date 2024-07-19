@@ -188,6 +188,7 @@ export interface Enum_value {
     name: string;
     value?: Statement;
     comment?: string;
+    source_location?: Source_location;
 }
 
 export interface Enum_declaration {

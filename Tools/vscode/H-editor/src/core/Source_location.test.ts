@@ -79,6 +79,10 @@ enum My_enum
 
         const declaration = module.declarations[0].value as Core_intermediate_representation.Enum_declaration;
         assert.deepEqual(declaration.source_location, { line: 5, column: 6 });
+
+        assert.deepEqual(declaration.values[0].source_location, { line: 7, column: 5 });
+        assert.deepEqual(declaration.values[1].source_location, { line: 8, column: 5 });
+        assert.deepEqual(declaration.values[2].source_location, { line: 9, column: 5 });
     });
 
     it("Adds source location to structs", () => {

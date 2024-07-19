@@ -961,6 +961,7 @@ namespace h::json
         writer.String(output.name.data(), output.name.size());
         write_optional_object(writer, "value", output.value);
         write_optional(writer, "comment", output.comment);
+        write_optional_object(writer, "source_location", output.source_location);
         writer.EndObject();
     }
 

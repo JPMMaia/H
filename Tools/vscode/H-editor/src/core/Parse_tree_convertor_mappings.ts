@@ -1953,7 +1953,8 @@ function node_to_enum_declaration(node: Parser_node.Node, key_to_production_rule
     for (let index = 0; index < value_nodes.length; ++index) {
         const value_node = value_nodes[index];
 
-        const value_name = find_node_value(value_node, "Enum_value_name", key_to_production_rule_indices);
+        const value_name_node = find_node(value_node, "Enum_value_name", key_to_production_rule_indices) as Parser_node.Node;
+        const value_name = value_name_node.children[0].word.value;
         const generic_expression_node = find_node(value_node, "Generic_expression", key_to_production_rule_indices);
         const expression = generic_expression_node !== undefined ? node_to_expression(generic_expression_node, key_to_production_rule_indices) : undefined;
 
@@ -1965,6 +1966,10 @@ function node_to_enum_declaration(node: Parser_node.Node, key_to_production_rule
         const enum_value_comments = extract_comments_from_node(value_node.children[0]);
         if (enum_value_comments !== undefined) {
             enum_value.comment = enum_value_comments;
+        }
+
+        if (value_name_node.source_location !== undefined) {
+            enum_value.source_location = value_name_node.source_location;
         }
 
         values.push(enum_value);
