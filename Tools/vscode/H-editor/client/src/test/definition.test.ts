@@ -75,6 +75,93 @@ suite("Should get definition location of structs", () => {
     });
 });
 
+suite("Should get definition location of unions", () => {
+
+    test("Gets definition location of itself", async () => {
+        const document_uri = get_document_uri("definition_union_0.hltxt");
+        await test_definitions(document_uri, new vscode.Position(2, 6), [
+            new vscode.Location(get_document_uri("definition_union_0.hltxt"), to_range(2, 6, 2, 14))
+        ]);
+    });
+
+    test("Gets definition location of union as a function input parameter type", async () => {
+        const document_uri = get_document_uri("definition_union_0.hltxt");
+        await test_definitions(document_uri, new vscode.Position(8, 20), [
+            new vscode.Location(get_document_uri("definition_union_0.hltxt"), to_range(2, 6, 2, 14))
+        ]);
+    });
+
+    test("Gets definition location of union as a function output parameter type", async () => {
+        const document_uri = get_document_uri("definition_union_0.hltxt");
+        await test_definitions(document_uri, new vscode.Position(8, 42), [
+            new vscode.Location(get_document_uri("definition_union_0.hltxt"), to_range(2, 6, 2, 14))
+        ]);
+    });
+
+    test("Gets definition location of union as a variable declaration type", async () => {
+        const document_uri = get_document_uri("definition_union_0.hltxt");
+        await test_definitions(document_uri, new vscode.Position(10, 20), [
+            new vscode.Location(get_document_uri("definition_union_0.hltxt"), to_range(2, 6, 2, 14))
+        ]);
+    });
+
+    test("Gets definition location of union member at instantiate expression 0", async () => {
+        const document_uri = get_document_uri("definition_union_0.hltxt");
+        await test_definitions(document_uri, new vscode.Position(11, 8), [
+            new vscode.Location(get_document_uri("definition_union_0.hltxt"), to_range(4, 4, 4, 5))
+        ]);
+    });
+
+    test("Gets definition location of union member at instantiate expression 1", async () => {
+        const document_uri = get_document_uri("definition_union_0.hltxt");
+        await test_definitions(document_uri, new vscode.Position(16, 8), [
+            new vscode.Location(get_document_uri("definition_union_0.hltxt"), to_range(5, 4, 5, 5))
+        ]);
+    });
+
+    test("Gets definition location of union member at instantiate expression 2", async () => {
+        const document_uri = get_document_uri("definition_union_0.hltxt");
+        await test_definitions(document_uri, new vscode.Position(16, 9), [
+            new vscode.Location(get_document_uri("definition_union_0.hltxt"), to_range(5, 4, 5, 5))
+        ]);
+    });
+
+    test("Gets definition location of union member at instantiate expression 3", async () => {
+        const document_uri = get_document_uri("definition_union_1.hltxt");
+        await test_definitions(document_uri, new vscode.Position(14, 11), [
+            new vscode.Location(get_document_uri("definition_union_1.hltxt"), to_range(4, 4, 4, 5))
+        ]);
+    });
+
+    test("Gets definition location of union member at instantiate expression 4", async () => {
+        const document_uri = get_document_uri("definition_union_1.hltxt");
+        await test_definitions(document_uri, new vscode.Position(14, 22), [
+            new vscode.Location(get_document_uri("definition_union_1.hltxt"), to_range(5, 4, 5, 5))
+        ]);
+    });
+
+    test("Gets definition location of union member at access expression 0", async () => {
+        const document_uri = get_document_uri("definition_union_0.hltxt");
+        await test_definitions(document_uri, new vscode.Position(13, 23), [
+            new vscode.Location(get_document_uri("definition_union_0.hltxt"), to_range(4, 4, 4, 5))
+        ]);
+    });
+
+    test("Gets definition location of union member at access expression 1", async () => {
+        const document_uri = get_document_uri("definition_union_0.hltxt");
+        await test_definitions(document_uri, new vscode.Position(13, 24), [
+            new vscode.Location(get_document_uri("definition_union_0.hltxt"), to_range(4, 4, 4, 5))
+        ]);
+    });
+
+    test("Gets definition location of union member at access expression 2", async () => {
+        const document_uri = get_document_uri("definition_union_0.hltxt");
+        await test_definitions(document_uri, new vscode.Position(18, 23), [
+            new vscode.Location(get_document_uri("definition_union_0.hltxt"), to_range(5, 4, 5, 5))
+        ]);
+    });
+});
+
 suite("Should get definition location of functions", () => {
 
     test("Gets definition location of function name 0", async () => {
