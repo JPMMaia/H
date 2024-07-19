@@ -155,6 +155,7 @@ namespace h
         std::pmr::string name;
         std::optional<Statement> value;
         std::optional<std::pmr::string> comment;
+        std::optional<Source_location> source_location;
 
         friend auto operator<=>(Enum_value const& lhs, Enum_value const& rhs) = default;
     };

@@ -665,6 +665,7 @@ export interface Enum_value {
     name: string;
     value?: Statement;
     comment?: string;
+    source_location?: Source_location;
 }
 
 function core_to_intermediate_enum_value(core_value: Core.Enum_value): Enum_value {
@@ -672,6 +673,7 @@ function core_to_intermediate_enum_value(core_value: Core.Enum_value): Enum_valu
         name: core_value.name,
         value: core_value.value !== undefined ? core_to_intermediate_statement(core_value.value) : undefined,
         comment: core_value.comment,
+        source_location: core_value.source_location !== undefined ? core_to_intermediate_source_location(core_value.source_location) : undefined,
     };
 }
 
@@ -680,6 +682,7 @@ function intermediate_to_core_enum_value(intermediate_value: Enum_value): Core.E
         name: intermediate_value.name,
         value: intermediate_value.value !== undefined ? intermediate_to_core_statement(intermediate_value.value) : undefined,
         comment: intermediate_value.comment,
+        source_location: intermediate_value.source_location !== undefined ? intermediate_to_core_source_location(intermediate_value.source_location) : undefined,
     };
 }
 

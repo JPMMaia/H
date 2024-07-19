@@ -1097,6 +1097,17 @@ namespace h::json
             };
         }
 
+        if (key == "source_location")
+        {
+            parent->source_location = Source_location{};
+            return Stack_state
+            {
+                .pointer = &parent->source_location.value(),
+                .type = "Source_location",
+                .get_next_state = get_next_state_source_location
+            };
+        }
+
         return {};
     }
 
