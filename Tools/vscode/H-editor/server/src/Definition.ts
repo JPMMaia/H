@@ -107,6 +107,10 @@ export async function find_definition_link(
             if (expression.data.type === Core.Expression_enum.Access_expression) {
                 const access_expression = expression.data.value as Core.Access_expression;
                 const components = await Parse_tree_analysis.get_access_expression_components(core_module, access_expression, root, ancestor.node, ancestor.position, get_core_module);
+                if (components.length === 0) {
+                    return [];
+                }
+
                 const selected_component = Parse_tree_analysis.select_access_expression_component(components, before_cursor.node, before_cursor.node_position, after_cursor.node_position);
                 if (selected_component.type === Parse_tree_analysis.Component_type.Declaration) {
                     const module_declaration = selected_component.value as { core_module: Core.Module, declaration: Core.Declaration };

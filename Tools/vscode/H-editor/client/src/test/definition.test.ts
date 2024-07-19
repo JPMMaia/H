@@ -32,24 +32,45 @@ suite("Should get definition location of structs", () => {
         ]);
     });
 
-    test("Gets definition location of struct member 0", async () => {
+    test("Gets definition location of struct member 0 at instantiate expression", async () => {
         const document_uri = get_document_uri("definition_struct_1.hltxt");
         await test_definitions(document_uri, new vscode.Position(11, 9), [
             new vscode.Location(get_document_uri("definition_struct_1.hltxt"), to_range(4, 4, 4, 5))
         ]);
     });
 
-    test("Gets definition location of struct member 1", async () => {
+    test("Gets definition location of struct member 1 at instantiate expression", async () => {
         const document_uri = get_document_uri("definition_struct_1.hltxt");
         await test_definitions(document_uri, new vscode.Position(12, 8), [
             new vscode.Location(get_document_uri("definition_struct_1.hltxt"), to_range(5, 4, 5, 5))
         ]);
     });
 
-    test("Gets definition location of struct member 2", async () => {
+    test("Gets definition location of struct member 2 at instantiate expression", async () => {
         const document_uri = get_document_uri("definition_struct_2.hltxt");
         await test_definitions(document_uri, new vscode.Position(14, 21), [
             new vscode.Location(get_document_uri("definition_struct_2.hltxt"), to_range(5, 4, 5, 5))
+        ]);
+    });
+
+    test("Gets definition location of struct member at access expression 0", async () => {
+        const document_uri = get_document_uri("definition_struct_3.hltxt");
+        await test_definitions(document_uri, new vscode.Position(11, 21), [
+            new vscode.Location(get_document_uri("definition_struct_3.hltxt"), to_range(4, 4, 4, 5))
+        ]);
+    });
+
+    test("Gets definition location of struct member at access expression 1", async () => {
+        const document_uri = get_document_uri("definition_struct_3.hltxt");
+        await test_definitions(document_uri, new vscode.Position(11, 22), [
+            new vscode.Location(get_document_uri("definition_struct_3.hltxt"), to_range(4, 4, 4, 5))
+        ]);
+    });
+
+    test("Gets definition location of struct member at access expression 2", async () => {
+        const document_uri = get_document_uri("definition_struct_3.hltxt");
+        await test_definitions(document_uri, new vscode.Position(12, 21), [
+            new vscode.Location(get_document_uri("definition_struct_3.hltxt"), to_range(5, 4, 5, 5))
         ]);
     });
 });
