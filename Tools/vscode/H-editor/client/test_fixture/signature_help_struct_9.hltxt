@@ -1,0 +1,13 @@
+module signature_help_struct_9;
+
+struct Foo
+{
+    a: Float32 = 0.0f32;
+    b: Float32 = 0.0f32;
+    c: Float32 = 0.0f32;
+}
+
+function run() -> ()
+{
+    var instance: Foo = {
+        b: 0.0f32,

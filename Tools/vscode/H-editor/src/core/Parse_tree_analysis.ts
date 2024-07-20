@@ -933,14 +933,7 @@ export async function find_instantiate_struct_member_from_node(
         return undefined;
     }
 
-    const member_index = get_cursor_parameter_index_at_expression(
-        ancestor_expression_instantiate.position,
-        before_cursor_node_position
-    );
-
-    if (member_index === -1) {
-        return undefined;
-    }
+    const previous_member_name = get_previous_instantiate_member_name_at_cursor(root, before_cursor_node_position, ancestor_expression_instantiate.position);
 
     const custom_type_reference = await find_instantiate_custom_type_reference_from_node(language_description, core_module, root, ancestor_expression_instantiate.position, get_core_module);
     if (custom_type_reference === undefined) {
@@ -953,12 +946,52 @@ export async function find_instantiate_struct_member_from_node(
     }
 
     const struct_declaration = module_declaration.declaration.value as Core.Struct_declaration;
+    if (struct_declaration.member_names.length === 0) {
+        return undefined;
+    }
+
+    const previous_member_index =
+        previous_member_name !== undefined ?
+            struct_declaration.member_names.findIndex(member_name => member_name === previous_member_name) :
+            -1;
+    const member_index = previous_member_index + 1;
 
     return {
         core_module: module_declaration.core_module,
         struct_declaration: struct_declaration,
         member_index: member_index
     };
+}
+
+function get_previous_instantiate_member_name_at_cursor(
+    root: Parser_node.Node,
+    before_cursor_node_position: number[],
+    expression_instantiate_node_position: number[]
+): string | undefined {
+    const first_index = before_cursor_node_position[expression_instantiate_node_position.length];
+    if (first_index === 2) {
+        const member_node_index = before_cursor_node_position[expression_instantiate_node_position.length + 1];
+        if (member_node_index === 0) {
+            return undefined;
+        }
+
+        const previous_member_node_position = [
+            ...before_cursor_node_position.slice(0, expression_instantiate_node_position.length + 1),
+            (member_node_index % 2 === 0) ? member_node_index - 2 : member_node_index - 1
+        ];
+
+        const previous_member_node = Parser_node.get_node_at_position(root, previous_member_node_position);
+        const descendant_member_name = Parser_node.find_descendant_position_if(previous_member_node, node => node.word.value === "Expression_instantiate_member_name");
+        if (descendant_member_name === undefined) {
+            return undefined;
+        }
+
+        const previous_member_name = descendant_member_name.node.children[0].word.value;
+        return previous_member_name;
+    }
+    else {
+        return undefined;
+    }
 }
 
 export enum Component_type {
