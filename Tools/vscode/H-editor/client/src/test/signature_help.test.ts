@@ -171,6 +171,15 @@ suite("Should display struct signature", () => {
             activeParameter: 1
         });
     });
+
+    test("Should show struct signature 9", async () => {
+        const document_uri = get_document_uri('signature_help_struct_9.hltxt');
+        await test_signature_help(document_uri, new vscode.Position(12, 18), {
+            signatures: [create_foo_struct_signature()],
+            activeSignature: 0,
+            activeParameter: 2
+        });
+    });
 });
 
 function create_complex_struct_signature(): vscode.SignatureInformation {
@@ -187,6 +196,28 @@ function create_complex_struct_signature(): vscode.SignatureInformation {
             }
         ],
         documentation: "Represents complex numbers. Uses 32-bit floats.",
+        activeParameter: undefined
+    };
+}
+
+function create_foo_struct_signature(): vscode.SignatureInformation {
+    return {
+        label: "Foo {\n    a: Float32 = 0.0f32,\n    b: Float32 = 0.0f32,\n    c: Float32 = 0.0f32\n}",
+        parameters: [
+            {
+                label: [10, 29],
+                documentation: undefined
+            },
+            {
+                label: [35, 54],
+                documentation: undefined
+            },
+            {
+                label: [60, 79],
+                documentation: undefined
+            }
+        ],
+        documentation: undefined,
         activeParameter: undefined
     };
 }
