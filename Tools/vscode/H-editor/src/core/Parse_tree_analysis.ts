@@ -951,34 +951,29 @@ export async function find_instantiate_member_from_node(
         return undefined;
     }
 
-    const previous_member_index =
-        previous_member_name !== undefined ?
-            declaration_member_names.findIndex(member_name => member_name === previous_member_name) :
-            -1;
-
-    // Try to match what the user wrote with the struct members to find the best match:
-    if (find_best_match) {
-        const members_node = ancestor_expression_instantiate.node.children[2];
-        const current_node_index = before_cursor_node_position[ancestor_expression_instantiate.position.length + 1];
-        const current_member_node_index =
-            current_node_index === undefined ? 0 :
-                current_node_index % 2 === 0 ? current_node_index : current_node_index + 1;
-        if (current_member_node_index < members_node.children.length) {
-            const current_member_node = members_node.children[current_member_node_index].children[0];
-            const current_member_name = current_member_node.children[0].word.value;
-            if (current_member_name.length > 0) {
-                {
-                    const member_index = declaration_member_names.findIndex(value => value === current_member_name);
-                    if (member_index !== -1) {
-                        return {
-                            core_module: module_declaration.core_module,
-                            declaration: module_declaration.declaration,
-                            member_index: member_index,
-                            member_name: declaration_member_names[member_index]
-                        };
-                    }
+    const members_node = ancestor_expression_instantiate.node.children[2];
+    const current_node_index = before_cursor_node_position[ancestor_expression_instantiate.position.length + 1];
+    const current_member_node_index =
+        current_node_index === undefined ? 0 :
+            current_node_index % 2 === 0 ? current_node_index : current_node_index + 1;
+    if (current_member_node_index < members_node.children.length) {
+        const current_member_node = members_node.children[current_member_node_index].children[0];
+        const current_member_name = current_member_node.children[0].word.value;
+        if (current_member_name.length > 0) {
+            {
+                const member_index = declaration_member_names.findIndex(value => value === current_member_name);
+                if (member_index !== -1) {
+                    return {
+                        core_module: module_declaration.core_module,
+                        declaration: module_declaration.declaration,
+                        member_index: member_index,
+                        member_name: declaration_member_names[member_index]
+                    };
                 }
+            }
 
+            // Try to match what the user wrote with the struct members to find the best match:
+            if (find_best_match) {
                 const existent_member_names: string[] = Parser_node.find_descendants_if(members_node, node => node.word.value === "Expression_instantiate_member_name").map(value => value.node.children[0].word.value);
                 const inexistent_member_names = declaration_member_names.filter(member_name => existent_member_names.find(value => value === member_name) === undefined);
                 const best_member_name_match = find_best_string_match(current_member_name, inexistent_member_names);
@@ -992,6 +987,11 @@ export async function find_instantiate_member_from_node(
             }
         }
     }
+
+    const previous_member_index =
+        previous_member_name !== undefined ?
+            declaration_member_names.findIndex(member_name => member_name === previous_member_name) :
+            -1;
 
     const member_index = previous_member_index + 1;
 
