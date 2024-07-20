@@ -3,6 +3,7 @@ import "module-alias/register";
 import * as Definition from "./Definition";
 import * as Code_lens from "./Code_lens";
 import * as Completion from "./Completion";
+import * as Hover from "./Hover";
 import * as Inlay_hints from "./Inlay_hints";
 import * as Platform from "./Platform";
 import * as Project from "./Project";
@@ -67,6 +68,7 @@ connection.onInitialize(async (params: vscode_node.InitializeParams) => {
 				interFileDependencies: false,
 				workspaceDiagnostics: false
 			},
+			hoverProvider: true,
 			inlayHintProvider: {
 				resolveProvider: false
 			},
@@ -357,6 +359,13 @@ connection.onCompletion(
 connection.onCompletionResolve(
 	(item: vscode_node.CompletionItem): vscode_node.CompletionItem => {
 		return item;
+	}
+);
+
+connection.onHover(
+	async (parameters: vscode_node.HoverParams): Promise<vscode_node.Hover | undefined> => {
+		const workspace_folder_uri = await get_workspace_folder_uri_for_document(parameters.textDocument.uri);
+		return Hover.get_hover(parameters, server_data, workspace_folder_uri);
 	}
 );
 
