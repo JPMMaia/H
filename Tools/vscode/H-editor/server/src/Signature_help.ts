@@ -128,7 +128,7 @@ async function get_struct_signature_help(
     get_core_module: (module_name: string) => Promise<Core.Module | undefined>
 ): Promise<vscode.SignatureHelp | undefined> {
 
-    const instantiate_struct_member_info = await Parse_tree_analysis.find_instantiate_struct_member_from_node(language_description, core_module, root, before_cursor_node_position, get_core_module);
+    const instantiate_struct_member_info = await Parse_tree_analysis.find_instantiate_struct_member_from_node(language_description, core_module, root, before_cursor_node_position, true, get_core_module);
     if (instantiate_struct_member_info === undefined) {
         return undefined;
     }

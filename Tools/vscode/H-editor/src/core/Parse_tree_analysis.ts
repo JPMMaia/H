@@ -925,6 +925,7 @@ export async function find_instantiate_struct_member_from_node(
     core_module: Core.Module,
     root: Parser_node.Node,
     before_cursor_node_position: number[],
+    find_best_match: boolean,
     get_core_module: (module_name: string) => Promise<Core.Module | undefined>
 ): Promise<{ core_module: Core.Module, struct_declaration: Core.Struct_declaration, member_index: number } | undefined> {
 
@@ -954,6 +955,31 @@ export async function find_instantiate_struct_member_from_node(
         previous_member_name !== undefined ?
             struct_declaration.member_names.findIndex(member_name => member_name === previous_member_name) :
             -1;
+
+    // Try to match what the user wrote with the struct members to find the best match:
+    if (find_best_match) {
+        const members_node = ancestor_expression_instantiate.node.children[2];
+        const current_node_index = before_cursor_node_position[ancestor_expression_instantiate.position.length + 1];
+        const current_member_node_index =
+            current_node_index === undefined ? 0 :
+                current_node_index % 2 === 0 ? current_node_index : current_node_index + 1;
+        if (current_member_node_index < members_node.children.length) {
+            const current_member_node = members_node.children[current_member_node_index].children[0];
+            const current_member_name = current_member_node.children[0].word.value;
+            if (current_member_name.length > 0) {
+                const existent_member_names: string[] = Parser_node.find_descendants_if(members_node, node => node.word.value === "Expression_instantiate_member_name").map(value => value.node.children[0].word.value);
+                const inexistent_member_names = struct_declaration.member_names.filter(member_name => existent_member_names.find(value => value === member_name) === undefined);
+                const best_member_name_match = find_best_string_match(current_member_name, inexistent_member_names);
+                const member_index = struct_declaration.member_names.findIndex(member_name => member_name === best_member_name_match);
+                return {
+                    core_module: module_declaration.core_module,
+                    struct_declaration: struct_declaration,
+                    member_index: member_index
+                };
+            }
+        }
+    }
+
     const member_index = previous_member_index + 1;
 
     return {
@@ -961,6 +987,55 @@ export async function find_instantiate_struct_member_from_node(
         struct_declaration: struct_declaration,
         member_index: member_index
     };
+}
+
+function find_best_string_match(
+    target: string,
+    options: string[]
+): string {
+
+    let best_match = options[0];
+    let smallest_distance = get_levenshtein_distance(target, best_match);
+
+    for (let i = 1; i < options.length; i++) {
+        const distance = get_levenshtein_distance(target, options[i]);
+        if (distance < smallest_distance) {
+            smallest_distance = distance;
+            best_match = options[i];
+        }
+    }
+
+    return best_match;
+}
+
+function get_levenshtein_distance(a: string, b: string): number {
+    const matrix = [];
+
+    for (let i = 0; i <= b.length; i++) {
+        matrix[i] = [i];
+    }
+
+    for (let j = 0; j <= a.length; j++) {
+        matrix[0][j] = j;
+    }
+
+    for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+            if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                matrix[i][j] = matrix[i - 1][j - 1];
+            } else {
+                matrix[i][j] = Math.min(
+                    matrix[i - 1][j - 1] + 1, // substitution
+                    Math.min(
+                        matrix[i][j - 1] + 1, // insertion
+                        matrix[i - 1][j] + 1 // deletion
+                    )
+                );
+            }
+        }
+    }
+
+    return matrix[b.length][a.length];
 }
 
 function get_previous_instantiate_member_name_at_cursor(

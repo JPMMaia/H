@@ -150,7 +150,7 @@ export async function find_definition_link(
             }
         }
         else if (ancestor.node.word.value === "Expression_instantiate") {
-            const instantiate_struct_member_info = await Parse_tree_analysis.find_instantiate_struct_member_from_node(server_data.language_description, core_module, root, before_cursor.node_position, get_core_module);
+            const instantiate_struct_member_info = await Parse_tree_analysis.find_instantiate_struct_member_from_node(server_data.language_description, core_module, root, before_cursor.node_position, false, get_core_module);
             if (instantiate_struct_member_info !== undefined) {
                 const location = Helpers.location_to_vscode_location(
                     Helpers.get_struct_member_source_location(instantiate_struct_member_info.core_module, instantiate_struct_member_info.struct_declaration, instantiate_struct_member_info.member_index)
