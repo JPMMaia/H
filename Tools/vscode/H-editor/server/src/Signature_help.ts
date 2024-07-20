@@ -60,7 +60,7 @@ export async function create(
             }
         }
         else if (ancestor.node.word.value === "Expression_instantiate") {
-            const signature_help = await get_struct_signature_help(server_data.language_description, document_state.module, before_cursor_iterator.root, ancestor.position, before_cursor_iterator.node_position, get_core_module);
+            const signature_help = await get_struct_signature_help(server_data.language_description, document_state.module, before_cursor_iterator.root, before_cursor_iterator.node_position, get_core_module);
             if (signature_help !== undefined) {
                 return signature_help;
             }
@@ -123,17 +123,16 @@ async function get_struct_signature_help(
     language_description: Language.Description,
     core_module: Core.Module,
     root: Parser_node.Node,
-    expression_instantiate_node_position: number[],
     before_cursor_node_position: number[],
     get_core_module: (module_name: string) => Promise<Core.Module | undefined>
 ): Promise<vscode.SignatureHelp | undefined> {
 
-    const instantiate_struct_member_info = await Parse_tree_analysis.find_instantiate_struct_member_from_node(language_description, core_module, root, before_cursor_node_position, true, get_core_module);
-    if (instantiate_struct_member_info === undefined) {
+    const instantiate_member_info = await Parse_tree_analysis.find_instantiate_member_from_node(language_description, core_module, root, before_cursor_node_position, true, get_core_module);
+    if (instantiate_member_info === undefined || instantiate_member_info.declaration.type !== Core.Declaration_type.Struct) {
         return undefined;
     }
 
-    const struct_declaration = instantiate_struct_member_info.struct_declaration;
+    const struct_declaration = instantiate_member_info.declaration.value as Core.Struct_declaration;
 
     const struct_label = create_struct_label(core_module, struct_declaration);
 
@@ -163,7 +162,7 @@ async function get_struct_signature_help(
     const signature_help: vscode.SignatureHelp = {
         signatures: [signature_information],
         activeSignature: 0,
-        activeParameter: instantiate_struct_member_info.member_index
+        activeParameter: instantiate_member_info.member_index
     };
 
     return signature_help;
