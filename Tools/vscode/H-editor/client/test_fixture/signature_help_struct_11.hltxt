@@ -1,4 +1,4 @@
-module signature_help_struct_10;
+module signature_help_struct_11;
 
 struct Foo
 {
@@ -12,4 +12,6 @@ function run() -> ()
 {
     var instance: Foo = {
         instance: 0,
-        in
+        include: 0
+    };
+}

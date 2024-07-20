@@ -920,14 +920,14 @@ export async function find_instantiate_custom_type_reference_from_node(
     return undefined;
 }
 
-export async function find_instantiate_struct_member_from_node(
+export async function find_instantiate_member_from_node(
     language_description: Language.Description,
     core_module: Core.Module,
     root: Parser_node.Node,
     before_cursor_node_position: number[],
     find_best_match: boolean,
     get_core_module: (module_name: string) => Promise<Core.Module | undefined>
-): Promise<{ core_module: Core.Module, struct_declaration: Core.Struct_declaration, member_index: number } | undefined> {
+): Promise<{ core_module: Core.Module, declaration: Core.Declaration, member_index: number, member_name: string } | undefined> {
 
     const ancestor_expression_instantiate = Parser_node.get_ancestor_with_name(root, before_cursor_node_position, "Expression_instantiate");
     if (ancestor_expression_instantiate === undefined) {
@@ -942,18 +942,18 @@ export async function find_instantiate_struct_member_from_node(
     }
 
     const module_declaration = await get_custom_type_reference_declaration(custom_type_reference, get_core_module);
-    if (module_declaration === undefined || module_declaration.declaration.type !== Core.Declaration_type.Struct) {
+    if (module_declaration === undefined) {
         return undefined;
     }
 
-    const struct_declaration = module_declaration.declaration.value as Core.Struct_declaration;
-    if (struct_declaration.member_names.length === 0) {
+    const declaration_member_names = get_member_names(module_declaration.declaration);
+    if (declaration_member_names.length === 0) {
         return undefined;
     }
 
     const previous_member_index =
         previous_member_name !== undefined ?
-            struct_declaration.member_names.findIndex(member_name => member_name === previous_member_name) :
+            declaration_member_names.findIndex(member_name => member_name === previous_member_name) :
             -1;
 
     // Try to match what the user wrote with the struct members to find the best match:
@@ -967,14 +967,27 @@ export async function find_instantiate_struct_member_from_node(
             const current_member_node = members_node.children[current_member_node_index].children[0];
             const current_member_name = current_member_node.children[0].word.value;
             if (current_member_name.length > 0) {
+                {
+                    const member_index = declaration_member_names.findIndex(value => value === current_member_name);
+                    if (member_index !== -1) {
+                        return {
+                            core_module: module_declaration.core_module,
+                            declaration: module_declaration.declaration,
+                            member_index: member_index,
+                            member_name: declaration_member_names[member_index]
+                        };
+                    }
+                }
+
                 const existent_member_names: string[] = Parser_node.find_descendants_if(members_node, node => node.word.value === "Expression_instantiate_member_name").map(value => value.node.children[0].word.value);
-                const inexistent_member_names = struct_declaration.member_names.filter(member_name => existent_member_names.find(value => value === member_name) === undefined);
+                const inexistent_member_names = declaration_member_names.filter(member_name => existent_member_names.find(value => value === member_name) === undefined);
                 const best_member_name_match = find_best_string_match(current_member_name, inexistent_member_names);
-                const member_index = struct_declaration.member_names.findIndex(member_name => member_name === best_member_name_match);
+                const member_index = declaration_member_names.findIndex(member_name => member_name === best_member_name_match);
                 return {
                     core_module: module_declaration.core_module,
-                    struct_declaration: struct_declaration,
-                    member_index: member_index
+                    declaration: module_declaration.declaration,
+                    member_index: member_index,
+                    member_name: declaration_member_names[member_index]
                 };
             }
         }
@@ -984,9 +997,24 @@ export async function find_instantiate_struct_member_from_node(
 
     return {
         core_module: module_declaration.core_module,
-        struct_declaration: struct_declaration,
-        member_index: member_index
+        declaration: module_declaration.declaration,
+        member_index: member_index,
+        member_name: declaration_member_names[member_index]
     };
+}
+
+function get_member_names(declaration: Core.Declaration): string[] {
+    if (declaration.type === Core.Declaration_type.Struct) {
+        const struct_declaration = declaration.value as Core.Struct_declaration;
+        return struct_declaration.member_names;
+    }
+    else if (declaration.type === Core.Declaration_type.Union) {
+        const union_declaration = declaration.value as Core.Union_declaration;
+        return union_declaration.member_names;
+    }
+    else {
+        return [];
+    }
 }
 
 function find_best_string_match(

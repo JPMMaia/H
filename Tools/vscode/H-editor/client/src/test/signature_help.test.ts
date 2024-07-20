@@ -189,6 +189,42 @@ suite("Should display struct signature", () => {
             activeParameter: 3
         });
     });
+
+    test("Active parameter should show the member that already exists at the cursor 0", async () => {
+        const document_uri = get_document_uri('signature_help_struct_11.hltxt');
+        await test_signature_help(document_uri, new vscode.Position(12, 25), {
+            signatures: [create_foo_struct_signature()],
+            activeSignature: 0,
+            activeParameter: 1
+        });
+    });
+
+    test("Active parameter should show the member that already exists at the cursor 1", async () => {
+        const document_uri = get_document_uri('signature_help_struct_11.hltxt');
+        await test_signature_help(document_uri, new vscode.Position(13, 19), {
+            signatures: [create_foo_struct_signature()],
+            activeSignature: 0,
+            activeParameter: 1
+        });
+    });
+
+    test("Active parameter should show the member that already exists at the cursor 2", async () => {
+        const document_uri = get_document_uri('signature_help_struct_11.hltxt');
+        await test_signature_help(document_uri, new vscode.Position(13, 20), {
+            signatures: [create_foo_struct_signature()],
+            activeSignature: 0,
+            activeParameter: 3
+        });
+    });
+
+    test("Active parameter should show the member that already exists at the cursor 3", async () => {
+        const document_uri = get_document_uri('signature_help_struct_11.hltxt');
+        await test_signature_help(document_uri, new vscode.Position(14, 15), {
+            signatures: [create_foo_struct_signature()],
+            activeSignature: 0,
+            activeParameter: 3
+        });
+    });
 });
 
 function create_complex_struct_signature(): vscode.SignatureInformation {
