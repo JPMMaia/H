@@ -172,12 +172,21 @@ suite("Should display struct signature", () => {
         });
     });
 
-    test("Should show struct signature 9", async () => {
+    test("Active parameter should be the member after the previous parameter name if nothing is written yet", async () => {
         const document_uri = get_document_uri('signature_help_struct_9.hltxt');
-        await test_signature_help(document_uri, new vscode.Position(12, 18), {
+        await test_signature_help(document_uri, new vscode.Position(13, 20), {
             signatures: [create_foo_struct_signature()],
             activeSignature: 0,
             activeParameter: 2
+        });
+    });
+
+    test("Active parameter should be the member whose name best matches what is being written", async () => {
+        const document_uri = get_document_uri('signature_help_struct_10.hltxt');
+        await test_signature_help(document_uri, new vscode.Position(14, 10), {
+            signatures: [create_foo_struct_signature()],
+            activeSignature: 0,
+            activeParameter: 3
         });
     });
 });
@@ -202,18 +211,22 @@ function create_complex_struct_signature(): vscode.SignatureInformation {
 
 function create_foo_struct_signature(): vscode.SignatureInformation {
     return {
-        label: "Foo {\n    a: Float32 = 0.0f32,\n    b: Float32 = 0.0f32,\n    c: Float32 = 0.0f32\n}",
+        label: "Foo {\n    application: Int32 = 0,\n    instance: Int32 = 0,\n    command: Int32 = 0,\n    include: Int32 = 0\n}",
         parameters: [
             {
-                label: [10, 29],
+                label: [10, 32],
                 documentation: undefined
             },
             {
-                label: [35, 54],
+                label: [38, 57],
                 documentation: undefined
             },
             {
-                label: [60, 79],
+                label: [63, 81],
+                documentation: undefined
+            },
+            {
+                label: [87, 105],
                 documentation: undefined
             }
         ],
