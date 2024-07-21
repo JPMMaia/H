@@ -3,6 +3,7 @@ import * as path from "path";
 import * as vscode from "vscode-languageserver/node";
 import * as vscode_uri from "vscode-uri";
 
+import * as Comments from "@core/Comments";
 import * as Core from "@core/Core_intermediate_representation";
 import * as Parse_tree_text_iterator from "@core/Parse_tree_text_iterator";
 import * as Parser_node from "@core/Parser_node";
@@ -85,11 +86,12 @@ export function get_tooltip_of_declaration(
 ): vscode.MarkupContent {
 
     const declaration_type = Core.Declaration_type[declaration.type].toLowerCase();
+    const declaration_label = create_declaration_label(core_module, declaration);
 
     const lines = [
         '```hlang',
         `module ${sanitize_input(core_module.name)}`,
-        `${declaration_type} ${sanitize_input(declaration.name)}`,
+        `${declaration_type} ${declaration_label}`,
         '```'
     ];
 
@@ -163,7 +165,17 @@ function get_declaration_comment(
         }
         case Core.Declaration_type.Function: {
             const value = declaration.value as Core.Function;
-            return value.declaration.comment;
+            const function_comment = Comments.parse_function_comment(value.declaration);
+
+            const comments: string[] = [];
+            if (function_comment.short_description !== undefined) {
+                comments.push(function_comment.short_description);
+            }
+            if (function_comment.long_description !== undefined) {
+                comments.push(function_comment.long_description);
+            }
+
+            return comments.join("\n\n");
         }
         case Core.Declaration_type.Struct: {
             const value = declaration.value as Core.Struct_declaration;
@@ -580,6 +592,42 @@ export function get_struct_member_source_location(
     };
 }
 
+export function create_declaration_label(
+    core_module: Core.Module,
+    declaration: Core.Declaration
+): string {
+    switch (declaration.type) {
+        case Core.Declaration_type.Function: {
+            const function_value = declaration.value as Core.Function;
+            return create_function_label(core_module, function_value.declaration);
+        }
+        default: {
+            return sanitize_input(declaration.name);
+        }
+    }
+}
+
+export function create_function_label(
+    core_module: Core.Module,
+    function_declaration: Core.Function_declaration
+): string {
+    const input_parameters_string = format_function_parameters(core_module, function_declaration.input_parameter_names, function_declaration.type.input_parameter_types);
+    const output_parameters_string = format_function_parameters(core_module, function_declaration.output_parameter_names, function_declaration.type.output_parameter_types);
+    return `${function_declaration.name}(${input_parameters_string}) -> (${output_parameters_string})`;
+}
+
+function format_function_parameters(
+    core_module: Core.Module,
+    names: string[],
+    types: Core.Type_reference[]
+): string {
+    return names.map(
+        (value, index) => {
+            const type_name = sanitize_input(Type_utilities.get_type_name([types[index]], core_module));
+            return `${sanitize_input(value)}: ${type_name}`;
+        }
+    ).join(", ");
+}
 
 export function validate_input(input: string): boolean {
     const regex = /^[a-zA-Z0-9\.\_]+$/;
