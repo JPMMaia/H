@@ -72,5 +72,28 @@ export async function get_hover(
         }
     }
 
+    const ancestor_expression = Parser_node.get_first_ancestor_with_name(root, after_cursor.node_position, [
+        "Expression_variable"
+    ]);
+    if (ancestor_expression !== undefined) {
+        if (ancestor_expression.node.word.value === "Expression_variable") {
+            const module_function = await Parse_tree_analysis.get_function_value_from_node(server_data.language_description, core_module, ancestor_expression.node, get_core_module);
+            if (module_function !== undefined) {
+                const declaration: Core.Declaration = {
+                    type: Core.Declaration_type.Function,
+                    value: module_function.function_value,
+                    name: module_function.function_value.declaration.name,
+                    is_export: false
+                };
+                const content = Helpers.get_tooltip_of_declaration(module_function.core_module, declaration);
+                const range = Helpers.get_terminal_node_vscode_range(root, after_cursor.text, after_cursor.node_position);
+                return {
+                    contents: content,
+                    range: range
+                };
+            }
+        }
+    }
+
     return undefined;
 }

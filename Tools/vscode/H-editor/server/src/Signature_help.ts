@@ -78,7 +78,7 @@ function get_function_signature_help(
 
     const function_comment = Comments.parse_function_comment(function_declaration);
 
-    const function_label = create_function_label(core_module, function_declaration);
+    const function_label = Helpers.create_function_label(core_module, function_declaration);
 
     const signature_information: vscode.SignatureInformation = {
         label: function_label,
@@ -212,28 +212,6 @@ function find_parameter_range(
     }
 
     return [start_index, start_index];
-}
-
-function create_function_label(
-    core_module: Core.Module,
-    function_declaration: Core.Function_declaration
-): string {
-    const input_parameters_string = format_function_parameters(core_module, function_declaration.input_parameter_names, function_declaration.type.input_parameter_types);
-    const output_parameters_string = format_function_parameters(core_module, function_declaration.output_parameter_names, function_declaration.type.output_parameter_types);
-    return `${function_declaration.name}(${input_parameters_string}) -> (${output_parameters_string})`;
-}
-
-function format_function_parameters(
-    core_module: Core.Module,
-    names: string[],
-    types: Core.Type_reference[]
-): string {
-    return names.map(
-        (value, index) => {
-            const type_name = Type_utilities.get_type_name([types[index]], core_module);
-            return `${value}: ${type_name}`;
-        }
-    ).join(", ");
 }
 
 function create_struct_label(

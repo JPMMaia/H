@@ -45,6 +45,38 @@ function create_complex_struct_markdown_string(): vscode.MarkdownString {
     );
 }
 
+suite("Should get hover of functions", () => {
+
+    test("Gets function hover at itself", async () => {
+        const document_uri = get_document_uri("hover_function_0.hltxt");
+        await test_hover(document_uri, new vscode.Position(10, 9), [
+            new vscode.Hover([create_add_function_markdown_string()], to_range(10, 9, 10, 12))
+        ]);
+    });
+
+    test("Gets function hover at expression call", async () => {
+        const document_uri = get_document_uri("hover_function_0.hltxt");
+        await test_hover(document_uri, new vscode.Position(17, 17), [
+            new vscode.Hover([create_add_function_markdown_string()], to_range(17, 17, 17, 20))
+        ]);
+    });
+});
+
+function create_add_function_markdown_string(): vscode.MarkdownString {
+    return new vscode.MarkdownString(
+        [
+            '```hlang',
+            'module hover_function_0',
+            'function add(lhs: Int32, rhs: Int32) -> (result: Int32)',
+            '```',
+            'Add two integers',
+            '',
+            'Add two 32-bit integers.',
+            'It returns the result of adding lhs and rhs.',
+        ].join('\n')
+    );
+}
+
 function to_range(start_line: number, start_character: number, end_line: number, end_character: number): vscode.Range {
     const start = new vscode.Position(start_line, start_character);
     const end = new vscode.Position(end_line, end_character);
