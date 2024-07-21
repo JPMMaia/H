@@ -4,6 +4,7 @@ import * as vscode from "vscode-languageserver/node";
 import * as vscode_uri from "vscode-uri";
 
 import * as Core from "@core/Core_intermediate_representation";
+import * as Parse_tree_text_iterator from "@core/Parse_tree_text_iterator";
 import * as Parser_node from "@core/Parser_node";
 import * as Type_utilities from "@core/Type_utilities";
 
@@ -173,6 +174,29 @@ function get_declaration_comment(
             return value.comment;
         }
     }
+}
+
+export function get_terminal_node_vscode_range(
+    root: Parser_node.Node,
+    text: string,
+    node_position: number[]
+): vscode.Range | undefined {
+    const source_location = Parse_tree_text_iterator.get_node_source_location(root, text, node_position);
+    if (source_location === undefined) {
+        return undefined;
+    }
+
+    const node = Parser_node.get_node_at_position(root, node_position);
+    if (node.children.length === 0) {
+        return create_vscode_range(source_location.line, source_location.column, source_location.line, source_location.column + node.word.value.length);
+    }
+
+    const descendant = Parser_node.find_descendant_position_if(node, node => node.children.length === 0);
+    if (descendant === undefined) {
+        return undefined;
+    }
+
+    return create_vscode_range(source_location.line, source_location.column, source_location.line, source_location.column + descendant.node.word.value.length);
 }
 
 export function get_module_source_location(
