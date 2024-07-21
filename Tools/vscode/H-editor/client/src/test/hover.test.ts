@@ -14,21 +14,21 @@ suite("Should get hover of structs", () => {
     test("Gets struct hover at input parameter type", async () => {
         const document_uri = get_document_uri("hover_struct_0.hltxt");
         await test_hover(document_uri, new vscode.Position(12, 20), [
-            new vscode.Hover([create_complex_struct_markdown_string()], to_range(12, 20, 12, 29))
+            new vscode.Hover([create_complex_struct_markdown_string()], to_range(12, 20, 12, 27))
         ]);
     });
 
     test("Gets struct hover at output parameter type", async () => {
         const document_uri = get_document_uri("hover_struct_0.hltxt");
-        await test_hover(document_uri, new vscode.Position(12, 43), [
-            new vscode.Hover([create_complex_struct_markdown_string()], to_range(12, 43, 12, 52))
+        await test_hover(document_uri, new vscode.Position(12, 41), [
+            new vscode.Hover([create_complex_struct_markdown_string()], to_range(12, 41, 12, 48))
         ]);
     });
 
     test("Gets struct hover at variable type", async () => {
         const document_uri = get_document_uri("hover_struct_0.hltxt");
         await test_hover(document_uri, new vscode.Position(14, 18), [
-            new vscode.Hover([create_complex_struct_markdown_string()], to_range(14, 18, 14, 27))
+            new vscode.Hover([create_complex_struct_markdown_string()], to_range(14, 18, 14, 25))
         ]);
     });
 });
@@ -37,7 +37,7 @@ function create_complex_struct_markdown_string(): vscode.MarkdownString {
     return new vscode.MarkdownString(
         [
             '```hlang',
-            'module definition_struct_0',
+            'module hover_struct_0',
             'struct Complex',
             '```',
             'Represents complex numbers. Uses 32-bit floats.'
