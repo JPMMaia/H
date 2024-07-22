@@ -1228,6 +1228,17 @@ export function get_first_ancestor_with_name_at_cursor_position(
     }
 }
 
+export function create_member_default_value_text(
+    statement: Core.Statement
+): string | undefined {
+    if (statement.expression.data.type === Core.Expression_enum.Constant_expression) {
+        const word = Parse_tree_convertor_mappings.constant_expression_to_word(statement.expression.data.value as Core.Constant_expression);
+        return word.value;
+    }
+
+    return undefined;
+}
+
 function create_pointer_type(element_type: Core.Type_reference[], is_mutable: boolean): Core.Type_reference {
     return {
         data: {

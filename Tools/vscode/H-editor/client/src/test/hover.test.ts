@@ -31,6 +31,34 @@ suite("Should get hover of structs", () => {
             new vscode.Hover([create_complex_struct_markdown_string()], to_range(14, 18, 14, 25))
         ]);
     });
+
+    test("Gets struct member hover at instantiate struct member 0", async () => {
+        const document_uri = get_document_uri("hover_struct_0.hltxt");
+        await test_hover(document_uri, new vscode.Position(15, 8), [
+            new vscode.Hover([create_complex_struct_real_markdown_string()], to_range(15, 8, 15, 12))
+        ]);
+    });
+
+    test("Gets struct member hover at instantiate struct member 1", async () => {
+        const document_uri = get_document_uri("hover_struct_0.hltxt");
+        await test_hover(document_uri, new vscode.Position(16, 8), [
+            new vscode.Hover([create_complex_struct_imaginary_markdown_string()], to_range(16, 8, 16, 17))
+        ]);
+    });
+
+    test("Gets struct member hover at access expression 0", async () => {
+        const document_uri = get_document_uri("hover_struct_0.hltxt");
+        await test_hover(document_uri, new vscode.Position(18, 24), [
+            new vscode.Hover([create_complex_struct_real_markdown_string()], to_range(18, 24, 18, 28))
+        ]);
+    });
+
+    test("Gets struct member hover at access expression 1", async () => {
+        const document_uri = get_document_uri("hover_struct_0.hltxt");
+        await test_hover(document_uri, new vscode.Position(19, 29), [
+            new vscode.Hover([create_complex_struct_imaginary_markdown_string()], to_range(19, 29, 19, 38))
+        ]);
+    });
 });
 
 function create_complex_struct_markdown_string(): vscode.MarkdownString {
@@ -41,6 +69,28 @@ function create_complex_struct_markdown_string(): vscode.MarkdownString {
             'struct Complex',
             '```',
             'Represents complex numbers. Uses 32-bit floats.'
+        ].join('\n')
+    );
+}
+
+function create_complex_struct_real_markdown_string(): vscode.MarkdownString {
+    return new vscode.MarkdownString(
+        [
+            '```hlang',
+            'Complex.real: Float32 = 0.0f32',
+            '```',
+            'The real part.'
+        ].join('\n')
+    );
+}
+
+function create_complex_struct_imaginary_markdown_string(): vscode.MarkdownString {
+    return new vscode.MarkdownString(
+        [
+            '```hlang',
+            'Complex.imaginary: Float32 = 0.0f32',
+            '```',
+            'The imaginary part.'
         ].join('\n')
     );
 }

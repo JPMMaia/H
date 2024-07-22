@@ -5,6 +5,7 @@ import * as vscode_uri from "vscode-uri";
 
 import * as Comments from "@core/Comments";
 import * as Core from "@core/Core_intermediate_representation";
+import * as Parse_tree_analysis from "@core/Parse_tree_analysis";
 import * as Parse_tree_text_iterator from "@core/Parse_tree_text_iterator";
 import * as Parser_node from "@core/Parser_node";
 import * as Type_utilities from "@core/Type_utilities";
@@ -106,6 +107,131 @@ export function get_tooltip_of_declaration(
     };
 
     return tooltip;
+}
+
+export function get_tooltip_of_declaration_member(
+    core_module: Core.Module,
+    declaration: Core.Declaration,
+    member_index: number
+): vscode.MarkupContent | undefined {
+    switch (declaration.type) {
+        case Core.Declaration_type.Enum: {
+            const enum_declaration = declaration.value as Core.Enum_declaration;
+            const enum_value = enum_declaration.values[member_index];
+
+            // TODO add value of enum
+
+            const lines = [
+                '```hlang',
+                `${sanitize_input(declaration.name)}.${sanitize_input(enum_value.name)}`,
+                '```'
+            ];
+
+            if (enum_value.comment !== undefined) {
+                lines.push(sanitize_input(enum_value.comment));
+            }
+
+            const tooltip: vscode.MarkupContent = {
+                kind: vscode.MarkupKind.Markdown,
+                value: lines.join('\n')
+            };
+
+            return tooltip;
+
+        }
+        case Core.Declaration_type.Struct:
+        case Core.Declaration_type.Union: {
+            const member_info = get_declaration_member_info(declaration, member_index);
+            if (member_info !== undefined) {
+                const type_name = Type_utilities.get_type_name([member_info.member_type], core_module);
+
+                const default_value = member_info.member_default_value !== undefined ? Parse_tree_analysis.create_member_default_value_text(member_info.member_default_value) : undefined;
+                const default_value_text = default_value !== undefined ? ` = ${sanitize_input(default_value)}` : "";
+
+                const lines = [
+                    '```hlang',
+                    `${sanitize_input(declaration.name)}.${sanitize_input(member_info.member_name)}: ${sanitize_input(type_name)}${default_value_text}`,
+                    '```'
+                ];
+
+                if (member_info.member_comment !== undefined) {
+                    lines.push(sanitize_input(member_info.member_comment));
+                }
+
+                const tooltip: vscode.MarkupContent = {
+                    kind: vscode.MarkupKind.Markdown,
+                    value: lines.join('\n')
+                };
+
+                return tooltip;
+            }
+        }
+    }
+
+    return undefined;
+}
+
+export function get_declaration_member_info(
+    declaration: Core.Declaration,
+    member_index: number
+): { member_name: string, member_type: Core.Type_reference, member_comment: string | undefined, member_default_value: Core.Statement | undefined } | undefined {
+
+    switch (declaration.type) {
+        case Core.Declaration_type.Struct: {
+            const struct_declaration = declaration.value as Core.Struct_declaration;
+            const member_name = struct_declaration.member_names[member_index];
+            const member_type = struct_declaration.member_types[member_index];
+            const member_comment = struct_declaration.member_comments.find(value => value.index === member_index);
+            const member_default_value = struct_declaration.member_default_values[member_index];
+
+            return {
+                member_name: member_name,
+                member_type: member_type,
+                member_comment: member_comment?.comment,
+                member_default_value: member_default_value
+            };
+        }
+        case Core.Declaration_type.Union: {
+            const union_declaration = declaration.value as Core.Union_declaration;
+            const member_name = union_declaration.member_names[member_index];
+            const member_type = union_declaration.member_types[member_index];
+
+            const member_comment = union_declaration.member_comments.find(value => value.index === member_index);
+            return {
+                member_name: member_name,
+                member_type: member_type,
+                member_comment: member_comment?.comment,
+                member_default_value: undefined
+            };
+        }
+    }
+
+    return undefined;
+}
+
+export function get_declaration_member_index(
+    declaration: Core.Declaration,
+    member_name: string
+): number | undefined {
+    switch (declaration.type) {
+        case Core.Declaration_type.Enum: {
+            const enum_declaration = declaration.value as Core.Enum_declaration;
+            const index = enum_declaration.values.findIndex(value => value.name === member_name);
+            return index !== -1 ? index : undefined;
+        }
+        case Core.Declaration_type.Struct: {
+            const struct_declaration = declaration.value as Core.Struct_declaration;
+            const index = struct_declaration.member_names.findIndex(name => name === member_name);
+            return index !== -1 ? index : undefined;
+        }
+        case Core.Declaration_type.Union: {
+            const union_declaration = declaration.value as Core.Union_declaration;
+            const index = union_declaration.member_names.findIndex(name => name === member_name);
+            return index !== -1 ? index : undefined;
+        }
+    }
+
+    return undefined;
 }
 
 export function get_tooltip_of_function_input_parameter(
