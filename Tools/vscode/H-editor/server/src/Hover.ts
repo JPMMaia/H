@@ -83,7 +83,7 @@ export async function get_hover(
 
     const ancestor_expression = Parser_node.get_first_ancestor_with_name(root, after_cursor.node_position, [
         "Expression_access",
-        "Expression_instantiate",
+        "Expression_instantiate_member_name",
         "Expression_variable"
     ]);
     if (ancestor_expression !== undefined) {
@@ -113,15 +113,12 @@ export async function get_hover(
                 }
             }
         }
-        else if (ancestor_expression.node.word.value === "Expression_instantiate") {
+        else if (ancestor_expression.node.word.value === "Expression_instantiate_member_name") {
             const instantiate_member_info = await Parse_tree_analysis.find_instantiate_member_from_node(server_data.language_description, core_module, root, before_cursor.node_position, false, get_core_module);
             if (instantiate_member_info !== undefined) {
                 const content = Helpers.get_tooltip_of_declaration_member(core_module, instantiate_member_info.declaration, instantiate_member_info.member_index);
                 if (content !== undefined) {
-                    const descendants_member_name = Parser_node.find_descendants_if(ancestor_expression.node, node => node.word.value === "Expression_instantiate_member_name");
-                    const descendant_member_name = descendants_member_name.find(descendant => descendant.node.children[0].word.value === instantiate_member_info.member_name);
-
-                    const range = descendant_member_name !== undefined ? Helpers.get_terminal_node_vscode_range(root, before_cursor.text, descendant_member_name.position) : undefined;
+                    const range = Helpers.get_terminal_node_vscode_range(root, before_cursor.text, ancestor_expression.position);
                     return {
                         contents: content,
                         range: range
