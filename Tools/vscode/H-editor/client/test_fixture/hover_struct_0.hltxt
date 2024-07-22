@@ -12,6 +12,11 @@ struct Complex
 
 function run(input: Complex) -> (result: Complex)
 {
-    var instance: Complex = {};
+    var instance: Complex = {
+        real: 1.0f32,
+        imaginary: 1.0f32
+    };
+    var real = instance.real;
+    var imaginary = instance.imaginary;
     return instance;
 }

@@ -224,7 +224,7 @@ function create_struct_label(
             const member_type = struct_declaration.member_types[member_index];
             const member_type_name = Type_utilities.get_type_name([member_type], core_module);
             const member_default_value_statement = struct_declaration.member_default_values[member_index];
-            const member_default_value_text = create_struct_member_default_value_text(member_default_value_statement);
+            const member_default_value_text = Parse_tree_analysis.create_member_default_value_text(member_default_value_statement);
             const default_value_text = member_default_value_text !== undefined ? ` = ${member_default_value_text}` : "";
             return `    ${member_name}: ${member_type_name}${default_value_text}`;
         }
@@ -236,13 +236,3 @@ function create_struct_label(
     return `${struct_declaration.name} {${members_string}}`;
 }
 
-function create_struct_member_default_value_text(
-    statement: Core.Statement
-): string | undefined {
-    if (statement.expression.data.type === Core.Expression_enum.Constant_expression) {
-        const word = Parse_tree_convertor_mappings.constant_expression_to_word(statement.expression.data.value as Core.Constant_expression);
-        return word.value;
-    }
-
-    return undefined;
-}
