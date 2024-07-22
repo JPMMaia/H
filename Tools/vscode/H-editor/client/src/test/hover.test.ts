@@ -46,6 +46,11 @@ suite("Should get hover of structs", () => {
         ]);
     });
 
+    test("Do not show struct member hover at instantiate struct member value", async () => {
+        const document_uri = get_document_uri("hover_struct_0.hltxt");
+        await test_hover(document_uri, new vscode.Position(15, 12), []);
+    });
+
     test("Gets struct member hover at access expression 0", async () => {
         const document_uri = get_document_uri("hover_struct_0.hltxt");
         await test_hover(document_uri, new vscode.Position(18, 24), [
