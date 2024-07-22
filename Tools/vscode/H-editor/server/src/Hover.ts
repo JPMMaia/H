@@ -81,7 +81,7 @@ export async function get_hover(
         return undefined;
     }
 
-    const ancestor_expression = Parse_tree_analysis.get_first_ancestor_with_name_at_cursor_position(root, before_cursor.node_position, after_cursor.node_position, [
+    const ancestor_expression = Parser_node.get_first_ancestor_with_name(root, after_cursor.node_position, [
         "Expression_access",
         "Expression_instantiate",
         "Expression_variable"

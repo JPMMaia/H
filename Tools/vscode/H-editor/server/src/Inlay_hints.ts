@@ -269,13 +269,11 @@ export async function create_label_parts_for_type_recursively(
 
             const declaration = await Parse_tree_analysis.get_custom_type_reference_declaration(value, get_core_module);
             const location = declaration !== undefined ? Helpers.location_to_vscode_location(Helpers.get_declaration_source_location(declaration.core_module, declaration.declaration)) : undefined;
-            const tooltip = declaration !== undefined ? Helpers.get_tooltip_of_declaration(declaration.core_module, declaration.declaration) : undefined;
 
             parts.push(
                 {
                     value: value.name,
-                    location: location,
-                    tooltip: tooltip
+                    location: location
                 }
             );
             return;
