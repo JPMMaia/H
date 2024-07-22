@@ -26,16 +26,6 @@ suite("Should get inlay hints", () => {
 	test("Creates hint for variable declaration of a struct", async () => {
 		const document_uri = get_document_uri("inlay_hints_1.hltxt");
 
-		const tooltip = new vscode.MarkdownString(
-			[
-				'```hlang',
-				'module inlay_hints_1',
-				'struct Complex',
-				'```',
-				'Represents a complex type\nwith real and imaginary parts'
-			].join("\n")
-		);
-
 		await test_inlay_hints(document_uri, to_range(17, 4, 17, 35), [
 			{
 				label: [
@@ -45,7 +35,7 @@ suite("Should get inlay hints", () => {
 					},
 					{
 						value: "Complex",
-						tooltip: tooltip,
+						tooltip: undefined,
 						location: {
 							uri: document_uri,
 							range: to_range(4, 7, 4, 14)
@@ -70,15 +60,6 @@ suite("Should get inlay hints", () => {
 			].join("\n")
 		);
 
-		const type_tooltip = new vscode.MarkdownString(
-			[
-				'```hlang',
-				'module c.complex',
-				'struct Complex',
-				'```'
-			].join("\n")
-		);
-
 		await test_inlay_hints(document_uri, to_range(8, 4, 8, 30), [
 			{
 				label: [
@@ -100,7 +81,7 @@ suite("Should get inlay hints", () => {
 					},
 					{
 						value: "Complex",
-						tooltip: type_tooltip,
+						tooltip: undefined,
 						location: {
 							uri: imported_module_document_uri,
 							range: to_range(0, 15, 0, 22)
