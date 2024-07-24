@@ -363,6 +363,17 @@ export function go_to_next_node_position(
             }
         }
 
+        if (node_position.length > 1 && node_position.length === iterator.node_position.length) {
+            if (is_same_position(node_position.slice(0, node_position.length - 1), iterator.node_position.slice(0, node_position.length - 1))) {
+                const target_index = node_position[node_position.length - 1];
+                const iterator_index = iterator.node_position[node_position.length - 1];
+
+                if (iterator_index >= target_index) {
+                    break;
+                }
+            }
+        }
+
         iterator = next(iterator);
     }
 
