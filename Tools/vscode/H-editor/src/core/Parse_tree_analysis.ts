@@ -1,8 +1,13 @@
 import * as Core from "./Core_intermediate_representation";
+import * as Document from "./Document";
 import * as Language from "./Language";
 import * as Parse_tree_convertor from "./Parse_tree_convertor";
 import * as Parse_tree_convertor_mappings from "./Parse_tree_convertor_mappings";
+import * as Parse_tree_text_iterator from "./Parse_tree_text_iterator";
+import * as Parser from "./Parser";
 import * as Parser_node from "./Parser_node";
+import * as Scan_new_changes from "./Scan_new_changes";
+import * as Text_formatter from "./Text_formatter";
 
 export function find_statement(
     core_module: Core.Module,
@@ -920,6 +925,31 @@ export async function find_instantiate_custom_type_reference_from_node(
     return undefined;
 }
 
+export async function find_instantiate_declaration_from_node(
+    language_description: Language.Description,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    node_position: number[],
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<{ core_module: Core.Module, declaration: Core.Declaration } | undefined> {
+    const custom_type_reference = await find_instantiate_custom_type_reference_from_node(language_description, core_module, root, node_position, get_core_module);
+    if (custom_type_reference === undefined) {
+        return undefined;
+    }
+
+    const module_declaration = await get_custom_type_reference_declaration(custom_type_reference, get_core_module);
+    if (module_declaration === undefined) {
+        return undefined;
+    }
+
+    const underlying_type_module_declaration = await get_underlying_type_declaration(module_declaration.core_module, module_declaration.declaration, get_core_module);
+    if (underlying_type_module_declaration === undefined) {
+        return undefined;
+    }
+
+    return underlying_type_module_declaration;
+}
+
 export async function find_instantiate_member_from_node(
     language_description: Language.Description,
     core_module: Core.Module,
@@ -1234,6 +1264,136 @@ export function create_member_default_value_text(
     if (statement.expression.data.type === Core.Expression_enum.Constant_expression) {
         const word = Parse_tree_convertor_mappings.constant_expression_to_word(statement.expression.data.value as Core.Constant_expression);
         return word.value;
+    }
+
+    return undefined;
+}
+
+export interface Text_position {
+    line: number;
+    column: number;
+    offset: number;
+}
+
+export interface Text_range {
+    start: Text_position;
+    end: Text_position;
+}
+
+export function find_node_range(
+    root: Parser_node.Node,
+    node: Parser_node.Node,
+    node_position: number[],
+    text: string
+): Text_range | undefined {
+
+    let begin_iterator = Parse_tree_text_iterator.begin(root, text);
+
+    const start_iterator = Parse_tree_text_iterator.go_to_next_node_position(begin_iterator, node_position);
+    if (start_iterator.node === undefined) {
+        return undefined;
+    }
+
+    const right_most_descendant = Parser_node.get_rightmost_descendant_terminal_node(node, node_position);
+    if (right_most_descendant === undefined) {
+        return {
+            start: {
+                line: start_iterator.line,
+                column: start_iterator.column,
+                offset: start_iterator.offset
+            },
+            end: {
+                line: start_iterator.line,
+                column: start_iterator.column,
+                offset: start_iterator.offset
+            }
+        };
+    }
+
+    const end_iterator = Parse_tree_text_iterator.go_to_next_node_position(start_iterator, right_most_descendant.position);
+    if (end_iterator.node === undefined) {
+        return undefined;
+    }
+
+    return {
+        start: {
+            line: start_iterator.line,
+            column: start_iterator.column,
+            offset: start_iterator.offset
+        },
+        end: {
+            line: end_iterator.line,
+            column: end_iterator.column + end_iterator.node.word.value.length,
+            offset: end_iterator.offset + end_iterator.node.word.value.length
+        }
+    };
+}
+
+export interface Text_change_2 {
+    range: Text_range;
+    text: string;
+}
+
+export function format_text(
+    language_description: Language.Description,
+    state: Document.State,
+    text_change: Text_change_2
+): Text_change_2 | undefined {
+
+    if (state.parse_tree === undefined) {
+        return undefined;
+    }
+
+    const scanned_input_change = Scan_new_changes.scan_new_change(
+        state.parse_tree,
+        state.text,
+        text_change.range.start.offset,
+        text_change.range.end.offset,
+        text_change.text
+    );
+
+    if (Scan_new_changes.has_meaningful_content(scanned_input_change)) {
+
+        const start_change_node_position = (scanned_input_change.start_change !== undefined && scanned_input_change.start_change.node !== undefined) ? scanned_input_change.start_change.node_position : undefined;
+        const after_change_node_position = (scanned_input_change.after_change !== undefined && scanned_input_change.after_change.node !== undefined) ? scanned_input_change.after_change.node_position : undefined;
+
+        const parse_result = Parser.parse_incrementally(
+            state.document_file_path,
+            state.parse_tree,
+            start_change_node_position,
+            scanned_input_change.new_words,
+            after_change_node_position,
+            language_description.actions_table,
+            language_description.go_to_table,
+            language_description.array_infos,
+            language_description.map_word_to_terminal
+        );
+
+        if (parse_result.status === Parser.Parse_status.Accept) {
+
+            const simplified_changes = Parser.simplify_parser_changes(state.parse_tree, parse_result.changes);
+
+            const ancestor_position = Parser.get_changes_common_ancestor(simplified_changes);
+            if (ancestor_position === undefined) {
+                return undefined;
+            }
+            const ancestor_node = Parser_node.get_node_at_position(state.parse_tree, ancestor_position);
+
+            const original_text_range = find_node_range(state.parse_tree, ancestor_node, ancestor_position, state.text);
+            if (original_text_range === undefined) {
+                return undefined;
+            }
+
+            const ancestor_node_clone = Parser_node.deep_clone_node(Parser_node.get_node_at_position(state.parse_tree, ancestor_position));
+            Parser.apply_changes(ancestor_node_clone, ancestor_position, simplified_changes);
+
+            const formatted_text = Text_formatter.node_to_string(ancestor_node_clone, { node: ancestor_node_clone, position: ancestor_position });
+
+            return {
+                range: original_text_range,
+                text: formatted_text
+            };
+        }
     }
 
     return undefined;

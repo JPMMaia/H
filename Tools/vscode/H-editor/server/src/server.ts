@@ -1,6 +1,7 @@
 import "module-alias/register";
 
 import * as Definition from "./Definition";
+import * as Code_actions from "./Code_actions";
 import * as Code_lens from "./Code_lens";
 import * as Completion from "./Completion";
 import * as Hover from "./Hover";
@@ -27,6 +28,7 @@ const server_data = Server_data.create_server_data();
 let has_configuration_capability = false;
 let has_workspace_folder_capability = false;
 let has_diagnostic_related_information_capability = false;
+let has_code_action_literal_support_capability = false;
 
 connection.onInitialize(async (params: vscode_node.InitializeParams) => {
 	const capabilities = params.capabilities;
@@ -43,6 +45,11 @@ connection.onInitialize(async (params: vscode_node.InitializeParams) => {
 		capabilities.textDocument &&
 		capabilities.textDocument.publishDiagnostics &&
 		capabilities.textDocument.publishDiagnostics.relatedInformation
+	);
+	has_code_action_literal_support_capability = !!(
+		capabilities.textDocument &&
+		capabilities.textDocument.codeAction &&
+		capabilities.textDocument.codeAction.codeActionLiteralSupport
 	);
 
 	const result: vscode_node.InitializeResult = {
@@ -93,6 +100,14 @@ connection.onInitialize(async (params: vscode_node.InitializeParams) => {
 			workspaceFolders: {
 				supported: true
 			}
+		};
+	}
+	if (has_code_action_literal_support_capability) {
+		result.capabilities.codeActionProvider = {
+			codeActionKinds: [
+				vscode_node.CodeActionKind.RefactorRewrite
+			],
+			resolveProvider: false
 		};
 	}
 
@@ -331,6 +346,13 @@ connection.onDidChangeWatchedFiles(_change => {
 	// Monitored files have change in VSCode
 	connection.console.log('We received a file change event');
 });
+
+connection.onCodeAction(
+	async (parameters: vscode_node.CodeActionParams): Promise<vscode_node.CodeAction[]> => {
+		const workspace_folder_uri = await get_workspace_folder_uri_for_document(parameters.textDocument.uri);
+		return Code_actions.get_code_actions(parameters, server_data, workspace_folder_uri);
+	}
+);
 
 connection.onCodeLens(
 	async (parameters: vscode_node.CodeLensParams): Promise<vscode_node.CodeLens[]> => {
