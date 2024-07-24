@@ -2,6 +2,7 @@ import * as Grammar from "./Grammar";
 import * as Fast_array_diff from "fast-array-diff";
 import * as Scanner from "./Scanner";
 import * as Validation from "./Validation";
+import * as Parser_node from "./Parser_node";
 import { clone_node, find_descendant_position_if, find_node_common_root, get_next_terminal_node, get_next_sibling_terminal_node, get_node_at_position, get_parent_position, get_rightmost_brother, get_rightmost_terminal_descendant, have_same_parent, is_same_position, is_terminal_node, is_valid_position, join_all_child_node_values, Node, iterate_backward, } from "./Parser_node";
 
 const g_debug = false;
@@ -432,6 +433,64 @@ export function simplify_changes(root: Node, changes: Change[]): Change[] {
     return simplified_changes_2;
 }
 
+export function simplify_parser_changes(
+    root: Node,
+    changes: Change[]
+): Change[] {
+    const ancestor_position = get_changes_common_ancestor(changes);
+    if (ancestor_position === undefined) {
+        return changes;
+    }
+
+    const ancestor_node = get_node_at_position(root, ancestor_position);
+
+    const ancestor_node_clone = Parser_node.deep_clone_node(ancestor_node);
+    apply_changes(ancestor_node_clone, ancestor_position, changes);
+
+    const current_position = [...ancestor_position];
+    let current_original_node = ancestor_node;
+    let current_modified_node = ancestor_node_clone;
+
+    while (true) {
+        if (Parser_node.are_shallow_equal(current_original_node, current_modified_node)) {
+            const patch = Fast_array_diff.getPatch(current_original_node.children, current_modified_node.children, Parser_node.are_equal);
+            if (patch.length === 2) {
+                if (patch[0].type === "remove" && patch[1].type === "add" && patch[0].newPos === patch[1].newPos && patch[0].items.length === patch[1].items.length && patch[0].items.length === 1) {
+                    const child_index = patch[0].newPos;
+                    current_original_node = current_original_node.children[child_index];
+                    current_modified_node = current_modified_node.children[child_index];
+                    current_position.push(child_index);
+                    continue;
+                }
+            }
+        }
+
+        return get_patch_and_convert_to_changes(current_original_node, current_modified_node, current_position);
+    }
+}
+
+function get_patch_and_convert_to_changes(
+    original_node: Node,
+    new_node: Node,
+    position: number[]
+): Change[] {
+    const patch = Fast_array_diff.getPatch(original_node.children, new_node.children, Parser_node.are_equal);
+
+    const changes: Change[] = [];
+
+    for (const change of patch) {
+        if (change.type === "remove") {
+            const remove_change = create_remove_change(position, change.newPos, change.items.length);
+            changes.push(remove_change);
+        }
+        else if (change.type === "add") {
+            const add_change = create_add_change(position, change.newPos, change.items);
+            changes.push(add_change);
+        }
+    }
+
+    return changes;
+}
 
 function get_value_of_node_in_trees(node_0: Node, node_1: Node, key: string, transform: (node: Node) => any): { value_0: any, value_1: any, position: number[] } {
 
@@ -1595,27 +1654,79 @@ function handle_array_changes(
     return changes.length > 0 ? changes : undefined;
 }
 
-export function apply_changes(node_tree: Node, changes: Change[]): void {
+export function apply_changes(root: Node, root_position: number[], changes: Change[]): void {
 
     for (const change of changes) {
         if (change.type === Change_type.Add) {
             const add_change = change.value as Add_change;
-            const parent_node = get_node_at_position(node_tree, add_change.parent_position);
+            const parent_position = add_change.parent_position.slice(root_position.length, add_change.parent_position.length);
+            const parent_node = get_node_at_position(root, parent_position);
             parent_node.children.splice(add_change.index, 0, ...add_change.new_nodes);
         }
         else if (change.type === Change_type.Remove) {
             const remove_change = change.value as Remove_change;
-            const parent_node = get_node_at_position(node_tree, remove_change.parent_position);
+            const parent_position = remove_change.parent_position.slice(root_position.length, remove_change.parent_position.length);
+            const parent_node = get_node_at_position(root, parent_position);
             parent_node.children.splice(remove_change.index, remove_change.count);
         }
         else if (change.type === Change_type.Modify) {
             const modify_change = change.value as Modify_change;
-            const parent_node_position = get_parent_position(modify_change.position);
-            const parent_node = get_node_at_position(node_tree, parent_node_position);
+            const parent_node_position = get_parent_position(modify_change.position.slice(root_position.length, modify_change.position.length));
+            const parent_node = get_node_at_position(root, parent_node_position);
             const child_to_modify_index = modify_change.position[modify_change.position.length - 1];
             parent_node.children[child_to_modify_index] = modify_change.new_node;
         }
     }
+}
+
+export function get_changes_common_ancestor(changes: Change[]): number[] | undefined {
+
+    const get_change_parent_position = (change: Change): number[] | undefined => {
+        if (change.type === Change_type.Add) {
+            const add_change = change.value as Add_change;
+            const parent_position = add_change.parent_position;
+            return parent_position;
+        }
+        else if (change.type === Change_type.Remove) {
+            const remove_change = change.value as Remove_change;
+            const parent_position = remove_change.parent_position;
+            return parent_position;
+        }
+        else if (change.type === Change_type.Modify) {
+            const modify_change = change.value as Modify_change;
+            const parent_position = get_parent_position(modify_change.position);
+            return parent_position;
+        }
+        else {
+            return undefined;
+        }
+    };
+
+    if (changes.length === 0) {
+        return undefined;
+    }
+
+    let ancestor_position: number[] = [];
+
+    {
+        const parent_position = get_change_parent_position(changes[0]);
+        if (parent_position === undefined) {
+            return undefined;
+        }
+
+        ancestor_position = parent_position;
+    }
+
+    for (const change of changes) {
+        const parent_position = get_change_parent_position(change);
+        if (parent_position === undefined) {
+            return undefined;
+        }
+
+        ancestor_position = find_node_common_root(ancestor_position, parent_position);
+    }
+
+    return ancestor_position;
 }
 
 function parse_incrementally_after_change(

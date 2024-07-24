@@ -90,7 +90,7 @@ export function update(
                     language_description.key_to_production_rule_indices
                 );
 
-                Parser.apply_changes(state.parse_tree, parse_result.changes);
+                Parser.apply_changes(state.parse_tree, [], parse_result.changes);
 
                 Parse_tree_convertor.apply_module_changes(state.module, module_changes);
             }

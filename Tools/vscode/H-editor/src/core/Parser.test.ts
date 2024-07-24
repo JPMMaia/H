@@ -1579,7 +1579,7 @@ function run() -> ()
             language_description.map_word_to_terminal
         );
 
-        Parser.apply_changes(root, parse_result_1.changes);
+        Parser.apply_changes(root, [], parse_result_1.changes);
 
         {
             const statements_node = Parser_node.get_node_at_position(root, [1, 0, 1, 1, 0, 1]);
@@ -1603,7 +1603,7 @@ function run() -> ()
             language_description.map_word_to_terminal
         );
 
-        Parser.apply_changes(root, parse_result_2.changes);
+        Parser.apply_changes(root, [], parse_result_2.changes);
 
         {
             const statements_node = Parser_node.get_node_at_position(root, [1, 0, 1, 1, 0, 1]);
