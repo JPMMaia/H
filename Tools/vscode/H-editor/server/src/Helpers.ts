@@ -171,10 +171,17 @@ export function get_tooltip_of_declaration_member(
     return undefined;
 }
 
+export interface Member_info {
+    member_name: string;
+    member_type: Core.Type_reference;
+    member_comment: string | undefined;
+    member_default_value: Core.Statement | undefined;
+}
+
 export function get_declaration_member_info(
     declaration: Core.Declaration,
     member_index: number
-): { member_name: string, member_type: Core.Type_reference, member_comment: string | undefined, member_default_value: Core.Statement | undefined } | undefined {
+): Member_info | undefined {
 
     switch (declaration.type) {
         case Core.Declaration_type.Struct: {
@@ -232,6 +239,47 @@ export function get_declaration_member_index(
     }
 
     return undefined;
+}
+
+export function get_declaration_member_infos(
+    declaration: Core.Declaration
+): Member_info[] {
+
+    switch (declaration.type) {
+        case Core.Declaration_type.Struct: {
+            const struct_declaration = declaration.value as Core.Struct_declaration;
+
+            return struct_declaration.member_names.map((member_name, member_index): Member_info => {
+                const member_type = struct_declaration.member_types[member_index];
+                const member_comment = struct_declaration.member_comments.find(value => value.index === member_index);
+                const member_default_value = struct_declaration.member_default_values[member_index];
+
+                return {
+                    member_name: member_name,
+                    member_type: member_type,
+                    member_comment: member_comment?.comment,
+                    member_default_value: member_default_value
+                };
+            });
+        }
+        case Core.Declaration_type.Union: {
+            const union_declaration = declaration.value as Core.Union_declaration;
+
+            return union_declaration.member_names.map((member_name, member_index): Member_info => {
+                const member_type = union_declaration.member_types[member_index];
+
+                const member_comment = union_declaration.member_comments.find(value => value.index === member_index);
+                return {
+                    member_name: member_name,
+                    member_type: member_type,
+                    member_comment: member_comment?.comment,
+                    member_default_value: undefined
+                };
+            });
+        }
+    }
+
+    return [];
 }
 
 export function get_tooltip_of_function_input_parameter(
