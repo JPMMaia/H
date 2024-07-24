@@ -30,6 +30,26 @@ export function clone_node(node: Node): Node {
     return output;
 }
 
+export function deep_clone_node(node: Node): Node {
+
+    const children = node.children.map(child => deep_clone_node(child));
+
+    const output: Node = {
+        word: {
+            value: node.word.value,
+            type: node.word.type,
+            source_location: { line: node.word.source_location.line, column: node.word.source_location.column },
+        },
+        state: node.state,
+        production_rule_index: node.production_rule_index,
+        children: children,
+    };
+    if (node.word.newlines_after !== undefined) {
+        output.word.newlines_after = node.word.newlines_after;
+    }
+    return output;
+}
+
 export function get_node_at_position(root: Node, position: number[]): Node {
 
     let current_node = root;
@@ -239,6 +259,10 @@ export function get_rightmost_descendant(node: Node, position: number[]): { node
 }
 
 export function get_rightmost_descendant_terminal_node(node: Node, position: number[]): { node: Node, position: number[] } | undefined {
+    if (node.children.length === 0) {
+        return undefined;
+    }
+
     const rightmost_descendant = get_rightmost_descendant(node, position);
     if (is_terminal_node(rightmost_descendant.node)) {
         return rightmost_descendant;
@@ -380,8 +404,7 @@ export function iterate_backward(root: Node, current_node: Node, current_positio
     };
 }
 
-export function are_equal(lhs: Node, rhs: Node): boolean {
-
+export function are_shallow_equal(lhs: Node, rhs: Node): boolean {
     if (lhs.word.value !== rhs.word.value || lhs.word.type !== rhs.word.type) {
         return false;
     }
@@ -391,6 +414,15 @@ export function are_equal(lhs: Node, rhs: Node): boolean {
     }
 
     if (lhs.production_rule_index !== rhs.production_rule_index) {
+        return false;
+    }
+
+    return true;
+}
+
+export function are_equal(lhs: Node, rhs: Node): boolean {
+
+    if (!are_shallow_equal(lhs, rhs)) {
         return false;
     }
 
@@ -567,5 +599,5 @@ export function get_first_ancestor_with_name(
         current_node_position = parent_position;
     }
 
-    return undefined
+    return undefined;
 }
