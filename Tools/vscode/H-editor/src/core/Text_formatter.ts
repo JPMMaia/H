@@ -140,7 +140,7 @@ function should_add_new_line_after(state: State, current_word: Scanner.Scanned_w
     return (current_word.value === "{" || current_word.value === "}") ? 1 : 0;
 }
 
-export function to_string(root: Node, cache: Parse_tree_text_position_cache.Cache | undefined, production_rules_to_cache: number[]): string {
+export function to_string(root: Node, cache: Parse_tree_text_position_cache.Cache | undefined, production_rules_to_cache: number[], initial_state_stack?: State[]): string {
 
     const buffer: string[] = [];
 
@@ -156,7 +156,7 @@ export function to_string(root: Node, cache: Parse_tree_text_position_cache.Cach
     let current_direction = Iterate_direction.Down;
     let previous_word: Scanner.Scanned_word = { value: "", type: Grammar.Word_type.Invalid, source_location: { line: 0, column: 0 } };
 
-    const state_stack: State[] = [State.Global];
+    const state_stack: State[] = initial_state_stack ? [...initial_state_stack] : [State.Global];
 
     while (current_node !== undefined) {
 
@@ -310,6 +310,14 @@ export function to_string(root: Node, cache: Parse_tree_text_position_cache.Cach
 
     const output = buffer.join("");
     return output;
+}
+
+export function node_to_string(
+    root: Node,
+    value: { node: Node, position: number[] }
+): string {
+    // TODO figure out state from the node parents
+    return to_string(root, undefined, [], [State.Global, State.Function]);
 }
 
 function create_indentation(indentation_width: number, indentation_count: number): string {
