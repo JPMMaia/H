@@ -1,346 +1,440 @@
 import * as Grammar from "./Grammar";
 import * as Parse_tree_text_position_cache from "./Parse_tree_text_position_cache";
-import { iterate_forward_with_repetition, Iterate_direction, Node } from "./Parser_node";
+import * as Parser_node from "./Parser_node";
 import * as Scanner from "./Scanner";
 
 const g_debug = false;
 
-enum State {
-    Global,
-    Module_declaration,
-    Imports,
-    Alias,
-    Enum,
-    Struct,
-    Function,
-    Statements
+export function to_string(root: Parser_node.Node, cache: Parse_tree_text_position_cache.Cache | undefined, production_rules_to_cache: number[], initial_state_stack?: State[]): string {
+    return node_to_string(root, { node: root, position: [] }, undefined, undefined);
 }
 
-function should_add_space(current_word: Grammar.Word, previous_word: Grammar.Word): number {
-
-    if (previous_word.type === Grammar.Word_type.Invalid && current_word.value === "module") {
-        return 0;
-    }
-
-    switch (previous_word.value) {
-        case ".":
-            return 0;
-        case "->":
-            return 1;
-    }
-
-    switch (current_word.value) {
-        case "(":
-        case ")":
-        case "{":
-        case "}":
-        case "[":
-        case "]":
-        case ";":
-        case ":":
-        case ",":
-        case ".":
-            return 0;
-        case "->":
-            return 1;
-    }
-
-    switch (previous_word.value) {
-        case "(":
-        case ")":
-        case "{":
-        case "}":
-        case "[":
-        case "]":
-            return 0;
-    }
-
-    return 1;
+export interface Options {
+    indentation_width: number;
+    add_new_line_before_open_brackets: boolean;
 }
 
-function should_add_new_line_before(state: State, current_word: Scanner.Scanned_word, previous_word: Scanner.Scanned_word): number {
-
-    if (state === State.Enum) {
-        if (current_word.value === "}" && previous_word.value === ",") {
-            return 0;
-        }
-    }
-    else if (state === State.Struct || state === State.Function) {
-        if (current_word.value === "}" && previous_word.value === ";") {
-            return 0;
-        }
-    }
-    else if (state === State.Statements) {
-        if (current_word.value === "{") {
-            return 1;
-        }
-        else {
-            return 0;
-        }
-    }
-
-    return current_word.value === "{" || (current_word.value === "}" && (previous_word.value !== "{" && previous_word.value !== "}")) ? 1 : 0;
+function create_default_options(): Options {
+    return {
+        indentation_width: 4,
+        add_new_line_before_open_brackets: true
+    };
 }
 
-function should_add_new_line_after(state: State, current_word: Scanner.Scanned_word, previous_word: Scanner.Scanned_word): number {
-
-    if (state === State.Global) {
-        if (current_word.value === ";") {
-            return 1;
-        }
-    }
-    else if (state === State.Module_declaration) {
-        if (current_word.value === ";") {
-            return 2;
-        }
-    }
-    else if (state === State.Imports) {
-        if (current_word.value === ";") {
-            return 1;
-        }
-    }
-    else if (state === State.Alias) {
-        if (current_word.value === ";") {
-            return 2;
-        }
-    }
-    else if (state === State.Enum) {
-        if (current_word.value === ",") {
-            return 1;
-        }
-        else if (current_word.value === "}") {
-            return 2;
-        }
-    }
-    else if (state === State.Function) {
-        if (current_word.value === ";") {
-            return 1;
-        }
-        else if (current_word.value === "}") {
-            return 2;
-        }
-    }
-    else if (state === State.Statements) {
-        if (current_word.value === "{") {
-            return 1;
-        }
-        else {
-            return current_word.newlines_after !== undefined ? current_word.newlines_after : 0;
-        }
-    }
-    else if (state === State.Struct) {
-        if (current_word.value === ";") {
-            return 1;
-        }
-        else if (current_word.value === "}") {
-            return 2;
-        }
-    }
-
-    return (current_word.value === "{" || current_word.value === "}") ? 1 : 0;
-}
-
-export function to_string(root: Node, cache: Parse_tree_text_position_cache.Cache | undefined, production_rules_to_cache: number[], initial_state_stack?: State[]): string {
-
-    const buffer: string[] = [];
-
-    const indentation_width = 4;
-    let indentation_count = 0;
-
-    let current_line = 0;
-    let current_column = 0;
-    let current_text_offset = 0;
-
-    let current_node: Node | undefined = root;
-    let current_position: number[] = [];
-    let current_direction = Iterate_direction.Down;
-    let previous_word: Scanner.Scanned_word = { value: "", type: Grammar.Word_type.Invalid, source_location: { line: 0, column: 0 } };
-
-    const state_stack: State[] = initial_state_stack ? [...initial_state_stack] : [State.Global];
-
-    while (current_node !== undefined) {
-
-        if (g_debug) {
-            console.log(current_node.word.value);
-        }
-
-        const previous_state = state_stack[state_stack.length - 1];
-
-        if (current_node.word.value === "Module_declaration") {
-            if (current_direction === Iterate_direction.Down) {
-                state_stack.push(State.Module_declaration);
-            }
-            else {
-                state_stack.pop();
-            }
-        }
-        else if (current_node.word.value === "Imports") {
-            if (current_direction === Iterate_direction.Down) {
-                state_stack.push(State.Imports);
-            }
-            else {
-                state_stack.pop();
-            }
-        }
-        else if (current_node.word.value === "Alias") {
-            if (current_direction === Iterate_direction.Down) {
-                state_stack.push(State.Alias);
-            }
-            else {
-                state_stack.pop();
-            }
-        }
-        else if (current_node.word.value === "Enum") {
-            if (current_direction === Iterate_direction.Down) {
-                state_stack.push(State.Enum);
-            }
-            else {
-                state_stack.pop();
-            }
-        }
-        else if (current_node.word.value === "Function") {
-            if (current_direction === Iterate_direction.Down) {
-                state_stack.push(State.Function);
-            }
-            else {
-                state_stack.pop();
-            }
-        }
-        else if (current_node.word.value === "Statements") {
-            if (current_direction === Iterate_direction.Down) {
-                if (current_node.children.length > 0) {
-                    state_stack.push(State.Statements);
-                }
-            }
-            else {
-                state_stack.pop();
-            }
-        }
-        else if (current_node.word.value === "Struct") {
-            if (current_direction === Iterate_direction.Down) {
-                state_stack.push(State.Struct);
-            }
-            else {
-                state_stack.pop();
-            }
-        }
-
-        const current_state = state_stack[state_stack.length - 1];
-
-        if (previous_state === State.Imports && current_state === State.Global) {
-            add_new_line(buffer);
-            current_line += 1;
-            current_column = 0;
-            current_text_offset += 1;
-        }
-
-        if (current_direction === Iterate_direction.Down) {
-
-            // If node corresponds to terminal:
-            if (current_node.production_rule_index === undefined) {
-                const word = current_node.word;
-
-                const new_lines_to_add_before = should_add_new_line_before(current_state, current_node.word, previous_word);
-
-                for (let index = 0; index < new_lines_to_add_before; ++index) {
-                    add_new_line(buffer);
-                    current_line += 1;
-                    current_column = 0;
-                    current_text_offset += 1;
-                }
-
-                if (current_node.word.value === "}") {
-                    indentation_count -= 1;
-                }
-
-                if (current_node.word.type === Grammar.Word_type.Comment) {
-                    const comments = current_node.word.value.split("\n");
-                    for (const comment of comments) {
-                        const spaces = " ".repeat(indentation_count * indentation_width);
-                        const line = `${spaces}${comment}`;
-                        add_word(buffer, line);
-                        add_new_line(buffer);
-                        current_line += 1;
-                        current_column = 0;
-                        current_text_offset += line.length;
-                    }
-                }
-                else {
-                    const added_new_line = buffer[buffer.length - 1] === "\n";
-                    const spaces_to_add_before = added_new_line ? indentation_count * indentation_width : should_add_space(word, previous_word);
-
-                    const new_word = " ".repeat(spaces_to_add_before) + format_word(word);
-
-                    if (cache !== undefined && should_cache_node(current_node, production_rules_to_cache)) {
-                        const new_word_offset = current_text_offset + spaces_to_add_before;
-                        Parse_tree_text_position_cache.set_entry(cache, new_word_offset, current_node, current_position);
-                    }
-
-                    add_word(buffer, new_word);
-                    current_text_offset += new_word.length;
-                    current_column += new_word.length;
-
-                    if (current_node.word.value === "{") {
-                        indentation_count += 1;
-                    }
-
-                    const new_lines_to_add_after = should_add_new_line_after(current_state, current_node.word, previous_word);
-
-                    for (let index = 0; index < new_lines_to_add_after; ++index) {
-                        add_new_line(buffer);
-                        current_line += 1;
-                        current_column = 0;
-                        current_text_offset += 1;
-                    }
-                }
-
-                previous_word = current_node.word;
-            }
-        }
-
-        const result = iterate_forward_with_repetition(root, current_node, current_position, current_direction);
-        if (result === undefined) {
-            break;
-        }
-
-        current_node = result.next_node;
-        current_position = result.next_position;
-        current_direction = result.direction;
-    }
-
-    const output = buffer.join("");
-    return output;
+interface State {
+    buffer: string[];
+    indentation_count: number;
+    symbol_stack: string[];
+    previous_symbol: string | undefined;
 }
 
 export function node_to_string(
-    root: Node,
-    value: { node: Node, position: number[] }
+    root: Parser_node.Node,
+    value: { node: Parser_node.Node, position: number[] },
+    before_character: string | undefined,
+    after_character: string | undefined
 ): string {
-    // TODO figure out state from the node parents
-    return to_string(root, undefined, [], [State.Global, State.Function]);
+
+    const state = calculate_initial_state(root, value);
+
+    const options = create_default_options();
+
+    let iterator: Parser_node.Forward_repeat_iterator | undefined = {
+        root: value.node,
+        current_node: value.node,
+        current_position: [],
+        current_direction: Parser_node.Iterate_direction.Down
+    };
+
+    if (before_character !== undefined) {
+        state.buffer.push(before_character);
+    }
+
+    while (iterator !== undefined) {
+
+        if (g_debug) {
+            console.log(iterator.current_node.word.value);
+        }
+
+        update_state(
+            state,
+            iterator.current_node.word.value,
+            iterator.current_node.word.type,
+            iterator.current_node.production_rule_index,
+            iterator.current_node.word.newlines_after,
+            iterator.current_direction,
+            options
+        );
+
+        iterator = Parser_node.next_iterator(iterator);
+    }
+
+    if (after_character !== undefined) {
+        update_state(
+            state,
+            after_character,
+            Scanner.get_word_type(after_character),
+            undefined,
+            0,
+            Parser_node.Iterate_direction.Down,
+            options
+        );
+
+        state.buffer.pop();
+    }
+
+    if (before_character !== undefined) {
+        state.buffer.splice(0, 1);
+    }
+
+    const output = state.buffer.join("");
+    return output;
+}
+
+function update_state(
+    state: State,
+    word_value: string,
+    word_type: Grammar.Word_type,
+    production_rule_index: number | undefined,
+    new_lines_after: number | undefined,
+    current_direction: Parser_node.Iterate_direction,
+    options: Options
+): void {
+    if (production_rule_index !== undefined) {
+        state.indentation_count += calculate_indentation_difference(word_value, current_direction);
+
+        const action = calculate_stack_symbol_action(word_value, current_direction);
+        if (action === Stack_symbol_action.Push) {
+            state.symbol_stack.push(word_value);
+        }
+        else if (action === Stack_symbol_action.Pop) {
+            state.previous_symbol = state.symbol_stack.pop();
+        }
+    }
+    else if (word_value.length > 0) {
+
+        if (should_add_new_line(state.symbol_stack, state.previous_symbol, state.buffer, word_value, options)) {
+            state.buffer.push("\n");
+        }
+        if (should_add_new_line(state.symbol_stack, state.previous_symbol, state.buffer, word_value, options)) {
+            state.buffer.push("\n");
+        }
+
+        if (word_type === Grammar.Word_type.Comment) {
+            const comments = word_value.split("\n");
+            for (const comment of comments) {
+                const spaces = create_indentation(options.indentation_width, state.indentation_count);
+                const line = `${spaces}${comment}`;
+                state.buffer.push(line);
+                state.buffer.push("\n");
+            }
+        }
+        else {
+
+            if (should_add_indentation(state.buffer, state.indentation_count)) {
+                state.buffer.push(create_indentation(options.indentation_width, state.indentation_count));
+            }
+            else if (should_add_space_2(state.symbol_stack, state.buffer, word_value, options)) {
+                state.buffer.push(" ");
+            }
+
+            state.buffer.push(word_value);
+            add_additional_new_lines(state.buffer, word_type, new_lines_after);
+        }
+
+        state.previous_symbol = undefined;
+    }
+}
+
+function calculate_initial_state(
+    root: Parser_node.Node,
+    value: { node: Parser_node.Node, position: number[] }
+): State {
+
+
+    let current_node = value.node;
+    let current_position: number[] = [...value.position];
+
+    let indentation_count = 0;
+    const symbol_stack: string[] = [];
+    let previous_symbol: string | undefined = undefined;
+
+    while (current_position.length > 0) {
+        current_position = Parser_node.get_parent_position(current_position);
+        current_node = Parser_node.get_node_at_position(root, current_position);
+
+        indentation_count += calculate_indentation_difference(current_node.word.value, Parser_node.Iterate_direction.Down);
+
+        const action = calculate_stack_symbol_action(current_node.word.value, Parser_node.Iterate_direction.Down);
+        if (action === Stack_symbol_action.Push) {
+            symbol_stack.push(current_node.word.value);
+        }
+    }
+
+    // TODO calculate previous symbol ?
+
+    return {
+        buffer: [],
+        indentation_count: indentation_count,
+        symbol_stack: symbol_stack.reverse(),
+        previous_symbol: previous_symbol
+    };
+}
+
+function calculate_indentation_difference(
+    current_value: string,
+    current_direction: Parser_node.Iterate_direction
+): number {
+    switch (current_value) {
+        case "Enum_values":
+        case "Struct_members":
+        case "Union_members":
+        case "Statements":
+        case "Expression_block_statements":
+        case "Expression_for_loop_statements":
+        case "Expression_if_statements":
+        case "Expression_instantiate_members":
+        case "Expression_switch_cases":
+        case "Expression_switch_case_statements":
+        case "Expression_while_loop_statements": {
+            const indentation_difference = current_direction === Parser_node.Iterate_direction.Down ? 1 : -1;
+            return indentation_difference;
+        }
+        default: {
+            return 0;
+        }
+    }
+}
+
+enum Stack_symbol_action {
+    None,
+    Push,
+    Pop
+}
+
+function calculate_stack_symbol_action(
+    current_value: string,
+    current_direction: Parser_node.Iterate_direction
+): Stack_symbol_action {
+    switch (current_value) {
+        case "Module_head":
+        case "Module_declaration":
+        case "Import":
+        case "Module_body":
+        case "Declaration":
+        case "Enum_values":
+        case "Expression_call_arguments":
+        case "Expression_instantiate_members":
+            if (current_direction === Parser_node.Iterate_direction.Down) {
+                return Stack_symbol_action.Push;
+            }
+            else {
+                return Stack_symbol_action.Pop;
+            }
+        default: {
+            return Stack_symbol_action.None;
+        }
+    }
+}
+
+function should_add_indentation(
+    buffer: string[],
+    indentation_count: number
+): boolean {
+    if (indentation_count > 0 && buffer.length > 0 && buffer[buffer.length - 1] === "\n") {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+function is_space_or_newline(value: string | undefined) {
+    if (value === undefined) {
+        return false;
+    }
+    else if (value === "\n") {
+        return true;
+    }
+    else if (value.startsWith(" ")) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+function should_add_new_line(
+    symbol_stack: string[],
+    previous_symbol: string | undefined,
+    buffer: string[],
+    next_value: string,
+    options: Options
+): boolean {
+
+    const previous_value = buffer[buffer.length - 1];
+
+    if (buffer.length > 0) {
+        switch (previous_value) {
+            case "{":
+            case ";": {
+                return true;
+            }
+            case "}": {
+                return next_value !== ";";
+            }
+            case ",": {
+                switch (symbol_stack[symbol_stack.length - 1]) {
+                    case "Enum_values":
+                    case "Expression_instantiate_members": {
+                        return true;
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    switch (next_value) {
+        case "{": {
+            return !is_space_or_newline(previous_value) && options.add_new_line_before_open_brackets;
+        }
+        case "}": {
+            return !is_space_or_newline(previous_value);
+        }
+    }
+
+    switch (previous_symbol) {
+        case "Module_head":
+        case "Module_declaration":
+        case "Declaration":
+            if (buffer[buffer.length - 1] === "\n" && buffer[buffer.length - 2] === "\n") {
+                return false;
+            }
+            else {
+                return true;
+            }
+    }
+
+    return false;
+}
+
+function should_add_space_2(
+    symbol_stack: string[],
+    buffer: string[],
+    next_value: string,
+    options: Options
+): boolean {
+
+    if (buffer.length > 0) {
+        const previous_value = buffer[buffer.length - 1];
+
+        switch (previous_value) {
+            case " ": {
+                return false;
+            }
+            case ":":
+            case ",":
+            case "=":
+            case "->": {
+                return true;
+            }
+        }
+
+        if (is_binary_operator_symbol(previous_value) || is_assignment_symbol(previous_value)) {
+            return true;
+        }
+    }
+
+    switch (next_value) {
+        case "{": {
+            return !options.add_new_line_before_open_brackets;
+        }
+        case "=":
+        case "->": {
+            return true;
+        }
+    }
+
+    if (is_binary_operator_symbol(next_value) || is_assignment_symbol(next_value)) {
+        return true;
+    }
+
+    if (buffer.length === 0) {
+        return false;
+    }
+
+    const is_previous_value_alphanumeric = Scanner.is_alphanumeric(buffer[buffer.length - 1]);
+    const is_next_value_alphanumeric = Scanner.is_alphanumeric(next_value);
+    if (is_previous_value_alphanumeric && is_next_value_alphanumeric) {
+        return true;
+    }
+
+    return false;
 }
 
 function create_indentation(indentation_width: number, indentation_count: number): string {
     return " ".repeat(indentation_width * indentation_count);
 }
 
-function add_word(buffer: string[], word: string): void {
-    buffer.push(word);
+function is_binary_operator_symbol(value: string): boolean {
+    switch (value) {
+        case "+":
+        case "-":
+        case "&":
+        case "has":
+        case "^":
+        case "|":
+        case "<<":
+        case ">>":
+        case "&&":
+        case "||":
+        case "*":
+        case "/":
+        case "%":
+        case "<":
+        case "<=":
+        case ">":
+        case ">=":
+        case "==":
+        case "!=":
+            return true;
+        default:
+            return false;
+    }
 }
 
-function add_new_line(buffer: string[]): void {
-    buffer.push("\n");
+function is_assignment_symbol(value: string): boolean {
+    switch (value) {
+        case "=":
+        case "+=":
+        case "-=":
+        case "*=":
+        case "/=":
+        case "%=":
+        case "&=":
+        case "|=":
+        case "^=":
+        case "<<=":
+        case ">>=":
+            return true;
+        default:
+            return false;
+    }
 }
 
-function should_cache_node(node: Node, production_rules_to_cache: number[]): boolean {
-    const production_rule_index = production_rules_to_cache.find(element => element === node.production_rule_index);
-    return production_rule_index !== undefined;
-}
-
-function format_word(word: Grammar.Word): string {
-    switch (word.type) {
-        default: {
-            return word.value;
+function add_additional_new_lines(
+    buffer: string[],
+    word_type: Grammar.Word_type,
+    new_lines_after: number | undefined
+): void {
+    if (new_lines_after !== undefined) {
+        for (let index = 0; index < new_lines_after; ++index) {
+            buffer.push("\n");
         }
+    }
+
+    if (word_type === Grammar.Word_type.Comment) {
+        buffer.push("\n");
     }
 }

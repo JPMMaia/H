@@ -1387,7 +1387,15 @@ export function format_text(
             const ancestor_node_clone = Parser_node.deep_clone_node(Parser_node.get_node_at_position(state.parse_tree, ancestor_position));
             Parser.apply_changes(ancestor_node_clone, ancestor_position, simplified_changes);
 
-            const formatted_text = Text_formatter.node_to_string(ancestor_node_clone, { node: ancestor_node_clone, position: ancestor_position });
+            const before_character: string | undefined = state.text[original_text_range.start.offset - 1];
+            const after_character: string | undefined = state.text[original_text_range.end.offset];
+
+            const formatted_text = Text_formatter.node_to_string(
+                state.parse_tree,
+                { node: ancestor_node_clone, position: ancestor_position },
+                before_character,
+                after_character
+            );
 
             return {
                 range: original_text_range,

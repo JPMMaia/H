@@ -298,6 +298,27 @@ export enum Iterate_direction {
     Up
 }
 
+export interface Forward_repeat_iterator {
+    root: Node;
+    current_node: Node;
+    current_position: number[];
+    current_direction: Iterate_direction;
+}
+
+export function next_iterator(iterator: Forward_repeat_iterator): Forward_repeat_iterator | undefined {
+    const result = iterate_forward_with_repetition(iterator.root, iterator.current_node, iterator.current_position, iterator.current_direction);
+    if (result === undefined) {
+        return undefined;
+    }
+
+    return {
+        root: iterator.root,
+        current_node: result.next_node,
+        current_position: result.next_position,
+        current_direction: result.direction
+    };
+}
+
 export function iterate_forward_with_repetition(root: Node, current_node: Node, current_position: number[], direction: Iterate_direction): { next_node: Node, next_position: number[], direction: Iterate_direction } | undefined {
 
     if (direction === Iterate_direction.Down && current_node.children.length > 0) {
@@ -306,6 +327,15 @@ export function iterate_forward_with_repetition(root: Node, current_node: Node, 
             next_position: [...current_position, 0],
             direction: Iterate_direction.Down
         };
+    }
+    else if (direction === Iterate_direction.Down && current_node.children.length === 0) {
+        if (current_node.production_rule_index !== undefined) {
+            return {
+                next_node: current_node,
+                next_position: current_position,
+                direction: Iterate_direction.Up
+            };
+        }
     }
 
     if (current_position.length === 0) {
