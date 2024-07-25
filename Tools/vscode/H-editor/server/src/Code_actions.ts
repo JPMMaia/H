@@ -156,7 +156,7 @@ async function create_add_missing_members_to_instantiate_expression(
     for (const member_info of member_infos) {
         const descendant_member = descendant_instantiate_members.find(value => value.node.children[0].word.value === member_info.member_name);
         if (descendant_member !== undefined) {
-            const member_text = Text_formatter.node_to_string(root, descendant_member);
+            const member_text = Text_formatter.node_to_string(root, descendant_member, undefined, undefined);
             members_text.push(member_text);
         }
         else {
