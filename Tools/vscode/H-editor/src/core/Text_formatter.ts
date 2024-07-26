@@ -224,6 +224,7 @@ function calculate_stack_symbol_action(
         case "Declaration":
         case "Enum_values":
         case "Expression_call_arguments":
+        case "Expression_instantiate":
         case "Expression_instantiate_members":
             if (current_direction === Parser_node.Iterate_direction.Down) {
                 return Stack_symbol_action.Push;
@@ -272,19 +273,26 @@ function should_add_new_line(
     options: Options
 ): boolean {
 
+    const current_symbol = symbol_stack[symbol_stack.length - 1];
     const previous_value = buffer[buffer.length - 1];
 
     if (buffer.length > 0) {
         switch (previous_value) {
             case "{":
             case ";": {
+                if (current_symbol === "Expression_instantiate" || current_symbol === "Expression_instantiate_members") {
+                    if (next_value === "}") {
+                        return false;
+                    }
+                }
+
                 return true;
             }
             case "}": {
-                return next_value !== ";";
+                return next_value !== ";" && next_value !== ",";
             }
             case ",": {
-                switch (symbol_stack[symbol_stack.length - 1]) {
+                switch (current_symbol) {
                     case "Enum_values":
                     case "Expression_instantiate_members": {
                         return true;
@@ -297,6 +305,10 @@ function should_add_new_line(
 
     switch (next_value) {
         case "{": {
+            if (current_symbol === "Expression_instantiate" || current_symbol === "Expression_instantiate_members") {
+                return false;
+            }
+
             return !is_space_or_newline(previous_value) && options.add_new_line_before_open_brackets;
         }
         case "}": {
