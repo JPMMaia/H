@@ -380,6 +380,41 @@ export function go_to_next_node_position(
     return iterator;
 }
 
+export function go_to_previous_node_position(
+    start_iterator: Iterator,
+    node_position: number[]
+): Iterator | undefined {
+
+    let iterator: Iterator | undefined = start_iterator;
+
+    while (iterator !== undefined && iterator.node !== undefined) {
+        if (is_same_position(iterator.node_position, node_position)) {
+            break;
+        }
+
+        if (node_position.length < iterator.node_position.length) {
+            if (is_same_position(node_position, iterator.node_position.slice(0, node_position.length))) {
+                break;
+            }
+        }
+
+        if (node_position.length > 1 && node_position.length === iterator.node_position.length) {
+            if (is_same_position(node_position.slice(0, node_position.length - 1), iterator.node_position.slice(0, node_position.length - 1))) {
+                const target_index = node_position[node_position.length - 1];
+                const iterator_index = iterator.node_position[node_position.length - 1];
+
+                if (iterator_index <= target_index) {
+                    break;
+                }
+            }
+        }
+
+        iterator = previous(iterator);
+    }
+
+    return iterator;
+}
+
 function is_same_position(lhs: number[], rhs: number[]): boolean {
     if (lhs.length !== rhs.length) {
         return false;
