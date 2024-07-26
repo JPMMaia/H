@@ -149,10 +149,58 @@ struct Complex
 
 function run() -> ()
 {
-    var instance: Complex =
-    {
+    var instance: Complex = {
         real: 0,
         imaginary: 0
+    };
+}`;
+
+        const actual_text = parse_text_and_format(input_text);
+        assert.equal(actual_text, expected_text);
+    });
+
+    it("Formats instantiate expressions nested with other instantiate expressions", () => {
+        const input_text = `module Format;
+
+struct Complex
+{
+    real: Int32 = 0;
+    imaginary: Int32 = 0;
+}
+
+struct My_struct
+{
+    a: Complex = {};
+    b: Complex = {};
+}
+
+function run() -> ()
+{
+    var instance: My_struct = { a: {}, b: { real: 0, imaginary: 0 } };
+}`;
+
+        const expected_text = `module Format;
+
+struct Complex
+{
+    real: Int32 = 0;
+    imaginary: Int32 = 0;
+}
+
+struct My_struct
+{
+    a: Complex = {};
+    b: Complex = {};
+}
+
+function run() -> ()
+{
+    var instance: My_struct = {
+        a: {},
+        b: {
+            real: 0,
+            imaginary: 0
+        }
     };
 }`;
 
