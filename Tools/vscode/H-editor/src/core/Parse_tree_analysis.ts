@@ -1265,6 +1265,26 @@ export function create_member_default_value_text(
         const word = Parse_tree_convertor_mappings.constant_expression_to_word(statement.expression.data.value as Core.Constant_expression);
         return word.value;
     }
+    else if (statement.expression.data.type === Core.Expression_enum.Instantiate_expression) {
+        const instantiate_expression = statement.expression.data.value as Core.Instantiate_expression;
+
+        const type_text = instantiate_expression.type === Core.Instantiate_expression_type.Explicit ? "explicit " : "";
+
+        const members_text: string[] = [];
+
+        for (const member of instantiate_expression.members) {
+            const member_default_value_text = create_member_default_value_text(member.value);
+            if (member_default_value_text === undefined) {
+                return undefined;
+            }
+
+            const member_text = `${member.member_name}: ${member_default_value_text}`;
+            members_text.push(member_text);
+        }
+
+        const text = `${type_text}{${members_text.join(", ")}}`;
+        return text;
+    }
 
     return undefined;
 }
