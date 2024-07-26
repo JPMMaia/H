@@ -29,7 +29,11 @@ export async function create(
         return [];
     }
 
-    const core_module = document_state.module;
+    const get_core_module = Server_data.create_get_core_module(server_data, workspace_uri);
+    const core_module = await get_core_module(document_state.module.name);
+    if (core_module === undefined) {
+        return [];
+    }
 
     const start_node_iterator = Parse_tree_text_iterator.begin(document_state.parse_tree, document.getText());
 

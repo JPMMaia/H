@@ -1042,7 +1042,11 @@ namespace h::compiler
     )
     {
         LLVM_type_map const& llvm_type_map = type_database.name_to_llvm_type.at(module_name.data());
-        llvm::Type* const llvm_type = llvm_type_map.at(struct_name.data());
+        auto const llvm_type_location = llvm_type_map.find(struct_name.data());
+        if (llvm_type_location == llvm_type_map.end())
+            h::common::print_message_and_exit(std::format("Could not calculate struct layout of '{}.{}'. Could not find it!", module_name, struct_name));
+
+        llvm::Type* const llvm_type = llvm_type_location->second;
         if (llvm_type == nullptr)
             h::common::print_message_and_exit(std::format("Could not calculate struct layout of '{}.{}'. llvm::Type is null!", module_name, struct_name));
 
