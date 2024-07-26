@@ -1,0 +1,27 @@
+module code_action_instantiate_4;
+
+struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = 1;
+    c: Int32 = 2;
+    d: Int32 = 3;
+}
+
+struct My_data
+{
+    x: My_struct = {};
+    y: My_struct = {
+        b: 5
+    };
+    z: My_struct = {
+        d: 7
+    };
+}
+
+function run() -> ()
+{
+    var instance: My_data = {
+        y: {}
+    };
+}

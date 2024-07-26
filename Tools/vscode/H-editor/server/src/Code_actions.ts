@@ -80,7 +80,7 @@ export async function get_code_actions(
                                 const descendant_instantiate_members = instantiate_members_node_array.node.children.map((child, index) => {
                                     return {
                                         node: child,
-                                        position: [...descendant.position, ...instantiate_members_node_array.position, index]
+                                        position: [...result.node_position, ...descendant.position, ...instantiate_members_node_array.position, index]
                                     };
                                 });
 
@@ -151,12 +151,37 @@ async function create_add_missing_members_to_instantiate_expression(
         return undefined;
     }
 
+    const find_instantiate_member = (member_name: string): { node: Parser_node.Node, position: number[] } | undefined => {
+        return descendant_instantiate_members.find(value => {
+            if (value.node.children.length > 0 && value.node.children[0].children.length > 0) {
+                return value.node.children[0].children[0].word.value === member_name;
+            }
+            else {
+                return false;
+            }
+        });
+    };
+
+    {
+        let are_all_members_present = true;
+        for (const member_info of member_infos) {
+            if (find_instantiate_member(member_info.member_name) === undefined) {
+                are_all_members_present = false;
+                break;
+            }
+        }
+
+        if (are_all_members_present) {
+            return undefined;
+        }
+    }
+
     const members_text: string[] = [];
 
     for (const member_info of member_infos) {
-        const descendant_member = descendant_instantiate_members.find(value => value.node.children[0].word.value === member_info.member_name);
+        const descendant_member = find_instantiate_member(member_info.member_name);
         if (descendant_member !== undefined) {
-            const member_text = Text_formatter.node_to_string(root, descendant_member, undefined, undefined);
+            const member_text = Text_formatter.to_unformatted_text(descendant_member.node);
             members_text.push(member_text);
         }
         else {

@@ -438,3 +438,28 @@ function add_additional_new_lines(
         buffer.push("\n");
     }
 }
+
+export function to_unformatted_text(
+    node: Parser_node.Node
+): string {
+
+    const buffer: string[] = [];
+
+    let iterator: Parser_node.Forward_repeat_iterator | undefined = {
+        root: node,
+        current_node: node,
+        current_position: [],
+        current_direction: Parser_node.Iterate_direction.Down
+    };
+
+    while (iterator !== undefined) {
+
+        if (iterator.current_node.production_rule_index === undefined && iterator.current_node.word.value.length > 0) {
+            buffer.push(iterator.current_node.word.value);
+        }
+
+        iterator = Parser_node.next_iterator(iterator);
+    }
+
+    return buffer.join(" ");
+}

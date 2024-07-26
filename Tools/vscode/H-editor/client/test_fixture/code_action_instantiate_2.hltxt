@@ -1,0 +1,19 @@
+module code_action_instantiate_2;
+
+struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = 1;
+    c: Int32 = 2;
+    d: Int32 = 3;
+}
+
+function run() -> ()
+{
+    var instance: My_struct = {
+        a: 3,
+        b: 2,
+        c: 9,
+        d: 1
+    };
+}
