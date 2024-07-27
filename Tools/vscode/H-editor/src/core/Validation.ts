@@ -103,30 +103,124 @@ function validate_current_parser_node(
 
     switch (new_node.word.value) {
         case "Expression_constant": {
-            const terminal_node = new_node.children[0];
-            const word = terminal_node.word;
-            switch (word.type) {
-                case Grammar.Word_type.Number: {
-                    const suffix = Scanner.get_suffix(word);
-                    const first_character = suffix.charAt(0);
+            return validate_constant_expression(uri, new_node.children[0]);
+        }
+    }
 
-                    const is_float = first_character === "f";
-                    if (is_float) {
-                        const number_of_bits = Number(suffix.substring(1, suffix.length));
-                        if (number_of_bits !== 16 && number_of_bits !== 32 && number_of_bits !== 64) {
-                            return [
-                                {
-                                    location: get_parser_node_source_location(uri, terminal_node),
-                                    source: Source.Parse_tree_validation,
-                                    severity: Diagnostic_severity.Error,
-                                    message: `Did not expect '${suffix}' suffix. Did you mean 'f16', 'f32' or 'f64'?`,
-                                    related_information: [],
-                                }
-                            ];
-                        }
+    return [];
+}
+
+function validate_constant_expression(
+    uri: string,
+    node: Parser_node.Node
+): Diagnostic[] {
+    const word = node.word;
+    switch (word.type) {
+        case Grammar.Word_type.Alphanumeric: {
+            if (word.value !== "true" && word.value !== "false") {
+                return [
+                    {
+                        location: get_parser_node_source_location(uri, node),
+                        source: Source.Parse_tree_validation,
+                        severity: Diagnostic_severity.Error,
+                        message: `'${word.value}' is not a constant.`,
+                        related_information: [],
                     }
-                }
+                ];
             }
+            return [];
+        }
+        case Grammar.Word_type.Number: {
+            const suffix = Scanner.get_suffix(word);
+            const first_character = suffix.charAt(0);
+
+            const is_integer = first_character === "i" || first_character === "u";
+            if (is_integer) {
+                const number_of_bits = Number(suffix.substring(1, suffix.length));
+                if (Number.isNaN(number_of_bits)) {
+                    return [
+                        {
+                            location: get_parser_node_source_location(uri, node),
+                            source: Source.Parse_tree_validation,
+                            severity: Diagnostic_severity.Error,
+                            message: `Did not expect '${suffix}' as number suffix. Did you mean '${first_character}32'?`,
+                            related_information: [],
+                        }
+                    ];
+                }
+                else if (number_of_bits < 1 || number_of_bits > 64) {
+                    return [
+                        {
+                            location: get_parser_node_source_location(uri, node),
+                            source: Source.Parse_tree_validation,
+                            severity: Diagnostic_severity.Error,
+                            message: `Did not expect '${suffix}' as number suffix. The number of bits needs to be >= 1 and <= 64.`,
+                            related_information: [],
+                        }
+                    ];
+                }
+
+                const number_value = node.word.value.substring(0, node.word.value.length - suffix.length);
+                const point_index = number_value.indexOf(".");
+                if (point_index !== -1) {
+                    const integer_value = number_value.substring(0, point_index);
+                    return [
+                        {
+                            location: get_parser_node_source_location(uri, node),
+                            source: Source.Parse_tree_validation,
+                            severity: Diagnostic_severity.Error,
+                            message: `Fractionary part is not allowed for integers. Did you mean '${integer_value}${suffix}'?`,
+                            related_information: [],
+                        }
+                    ];
+                }
+
+                return [];
+            }
+
+            const is_float = first_character === "f";
+            if (is_float) {
+                const number_of_bits = Number(suffix.substring(1, suffix.length));
+                if (number_of_bits !== 16 && number_of_bits !== 32 && number_of_bits !== 64) {
+                    return [
+                        {
+                            location: get_parser_node_source_location(uri, node),
+                            source: Source.Parse_tree_validation,
+                            severity: Diagnostic_severity.Error,
+                            message: `Did not expect '${suffix}' as number suffix. Did you mean 'f16', 'f32' or 'f64'?`,
+                            related_information: [],
+                        }
+                    ];
+                }
+                return [];
+            }
+
+            return [
+                {
+                    location: get_parser_node_source_location(uri, node),
+                    source: Source.Parse_tree_validation,
+                    severity: Diagnostic_severity.Error,
+                    message: `Did not expect '${suffix}' as number suffix.`,
+                    related_information: [],
+                }
+            ];
+        }
+        case Grammar.Word_type.String: {
+            const suffix = Scanner.get_suffix(word);
+
+            if (suffix.length && suffix !== "c") {
+                return [
+                    {
+                        location: get_parser_node_source_location(uri, node),
+                        source: Source.Parse_tree_validation,
+                        severity: Diagnostic_severity.Error,
+                        message: `Did not expect '${suffix}' as string suffix. Consider removing it, or replacing it by 'c' to convert the string constant to a C-string.`,
+                        related_information: [],
+                    }
+                ];
+            }
+
+            return [];
         }
     }
 
@@ -151,5 +245,5 @@ function get_parser_node_source_location(
                 column: source_location.column + node.word.value.length,
             },
         }
-    }
+    };
 }
