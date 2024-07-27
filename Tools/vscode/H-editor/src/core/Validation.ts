@@ -1,7 +1,6 @@
 import * as Grammar from "./Grammar";
 import * as Parser_node from "./Parser_node";
 import * as Scanner from "./Scanner";
-import { onThrowError } from "../utilities/errors";
 
 export interface Position {
     line: number;
@@ -40,7 +39,8 @@ function severity_to_string(severity: Diagnostic_severity): string {
 
 export enum Source {
     Parser = "Parser",
-    Parse_tree_validation = "Parse Tree Validation"
+    Parse_tree_validation = "Parse Tree Validation",
+    Scanner = "Scanner"
 }
 
 export interface Related_information {
@@ -67,6 +67,30 @@ export function to_string(diagnostics: Diagnostic[]): string[] {
     }
 
     return array;
+}
+
+export function validate_scanned_input(
+    uri: string,
+    scanned_input: Scanner.Scanned_word[]
+): Diagnostic[] {
+
+    const diagnostics: Diagnostic[] = [];
+
+    for (const word of scanned_input) {
+        if (word.type === Grammar.Word_type.Invalid) {
+            diagnostics.push(
+                {
+                    location: get_scanned_word_source_location(uri, word),
+                    source: Source.Scanner,
+                    severity: Diagnostic_severity.Error,
+                    message: `Invalid expression '${word.value}'.`,
+                    related_information: [],
+                }
+            );
+        }
+    }
+
+    return diagnostics;
 }
 
 export function validate_parser_node(
@@ -231,7 +255,14 @@ function get_parser_node_source_location(
     uri: string,
     node: Parser_node.Node
 ): Location {
-    const source_location = node.word.source_location;
+    return get_scanned_word_source_location(uri, node.word);
+}
+
+function get_scanned_word_source_location(
+    uri: string,
+    word: Scanner.Scanned_word
+): Location {
+    const source_location = word.source_location;
 
     return {
         uri: uri,
@@ -242,7 +273,7 @@ function get_parser_node_source_location(
             },
             end: {
                 line: source_location.line,
-                column: source_location.column + node.word.value.length,
+                column: source_location.column + word.value.length,
             },
         }
     };

@@ -40,6 +40,14 @@ export function update(
         text_change.text
     );
 
+    {
+        const diagnostics = Validation.validate_scanned_input(state.document_file_path, scanned_input_change.new_words);
+        if (diagnostics.length > 0) {
+            state.diagnostics = diagnostics;
+            return state;
+        }
+    }
+
     if (has_meaningful_content(scanned_input_change)) {
 
         const start_change_node_position = (scanned_input_change.start_change !== undefined && scanned_input_change.start_change.node !== undefined) ? scanned_input_change.start_change.node_position : undefined;
