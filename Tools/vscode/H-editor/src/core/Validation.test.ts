@@ -99,6 +99,18 @@ describe("Validation.validate_parser_node", () => {
         test_validate_parser_node(node, expected_diagnostics);
     });
 
+    it("Validate default integer suffix", () => {
+        const node = create_node("Expression_constant",
+            [
+                create_terminal_node("0", Grammar.Word_type.Number, { line: 2, column: 7 })
+            ]
+        );
+
+        const expected_diagnostics: Validation.Diagnostic[] = [];
+
+        test_validate_parser_node(node, expected_diagnostics);
+    });
+
     it("Validate number suffix urandom", () => {
         const node = create_node("Expression_constant",
             [
