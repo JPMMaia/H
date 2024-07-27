@@ -134,9 +134,9 @@ function validate_constant_expression(
             const suffix = Scanner.get_suffix(word);
             const first_character = suffix.charAt(0);
 
-            const is_integer = first_character === "i" || first_character === "u";
+            const is_integer = suffix.length === 0 || first_character === "i" || first_character === "u";
             if (is_integer) {
-                const number_of_bits = Number(suffix.substring(1, suffix.length));
+                const number_of_bits = suffix.length > 0 ? Number(suffix.substring(1, suffix.length)) : 32;
                 if (Number.isNaN(number_of_bits)) {
                     return [
                         {
