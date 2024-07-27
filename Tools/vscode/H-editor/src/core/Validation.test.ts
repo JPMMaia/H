@@ -98,4 +98,80 @@ describe("Validation.validate_parser_node", () => {
 
         test_validate_parser_node(node, expected_diagnostics);
     });
+
+    // TODO validate node_to_expression_constant
+    // TODO Numbers:
+    // - Suffixes:
+    //   - u1 to u64
+    //   - i1 to i64
+    //   - f16, f32, f64
+    // - Values:
+    //   - u and i, only integers
+    // TODO Booleans:
+    // - true or false
+    // TODO Strings:
+    // - either none or c suffix
 });
+
+// TODO validate scanned input
+
+// TODO validate module
+// - Imports
+//   - Inexistent modules
+//   - Invalid alias
+// -
+// - Statements
+//   - Variable declaration (and with type)
+//     - Duplicate variables
+//   - Variable declaration with type != type of right hand side
+//   - Variable expression
+//     - Inexistent variable names
+//   - Invalid access expressions
+//   - Invalid unary expressions
+//     - Numeric operations
+//     - Pointer dereference
+//     - Address of
+//   - Invalid conditions (type != bool)
+//     - If, ternary condition, while, for
+//   - Invalid switch expression
+//     - Input type
+//     - Switch case types
+//   - Ternary condition then and else statement type must match
+//   - Return expression type must match function output type
+//   - Null can only be assigned to pointer types
+//   - No invalid expressions
+//   - Instantiate expression
+//     - Members need to be sorted (if not add quick fix to sort members)
+//     - If explicit, then all members need to be present (if not add quick fix to add missing members)
+//     - Indicate members that do not exist
+//   - For loop
+//     - Range begin and end and step types must be equal
+//     - Range comparison must result in a boolean
+//   - Continue can only be placed inside for loops and while loops
+//   - Break can only be placed inside for loops, while loops and switch cases
+//     - Loop count must be valid
+//   - Constant arrays
+//     - Array data type must match array value type
+//   - Cast expression
+//     - If cast type is Numeric, then it can only cast to certain numeric types
+//   - Call expressions
+//     - Can only call functions, or expressions whose type results in a function type
+//   - Binary expressions
+//     - Left hand and right hand sides must match
+//     - If using numeric operations, types must be numbers
+//     - If using comparison operations, types must be comparable
+//     - If using logical operationrs, types must be booleans
+//     - If using bit operations, types must be numbers
+//     - If using has operation, then types must be enums
+// - Unions
+//   - Member types must be all different from each other
+// - Structs
+//   - Member default values types must match member types
+//   - Member default values can only using instantiate or constant expressions
+// - Enums
+//   - Enum values can only be binary operations or constant expressions
+//   - Enum values types must be i32
+// - Custom_type_reference
+//   - Must exist
+// - Integer type
+//   - Number of bits cannot be larger than 64
