@@ -37,77 +37,89 @@ export async function get_code_actions(
         return [];
     }
 
-    const start_node_iterator = get_start_iterator(document, parameters.range, root);
-
-    const is_within_range = (iterator: Parse_tree_text_iterator.Iterator): boolean => {
-
-        if (iterator.line === -1 || iterator.column === -1) {
-            return false;
-        }
-
-        if (iterator.line - 1 < parameters.range.end.line) {
-            return true;
-        }
-
-        if (iterator.line - 1 > parameters.range.end.line) {
-            return false;
-        }
-
-        return iterator.column - 1 < parameters.range.end.character;
-    };
-
-    let iterator = start_node_iterator;
-
     const code_actions: vscode.CodeAction[] = [];
 
-    while (is_within_range(iterator)) {
+    const start_iterator = get_start_iterator(document, parameters.range, root);
 
-        if (iterator.node !== undefined) {
-            if (Parser_node.has_ancestor_with_name(iterator.root, iterator.node_position, ["Statement"])) {
-                const result = Parse_tree_analysis.find_statement(core_module, iterator.root, iterator.node_position);
-                if (result !== undefined) {
-                    const descendants = Parser_node.find_descendants_if(result.node, node => node.word.value === "Expression_instantiate");
-                    for (const descendant of descendants) {
+    if (parameters.range.start.line === parameters.range.end.line && parameters.range.start.character === parameters.range.end.character) {
 
+        const ancestor = Parser_node.get_first_ancestor_with_name(root, start_iterator.node_position, [
+            "Expression_instantiate"
+        ]);
+
+        if (ancestor !== undefined) {
+            if (ancestor.node.word.value === "Expression_instantiate") {
+                const instantiate_members_node_array = Parser_node.find_descendant_position_if(ancestor.node, node => node.word.value === "Expression_instantiate_members");
+                if (instantiate_members_node_array !== undefined) {
+                    const descendant_instantiate_members = instantiate_members_node_array.node.children.map((child, index) => {
+                        return {
+                            node: child,
+                            position: [...ancestor.position, ...instantiate_members_node_array.position, index]
+                        };
+                    });
+
+                    const add_missing_members_code_action = await create_add_missing_members_to_instantiate_expression(
+                        parameters.textDocument.uri,
+                        server_data.language_description,
+                        document_state,
+                        core_module,
+                        root,
+                        { node: ancestor.node, position: [...ancestor.position] },
+                        descendant_instantiate_members,
+                        get_core_module
+                    );
+                    if (add_missing_members_code_action !== undefined) {
+                        code_actions.push(add_missing_members_code_action);
+                    }
+                }
+            }
+        }
+    }
+    else {
+        /*const is_within_range = (iterator: Parse_tree_text_iterator.Iterator): boolean => {
+    
+            if (iterator.line === -1 || iterator.column === -1) {
+                return false;
+            }
+    
+            if (iterator.line - 1 < parameters.range.end.line) {
+                return true;
+            }
+    
+            if (iterator.line - 1 > parameters.range.end.line) {
+                return false;
+            }
+    
+            return iterator.column - 1 < parameters.range.end.character;
+        };
+
+        let iterator = start_iterator;
+    
+        while (is_within_range(iterator)) {
+    
+            if (iterator.node !== undefined) {
+                if (Parser_node.has_ancestor_with_name(iterator.root, iterator.node_position, ["Statement"])) {
+    
+                    const result = Parse_tree_analysis.find_statement(core_module, iterator.root, iterator.node_position);
+                    if (result !== undefined) {
+    
                         const function_value = result.function_value;
                         const statement = result.statement;
                         const statement_node_position = result.node_position;
                         const statement_node = result.node;
-
-                        if (descendant.node.word.value === "Expression_instantiate") {
-                            const instantiate_members_node_array = Parser_node.find_descendant_position_if(descendant.node, node => node.word.value === "Expression_instantiate_members");
-                            if (instantiate_members_node_array !== undefined) {
-                                const descendant_instantiate_members = instantiate_members_node_array.node.children.map((child, index) => {
-                                    return {
-                                        node: child,
-                                        position: [...result.node_position, ...descendant.position, ...instantiate_members_node_array.position, index]
-                                    };
-                                });
-
-                                const add_missing_members_code_action = await create_add_missing_members_to_instantiate_expression(
-                                    parameters.textDocument.uri,
-                                    server_data.language_description,
-                                    document_state,
-                                    core_module,
-                                    root,
-                                    { node: descendant.node, position: [...result.node_position, ...descendant.position] },
-                                    descendant_instantiate_members,
-                                    get_core_module
-                                );
-                                if (add_missing_members_code_action !== undefined) {
-                                    code_actions.push(add_missing_members_code_action);
-                                }
-                            }
+    
+                        const descendants = Parser_node.find_descendants_if(result.node, node => node.word.value === "Expression_");
+                        for (const descendant of descendants) {
                         }
+    
+                        const rightmost_descendant = Parser_node.get_rightmost_descendant(result.node, result.node_position);
+                        iterator = Parse_tree_text_iterator.go_to_next_node_position(iterator, rightmost_descendant.position);
                     }
-
-                    const rightmost_descendant = Parser_node.get_rightmost_descendant(result.node, result.node_position);
-                    iterator = Parse_tree_text_iterator.go_to_next_node_position(iterator, rightmost_descendant.position);
                 }
             }
-        }
-
-        iterator = Parse_tree_text_iterator.next(iterator);
+    
+            iterator = Parse_tree_text_iterator.next(iterator);
+        }*/
     }
 
     return code_actions;
