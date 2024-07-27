@@ -48,7 +48,7 @@ suite("Should get instantiate expression add missing members code action", () =>
             {
                 title: "Add missing instantiate members",
                 kind: vscode.CodeActionKind.RefactorRewrite,
-                edit: create_replace_workspace_edit(document_uri, to_range(23, 29, 23, 29), "\n        x: {},\n        y: {\n            b: 5\n        },\n        z: {\n            d: 7\n        }\n")
+                edit: create_replace_workspace_edit(document_uri, to_range(24, 12, 24, 12), "\n            a: 0,\n            b: 1,\n            c: 2,\n            d: 3\n        ")
             }
         ]);
     });
