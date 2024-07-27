@@ -91,7 +91,7 @@ describe("Validation.validate_parser_node", () => {
                 location: create_diagnostic_location(2, 7, 2, 11),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "Did not expect 'f' suffix. Did you mean 'f16', 'f32' or 'f64'?",
+                message: "Did not expect 'f' as number suffix. Did you mean 'f16', 'f32' or 'f64'?",
                 related_information: [],
             }
         ];
@@ -99,18 +99,125 @@ describe("Validation.validate_parser_node", () => {
         test_validate_parser_node(node, expected_diagnostics);
     });
 
-    // TODO validate node_to_expression_constant
-    // TODO Numbers:
-    // - Suffixes:
-    //   - u1 to u64
-    //   - i1 to i64
-    //   - f16, f32, f64
-    // - Values:
-    //   - u and i, only integers
-    // TODO Booleans:
-    // - true or false
-    // TODO Strings:
-    // - either none or c suffix
+    it("Validate number suffix u (only u1 through u64 are allowed)", () => {
+        const node = create_node("Expression_constant",
+            [
+                create_terminal_node("1u", Grammar.Word_type.Number, { line: 2, column: 7 })
+            ]
+        );
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(2, 7, 2, 9),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Did not expect 'u' as number suffix. Did you mean 'u32'?",
+                related_information: [],
+            }
+        ];
+
+        test_validate_parser_node(node, expected_diagnostics);
+    });
+
+    it("Validate number suffix i (only i1 through i64 are allowed)", () => {
+        const node = create_node("Expression_constant",
+            [
+                create_terminal_node("1i", Grammar.Word_type.Number, { line: 2, column: 7 })
+            ]
+        );
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(2, 7, 2, 9),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Did not expect 'i' as number suffix. Did you mean 'i32'?",
+                related_information: [],
+            }
+        ];
+
+        test_validate_parser_node(node, expected_diagnostics);
+    });
+
+    it("Validate number suffix z", () => {
+        const node = create_node("Expression_constant",
+            [
+                create_terminal_node("1z", Grammar.Word_type.Number, { line: 2, column: 7 })
+            ]
+        );
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(2, 7, 2, 9),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Did not expect 'z' as number suffix.",
+                related_information: [],
+            }
+        ];
+
+        test_validate_parser_node(node, expected_diagnostics);
+    });
+
+    it("Validate number values (integers cannot have fractionary parts)", () => {
+        const node = create_node("Expression_constant",
+            [
+                create_terminal_node("1.0i32", Grammar.Word_type.Number, { line: 2, column: 7 })
+            ]
+        );
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(2, 7, 2, 13),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Fractionary part is not allowed for integers. Did you mean '1i32'?",
+                related_information: [],
+            }
+        ];
+
+        test_validate_parser_node(node, expected_diagnostics);
+    });
+
+    it("Validate booleans (only allow true or false as alphanumerics)", () => {
+        const node = create_node("Expression_constant",
+            [
+                create_terminal_node("fals", Grammar.Word_type.Number, { line: 2, column: 7 })
+            ]
+        );
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(2, 7, 2, 11),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "'fals' is not a constant.",
+                related_information: [],
+            }
+        ];
+
+        test_validate_parser_node(node, expected_diagnostics);
+    });
+
+    it("Validate strings (suffix is either none or c)", () => {
+        const node = create_node("Expression_constant",
+            [
+                create_terminal_node("\"A string\"d", Grammar.Word_type.String, { line: 2, column: 7 })
+            ]
+        );
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(2, 7, 2, 18),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Did not expect 'd' as string suffix. Consider removing it, or replacing it by 'c' to convert the string constant to a C-string.",
+                related_information: [],
+            }
+        ];
+
+        test_validate_parser_node(node, expected_diagnostics);
+    });
 });
 
 // TODO validate scanned input
