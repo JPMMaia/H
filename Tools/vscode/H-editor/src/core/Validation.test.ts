@@ -4,6 +4,7 @@ import * as assert from "assert";
 
 import * as Grammar from "./Grammar";
 import * as Parser_node from "./Parser_node";
+import * as Scanner from "./Scanner";
 import * as Validation from "./Validation";
 
 function create_node(
@@ -249,6 +250,34 @@ describe("Validation.validate_parser_node", () => {
         ];
 
         test_validate_parser_node(node, expected_diagnostics);
+    });
+});
+
+function test_validate_scanned_input(
+    input_text: string,
+    expected_diagnostics: Validation.Diagnostic[]
+): void {
+    const scanned_input = Scanner.scan(input_text, 0, input_text.length, { line: 1, column: 1 });
+    const actual_diagnostics = Validation.validate_scanned_input(create_dummy_uri(), scanned_input);
+    assert.deepEqual(actual_diagnostics, expected_diagnostics);
+}
+
+describe("Validation.validate_scanned_input", () => {
+
+    it("Validate invalid word", () => {
+        const input = "1.0.0";
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(1, 1, 1, 6),
+                source: Validation.Source.Scanner,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Invalid expression '1.0.0'.",
+                related_information: [],
+            }
+        ];
+
+        test_validate_scanned_input(input, expected_diagnostics);
     });
 });
 
