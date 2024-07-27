@@ -99,6 +99,26 @@ describe("Validation.validate_parser_node", () => {
         test_validate_parser_node(node, expected_diagnostics);
     });
 
+    it("Validate number suffix urandom", () => {
+        const node = create_node("Expression_constant",
+            [
+                create_terminal_node("1uramdom", Grammar.Word_type.Number, { line: 2, column: 7 })
+            ]
+        );
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(2, 7, 2, 15),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Did not expect 'uramdom' as number suffix. Did you mean 'u32'?",
+                related_information: [],
+            }
+        ];
+
+        test_validate_parser_node(node, expected_diagnostics);
+    });
+
     it("Validate number suffix u (only u1 through u64 are allowed)", () => {
         const node = create_node("Expression_constant",
             [
@@ -111,7 +131,7 @@ describe("Validation.validate_parser_node", () => {
                 location: create_diagnostic_location(2, 7, 2, 9),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "Did not expect 'u' as number suffix. Did you mean 'u32'?",
+                message: "Did not expect 'u' as number suffix. The number of bits needs to be >= 1 and <= 64.",
                 related_information: [],
             }
         ];
@@ -131,7 +151,7 @@ describe("Validation.validate_parser_node", () => {
                 location: create_diagnostic_location(2, 7, 2, 9),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "Did not expect 'i' as number suffix. Did you mean 'i32'?",
+                message: "Did not expect 'i' as number suffix. The number of bits needs to be >= 1 and <= 64.",
                 related_information: [],
             }
         ];
@@ -182,7 +202,7 @@ describe("Validation.validate_parser_node", () => {
     it("Validate booleans (only allow true or false as alphanumerics)", () => {
         const node = create_node("Expression_constant",
             [
-                create_terminal_node("fals", Grammar.Word_type.Number, { line: 2, column: 7 })
+                create_terminal_node("fals", Grammar.Word_type.Alphanumeric, { line: 2, column: 7 })
             ]
         );
 
@@ -226,7 +246,6 @@ describe("Validation.validate_parser_node", () => {
 // - Imports
 //   - Inexistent modules
 //   - Invalid alias
-// -
 // - Statements
 //   - Variable declaration (and with type)
 //     - Duplicate variables
