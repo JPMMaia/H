@@ -636,6 +636,85 @@ import module_a as module_a;
     });
 });
 
+describe("Validation of declarations", () => {
+
+    // - Must have different names
+    // - Names must not collide with existing types
+
+    it("Validates that a declaration name is not a duplicate", () => {
+        const input = `module Test;
+
+struct My_type
+{
+}
+
+union My_type
+{
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(3, 8, 3, 15),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Duplicate declaration name 'My_type'.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(7, 7, 7, 14),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Duplicate declaration name 'My_type'.",
+                related_information: [],
+            }
+        ];
+
+        test_validate_parser_node_with_text(input, expected_diagnostics);
+    });
+
+    it("Validates that a declaration name is not a builtin type", () => {
+        const input = `module Test;
+
+struct Int32
+{
+}
+
+union Float32
+{
+}
+
+using true = Float32;
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(3, 8, 3, 13),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Invalid declaration name 'Int32' which is a reserved keyword.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(7, 7, 7, 14),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Invalid declaration name 'Float32' which is a reserved keyword.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(11, 7, 11, 11),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Invalid declaration name 'true' which is a reserved keyword.",
+                related_information: [],
+            }
+        ];
+
+        test_validate_parser_node_with_text(input, expected_diagnostics);
+    });
+});
+
 // TODO validate module
 // - Statements
 //   - Variable declaration (and with type)
