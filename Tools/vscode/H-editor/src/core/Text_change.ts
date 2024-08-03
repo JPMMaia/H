@@ -145,7 +145,7 @@ export function full_parse_with_source_locations(
     language_description: Language.Description,
     document_file_path: string,
     input_text: string
-): { module: Core.Module | undefined, diagnostics: Validation.Diagnostic[] } {
+): { module: Core.Module | undefined, parse_tree: Parser_node.Node | undefined, diagnostics: Validation.Diagnostic[] } {
     const scanned_words = Scanner.scan(input_text, 0, input_text.length, { line: 1, column: 1 });
 
     const parse_tree_result = Parser.parse_incrementally(
@@ -161,7 +161,7 @@ export function full_parse_with_source_locations(
     );
 
     if (parse_tree_result.status !== Parser.Parse_status.Accept) {
-        return { module: undefined, diagnostics: parse_tree_result.diagnostics };
+        return { module: undefined, parse_tree: undefined, diagnostics: parse_tree_result.diagnostics };
     }
 
     const parse_tree = (parse_tree_result.changes[0].value as Parser.Modify_change).new_node;
@@ -170,7 +170,7 @@ export function full_parse_with_source_locations(
     const module = Parse_tree_convertor.parse_tree_to_module(parse_tree, language_description.production_rules, language_description.mappings, language_description.key_to_production_rule_indices);
     module.source_file_path = document_file_path.replace(/\\/g, "/");
 
-    return { module: module, diagnostics: parse_tree_result.diagnostics };
+    return { module: module, parse_tree: parse_tree, diagnostics: parse_tree_result.diagnostics };
 }
 
 function validate_parse_changes(
