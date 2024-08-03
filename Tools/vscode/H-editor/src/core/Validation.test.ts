@@ -3,8 +3,11 @@ import "mocha";
 import * as assert from "assert";
 
 import * as Grammar from "./Grammar";
+import * as Language from "./Language";
 import * as Parser_node from "./Parser_node";
 import * as Scanner from "./Scanner";
+import * as Storage_cache from "./Storage_cache";
+import * as Text_change from "./Text_change";
 import * as Validation from "./Validation";
 
 function create_node(
@@ -78,7 +81,7 @@ function create_diagnostic_location(start_line: number, start_column: number, en
     };
 }
 
-describe("Validation.validate_parser_node", () => {
+describe("Validation of expression constant", () => {
 
     it("Validate float suffix", () => {
         const node = create_node("Expression_constant",
@@ -262,7 +265,7 @@ function test_validate_scanned_input(
     assert.deepEqual(actual_diagnostics, expected_diagnostics);
 }
 
-describe("Validation.validate_scanned_input", () => {
+describe("Validation of scanned input", () => {
 
     it("Validate invalid word", () => {
         const input = "1.0.0";
@@ -281,12 +284,359 @@ describe("Validation.validate_scanned_input", () => {
     });
 });
 
-// TODO validate scanned input
+function test_validate_parser_node_with_text(
+    input_text: string,
+    expected_diagnostics: Validation.Diagnostic[]
+): void {
+
+    const cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
+    const language_description = Language.create_default_description(cache, "out/tests/graphviz.gv");
+
+    const uri = create_dummy_uri();
+
+    const parse_result = Text_change.full_parse_with_source_locations(language_description, uri, input_text);
+    assert.notEqual(parse_result.parse_tree, undefined);
+    if (parse_result.parse_tree === undefined) {
+        return;
+    }
+
+    const actual_diagnostics = Validation.validate_parser_node(uri, create_dummy_node_position(), parse_result.parse_tree);
+    assert.deepEqual(actual_diagnostics, expected_diagnostics);
+}
+
+describe("Validation of structs", () => {
+
+    // - Member names must different
+    // - Member default values types must match member types
+    // - Member default values can only using instantiate or constant expressions
+
+    it("Validates that member names are different from each other", () => {
+        const input = `module Test;
+
+struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = 0;
+    b: Int32 = 0;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(6, 5, 6, 6),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Duplicate member name 'My_struct.b'.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(7, 5, 7, 6),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Duplicate member name 'My_struct.b'.",
+                related_information: [],
+            }
+        ];
+
+        test_validate_parser_node_with_text(input, expected_diagnostics);
+    });
+
+    it("Validates that member default values types must match member types", () => {
+        const input = `module Test;
+
+struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = 0.0f32;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(6, 5, 6, 22),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "The default value of 'My_struct.b' does not match the member type.",
+                related_information: [],
+            }
+        ];
+
+        test_validate_parser_node_with_text(input, expected_diagnostics);
+    });
+
+    it("Validates that member default values only use compile time expressions", () => {
+        const input = `module Test;
+
+function get_value() -> (result: Int32)
+{
+    return 0;
+}
+
+struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = get_value();
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(6, 16, 6, 27),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "The default value expression assigned to 'My_struct.b' must be a compile-time expression.",
+                related_information: [],
+            }
+        ];
+
+        test_validate_parser_node_with_text(input, expected_diagnostics);
+    });
+});
+
+describe("Validation of unions", () => {
+
+    // - Member names must different
+
+    it("Validates that member names are different from each other", () => {
+        const input = `module Test;
+
+union My_union
+{
+    a: Int32;
+    b: Float32;
+    b: Float64;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(6, 5, 6, 6),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Duplicate member name 'My_union.b'.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(7, 5, 7, 6),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Duplicate member name 'My_union.b'.",
+                related_information: [],
+            }
+        ];
+
+        test_validate_parser_node_with_text(input, expected_diagnostics);
+    });
+});
+
+describe("Validation of enums", () => {
+
+    // - Member names must different
+    // - Enum values need to be computed at compile-time
+    // - Enum values types must be i32
+
+    it("Validates that enum member names are different from each other", () => {
+        const input = `module Test;
+
+enum My_enum
+{
+    a = 0,
+    b = 1,
+    b = 2,
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(6, 5, 6, 6),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Duplicate member name 'My_enum.b'.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(7, 5, 7, 6),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Duplicate member name 'My_enum.b'.",
+                related_information: [],
+            }
+        ];
+
+        test_validate_parser_node_with_text(input, expected_diagnostics);
+    });
+
+    it("Validates that enum values are signed 32-bit integers", () => {
+        const input = `module Test;
+
+enum My_enum
+{
+    a = 0,
+    b = 1i16,
+    c = 2.0f32,
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(6, 9, 6, 13),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "The enum value assigned to 'My_enum.b' must be a Int32 type.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(6, 9, 6, 15),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "The enum value assigned to 'My_enum.c' must be a Int32 type.",
+                related_information: [],
+            }
+        ];
+
+        test_validate_parser_node_with_text(input, expected_diagnostics);
+    });
+
+    it("Validates that enum values can be computed at compile-time", () => {
+        const input = `module Test;
+
+function get_value() -> (result: Int32)
+{
+    return 0;
+}
+
+enum My_enum
+{
+    a = 0,
+    b = get_value(),
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(6, 9, 6, 20),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "The enum value assigned to 'My_struct.b' must be a compile-time expression.",
+                related_information: [],
+            }
+        ];
+
+        test_validate_parser_node_with_text(input, expected_diagnostics);
+    });
+});
+
+describe("Validation of integer types", () => {
+
+    // - Number of bits cannot be larger than 64
+
+    it("Validates that number of bits cannot be larger than 64", () => {
+        const input = `module Test;
+
+using My_int = Int65;
+using My_uint = Uint65;
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(3, 16, 3, 21),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Number of bits of integer cannot be larger than 64.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(4, 17, 4, 23),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Number of bits of integer cannot be larger than 64.",
+                related_information: [],
+            }
+        ];
+
+        test_validate_parser_node_with_text(input, expected_diagnostics);
+    });
+});
+
+describe("Validation of custom type references", () => {
+
+    // - Must refer to an existing type
+
+    it("Validates that a type exists", () => {
+        const input = `module Test;
+
+using My_type = My_struct;
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(3, 17, 3, 26),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Type 'My_struct' does not exist.",
+                related_information: [],
+            }
+        ];
+
+        test_validate_parser_node_with_text(input, expected_diagnostics);
+    });
+});
+
+describe("Validation of imports", () => {
+
+    // - Inexistent modules
+    // - Duplicate alias
+
+    it("Validates that a import alias is a not a duplicate", () => {
+        const input = `module Test;
+
+import module_a as module_a;
+import module_b as module_a;
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(3, 20, 3, 28),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Duplicate import alias 'module_a'.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(4, 20, 4, 28),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Duplicate import alias 'module_a'.",
+                related_information: [],
+            }
+        ];
+
+        test_validate_parser_node_with_text(input, expected_diagnostics);
+    });
+
+    it("Validates that a import module exists", () => {
+        const input = `module Test;
+
+import module_a as module_a;
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(3, 8, 3, 16),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot find module 'module_a'.",
+                related_information: [],
+            }
+        ];
+
+        // TODO figure out how to do this test
+
+        test_validate_parser_node_with_text(input, expected_diagnostics);
+    });
+});
 
 // TODO validate module
-// - Imports
-//   - Inexistent modules
-//   - Invalid alias
 // - Statements
 //   - Variable declaration (and with type)
 //     - Duplicate variables
@@ -330,15 +680,3 @@ describe("Validation.validate_scanned_input", () => {
 //     - If using logical operationrs, types must be booleans
 //     - If using bit operations, types must be numbers
 //     - If using has operation, then types must be enums
-// - Unions
-//   - Member types must be all different from each other
-// - Structs
-//   - Member default values types must match member types
-//   - Member default values can only using instantiate or constant expressions
-// - Enums
-//   - Enum values can only be binary operations or constant expressions
-//   - Enum values types must be i32
-// - Custom_type_reference
-//   - Must exist
-// - Integer type
-//   - Number of bits cannot be larger than 64
