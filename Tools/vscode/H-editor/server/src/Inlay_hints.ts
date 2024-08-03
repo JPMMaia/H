@@ -64,7 +64,7 @@ export async function create(
             if (Parser_node.has_ancestor_with_name(iterator.root, iterator.node_position, ["Statement"])) {
                 const result = Parse_tree_analysis.find_statement(document_state.module, iterator.root, iterator.node_position);
                 if (result !== undefined) {
-                    const descendants = Parser_node.find_descendants_if(result.node, node => node.word.value === "Expression_variable_declaration" || node.word.value === "Expression_call");
+                    const descendants = Parser_node.find_descendants_if({ node: result.node, position: result.node_position }, node => node.word.value === "Expression_variable_declaration" || node.word.value === "Expression_call");
                     for (const descendant of descendants) {
 
                         const function_value = result.function_value;
@@ -76,8 +76,8 @@ export async function create(
                             const expression = statement.expression.data.value as Core.Variable_declaration_expression;
                             const right_hand_side_type = await Parse_tree_analysis.get_expression_type(document_state.module, function_value, iterator.root, statement_node_position, expression.right_hand_side, get_core_module);
                             if (right_hand_side_type !== undefined) {
-                                const variable_name_descendant = Parser_node.find_descendant_position_if(statement_node, node => node.word.value === "Variable_name") as { node: Parser_node.Node, position: number[] };
-                                const variable_name_source_location = Parse_tree_text_iterator.get_node_source_location(iterator.root, iterator.text, [...statement_node_position, ...variable_name_descendant.position, 0]) as Parser_node.Source_location;
+                                const variable_name_descendant = Parser_node.find_descendant_position_if({ node: statement_node, position: statement_node_position }, node => node.word.value === "Variable_name") as { node: Parser_node.Node, position: number[] };
+                                const variable_name_source_location = Parse_tree_text_iterator.get_node_source_location(iterator.root, iterator.text, [...variable_name_descendant.position, 0]) as Parser_node.Source_location;
                                 const variable_name = variable_name_descendant.node.children[0].word.value;
                                 const position: vscode.Position = {
                                     line: variable_name_source_location.line - 1,
@@ -112,7 +112,7 @@ export async function create(
 
                                             const argument_index = child_index / 2;
 
-                                            const argument_source_location = Parse_tree_text_iterator.get_node_source_location(iterator.root, iterator.text, [...statement_node_position, ...arguments_node_position, child_index]) as Parser_node.Source_location;
+                                            const argument_source_location = Parse_tree_text_iterator.get_node_source_location(iterator.root, iterator.text, [...arguments_node_position, child_index]) as Parser_node.Source_location;
                                             const position: vscode.Position = {
                                                 line: argument_source_location.line - 1,
                                                 character: argument_source_location.column - 1

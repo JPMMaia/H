@@ -495,13 +495,13 @@ export function join_all_child_node_values(node: Node): string {
     return value;
 }
 
-export function find_descendant_position_if(node: Node, predicate: (node: Node) => boolean): { node: Node, position: number[] } | undefined {
+export function find_descendant_position_if(ancestor: { node: Node, position: number[] }, predicate: (node: Node) => boolean): { node: Node, position: number[] } | undefined {
 
     const list: Node[] = [];
     const positions: number[][] = [];
 
-    for (let index = 0; index < node.children.length; ++index) {
-        const child = node.children[index];
+    for (let index = 0; index < ancestor.node.children.length; ++index) {
+        const child = ancestor.node.children[index];
         list.push(child);
         positions.push([index]);
     }
@@ -513,7 +513,7 @@ export function find_descendant_position_if(node: Node, predicate: (node: Node) 
         if (predicate(node)) {
             return {
                 node: node,
-                position: position
+                position: [...ancestor.position, ...position]
             };
         }
 
@@ -521,22 +521,21 @@ export function find_descendant_position_if(node: Node, predicate: (node: Node) 
             const child = node.children[index];
             list.push(child);
             positions.push([...position, index]);
-
         }
     }
 
     return undefined;
 }
 
-export function find_descendants_if(node: Node, predicate: (node: Node) => boolean): { node: Node, position: number[] }[] {
+export function find_descendants_if(ancestor: { node: Node, position: number[] }, predicate: (node: Node) => boolean): { node: Node, position: number[] }[] {
 
     const output: { node: Node, position: number[] }[] = [];
 
     const list: Node[] = [];
     const positions: number[][] = [];
 
-    for (let index = 0; index < node.children.length; ++index) {
-        const child = node.children[index];
+    for (let index = 0; index < ancestor.node.children.length; ++index) {
+        const child = ancestor.node.children[index];
         list.push(child);
         positions.push([index]);
     }
@@ -548,7 +547,7 @@ export function find_descendants_if(node: Node, predicate: (node: Node) => boole
         if (predicate(node)) {
             output.push({
                 node: node,
-                position: position
+                position: [...ancestor.position, ...position]
             });
         }
 
@@ -560,6 +559,15 @@ export function find_descendants_if(node: Node, predicate: (node: Node) => boole
     }
 
     return output;
+}
+
+export function get_children(ancestor: { node: Node, position: number[] }): { node: Node, position: number[] }[] {
+    return ancestor.node.children.map((child_node, index) => {
+        return {
+            node: child_node,
+            position: [...ancestor.position, index]
+        };
+    });
 }
 
 export function has_ancestor_with_name(
