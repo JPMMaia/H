@@ -49,14 +49,9 @@ export async function get_code_actions(
 
         if (ancestor !== undefined) {
             if (ancestor.node.word.value === "Expression_instantiate") {
-                const instantiate_members_node_array = Parser_node.find_descendant_position_if(ancestor.node, node => node.word.value === "Expression_instantiate_members");
+                const instantiate_members_node_array = Parser_node.find_descendant_position_if(ancestor, node => node.word.value === "Expression_instantiate_members");
                 if (instantiate_members_node_array !== undefined) {
-                    const descendant_instantiate_members = instantiate_members_node_array.node.children.map((child, index) => {
-                        return {
-                            node: child,
-                            position: [...ancestor.position, ...instantiate_members_node_array.position, index]
-                        };
-                    });
+                    const descendant_instantiate_members = Parser_node.get_children(instantiate_members_node_array);
 
                     const add_missing_members_code_action = await create_add_missing_members_to_instantiate_expression(
                         parameters.textDocument.uri,
@@ -216,7 +211,7 @@ async function create_add_missing_members_to_instantiate_expression(
         return undefined;
     }
 
-    const descendant_instantiate_expression_type = Parser_node.find_descendant_position_if(descendant_instantiate_expression.node, node => node.word.value === "Expression_instantiate_expression_type");
+    const descendant_instantiate_expression_type = Parser_node.find_descendant_position_if(descendant_instantiate_expression, node => node.word.value === "Expression_instantiate_expression_type");
     if (descendant_instantiate_expression_type === undefined) {
         return undefined;
     }

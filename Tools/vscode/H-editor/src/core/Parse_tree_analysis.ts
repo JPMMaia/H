@@ -667,7 +667,7 @@ export function get_struct_declaration_that_contains_node_position(
         return undefined;
     }
 
-    const descendant_struct_name = Parser_node.find_descendant_position_if(ancestor_struct.node, node => node.word.value === "Struct_name");
+    const descendant_struct_name = Parser_node.find_descendant_position_if(ancestor_struct, node => node.word.value === "Struct_name");
     if (descendant_struct_name === undefined) {
         return undefined;
     }
@@ -696,7 +696,7 @@ export function get_function_value_that_contains_node_position(
         return undefined;
     }
 
-    const descendant_function_name = Parser_node.find_descendant_position_if(ancestor_function.node, node => node.word.value === "Function_name");
+    const descendant_function_name = Parser_node.find_descendant_position_if(ancestor_function, node => node.word.value === "Function_name");
     if (descendant_function_name === undefined) {
         return undefined;
     }
@@ -1004,7 +1004,7 @@ export async function find_instantiate_member_from_node(
 
             // Try to match what the user wrote with the struct members to find the best match:
             if (find_best_match) {
-                const existent_member_names: string[] = Parser_node.find_descendants_if(members_node, node => node.word.value === "Expression_instantiate_member_name").map(value => value.node.children[0].word.value);
+                const existent_member_names: string[] = Parser_node.find_descendants_if({ node: members_node, position: [...ancestor_expression_instantiate.position, 2] }, node => node.word.value === "Expression_instantiate_member_name").map(value => value.node.children[0].word.value);
                 const inexistent_member_names = declaration_member_names.filter(member_name => existent_member_names.find(value => value === member_name) === undefined);
                 const best_member_name_match = find_best_string_match(current_member_name, inexistent_member_names);
                 const member_index = declaration_member_names.findIndex(member_name => member_name === best_member_name_match);
@@ -1114,7 +1114,7 @@ function get_previous_instantiate_member_name_at_cursor(
         ];
 
         const previous_member_node = Parser_node.get_node_at_position(root, previous_member_node_position);
-        const descendant_member_name = Parser_node.find_descendant_position_if(previous_member_node, node => node.word.value === "Expression_instantiate_member_name");
+        const descendant_member_name = Parser_node.find_descendant_position_if({ node: previous_member_node, position: previous_member_node_position }, node => node.word.value === "Expression_instantiate_member_name");
         if (descendant_member_name === undefined) {
             return undefined;
         }
@@ -1153,7 +1153,7 @@ export async function get_access_expression_components(
 
     const left_hand_side_expression = access_expression.expression;
     if (left_hand_side_expression.data.type === Core.Expression_enum.Access_expression) {
-        const descendant_left_hand_side = Parser_node.find_descendant_position_if(access_expression_node.children[0], child => child.word.value === "Expression_access");
+        const descendant_left_hand_side = Parser_node.find_descendant_position_if({ node: access_expression_node.children[0], position: [...access_expression_node_position, 0] }, child => child.word.value === "Expression_access");
         if (descendant_left_hand_side !== undefined) {
             const left_hand_side_components = await get_access_expression_components(core_module, left_hand_side_expression.data.value as Core.Access_expression, root, descendant_left_hand_side.node, [...access_expression_node_position, ...descendant_left_hand_side.position], get_core_module);
             components.push(...left_hand_side_components);
@@ -1161,7 +1161,7 @@ export async function get_access_expression_components(
     }
     else if (left_hand_side_expression.data.type === Core.Expression_enum.Variable_expression) {
         const variable_expression = left_hand_side_expression.data.value as Core.Variable_expression;
-        const descendant_variable_expression = Parser_node.find_descendant_position_if(access_expression_node.children[0], child => child.word.value === "Expression_variable");
+        const descendant_variable_expression = Parser_node.find_descendant_position_if({ node: access_expression_node.children[0], position: [...access_expression_node_position, 0] }, child => child.word.value === "Expression_variable");
         if (descendant_variable_expression !== undefined) {
             const import_module = core_module.imports.find(import_module => import_module.alias === variable_expression.name);
             if (import_module !== undefined) {

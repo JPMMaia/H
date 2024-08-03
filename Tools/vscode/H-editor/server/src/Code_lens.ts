@@ -44,12 +44,12 @@ export async function create(
     while (iterator.node !== undefined) {
         const struct_ancestor = Parser_node.get_ancestor_with_name(iterator.root, iterator.node_position, "Struct");
         if (struct_ancestor !== undefined) {
-            const struct_name_descendant = Parser_node.find_descendant_position_if(struct_ancestor.node, node => node.word.value === "Struct_name");
+            const struct_name_descendant = Parser_node.find_descendant_position_if(struct_ancestor, node => node.word.value === "Struct_name");
             if (struct_name_descendant !== undefined) {
                 const struct_name = struct_name_descendant.node.children[0].word.value;
                 const struct_layout = await get_struct_layout(server_data, workspace_uri, project, core_module, struct_name);
                 if (struct_layout !== undefined) {
-                    iterator = Parse_tree_text_iterator.go_to_next_node_position(iterator, [...struct_ancestor.position, ...struct_name_descendant.position]);
+                    iterator = Parse_tree_text_iterator.go_to_next_node_position(iterator, struct_name_descendant.position);
                     code_lens.push(
                         {
                             range: Helpers.create_vscode_range(iterator.line, iterator.column, iterator.line, iterator.column + struct_name.length),
@@ -60,11 +60,10 @@ export async function create(
                         }
                     );
 
-                    const struct_members_descendant = Parser_node.find_descendant_position_if(struct_ancestor.node, node => node.word.value === "Struct_members");
+                    const struct_members_descendant = Parser_node.find_descendant_position_if(struct_ancestor, node => node.word.value === "Struct_members");
                     if (struct_members_descendant !== undefined) {
-                        const struct_members_position = [...struct_ancestor.position, ...struct_members_descendant.position];
 
-                        const struct_member_name_descendants = Parser_node.find_descendants_if(struct_members_descendant.node, node => node.word.value === "Struct_member_name");
+                        const struct_member_name_descendants = Parser_node.find_descendants_if(struct_members_descendant, node => node.word.value === "Struct_member_name");
 
                         for (let index = 0; index < struct_member_name_descendants.length; ++index) {
                             if (index >= struct_layout.members.length) {
@@ -76,8 +75,7 @@ export async function create(
                             const struct_member_name = struct_member_name_descendant.node.children[0].word.value;
                             const struct_member_layout = struct_layout.members[index];
 
-                            const struct_member_name_position = [...struct_members_position, ...struct_member_name_descendant.position];
-                            iterator = Parse_tree_text_iterator.go_to_next_node_position(iterator, struct_member_name_position);
+                            iterator = Parse_tree_text_iterator.go_to_next_node_position(iterator, struct_member_name_descendant.position);
                             code_lens.push(
                                 {
                                     range: Helpers.create_vscode_range(iterator.line, iterator.column, iterator.line, iterator.column + struct_member_name.length),

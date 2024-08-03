@@ -377,7 +377,7 @@ export function get_terminal_node_vscode_range(
         return create_vscode_range(source_location.line, source_location.column, source_location.line, source_location.column + node.word.value.length);
     }
 
-    const descendant = Parser_node.find_descendant_position_if(node, node => node.children.length === 0);
+    const descendant = Parser_node.find_descendant_position_if({ node: node, position: node_position }, node => node.children.length === 0);
     if (descendant === undefined) {
         return undefined;
     }

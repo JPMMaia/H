@@ -494,7 +494,7 @@ function get_patch_and_convert_to_changes(
 
 function get_value_of_node_in_trees(node_0: Node, node_1: Node, key: string, transform: (node: Node) => any): { value_0: any, value_1: any, position: number[] } {
 
-    const value_node_0 = find_descendant_position_if(node_0, node => node.word.value === key) as { node: Node, position: number[] };
+    const value_node_0 = find_descendant_position_if({ node: node_0, position: [] }, node => node.word.value === key) as { node: Node, position: number[] };
     const value_node_1 = get_node_at_position(node_1, value_node_0.position);
 
     const value_0 = transform(value_node_0.node);
@@ -550,7 +550,7 @@ function apply_module_change_simplications(root: Node, parse_tree_changes: Chang
             }
 
             {
-                const root_imports = find_descendant_position_if(root, node => node.word.value === "Imports") as { node: Node, position: number[] };
+                const root_imports = find_descendant_position_if({ node: root, position: [] }, node => node.word.value === "Imports") as { node: Node, position: number[] };
                 const new_imports_node = get_node_at_position(new_node, root_imports.position);
 
                 const patch_changes = apply_patch(root_imports.node.children, new_imports_node.children, root_imports.position);
@@ -558,7 +558,7 @@ function apply_module_change_simplications(root: Node, parse_tree_changes: Chang
             }
 
             {
-                const root_declarations = find_descendant_position_if(root, node => node.word.value === "Module_body") as { node: Node, position: number[] };
+                const root_declarations = find_descendant_position_if({ node: root, position: [] }, node => node.word.value === "Module_body") as { node: Node, position: number[] };
                 const new_declarations_node = get_node_at_position(new_node, root_declarations.position);
 
                 const patch_changes = apply_patch(root_declarations.node.children, new_declarations_node.children, root_declarations.position);
