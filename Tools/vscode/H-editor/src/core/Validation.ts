@@ -221,6 +221,7 @@ async function validate_enum(
 
     diagnostics.push(...validate_member_names_are_different(uri, enum_name, descendant_enum_values, "Enum_value_name"));
     diagnostics.push(...await validate_enum_value_generic_expressions(uri, language_description, text, core_module, declaration, root, descendant_enum_values, get_core_module));
+    diagnostics.push(...validate_member_expressions_are_computed_at_compile_time(uri, declaration.name, descendant_enum_values, "Enum_value_name", "Generic_expression"));
 
     return diagnostics;
 }
@@ -303,6 +304,65 @@ function validate_member_names_are_different(
             message: `Duplicate member name '${declaration_name}.${member_name}'.`,
             related_information: [],
         });
+    }
+
+    return diagnostics;
+}
+
+function validate_member_expressions_are_computed_at_compile_time(
+    uri: string,
+    declaration_name: string,
+    members: { node: Parser_node.Node, position: number[] }[],
+    member_name_node_name: string,
+    expression_node_name: string
+): Diagnostic[] {
+
+    const diagnostics: Diagnostic[] = [];
+
+    for (let member_index = 0; member_index < members.length; ++member_index) {
+        const descendant_member = members[member_index];
+
+        const descendant_expression = Parser_node.find_descendant_position_if(descendant_member, node => node.word.value === expression_node_name);
+        if (descendant_expression === undefined) {
+            continue;
+        }
+
+        const non_constant_descendants = Parser_node.find_descendant_position_if(descendant_expression, node => {
+
+            if (node.production_rule_index === undefined) {
+                return false;
+            }
+
+            if (node.word.value.startsWith("Generic_expression") || node.word.value.startsWith("Expression_level")) {
+                return false;
+            }
+
+            if (node.word.value.startsWith("Expression_binary")) {
+                return false;
+            }
+
+            if (node.word.value === "Expression_constant") {
+                return false;
+            }
+
+            return true;
+        });
+
+        if (non_constant_descendants !== undefined) {
+
+            const descendant_member_name = Parser_node.find_descendant_position_if(descendant_member, node => node.word.value === member_name_node_name);
+            if (descendant_member_name !== undefined) {
+                const member_name = descendant_member_name.node.children[0].word.value;
+
+                diagnostics.push({
+                    location: get_parser_node_source_location(uri, descendant_expression.node),
+                    source: Source.Parse_tree_validation,
+                    severity: Diagnostic_severity.Error,
+                    message: `The value of '${declaration_name}.${member_name}' must be a computable at compile-time.`,
+                    related_information: [],
+                });
+            }
+        }
     }
 
     return diagnostics;
