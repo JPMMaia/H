@@ -2,6 +2,7 @@ import "mocha";
 
 import * as assert from "assert";
 
+import * as Core from "./Core_intermediate_representation";
 import * as Grammar from "./Grammar";
 import * as Language from "./Language";
 import * as Parser_node from "./Parser_node";
@@ -284,10 +285,11 @@ describe("Validation of scanned input", () => {
     });
 });
 
-function test_validate_parser_node_with_text(
+async function test_validate_module(
     input_text: string,
+    input_dependencies_text: string[],
     expected_diagnostics: Validation.Diagnostic[]
-): void {
+): Promise<void> {
 
     const cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
     const language_description = Language.create_default_description(cache, "out/tests/graphviz.gv");
@@ -295,12 +297,45 @@ function test_validate_parser_node_with_text(
     const uri = create_dummy_uri();
 
     const parse_result = Text_change.full_parse_with_source_locations(language_description, uri, input_text);
+
+    assert.notEqual(parse_result.module, undefined);
+    if (parse_result.module === undefined) {
+        return;
+    }
+
     assert.notEqual(parse_result.parse_tree, undefined);
     if (parse_result.parse_tree === undefined) {
         return;
     }
 
-    const actual_diagnostics = Validation.validate_parser_node(uri, create_dummy_node_position(), parse_result.parse_tree);
+    const dependencies_parse_result: { module: Core.Module, parse_tree: Parser_node.Node }[] = input_dependencies_text.map(text => {
+        const parse_result = Text_change.full_parse_with_source_locations(language_description, uri, text);
+        assert.notEqual(parse_result.module, undefined);
+        assert.notEqual(parse_result.parse_tree, undefined);
+        return {
+            module: parse_result.module as Core.Module,
+            parse_tree: parse_result.parse_tree as Parser_node.Node,
+        };
+    });
+
+    const get_core_module = async (module_name: string): Promise<Core.Module | undefined> => {
+        const dependency = dependencies_parse_result.find(dependency => dependency.module.name === module_name);
+        if (dependency === undefined) {
+            return undefined;
+        }
+        return dependency.module;
+    };
+
+    const actual_diagnostics = await Validation.validate_module(
+        uri,
+        language_description,
+        input_text,
+        parse_result.module,
+        parse_result.parse_tree,
+        [],
+        parse_result.parse_tree,
+        get_core_module
+    );
     assert.deepEqual(actual_diagnostics, expected_diagnostics);
 }
 
@@ -310,7 +345,7 @@ describe("Validation of structs", () => {
     // - Member default values types must match member types
     // - Member default values can only using instantiate or constant expressions
 
-    it("Validates that member names are different from each other", () => {
+    it("Validates that member names are different from each other", async () => {
         const input = `module Test;
 
 struct My_struct
@@ -338,10 +373,10 @@ struct My_struct
             }
         ];
 
-        test_validate_parser_node_with_text(input, expected_diagnostics);
+        await test_validate_module(input, [], expected_diagnostics);
     });
 
-    it("Validates that member default values types must match member types", () => {
+    it("Validates that member default values types must match member types", async () => {
         const input = `module Test;
 
 struct My_struct
@@ -361,10 +396,10 @@ struct My_struct
             }
         ];
 
-        test_validate_parser_node_with_text(input, expected_diagnostics);
+        await test_validate_module(input, [], expected_diagnostics);
     });
 
-    it("Validates that member default values only use compile time expressions", () => {
+    it("Validates that member default values only use compile time expressions", async () => {
         const input = `module Test;
 
 function get_value() -> (result: Int32)
@@ -389,7 +424,7 @@ struct My_struct
             }
         ];
 
-        test_validate_parser_node_with_text(input, expected_diagnostics);
+        await test_validate_module(input, [], expected_diagnostics);
     });
 });
 
@@ -397,7 +432,7 @@ describe("Validation of unions", () => {
 
     // - Member names must different
 
-    it("Validates that member names are different from each other", () => {
+    it("Validates that member names are different from each other", async () => {
         const input = `module Test;
 
 union My_union
@@ -425,7 +460,7 @@ union My_union
             }
         ];
 
-        test_validate_parser_node_with_text(input, expected_diagnostics);
+        await test_validate_module(input, [], expected_diagnostics);
     });
 });
 
@@ -435,7 +470,7 @@ describe("Validation of enums", () => {
     // - Enum values need to be computed at compile-time
     // - Enum values types must be i32
 
-    it("Validates that enum member names are different from each other", () => {
+    it("Validates that enum member names are different from each other", async () => {
         const input = `module Test;
 
 enum My_enum
@@ -463,10 +498,10 @@ enum My_enum
             }
         ];
 
-        test_validate_parser_node_with_text(input, expected_diagnostics);
+        await test_validate_module(input, [], expected_diagnostics);
     });
 
-    it("Validates that enum values are signed 32-bit integers", () => {
+    it("Validates that enum values are signed 32-bit integers", async () => {
         const input = `module Test;
 
 enum My_enum
@@ -486,7 +521,7 @@ enum My_enum
                 related_information: [],
             },
             {
-                location: create_diagnostic_location(6, 9, 6, 15),
+                location: create_diagnostic_location(7, 9, 7, 15),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
                 message: "The enum value assigned to 'My_enum.c' must be a Int32 type.",
@@ -494,10 +529,10 @@ enum My_enum
             }
         ];
 
-        test_validate_parser_node_with_text(input, expected_diagnostics);
+        await test_validate_module(input, [], expected_diagnostics);
     });
 
-    it("Validates that enum values can be computed at compile-time", () => {
+    it("Validates that enum values can be computed at compile-time", async () => {
         const input = `module Test;
 
 function get_value() -> (result: Int32)
@@ -522,7 +557,7 @@ enum My_enum
             }
         ];
 
-        test_validate_parser_node_with_text(input, expected_diagnostics);
+        await test_validate_module(input, [], expected_diagnostics);
     });
 });
 
@@ -530,7 +565,7 @@ describe("Validation of integer types", () => {
 
     // - Number of bits cannot be larger than 64
 
-    it("Validates that number of bits cannot be larger than 64", () => {
+    it("Validates that number of bits cannot be larger than 64", async () => {
         const input = `module Test;
 
 using My_int = Int65;
@@ -554,7 +589,7 @@ using My_uint = Uint65;
             }
         ];
 
-        test_validate_parser_node_with_text(input, expected_diagnostics);
+        await test_validate_module(input, [], expected_diagnostics);
     });
 });
 
@@ -562,7 +597,7 @@ describe("Validation of custom type references", () => {
 
     // - Must refer to an existing type
 
-    it("Validates that a type exists", () => {
+    it("Validates that a type exists", async () => {
         const input = `module Test;
 
 using My_type = My_struct;
@@ -578,7 +613,7 @@ using My_type = My_struct;
             }
         ];
 
-        test_validate_parser_node_with_text(input, expected_diagnostics);
+        await test_validate_module(input, [], expected_diagnostics);
     });
 });
 
@@ -587,7 +622,7 @@ describe("Validation of imports", () => {
     // - Inexistent modules
     // - Duplicate alias
 
-    it("Validates that a import alias is a not a duplicate", () => {
+    it("Validates that a import alias is a not a duplicate", async () => {
         const input = `module Test;
 
 import module_a as module_a;
@@ -611,10 +646,10 @@ import module_b as module_a;
             }
         ];
 
-        test_validate_parser_node_with_text(input, expected_diagnostics);
+        await test_validate_module(input, [], expected_diagnostics);
     });
 
-    it("Validates that a import module exists", () => {
+    it("Validates that a import module exists", async () => {
         const input = `module Test;
 
 import module_a as module_a;
@@ -632,7 +667,7 @@ import module_a as module_a;
 
         // TODO figure out how to do this test
 
-        test_validate_parser_node_with_text(input, expected_diagnostics);
+        await test_validate_module(input, [], expected_diagnostics);
     });
 });
 
@@ -641,7 +676,7 @@ describe("Validation of declarations", () => {
     // - Must have different names
     // - Names must not collide with existing types
 
-    it("Validates that a declaration name is not a duplicate", () => {
+    it("Validates that a declaration name is not a duplicate", async () => {
         const input = `module Test;
 
 struct My_type
@@ -670,10 +705,10 @@ union My_type
             }
         ];
 
-        test_validate_parser_node_with_text(input, expected_diagnostics);
+        await test_validate_module(input, [], expected_diagnostics);
     });
 
-    it("Validates that a declaration name is not a builtin type", () => {
+    it("Validates that a declaration name is not a builtin type", async () => {
         const input = `module Test;
 
 struct Int32
@@ -711,7 +746,7 @@ using true = Float32;
             }
         ];
 
-        test_validate_parser_node_with_text(input, expected_diagnostics);
+        await test_validate_module(input, [], expected_diagnostics);
     });
 });
 
