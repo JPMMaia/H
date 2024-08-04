@@ -1,4 +1,7 @@
+import * as Core from "./Core_intermediate_representation";
 import * as Grammar from "./Grammar";
+import * as Language from "./Language";
+import * as Parse_tree_analysis from "./Parse_tree_analysis";
 import * as Parser_node from "./Parser_node";
 import * as Scanner from "./Scanner";
 
@@ -102,13 +105,15 @@ export function validate_parser_node(
     const node_queue = [new_node];
     const node_position_queue = [new_node_position];
 
+    const diagnostics: Diagnostic[] = [];
+
     while (node_queue.length > 0) {
         const current_node = node_queue.shift() as Parser_node.Node;
         const current_node_position = node_position_queue.shift() as number[];
 
-        const diagnostics = validate_current_parser_node(uri, current_node);
-        if (diagnostics.length > 0) {
-            return diagnostics;
+        if (current_node.production_rule_index !== undefined) {
+            const node_diagnostics = validate_current_parser_node(uri, { node: current_node, position: current_node_position });
+            diagnostics.push(...node_diagnostics);
         }
 
         for (let child_index = 0; child_index < current_node.children.length; ++child_index) {
@@ -117,21 +122,190 @@ export function validate_parser_node(
         }
     }
 
-    return [];
+    return diagnostics;
+}
+
+export async function validate_module(
+    uri: string,
+    language_description: Language.Description,
+    text: string,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    new_node_position: number[],
+    new_node: Parser_node.Node,
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+
+    const node_queue = [new_node];
+    const node_position_queue = [new_node_position];
+
+    const diagnostics: Diagnostic[] = [];
+
+    while (node_queue.length > 0) {
+        const current_node = node_queue.shift() as Parser_node.Node;
+        const current_node_position = node_position_queue.shift() as number[];
+
+        if (current_node.production_rule_index !== undefined) {
+            const node_diagnostics = await validate_current_parser_node_with_module(uri, language_description, text, core_module, root, { node: current_node, position: current_node_position }, get_core_module);
+            diagnostics.push(...node_diagnostics);
+        }
+
+        for (let child_index = 0; child_index < current_node.children.length; ++child_index) {
+            node_queue.push(current_node.children[child_index]);
+            node_position_queue.push(current_node_position);
+        }
+    }
+
+    return diagnostics;
 }
 
 function validate_current_parser_node(
     uri: string,
-    new_node: Parser_node.Node
+    new_value: { node: Parser_node.Node, position: number[] }
 ): Diagnostic[] {
 
-    switch (new_node.word.value) {
+    switch (new_value.node.word.value) {
         case "Expression_constant": {
-            return validate_constant_expression(uri, new_node.children[0]);
+            return validate_constant_expression(uri, new_value.node.children[0]);
         }
     }
 
     return [];
+}
+
+async function validate_current_parser_node_with_module(
+    uri: string,
+    language_description: Language.Description,
+    text: string,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    new_value: { node: Parser_node.Node, position: number[] },
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+
+    switch (new_value.node.word.value) {
+        case "Enum": {
+            return await validate_enum(uri, language_description, text, core_module, root, new_value, get_core_module);
+        }
+        case "Expression_constant": {
+            return validate_constant_expression(uri, new_value.node.children[0]);
+        }
+    }
+
+    return [];
+}
+
+async function validate_enum(
+    uri: string,
+    language_description: Language.Description,
+    text: string,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    descendant_enum: { node: Parser_node.Node, position: number[] },
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+
+    const diagnostics: Diagnostic[] = [];
+
+    const descendant_enum_name = Parser_node.find_descendant_position_if(descendant_enum, descendant => descendant.word.value === "Enum_name");
+    if (descendant_enum_name === undefined) {
+        return diagnostics;
+    }
+    const enum_name = descendant_enum_name.node.children[0].word.value;
+    const declaration = core_module.declarations.find(declaration => declaration.name === enum_name);
+    if (declaration === undefined) {
+        return diagnostics;
+    }
+
+    const descendant_enum_values = Parser_node.find_descendants_if(descendant_enum, descendant => descendant.word.value === "Enum_value");
+
+    diagnostics.push(...validate_member_names_are_different(uri, enum_name, descendant_enum_values, "Enum_value_name"));
+    diagnostics.push(...await validate_enum_value_generic_expressions(uri, language_description, text, core_module, declaration, root, descendant_enum_values, get_core_module));
+
+    return diagnostics;
+}
+
+async function validate_enum_value_generic_expressions(
+    uri: string,
+    language_description: Language.Description,
+    text: string,
+    core_module: Core.Module,
+    declaration: Core.Declaration,
+    root: Parser_node.Node,
+    members: { node: Parser_node.Node, position: number[] }[],
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+
+    const diagnostics: Diagnostic[] = [];
+
+    const descendant_expressions = members.map(member => Parser_node.find_descendant_position_if(member, node => node.word.value === "Generic_expression"));
+
+    const int32_type = Parse_tree_analysis.create_integer_type(32, true);
+
+    for (let member_index = 0; member_index < members.length; ++member_index) {
+        const descendant_member = members[member_index];
+        const descendant_expression = descendant_expressions[member_index];
+        if (descendant_expression === undefined) {
+            continue;
+        }
+
+        const expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_expression.node);
+        const expression_type = await Parse_tree_analysis.get_expression_type(core_module, declaration, root, descendant_expression.position, expression, get_core_module);
+        if (!deep_equal(expression_type, int32_type)) {
+
+            const descendant_member_name = Parser_node.find_descendant_position_if(descendant_member, node => node.word.value === "Enum_value_name");
+            if (descendant_member_name !== undefined) {
+                const member_name = descendant_member_name.node.children[0].word.value;
+
+                diagnostics.push({
+                    location: get_parser_node_source_location(uri, descendant_expression.node),
+                    source: Source.Parse_tree_validation,
+                    severity: Diagnostic_severity.Error,
+                    message: `The enum value assigned to '${declaration.name}.${member_name}' must be a Int32 type.`,
+                    related_information: [],
+                });
+            }
+        }
+    }
+
+    return diagnostics;
+}
+
+function validate_member_names_are_different(
+    uri: string,
+    declaration_name: string,
+    members: { node: Parser_node.Node, position: number[] }[],
+    member_name_node_name: string
+): Diagnostic[] {
+
+    const diagnostics: Diagnostic[] = [];
+
+    const descendant_member_names = members.map(member => Parser_node.find_descendant_position_if(member, node => node.word.value === member_name_node_name));
+    const member_names = descendant_member_names.map(value => value !== undefined ? value.node.children[0].word.value : "");
+
+    for (let member_index = 0; member_index < descendant_member_names.length; ++member_index) {
+        const descendant_member_name = descendant_member_names[member_index];
+        if (descendant_member_name === undefined) {
+            continue;
+        }
+
+        const member_name = member_names[member_index];
+
+        const duplicate_index = member_names.findIndex((current_name, current_index) => current_index !== member_index && current_name === member_name);
+        if (duplicate_index === -1) {
+            continue;
+        }
+
+        diagnostics.push({
+            location: get_parser_node_source_location(uri, descendant_member_name.node.children[0]),
+            source: Source.Parse_tree_validation,
+            severity: Diagnostic_severity.Error,
+            message: `Duplicate member name '${declaration_name}.${member_name}'.`,
+            related_information: [],
+        });
+    }
+
+    return diagnostics;
 }
 
 function validate_constant_expression(
@@ -255,7 +429,21 @@ function get_parser_node_source_location(
     uri: string,
     node: Parser_node.Node
 ): Location {
-    return get_scanned_word_source_location(uri, node.word);
+    const range = Parse_tree_analysis.find_node_range_using_scanned_word_source_location(node);
+
+    return {
+        uri: uri,
+        range: {
+            start: {
+                line: range.start.line,
+                column: range.start.column,
+            },
+            end: {
+                line: range.end.line,
+                column: range.end.column,
+            },
+        }
+    };
 }
 
 function get_scanned_word_source_location(
@@ -277,4 +465,34 @@ function get_scanned_word_source_location(
             },
         }
     };
+}
+
+function deep_equal(obj1: any, obj2: any): boolean {
+
+    if (typeof obj1 !== 'object' || typeof obj2 !== 'object') {
+        return obj1 === obj2;
+    }
+
+    if (obj1 === null && obj2 === null) {
+        return true;
+    }
+
+    const keys1 = Object.keys(obj1);
+    const keys2 = Object.keys(obj2);
+
+    if (keys1.length !== keys2.length) {
+        return false;
+    }
+
+    for (const key of keys1) {
+        if (key === "source_location") {
+            continue;
+        }
+
+        if (!deep_equal(obj1[key], obj2[key])) {
+            return false;
+        }
+    }
+
+    return true;
 }
