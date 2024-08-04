@@ -319,6 +319,10 @@ async function test_validate_module(
     });
 
     const get_core_module = async (module_name: string): Promise<Core.Module | undefined> => {
+        if (module_name === parse_result.module?.name) {
+            return parse_result.module;
+        }
+
         const dependency = dependencies_parse_result.find(dependency => dependency.module.name === module_name);
         if (dependency === undefined) {
             return undefined;
@@ -549,10 +553,10 @@ enum My_enum
 
         const expected_diagnostics: Validation.Diagnostic[] = [
             {
-                location: create_diagnostic_location(6, 9, 6, 20),
+                location: create_diagnostic_location(11, 9, 11, 20),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "The enum value assigned to 'My_struct.b' must be a compile-time expression.",
+                message: "The value of 'My_enum.b' must be a computable at compile-time.",
                 related_information: [],
             }
         ];
