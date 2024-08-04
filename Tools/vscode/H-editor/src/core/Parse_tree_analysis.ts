@@ -7,6 +7,7 @@ import * as Parse_tree_text_iterator from "./Parse_tree_text_iterator";
 import * as Parser from "./Parser";
 import * as Parser_node from "./Parser_node";
 import * as Scan_new_changes from "./Scan_new_changes";
+import * as Scanner from "./Scanner";
 import * as Text_formatter from "./Text_formatter";
 
 export function find_statement(
@@ -128,7 +129,8 @@ export async function find_variable_type(
             if (core_statement.expression.data.type === Core.Expression_enum.Variable_declaration_expression) {
                 const expression = core_statement.expression.data.value as Core.Variable_declaration_expression;
                 if (expression.name === variable_name) {
-                    const expression_type = await get_expression_type(core_module, function_value, root, scope_node_position, expression.right_hand_side, get_core_module);
+                    const declaration = create_declaration_from_function_value(function_value);
+                    const expression_type = await get_expression_type(core_module, declaration, root, scope_node_position, expression.right_hand_side, get_core_module);
                     if (expression_type !== undefined) {
                         matches.push(expression_type);
                     }
@@ -143,7 +145,8 @@ export async function find_variable_type(
             else if (core_statement.expression.data.type === Core.Expression_enum.For_loop_expression) {
                 const expression = core_statement.expression.data.value as Core.For_loop_expression;
                 if (expression.variable_name === variable_name) {
-                    const expression_type = await get_expression_type(core_module, function_value, root, scope_node_position, expression.range_begin, get_core_module);
+                    const declaration = create_declaration_from_function_value(function_value);
+                    const expression_type = await get_expression_type(core_module, declaration, root, scope_node_position, expression.range_begin, get_core_module);
                     if (expression_type !== undefined) {
                         matches.push(expression_type);
                     }
@@ -287,7 +290,7 @@ function go_to_next_block(
 
 export async function get_expression_type(
     core_module: Core.Module,
-    function_value: Core.Function,
+    scope_declaration: Core.Declaration,
     root: Parser_node.Node,
     scope_node_position: number[],
     expression: Core.Expression,
@@ -327,7 +330,7 @@ export async function get_expression_type(
                 }
             }
 
-            const left_hand_side_type = await get_expression_type(core_module, function_value, root, scope_node_position, value.expression, get_core_module);
+            const left_hand_side_type = await get_expression_type(core_module, scope_declaration, root, scope_node_position, value.expression, get_core_module);
             if (left_hand_side_type !== undefined) {
                 if (left_hand_side_type.data.type === Core.Type_reference_enum.Custom_type_reference) {
                     const custom_type_reference = left_hand_side_type.data.value as Core.Custom_type_reference;
@@ -398,11 +401,11 @@ export async function get_expression_type(
                     return create_boolean_type();
             }
 
-            return get_expression_type(core_module, function_value, root, scope_node_position, value.left_hand_side, get_core_module);
+            return get_expression_type(core_module, scope_declaration, root, scope_node_position, value.left_hand_side, get_core_module);
         }
         case Core.Expression_enum.Call_expression: {
             const value = expression.data.value as Core.Call_expression;
-            const left_hand_side_type = await get_expression_type(core_module, function_value, root, scope_node_position, value.expression, get_core_module);
+            const left_hand_side_type = await get_expression_type(core_module, scope_declaration, root, scope_node_position, value.expression, get_core_module);
             if (left_hand_side_type !== undefined) {
                 if (left_hand_side_type.data.type === Core.Type_reference_enum.Custom_type_reference) {
                     const custom_type_reference = left_hand_side_type.data.value as Core.Custom_type_reference;
@@ -439,15 +442,15 @@ export async function get_expression_type(
         }
         case Core.Expression_enum.Parenthesis_expression: {
             const value = expression.data.value as Core.Parenthesis_expression;
-            return get_expression_type(core_module, function_value, root, scope_node_position, value.expression, get_core_module);
+            return get_expression_type(core_module, scope_declaration, root, scope_node_position, value.expression, get_core_module);
         }
         case Core.Expression_enum.Ternary_condition_expression: {
             const value = expression.data.value as Core.Ternary_condition_expression;
-            return get_expression_type(core_module, function_value, root, scope_node_position, value.then_statement.expression, get_core_module);
+            return get_expression_type(core_module, scope_declaration, root, scope_node_position, value.then_statement.expression, get_core_module);
         }
         case Core.Expression_enum.Unary_expression: {
             const value = expression.data.value as Core.Unary_expression;
-            const expression_type = await get_expression_type(core_module, function_value, root, scope_node_position, value.expression, get_core_module);
+            const expression_type = await get_expression_type(core_module, scope_declaration, root, scope_node_position, value.expression, get_core_module);
             if (expression_type !== undefined) {
                 if (value.operation === Core.Unary_operation.Address_of) {
                     return create_pointer_type([expression_type], false);
@@ -469,9 +472,11 @@ export async function get_expression_type(
         case Core.Expression_enum.Variable_expression: {
             const value = expression.data.value as Core.Variable_expression;
 
-            const variable_type = await find_variable_type(core_module, function_value, root, scope_node_position, value.name, get_core_module);
-            if (variable_type !== undefined) {
-                return variable_type;
+            if (scope_declaration.type === Core.Declaration_type.Function) {
+                const variable_type = await find_variable_type(core_module, scope_declaration.value as Core.Function, root, scope_node_position, value.name, get_core_module);
+                if (variable_type !== undefined) {
+                    return variable_type;
+                }
             }
 
             const declaration = core_module.declarations.find(declaration => declaration.name === value.name);
@@ -904,7 +909,8 @@ export async function find_instantiate_custom_type_reference_from_node(
         if (function_value !== undefined) {
             const left_hand_side_node = ancestor_assignment_expression.node.children[0];
             const left_hand_side_expression = get_expression_from_node(language_description, core_module, left_hand_side_node);
-            const left_hand_side_type = await get_expression_type(core_module, function_value, root, node_position, left_hand_side_expression, get_core_module);
+            const declaration = create_declaration_from_function_value(function_value);
+            const left_hand_side_type = await get_expression_type(core_module, declaration, root, node_position, left_hand_side_expression, get_core_module);
             if (left_hand_side_type !== undefined && left_hand_side_type.data.type === Core.Type_reference_enum.Custom_type_reference) {
                 return left_hand_side_type.data.value as Core.Custom_type_reference;
             }
@@ -1177,7 +1183,8 @@ export async function get_access_expression_components(
             else {
                 const function_value = get_function_value_that_contains_node_position(core_module, root, access_expression_node_position);
                 if (function_value !== undefined) {
-                    const left_hand_side_type = await get_expression_type(core_module, function_value, root, access_expression_node_position, left_hand_side_expression, get_core_module);
+                    const declaration = create_declaration_from_function_value(function_value);
+                    const left_hand_side_type = await get_expression_type(core_module, declaration, root, access_expression_node_position, left_hand_side_expression, get_core_module);
                     if (left_hand_side_type !== undefined) {
                         if (left_hand_side_type.data.type === Core.Type_reference_enum.Custom_type_reference) {
                             const custom_type_reference = left_hand_side_type.data.value as Core.Custom_type_reference;
@@ -1307,7 +1314,7 @@ export function find_node_range(
     text: string
 ): Text_range | undefined {
 
-    let begin_iterator = Parse_tree_text_iterator.begin(root, text);
+    const begin_iterator = Parse_tree_text_iterator.begin(root, text);
 
     const start_iterator = Parse_tree_text_iterator.go_to_next_node_position(begin_iterator, node_position);
     if (start_iterator.node === undefined) {
@@ -1345,6 +1352,38 @@ export function find_node_range(
             line: end_iterator.line,
             column: end_iterator.column + end_iterator.node.word.value.length,
             offset: end_iterator.offset + end_iterator.node.word.value.length
+        }
+    };
+}
+
+export function find_node_range_using_scanned_word_source_location(
+    node: Parser_node.Node
+): { start: Scanner.Source_location, end: Scanner.Source_location } {
+
+    if (node.children.length === 0) {
+        return {
+            start: {
+                line: node.word.source_location.line,
+                column: node.word.source_location.column
+            },
+            end: {
+                line: node.word.source_location.line,
+                column: node.word.source_location.column + node.word.value.length
+            }
+        };
+    }
+
+    const left_most_descedant = Parser_node.get_leftmost_descendant(node, []) as { node: Parser_node.Node, position: number[] };
+    const right_most_descendant = Parser_node.get_rightmost_descendant_terminal_node(node, []) as { node: Parser_node.Node, position: number[] };
+
+    return {
+        start: {
+            line: left_most_descedant.node.word.source_location.line,
+            column: left_most_descedant.node.word.source_location.column
+        },
+        end: {
+            line: right_most_descendant.node.word.source_location.line,
+            column: right_most_descendant.node.word.source_location.column + right_most_descendant.node.word.value.length
         }
     };
 }
@@ -1427,6 +1466,26 @@ export function format_text(
     return undefined;
 }
 
+export function create_declaration_from_enum_declaration(enum_declaration: Core.Enum_declaration): Core.Declaration {
+    const declaration: Core.Declaration = {
+        name: enum_declaration.name,
+        type: Core.Declaration_type.Function,
+        is_export: false,
+        value: enum_declaration
+    };
+    return declaration;
+}
+
+export function create_declaration_from_function_value(function_value: Core.Function): Core.Declaration {
+    const declaration: Core.Declaration = {
+        name: function_value.declaration.name,
+        type: Core.Declaration_type.Function,
+        is_export: false,
+        value: function_value
+    };
+    return declaration;
+}
+
 function create_pointer_type(element_type: Core.Type_reference[], is_mutable: boolean): Core.Type_reference {
     return {
         data: {
@@ -1462,7 +1521,7 @@ function create_custom_type_reference(module_name: string, name: string): Core.T
     };
 }
 
-function create_integer_type(number_of_bits: number, is_signed: boolean): Core.Type_reference {
+export function create_integer_type(number_of_bits: number, is_signed: boolean): Core.Type_reference {
     return {
         data: {
             type: Core.Type_reference_enum.Integer_type,

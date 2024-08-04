@@ -570,6 +570,13 @@ export function get_children(ancestor: { node: Node, position: number[] }): { no
     });
 }
 
+export function get_child(ancestor: { node: Node, position: number[] }, child_index: number): { node: Node, position: number[] } {
+    return {
+        node: ancestor.node.children[child_index],
+        position: [...ancestor.position, child_index]
+    };
+}
+
 export function has_ancestor_with_name(
     root: Node,
     node_position: number[],
