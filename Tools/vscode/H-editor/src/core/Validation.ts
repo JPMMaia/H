@@ -187,6 +187,9 @@ async function validate_current_parser_node_with_module(
         case "Enum": {
             return await validate_enum(uri, language_description, text, core_module, root, new_value, get_core_module);
         }
+        case "Union": {
+            return validate_union(uri, core_module, new_value);
+        }
         case "Expression_constant": {
             return validate_constant_expression(uri, new_value.node.children[0]);
         }
@@ -222,6 +225,31 @@ async function validate_enum(
     diagnostics.push(...validate_member_names_are_different(uri, enum_name, descendant_enum_values, "Enum_value_name"));
     diagnostics.push(...await validate_enum_value_generic_expressions(uri, language_description, text, core_module, declaration, root, descendant_enum_values, get_core_module));
     diagnostics.push(...validate_member_expressions_are_computed_at_compile_time(uri, declaration.name, descendant_enum_values, "Enum_value_name", "Generic_expression"));
+
+    return diagnostics;
+}
+
+function validate_union(
+    uri: string,
+    core_module: Core.Module,
+    descendant_union: { node: Parser_node.Node, position: number[] }
+): Diagnostic[] {
+
+    const diagnostics: Diagnostic[] = [];
+
+    const descendant_union_name = Parser_node.find_descendant_position_if(descendant_union, descendant => descendant.word.value === "Union_name");
+    if (descendant_union_name === undefined) {
+        return diagnostics;
+    }
+    const union_name = descendant_union_name.node.children[0].word.value;
+    const declaration = core_module.declarations.find(declaration => declaration.name === union_name);
+    if (declaration === undefined) {
+        return diagnostics;
+    }
+
+    const descendant_union_values = Parser_node.find_descendants_if(descendant_union, descendant => descendant.word.value === "Union_member");
+
+    diagnostics.push(...validate_member_names_are_different(uri, union_name, descendant_union_values, "Union_member_name"));
 
     return diagnostics;
 }
