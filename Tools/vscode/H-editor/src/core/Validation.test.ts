@@ -392,10 +392,10 @@ struct My_struct
 
         const expected_diagnostics: Validation.Diagnostic[] = [
             {
-                location: create_diagnostic_location(6, 5, 6, 22),
+                location: create_diagnostic_location(6, 16, 6, 22),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "The default value of 'My_struct.b' does not match the member type.",
+                message: "Cannot assign expression of type 'Float32' to 'My_struct.b' of type 'Int32'.",
                 related_information: [],
             }
         ];
@@ -420,10 +420,10 @@ struct My_struct
 
         const expected_diagnostics: Validation.Diagnostic[] = [
             {
-                location: create_diagnostic_location(6, 16, 6, 27),
+                location: create_diagnostic_location(11, 16, 11, 27),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "The default value expression assigned to 'My_struct.b' must be a compile-time expression.",
+                message: "The value of 'My_struct.b' must be a computable at compile-time.",
                 related_information: [],
             }
         ];

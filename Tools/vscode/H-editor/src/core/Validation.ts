@@ -4,6 +4,7 @@ import * as Language from "./Language";
 import * as Parse_tree_analysis from "./Parse_tree_analysis";
 import * as Parser_node from "./Parser_node";
 import * as Scanner from "./Scanner";
+import * as Type_utilities from "./Type_utilities";
 
 export interface Position {
     line: number;
@@ -185,7 +186,10 @@ async function validate_current_parser_node_with_module(
 
     switch (new_value.node.word.value) {
         case "Enum": {
-            return await validate_enum(uri, language_description, text, core_module, root, new_value, get_core_module);
+            return await validate_enum(uri, language_description, core_module, root, new_value, get_core_module);
+        }
+        case "Struct": {
+            return await validate_struct(uri, language_description, core_module, root, new_value, get_core_module);
         }
         case "Union": {
             return validate_union(uri, core_module, new_value);
@@ -201,7 +205,6 @@ async function validate_current_parser_node_with_module(
 async function validate_enum(
     uri: string,
     language_description: Language.Description,
-    text: string,
     core_module: Core.Module,
     root: Parser_node.Node,
     descendant_enum: { node: Parser_node.Node, position: number[] },
@@ -223,8 +226,39 @@ async function validate_enum(
     const descendant_enum_values = Parser_node.find_descendants_if(descendant_enum, descendant => descendant.word.value === "Enum_value");
 
     diagnostics.push(...validate_member_names_are_different(uri, enum_name, descendant_enum_values, "Enum_value_name"));
-    diagnostics.push(...await validate_enum_value_generic_expressions(uri, language_description, text, core_module, declaration, root, descendant_enum_values, get_core_module));
+    diagnostics.push(...await validate_enum_value_generic_expressions(uri, language_description, core_module, declaration, root, descendant_enum_values, get_core_module));
     diagnostics.push(...validate_member_expressions_are_computed_at_compile_time(uri, declaration.name, descendant_enum_values, "Enum_value_name", "Generic_expression"));
+
+    return diagnostics;
+}
+
+async function validate_struct(
+    uri: string,
+    language_description: Language.Description,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    descendant_struct: { node: Parser_node.Node, position: number[] },
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+
+    const diagnostics: Diagnostic[] = [];
+
+    const descendant_struct_name = Parser_node.find_descendant_position_if(descendant_struct, descendant => descendant.word.value === "Struct_name");
+    if (descendant_struct_name === undefined) {
+        return diagnostics;
+    }
+    const struct_name = descendant_struct_name.node.children[0].word.value;
+    const declaration = core_module.declarations.find(declaration => declaration.name === struct_name);
+    if (declaration === undefined || declaration.type !== Core.Declaration_type.Struct) {
+        return diagnostics;
+    }
+    const struct_declaration = declaration.value as Core.Struct_declaration;
+
+    const descendant_struct_values = Parser_node.find_descendants_if(descendant_struct, descendant => descendant.word.value === "Struct_member");
+
+    diagnostics.push(...validate_member_names_are_different(uri, struct_name, descendant_struct_values, "Struct_member_name"));
+    diagnostics.push(...await validate_struct_member_default_value_expressions(uri, language_description, core_module, declaration, struct_declaration, root, descendant_struct_values, get_core_module));
+    diagnostics.push(...validate_member_expressions_are_computed_at_compile_time(uri, declaration.name, descendant_struct_values, "Struct_member_name", "Generic_expression"));
 
     return diagnostics;
 }
@@ -257,7 +291,6 @@ function validate_union(
 async function validate_enum_value_generic_expressions(
     uri: string,
     language_description: Language.Description,
-    text: string,
     core_module: Core.Module,
     declaration: Core.Declaration,
     root: Parser_node.Node,
@@ -294,6 +327,52 @@ async function validate_enum_value_generic_expressions(
                     related_information: [],
                 });
             }
+        }
+    }
+
+    return diagnostics;
+}
+
+async function validate_struct_member_default_value_expressions(
+    uri: string,
+    language_description: Language.Description,
+    core_module: Core.Module,
+    declaration: Core.Declaration,
+    struct_declaration: Core.Struct_declaration,
+    root: Parser_node.Node,
+    members: { node: Parser_node.Node, position: number[] }[],
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+
+    const diagnostics: Diagnostic[] = [];
+
+    const descendant_expressions = members.map(member => Parser_node.find_descendant_position_if(member, node => node.word.value === "Generic_expression_or_instantiate"));
+
+    for (let member_index = 0; member_index < members.length; ++member_index) {
+        const descendant_expression = descendant_expressions[member_index];
+        if (descendant_expression === undefined) {
+            continue;
+        }
+
+        const expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_expression.node);
+        const expression_type = await Parse_tree_analysis.get_expression_type(core_module, declaration, root, descendant_expression.position, expression, get_core_module);
+
+        const member_type = struct_declaration.member_types[member_index];
+
+        if (!deep_equal(expression_type, member_type)) {
+
+            const member_name = struct_declaration.member_names[member_index];
+
+            const member_type_string = Type_utilities.get_type_name([member_type]);
+            const expression_type_string = expression_type !== undefined ? Type_utilities.get_type_name([expression_type]) : "<undefined>";
+
+            diagnostics.push({
+                location: get_parser_node_source_location(uri, descendant_expression.node),
+                source: Source.Parse_tree_validation,
+                severity: Diagnostic_severity.Error,
+                message: `Cannot assign expression of type '${expression_type_string}' to '${declaration.name}.${member_name}' of type '${member_type_string}'.`,
+                related_information: [],
+            });
         }
     }
 
