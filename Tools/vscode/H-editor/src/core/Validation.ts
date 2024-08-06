@@ -189,7 +189,7 @@ async function validate_current_parser_node_with_module(
             return validate_type(uri, language_description, core_module, root, new_value, get_core_module);
         }
         case "Declaration": {
-            return validate_declaration(uri, core_module, new_value);
+            return validate_declaration(uri, language_description, core_module, new_value);
         }
         case "Enum": {
             return await validate_enum(uri, language_description, core_module, root, new_value, get_core_module);
@@ -261,6 +261,7 @@ async function validate_type(
 
 function validate_declaration(
     uri: string,
+    language_description: Language.Description,
     core_module: Core.Module,
     descendant_declaration: { node: Parser_node.Node, position: number[] }
 ): Diagnostic[] {
@@ -273,14 +274,16 @@ function validate_declaration(
     }
     const declaration_name = descendant_declaration_name.node.children[0].word.value;
 
-    let count = 0;
-    for (const declaration of core_module.declarations) {
-        if (declaration.name === declaration_name) {
-            ++count;
-        }
+    if (is_builtin_type_name(declaration_name) || Language.is_keyword(language_description, declaration_name)) {
+        diagnostics.push({
+            location: get_parser_node_source_location(uri, descendant_declaration_name.node),
+            source: Source.Parse_tree_validation,
+            severity: Diagnostic_severity.Error,
+            message: `Invalid declaration name '${declaration_name}' which is a reserved keyword.`,
+            related_information: [],
+        });
     }
-
-    if (count > 1) {
+    else if (is_declaration_duplicate(core_module, declaration_name)) {
         diagnostics.push({
             location: get_parser_node_source_location(uri, descendant_declaration_name.node),
             source: Source.Parse_tree_validation,
@@ -291,6 +294,19 @@ function validate_declaration(
     }
 
     return diagnostics;
+}
+
+function is_declaration_duplicate(
+    core_module: Core.Module,
+    declaration_name: string
+): boolean {
+    let count = 0;
+    for (const declaration of core_module.declarations) {
+        if (declaration.name === declaration_name) {
+            ++count;
+        }
+    }
+    return count > 1;
 }
 
 function is_declaration_name_node(node: Parser_node.Node): boolean {
@@ -308,6 +324,16 @@ function is_declaration_name_node(node: Parser_node.Node): boolean {
         default:
             return false;
     }
+}
+
+function is_builtin_type_name(type_name: string): boolean {
+
+    const type_reference = Type_utilities.parse_type_name(type_name);
+    if (type_reference.length === 0) {
+        return true;
+    }
+
+    return type_reference[0].data.type !== Core.Type_reference_enum.Custom_type_reference;
 }
 
 async function validate_enum(
