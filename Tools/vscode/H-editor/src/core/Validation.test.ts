@@ -600,6 +600,7 @@ using My_uint = Uint65;
 describe("Validation of custom type references", () => {
 
     // - Must refer to an existing type
+    // - Must refer to an existing type from an imported module
 
     it("Validates that a type exists", async () => {
         const input = `module Test;
@@ -614,6 +615,56 @@ using My_type = My_struct;
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
                 message: "Type 'My_struct' does not exist.",
+                related_information: [],
+            }
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Validates that a type from an import module exists", async () => {
+        const input = `module Test_a;
+
+import Test_b as B;
+
+using My_int = Int32;
+using My_type = B.My_struct;
+using My_type_2 = B.My_struct_2;
+`;
+
+        const test_b_input = `module Test_b;
+
+struct My_struct
+{
+    a: Int32;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(7, 21, 7, 32),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Type 'B.My_struct_2' does not exist.",
+                related_information: [],
+            }
+        ];
+
+        await test_validate_module(input, [test_b_input], expected_diagnostics);
+    });
+
+    it("Validates that the module alias accessed by the custom type reference exists", async () => {
+        const input = `module Test_a;
+
+using My_type = B.My_struct;
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(3, 17, 3, 18),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Module alias 'B' does not exist.",
                 related_information: [],
             }
         ];
