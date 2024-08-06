@@ -188,6 +188,9 @@ async function validate_current_parser_node_with_module(
         case "Type": {
             return validate_type(uri, language_description, core_module, root, new_value, get_core_module);
         }
+        case "Declaration": {
+            return validate_declaration(uri, core_module, new_value);
+        }
         case "Enum": {
             return await validate_enum(uri, language_description, core_module, root, new_value, get_core_module);
         }
@@ -254,6 +257,57 @@ async function validate_type(
     }
 
     return diagnostics;
+}
+
+function validate_declaration(
+    uri: string,
+    core_module: Core.Module,
+    descendant_declaration: { node: Parser_node.Node, position: number[] }
+): Diagnostic[] {
+
+    const diagnostics: Diagnostic[] = [];
+
+    const descendant_declaration_name = Parser_node.find_descendant_position_if(descendant_declaration, descendant => is_declaration_name_node(descendant));
+    if (descendant_declaration_name === undefined) {
+        return diagnostics;
+    }
+    const declaration_name = descendant_declaration_name.node.children[0].word.value;
+
+    let count = 0;
+    for (const declaration of core_module.declarations) {
+        if (declaration.name === declaration_name) {
+            ++count;
+        }
+    }
+
+    if (count > 1) {
+        diagnostics.push({
+            location: get_parser_node_source_location(uri, descendant_declaration_name.node),
+            source: Source.Parse_tree_validation,
+            severity: Diagnostic_severity.Error,
+            message: `Duplicate declaration name '${declaration_name}'.`,
+            related_information: [],
+        });
+    }
+
+    return diagnostics;
+}
+
+function is_declaration_name_node(node: Parser_node.Node): boolean {
+    if (node.production_rule_index === undefined) {
+        return false;
+    }
+
+    switch (node.word.value) {
+        case "Alias_name":
+        case "Enum_name":
+        case "Function_name":
+        case "Struct_name":
+        case "Union_name":
+            return true;
+        default:
+            return false;
+    }
 }
 
 async function validate_enum(
