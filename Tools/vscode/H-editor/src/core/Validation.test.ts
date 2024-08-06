@@ -604,12 +604,13 @@ describe("Validation of custom type references", () => {
     it("Validates that a type exists", async () => {
         const input = `module Test;
 
+using My_int = Int32;
 using My_type = My_struct;
 `;
 
         const expected_diagnostics: Validation.Diagnostic[] = [
             {
-                location: create_diagnostic_location(3, 17, 3, 26),
+                location: create_diagnostic_location(4, 17, 4, 26),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
                 message: "Type 'My_struct' does not exist.",

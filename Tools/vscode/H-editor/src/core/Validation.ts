@@ -249,8 +249,19 @@ async function validate_type(
                 return diagnostics;
             }
         }
-
-        // TODO validate that type is either builtin, or that it exists in the core module
+        else if (!Type_utilities.is_builtin_type(type_name)) {
+            const declaration = core_module.declarations.find(declaration => declaration.name === type_name);
+            if (declaration === undefined) {
+                diagnostics.push({
+                    location: get_parser_node_source_location(uri, child.node),
+                    source: Source.Parse_tree_validation,
+                    severity: Diagnostic_severity.Error,
+                    message: `Type '${type_name}' does not exist.`,
+                    related_information: [],
+                });
+                return diagnostics;
+            }
+        }
     }
     else if (child.node.word.value === "Module_type") {
         // TODO validate that the module alias exists and that the type exists
