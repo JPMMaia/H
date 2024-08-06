@@ -43,12 +43,43 @@ function create_parsing_tables(
     return parsing_tables;
 }
 
+function is_non_keyword_terminal(label: string): boolean {
+    switch (label) {
+        case "boolean":
+        case "comment":
+        case "identifier":
+        case "number":
+        case "string":
+            return true;
+        default:
+            return false;
+    }
+}
+
 function delete_non_keyword_terminals(terminals_set: Set<string>): void {
     terminals_set.delete("boolean");
     terminals_set.delete("comment");
     terminals_set.delete("identifier");
     terminals_set.delete("number");
     terminals_set.delete("string");
+}
+
+export function is_keyword(language_description: Description, label: string): boolean {
+    if (is_non_keyword_terminal(label)) {
+        return false;
+    }
+    if (language_description.terminals.has(label)) {
+        return true;
+    }
+    switch (label) {
+        case "true":
+        case "false": {
+            return true;
+        }
+        default: {
+            return false;
+        }
+    }
 }
 
 export function create_description(
