@@ -264,7 +264,41 @@ async function validate_type(
         }
     }
     else if (child.node.word.value === "Module_type") {
-        // TODO validate that the module alias exists and that the type exists
+        const descendant_module_alias_name = Parser_node.find_descendant_position_if(descendant_type, descendant => descendant.word.value === "Module_type_module_name");
+        const descendant_type_name = Parser_node.find_descendant_position_if(descendant_type, descendant => descendant.word.value === "Module_type_type_name");
+        if (descendant_module_alias_name === undefined || descendant_type_name === undefined) {
+            return diagnostics;
+        }
+
+        const module_alias_name = descendant_module_alias_name.node.children[0].word.value;
+        const type_name = descendant_type_name.node.children[0].word.value;
+
+        const module_import = core_module.imports.find(module_import => module_import.alias === module_alias_name);
+        if (module_import === undefined) {
+            diagnostics.push({
+                location: get_parser_node_source_location(uri, descendant_module_alias_name.node),
+                source: Source.Parse_tree_validation,
+                severity: Diagnostic_severity.Error,
+                message: `Module alias '${module_alias_name}' does not exist.`,
+                related_information: [],
+            });
+            return diagnostics;
+        }
+
+        const imported_module = await get_core_module(module_import.module_name);
+        if (imported_module !== undefined) {
+            const declaration = imported_module.declarations.find(declaration => declaration.name === type_name);
+            if (declaration === undefined) {
+                diagnostics.push({
+                    location: get_parser_node_source_location(uri, descendant_type_name.node),
+                    source: Source.Parse_tree_validation,
+                    severity: Diagnostic_severity.Error,
+                    message: `Type '${module_alias_name}.${type_name}' does not exist.`,
+                    related_information: [],
+                });
+                return diagnostics;
+            }
+        }
     }
 
     return diagnostics;
