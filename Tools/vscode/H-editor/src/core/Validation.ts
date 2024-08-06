@@ -185,6 +185,9 @@ async function validate_current_parser_node_with_module(
 ): Promise<Diagnostic[]> {
 
     switch (new_value.node.word.value) {
+        case "Type": {
+            return validate_type(uri, language_description, core_module, root, new_value, get_core_module);
+        }
         case "Enum": {
             return await validate_enum(uri, language_description, core_module, root, new_value, get_core_module);
         }
@@ -200,6 +203,57 @@ async function validate_current_parser_node_with_module(
     }
 
     return [];
+}
+
+async function validate_type(
+    uri: string,
+    language_description: Language.Description,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    descendant_type: { node: Parser_node.Node, position: number[] },
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+
+    const diagnostics: Diagnostic[] = [];
+
+    const child = Parser_node.get_child(descendant_type, 0);
+    if (child === undefined) {
+        return diagnostics;
+    }
+
+    if (child.node.word.value === "Pointer_type") {
+        const descendant_value_type = Parser_node.find_descendant_position_if(descendant_type, descendant => descendant.word.value === "Type");
+        if (descendant_value_type === undefined) {
+            return diagnostics;
+        }
+
+        return validate_type(uri, language_description, core_module, root, descendant_value_type, get_core_module);
+    }
+    else if (child.node.word.value === "Type_name") {
+        const type_name = child.node.children[0].word.value;
+
+        if (type_name.startsWith("Int") || type_name.startsWith("Uint")) {
+            const start_index = type_name[0] === "I" ? 3 : 4;
+            const number_of_bits = Number.parseInt(type_name.substring(start_index));
+            if (!Number.isNaN(number_of_bits) && number_of_bits > 64) {
+                diagnostics.push({
+                    location: get_parser_node_source_location(uri, child.node),
+                    source: Source.Parse_tree_validation,
+                    severity: Diagnostic_severity.Error,
+                    message: `Number of bits of integer cannot be larger than 64.`,
+                    related_information: [],
+                });
+                return diagnostics;
+            }
+        }
+
+        // TODO validate that type is either builtin, or that it exists in the core module
+    }
+    else if (child.node.word.value === "Module_type") {
+        // TODO validate that the module alias exists and that the type exists
+    }
+
+    return diagnostics;
 }
 
 async function validate_enum(

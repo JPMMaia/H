@@ -565,6 +565,38 @@ enum My_enum
     });
 });
 
+describe("Validation of integer types", () => {
+
+    // - Number of bits cannot be larger than 64
+
+    it("Validates that number of bits cannot be larger than 64", async () => {
+        const input = `module Test;
+
+using My_int = Int65;
+using My_uint = Uint65;
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(3, 16, 3, 21),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Number of bits of integer cannot be larger than 64.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(4, 17, 4, 23),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Number of bits of integer cannot be larger than 64.",
+                related_information: [],
+            }
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+});
+
 describe("Validation of custom type references", () => {
 
     // - Must refer to an existing type
