@@ -249,7 +249,7 @@ async function validate_type(
                 return diagnostics;
             }
         }
-        else if (!Type_utilities.is_builtin_type(type_name)) {
+        else if (!is_builtin_type_name(type_name)) {
             const declaration = core_module.declarations.find(declaration => declaration.name === type_name);
             if (declaration === undefined) {
                 diagnostics.push({
