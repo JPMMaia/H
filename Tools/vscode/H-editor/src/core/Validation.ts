@@ -185,6 +185,9 @@ async function validate_current_parser_node_with_module(
 ): Promise<Diagnostic[]> {
 
     switch (new_value.node.word.value) {
+        case "Import": {
+            return await validate_import(uri, language_description, core_module, root, new_value, get_core_module);
+        }
         case "Type": {
             return validate_type(uri, language_description, core_module, root, new_value, get_core_module);
         }
@@ -206,6 +209,73 @@ async function validate_current_parser_node_with_module(
     }
 
     return [];
+}
+
+async function validate_import(
+    uri: string,
+    language_description: Language.Description,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    descendant_import: { node: Parser_node.Node, position: number[] },
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+
+    const diagnostics: Diagnostic[] = [];
+
+    const descendant_import_alias = Parser_node.find_descendant_position_if(descendant_import, descendant => descendant.word.value === "Import_alias");
+    if (descendant_import_alias === undefined) {
+        return diagnostics;
+    }
+
+    const import_alias = descendant_import_alias.node.children[0].word.value;
+
+    if (is_import_alias_duplicate(core_module, import_alias)) {
+        diagnostics.push({
+            location: get_parser_node_source_location(uri, descendant_import_alias.node),
+            source: Source.Parse_tree_validation,
+            severity: Diagnostic_severity.Error,
+            message: `Duplicate import alias '${import_alias}'.`,
+            related_information: [],
+        });
+    }
+
+    const descendant_import_name = Parser_node.find_descendant_position_if(descendant_import, descendant => descendant.word.value === "Import_name");
+    if (descendant_import_name === undefined) {
+        return diagnostics;
+    }
+
+    const import_module_name = get_identifier_with_dots_string(descendant_import_name.node.children[0]);
+    const imported_module = await get_core_module(import_module_name);
+    if (imported_module === undefined) {
+        diagnostics.push({
+            location: get_parser_node_source_location(uri, descendant_import_name.node),
+            source: Source.Parse_tree_validation,
+            severity: Diagnostic_severity.Error,
+            message: `Cannot find module '${import_module_name}'.`,
+            related_information: [],
+        });
+    }
+
+    return diagnostics;
+}
+
+function get_identifier_with_dots_string(
+    identifier_with_dots_node: Parser_node.Node
+): string {
+    return identifier_with_dots_node.children.map(node => node.word.value).join("");
+}
+
+function is_import_alias_duplicate(
+    core_module: Core.Module,
+    import_alias: string
+): boolean {
+    let count = 0;
+    for (const import_module of core_module.imports) {
+        if (import_module.alias === import_alias) {
+            ++count;
+        }
+    }
+    return count > 1;
 }
 
 async function validate_type(
