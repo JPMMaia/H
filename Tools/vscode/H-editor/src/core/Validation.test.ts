@@ -685,6 +685,9 @@ import module_a as module_a;
 import module_b as module_a;
 `;
 
+        const module_a_input = "module module_a;";
+        const module_b_input = "module module_b;";
+
         const expected_diagnostics: Validation.Diagnostic[] = [
             {
                 location: create_diagnostic_location(3, 20, 3, 28),
@@ -702,21 +705,21 @@ import module_b as module_a;
             }
         ];
 
-        await test_validate_module(input, [], expected_diagnostics);
+        await test_validate_module(input, [module_a_input, module_b_input], expected_diagnostics);
     });
 
     it("Validates that a import module exists", async () => {
         const input = `module Test;
 
-import module_a as module_a;
+import my.module_a as my_module;
 `;
 
         const expected_diagnostics: Validation.Diagnostic[] = [
             {
-                location: create_diagnostic_location(3, 8, 3, 16),
+                location: create_diagnostic_location(3, 8, 3, 19),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "Cannot find module 'module_a'.",
+                message: "Cannot find module 'my.module_a'.",
                 related_information: [],
             }
         ];
