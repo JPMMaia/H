@@ -809,14 +809,298 @@ using true = Float32;
     });
 });
 
+describe("Validation of expression variable declaration", () => {
+
+    // - Must have different names
+    // - Right hand side type must not be void
+
+    it("Validates that a variable declaration name is not a duplicate", async () => {
+        const input = `module Test;
+
+function run(c: Int32) -> ()
+{
+    var a = 0;
+    var b = 1;
+    var b = 2;
+    var c = 3;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(3, 14, 3, 15),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Duplicate variable name 'c'.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(6, 9, 6, 10),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Duplicate variable name 'b'.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(7, 9, 7, 10),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Duplicate variable name 'b'.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(8, 9, 8, 10),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Duplicate variable name 'c'.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Validates that a variable declaration right side expression type is not void", async () => {
+        const input = `module Test;
+
+function get_non_void_value() -> (result: Int32)
+{
+    return 0;
+}
+
+function get_void_value() -> ()
+{
+}
+
+function run() -> ()
+{
+    var a = get_non_void_value();
+    var b = get_void_value();
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(15, 13, 15, 29),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot assign expression of type 'void' to variable 'b'.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+});
+
+describe("Validation of expression variable declaration with type", () => {
+
+    // - Must have different names
+    // - Type must not be void
+    // - Right hand side type must not be equal to the type
+
+    it("Validates that a variable declaration with type name is not a duplicate", async () => {
+        const input = `module Test;
+
+function run(c: Int32) -> ()
+{
+    var a: Int32 = 0;
+    var b: Int32 = 1;
+    var b: Int32 = 2;
+    var c: Int32 = 3;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(3, 14, 3, 15),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Duplicate variable name 'c'.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(6, 9, 6, 10),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Duplicate variable name 'b'.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(7, 9, 7, 10),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Duplicate variable name 'b'.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(8, 9, 8, 10),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Duplicate variable name 'c'.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Validates the right hand side type of a variable declaration with type is equal to the type", async () => {
+        const input = `module Test;
+
+function get_value() -> (result: Float32)
+{
+}
+
+function run(c: Int32) -> ()
+{
+    var a: Int32 = 0;
+    var b: Int32 = 1.0f32;
+    var c: Int32 = get_value();
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(10, 20, 10, 26),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Expression type 'Float32' does not match expected type 'Int32'.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(11, 20, 11, 31),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Expression type 'Float32' does not match expected type 'Int32'.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+});
+
+describe("Validation of expression variable", () => {
+
+    // - Variable name must exist
+
+    it("Validates that a variable name must exist", async () => {
+        const input = `module Test;
+
+function run(a: Int32) -> ()
+{
+    var b = 0;
+    var c = a + b;
+    var d = d + e;
+    var e = d + k;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(7, 13, 7, 14),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Variable 'd' does not exist.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(7, 17, 7, 18),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Variable 'e' does not exist..",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(8, 17, 8, 18),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Variable 'k' does not exist.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+});
+
+describe("Validation of expression access", () => {
+
+    // - Left hand side is one of:
+    //   - a module alias
+    //   - a variable of type struct/union
+    //   - a enum type
+    // - Right hand side is one of:
+    //   - if left hand side is a module alias, then it must be a declaration
+    //   - otherwise it's a member name of a enum/struct/union
+
+    it("Validates that a member name of local type exists", async () => {
+        const input = `module Test;
+
+enum My_enum
+{
+    A = 0,
+    B,
+}
+
+struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = 1;
+}
+
+union My_union
+{
+    a: Int32;
+    b: Float32;
+}
+
+function run() -> ()
+{
+    var value_0 = My_enum.A;
+    var value_1 = My_enum.C;
+    
+    var value_2: My_struct = {};
+    var value_3 = value_2.a;
+    var value_4 = value_2.c;
+
+    var value_5: My_union = { b: 0.0f32 };
+    var value_6 = value_5.a;
+    var value_7 = value_5.c;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(24, 27, 24, 28),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Enum value 'C' of 'My_enum' does not exist.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(28, 27, 28, 28),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Member name 'c' of 'My_struct' does not exist.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(32, 27, 32, 28),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Member name 'c' of 'My_union' does not exist.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+});
+
 // TODO validate module
 // - Statements
-//   - Variable declaration (and with type)
-//     - Duplicate variables
-//   - Variable declaration with type != type of right hand side
-//   - Variable expression
-//     - Inexistent variable names
-//   - Invalid access expressions
 //   - Invalid unary expressions
 //     - Numeric operations
 //     - Pointer dereference
