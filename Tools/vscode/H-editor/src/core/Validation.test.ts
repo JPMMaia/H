@@ -1097,21 +1097,318 @@ function run() -> ()
 
         await test_validate_module(input, [], expected_diagnostics);
     });
+
+    it("Validates that a member name of an imported type exists", async () => {
+        const input = `module Test;
+
+import Test_2 as My_module;
+
+function run() -> ()
+{
+    var value_0 = My_module.My_enum.A;
+    var value_1 = My_module.My_enum.C;
+    
+    var value_2: My_module.My_struct = {};
+    var value_3 = value_2.a;
+    var value_4 = value_2.c;
+
+    var value_5: My_module.My_union = { b: 0.0f32 };
+    var value_6 = value_5.a;
+    var value_7 = value_5.c;
+}
+`;
+
+        const test_2_input = `module Test_2
+
+export enum My_enum
+{
+    A = 0,
+    B,
+}
+
+export struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = 1;
+}
+
+export union My_union
+{
+    a: Int32;
+    b: Float32;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(8, 37, 8, 38),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Enum value 'C' of 'My_enum' does not exist.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(12, 27, 12, 28),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Member name 'c' of 'My_struct' does not exist.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(16, 27, 16, 28),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Member name 'c' of 'My_union' does not exist.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [test_2_input], expected_diagnostics);
+    });
+});
+
+describe("Validation of expression unary", () => {
+
+    // - Numeric operations
+    // - Pointer dereference
+    // - Address of
+
+    it("Validates that numeric unary operations can only be applied to numbers", async () => {
+        const input = `module Test;
+
+struct My_struct
+{
+}
+
+function run() -> ()
+{
+    mutable int_value = 0;
+    mutable float_value = 0.0f32;
+
+    var result_0 = -int_value;
+    var result_1 = -float_value;
+
+    var result_2 = ++int_value;
+    var result_3 = ++float_value;
+    var result_4 = --int_value;
+    var result_5 = --float_value;
+
+    var result_6 = int_value++;
+    var result_7 = float_value++;
+    var result_8 = int_value--;
+    var result_9 = float_value--;
+    
+    var result_10 = ~int_value;
+    var result_11 = ~float_value;
+
+    var instance: My_struct = {};
+    var result_12 = -instance;
+    var result_13 = ++instance;
+    var result_14 = --instance;
+    var result_15 = instance++;
+    var result_16 = instance--;
+    var result_17 = ~instance;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(25, 21, 25, 30),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot apply unary operation '~' to expression.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(28, 21, 28, 30),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot apply unary operation '-' to expression.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(29, 21, 29, 31),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot apply unary operation '++' to expression.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(30, 21, 30, 31),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot apply unary operation '--' to expression.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(31, 21, 31, 31),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot apply unary operation '++' to expression.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(32, 21, 32, 31),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot apply unary operation '--' to expression.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(33, 21, 3, 30),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot apply unary operation '~' to expression.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Validates that logical unary operations can only be applied to booleans", async () => {
+        const input = `module Test;
+
+function run() -> ()
+{
+    var boolean_value = true;
+    var result_0 = !boolean_value;
+
+    var int_value = 0;
+    var result_1 = !int_value;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(9, 20, 9, 30),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot apply unary operation '!' to expression.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Validates unary operations related to pointers", async () => {
+        const input = `module Test;
+
+function run() -> ()
+{
+    var int_value = 0;
+    var result_0 = &int_value;
+    var result_1 = &0;
+
+    var result_2 = *result_0;
+    var result_3 = *result_2;
+    var result_4 = *0;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(7, 20, 7, 22),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot apply unary operation '&' to expression.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(10, 20, 10, 29),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot apply unary operation '*' to expression.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(11, 20, 11, 22),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot apply unary operation '*' to expression.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+});
+
+describe("Validation of expression return", () => {
+
+    // - Can only call functions, or expressions whose type results in a function type
+
+    it("Validates that can only call functions or expressions whose type is a function type", async () => {
+        const input = `module Test;
+
+function foo() -> ()
+{
+}
+
+function run() -> ()
+{
+    foo();
+
+    var int_value = 0;
+    int_value();
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(12, 5, 12, 16),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot call expression of type 'Int32'.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+});
+
+describe("Validation of expression call", () => {
+
+    // - Return expression type must match function output type
+
+    it("Validates that the expression type of a return expression matches the function output type", async () => {
+        const input = `module Test;
+
+function run(value: Int32) -> ()
+{
+    if value == 0 {
+        return;
+    }
+    else if value == 1 {
+        return 1;
+    }
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(9, 9, 9, 17),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot return expression of type 'Int32' to function with output type 'void'.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
 });
 
 // TODO validate module
 // - Statements
-//   - Invalid unary expressions
-//     - Numeric operations
-//     - Pointer dereference
-//     - Address of
 //   - Invalid conditions (type != bool)
 //     - If, ternary condition, while, for
 //   - Invalid switch expression
 //     - Input type
 //     - Switch case types
 //   - Ternary condition then and else statement type must match
-//   - Return expression type must match function output type
 //   - Null can only be assigned to pointer types
 //   - No invalid expressions
 //   - Instantiate expression
@@ -1128,8 +1425,6 @@ function run() -> ()
 //     - Array data type must match array value type
 //   - Cast expression
 //     - If cast type is Numeric, then it can only cast to certain numeric types
-//   - Call expressions
-//     - Can only call functions, or expressions whose type results in a function type
 //   - Binary expressions
 //     - Left hand and right hand sides must match
 //     - If using numeric operations, types must be numbers
