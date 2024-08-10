@@ -2018,14 +2018,127 @@ function run(value: My_enum) -> ()
     });
 });
 
+describe("Validation of expression instantiate", () => {
+
+    // - Members need to be sorted (if not add quick fix to sort members)
+    // - If explicit, then all members need to be present (if not add quick fix to add missing members), and indicate members that do not exist
+    // - Validate that members that are set in the instantiate expression are present in the struct
+
+    it("Validates that members are sorted", async () => {
+        const input = `module Test;
+
+struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = 0;
+    c: Int32 = 0;
+}
+
+function run(value: Int32) -> ()
+{
+    var instance_0: My_struct = {
+        a: 0,
+        c: 0,
+    };
+
+    var instance_1: My_struct = {
+        c: 0,
+        a: 0,
+    };
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(17, 33, 20, 6),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Instantiate members are not sorted. They must appear in the order they were declarated in the struct declaration.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Validates that all members exist if explicit is used", async () => {
+        const input = `module Test;
+
+struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = 0;
+    c: Int32 = 0;
+}
+
+function run(value: Int32) -> ()
+{
+    var instance_0: My_struct = {
+        a: 0,
+        c: 0,
+    };
+
+    var instance_1: My_struct = explicit {
+        a: 0,
+        c: 0,
+    };
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(17, 42, 20, 6),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Member 'b' is missing. Explicit instantiate expression requires all members to be set.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Validates that all members set by the instantiate expression are actual members", async () => {
+        const input = `module Test;
+
+struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = 0;
+    c: Int32 = 0;
+}
+
+function run(value: Int32) -> ()
+{
+    var instance_0: My_struct = {
+        a: 0,
+        c: 0,
+    };
+
+    var instance_1: My_struct = explicit {
+        d: 0
+    };
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(18, 9, 18, 10),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "'My_struct.d' does not exist.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+});
+
 // TODO validate module
 // - Statements
 //   - Null can only be assigned to pointer types
 //   - No invalid expressions
-//   - Instantiate expression
-//     - Members need to be sorted (if not add quick fix to sort members)
-//     - If explicit, then all members need to be present (if not add quick fix to add missing members)
-//     - Indicate members that do not exist
 //   - Continue can only be placed inside for loops and while loops
 //     - Loop count must be valid
 //   - Break can only be placed inside for loops, while loops and switch cases
