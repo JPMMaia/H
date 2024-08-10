@@ -1853,7 +1853,7 @@ describe("Validation of expression binary", () => {
     // - If using numeric operations, types must be numbers
     // - If using comparison operations, types must be comparable
     // - If using logical operations, types must be booleans
-    // - If using bit operations, types must be numbers
+    // - If using bit operations, types must be integers or bytes
     // - If using has operation, then types must be enums
 
     it("Validates that left and right hand side expression types match", async () => {
@@ -1887,7 +1887,135 @@ function run(value: Int32) -> ()
         await test_validate_module(input, [], expected_diagnostics);
     });
 
-    // TODO
+    it("Validates that in numeric operations both types must be numbers", async () => {
+        const input = `module Test;
+
+function run(value: Int32) -> ()
+{
+    var a = value + 1;
+    var b = 1.0f32 + 2.0f32;
+    var c = true + false;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(7, 13, 7, 25),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Binary operation '+' can only be applied to numeric types.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Validates that in comparison operations both types must be comparable", async () => {
+        const input = `module Test;
+
+struct My_struct
+{
+    a: Int32 = 0;
+}
+
+function run(value: Int32) -> ()
+{
+    var a = value < 1;
+
+    var instance_0: My_struct = {};
+    var instance_1: My_struct = {};
+    var b = instance_0 < instance_1;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(14, 13, 14, 36),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Binary operation '<' can only be applied to comparable types.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Validates that in logical operations both types must be boolean", async () => {
+        const input = `module Test;
+
+function run(value: Int32) -> ()
+{
+    var a = true && false;
+    var b = value && 1;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(6, 13, 6, 23),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Binary operation '&&' can only be applied to a boolean value.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Validates that in bit operations both types must be integers or bytes", async () => {
+        const input = `module Test;
+
+function run(value: Int32) -> ()
+{
+    var a = value & 1;
+    var b = 1.0f32 & 2.0f32;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(6, 13, 6, 28),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Binary operation '&' can only be applied to integers or bytes.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Validates that in has operations both expressions must evaluate to enum values", async () => {
+        const input = `module Test;
+
+enum My_enum
+{
+    A,
+    B,
+}
+
+function run(value: My_enum) -> ()
+{ 
+    var a = value has My_enum.A;
+    var b = 1 has 0;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(12, 13, 12, 20),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Binary operation 'has' can only be applied to enum values.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
 });
 
 // TODO validate module
