@@ -1401,34 +1401,508 @@ function run(value: Int32) -> ()
     });
 });
 
+describe("Validation of expression if", () => {
+
+    // - Condition expression type must be boolean
+
+    it("Validates that the expression type of a condition expression is a boolean", async () => {
+        const input = `module Test;
+
+function run(value: Int32) -> (result: Int32)
+{
+    if value {
+        return 0;
+    }
+    else if value == 0 {
+        return 1;
+    }
+    else if true {
+        return 2;
+    }
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(5, 8, 5, 13),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Expression must evaluate to boolean type.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+});
+
+describe("Validation of expression ternary condition", () => {
+
+    // - Condition expression type must be boolean
+    // - Then and else statement type must match
+
+    it("Validates that the expression type of the condition expression is a boolean", async () => {
+        const input = `module Test;
+
+function run(value: Int32) -> (result: Int32)
+{
+    var result_0 = value == 0 ? 0 : 1;
+    var result_1 = value ? 0 : 1;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(6, 20, 6, 25),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Expression must evaluate to boolean type.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Validates that the expression type of the then and else expressions matches", async () => {
+        const input = `module Test;
+
+function run(condition: Bool) -> (result: Int32)
+{
+    var result_0 = condition ? 0 : 1;
+    var result_1 = condition ? 0 : 1.0f32;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(6, 20, 6, 42),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "The expression types of the then ('Int32') and else ('Float32') part of a ternary expression must match.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+});
+
+describe("Validation of expression switch", () => {
+
+    // - Input type must be an integer or an enum
+    // - Switch case types must be an integer or an enum
+    // - Switch case types must match the same type as the input type
+    // - Switch case can only have constant values
+
+    it("Validates that the expression type of the switch input is an integer or an enum value", async () => {
+        const input = `module Test;
+
+enum My_enum
+{
+    A,
+    B,
+    C,
+}
+
+struct My_struct
+{
+    a: Int32 = 0;
+}
+
+function run(int_value: Int32, enum_value: My_enum) -> (result: Int32)
+{
+    switch int_value {
+        default: {
+            return 0;
+        }
+    }
+
+    switch enum_value {
+        default: {
+            return 1;
+        }
+    }
+
+    var instance: My_struct = {};
+    switch instance {
+        default: {
+            return 2;
+        }
+    }
+
+    var float_value = 0.0f32;
+    switch float_value {
+        default: {
+            return 3;
+        }
+    }
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(30, 12, 30, 20),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Expression must evaluate to an integer or an enum value.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(37, 12, 37, 23),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Expression must evaluate to an integer or an enum value.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Validates that the expression type of the switch case is an integer or an enum value", async () => {
+        const input = `module Test;
+
+enum My_enum
+{
+    A,
+    B,
+    C,
+}
+
+function run(int_value: Int32, enum_value: My_enum) -> (result: Int32)
+{
+    switch int_value {
+        case 0: {
+            return 0;
+        }
+        case 1.0f32: {
+            return 1;
+        }
+        default: {
+            return 2;
+        }
+    }
+
+    switch enum_value {
+        case My_enum.A: {
+            return 3;
+        }
+    }
+
+    return 4;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(16, 14, 16, 20),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Expression must evaluate to an integer or an enum value.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Validates that the expression type of the switch case must match the type of the input", async () => {
+        const input = `module Test;
+
+enum My_enum
+{
+    A,
+    B,
+    C,
+}
+
+enum My_enum_2
+{
+    A,
+    B,
+    C,
+}
+
+function run(int_value: Int32, enum_value: My_enum) -> (result: Int32)
+{
+    switch int_value {
+        case My_enum.A: {
+            return 0;
+        }
+    }
+
+    switch enum_value {
+        case 0: {
+            return 1;
+        }
+        case My_enum_2.A: {
+            return 2;
+        }
+    }
+
+    return 3;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(20, 14, 20, 23),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Expression type must match the switch case input type.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(26, 14, 26, 15),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Expression type must match the switch case input type.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(29, 14, 29, 25),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Expression type must match the switch case input type.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Validates that the expression type of the switch case is a single constant expression", async () => {
+        const input = `module Test;
+
+enum My_enum
+{
+    A,
+    B,
+    C,
+}
+
+function run(int_value: Int32, enum_value: My_enum) -> (result: Int32)
+{
+    switch int_value {
+        case 1 + 1: {
+            return 0;
+        }
+    }
+
+    var enum_value_2 = My_enum.A;
+    switch enum_value {
+        case enum_value_2: {
+            return 1;
+        }
+    }
+
+    return 2;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(13, 14, 13, 19),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Switch case expression must be a single compile-time expression.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(20, 14, 20, 26),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Switch case expression must be a single compile-time expression.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+});
+
+describe("Validation of expression for loop", () => {
+
+    // - Range begin, end and step_by types must be equal
+    // - Range begin, end and step_by types must be numbers
+
+    it("Validates that the expression types of a for loop range begin, end and step_by match", async () => {
+        const input = `module Test;
+
+function run(value: Int32) -> ()
+{
+    for index in 0 to value step_by 1 {
+    }
+
+    for index in 0.0f32 to value step_by 1 {
+    }
+
+    for index in 0 to 10.0f32 step_by 1 {
+    }
+
+    for index in 0 to 10 step_by 1.0f32 {
+    }
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(8, 5, 8, 43),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "The range begin, end and step_by expression types must all match.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(11, 5, 11, 40),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "The range begin, end and step_by expression types must all match.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(14, 5, 14, 40),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "The range begin, end and step_by expression types must all match.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Validates that the expression types of a for loop range begin, end and step_by are numbers", async () => {
+        const input = `module Test;
+
+struct My_struct
+{
+    a: Int32 = 0;
+}
+
+function run(value: Int32) -> ()
+{
+    for index in 0 to value step_by 1 {
+    }
+
+    for index in true to false step_by false {
+    }
+
+    var instance: My_struct = {};
+    for index in instance to instance step_by instance {
+    }
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(13, 5, 13, 45),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "The range begin, end and step_by expression must evaluate to numbers.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(17, 5, 17, 55),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "The range begin, end and step_by expression must evaluate to numbers.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+});
+
+describe("Validation of expression while loop", () => {
+
+    // - Condition expression type must be boolean
+
+    it("Validates that the expression type of a condition expression is a boolean", async () => {
+        const input = `module Test;
+
+function run(value: Int32) -> ()
+{
+    while value == 0 {
+    }
+
+    while value {
+    }
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(8, 11, 8, 16),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Expression must evaluate to boolean type.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+});
+
+describe("Validation of expression binary", () => {
+
+    // - Left hand and right hand sides must match
+    // - If using numeric operations, types must be numbers
+    // - If using comparison operations, types must be comparable
+    // - If using logical operations, types must be booleans
+    // - If using bit operations, types must be numbers
+    // - If using has operation, then types must be enums
+
+    it("Validates that left and right hand side expression types match", async () => {
+        const input = `module Test;
+
+function run(value: Int32) -> ()
+{
+    var a = value + 1;
+    var b = value + 1.0f32;
+    var c = true + 1.0f32;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(6, 13, 6, 27),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Left and right hand sides of binary expression must match.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(7, 13, 7, 26),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Left and right hand sides of binary expression must match.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    // TODO
+});
+
 // TODO validate module
 // - Statements
-//   - Invalid conditions (type != bool)
-//     - If, ternary condition, while, for
-//   - Invalid switch expression
-//     - Input type
-//     - Switch case types
-//   - Ternary condition then and else statement type must match
 //   - Null can only be assigned to pointer types
 //   - No invalid expressions
 //   - Instantiate expression
 //     - Members need to be sorted (if not add quick fix to sort members)
 //     - If explicit, then all members need to be present (if not add quick fix to add missing members)
 //     - Indicate members that do not exist
-//   - For loop
-//     - Range begin and end and step types must be equal
-//     - Range comparison must result in a boolean
 //   - Continue can only be placed inside for loops and while loops
+//     - Loop count must be valid
 //   - Break can only be placed inside for loops, while loops and switch cases
 //     - Loop count must be valid
 //   - Constant arrays
 //     - Array data type must match array value type
 //   - Cast expression
 //     - If cast type is Numeric, then it can only cast to certain numeric types
-//   - Binary expressions
-//     - Left hand and right hand sides must match
-//     - If using numeric operations, types must be numbers
-//     - If using comparison operations, types must be comparable
-//     - If using logical operationrs, types must be booleans
-//     - If using bit operations, types must be numbers
-//     - If using has operation, then types must be enums
