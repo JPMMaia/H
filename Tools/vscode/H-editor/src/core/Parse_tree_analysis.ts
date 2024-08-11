@@ -89,6 +89,123 @@ function get_statement_node_or_ancestor(
     return Parser_node.get_ancestor_with_name(root, node_position, "Statement");
 }
 
+export interface Function_input_variable_info {
+    function_value: Core.Function;
+    input_index: number;
+}
+
+export interface Variable_declaration_info {
+    statement: Core.Statement;
+    statement_node_position: number[];
+}
+
+export interface For_loop_variable_info {
+    statement: Core.Statement;
+    statement_node_position: number[];
+}
+
+export enum Variable_info_type {
+    Function_input_variable,
+    Variable_declaration,
+    For_loop_variable
+}
+
+export interface Variable_info {
+    type: Variable_info_type;
+    value: Function_input_variable_info | Variable_declaration_info | For_loop_variable_info;
+}
+
+export function find_variable_info(
+    function_value: Core.Function,
+    root: Parser_node.Node,
+    scope_node_position: number[],
+    variable_name: string,
+): Variable_info | undefined {
+
+    if (function_value.definition === undefined) {
+        return undefined;
+    }
+
+    {
+        const index = function_value.declaration.input_parameter_names.findIndex(name => name === variable_name);
+        if (index !== -1) {
+            return {
+                type: Variable_info_type.Function_input_variable,
+                value: {
+                    function_value: function_value,
+                    input_index: index
+                }
+            };
+        }
+    }
+
+    const statements = Parser_node.get_ancestor_with_name(root, scope_node_position, "Statements");
+    if (statements === undefined) {
+        return undefined;
+    }
+
+    let current_statements_block: Core.Statement[] | undefined = function_value.definition.statements;
+    let current_statements_block_node = statements.node;
+    let current_statements_block_position = statements.position;
+    let current_statement_index = scope_node_position[current_statements_block_position.length];
+
+    while (current_statements_block !== undefined && current_statement_index < current_statements_block.length) {
+        for (let index = 0; index < current_statement_index; ++index) {
+            const core_statement = current_statements_block[index];
+            const core_statement_node_position = [...current_statements_block_position, index];
+
+            if (core_statement.expression.data.type === Core.Expression_enum.Variable_declaration_expression) {
+                const expression = core_statement.expression.data.value as Core.Variable_declaration_expression;
+                if (expression.name === variable_name) {
+                    return {
+                        type: Variable_info_type.Variable_declaration,
+                        value: {
+                            statement: core_statement,
+                            statement_node_position: core_statement_node_position
+                        }
+                    };
+                }
+            }
+            else if (core_statement.expression.data.type === Core.Expression_enum.Variable_declaration_with_type_expression) {
+                const expression = core_statement.expression.data.value as Core.Variable_declaration_with_type_expression;
+                if (expression.name === variable_name) {
+                    return {
+                        type: Variable_info_type.Variable_declaration,
+                        value: {
+                            statement: core_statement,
+                            statement_node_position: core_statement_node_position
+                        }
+                    };
+                }
+            }
+            else if (core_statement.expression.data.type === Core.Expression_enum.For_loop_expression) {
+                const expression = core_statement.expression.data.value as Core.For_loop_expression;
+                if (expression.variable_name === variable_name) {
+                    return {
+                        type: Variable_info_type.For_loop_variable,
+                        value: {
+                            statement: core_statement,
+                            statement_node_position: core_statement_node_position
+                        }
+                    };
+                }
+            }
+        }
+
+        const core_statement = current_statements_block[current_statement_index];
+        const result = go_to_next_block_with_expression(core_statement, root, scope_node_position, current_statements_block_node, current_statements_block_position);
+        if (result === undefined) {
+            break;
+        }
+        current_statements_block_node = result.node;
+        current_statements_block_position = result.position;
+        current_statements_block = result.statements;
+        current_statement_index = scope_node_position[current_statements_block_position.length];
+    }
+
+    return undefined;
+}
+
 export async function find_variable_type(
     core_module: Core.Module,
     function_value: Core.Function,
@@ -123,14 +240,15 @@ export async function find_variable_type(
     let current_statement_index = scope_node_position[current_statements_block_position.length];
 
     while (current_statements_block !== undefined && current_statement_index < current_statements_block.length) {
-        for (let index = 0; index <= current_statement_index; ++index) {
+        for (let index = 0; index < current_statement_index; ++index) {
             const core_statement = current_statements_block[index];
+            const core_statement_node_position = [...current_statements_block_position, index];
 
             if (core_statement.expression.data.type === Core.Expression_enum.Variable_declaration_expression) {
                 const expression = core_statement.expression.data.value as Core.Variable_declaration_expression;
                 if (expression.name === variable_name) {
                     const declaration = create_declaration_from_function_value(function_value);
-                    const expression_type = await get_expression_type(core_module, declaration, root, scope_node_position, expression.right_hand_side, get_core_module);
+                    const expression_type = await get_expression_type(core_module, declaration, root, core_statement_node_position, expression.right_hand_side, get_core_module);
                     if (expression_type !== undefined) {
                         matches.push(expression_type);
                     }
@@ -146,7 +264,7 @@ export async function find_variable_type(
                 const expression = core_statement.expression.data.value as Core.For_loop_expression;
                 if (expression.variable_name === variable_name) {
                     const declaration = create_declaration_from_function_value(function_value);
-                    const expression_type = await get_expression_type(core_module, declaration, root, scope_node_position, expression.range_begin, get_core_module);
+                    const expression_type = await get_expression_type(core_module, declaration, root, core_statement_node_position, expression.range_begin, get_core_module);
                     if (expression_type !== undefined) {
                         matches.push(expression_type);
                     }

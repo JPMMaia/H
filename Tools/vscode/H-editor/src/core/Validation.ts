@@ -6,6 +6,8 @@ import * as Parser_node from "./Parser_node";
 import * as Scanner from "./Scanner";
 import * as Type_utilities from "./Type_utilities";
 
+const g_debug = false;
+
 export interface Position {
     line: number;
     column: number;
@@ -103,14 +105,14 @@ export function validate_parser_node(
     new_node: Parser_node.Node
 ): Diagnostic[] {
 
-    const node_queue = [new_node];
-    const node_position_queue = [new_node_position];
+    const node_stack = [new_node];
+    const node_position_stack = [new_node_position];
 
     const diagnostics: Diagnostic[] = [];
 
-    while (node_queue.length > 0) {
-        const current_node = node_queue.shift() as Parser_node.Node;
-        const current_node_position = node_position_queue.shift() as number[];
+    while (node_stack.length > 0) {
+        const current_node = node_stack.pop() as Parser_node.Node;
+        const current_node_position = node_position_stack.pop() as number[];
 
         if (current_node.production_rule_index !== undefined) {
             const node_diagnostics = validate_current_parser_node(uri, { node: current_node, position: current_node_position });
@@ -118,8 +120,12 @@ export function validate_parser_node(
         }
 
         for (let child_index = 0; child_index < current_node.children.length; ++child_index) {
-            node_queue.push(current_node.children[child_index]);
-            node_position_queue.push(current_node_position);
+            node_stack.push(current_node.children[child_index]);
+            node_position_stack.push([...current_node_position, child_index]);
+        }
+
+        if (g_debug) {
+            console.log(`[${node_stack.map(node => node.word.value).join(", ")}]`);
         }
     }
 
@@ -137,23 +143,28 @@ export async function validate_module(
     get_core_module: (module_name: string) => Promise<Core.Module | undefined>
 ): Promise<Diagnostic[]> {
 
-    const node_queue = [new_node];
-    const node_position_queue = [new_node_position];
+    const node_stack = [new_node];
+    const node_position_stack = [new_node_position];
 
     const diagnostics: Diagnostic[] = [];
 
-    while (node_queue.length > 0) {
-        const current_node = node_queue.shift() as Parser_node.Node;
-        const current_node_position = node_position_queue.shift() as number[];
+    while (node_stack.length > 0) {
+        const current_node = node_stack.pop() as Parser_node.Node;
+        const current_node_position = node_position_stack.pop() as number[];
 
         if (current_node.production_rule_index !== undefined) {
             const node_diagnostics = await validate_current_parser_node_with_module(uri, language_description, text, core_module, root, { node: current_node, position: current_node_position }, get_core_module);
             diagnostics.push(...node_diagnostics);
         }
 
-        for (let child_index = 0; child_index < current_node.children.length; ++child_index) {
-            node_queue.push(current_node.children[child_index]);
-            node_position_queue.push(current_node_position);
+        for (let index = 0; index < current_node.children.length; ++index) {
+            const child_index = current_node.children.length - index - 1;
+            node_stack.push(current_node.children[child_index]);
+            node_position_stack.push([...current_node_position, child_index]);
+        }
+
+        if (g_debug) {
+            console.log(`[${node_stack.map(node => node.word.value).join(", ")}]`);
         }
     }
 
@@ -203,8 +214,14 @@ async function validate_current_parser_node_with_module(
         case "Union": {
             return validate_union(uri, core_module, new_value);
         }
+        case "Expression_access": {
+            return validate_access_expression(uri, language_description, core_module, root, new_value, get_core_module);
+        }
         case "Expression_constant": {
             return validate_constant_expression(uri, new_value.node.children[0]);
+        }
+        case "Expression_variable": {
+            return validate_variable_expression(uri, language_description, core_module, root, new_value, get_core_module);
         }
     }
 
@@ -724,6 +741,52 @@ function validate_member_expressions_are_computed_at_compile_time(
     return diagnostics;
 }
 
+async function validate_access_expression(
+    uri: string,
+    language_description: Language.Description,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    descendant_access_expression: { node: Parser_node.Node, position: number[] },
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+    const diagnostics: Diagnostic[] = [];
+
+    /*const access_components = await Parse_tree_analysis.get_access_expression_components(core_module, access_expression, root, descendant_access_expression.node, descendant_access_expression.position, get_core_module);
+
+    if (access_components.length >= 2) {
+        const declaration_component = access_components[access_components.length - 2];
+        const member_name_component = access_components[access_components.length - 1];
+        if (declaration_component.type === Parse_tree_analysis.Component_type.Declaration && member_name_component.type === Parse_tree_analysis.Component_type.Member_name) {
+            const module_declaration = declaration_component.value as { core_module: Core.Module, declaration: Core.Declaration };
+            const member_name = member_name_component.value as string;
+
+
+        }
+    }*/
+
+    return diagnostics;
+
+
+    /*const descendant_struct_name = Parser_node.find_descendant_position_if(descendant_struct, descendant => descendant.word.value === "Struct_name");
+    if (descendant_struct_name === undefined) {
+        return diagnostics;
+    }
+    const struct_name = descendant_struct_name.node.children[0].word.value;
+    const declaration = core_module.declarations.find(declaration => declaration.name === struct_name);
+    if (declaration === undefined || declaration.type !== Core.Declaration_type.Struct) {
+        return diagnostics;
+    }
+    const struct_declaration = declaration.value as Core.Struct_declaration;
+
+    const descendant_struct_values = Parser_node.find_descendants_if(descendant_struct, descendant => descendant.word.value === "Struct_member");
+
+    diagnostics.push(...validate_member_names_are_different(uri, struct_name, descendant_struct_values, "Struct_member_name"));
+    diagnostics.push(...await validate_struct_member_default_value_expressions(uri, language_description, core_module, declaration, struct_declaration, root, descendant_struct_values, get_core_module));
+    diagnostics.push(...validate_member_expressions_are_computed_at_compile_time(uri, declaration.name, descendant_struct_values, "Struct_member_name", "Generic_expression"));
+
+    return diagnostics;*/
+}
+
 function validate_constant_expression(
     uri: string,
     node: Parser_node.Node
@@ -839,6 +902,38 @@ function validate_constant_expression(
     }
 
     return [];
+}
+
+async function validate_variable_expression(
+    uri: string,
+    language_description: Language.Description,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    descendant_variable_expression: { node: Parser_node.Node, position: number[] },
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+    const diagnostics: Diagnostic[] = [];
+
+    const variable_name = descendant_variable_expression.node.children[0].children[0].word.value;
+    const function_value = Parse_tree_analysis.get_function_value_that_contains_node_position(core_module, root, descendant_variable_expression.position);
+    if (function_value === undefined) {
+        return diagnostics;
+    }
+
+    const variable_info = Parse_tree_analysis.find_variable_info(function_value, root, descendant_variable_expression.position, variable_name);
+    if (variable_info === undefined) {
+        diagnostics.push(
+            {
+                location: get_parser_node_source_location(uri, descendant_variable_expression.node),
+                source: Source.Parse_tree_validation,
+                severity: Diagnostic_severity.Error,
+                message: `Variable '${variable_name}' does not exist.`,
+                related_information: [],
+            }
+        );
+    }
+
+    return diagnostics;
 }
 
 function get_parser_node_source_location(
