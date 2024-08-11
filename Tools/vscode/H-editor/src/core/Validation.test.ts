@@ -1007,7 +1007,7 @@ function run(a: Int32) -> ()
                 location: create_diagnostic_location(7, 17, 7, 18),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "Variable 'e' does not exist..",
+                message: "Variable 'e' does not exist.",
                 related_information: [],
             },
             {
@@ -1032,6 +1032,110 @@ describe("Validation of expression access", () => {
     // - Right hand side is one of:
     //   - if left hand side is a module alias, then it must be a declaration
     //   - otherwise it's a member name of a enum/struct/union
+
+    it("Validates that left hand side is either a module alias, a variable of type struct/union or an enum type", async () => {
+        const input = `module Test;
+
+import Test_2 as My_module;
+
+enum My_enum
+{
+    A = 0,
+    B,
+}
+
+struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = 1;
+}
+
+union My_union
+{
+    a: Int32;
+    b: Float32;
+}
+
+function run() -> ()
+{
+    var value_0 = My_enum.A;
+    var value_1 = My_enum_2.A;
+    
+    var value_2: My_struct = {};
+    var value_3 = value_2.a;
+
+    var value_4 = value_4.b;
+
+    var value_6: My_union = { b: 0.0f32 };
+    var value_7 = value_6.b;
+
+    var value_8 = My_module.My_enum.A;
+    var value_9 = My_module.My_enum_2.A;
+    var value_10 = My_module_2.My_enum.A;
+
+    var value_11: My_module.My_struct = {};
+    var value_12 = value_11.a;
+
+    var value_13: My_module.My_union = { b: 0.0f32 };
+    var value_14 = value_13.b;
+}
+`;
+
+        const test_2_input = `module Test_2;
+
+enum My_enum
+{
+    A = 0,
+    B,
+}
+
+struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = 1;
+}
+
+union My_union
+{
+    a: Int32;
+    b: Float32;
+}
+`;
+
+        // TODO let's implement expression variable first
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(26, 19, 26, 28),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Invalid expression 'My_enum_2' used as left hand side of access expression.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(31, 19, 31, 26),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Invalid expression 'value_4' used as left hand side of access expression.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(37, 19, 37, 28),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Invalid expression 'My_enum_2' used as right hand side of access expression.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(37, 19, 37, 28),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Invalid expression 'My_enum_2' used as left hand side of access expression.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [test_2_input], expected_diagnostics);
+    });
 
     it("Validates that a member name of local type exists", async () => {
         const input = `module Test;
