@@ -724,8 +724,6 @@ import my.module_a as my_module;
             }
         ];
 
-        // TODO figure out how to do this test
-
         await test_validate_module(input, [], expected_diagnostics);
     });
 });
@@ -2135,15 +2133,460 @@ function run(value: Int32) -> ()
     });
 });
 
-// TODO validate module
-// - Statements
-//   - Null can only be assigned to pointer types
-//   - No invalid expressions
-//   - Continue can only be placed inside for loops and while loops
-//     - Loop count must be valid
-//   - Break can only be placed inside for loops, while loops and switch cases
-//     - Loop count must be valid
-//   - Constant arrays
-//     - Array data type must match array value type
-//   - Cast expression
-//     - If cast type is Numeric, then it can only cast to certain numeric types
+describe("Validation of expression null", () => {
+
+    // - Null can only be assigned to pointer types
+
+    it("Validates that null can only be assigned to pointer types", async () => {
+        const input = `module Test;
+
+function foo(pointer: *Int32, non_pointer: Int32) -> ()
+{
+}
+
+function run(value: Int32) -> ()
+{
+    foo(null, null);
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(9, 15, 9, 19),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "'null' can only be assigned to pointer types.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+});
+
+describe("Validation of expression invalid", () => {
+
+    // - There can't be any invalid expressions
+
+    it("Validates that there aren't any invalid expressions", () => {
+        const node = create_node("Expression_invalid",
+            [
+                create_terminal_node("", Grammar.Word_type.Invalid, { line: 2, column: 7 })
+            ]
+        );
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(2, 7, 2, 7),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Invalid expression.",
+                related_information: [],
+            }
+        ];
+
+        test_validate_parser_node(node, expected_diagnostics);
+    });
+});
+
+describe("Validation of expression break", () => {
+
+    // - Break can only be placed inside for loops, while loops and switch cases
+    // - Loop count must be valid
+
+    it("Validates that break can only be placed inside for loops, while loops and switch cases", async () => {
+        const input = `module Test;
+
+function run(input: Int32) -> ()
+{
+    for index in 0 to 10
+    {
+        break;
+    }
+
+    while false
+    {
+        break;
+    }
+
+    switch (input)
+    {
+        case 0: {
+            break;
+        }
+    }
+
+    break;
+
+    {
+        break;
+    }
+
+    if false
+    {
+        break;
+    }
+
+    for index in 0 to 10
+    {
+        {
+            break;
+        }
+    }
+
+    for index in 0 to 10
+    {
+        if index % 2 == 0
+        {
+            break;
+        }
+    }
+
+    while false
+    {
+        {
+            break;
+        }
+    }
+
+    while false
+    {
+        if input % 2 == 0
+        {
+            break;
+        }
+    }
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(22, 5, 22, 10),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "'break' can only be placed inside for loops, while loops and switch cases.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(25, 9, 25, 14),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "'break' can only be placed inside for loops, while loops and switch cases.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(30, 9, 30, 14),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "'break' can only be placed inside for loops, while loops and switch cases.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Validates that break loop count is valid", async () => {
+        const input = `module Test;
+
+function run(input: Int32) -> ()
+{
+    for index in 0 to 10
+    {
+        break 1;
+    }
+
+    while false
+    {
+        for index in 0 to 10
+        {
+            break 2;
+        }
+    }
+
+    for index in 0 to 10
+    {
+        break 2;
+    }
+
+    for index in 0 to 10
+    {
+        break 0;
+    }
+
+    for index in 0 to 10
+    {
+        break -1;
+    }
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(20, 15, 20, 16),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "'break' loop count of 2 is invalid.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(25, 15, 25, 16),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "'break' loop count of 0 is invalid.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(30, 15, 30, 16),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "'break' loop count of -1 is invalid.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+});
+
+describe("Validation of expression continue", () => {
+
+    // - Continue can only be placed inside for loops and while loops
+    // - TODO Loop count must be valid
+
+    it("Validates that continue can only be placed inside for loops and while loops", async () => {
+        const input = `module Test;
+
+function run(input: Int32) -> ()
+{
+    for index in 0 to 10
+    {
+        continue;
+    }
+
+    while false
+    {
+        continue;
+    }
+
+    continue;
+
+    {
+        continue;
+    }
+
+    if false
+    {
+        continue;
+    }
+
+    var value_0 = 0;
+    switch (value_0)
+    {
+        case 0: {
+            continue;
+        }
+    }
+
+    for index in 0 to 10
+    {
+        {
+            continue;
+        }
+    }
+
+    for index in 0 to 10
+    {
+        if index % 2 == 0
+        {
+            continue;
+        }
+
+        var value_1 = 0;
+        switch value_1
+        {
+            case 0: {
+                continue;
+            }
+        }
+    }
+
+    while false
+    {
+        {
+            continue;
+        }
+    }
+
+    while false
+    {
+        if input % 2 == 0
+        {
+            continue;
+        }
+
+        var value_2 = 0;
+        switch value_2
+        {
+            case 0: {
+                continue;
+            }
+        }
+    }
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(15, 5, 15, 13),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "'continue' can only be placed inside for loops and while loops.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(18, 9, 18, 17),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "'continue' can only be placed inside for loops and while loops.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(23, 9, 23, 17),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "'continue' can only be placed inside for loops and while loops.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(30, 13, 30, 21),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "'continue' can only be placed inside for loops and while loops.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+});
+
+describe("Validation of expression cast", () => {
+
+    // - If cast type is Numeric, then the source type must be a numeric type or an enum type
+    // - If cast type is Numeric, then the destination type must be a numeric type or an enum type
+    // - Warn if cast source and destination types are the same (except when using alias)
+
+    it("Validates that the numeric cast source type is a numeric type or an enum type", async () => {
+        const input = `module Test;
+
+enum My_enum
+{
+    A = 0,
+}
+
+struct My_struct
+{
+    a: Int32 = 0;
+}
+
+function run(int_input: Int32, enum_input: My_enum) -> ()
+{
+    var value_0 = int_input as Int64;
+    var value_1 = enum_input as Int64;
+
+    var instance: My_struct = {};
+    var value_2 = instance as Int64;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(19, 19, 19, 36),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot apply numeric cast from 'Test.My_struct' to 'Int64'.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Validates that the numeric cast destination type is a numeric type or an enum type", async () => {
+        const input = `module Test;
+
+enum My_enum
+{
+    A = 0,
+}
+
+struct My_struct
+{
+    a: Int32 = 0;
+}
+
+function run(int_input: Int32, enum_input: My_enum) -> ()
+{
+    var value_0 = int_input as My_enum;
+    var value_1 = enum_input as Int64;
+    var value_2 = int_input as My_struct;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(17, 19, 17, 41),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot apply numeric cast from 'Int32' to 'Test.My_struct'.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Warn if cast source and destination types are the same (except when using alias)", async () => {
+        const input = `module Test;
+
+using My_int = Int32;
+
+enum My_enum
+{
+    A = 0,
+}
+
+function run(int_input: Int32, enum_input: My_enum) -> ()
+{
+    var value_0 = int_input as Int64;
+    var value_1 = int_input as My_int;
+    var value_1 = int_input as Int32;
+    var value_2 = enum_input as My_enum;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(14, 19, 14, 37),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Warning,
+                message: "Numeric cast from 'Int32' to 'Int32'.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(15, 19, 15, 37),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Warning,
+                message: "Numeric cast from 'Test.My_enum' to 'Test.My_enum'.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+});
+
+describe("Validation of expression constant array", () => {
+    // - TODO Array data type must match array value type
+});
