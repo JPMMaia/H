@@ -1102,34 +1102,33 @@ union My_union
 }
 `;
 
-        // TODO let's implement expression variable first
         const expected_diagnostics: Validation.Diagnostic[] = [
             {
                 location: create_diagnostic_location(26, 19, 26, 28),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "Invalid expression 'My_enum_2' used as left hand side of access expression.",
+                message: "Variable 'My_enum_2' does not exist.",
                 related_information: [],
             },
             {
                 location: create_diagnostic_location(31, 19, 31, 26),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "Invalid expression 'value_4' used as left hand side of access expression.",
+                message: "Variable 'value_4' does not exist.",
                 related_information: [],
             },
             {
-                location: create_diagnostic_location(37, 19, 37, 28),
+                location: create_diagnostic_location(37, 19, 37, 38),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "Invalid expression 'My_enum_2' used as right hand side of access expression.",
+                message: "The declaration 'My_enum_2' does not exist in the module 'Test_2' ('My_module').",
                 related_information: [],
             },
             {
-                location: create_diagnostic_location(37, 19, 37, 28),
+                location: create_diagnostic_location(38, 20, 38, 31),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "Invalid expression 'My_enum_2' used as left hand side of access expression.",
+                message: "Variable 'My_module_2' does not exist.",
                 related_information: [],
             },
         ];
