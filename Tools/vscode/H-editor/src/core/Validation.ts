@@ -751,40 +751,49 @@ async function validate_access_expression(
 ): Promise<Diagnostic[]> {
     const diagnostics: Diagnostic[] = [];
 
-    /*const access_components = await Parse_tree_analysis.get_access_expression_components(core_module, access_expression, root, descendant_access_expression.node, descendant_access_expression.position, get_core_module);
+    const expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_access_expression.node);
+    if (expression === undefined || expression.data.type !== Core.Expression_enum.Access_expression) {
+        return diagnostics;
+    }
+
+    const access_expression = expression.data.value as Core.Access_expression;;
+    const access_components = await Parse_tree_analysis.get_access_expression_components(core_module, access_expression, root, descendant_access_expression.node, descendant_access_expression.position, get_core_module);
 
     if (access_components.length >= 2) {
-        const declaration_component = access_components[access_components.length - 2];
-        const member_name_component = access_components[access_components.length - 1];
-        if (declaration_component.type === Parse_tree_analysis.Component_type.Declaration && member_name_component.type === Parse_tree_analysis.Component_type.Member_name) {
-            const module_declaration = declaration_component.value as { core_module: Core.Module, declaration: Core.Declaration };
-            const member_name = member_name_component.value as string;
+        const last_component = access_components[access_components.length - 1];
+        if (last_component.type === Parse_tree_analysis.Component_type.Invalid) {
+            const previous_component = access_components[access_components.length - 2];
 
+            if (previous_component.type === Parse_tree_analysis.Component_type.Import_module) {
 
+                const import_module = previous_component.value as Core.Import_module_with_alias;
+                const declaration_name = last_component.value as string;
+
+                diagnostics.push({
+                    location: get_parser_node_source_location(uri, descendant_access_expression.node),
+                    source: Source.Parse_tree_validation,
+                    severity: Diagnostic_severity.Error,
+                    message: `The declaration '${declaration_name}' does not exist in the module '${import_module.module_name}' ('${import_module.alias}').`,
+                    related_information: [],
+                });
+            }
+            else if (previous_component.type === Parse_tree_analysis.Component_type.Declaration) {
+
+                const module_declaration = previous_component.value as { core_module: Core.Module, declaration: Core.Declaration };
+                const member_name = last_component.value as string;
+
+                diagnostics.push({
+                    location: get_parser_node_source_location(uri, descendant_access_expression.node),
+                    source: Source.Parse_tree_validation,
+                    severity: Diagnostic_severity.Error,
+                    message: `The member '${member_name}' does not exist in the type '${module_declaration.declaration.name}'.`,
+                    related_information: [],
+                });
+            }
         }
-    }*/
+    }
 
     return diagnostics;
-
-
-    /*const descendant_struct_name = Parser_node.find_descendant_position_if(descendant_struct, descendant => descendant.word.value === "Struct_name");
-    if (descendant_struct_name === undefined) {
-        return diagnostics;
-    }
-    const struct_name = descendant_struct_name.node.children[0].word.value;
-    const declaration = core_module.declarations.find(declaration => declaration.name === struct_name);
-    if (declaration === undefined || declaration.type !== Core.Declaration_type.Struct) {
-        return diagnostics;
-    }
-    const struct_declaration = declaration.value as Core.Struct_declaration;
-
-    const descendant_struct_values = Parser_node.find_descendants_if(descendant_struct, descendant => descendant.word.value === "Struct_member");
-
-    diagnostics.push(...validate_member_names_are_different(uri, struct_name, descendant_struct_values, "Struct_member_name"));
-    diagnostics.push(...await validate_struct_member_default_value_expressions(uri, language_description, core_module, declaration, struct_declaration, root, descendant_struct_values, get_core_module));
-    diagnostics.push(...validate_member_expressions_are_computed_at_compile_time(uri, declaration.name, descendant_struct_values, "Struct_member_name", "Generic_expression"));
-
-    return diagnostics;*/
 }
 
 function validate_constant_expression(
@@ -920,7 +929,7 @@ async function validate_variable_expression(
         return diagnostics;
     }
 
-    const variable_info = Parse_tree_analysis.find_variable_info(function_value, root, descendant_variable_expression.position, variable_name);
+    const variable_info = Parse_tree_analysis.find_variable_info(core_module, function_value, root, descendant_variable_expression.position, variable_name);
     if (variable_info === undefined) {
         diagnostics.push(
             {

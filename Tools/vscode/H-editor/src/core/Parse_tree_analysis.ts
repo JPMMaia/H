@@ -104,7 +104,19 @@ export interface For_loop_variable_info {
     statement_node_position: number[];
 }
 
+export interface Import_alias_variable_info {
+    core_module: Core.Module;
+    import_module_with_alias: Core.Import_module_with_alias;
+}
+
+export interface Declaration_variable_info {
+    core_module: Core.Module;
+    declaration: Core.Declaration;
+}
+
 export enum Variable_info_type {
+    Import_alias,
+    Declaration,
     Function_input_variable,
     Variable_declaration,
     For_loop_variable
@@ -112,10 +124,11 @@ export enum Variable_info_type {
 
 export interface Variable_info {
     type: Variable_info_type;
-    value: Function_input_variable_info | Variable_declaration_info | For_loop_variable_info;
+    value: Function_input_variable_info | Variable_declaration_info | For_loop_variable_info | Declaration_variable_info | Import_alias_variable_info;
 }
 
 export function find_variable_info(
+    core_module: Core.Module,
     function_value: Core.Function,
     root: Parser_node.Node,
     scope_node_position: number[],
@@ -201,6 +214,32 @@ export function find_variable_info(
         current_statements_block_position = result.position;
         current_statements_block = result.statements;
         current_statement_index = scope_node_position[current_statements_block_position.length];
+    }
+
+    {
+        const declaration = core_module.declarations.find(declaration => declaration.name === variable_name);
+        if (declaration !== undefined) {
+            return {
+                type: Variable_info_type.Declaration,
+                value: {
+                    core_module: core_module,
+                    declaration: declaration
+                }
+            };
+        }
+    }
+
+    {
+        const import_module = core_module.imports.find(import_module => import_module.alias === variable_name);
+        if (import_module !== undefined) {
+            return {
+                type: Variable_info_type.Import_alias,
+                value: {
+                    core_module: core_module,
+                    import_module_with_alias: import_module
+                }
+            };
+        }
     }
 
     return undefined;
@@ -1254,7 +1293,8 @@ function get_previous_instantiate_member_name_at_cursor(
 export enum Component_type {
     Import_module,
     Declaration,
-    Member_name
+    Member_name,
+    Invalid
 }
 
 export interface Access_expression_component {
@@ -1279,7 +1319,7 @@ export async function get_access_expression_components(
     if (left_hand_side_expression.data.type === Core.Expression_enum.Access_expression) {
         const descendant_left_hand_side = Parser_node.find_descendant_position_if({ node: access_expression_node.children[0], position: [...access_expression_node_position, 0] }, child => child.word.value === "Expression_access");
         if (descendant_left_hand_side !== undefined) {
-            const left_hand_side_components = await get_access_expression_components(core_module, left_hand_side_expression.data.value as Core.Access_expression, root, descendant_left_hand_side.node, [...access_expression_node_position, ...descendant_left_hand_side.position], get_core_module);
+            const left_hand_side_components = await get_access_expression_components(core_module, left_hand_side_expression.data.value as Core.Access_expression, root, descendant_left_hand_side.node, descendant_left_hand_side.position, get_core_module);
             components.push(...left_hand_side_components);
         }
     }
@@ -1326,7 +1366,35 @@ export async function get_access_expression_components(
 
     if (components.length > 0) {
         const last_component = components[components.length - 1];
-        if (last_component.type === Component_type.Declaration) {
+        if (last_component.type === Component_type.Import_module) {
+            const import_module = last_component.value as Core.Import_module_with_alias;
+            const imported_module = await get_core_module(import_module.module_name);
+            if (imported_module !== undefined) {
+                const declaration = imported_module.declarations.find(declaration => declaration.name === access_expression.member_name);
+                if (declaration !== undefined) {
+                    components.push(
+                        {
+                            type: Component_type.Declaration,
+                            value: { core_module: imported_module, declaration: declaration },
+                            node: access_expression_node.children[2],
+                            node_position: [...access_expression_node_position, 2]
+                        }
+                    );
+                }
+            }
+
+            if (components[components.length - 1].type !== Component_type.Declaration) {
+                components.push(
+                    {
+                        type: Component_type.Invalid,
+                        value: access_expression.member_name,
+                        node: access_expression_node.children[2],
+                        node_position: [...access_expression_node_position, 2]
+                    }
+                );
+            }
+        }
+        else if (last_component.type === Component_type.Declaration) {
             components.push(
                 {
                     type: Component_type.Member_name,
@@ -1582,6 +1650,50 @@ export function format_text(
     }
 
     return undefined;
+}
+
+export async function get_declaration_members(
+    core_module: Core.Module,
+    declaration: Core.Declaration,
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<{ index: number, name: string }[]> {
+    if (declaration.type === Core.Declaration_type.Alias) {
+        const underlying_declaration = await get_underlying_type_declaration(core_module, declaration, get_core_module);
+        if (underlying_declaration === undefined) {
+            return [];
+        }
+        return get_declaration_members(core_module, underlying_declaration.declaration, get_core_module);
+    }
+    else if (declaration.type === Core.Declaration_type.Enum) {
+        const enum_declaration = declaration.value as Core.Enum_declaration;
+        return enum_declaration.values.map((member, index) => {
+            return {
+                index: index,
+                name: member.name
+            };
+        });
+    }
+    else if (declaration.type === Core.Declaration_type.Struct) {
+        const struct_declaration = declaration.value as Core.Struct_declaration;
+        return struct_declaration.member_names.map((member_name, index) => {
+            return {
+                index: index,
+                name: member_name
+            };
+        });
+    }
+    else if (declaration.type === Core.Declaration_type.Union) {
+        const union_declaration = declaration.value as Core.Union_declaration;
+        return union_declaration.member_names.map((member_name, index) => {
+            return {
+                index: index,
+                name: member_name
+            };
+        });
+    }
+    else {
+        return [];
+    }
 }
 
 export function create_declaration_from_enum_declaration(enum_declaration: Core.Enum_declaration): Core.Declaration {
