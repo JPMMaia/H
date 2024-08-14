@@ -773,7 +773,7 @@ async function validate_access_expression(
                     location: get_parser_node_source_location(uri, descendant_access_expression.node),
                     source: Source.Parse_tree_validation,
                     severity: Diagnostic_severity.Error,
-                    message: `The declaration '${declaration_name}' does not exist in the module '${import_module.module_name}' ('${import_module.alias}').`,
+                    message: `Declaration '${declaration_name}' does not exist in the module '${import_module.module_name}' ('${import_module.alias}').`,
                     related_information: [],
                 });
             }
@@ -786,7 +786,7 @@ async function validate_access_expression(
                     location: get_parser_node_source_location(uri, descendant_access_expression.node),
                     source: Source.Parse_tree_validation,
                     severity: Diagnostic_severity.Error,
-                    message: `The member '${member_name}' does not exist in the type '${module_declaration.declaration.name}'.`,
+                    message: `Member '${member_name}' does not exist in the type '${module_declaration.declaration.name}'.`,
                     related_information: [],
                 });
             }
