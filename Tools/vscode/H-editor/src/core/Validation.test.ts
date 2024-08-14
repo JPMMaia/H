@@ -1121,7 +1121,7 @@ union My_union
                 location: create_diagnostic_location(37, 19, 37, 38),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "The declaration 'My_enum_2' does not exist in the module 'Test_2' ('My_module').",
+                message: "Declaration 'My_enum_2' does not exist in the module 'Test_2' ('My_module').",
                 related_information: [],
             },
             {
@@ -1174,24 +1174,24 @@ function run() -> ()
 
         const expected_diagnostics: Validation.Diagnostic[] = [
             {
-                location: create_diagnostic_location(24, 27, 24, 28),
+                location: create_diagnostic_location(24, 19, 24, 28),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "Enum value 'C' of 'My_enum' does not exist.",
+                message: "Member 'C' does not exist in the type 'My_enum'.",
                 related_information: [],
             },
             {
-                location: create_diagnostic_location(28, 27, 28, 28),
+                location: create_diagnostic_location(28, 19, 28, 28),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "Member name 'c' of 'My_struct' does not exist.",
+                message: "Member 'c' does not exist in the type 'My_struct'.",
                 related_information: [],
             },
             {
-                location: create_diagnostic_location(32, 27, 32, 28),
+                location: create_diagnostic_location(32, 19, 32, 28),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "Member name 'c' of 'My_union' does not exist.",
+                message: "Member 'c' does not exist in the type 'My_union'.",
                 related_information: [],
             },
         ];
@@ -1242,24 +1242,24 @@ export union My_union
 
         const expected_diagnostics: Validation.Diagnostic[] = [
             {
-                location: create_diagnostic_location(8, 37, 8, 38),
+                location: create_diagnostic_location(8, 19, 8, 38),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "Enum value 'C' of 'My_enum' does not exist.",
+                message: "Member 'C' does not exist in the type 'My_enum'.",
                 related_information: [],
             },
             {
-                location: create_diagnostic_location(12, 27, 12, 28),
+                location: create_diagnostic_location(12, 19, 12, 28),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "Member name 'c' of 'My_struct' does not exist.",
+                message: "Member 'c' does not exist in the type 'My_struct'.",
                 related_information: [],
             },
             {
-                location: create_diagnostic_location(16, 27, 16, 28),
+                location: create_diagnostic_location(16, 19, 16, 28),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "Member name 'c' of 'My_union' does not exist.",
+                message: "Member 'c' does not exist in the type 'My_union'.",
                 related_information: [],
             },
         ];

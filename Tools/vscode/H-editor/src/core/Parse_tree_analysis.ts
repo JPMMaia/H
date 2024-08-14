@@ -1197,7 +1197,11 @@ export async function find_instantiate_member_from_node(
 }
 
 function get_member_names(declaration: Core.Declaration): string[] {
-    if (declaration.type === Core.Declaration_type.Struct) {
+    if (declaration.type === Core.Declaration_type.Enum) {
+        const enum_declaration = declaration.value as Core.Enum_declaration;
+        return enum_declaration.values.map(value => value.name);
+    }
+    else if (declaration.type === Core.Declaration_type.Struct) {
         const struct_declaration = declaration.value as Core.Struct_declaration;
         return struct_declaration.member_names;
     }
@@ -1395,9 +1399,14 @@ export async function get_access_expression_components(
             }
         }
         else if (last_component.type === Component_type.Declaration) {
+
+            const module_declaration = last_component.value as { core_module: Core.Module, declaration: Core.Declaration };
+            const member_names = get_member_names(module_declaration.declaration);
+            const member_index = member_names.findIndex(member_name => member_name === access_expression.member_name);
+
             components.push(
                 {
-                    type: Component_type.Member_name,
+                    type: member_index !== -1 ? Component_type.Member_name : Component_type.Invalid,
                     value: access_expression.member_name,
                     node: access_expression_node.children[2],
                     node_position: [...access_expression_node_position, 2]
