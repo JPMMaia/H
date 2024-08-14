@@ -761,7 +761,7 @@ async function validate_access_expression(
 
     if (access_components.length >= 2) {
         const last_component = access_components[access_components.length - 1];
-        if (last_component.type === Parse_tree_analysis.Component_type.Invalid) {
+        if (last_component.type === Parse_tree_analysis.Component_type.Invalid && last_component.value as string === access_expression.member_name) {
             const previous_component = access_components[access_components.length - 2];
 
             if (previous_component.type === Parse_tree_analysis.Component_type.Import_module) {
