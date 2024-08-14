@@ -2247,15 +2247,42 @@ function foo(pointer: *Int32, non_pointer: Int32) -> ()
 {
 }
 
+struct My_struct
+{
+    a: *Int32 = null;
+    b: Int32 = 0;
+}
+
 function run(value: Int32) -> ()
 {
     foo(null, null);
+    
+    var instance_0: My_struct = {
+        a: null,
+        b: null
+    };
+    instance_0.a = null;
+    instance_0.b = null;
 }
 `;
 
         const expected_diagnostics: Validation.Diagnostic[] = [
             {
                 location: create_diagnostic_location(9, 15, 9, 19),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "'null' can only be assigned to pointer types.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(13, 12, 13, 16),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "'null' can only be assigned to pointer types.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(16, 20, 16, 24),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
                 message: "'null' can only be assigned to pointer types.",
