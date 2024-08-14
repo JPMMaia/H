@@ -1436,9 +1436,11 @@ function run() -> ()
     });
 });
 
-describe("Validation of expression return", () => {
+describe("Validation of expression call", () => {
 
     // - Can only call functions, or expressions whose type results in a function type
+    // - Function call has the correct number of arguments
+    // - Function call has the correct type of arguments
 
     it("Validates that can only call functions or expressions whose type is a function type", async () => {
         const input = `module Test;
@@ -1468,9 +1470,144 @@ function run() -> ()
 
         await test_validate_module(input, [], expected_diagnostics);
     });
+
+    it("Validates that function call has the correct number of arguments", async () => {
+        const input = `module Test;
+
+function foo_0() -> ()
+{
+}
+
+function foo_1(v0: Int32) -> ()
+{
+}
+
+function foo_2(v0: Int32, v1: Int32) -> ()
+{
+}
+
+function run() -> ()
+{
+    foo_0();
+    foo_0(0);
+
+    foo_1(0);
+    foo_1();
+    foo_1(0, 0);
+
+    foo_2(0, 0);
+    foo_2();
+    foo_2(0);
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(18, 5, 18, 13),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "'foo_0' expects 0 arguments, but 1 were provided.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(21, 5, 21, 12),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "'foo_1' expects 1 arguments, but 0 were provided.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(22, 5, 22, 16),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "'foo_1' expects 1 arguments, but 2 were provided.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(25, 5, 25, 12),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "'foo_2' expects 2 arguments, but 0 were provided.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(26, 5, 26, 13),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "'foo_2' expects 2 arguments, but 1 were provided.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Validates that function call has the correct argument types", async () => {
+        const input = `module Test;
+
+function foo_1(v0: Int32) -> ()
+{
+}
+
+function foo_2(v0: Int32, v1: Float32) -> ()
+{
+}
+
+function run() -> ()
+{
+    foo_1(0);
+    foo_1(0.0f32);
+
+    foo_2(0, 0.0f32);
+    foo_2(0, 0);
+    foo_2(0.0f32, 0);
+    foo_2(0.0f32, 0.0f32);
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(14, 11, 14, 17),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot assign argument of type 'Float32' to 'Int32'.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(17, 13, 17, 14),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot assign argument of type 'Int32' to 'Float32'.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(18, 11, 18, 17),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot assign argument of type 'Float32' to 'Int32'.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(18, 19, 18, 20),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot assign argument of type 'Int32' to 'Float32'.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(19, 11, 19, 17),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot assign argument of type 'Float32' to 'Int32'.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
 });
 
-describe("Validation of expression call", () => {
+describe("Validation of expression return", () => {
 
     // - Return expression type must match function output type
 
