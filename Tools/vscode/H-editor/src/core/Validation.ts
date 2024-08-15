@@ -217,6 +217,9 @@ async function validate_current_parser_node_with_module(
         case "Expression_access": {
             return validate_access_expression(uri, language_description, core_module, root, new_value, get_core_module);
         }
+        case "Expression_call": {
+            return validate_call_expression(uri, language_description, core_module, root, new_value, get_core_module);
+        }
         case "Expression_constant": {
             return validate_constant_expression(uri, new_value.node.children[0]);
         }
@@ -790,6 +793,85 @@ async function validate_access_expression(
                     related_information: [],
                 });
             }
+        }
+    }
+
+    return diagnostics;
+}
+
+async function validate_call_expression(
+    uri: string,
+    language_description: Language.Description,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    descendant_call_expression: { node: Parser_node.Node, position: number[] },
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+    const diagnostics: Diagnostic[] = [];
+
+    const descendant_callable = Parser_node.find_descendant_position_if(descendant_call_expression, node => node.word.value === "Expression_level_1");
+    if (descendant_callable === undefined) {
+        return diagnostics;
+    }
+
+    const module_function_value = await Parse_tree_analysis.get_function_value_from_node(language_description, core_module, descendant_callable.node, get_core_module);
+    if (module_function_value === undefined) {
+        diagnostics.push({
+            location: get_parser_node_source_location(uri, descendant_callable.node),
+            source: Source.Parse_tree_validation,
+            severity: Diagnostic_severity.Error,
+            message: `Expression does not evaluate to a callable expression.`,
+            related_information: [],
+        });
+        return diagnostics;
+    }
+
+    const function_declaration = module_function_value.function_value.declaration;
+
+    const expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_call_expression.node);
+    if (expression === undefined || expression.data.type !== Core.Expression_enum.Call_expression) {
+        return diagnostics;
+    }
+
+    const call_expression = expression.data.value as Core.Call_expression;
+    if (call_expression.arguments.length !== function_declaration.input_parameter_names.length) {
+        diagnostics.push({
+            location: get_parser_node_source_location(uri, descendant_call_expression.node),
+            source: Source.Parse_tree_validation,
+            severity: Diagnostic_severity.Error,
+            message: `Function '${function_declaration.name}' expects ${function_declaration.input_parameter_names.length} arguments, but ${call_expression.arguments.length} were provided.`,
+            related_information: [],
+        });
+        return diagnostics;
+    }
+
+    const scope_declaration = Parse_tree_analysis.create_declaration_from_function_value(module_function_value.function_value);
+
+    const descedant_call_arguments = Parser_node.find_descendant_position_if(descendant_call_expression, node => node.word.value === "Expression_call_arguments");
+    if (descedant_call_arguments === undefined) {
+        return diagnostics;
+    }
+
+    for (let parameter_index = 0; parameter_index < function_declaration.input_parameter_names.length; parameter_index++) {
+        const parameter_name = function_declaration.input_parameter_names[parameter_index];
+        const parameter_type = function_declaration.type.input_parameter_types[parameter_index];
+
+        const argument_expression = call_expression.arguments[parameter_index];
+        const argument_expression_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_call_expression.position, argument_expression, get_core_module);
+        if (argument_expression_type === undefined) {
+            continue;
+        }
+
+        if (!deep_equal(argument_expression_type, parameter_type)) {
+            const argument_node = descedant_call_arguments.node.children[parameter_index * 2];
+
+            diagnostics.push({
+                location: get_parser_node_source_location(uri, argument_node),
+                source: Source.Parse_tree_validation,
+                severity: Diagnostic_severity.Error,
+                message: `Argument '${parameter_name}' expects type '${Type_utilities.get_type_name([parameter_type], core_module)}', but '${Type_utilities.get_type_name([argument_expression_type], core_module)}' was provided.`,
+                related_information: [],
+            });
         }
     }
 
