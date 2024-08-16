@@ -259,6 +259,10 @@ async function validate_current_parser_node_with_module(
         case "Expression_constant": {
             return validate_constant_expression(uri, new_value.node.children[0]);
         }
+        case "Expression_unary_0":
+        case "Expression_unary_1": {
+            return validate_unary_expression(uri, language_description, core_module, root, new_value, get_core_module);
+        }
         case "Expression_variable": {
             return validate_variable_expression(uri, language_description, core_module, root, new_value, get_core_module);
         }
@@ -1038,6 +1042,214 @@ function validate_constant_expression(
     }
 
     return [];
+}
+
+async function validate_unary_expression(
+    uri: string,
+    language_description: Language.Description,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    descendant_unary_expression: { node: Parser_node.Node, position: number[] },
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+    const diagnostics: Diagnostic[] = [];
+
+    const expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_unary_expression.node);
+    if (expression.data.type !== Core.Expression_enum.Unary_expression) {
+        return diagnostics;
+    }
+
+    const function_value = Parse_tree_analysis.get_function_value_that_contains_node_position(core_module, root, descendant_unary_expression.position);
+    if (function_value === undefined) {
+        return diagnostics;
+    }
+
+    const scope_declaration = Parse_tree_analysis.create_declaration_from_function_value(function_value);
+
+    const unary_expression = expression.data.value as Core.Unary_expression;
+
+    const descendant_operand = Parser_node.find_descendant_position_if(descendant_unary_expression, node => node.word.value === "Expression_level_0" || node.word.value === "Expression_level_1");
+    if (descendant_operand === undefined) {
+        return diagnostics;
+    }
+
+    const descendant_symbol = Parser_node.find_descendant_position_if(descendant_unary_expression, node => node.word.value === "Expression_unary_0_symbol" || node.word.value === "Expression_unary_1_symbol");
+    if (descendant_symbol === undefined) {
+        return diagnostics;
+    }
+
+    const operand_expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_operand.node);
+    const expression_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_operand.position, operand_expression, get_core_module);
+
+    if (is_numeric_unary_operation(unary_expression.operation)) {
+        if (expression_type === undefined || !is_numeric_type(expression_type)) {
+            const symbol = map_unary_operation_to_symbol(unary_expression.operation);
+            diagnostics.push(
+                {
+                    location: get_parser_node_source_location(uri, descendant_symbol.node),
+                    source: Source.Parse_tree_validation,
+                    severity: Diagnostic_severity.Error,
+                    message: `Cannot apply unary operation '${symbol}' to expression.`,
+                    related_information: [],
+                }
+            );
+        }
+    }
+    else if (is_logical_unary_operation(unary_expression.operation)) {
+        const boolean_type = Parse_tree_analysis.create_boolean_type();
+        if (expression_type === undefined || !deep_equal(expression_type, [boolean_type])) {
+            const symbol = map_unary_operation_to_symbol(unary_expression.operation);
+            diagnostics.push(
+                {
+                    location: get_parser_node_source_location(uri, descendant_symbol.node),
+                    source: Source.Parse_tree_validation,
+                    severity: Diagnostic_severity.Error,
+                    message: `Cannot apply unary operation '${symbol}' to expression.`,
+                    related_information: [],
+                }
+            );
+        }
+    }
+    else if (unary_expression.operation === Core.Unary_operation.Bitwise_not) {
+        const is_integer_type = expression_type !== undefined && expression_type[0].data.type === Core.Type_reference_enum.Integer_type;
+        if (!is_integer_type) {
+            const symbol = map_unary_operation_to_symbol(unary_expression.operation);
+            diagnostics.push(
+                {
+                    location: get_parser_node_source_location(uri, descendant_symbol.node),
+                    source: Source.Parse_tree_validation,
+                    severity: Diagnostic_severity.Error,
+                    message: `Cannot apply unary operation '${symbol}' to expression.`,
+                    related_information: [],
+                }
+            );
+        }
+    }
+    else if (unary_expression.operation === Core.Unary_operation.Address_of) {
+        const is_variable_expression = operand_expression.data.type === Core.Expression_enum.Variable_expression;
+        if (!is_variable_expression) {
+            const symbol = map_unary_operation_to_symbol(unary_expression.operation);
+            diagnostics.push(
+                {
+                    location: get_parser_node_source_location(uri, descendant_symbol.node),
+                    source: Source.Parse_tree_validation,
+                    severity: Diagnostic_severity.Error,
+                    message: `Cannot apply unary operation '${symbol}' to expression.`,
+                    related_information: [],
+                }
+            );
+        }
+    }
+    else if (unary_expression.operation === Core.Unary_operation.Indirection) {
+        const is_pointer_type = expression_type !== undefined && expression_type[0].data.type === Core.Type_reference_enum.Pointer_type;
+        if (!is_pointer_type) {
+            const symbol = map_unary_operation_to_symbol(unary_expression.operation);
+            diagnostics.push(
+                {
+                    location: get_parser_node_source_location(uri, descendant_symbol.node),
+                    source: Source.Parse_tree_validation,
+                    severity: Diagnostic_severity.Error,
+                    message: `Cannot apply unary operation '${symbol}' to expression.`,
+                    related_information: [],
+                }
+            );
+        }
+    }
+
+    return diagnostics;
+}
+
+function map_unary_operation_to_symbol(
+    operation: Core.Unary_operation
+): string {
+    switch (operation) {
+        case Core.Unary_operation.Not:
+            return "!";
+        case Core.Unary_operation.Bitwise_not:
+            return "~";
+        case Core.Unary_operation.Minus:
+            return "-";
+        case Core.Unary_operation.Pre_increment:
+            return "++";
+        case Core.Unary_operation.Post_increment:
+            return "++";
+        case Core.Unary_operation.Pre_decrement:
+            return "--";
+        case Core.Unary_operation.Post_decrement:
+            return "--";
+        case Core.Unary_operation.Indirection:
+            return "*";
+        case Core.Unary_operation.Address_of:
+            return "&";
+    }
+}
+
+function is_numeric_type(
+    type_reference: Core.Type_reference[]
+): boolean {
+    if (type_reference.length === 0) {
+        return false;
+    }
+
+    switch (type_reference[0].data.type) {
+        case Core.Type_reference_enum.Fundamental_type: {
+            const fundamental_type = type_reference[0].data.value as Core.Fundamental_type;
+            switch (fundamental_type) {
+                case Core.Fundamental_type.Float16:
+                case Core.Fundamental_type.Float32:
+                case Core.Fundamental_type.Float64:
+                case Core.Fundamental_type.C_int:
+                case Core.Fundamental_type.C_uint:
+                case Core.Fundamental_type.C_short:
+                case Core.Fundamental_type.C_ushort:
+                case Core.Fundamental_type.C_longlong:
+                case Core.Fundamental_type.C_ulonglong:
+                    return true;
+                case Core.Fundamental_type.Bool:
+                case Core.Fundamental_type.Byte:
+                case Core.Fundamental_type.String:
+                case Core.Fundamental_type.Any_type:
+                case Core.Fundamental_type.C_bool:
+                case Core.Fundamental_type.C_char:
+                case Core.Fundamental_type.C_schar:
+                case Core.Fundamental_type.C_uchar:
+                case Core.Fundamental_type.C_long:
+                case Core.Fundamental_type.C_ulong:
+                    return false;
+            }
+        }
+        case Core.Type_reference_enum.Integer_type: {
+            return true;
+        }
+        case Core.Type_reference_enum.Builtin_type_reference:
+        case Core.Type_reference_enum.Constant_array_type:
+        case Core.Type_reference_enum.Custom_type_reference:
+        case Core.Type_reference_enum.Function_type:
+        case Core.Type_reference_enum.Pointer_type: {
+            return false;
+        }
+    }
+}
+
+function is_numeric_unary_operation(
+    operation: Core.Unary_operation
+): boolean {
+    switch (operation) {
+        case Core.Unary_operation.Minus:
+        case Core.Unary_operation.Pre_increment:
+        case Core.Unary_operation.Post_increment:
+        case Core.Unary_operation.Pre_decrement:
+        case Core.Unary_operation.Post_decrement:
+            return true;
+        default:
+            return false;
+    }
+}
+
+function is_logical_unary_operation(
+    operation: Core.Unary_operation
+): boolean {
+    return operation === Core.Unary_operation.Not;
 }
 
 async function validate_variable_expression(

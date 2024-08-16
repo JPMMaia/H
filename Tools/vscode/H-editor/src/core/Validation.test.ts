@@ -1362,49 +1362,49 @@ function run() -> ()
 
         const expected_diagnostics: Validation.Diagnostic[] = [
             {
-                location: create_diagnostic_location(25, 21, 25, 30),
+                location: create_diagnostic_location(26, 21, 26, 22),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
                 message: "Cannot apply unary operation '~' to expression.",
                 related_information: [],
             },
             {
-                location: create_diagnostic_location(28, 21, 28, 30),
+                location: create_diagnostic_location(29, 21, 29, 22),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
                 message: "Cannot apply unary operation '-' to expression.",
                 related_information: [],
             },
             {
-                location: create_diagnostic_location(29, 21, 29, 31),
+                location: create_diagnostic_location(30, 21, 30, 23),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
                 message: "Cannot apply unary operation '++' to expression.",
                 related_information: [],
             },
             {
-                location: create_diagnostic_location(30, 21, 30, 31),
+                location: create_diagnostic_location(31, 21, 31, 23),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
                 message: "Cannot apply unary operation '--' to expression.",
                 related_information: [],
             },
             {
-                location: create_diagnostic_location(31, 21, 31, 31),
+                location: create_diagnostic_location(32, 29, 32, 31),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
                 message: "Cannot apply unary operation '++' to expression.",
                 related_information: [],
             },
             {
-                location: create_diagnostic_location(32, 21, 32, 31),
+                location: create_diagnostic_location(33, 29, 33, 31),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
                 message: "Cannot apply unary operation '--' to expression.",
                 related_information: [],
             },
             {
-                location: create_diagnostic_location(33, 21, 3, 30),
+                location: create_diagnostic_location(34, 21, 34, 22),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
                 message: "Cannot apply unary operation '~' to expression.",
@@ -1430,7 +1430,7 @@ function run() -> ()
 
         const expected_diagnostics: Validation.Diagnostic[] = [
             {
-                location: create_diagnostic_location(9, 20, 9, 30),
+                location: create_diagnostic_location(9, 20, 9, 21),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
                 message: "Cannot apply unary operation '!' to expression.",
@@ -1458,21 +1458,21 @@ function run() -> ()
 
         const expected_diagnostics: Validation.Diagnostic[] = [
             {
-                location: create_diagnostic_location(7, 20, 7, 22),
+                location: create_diagnostic_location(7, 20, 7, 21),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
                 message: "Cannot apply unary operation '&' to expression.",
                 related_information: [],
             },
             {
-                location: create_diagnostic_location(10, 20, 10, 29),
+                location: create_diagnostic_location(10, 20, 10, 21),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
                 message: "Cannot apply unary operation '*' to expression.",
                 related_information: [],
             },
             {
-                location: create_diagnostic_location(11, 20, 11, 22),
+                location: create_diagnostic_location(11, 20, 11, 21),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
                 message: "Cannot apply unary operation '*' to expression.",
