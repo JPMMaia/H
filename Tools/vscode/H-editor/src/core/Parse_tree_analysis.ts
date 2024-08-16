@@ -245,6 +245,112 @@ export function find_variable_info(
     return undefined;
 }
 
+export function find_variable_name_node_from_variable_info(
+    root: Parser_node.Node,
+    variable_info: Variable_info,
+): { node: Parser_node.Node, position: number[] } | undefined {
+
+    if (variable_info.type === Variable_info_type.Variable_declaration) {
+        const value = variable_info.value as Variable_declaration_info;
+        const statement_node = Parser_node.get_node_at_position(root, value.statement_node_position);
+        return Parser_node.find_descendant_position_if({ node: statement_node, position: value.statement_node_position }, node => node.word.value === "Variable_name");
+    }
+    else if (variable_info.type === Variable_info_type.For_loop_variable) {
+        const value = variable_info.value as For_loop_variable_info;
+        const statement_node = Parser_node.get_node_at_position(root, value.statement_node_position);
+        return Parser_node.find_descendant_position_if({ node: statement_node, position: value.statement_node_position }, node => node.word.value === "Expression_for_loop_variable");
+    }
+    else if (variable_info.type === Variable_info_type.Function_input_variable) {
+        const value = variable_info.value as Function_input_variable_info;
+        const descendant_declaration_name = find_declaration_name_node(root, value.function_value.declaration.name);
+        if (descendant_declaration_name !== undefined) {
+            const ancestor_function_declaration = Parser_node.get_ancestor_with_name(root, descendant_declaration_name.position, "Function_declaration");
+            if (ancestor_function_declaration !== undefined) {
+                const descendant_function_parameters_parent = Parser_node.find_descendant_position_if(ancestor_function_declaration, node => node.word.value === "Function_input_parameters");
+                if (descendant_function_parameters_parent !== undefined) {
+                    const descendant_function_parameters = Parser_node.get_children(descendant_function_parameters_parent);
+                    for (const descendant_function_parameter of descendant_function_parameters) {
+                        return Parser_node.find_descendant_position_if(descendant_function_parameter, node => node.word.value === "Function_parameter_name");
+                    }
+                }
+            }
+        }
+    }
+    else if (variable_info.type === Variable_info_type.Declaration) {
+        const value = variable_info.value as Declaration_variable_info;
+        return find_declaration_name_node(root, value.declaration.name);
+    }
+    else if (variable_info.type === Variable_info_type.Import_alias) {
+        const value = variable_info.value as Import_alias_variable_info;
+        const descendant_imports_parent = Parser_node.find_descendant_position_if({ node: root, position: [] }, node => node.word.value === "Imports");
+        if (descendant_imports_parent !== undefined) {
+            const descendant_imports = Parser_node.get_children(descendant_imports_parent);
+            for (const descendant_import of descendant_imports) {
+                const descendant_import_alias_name = Parser_node.find_descendant_position_if(descendant_import, node => node.word.value === "Import_alias");
+                if (descendant_import_alias_name !== undefined) {
+                    const import_alias_name = descendant_import_alias_name.node.children[0].word.value;
+                    if (import_alias_name === value.import_module_with_alias.alias) {
+                        return descendant_import_alias_name;
+                    }
+                }
+            }
+        }
+    }
+
+    return undefined;
+}
+
+export function find_declaration_name_node(
+    root: Parser_node.Node,
+    declaration_name: string
+): { node: Parser_node.Node, position: number[] } | undefined {
+    const descendant_module_body = Parser_node.find_descendant_position_if({ node: root, position: [] }, node => node.word.value === "Module_body");
+    if (descendant_module_body !== undefined) {
+        const descendant_declarations = Parser_node.get_children(descendant_module_body);
+        for (const descendant_declaration of descendant_declarations) {
+            const descendant_declaration_name = Parser_node.find_descendant_position_if(descendant_declaration, node => {
+                switch (node.word.value) {
+                    case "Alias_name":
+                    case "Enum_name":
+                    case "Function_name":
+                    case "Struct_name":
+                    case "Union_name":
+                        return true;
+                    default: return false;
+                }
+            });
+
+            if (descendant_declaration_name !== undefined) {
+                const this_declaration_name = descendant_declaration_name.node.children[0].word.value;
+                if (this_declaration_name === declaration_name) {
+                    return descendant_declaration_name;
+                }
+            }
+        }
+    }
+
+    return undefined;
+}
+
+export function get_variable_name_node_from_statement(
+    statement: Core.Statement,
+    statement_node: Parser_node.Node,
+    statement_node_position: number[]
+): { node: Parser_node.Node, position: number[] } | undefined {
+
+    if (statement.expression.data.type === Core.Expression_enum.Variable_declaration_expression) {
+        return Parser_node.find_descendant_position_if({ node: statement_node, position: statement_node_position }, node => node.word.value === "Variable_name");
+    }
+    else if (statement.expression.data.type === Core.Expression_enum.Variable_declaration_with_type_expression) {
+        return Parser_node.find_descendant_position_if({ node: statement_node, position: statement_node_position }, node => node.word.value === "Variable_name");
+    }
+    else if (statement.expression.data.type === Core.Expression_enum.For_loop_expression) {
+        return Parser_node.find_descendant_position_if({ node: statement_node, position: statement_node_position }, node => node.word.value === "Expression_for_loop_variable");
+    }
+
+    return undefined;
+}
+
 export async function find_variable_type(
     core_module: Core.Module,
     function_value: Core.Function,
