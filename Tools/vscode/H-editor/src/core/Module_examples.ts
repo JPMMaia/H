@@ -4412,6 +4412,44 @@ export function create_add_function(): IR.Module {
     };
 }
 
+export function create_invalid_assignment_to_itself_function(): IR.Module {
+
+    return {
+        name: "Test",
+        imports: [],
+        declarations: [
+            {
+                name: "run",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "run",
+                        type: {
+                            input_parameter_types: [],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: [],
+                        output_parameter_names: [],
+                        linkage: IR.Linkage.External
+                    },
+                    definition: {
+                        name: "run",
+                        statements: [
+                            create_statement(
+                                IR.create_variable_declaration_expression(
+                                    "value", false, IR.create_variable_expression("value", IR.Access_type.Read)
+                                )
+                            ),
+                        ]
+                    }
+                }
+            }
+        ]
+    };
+}
+
 export function create_function_with_variable_declaration(): IR.Module {
 
     const int32_type = create_integer_type(32, true);

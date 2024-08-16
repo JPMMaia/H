@@ -670,7 +670,7 @@ async function validate_struct_member_default_value_expressions(
 
         const member_type = struct_declaration.member_types[member_index];
 
-        if (!deep_equal(expression_type, member_type)) {
+        if (expression_type === undefined || expression_type.length === 0 || (expression_type.length > 0 && !deep_equal(expression_type[0], member_type))) {
 
             const member_name = struct_declaration.member_names[member_index];
 
