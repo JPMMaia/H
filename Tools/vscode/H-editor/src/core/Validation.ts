@@ -168,8 +168,44 @@ export async function validate_module(
         }
     }
 
-    return diagnostics;
+    const unique_diagnostics = sort_and_remove_duplicates(diagnostics);
+
+    return unique_diagnostics;
 }
+
+function sort_and_remove_duplicates(diagnostics: Diagnostic[]): Diagnostic[] {
+
+    diagnostics.sort((a, b) => {
+        if (a.location.range.start.line < b.location.range.start.line) {
+            return -1;
+        }
+        else if (a.location.range.start.line > b.location.range.start.line) {
+            return 1;
+        }
+        else if (a.location.range.start.column < b.location.range.start.column) {
+            return -1;
+        }
+        else if (a.location.range.start.column > b.location.range.start.column) {
+            return 1;
+        }
+        else {
+            return 0;
+        }
+    });
+
+    const unique_diagnostics: Diagnostic[] = [];
+
+    for (const diagnostic of diagnostics) {
+        const found = unique_diagnostics.findIndex(this_diagnostic => deep_equal(this_diagnostic, diagnostic));
+        if (found === -1) {
+            unique_diagnostics.push(diagnostic);
+        }
+    }
+
+    return unique_diagnostics;
+}
+
+
 
 function validate_current_parser_node(
     uri: string,
@@ -225,6 +261,9 @@ async function validate_current_parser_node_with_module(
         }
         case "Expression_variable": {
             return validate_variable_expression(uri, language_description, core_module, root, new_value, get_core_module);
+        }
+        case "Expression_variable_declaration": {
+            return validate_variable_declaration_expression(uri, language_description, core_module, root, new_value, get_core_module);
         }
     }
 
@@ -1019,6 +1058,78 @@ async function validate_variable_expression(
                 source: Source.Parse_tree_validation,
                 severity: Diagnostic_severity.Error,
                 message: `Variable '${variable_name}' does not exist.`,
+                related_information: [],
+            }
+        );
+    }
+
+    return diagnostics;
+}
+
+async function validate_variable_declaration_expression(
+    uri: string,
+    language_description: Language.Description,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    descendant_variable_declaration_expression: { node: Parser_node.Node, position: number[] },
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+    const diagnostics: Diagnostic[] = [];
+
+    const descendant_variable_name = Parser_node.find_descendant_position_if(descendant_variable_declaration_expression, (node) => node.word.value === "Variable_name");
+    if (descendant_variable_name === undefined) {
+        return diagnostics;
+    }
+
+    const variable_name = descendant_variable_name.node.children[0].word.value;
+
+    const function_value = Parse_tree_analysis.get_function_value_that_contains_node_position(core_module, root, descendant_variable_declaration_expression.position);
+    if (function_value === undefined) {
+        return diagnostics;
+    }
+
+    const variable_info = Parse_tree_analysis.find_variable_info(core_module, function_value, root, descendant_variable_declaration_expression.position, variable_name);
+    if (variable_info !== undefined) {
+
+        const descendant_duplicate_variable_name = Parse_tree_analysis.find_variable_name_node_from_variable_info(root, variable_info);
+        if (descendant_duplicate_variable_name !== undefined) {
+            diagnostics.push(
+                {
+                    location: get_parser_node_source_location(uri, descendant_duplicate_variable_name.node),
+                    source: Source.Parse_tree_validation,
+                    severity: Diagnostic_severity.Error,
+                    message: `Duplicate variable name '${variable_name}'.`,
+                    related_information: [],
+                }
+            );
+        }
+
+        diagnostics.push(
+            {
+                location: get_parser_node_source_location(uri, descendant_variable_name.node),
+                source: Source.Parse_tree_validation,
+                severity: Diagnostic_severity.Error,
+                message: `Duplicate variable name '${variable_name}'.`,
+                related_information: [],
+            }
+        );
+    }
+
+    const descendant_right_hand_side = Parser_node.find_descendant_position_if(descendant_variable_declaration_expression, node => node.word.value === "Generic_expression");
+    if (descendant_right_hand_side === undefined) {
+        return diagnostics;
+    }
+
+    const declaration = Parse_tree_analysis.create_declaration_from_function_value(function_value);
+    const right_hand_side_expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_right_hand_side.node);
+    const right_hand_side_type = await Parse_tree_analysis.get_expression_type(core_module, declaration, root, descendant_variable_declaration_expression.position, right_hand_side_expression, get_core_module);
+    if (right_hand_side_type === undefined) {
+        diagnostics.push(
+            {
+                location: get_parser_node_source_location(uri, descendant_right_hand_side.node),
+                source: Source.Parse_tree_validation,
+                severity: Diagnostic_severity.Error,
+                message: `Cannot assign expression of type 'void' to variable '${variable_name}'.`,
                 related_information: [],
             }
         );
