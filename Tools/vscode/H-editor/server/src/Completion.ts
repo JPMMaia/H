@@ -435,9 +435,9 @@ async function find_core_declaration_of_expression_type(
         };
 
         const expression_type = await Parse_tree_analysis.get_expression_type(core_module, declaration, root, before_cursor_node_position, expression, get_core_module);
-        if (expression_type !== undefined) {
-            if (expression_type.data.type === Core.Type_reference_enum.Custom_type_reference) {
-                const custom_type_reference = expression_type.data.value as Core.Custom_type_reference;
+        if (expression_type !== undefined && expression_type.length > 0) {
+            if (expression_type[0].data.type === Core.Type_reference_enum.Custom_type_reference) {
+                const custom_type_reference = expression_type[0].data.value as Core.Custom_type_reference;
                 const module_declaration = await Parse_tree_analysis.get_custom_type_reference_declaration(custom_type_reference, get_core_module);
 
                 if (module_declaration !== undefined && underlying_declaration) {
