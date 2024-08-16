@@ -977,6 +977,54 @@ function run() -> ()
 
         await test_validate_module(input, [], expected_diagnostics);
     });
+
+    it("Validates the right hand side expression is an instantiate expression when variable type is a struct or union", async () => {
+        const input = `module Test;
+
+struct My_struct
+{
+    a: Int32 = 0;
+    b: Float32 = 0.0f32;
+}
+
+union My_union
+{
+    a: Int32;
+    b: Float32;
+}
+
+function run() -> ()
+{
+    var instance_0: My_struct = {
+        a: 0,
+        b: 0.0f32
+    };
+    var instance_1: My_struct = 1.0f32;
+
+    var instance_2: My_union = { b: 0.0f32 };
+    var instance_3: My_union = 0;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(21, 33, 21, 39),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Expression type 'Float32' does not match expected type 'My_struct'.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(24, 32, 24, 33),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Expression type 'Int32' does not match expected type 'My_union'.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
 });
 
 describe("Validation of expression variable", () => {
