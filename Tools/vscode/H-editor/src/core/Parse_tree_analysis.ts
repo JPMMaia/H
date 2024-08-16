@@ -1843,7 +1843,7 @@ function create_pointer_type(element_type: Core.Type_reference[], is_mutable: bo
     };
 }
 
-function create_boolean_type(): Core.Type_reference {
+export function create_boolean_type(): Core.Type_reference {
     return {
         data: {
             type: Core.Type_reference_enum.Fundamental_type,
