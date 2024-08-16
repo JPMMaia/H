@@ -675,7 +675,7 @@ async function validate_struct_member_default_value_expressions(
             const member_name = struct_declaration.member_names[member_index];
 
             const member_type_string = Type_utilities.get_type_name([member_type]);
-            const expression_type_string = expression_type !== undefined ? Type_utilities.get_type_name([expression_type]) : "<undefined>";
+            const expression_type_string = expression_type !== undefined ? Type_utilities.get_type_name(expression_type) : "<undefined>";
 
             diagnostics.push({
                 location: get_parser_node_source_location(uri, descendant_expression.node),
@@ -911,7 +911,7 @@ async function validate_call_expression(
                 location: get_parser_node_source_location(uri, argument_node),
                 source: Source.Parse_tree_validation,
                 severity: Diagnostic_severity.Error,
-                message: `Argument '${parameter_name}' expects type '${Type_utilities.get_type_name([parameter_type], core_module)}', but '${Type_utilities.get_type_name([argument_expression_type], core_module)}' was provided.`,
+                message: `Argument '${parameter_name}' expects type '${Type_utilities.get_type_name([parameter_type], core_module)}', but '${Type_utilities.get_type_name(argument_expression_type, core_module)}' was provided.`,
                 related_information: [],
             });
         }
@@ -1196,7 +1196,7 @@ async function validate_variable_declaration_type(
     const declaration = Parse_tree_analysis.create_declaration_from_function_value(function_value);
     const right_hand_side_expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_right_hand_side.node);
     const right_hand_side_type = await Parse_tree_analysis.get_expression_type(core_module, declaration, root, descendant_variable_declaration_expression.position, right_hand_side_expression, get_core_module);
-    if (right_hand_side_type === undefined) {
+    if (right_hand_side_type !== undefined && right_hand_side_type.length === 0) {
         diagnostics.push(
             {
                 location: get_parser_node_source_location(uri, descendant_right_hand_side.node),
@@ -1208,8 +1208,8 @@ async function validate_variable_declaration_type(
         );
     }
 
-    if (right_hand_side_type !== undefined && expected_variable_type !== undefined && !deep_equal(expected_variable_type, right_hand_side_type)) {
-        const right_hand_side_type_string = Type_utilities.get_type_name([right_hand_side_type], core_module);
+    if (right_hand_side_type !== undefined && right_hand_side_type.length > 0 && expected_variable_type !== undefined && !deep_equal(expected_variable_type, right_hand_side_type[0])) {
+        const right_hand_side_type_string = Type_utilities.get_type_name(right_hand_side_type, core_module);
         const expected_variable_type_string = Type_utilities.get_type_name([expected_variable_type], core_module);
         diagnostics.push(
             {
