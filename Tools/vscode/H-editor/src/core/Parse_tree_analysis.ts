@@ -384,16 +384,16 @@ export async function find_variable_type(
     let current_statements_block_position = statements.position;
     let current_statement_index = scope_node_position[current_statements_block_position.length];
 
-    while (current_statements_block !== undefined && current_statement_index < current_statements_block.length) {
-        for (let index = 0; index < current_statement_index; ++index) {
+    while (current_statements_block !== undefined && current_statement_index >= 0 && current_statement_index < current_statements_block.length) {
+        for (let index = 0; index <= current_statement_index; ++index) {
             const core_statement = current_statements_block[index];
-            const core_statement_node_position = [...current_statements_block_position, index];
+            const next_scope_node_position = [...current_statements_block_position, index - 1];
 
             if (core_statement.expression.data.type === Core.Expression_enum.Variable_declaration_expression) {
                 const expression = core_statement.expression.data.value as Core.Variable_declaration_expression;
                 if (expression.name === variable_name) {
                     const declaration = create_declaration_from_function_value(function_value);
-                    const expression_type = await get_expression_type(core_module, declaration, root, core_statement_node_position, expression.right_hand_side, get_core_module);
+                    const expression_type = await get_expression_type(core_module, declaration, root, next_scope_node_position, expression.right_hand_side, get_core_module);
                     if (expression_type !== undefined && expression_type.length > 0) {
                         matches.push(expression_type[0]);
                     }
@@ -409,7 +409,7 @@ export async function find_variable_type(
                 const expression = core_statement.expression.data.value as Core.For_loop_expression;
                 if (expression.variable_name === variable_name) {
                     const declaration = create_declaration_from_function_value(function_value);
-                    const expression_type = await get_expression_type(core_module, declaration, root, core_statement_node_position, expression.range_begin, get_core_module);
+                    const expression_type = await get_expression_type(core_module, declaration, root, next_scope_node_position, expression.range_begin, get_core_module);
                     if (expression_type !== undefined && expression_type.length > 0) {
                         matches.push(expression_type[0]);
                     }

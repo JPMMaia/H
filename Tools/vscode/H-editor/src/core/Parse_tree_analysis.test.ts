@@ -64,6 +64,11 @@ describe("Parse_tree_analysis.find_variable_type", () => {
         const expected_variable_type = create_integer_type(32, false);
         await test_find_variable_type(language_description, Module_examples.create_variable_declaration_inside_switch_case(), 0, [1, 0, 1, 1, 0, 1, 0, 0, 3, 1, 3, 1, 0], "b", expected_variable_type);
     });
+
+    it("Can handle invalid recursive expressions", async () => {
+        const expected_variable_type = undefined;
+        await test_find_variable_type(language_description, Module_examples.create_invalid_assignment_to_itself_function(), 0, [1, 0, 1, 1, 0, 1, 0, 0, 0], "value", expected_variable_type);
+    });
 });
 
 async function test_find_variable_type(
@@ -72,7 +77,7 @@ async function test_find_variable_type(
     declaration_index: number,
     variable_node_position: number[],
     variable_name: string,
-    expected_variable_type: Core.Type_reference,
+    expected_variable_type: Core.Type_reference | undefined,
     get_core_module?: (module_name: string) => Promise<Core.Module | undefined>
 ): Promise<void> {
     const function_value = core_module.declarations[declaration_index].value as Core.Function;
@@ -138,7 +143,7 @@ function run() -> ()
             return Promise.resolve(undefined);
         };
 
-        await test_get_expression_type(language_description, core_module, 0, [1, 0, 1, 1, 0, 1, 0], expression, expected_expression_type, get_core_module);
+        await test_get_expression_type(language_description, core_module, 0, [1, 0, 1, 1, 0, 1, 0], expression, [expected_expression_type], get_core_module);
     });
 
     it("Finds expression type of access expression of struct", async () => {
@@ -148,7 +153,7 @@ function run() -> ()
             Core.Access_type.Read
         );
         const expected_expression_type = create_integer_type(32, true);
-        await test_get_expression_type(language_description, Module_examples.create_using_structs(), 2, [1, 2, 1, 1, 0, 1, 2, 0, 0], expression, expected_expression_type);
+        await test_get_expression_type(language_description, Module_examples.create_using_structs(), 2, [1, 2, 1, 1, 0, 1, 2, 0, 0], expression, [expected_expression_type]);
     });
 
     it("Finds expression type of access expression of union", async () => {
@@ -158,7 +163,7 @@ function run() -> ()
             Core.Access_type.Read
         );
         const expected_expression_type = create_fundamental_type(Core.Fundamental_type.Float32);
-        await test_get_expression_type(language_description, Module_examples.create_using_unions(), 5, [1, 5, 1, 1, 0, 1, 3, 0, 0], expression, expected_expression_type);
+        await test_get_expression_type(language_description, Module_examples.create_using_unions(), 5, [1, 5, 1, 1, 0, 1, 3, 0, 0], expression, [expected_expression_type]);
     });
 
     it("Finds expression type of access expression of struct of imported module", async () => {
@@ -182,7 +187,7 @@ function run() -> ()
             return Promise.resolve(undefined);
         };
 
-        await test_get_expression_type(language_description, core_module, 0, [1, 0, 1, 1, 0, 1, 1, 0, 0], expression, expected_expression_type, get_core_module);
+        await test_get_expression_type(language_description, core_module, 0, [1, 0, 1, 1, 0, 1, 1, 0, 0], expression, [expected_expression_type], get_core_module);
     });
 
     it("Finds expression type of access expression of struct through alias", async () => {
@@ -213,7 +218,7 @@ function run() -> ()
         );
         const expected_expression_type = create_integer_type(32, true);
 
-        await test_get_expression_type(language_description, create_core_module_from_text(language_description, program), 3, [1, 3, 1, 1, 0, 1, 1, 0, 0], expression, expected_expression_type);
+        await test_get_expression_type(language_description, create_core_module_from_text(language_description, program), 3, [1, 3, 1, 1, 0, 1, 1, 0, 0], expression, [expected_expression_type]);
     });
 
     it("Finds expression type of binary expression with numeric operator", async () => {
@@ -223,7 +228,7 @@ function run() -> ()
             Core.Binary_operation.Add
         );
         const expected_expression_type = create_integer_type(32, true);
-        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, expected_expression_type);
+        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, [expected_expression_type]);
     });
 
     it("Finds expression type of binary expression with logical operator", async () => {
@@ -233,7 +238,7 @@ function run() -> ()
             Core.Binary_operation.Equal
         );
         const expected_expression_type = create_boolean_type();
-        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, expected_expression_type);
+        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, [expected_expression_type]);
     });
 
     it("Finds expression type of cast expression", async () => {
@@ -243,7 +248,7 @@ function run() -> ()
             Core.Cast_type.Numeric
         );
         const expected_expression_type = create_integer_type(32, true);
-        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, expected_expression_type);
+        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, [expected_expression_type]);
     });
 
     it("Finds expression type of constant array expression", async () => {
@@ -253,13 +258,13 @@ function run() -> ()
             ]
         );
         const expected_expression_type = create_integer_type(32, true);
-        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, expected_expression_type);
+        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, [expected_expression_type]);
     });
 
     it("Finds expression type of constant expression", async () => {
         const expression = Core.create_constant_expression(create_integer_type(32, true), "0");
         const expected_expression_type = create_integer_type(32, true);
-        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, expected_expression_type);
+        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, [expected_expression_type]);
     });
 
     it("Finds expression type of call expression", async () => {
@@ -290,13 +295,13 @@ function run() -> ()
         };
 
         const expected_expression_type = int32_type;
-        await test_get_expression_type(language_description, Module_examples.create_call_of_function_of_imported_module(), 0, [1, 0, 1, 1, 0, 1, 0, 0], expression, expected_expression_type, get_core_module);
+        await test_get_expression_type(language_description, Module_examples.create_call_of_function_of_imported_module(), 0, [1, 0, 1, 1, 0, 1, 0, 0], expression, [expected_expression_type], get_core_module);
     });
 
     it("Finds expression type of parenthesis expression", async () => {
         const expression = Core.create_parenthesis_expression(Core.create_constant_expression(create_integer_type(32, true), "0"));
         const expected_expression_type = create_integer_type(32, true);
-        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, expected_expression_type);
+        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, [expected_expression_type]);
     });
 
     it("Finds expression type of ternary condition expression", async () => {
@@ -306,19 +311,19 @@ function run() -> ()
             create_statement(Core.create_constant_expression(create_integer_type(32, true), "1"))
         );
         const expected_expression_type = create_integer_type(32, true);
-        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, expected_expression_type);
+        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, [expected_expression_type]);
     });
 
     it("Finds expression type of unary expression", async () => {
         const expression = Core.create_unary_expression(Core.create_variable_expression("a", Core.Access_type.Read), Core.Unary_operation.Minus);
         const expected_expression_type = create_integer_type(32, true);
-        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, expected_expression_type);
+        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, [expected_expression_type]);
     });
 
     it("Finds expression type of unary expression with address of", async () => {
         const expression = Core.create_unary_expression(Core.create_variable_expression("a", Core.Access_type.Read), Core.Unary_operation.Address_of);
         const expected_expression_type = create_pointer_type([create_integer_type(32, true)], false);
-        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, expected_expression_type);
+        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, [expected_expression_type]);
     });
 
     it("Finds expression type of unary expression with indirection", async () => {
@@ -327,13 +332,13 @@ function run() -> ()
             Core.Unary_operation.Indirection
         );
         const expected_expression_type = create_integer_type(32, true);
-        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, expected_expression_type);
+        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, [expected_expression_type]);
     });
 
     it("Finds expression type of variable expression", async () => {
         const expression = Core.create_variable_expression("a", Core.Access_type.Read);
         const expected_expression_type = create_integer_type(32, true);
-        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, expected_expression_type);
+        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, [expected_expression_type]);
     });
 
     it("Finds expression type of variable expression of enum", async () => {
@@ -358,7 +363,7 @@ function run() -> ()
         const expected_expression_type = create_custom_type_reference("Test", "Precision");
         const core_module = create_core_module_from_text(language_description, program);
 
-        await test_get_expression_type(language_description, core_module, 1, [1, 1, 1, 1, 0, 1, 0], expression, expected_expression_type);
+        await test_get_expression_type(language_description, core_module, 1, [1, 1, 1, 1, 0, 1, 0], expression, [expected_expression_type]);
     });
 });
 
@@ -368,7 +373,7 @@ async function test_get_expression_type(
     declaration_index: number,
     variable_node_position: number[],
     expression: Core.Expression,
-    expected_expression_type: Core.Type_reference,
+    expected_expression_type: Core.Type_reference[],
     get_core_module?: (module_name: string) => Promise<Core.Module | undefined>
 ): Promise<void> {
     const get_core_module_function = get_core_module !== undefined ? get_core_module : create_default_get_core_module(core_module);
