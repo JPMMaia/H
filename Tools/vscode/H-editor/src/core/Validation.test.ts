@@ -1742,7 +1742,7 @@ function run(value: Int32) -> (result: Int32)
                 location: create_diagnostic_location(6, 20, 6, 25),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "Expression must evaluate to boolean type.",
+                message: "Expression type 'Int32' does not match expected type 'Bool'.",
                 related_information: [],
             },
         ];

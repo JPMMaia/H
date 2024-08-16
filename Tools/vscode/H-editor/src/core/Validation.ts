@@ -259,6 +259,9 @@ async function validate_current_parser_node_with_module(
         case "Expression_constant": {
             return validate_constant_expression(uri, new_value.node.children[0]);
         }
+        case "Expression_ternary_condition": {
+            return validate_ternary_condition_expression(uri, language_description, core_module, root, new_value, get_core_module);
+        }
         case "Expression_unary_0":
         case "Expression_unary_1": {
             return validate_unary_expression(uri, language_description, core_module, root, new_value, get_core_module);
@@ -1044,6 +1047,43 @@ function validate_constant_expression(
     return [];
 }
 
+async function validate_ternary_condition_expression(
+    uri: string,
+    language_description: Language.Description,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    descendant_ternary_condition_expression: { node: Parser_node.Node, position: number[] },
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+    const diagnostics: Diagnostic[] = [];
+
+    const function_value = Parse_tree_analysis.get_function_value_that_contains_node_position(core_module, root, descendant_ternary_condition_expression.position);
+    if (function_value === undefined) {
+        return diagnostics;
+    }
+
+    const scope_declaration = Parse_tree_analysis.create_declaration_from_function_value(function_value);
+
+    const descendant_condition = Parser_node.get_child(descendant_ternary_condition_expression, 0);
+    const descendant_then = Parser_node.get_child(descendant_ternary_condition_expression, 2);
+    const descendant_else = Parser_node.get_child(descendant_ternary_condition_expression, 4);
+
+    {
+        const expected_type = [Parse_tree_analysis.create_boolean_type()];
+        diagnostics.push(...await validate_expression_type_is(uri, language_description, core_module, scope_declaration, root, descendant_condition, expected_type, get_core_module));
+    }
+
+    {
+        const create_message = (first_string: string, second_string: string): string => {
+            return `The expression types of the then ('${first_string}') and else ('${second_string}') part of a ternary expression must match.`;
+        };
+
+        diagnostics.push(...await validate_expression_types_are_equal(uri, language_description, core_module, scope_declaration, root, descendant_then, descendant_else, create_message, get_core_module));
+    }
+
+    return diagnostics;
+}
+
 async function validate_unary_expression(
     uri: string,
     language_description: Language.Description,
@@ -1496,6 +1536,48 @@ async function validate_expression_type_is(
                 }
             ];
         }
+    }
+
+    return [];
+}
+
+async function validate_expression_types_are_equal(
+    uri: string,
+    language_description: Language.Description,
+    core_module: Core.Module,
+    scope_declaration: Core.Declaration,
+    root: Parser_node.Node,
+    first_descendant: { node: Parser_node.Node, position: number[] },
+    second_descendant: { node: Parser_node.Node, position: number[] },
+    create_message: ((first_type: string, second_type: string) => string) | undefined,
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+    const first_expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, first_descendant.node);
+    const second_expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, second_descendant.node);
+
+    const first_expression_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, first_descendant.position, first_expression, get_core_module);
+    const second_expression_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, second_descendant.position, second_expression, get_core_module);
+
+    if (!deep_equal(first_expression_type, second_expression_type)) {
+        const first_expression_type_string = first_expression_type !== undefined ? Type_utilities.get_type_name(first_expression_type, core_module) : "<undefined>";
+        const second_expression_type_string = second_expression_type !== undefined ? Type_utilities.get_type_name(second_expression_type, core_module) : "<undefined>";
+        const common_root_position = Parser_node.find_node_common_root(first_descendant.position, second_descendant.position);
+        const common_root_node = Parser_node.get_node_at_position(root, common_root_position);
+
+        const message =
+            create_message !== undefined ?
+                create_message(first_expression_type_string, second_expression_type_string) :
+                `Expression type '${first_expression_type_string}' does not match type '${second_expression_type_string}'.`;
+
+        return [
+            {
+                location: get_parser_node_source_location(uri, common_root_node),
+                source: Source.Parse_tree_validation,
+                severity: Diagnostic_severity.Error,
+                message: message,
+                related_information: [],
+            }
+        ];
     }
 
     return [];
