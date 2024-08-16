@@ -268,6 +268,9 @@ async function validate_current_parser_node_with_module(
         case "Expression_variable_declaration_with_type": {
             return validate_variable_declaration_with_type_expression(uri, language_description, core_module, root, new_value, get_core_module);
         }
+        case "Expression_while_loop": {
+            return validate_while_loop_expression(uri, language_description, core_module, root, new_value, get_core_module);
+        }
     }
 
     return [];
@@ -1223,6 +1226,67 @@ async function validate_variable_declaration_type(
     }
 
     return diagnostics;
+}
+
+async function validate_while_loop_expression(
+    uri: string,
+    language_description: Language.Description,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    descendant_variable_declaration_expression: { node: Parser_node.Node, position: number[] },
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+    const diagnostics: Diagnostic[] = [];
+
+    const function_value = Parse_tree_analysis.get_function_value_that_contains_node_position(core_module, root, descendant_variable_declaration_expression.position);
+    if (function_value === undefined) {
+        return diagnostics;
+    }
+
+    const descendant_condition = Parser_node.find_descendant_position_if(descendant_variable_declaration_expression, (node) => node.word.value === "Generic_expression");
+    if (descendant_condition === undefined) {
+        return diagnostics;
+    }
+
+    const scope_declaration = Parse_tree_analysis.create_declaration_from_function_value(function_value);
+    const boolean_type = Parse_tree_analysis.create_boolean_type();
+    diagnostics.push(
+        ...await validate_expression_type_is(uri, language_description, core_module, scope_declaration, root, descendant_condition, [boolean_type], get_core_module)
+    );
+
+    return diagnostics;
+}
+
+async function validate_expression_type_is(
+    uri: string,
+    language_description: Language.Description,
+    core_module: Core.Module,
+    scope_declaration: Core.Declaration,
+    root: Parser_node.Node,
+    descendant: { node: Parser_node.Node, position: number[] },
+    expected_type: Core.Type_reference[],
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+    const expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant.node);
+    const expression_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant.position, expression, get_core_module);
+
+    if (expression_type === undefined || !deep_equal(expression_type, expected_type)) {
+        const expression_type_string = expression_type !== undefined ? Type_utilities.get_type_name(expression_type, core_module) : "<undefined>";
+        const expected_type_string = Type_utilities.get_type_name(expected_type, core_module);
+        if (expression_type_string !== expected_type_string) {
+            return [
+                {
+                    location: get_parser_node_source_location(uri, descendant.node),
+                    source: Source.Parse_tree_validation,
+                    severity: Diagnostic_severity.Error,
+                    message: `Expression type '${expression_type_string}' does not match expected type '${expected_type_string}'.`,
+                    related_information: [],
+                }
+            ];
+        }
+    }
+
+    return [];
 }
 
 function get_parser_node_source_location(
