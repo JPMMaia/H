@@ -627,7 +627,7 @@ async function validate_enum_value_generic_expressions(
 
         const expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_expression.node);
         const expression_type = await Parse_tree_analysis.get_expression_type(core_module, declaration, root, descendant_expression.position, expression, get_core_module);
-        if (!deep_equal(expression_type, int32_type)) {
+        if (!deep_equal(expression_type, [int32_type])) {
 
             const descendant_member_name = Parser_node.find_descendant_position_if(descendant_member, node => node.word.value === "Enum_value_name");
             if (descendant_member_name !== undefined) {
@@ -1191,7 +1191,7 @@ async function validate_variable_declaration_type(
 
     const diagnostics: Diagnostic[] = [];
 
-    const descendant_right_hand_side = Parser_node.find_descendant_position_if(descendant_variable_declaration_expression, node => node.word.value === "Generic_expression");
+    const descendant_right_hand_side = Parser_node.find_descendant_position_if(descendant_variable_declaration_expression, node => node.word.value === "Generic_expression" || node.word.value === "Generic_expression_or_instantiate");
     if (descendant_right_hand_side === undefined) {
         return diagnostics;
     }
