@@ -950,7 +950,7 @@ function get_value() -> (result: Float32)
 {
 }
 
-function run(c: Int32) -> ()
+function run() -> ()
 {
     var a: Int32 = 0;
     var b: Int32 = 1.0f32;

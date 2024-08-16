@@ -265,6 +265,9 @@ async function validate_current_parser_node_with_module(
         case "Expression_variable_declaration": {
             return validate_variable_declaration_expression(uri, language_description, core_module, root, new_value, get_core_module);
         }
+        case "Expression_variable_declaration_with_type": {
+            return validate_variable_declaration_with_type_expression(uri, language_description, core_module, root, new_value, get_core_module);
+        }
     }
 
     return [];
@@ -1076,6 +1079,11 @@ async function validate_variable_declaration_expression(
 ): Promise<Diagnostic[]> {
     const diagnostics: Diagnostic[] = [];
 
+    const function_value = Parse_tree_analysis.get_function_value_that_contains_node_position(core_module, root, descendant_variable_declaration_expression.position);
+    if (function_value === undefined) {
+        return diagnostics;
+    }
+
     const descendant_variable_name = Parser_node.find_descendant_position_if(descendant_variable_declaration_expression, (node) => node.word.value === "Variable_name");
     if (descendant_variable_name === undefined) {
         return diagnostics;
@@ -1083,10 +1091,58 @@ async function validate_variable_declaration_expression(
 
     const variable_name = descendant_variable_name.node.children[0].word.value;
 
+    diagnostics.push(...validate_variable_declaration_duplicates(uri, core_module, function_value, root, descendant_variable_declaration_expression, variable_name, descendant_variable_name));
+    diagnostics.push(...await validate_variable_declaration_type(uri, language_description, core_module, function_value, root, descendant_variable_declaration_expression, variable_name, undefined, get_core_module));
+
+    return diagnostics;
+}
+
+async function validate_variable_declaration_with_type_expression(
+    uri: string,
+    language_description: Language.Description,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    descendant_variable_declaration_expression: { node: Parser_node.Node, position: number[] },
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+    const diagnostics: Diagnostic[] = [];
+
     const function_value = Parse_tree_analysis.get_function_value_that_contains_node_position(core_module, root, descendant_variable_declaration_expression.position);
     if (function_value === undefined) {
         return diagnostics;
     }
+
+    const descendant_variable_name = Parser_node.find_descendant_position_if(descendant_variable_declaration_expression, (node) => node.word.value === "Variable_name");
+    if (descendant_variable_name === undefined) {
+        return diagnostics;
+    }
+
+    const variable_name = descendant_variable_name.node.children[0].word.value;
+
+    diagnostics.push(...validate_variable_declaration_duplicates(uri, core_module, function_value, root, descendant_variable_declaration_expression, variable_name, descendant_variable_name));
+
+    const descendant_variable_type = Parser_node.find_descendant_position_if(descendant_variable_declaration_expression, (node) => node.word.value === "Expression_variable_declaration_type");
+    if (descendant_variable_type !== undefined) {
+        const descendant_type = Parser_node.get_child(descendant_variable_type, 0);
+        const type_reference = Parse_tree_analysis.get_type_reference_from_node(language_description, core_module, descendant_type.node);
+        if (type_reference.length > 0) {
+            diagnostics.push(...await validate_variable_declaration_type(uri, language_description, core_module, function_value, root, descendant_variable_declaration_expression, variable_name, type_reference[0], get_core_module));
+        }
+    }
+
+    return diagnostics;
+}
+
+function validate_variable_declaration_duplicates(
+    uri: string,
+    core_module: Core.Module,
+    function_value: Core.Function,
+    root: Parser_node.Node,
+    descendant_variable_declaration_expression: { node: Parser_node.Node; position: number[]; },
+    variable_name: string,
+    descendant_variable_name: { node: Parser_node.Node; position: number[]; }
+): Diagnostic[] {
+    const diagnostics: Diagnostic[] = [];
 
     const variable_info = Parse_tree_analysis.find_variable_info(core_module, function_value, root, descendant_variable_declaration_expression.position, variable_name);
     if (variable_info !== undefined) {
@@ -1115,6 +1171,23 @@ async function validate_variable_declaration_expression(
         );
     }
 
+    return diagnostics;
+}
+
+async function validate_variable_declaration_type(
+    uri: string,
+    language_description: Language.Description,
+    core_module: Core.Module,
+    function_value: Core.Function,
+    root: Parser_node.Node,
+    descendant_variable_declaration_expression: { node: Parser_node.Node; position: number[]; },
+    variable_name: string,
+    expected_variable_type: Core.Type_reference | undefined,
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+
+    const diagnostics: Diagnostic[] = [];
+
     const descendant_right_hand_side = Parser_node.find_descendant_position_if(descendant_variable_declaration_expression, node => node.word.value === "Generic_expression");
     if (descendant_right_hand_side === undefined) {
         return diagnostics;
@@ -1130,6 +1203,20 @@ async function validate_variable_declaration_expression(
                 source: Source.Parse_tree_validation,
                 severity: Diagnostic_severity.Error,
                 message: `Cannot assign expression of type 'void' to variable '${variable_name}'.`,
+                related_information: [],
+            }
+        );
+    }
+
+    if (right_hand_side_type !== undefined && expected_variable_type !== undefined && !deep_equal(expected_variable_type, right_hand_side_type)) {
+        const right_hand_side_type_string = Type_utilities.get_type_name([right_hand_side_type], core_module);
+        const expected_variable_type_string = Type_utilities.get_type_name([expected_variable_type], core_module);
+        diagnostics.push(
+            {
+                location: get_parser_node_source_location(uri, descendant_right_hand_side.node),
+                source: Source.Parse_tree_validation,
+                severity: Diagnostic_severity.Error,
+                message: `Expression type '${right_hand_side_type_string}' does not match expected type '${expected_variable_type_string}'.`,
                 related_information: [],
             }
         );
