@@ -906,7 +906,7 @@ async function validate_call_expression(
 
     for (let parameter_index = 0; parameter_index < function_declaration.input_parameter_names.length; parameter_index++) {
         const parameter_name = function_declaration.input_parameter_names[parameter_index];
-        const parameter_type = function_declaration.type.input_parameter_types[parameter_index];
+        const parameter_type = [function_declaration.type.input_parameter_types[parameter_index]];
 
         const argument_expression = call_expression.arguments[parameter_index];
         const argument_expression_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_call_expression.position, argument_expression, get_core_module);
@@ -921,7 +921,7 @@ async function validate_call_expression(
                 location: get_parser_node_source_location(uri, argument_node),
                 source: Source.Parse_tree_validation,
                 severity: Diagnostic_severity.Error,
-                message: `Argument '${parameter_name}' expects type '${Type_utilities.get_type_name([parameter_type], core_module)}', but '${Type_utilities.get_type_name(argument_expression_type, core_module)}' was provided.`,
+                message: `Argument '${parameter_name}' expects type '${Type_utilities.get_type_name(parameter_type, core_module)}', but '${Type_utilities.get_type_name(argument_expression_type, core_module)}' was provided.`,
                 related_information: [],
             });
         }
