@@ -551,10 +551,68 @@ async function validate_enum(
 
     diagnostics.push(...validate_member_names_are_different(uri, enum_name, descendant_enum_values, "Enum_value_name"));
     diagnostics.push(...await validate_enum_value_generic_expressions(uri, language_description, core_module, declaration, root, descendant_enum_values, get_core_module));
-    diagnostics.push(...validate_member_expressions_are_computed_at_compile_time(uri, declaration.name, descendant_enum_values, "Enum_value_name", "Generic_expression"));
+    diagnostics.push(...validate_member_expressions_are_computed_at_compile_time(uri, declaration.name, descendant_enum_values, "Enum_value_name", "Generic_expression", ["Expression_variable", "Variable_name"]));
+    diagnostics.push(...validate_enum_values_use_previous_values(uri, enum_name, descendant_enum_values));
 
     return diagnostics;
 }
+
+function validate_enum_values_use_previous_values(
+    uri: string,
+    enum_name: string,
+    members: { node: Parser_node.Node, position: number[] }[]
+): Diagnostic[] {
+
+    const diagnostics: Diagnostic[] = [];
+
+    const enum_value_names = members.map(member => {
+        const enum_value_name = Parser_node.find_descendant_position_if(member, node => node.word.value === "Enum_value_name");
+        if (enum_value_name === undefined) {
+            return undefined;
+        }
+
+        return enum_value_name.node.children[0].word.value;
+    }).filter(name => name !== undefined) as string[];
+
+    for (let member_index = 0; member_index < members.length; ++member_index) {
+        const descendant_member = members[member_index];
+
+        const descendant_expression = Parser_node.find_descendant_position_if(descendant_member, node => node.word.value === "Generic_expression");
+        if (descendant_expression === undefined) {
+            continue;
+        }
+
+        const descendant_variable_names = Parser_node.find_descendants_if(descendant_expression, node => node.word.value === "Variable_name").map(node => Parser_node.get_child(node, 0));
+
+        for (const descendant_variable_name of descendant_variable_names) {
+
+            const enum_value_name = descendant_variable_name.node.word.value;
+
+            const index = enum_value_names.findIndex(name => name === enum_value_name);
+            if (index === -1) {
+                diagnostics.push({
+                    location: get_parser_node_source_location(uri, descendant_variable_name.node),
+                    source: Source.Parse_tree_validation,
+                    severity: Diagnostic_severity.Error,
+                    message: `Cannot use '${enum_value_name}' to calculate '${enum_name}.${enum_value_names[member_index]}'.`,
+                    related_information: [],
+                });
+            }
+            else if (index >= member_index) {
+                diagnostics.push({
+                    location: get_parser_node_source_location(uri, descendant_variable_name.node),
+                    source: Source.Parse_tree_validation,
+                    severity: Diagnostic_severity.Error,
+                    message: `The enum value '${enum_name}.${enum_value_names[member_index]}' can only be calculated using previous enum values.`,
+                    related_information: [],
+                });
+            }
+        }
+    }
+
+    return diagnostics;
+}
+
 
 async function validate_struct(
     uri: string,
@@ -754,7 +812,8 @@ function validate_member_expressions_are_computed_at_compile_time(
     declaration_name: string,
     members: { node: Parser_node.Node, position: number[] }[],
     member_name_node_name: string,
-    expression_node_name: string
+    expression_node_name: string,
+    additional_labels_to_allow: string[] = []
 ): Diagnostic[] {
 
     const diagnostics: Diagnostic[] = [];
@@ -782,6 +841,10 @@ function validate_member_expressions_are_computed_at_compile_time(
             }
 
             if (node.word.value === "Expression_constant") {
+                return false;
+            }
+
+            if (additional_labels_to_allow.find(label => label === node.word.value) !== undefined) {
                 return false;
             }
 
