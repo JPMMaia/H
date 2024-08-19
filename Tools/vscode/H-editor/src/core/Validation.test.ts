@@ -348,6 +348,7 @@ describe("Validation of structs", () => {
     // - Member names must different
     // - Member default values types must match member types
     // - Member default values can only using instantiate or constant expressions
+    // - Member default values are values, not types
 
     it("Validates that member names are different from each other", async () => {
         const input = `module Test;
@@ -430,6 +431,35 @@ struct My_struct
 
         await test_validate_module(input, [], expected_diagnostics);
     });
+
+    it("Validates that member default values are values, not types", async () => {
+        const input = `module Test;
+
+struct My_struct
+{
+    a: Int32 = Int32;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(5, 16, 5, 21),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot assign expression of type '<undefined>' to 'My_struct.a' of type 'Int32'.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(5, 16, 5, 21),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "The value of 'My_struct.a' must be a computable at compile-time.",
+                related_information: [],
+            }
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
 });
 
 describe("Validation of unions", () => {
@@ -473,6 +503,8 @@ describe("Validation of enums", () => {
     // - Member names must different
     // - Enum values need to be computed at compile-time
     // - Enum values types must be i32
+    // - Allows enum values to be computed using other enum values
+    // - TODO Detect recursion of enum values computation using enum values
 
     it("Validates that enum member names are different from each other", async () => {
         const input = `module Test;
@@ -559,6 +591,56 @@ enum My_enum
                 message: "The value of 'My_enum.b' must be a computable at compile-time.",
                 related_information: [],
             }
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Allows enum values to be computed using enum values", async () => {
+        const input = `module Test;
+
+enum My_enum
+{
+    a = 1,
+    b = 2,
+    c = 4,
+    d = a | b | c,
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+
+    it("Validate that enum value can only be calculated using previous enum values", async () => {
+        const input = `module Test;
+
+enum My_enum
+{
+    a = 1,
+    b = a,
+    c = d,
+    d = d,
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(7, 9, 7, 10),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "The enum value can only be calculated using previous enum values.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(8, 9, 8, 10),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "The enum value can only be calculated using previous enum values.",
+                related_information: [],
+            },
         ];
 
         await test_validate_module(input, [], expected_diagnostics);
@@ -973,6 +1055,28 @@ function run() -> ()
                 message: "Expression type 'Float32' does not match expected type 'Int32'.",
                 related_information: [],
             },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Validates the right hand side type of a variable declaration with type is a value, not a type", async () => {
+        const input = `module Test;
+
+function run() -> ()
+{
+    var a: Int32 = Int32;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(5, 20, 5, 25),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Variable 'Int32' does not exist.",
+                related_information: [],
+            }
         ];
 
         await test_validate_module(input, [], expected_diagnostics);
@@ -1489,6 +1593,7 @@ describe("Validation of expression call", () => {
     // - Can only call functions, or expressions whose type results in a function type
     // - Function call has the correct number of arguments
     // - Function call has the correct type of arguments
+    // - Function call expects values, not types
 
     it("Validates that can only call functions or expressions whose type is a function type", async () => {
         const input = `module Test;
@@ -1647,6 +1752,32 @@ function run() -> ()
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
                 message: "Argument 'v0' expects type 'Int32', but 'Float32' was provided.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Validates that function call arguments are values, not types", async () => {
+        const input = `module Test;
+
+function foo_1(v0: Int32) -> ()
+{
+}
+
+function run() -> ()
+{
+    foo_1(Int32);
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(9, 11, 9, 16),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Variable 'Int32' does not exist.",
                 related_information: [],
             },
         ];
@@ -1823,6 +1954,12 @@ function run(int_value: Int32, enum_value: My_enum) -> (result: Int32)
             return 3;
         }
     }
+
+    switch My_enum {
+    default: {
+        return 3;
+    }
+    }
 }
 `;
 
@@ -1836,6 +1973,13 @@ function run(int_value: Int32, enum_value: My_enum) -> (result: Int32)
             },
             {
                 location: create_diagnostic_location(37, 12, 37, 23),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Expression must evaluate to an integer or an enum value.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(43, 12, 43, 19),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
                 message: "Expression must evaluate to an integer or an enum value.",
