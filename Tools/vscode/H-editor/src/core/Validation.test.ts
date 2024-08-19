@@ -590,7 +590,14 @@ enum My_enum
                 severity: Validation.Diagnostic_severity.Error,
                 message: "The value of 'My_enum.b' must be a computable at compile-time.",
                 related_information: [],
-            }
+            },
+            {
+                location: create_diagnostic_location(11, 9, 11, 18),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot use 'get_value' to calculate 'My_enum.b'.",
+                related_information: [],
+            },
         ];
 
         await test_validate_module(input, [], expected_diagnostics);
@@ -631,14 +638,14 @@ enum My_enum
                 location: create_diagnostic_location(7, 9, 7, 10),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "The enum value can only be calculated using previous enum values.",
+                message: "The enum value 'My_enum.c' can only be calculated using previous enum values.",
                 related_information: [],
             },
             {
                 location: create_diagnostic_location(8, 9, 8, 10),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "The enum value can only be calculated using previous enum values.",
+                message: "The enum value 'My_enum.d' can only be calculated using previous enum values.",
                 related_information: [],
             },
         ];
