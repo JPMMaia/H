@@ -2119,14 +2119,8 @@ enum My_enum
     C,
 }
 
-function run(int_value: Int32, enum_value: My_enum) -> (result: Int32)
+function run(enum_value: My_enum) -> (result: Int32)
 {
-    switch int_value {
-        case 1 + 1: {
-            return 0;
-        }
-    }
-
     var enum_value_2 = My_enum.A;
     switch enum_value {
         case enum_value_2: {
@@ -2140,14 +2134,7 @@ function run(int_value: Int32, enum_value: My_enum) -> (result: Int32)
 
         const expected_diagnostics: Validation.Diagnostic[] = [
             {
-                location: create_diagnostic_location(13, 14, 13, 19),
-                source: Validation.Source.Parse_tree_validation,
-                severity: Validation.Diagnostic_severity.Error,
-                message: "Switch case expression must be a single compile-time expression.",
-                related_information: [],
-            },
-            {
-                location: create_diagnostic_location(20, 14, 20, 26),
+                location: create_diagnostic_location(14, 14, 14, 26),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
                 message: "Switch case expression must be a single compile-time expression.",

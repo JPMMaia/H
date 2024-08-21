@@ -1156,35 +1156,48 @@ async function validate_switch_expression(
         return diagnostics;
     }
 
-    return diagnostics;
-
-    // TODO
-
-    /*const function_value = Parse_tree_analysis.get_function_value_that_contains_node_position(core_module, root, descendant_switch_expression.position);
-    if (function_value === undefined) {
+    const descendant_switch_cases_parent = Parser_node.find_descendant_position_if(descendant_switch_expression, node => node.word.value === "Expression_switch_cases");
+    if (descendant_switch_cases_parent === undefined) {
         return diagnostics;
     }
 
-    const scope_declaration = Parse_tree_analysis.create_declaration_from_function_value(function_value);
+    const descendant_switch_cases = Parser_node.get_children(descendant_switch_cases_parent);
 
-    const descendant_condition = Parser_node.get_child(descendant_switch_expression, 0);
-    const descendant_then = Parser_node.get_child(descendant_switch_expression, 2);
-    const descendant_else = Parser_node.get_child(descendant_switch_expression, 4);
+    for (const descendant_switch_case of descendant_switch_cases) {
+        const descendant_switch_case_condition = Parser_node.find_descendant_position_if(descendant_switch_case, node => node.word.value === "Expression_switch_case_value");
+        if (descendant_switch_case_condition === undefined) {
+            continue;
+        }
 
-    {
-        const expected_type = [Parse_tree_analysis.create_boolean_type()];
-        diagnostics.push(...await validate_expression_type_is(uri, language_description, core_module, scope_declaration, root, descendant_condition, expected_type, get_core_module));
+        const switch_case_condition_expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_switch_case_condition.node.children[0]);
+        const switch_case_condition_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_switch_expression.position, switch_case_condition_expression, get_core_module);
+
+        if (!await is_valid_switch_condition(switch_case_condition_type, get_core_module)) {
+            diagnostics.push(
+                {
+                    location: get_parser_node_source_location(uri, descendant_switch_case_condition.node),
+                    source: Source.Parse_tree_validation,
+                    severity: Diagnostic_severity.Error,
+                    message: `Expression must evaluate to an integer or an enum value.`,
+                    related_information: [],
+                }
+            );
+            return diagnostics;
+        }
+        else if (!deep_equal(switch_case_condition_type, condition_type)) {
+            diagnostics.push(
+                {
+                    location: get_parser_node_source_location(uri, descendant_switch_case_condition.node),
+                    source: Source.Parse_tree_validation,
+                    severity: Diagnostic_severity.Error,
+                    message: `Expression type must match the switch case input type.`,
+                    related_information: [],
+                }
+            );
+        }
     }
 
-    {
-        const create_message = (first_string: string, second_string: string): string => {
-            return `The expression types of the then ('${first_string}') and else ('${second_string}') part of a ternary expression must match.`;
-        };
-
-        diagnostics.push(...await validate_expression_types_are_equal(uri, language_description, core_module, scope_declaration, root, descendant_then, descendant_else, create_message, get_core_module));
-    }
-
-    return diagnostics;*/
+    return diagnostics;
 }
 
 async function is_valid_switch_condition(
