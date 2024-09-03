@@ -912,13 +912,15 @@ async function validate_access_expression(
                 const module_declaration = previous_component.value as { core_module: Core.Module, declaration: Core.Declaration };
                 const member_name = last_component.value as string;
 
-                diagnostics.push({
-                    location: get_parser_node_source_location(uri, descendant_access_expression.node),
-                    source: Source.Parse_tree_validation,
-                    severity: Diagnostic_severity.Error,
-                    message: `Member '${member_name}' does not exist in the type '${module_declaration.declaration.name}'.`,
-                    related_information: [],
-                });
+                if (member_name.length > 0) {
+                    diagnostics.push({
+                        location: get_parser_node_source_location(uri, descendant_access_expression.node),
+                        source: Source.Parse_tree_validation,
+                        severity: Diagnostic_severity.Error,
+                        message: `Member '${member_name}' does not exist in the type '${module_declaration.declaration.name}'.`,
+                        related_information: [],
+                    });
+                }
             }
         }
     }
@@ -1172,13 +1174,13 @@ async function validate_switch_expression(
         const switch_case_condition_expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_switch_case_condition.node.children[0]);
         const switch_case_condition_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_switch_expression.position, switch_case_condition_expression, get_core_module);
 
-        if (!await is_valid_switch_condition(switch_case_condition_type, get_core_module)) {
+        if (!await is_valid_switch_case(switch_case_condition_expression, switch_case_condition_type, get_core_module)) {
             diagnostics.push(
                 {
                     location: get_parser_node_source_location(uri, descendant_switch_case_condition.node),
                     source: Source.Parse_tree_validation,
                     severity: Diagnostic_severity.Error,
-                    message: `Expression must evaluate to an integer or an enum value.`,
+                    message: `Switch case expression must be computable at compile-time, and evaluate to an integer or an enum value.`,
                     related_information: [],
                 }
             );
@@ -1227,6 +1229,23 @@ async function is_valid_switch_condition(
             return false;
         }
     }
+}
+
+async function is_valid_switch_case(
+    expression: Core.Expression,
+    expression_type: Parse_tree_analysis.Expression_type_reference | undefined,
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<boolean> {
+
+    if (!is_valid_switch_condition(expression_type, get_core_module)) {
+        return false;
+    }
+
+    if (expression.data.type === Core.Expression_enum.Variable_expression) {
+        return false;
+    }
+
+    return true;
 }
 
 async function validate_ternary_condition_expression(

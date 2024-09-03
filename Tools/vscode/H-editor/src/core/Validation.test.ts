@@ -2036,7 +2036,7 @@ function run(int_value: Int32, enum_value: My_enum) -> (result: Int32)
                 location: create_diagnostic_location(16, 14, 16, 20),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "Expression must evaluate to an integer or an enum value.",
+                message: "Expression type must match the switch case input type.",
                 related_information: [],
             },
         ];
@@ -2137,7 +2137,7 @@ function run(enum_value: My_enum) -> (result: Int32)
                 location: create_diagnostic_location(14, 14, 14, 26),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "Switch case expression must be a single compile-time expression.",
+                message: "Switch case expression must be computable at compile-time, and evaluate to an integer or an enum value.",
                 related_information: [],
             },
         ];
