@@ -269,7 +269,7 @@ export function create_test_grammar_9_description(): string[] {
         "Expression_switch_case -> case Expression_switch_case_value : Expression_switch_case_statements",
         "Expression_switch_case -> default : Expression_switch_case_statements",
         "Expression_switch_case_statements -> Statement $0_or_more",
-        "Expression_switch_case_value -> Expression_access | Expression_constant",
+        "Expression_switch_case_value -> Expression_access | Expression_constant | Expression_variable",
         "Expression_ternary_condition -> Generic_expression ? Generic_expression : Expression_level_12",
         "Expression_unary_0 -> Expression_level_0 Expression_unary_0_symbol",
         "Expression_unary_0_symbol -> ++ | --",
