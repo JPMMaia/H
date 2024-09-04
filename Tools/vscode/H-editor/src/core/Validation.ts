@@ -259,6 +259,9 @@ async function validate_current_parser_node_with_module(
         case "Expression_constant": {
             return validate_constant_expression(uri, new_value.node.children[0]);
         }
+        case "Expression_return": {
+            return validate_return_expression(uri, language_description, core_module, root, new_value, get_core_module);
+        }
         case "Expression_switch": {
             return validate_switch_expression(uri, language_description, core_module, root, new_value, get_core_module);
         }
@@ -1122,6 +1125,79 @@ function validate_constant_expression(
     }
 
     return [];
+}
+
+async function get_return_expression_type(
+    language_description: Language.Description,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    scope_declaration: Core.Declaration,
+    descendant_return_expression: { node: Parser_node.Node, position: number[] },
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Core.Type_reference[] | undefined> {
+
+    const descendant_expression = Parser_node.find_descendant_position_if(descendant_return_expression, node => node.word.value === "Generic_expression_or_instantiate");
+    if (descendant_expression === undefined) {
+        return [];
+    }
+
+    const expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_expression.node);
+    const expression_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_expression.position, expression, get_core_module);
+    if (expression_type === undefined || !expression_type.is_value) {
+        return undefined;
+    }
+
+    return expression_type.type;
+}
+
+async function validate_return_expression(
+    uri: string,
+    language_description: Language.Description,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    descendant_return_expression: { node: Parser_node.Node, position: number[] },
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+    const diagnostics: Diagnostic[] = [];
+
+    const function_value = Parse_tree_analysis.get_function_value_that_contains_node_position(core_module, root, descendant_return_expression.position);
+    if (function_value === undefined) {
+        return diagnostics;
+    }
+
+    const scope_declaration = Parse_tree_analysis.create_declaration_from_function_value(function_value);
+
+    const return_expression_type = await get_return_expression_type(language_description, core_module, root, scope_declaration, descendant_return_expression, get_core_module);
+
+    if (return_expression_type === undefined) {
+        diagnostics.push(
+            {
+                location: get_parser_node_source_location(uri, descendant_return_expression.node),
+                source: Source.Parse_tree_validation,
+                severity: Diagnostic_severity.Error,
+                message: `Cannot deduce return type.`,
+                related_information: [],
+            }
+        );
+        return diagnostics;
+    }
+    else if (!deep_equal(return_expression_type, function_value.declaration.type.output_parameter_types)) {
+        const return_expression_type_string = Type_utilities.get_type_name(return_expression_type, core_module);
+        const function_output_type_string = Type_utilities.get_type_name(function_value.declaration.type.output_parameter_types, core_module);
+
+        diagnostics.push(
+            {
+                location: get_parser_node_source_location(uri, descendant_return_expression.node),
+                source: Source.Parse_tree_validation,
+                severity: Diagnostic_severity.Error,
+                message: `Return expression type '${return_expression_type_string}' does not match function return type '${function_output_type_string}'.`,
+                related_information: [],
+            }
+        );
+        return diagnostics;
+    }
+
+    return diagnostics;
 }
 
 async function validate_switch_expression(

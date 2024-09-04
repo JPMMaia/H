@@ -1816,7 +1816,36 @@ function run(value: Int32) -> ()
                 location: create_diagnostic_location(9, 9, 9, 17),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "Cannot return expression of type 'Int32' to function with output type 'void'.",
+                message: "Return expression type 'Int32' does not match function return type 'void'.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Validates that the expression type of a return expression is defined", async () => {
+        const input = `module Test;
+
+function run(value: Int32) -> ()
+{
+    return Int32;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(5, 5, 5, 17),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot deduce return type.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(5, 12, 5, 17),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Variable 'Int32' does not exist.",
                 related_information: [],
             },
         ];
