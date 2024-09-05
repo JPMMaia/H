@@ -1872,6 +1872,9 @@ function run(value: Int32) -> (result: Int32)
     else if true {
         return 2;
     }
+    else if 1 {
+        return 3;
+    }
 }
 `;
 
@@ -1880,7 +1883,14 @@ function run(value: Int32) -> (result: Int32)
                 location: create_diagnostic_location(5, 8, 5, 13),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "Expression must evaluate to boolean type.",
+                message: "Condition expression type 'Int32' is not 'bool'.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(14, 13, 14, 14),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Condition expression type 'Int32' is not 'bool'.",
                 related_information: [],
             },
         ];
@@ -3069,6 +3079,6 @@ function run(int_input: Int32, enum_input: My_enum) -> ()
     });
 });
 
-describe("Validation of expression constant array", () => {
+/*describe("Validation of expression constant array", () => {
     // - TODO Array data type must match array value type
-});
+});*/
