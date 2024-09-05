@@ -270,6 +270,9 @@ async function validate_current_parser_node_with_module(
         case "Expression_constant": {
             return validate_constant_expression(uri, new_value.node.children[0]);
         }
+        case "Expression_if": {
+            return validate_if_expression(uri, language_description, core_module, root, new_value, get_core_module);
+        }
         case "Expression_return": {
             return validate_return_expression(uri, language_description, core_module, root, new_value, get_core_module);
         }
@@ -1159,6 +1162,63 @@ async function get_return_expression_type(
     }
 
     return expression_type.type;
+}
+
+async function validate_if_expression(
+    uri: string,
+    language_description: Language.Description,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    descendant_if_expression: { node: Parser_node.Node, position: number[] },
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+    const diagnostics: Diagnostic[] = [];
+
+    const function_value = Parse_tree_analysis.get_function_value_that_contains_node_position(core_module, root, descendant_if_expression.position);
+    if (function_value === undefined) {
+        return diagnostics;
+    }
+
+    const scope_declaration = Parse_tree_analysis.create_declaration_from_function_value(function_value);
+
+    const descendant_condition = Parser_node.find_descendant_position_if(descendant_if_expression, node => node.word.value === "Generic_expression");
+    if (descendant_condition === undefined) {
+        return diagnostics;
+    }
+
+    const condition_expession = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_condition.node);
+    const condition_expression_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_condition.position, condition_expession, get_core_module);
+
+    const expected_type = [Parse_tree_analysis.create_boolean_type()];
+
+    if (condition_expression_type === undefined || !condition_expression_type.is_value) {
+        diagnostics.push(
+            {
+                location: get_parser_node_source_location(uri, descendant_condition.node),
+                source: Source.Parse_tree_validation,
+                severity: Diagnostic_severity.Error,
+                message: `Cannot deduce type of condition expression.`,
+                related_information: [],
+            }
+        );
+        return diagnostics;
+    }
+    else if (!deep_equal(condition_expression_type.type, expected_type)) {
+        const condition_expression_type_string = Type_utilities.get_type_name(condition_expression_type.type, core_module);
+
+        diagnostics.push(
+            {
+                location: get_parser_node_source_location(uri, descendant_condition.node),
+                source: Source.Parse_tree_validation,
+                severity: Diagnostic_severity.Error,
+                message: `Condition expression type '${condition_expression_type_string}' is not 'bool'.`,
+                related_information: [],
+            }
+        );
+        return diagnostics;
+    }
+
+    return diagnostics;
 }
 
 async function validate_return_expression(
