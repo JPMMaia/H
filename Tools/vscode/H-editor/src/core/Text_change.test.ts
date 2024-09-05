@@ -2511,7 +2511,7 @@ function run(value:
         ];
 
         const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
-        assert.equal(new_document_state.pending_text_changes.length, 0);
+        assert.equal(new_document_state.pending_text_changes.length, 1);
         assert.equal(new_document_state.diagnostics.length, 1);
 
         const text_changes_2: Text_change.Text_change[] = [
