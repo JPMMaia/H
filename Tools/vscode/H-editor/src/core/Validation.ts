@@ -216,6 +216,17 @@ function validate_current_parser_node(
         case "Expression_constant": {
             return validate_constant_expression(uri, new_value.node.children[0]);
         }
+        case "Expression_invalid": {
+            return [
+                {
+                    location: get_parser_node_source_location(uri, new_value.node),
+                    source: Source.Parse_tree_validation,
+                    severity: Diagnostic_severity.Error,
+                    message: "Invalid expression.",
+                    related_information: []
+                }
+            ];
+        }
     }
 
     return [];
