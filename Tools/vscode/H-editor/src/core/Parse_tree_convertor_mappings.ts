@@ -2554,8 +2554,8 @@ function map_production_rule_label_to_assignment_binary_operation(label: string)
         case ">>=": return Core_intermediate_representation.Binary_operation.Bit_shift_right;
         default: {
             const message = `Unexpected assignment binary expression symbol '${label}'`;
-            onThrowError(message);
-            throw Error(message);
+            console.log(message);
+            return undefined;
         }
     }
 }

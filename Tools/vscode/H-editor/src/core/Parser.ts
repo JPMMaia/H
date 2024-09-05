@@ -850,8 +850,6 @@ function find_column_in_case_of_error(
     {
         const found = row.find(column => {
             switch (column.label) {
-                case "{":
-                case "(":
                 case "=":
                 case ":":
                     return true;
