@@ -264,6 +264,18 @@ async function validate_current_parser_node_with_module(
         case "Expression_access": {
             return validate_access_expression(uri, language_description, core_module, root, new_value, get_core_module);
         }
+        case "Expression_binary_addition":
+        case "Expression_binary_bitwise_and":
+        case "Expression_binary_bitwise_xor":
+        case "Expression_binary_bitwise_or":
+        case "Expression_binary_bitwise_shift":
+        case "Expression_binary_logical_and":
+        case "Expression_binary_logical_or":
+        case "Expression_binary_multiplication":
+        case "Expression_binary_relational":
+        case "Expression_binary_relational_equal": {
+            return validate_binary_expression(uri, language_description, core_module, root, new_value, get_core_module);
+        }
         case "Expression_call": {
             return validate_call_expression(uri, language_description, core_module, root, new_value, get_core_module);
         }
@@ -945,6 +957,205 @@ async function validate_access_expression(
     return diagnostics;
 }
 
+async function validate_binary_expression(
+    uri: string,
+    language_description: Language.Description,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    descendant_binary_expression: { node: Parser_node.Node, position: number[] },
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+    const diagnostics: Diagnostic[] = [];
+
+    const expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_binary_expression.node);
+    if (expression.data.type !== Core.Expression_enum.Binary_expression) {
+        return diagnostics;
+    }
+
+    const function_value = Parse_tree_analysis.get_function_value_that_contains_node_position(core_module, root, descendant_binary_expression.position);
+    if (function_value === undefined) {
+        return diagnostics;
+    }
+
+    const scope_declaration = Parse_tree_analysis.create_declaration_from_function_value(function_value);
+
+    const binary_expression = expression.data.value as Core.Binary_expression;
+
+    const descendant_left_operand = Parser_node.get_child(descendant_binary_expression, 0);
+    const descendant_right_operand = Parser_node.get_child(descendant_binary_expression, 2);
+
+    const left_expression_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_left_operand.position, binary_expression.left_hand_side, get_core_module);
+    const right_expression_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_right_operand.position, binary_expression.right_hand_side, get_core_module);
+
+    const descendant_symbol = Parser_node.get_child(Parser_node.get_child(descendant_binary_expression, 1), 0);
+    const operation = binary_expression.operation;
+    const operation_string = descendant_symbol.node.word.value;
+
+    if (left_expression_type === undefined || !left_expression_type.is_value || right_expression_type === undefined || !right_expression_type.is_value) {
+        return diagnostics;
+    }
+
+    if (is_bit_shift_binary_operation(operation)) {
+
+        const bytes_type = [Parse_tree_analysis.create_fundamental_type(Core.Fundamental_type.Byte)];
+        if (!is_integer_type(left_expression_type.type) && !deep_equal(left_expression_type.type, bytes_type)) {
+            diagnostics.push({
+                location: get_parser_node_source_location(uri, descendant_left_operand.node),
+                source: Source.Parse_tree_validation,
+                severity: Diagnostic_severity.Error,
+                message: `The left hand side type of a '${operation_string}' binary operation must be an integer or a byte.`,
+                related_information: [],
+            });
+            return diagnostics;
+        }
+
+        if (!is_integer_type(right_expression_type.type)) {
+            diagnostics.push({
+                location: get_parser_node_source_location(uri, descendant_right_operand.node),
+                source: Source.Parse_tree_validation,
+                severity: Diagnostic_severity.Error,
+                message: `The right hand side type of a '${operation_string}' binary operation must be an integer.`,
+                related_information: [],
+            });
+            return diagnostics;
+        }
+    }
+
+    if (!deep_equal(left_expression_type, right_expression_type)) {
+        diagnostics.push({
+            location: get_parser_node_source_location(uri, descendant_binary_expression.node),
+            source: Source.Parse_tree_validation,
+            severity: Diagnostic_severity.Error,
+            message: `Left and right hand side types do not match.`,
+            related_information: [],
+        });
+        return diagnostics;
+    }
+
+    if (is_numeric_binary_operation(operation)) {
+        if (!is_numeric_type(left_expression_type.type)) {
+            diagnostics.push({
+                location: get_parser_node_source_location(uri, descendant_binary_expression.node),
+                source: Source.Parse_tree_validation,
+                severity: Diagnostic_severity.Error,
+                message: `Binary operation '${operation_string}' can only be applied to numeric types.`,
+                related_information: [],
+            });
+            return diagnostics;
+        }
+    }
+    else if (is_logical_binary_operation(operation)) {
+        if (!deep_equal(left_expression_type.type, [Parse_tree_analysis.create_boolean_type()])) {
+            diagnostics.push({
+                location: get_parser_node_source_location(uri, descendant_binary_expression.node),
+                source: Source.Parse_tree_validation,
+                severity: Diagnostic_severity.Error,
+                message: `Binary operation '${operation_string}' can only be applied to a boolean value.`,
+                related_information: [],
+            });
+            return diagnostics;
+        }
+    }
+    else if (is_comparison_binary_operation(operation)) {
+        if (!is_comparable_type(left_expression_type.type)) {
+            diagnostics.push({
+                location: get_parser_node_source_location(uri, descendant_binary_expression.node),
+                source: Source.Parse_tree_validation,
+                severity: Diagnostic_severity.Error,
+                message: `Binary operation '${operation_string}' can only be applied to comparable types.`,
+                related_information: [],
+            });
+            return diagnostics;
+        }
+    }
+    else if (is_bitwise_binary_operation(operation)) {
+        const bytes_type = [Parse_tree_analysis.create_fundamental_type(Core.Fundamental_type.Byte)];
+        if (!is_integer_type(left_expression_type.type) && !deep_equal(left_expression_type.type, bytes_type)) {
+            diagnostics.push({
+                location: get_parser_node_source_location(uri, descendant_binary_expression.node),
+                source: Source.Parse_tree_validation,
+                severity: Diagnostic_severity.Error,
+                message: `Binary operation '${operation_string}' can only be applied to integers or bytes.`,
+                related_information: [],
+            });
+            return diagnostics;
+        }
+    }
+    else if (operation === Core.Binary_operation.Has) {
+        const is_enum_value = await Parse_tree_analysis.is_enum_value_expression(left_expression_type, get_core_module);
+        if (!is_enum_value) {
+            diagnostics.push({
+                location: get_parser_node_source_location(uri, descendant_binary_expression.node),
+                source: Source.Parse_tree_validation,
+                severity: Diagnostic_severity.Error,
+                message: `Binary operation '${operation_string}' can only be applied to enum values.`,
+                related_information: [],
+            });
+            return diagnostics;
+        }
+    }
+
+    return diagnostics;
+}
+
+function is_numeric_binary_operation(operation: Core.Binary_operation): boolean {
+    switch (operation) {
+        case Core.Binary_operation.Add:
+        case Core.Binary_operation.Subtract:
+        case Core.Binary_operation.Multiply:
+        case Core.Binary_operation.Divide:
+        case Core.Binary_operation.Modulus:
+            return true;
+        default:
+            return false;
+    }
+}
+
+function is_logical_binary_operation(operation: Core.Binary_operation): boolean {
+    switch (operation) {
+        case Core.Binary_operation.Logical_and:
+        case Core.Binary_operation.Logical_or:
+            return true;
+        default:
+            return false;
+    }
+}
+
+function is_comparison_binary_operation(operation: Core.Binary_operation): boolean {
+    switch (operation) {
+        case Core.Binary_operation.Equal:
+        case Core.Binary_operation.Not_equal:
+        case Core.Binary_operation.Less_than:
+        case Core.Binary_operation.Less_than_or_equal_to:
+        case Core.Binary_operation.Greater_than:
+        case Core.Binary_operation.Greater_than_or_equal_to:
+            return true;
+        default:
+            return false;
+    }
+}
+
+function is_bitwise_binary_operation(operation: Core.Binary_operation): boolean {
+    switch (operation) {
+        case Core.Binary_operation.Bitwise_and:
+        case Core.Binary_operation.Bitwise_or:
+        case Core.Binary_operation.Bitwise_xor:
+            return true;
+        default:
+            return false;
+    }
+}
+
+function is_bit_shift_binary_operation(operation: Core.Binary_operation): boolean {
+    switch (operation) {
+        case Core.Binary_operation.Bit_shift_left:
+        case Core.Binary_operation.Bit_shift_right:
+            return true;
+        default:
+            return false;
+    }
+}
+
 async function validate_call_expression(
     uri: string,
     language_description: Language.Description,
@@ -1584,6 +1795,34 @@ function map_unary_operation_to_symbol(
     }
 }
 
+function is_comparable_type(
+    type_reference: Core.Type_reference[]
+): boolean {
+    if (type_reference.length === 0) {
+        return false;
+    }
+
+    switch (type_reference[0].data.type) {
+        case Core.Type_reference_enum.Fundamental_type: {
+            const fundamental_type = type_reference[0].data.value as Core.Fundamental_type;
+            switch (fundamental_type) {
+                case Core.Fundamental_type.String:
+                case Core.Fundamental_type.Any_type:
+                    return false;
+                default:
+                    return true;
+            }
+        }
+        case Core.Type_reference_enum.Integer_type:
+        case Core.Type_reference_enum.Pointer_type: {
+            return true;
+        }
+        default: {
+            return false;
+        }
+    }
+}
+
 function is_numeric_type(
     type_reference: Core.Type_reference[]
 ): boolean {
@@ -1628,6 +1867,36 @@ function is_numeric_type(
         case Core.Type_reference_enum.Pointer_type: {
             return false;
         }
+    }
+}
+
+function is_integer_type(
+    type_reference: Core.Type_reference[]
+): boolean {
+    if (type_reference.length === 0) {
+        return false;
+    }
+
+    switch (type_reference[0].data.type) {
+        case Core.Type_reference_enum.Fundamental_type: {
+            const fundamental_type = type_reference[0].data.value as Core.Fundamental_type;
+            switch (fundamental_type) {
+                case Core.Fundamental_type.C_int:
+                case Core.Fundamental_type.C_uint:
+                case Core.Fundamental_type.C_short:
+                case Core.Fundamental_type.C_ushort:
+                case Core.Fundamental_type.C_longlong:
+                case Core.Fundamental_type.C_ulonglong:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+        case Core.Type_reference_enum.Integer_type: {
+            return true;
+        }
+        default:
+            return false;
     }
 }
 

@@ -2335,14 +2335,14 @@ function run(value: Int32) -> ()
                 location: create_diagnostic_location(6, 13, 6, 27),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "Left and right hand sides of binary expression must match.",
+                message: "Left and right hand side types do not match.",
                 related_information: [],
             },
             {
                 location: create_diagnostic_location(7, 13, 7, 26),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "Left and right hand sides of binary expression must match.",
+                message: "Left and right hand side types do not match.",
                 related_information: [],
             },
         ];
@@ -2428,7 +2428,7 @@ function run(value: Int32) -> ()
         await test_validate_module(input, [], expected_diagnostics);
     });
 
-    it("Validates that in bit operations both types must be integers or bytes", async () => {
+    it("Validates that in bitwise operations both types must be integers or bytes", async () => {
         const input = `module Test;
 
 function run(value: Int32) -> ()
@@ -2450,6 +2450,38 @@ function run(value: Int32) -> ()
 
         await test_validate_module(input, [], expected_diagnostics);
     });
+
+    it("Validates that in bit shift operations the left type must be an integer or byte and the right side must be an integer", async () => {
+        const input = `module Test;
+
+function run(value: Int32) -> ()
+{
+    var a = value << 1;
+    var b = 1.0f32 << 0;
+    var c = value << 2.0f32;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(6, 13, 6, 19),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "The left hand side type of a '<<' binary operation must be an integer or a byte.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(7, 22, 7, 28),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "The right hand side type of a '<<' binary operation must be an integer.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
 
     it("Validates that in has operations both expressions must evaluate to enum values", async () => {
         const input = `module Test;
