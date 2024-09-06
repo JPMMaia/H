@@ -285,6 +285,9 @@ async function validate_current_parser_node_with_module(
         case "Expression_constant": {
             return validate_constant_expression(uri, new_value.node.children[0]);
         }
+        case "Expression_continue": {
+            return validate_continue_expression(uri, language_description, core_module, root, new_value, get_core_module);
+        }
         case "Expression_if": {
             return validate_if_expression(uri, language_description, core_module, root, new_value, get_core_module);
         }
@@ -1412,6 +1415,36 @@ function validate_constant_expression(
     }
 
     return [];
+}
+
+async function validate_continue_expression(
+    uri: string,
+    language_description: Language.Description,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    descendant_continue_expression: { node: Parser_node.Node, position: number[] },
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+    const diagnostics: Diagnostic[] = [];
+
+    const parent_names = [
+        "Expression_for_loop_statements",
+        "Expression_while_loop_statements"
+    ];
+
+    const first_ancestor = Parser_node.get_first_ancestor_with_name(root, descendant_continue_expression.position, parent_names);
+    if (first_ancestor === undefined) {
+        diagnostics.push({
+            location: get_parser_node_source_location(uri, descendant_continue_expression.node),
+            source: Source.Parse_tree_validation,
+            severity: Diagnostic_severity.Error,
+            message: `'continue' can only be placed inside for loops and while loops.`,
+            related_information: [],
+        });
+        return diagnostics;
+    }
+
+    return diagnostics;
 }
 
 async function get_return_expression_type(
