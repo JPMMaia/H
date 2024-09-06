@@ -1894,15 +1894,19 @@ export function create_declaration_from_function_value(function_value: Core.Func
 }
 
 export async function is_enum_value_expression(
-    expression: Core.Expression,
-    expression_type: Core.Type_reference,
+    expression_type: Expression_type_reference,
     get_core_module: (module_name: string) => Promise<Core.Module | undefined>
 ): Promise<boolean> {
-    if (expression_type.data.type !== Core.Type_reference_enum.Custom_type_reference) {
+    if (expression_type.type === undefined || !expression_type.is_value) {
         return false;
     }
 
-    const custom_type_reference = expression_type.data.value as Core.Custom_type_reference;
+    const type_reference = expression_type.type;
+    if (type_reference.length !== 1 || type_reference[0].data.type !== Core.Type_reference_enum.Custom_type_reference) {
+        return false;
+    }
+
+    const custom_type_reference = type_reference[0].data.value as Core.Custom_type_reference;
     const module_declaration = await get_custom_type_reference_declaration(custom_type_reference, get_core_module);
     if (module_declaration === undefined) {
         return false;
@@ -1912,7 +1916,7 @@ export async function is_enum_value_expression(
         return false;
     }
 
-    return expression.data.type === Core.Expression_enum.Access_expression;
+    return true;
 }
 
 function create_pointer_type(element_type: Core.Type_reference[], is_mutable: boolean): Core.Type_reference {
@@ -1958,6 +1962,15 @@ export function create_integer_type(number_of_bits: number, is_signed: boolean):
                 number_of_bits: number_of_bits,
                 is_signed: is_signed
             }
+        }
+    };
+}
+
+export function create_fundamental_type(fundamental_type: Core.Fundamental_type): Core.Type_reference {
+    return {
+        data: {
+            type: Core.Type_reference_enum.Fundamental_type,
+            value: fundamental_type
         }
     };
 }
