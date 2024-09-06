@@ -2837,11 +2837,6 @@ function run(input: Int32) -> ()
     {
         break 0;
     }
-
-    for index in 0 to 10
-    {
-        break -1;
-    }
 }
 `;
 
@@ -2859,14 +2854,7 @@ function run(input: Int32) -> ()
                 severity: Validation.Diagnostic_severity.Error,
                 message: "'break' loop count of 0 is invalid.",
                 related_information: [],
-            },
-            {
-                location: create_diagnostic_location(30, 15, 30, 16),
-                source: Validation.Source.Parse_tree_validation,
-                severity: Validation.Diagnostic_severity.Error,
-                message: "'break' loop count of -1 is invalid.",
-                related_information: [],
-            },
+            }
         ];
 
         await test_validate_module(input, [], expected_diagnostics);

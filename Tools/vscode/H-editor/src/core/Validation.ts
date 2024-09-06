@@ -276,6 +276,9 @@ async function validate_current_parser_node_with_module(
         case "Expression_binary_relational_equal": {
             return validate_binary_expression(uri, language_description, core_module, root, new_value, get_core_module);
         }
+        case "Expression_break": {
+            return validate_break_expression(uri, language_description, core_module, root, new_value, get_core_module);
+        }
         case "Expression_call": {
             return validate_call_expression(uri, language_description, core_module, root, new_value, get_core_module);
         }
@@ -1154,6 +1157,65 @@ function is_bit_shift_binary_operation(operation: Core.Binary_operation): boolea
         default:
             return false;
     }
+}
+
+async function validate_break_expression(
+    uri: string,
+    language_description: Language.Description,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    descendant_break_expression: { node: Parser_node.Node, position: number[] },
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+    const diagnostics: Diagnostic[] = [];
+
+    const parent_names = [
+        "Expression_for_loop_statements",
+        "Expression_switch_case_statements",
+        "Expression_while_loop_statements"
+    ];
+
+    const first_ancestor = Parser_node.get_first_ancestor_with_name(root, descendant_break_expression.position, parent_names);
+    if (first_ancestor === undefined) {
+        diagnostics.push({
+            location: get_parser_node_source_location(uri, descendant_break_expression.node),
+            source: Source.Parse_tree_validation,
+            severity: Diagnostic_severity.Error,
+            message: `'break' can only be placed inside for loops, while loops and switch cases.`,
+            related_information: [],
+        });
+        return diagnostics;
+    }
+
+    const expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_break_expression.node);
+    if (expression.data.type === Core.Expression_enum.Break_expression) {
+        const break_expression = expression.data.value as Core.Break_expression;
+
+        if (break_expression.loop_count !== 1) {
+            let counter = 0;
+            let current_ancestor: { node: Parser_node.Node, position: number[] } | undefined = first_ancestor;
+            while (current_ancestor !== undefined) {
+                counter += 1;
+                current_ancestor = Parser_node.get_first_ancestor_with_name(root, current_ancestor.position, parent_names);
+            }
+
+            if (break_expression.loop_count === 0 || break_expression.loop_count > counter) {
+                const loop_count_descendant = Parser_node.find_descendant_position_if(descendant_break_expression, node => node.word.value === "Expression_break_loop_count");
+                if (loop_count_descendant !== undefined) {
+                    diagnostics.push({
+                        location: get_parser_node_source_location(uri, loop_count_descendant.node),
+                        source: Source.Parse_tree_validation,
+                        severity: Diagnostic_severity.Error,
+                        message: `'break' loop count of ${break_expression.loop_count} is invalid.`,
+                        related_information: [],
+                    });
+                    return diagnostics;
+                }
+            }
+        }
+    }
+
+    return diagnostics;
 }
 
 async function validate_call_expression(
