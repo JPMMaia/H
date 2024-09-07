@@ -2813,21 +2813,23 @@ function node_to_expression_continue(node: Parser_node.Node, key_to_production_r
 
 function node_to_expression_for_loop(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.For_loop_expression {
 
-    const variable_node = find_node_value(node, "Expression_for_loop_variable", key_to_production_rule_indices);
+    const head_node = find_node(node, "Expression_for_loop_head", key_to_production_rule_indices) as Parser_node.Node;
 
-    const range_begin_node = find_node(node, "Expression_for_loop_range_begin", key_to_production_rule_indices) as Parser_node.Node;
+    const variable_node = find_node_value(head_node, "Expression_for_loop_variable", key_to_production_rule_indices);
+
+    const range_begin_node = find_node(head_node, "Expression_for_loop_range_begin", key_to_production_rule_indices) as Parser_node.Node;
     const range_begin_number_node = range_begin_node.children[0].children[0];
     const range_begin_expression = node_to_expression(range_begin_number_node, key_to_production_rule_indices);
 
-    const range_end_node = find_node(node, "Expression_for_loop_range_end", key_to_production_rule_indices) as Parser_node.Node;
+    const range_end_node = find_node(head_node, "Expression_for_loop_range_end", key_to_production_rule_indices) as Parser_node.Node;
     const range_end_number_node = range_end_node.children[0].children[0];
     const range_end_expression = node_to_expression(range_end_number_node, key_to_production_rule_indices);
 
-    const step_by_node = find_node(node, "Expression_for_loop_step", key_to_production_rule_indices) as Parser_node.Node;
+    const step_by_node = find_node(head_node, "Expression_for_loop_step", key_to_production_rule_indices) as Parser_node.Node;
     const step_by_number_node = step_by_node.children.length > 0 ? step_by_node.children[1].children[0] : undefined;
     const step_by_expression = step_by_number_node !== undefined ? node_to_expression(step_by_number_node, key_to_production_rule_indices) : undefined;
 
-    const reverse_node = find_node(node, "Expression_for_loop_reverse", key_to_production_rule_indices) as Parser_node.Node;
+    const reverse_node = find_node(head_node, "Expression_for_loop_reverse", key_to_production_rule_indices) as Parser_node.Node;
     const is_reverse = reverse_node.children.length > 0;
 
     const statements_node = find_node(node, "Expression_for_loop_statements", key_to_production_rule_indices) as Parser_node.Node;
