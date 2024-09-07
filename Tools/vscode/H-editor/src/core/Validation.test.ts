@@ -3017,7 +3017,7 @@ function run(int_input: Int32, enum_input: My_enum) -> ()
                 location: create_diagnostic_location(19, 19, 19, 36),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "Cannot apply numeric cast from 'Test.My_struct' to 'Int64'.",
+                message: "Cannot apply numeric cast from 'My_struct' to 'Int64'.",
                 related_information: [],
             },
         ];
@@ -3051,7 +3051,7 @@ function run(int_input: Int32, enum_input: My_enum) -> ()
                 location: create_diagnostic_location(17, 19, 17, 41),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "Cannot apply numeric cast from 'Int32' to 'Test.My_struct'.",
+                message: "Cannot apply numeric cast from 'Int32' to 'My_struct'.",
                 related_information: [],
             },
         ];
@@ -3073,8 +3073,8 @@ function run(int_input: Int32, enum_input: My_enum) -> ()
 {
     var value_0 = int_input as Int64;
     var value_1 = int_input as My_int;
-    var value_1 = int_input as Int32;
-    var value_2 = enum_input as My_enum;
+    var value_2 = int_input as Int32;
+    var value_3 = enum_input as My_enum;
 }
 `;
 
@@ -3087,10 +3087,10 @@ function run(int_input: Int32, enum_input: My_enum) -> ()
                 related_information: [],
             },
             {
-                location: create_diagnostic_location(15, 19, 15, 37),
+                location: create_diagnostic_location(15, 19, 15, 40),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Warning,
-                message: "Numeric cast from 'Test.My_enum' to 'Test.My_enum'.",
+                message: "Numeric cast from 'My_enum' to 'My_enum'.",
                 related_information: [],
             },
         ];

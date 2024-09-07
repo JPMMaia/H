@@ -282,6 +282,9 @@ async function validate_current_parser_node_with_module(
         case "Expression_call": {
             return validate_call_expression(uri, language_description, core_module, root, new_value, get_core_module);
         }
+        case "Expression_cast": {
+            return validate_cast_expression(uri, language_description, core_module, root, new_value, get_core_module);
+        }
         case "Expression_constant": {
             return validate_constant_expression(uri, new_value.node.children[0]);
         }
@@ -1295,6 +1298,82 @@ async function validate_call_expression(
                 related_information: [],
             });
         }
+    }
+
+    return diagnostics;
+}
+
+async function validate_cast_expression(
+    uri: string,
+    language_description: Language.Description,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    descendant_cast_expression: { node: Parser_node.Node, position: number[] },
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+    const diagnostics: Diagnostic[] = [];
+
+    const function_value = Parse_tree_analysis.get_function_value_that_contains_node_position(core_module, root, descendant_cast_expression.position);
+    if (function_value === undefined) {
+        return diagnostics;
+    }
+
+    const scope_declaration = Parse_tree_analysis.create_declaration_from_function_value(function_value);
+
+    const expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_cast_expression.node);
+    if (expression === undefined || expression.data.type !== Core.Expression_enum.Cast_expression) {
+        return diagnostics;
+    }
+
+    const cast_expression = expression.data.value as Core.Cast_expression;
+    const destination_type = [cast_expression.destination_type];
+    const underlying_destination_type = await Parse_tree_analysis.get_underlying_type(destination_type, get_core_module);
+
+    const descendant_source_expression = Parser_node.find_descendant_position_if(descendant_cast_expression, node => node.word.value === "Expression_level_0");
+    if (descendant_source_expression === undefined) {
+        return diagnostics;
+    }
+
+    const source_expression_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_source_expression.position, cast_expression.source, get_core_module);
+    if (source_expression_type === undefined) {
+        return diagnostics;
+    }
+
+    if (!is_numeric_type(underlying_destination_type) && !await Parse_tree_analysis.is_enum_type(underlying_destination_type, get_core_module)) {
+        const source_type_string = Type_utilities.get_type_name(source_expression_type.type, core_module);
+        const destination_type_string = Type_utilities.get_type_name(destination_type, core_module);
+        diagnostics.push({
+            location: get_parser_node_source_location(uri, descendant_cast_expression.node),
+            source: Source.Parse_tree_validation,
+            severity: Diagnostic_severity.Error,
+            message: `Cannot apply numeric cast from '${source_type_string}' to '${destination_type_string}'.`,
+            related_information: [],
+        });
+    }
+
+    const underlying_source_type = await Parse_tree_analysis.get_underlying_type(source_expression_type.type, get_core_module);
+    if (!source_expression_type.is_value || (!is_numeric_type(underlying_source_type) && !await Parse_tree_analysis.is_enum_type(underlying_source_type, get_core_module))) {
+        const source_type_string = Type_utilities.get_type_name(source_expression_type.type, core_module);
+        const destination_type_string = Type_utilities.get_type_name(destination_type, core_module);
+        diagnostics.push({
+            location: get_parser_node_source_location(uri, descendant_cast_expression.node),
+            source: Source.Parse_tree_validation,
+            severity: Diagnostic_severity.Error,
+            message: `Cannot apply numeric cast from '${source_type_string}' to '${destination_type_string}'.`,
+            related_information: [],
+        });
+    }
+
+    if (deep_equal(source_expression_type.type, destination_type)) {
+        const source_type_string = Type_utilities.get_type_name(source_expression_type.type, core_module);
+        const destination_type_string = Type_utilities.get_type_name(destination_type, core_module);
+        diagnostics.push({
+            location: get_parser_node_source_location(uri, descendant_cast_expression.node),
+            source: Source.Parse_tree_validation,
+            severity: Diagnostic_severity.Warning,
+            message: `Numeric cast from '${source_type_string}' to '${destination_type_string}'.`,
+            related_information: [],
+        });
     }
 
     return diagnostics;
