@@ -291,6 +291,9 @@ async function validate_current_parser_node_with_module(
         case "Expression_continue": {
             return validate_continue_expression(uri, language_description, core_module, root, new_value, get_core_module);
         }
+        case "Expression_for_loop": {
+            return validate_for_loop_expression(uri, language_description, core_module, root, new_value, get_core_module);
+        }
         case "Expression_if": {
             return validate_if_expression(uri, language_description, core_module, root, new_value, get_core_module);
         }
@@ -1547,6 +1550,90 @@ async function get_return_expression_type(
     }
 
     return expression_type.type;
+}
+
+async function validate_for_loop_expression(
+    uri: string,
+    language_description: Language.Description,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    descendant_for_loop_expression: { node: Parser_node.Node, position: number[] },
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+    const diagnostics: Diagnostic[] = [];
+
+    const function_value = Parse_tree_analysis.get_function_value_that_contains_node_position(core_module, root, descendant_for_loop_expression.position);
+    if (function_value === undefined) {
+        return diagnostics;
+    }
+
+    const scope_declaration = Parse_tree_analysis.create_declaration_from_function_value(function_value);
+
+    const descendant_range_begin = Parser_node.find_descendant_position_if(descendant_for_loop_expression, node => node.word.value === "Expression_for_loop_range_begin");
+    const descendant_range_end = Parser_node.find_descendant_position_if(descendant_for_loop_expression, node => node.word.value === "Expression_for_loop_range_end");
+    const descendant_step = Parser_node.find_descendant_position_if(descendant_for_loop_expression, node => node.word.value === "Expression_for_loop_step");
+    if (descendant_range_begin === undefined || descendant_range_end === undefined || descendant_step === undefined) {
+        return diagnostics;
+    }
+
+    const expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_for_loop_expression.node);
+    if (expression.data.type !== Core.Expression_enum.For_loop_expression) {
+        return diagnostics;
+    }
+
+    const for_loop_expression = expression.data.value as Core.For_loop_expression;
+    const range_begin_expression = for_loop_expression.range_begin;
+    const range_end_expression = for_loop_expression.range_end.expression;
+
+    const range_begin_expression_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_range_begin.position, range_begin_expression, get_core_module);
+    const range_end_expression_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_range_end.position, range_end_expression, get_core_module);
+
+    if (range_begin_expression_type === undefined || !range_begin_expression_type.is_value || range_end_expression_type === undefined || !range_end_expression_type.is_value) {
+        return diagnostics;
+    }
+
+    if (!deep_equal(range_begin_expression_type, range_end_expression_type)) {
+        diagnostics.push({
+            location: get_parser_node_source_location(uri, descendant_for_loop_expression.node.children[0]),
+            source: Source.Parse_tree_validation,
+            severity: Diagnostic_severity.Error,
+            message: `The range begin, end and step_by expression types must all match.`,
+            related_information: [],
+        });
+        return diagnostics;
+    }
+
+    if (for_loop_expression.step_by !== undefined) {
+        const step_by_expression = for_loop_expression.step_by;
+
+        const descendant_step_by_number_expression = Parser_node.find_descendant_position_if(descendant_step, node => node.word.value === "Expression_for_loop_number_expression");
+        if (descendant_step_by_number_expression !== undefined) {
+            const step_by_expression_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_step_by_number_expression.position, step_by_expression, get_core_module);
+            if (step_by_expression_type !== undefined && step_by_expression_type.is_value) {
+                if (!deep_equal(range_begin_expression_type, step_by_expression_type)) {
+                    diagnostics.push({
+                        location: get_parser_node_source_location(uri, descendant_for_loop_expression.node.children[0]),
+                        source: Source.Parse_tree_validation,
+                        severity: Diagnostic_severity.Error,
+                        message: `The range begin, end and step_by expression types must all match.`,
+                        related_information: [],
+                    });
+                }
+            }
+        }
+    }
+
+    if (!is_numeric_type(range_begin_expression_type.type)) {
+        diagnostics.push({
+            location: get_parser_node_source_location(uri, descendant_for_loop_expression.node.children[0]),
+            source: Source.Parse_tree_validation,
+            severity: Diagnostic_severity.Error,
+            message: `The range begin, end and step_by expression must evaluate to numbers.`,
+            related_information: [],
+        });
+    }
+
+    return diagnostics;
 }
 
 async function validate_if_expression(
