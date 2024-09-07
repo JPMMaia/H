@@ -37,7 +37,7 @@ describe("Parse_tree_analysis.find_variable_type", () => {
 
     it("Finds variable type of for loop variable", async () => {
         const expected_variable_type = create_integer_type(32, true);
-        await test_find_variable_type(language_description, Module_examples.create_for_loop_expressions(), 1, [1, 1, 1, 1, 0, 1, 0, 0, 9, 0, 0], "index", expected_variable_type);
+        await test_find_variable_type(language_description, Module_examples.create_for_loop_expressions(), 1, [1, 1, 1, 1, 0, 1, 0, 0, 2, 0, 0], "index", expected_variable_type);
     });
 
     it("Finds variable type of variable inside while loop", async () => {
