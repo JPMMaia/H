@@ -904,6 +904,22 @@ export async function get_custom_type_reference_declaration(
     };
 }
 
+export async function get_underlying_type(
+    type_reference: Core.Type_reference[],
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Core.Type_reference[]> {
+
+    const module_declaration = await get_type_reference_declaration(type_reference, get_core_module);
+    if (module_declaration !== undefined) {
+        if (module_declaration.declaration.type === Core.Declaration_type.Alias) {
+            const alias_type_declaration = module_declaration.declaration.value as Core.Alias_type_declaration;
+            return get_underlying_type(alias_type_declaration.type, get_core_module);
+        }
+    }
+
+    return type_reference;
+}
+
 export async function get_underlying_type_declaration(
     core_module: Core.Module,
     declaration: Core.Declaration,
@@ -1893,15 +1909,11 @@ export function create_declaration_from_function_value(function_value: Core.Func
     return declaration;
 }
 
-export async function is_enum_value_expression(
-    expression_type: Expression_type_reference,
+export async function is_enum_type(
+    type_reference: Core.Type_reference[],
     get_core_module: (module_name: string) => Promise<Core.Module | undefined>
 ): Promise<boolean> {
-    if (expression_type.type === undefined || !expression_type.is_value) {
-        return false;
-    }
 
-    const type_reference = expression_type.type;
     if (type_reference.length !== 1 || type_reference[0].data.type !== Core.Type_reference_enum.Custom_type_reference) {
         return false;
     }
@@ -1912,11 +1924,18 @@ export async function is_enum_value_expression(
         return false;
     }
 
-    if (module_declaration.declaration.type !== Core.Declaration_type.Enum) {
+    return module_declaration.declaration.type === Core.Declaration_type.Enum;
+}
+
+export async function is_enum_value_expression(
+    expression_type: Expression_type_reference,
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<boolean> {
+    if (expression_type.type === undefined || !expression_type.is_value) {
         return false;
     }
 
-    return true;
+    return is_enum_type(expression_type.type, get_core_module);
 }
 
 function create_pointer_type(element_type: Core.Type_reference[], is_mutable: boolean): Core.Type_reference {
