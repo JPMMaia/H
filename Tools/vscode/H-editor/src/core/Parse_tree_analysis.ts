@@ -1889,6 +1889,43 @@ export async function get_declaration_members(
     }
 }
 
+export async function get_declaration_member_types(
+    core_module: Core.Module,
+    declaration: Core.Declaration,
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<{ index: number, name: string, type: Core.Type_reference }[]> {
+    if (declaration.type === Core.Declaration_type.Alias) {
+        const underlying_declaration = await get_underlying_type_declaration(core_module, declaration, get_core_module);
+        if (underlying_declaration === undefined) {
+            return [];
+        }
+        return get_declaration_member_types(core_module, underlying_declaration.declaration, get_core_module);
+    }
+    else if (declaration.type === Core.Declaration_type.Struct) {
+        const struct_declaration = declaration.value as Core.Struct_declaration;
+        return struct_declaration.member_names.map((member_name, index) => {
+            return {
+                index: index,
+                name: member_name,
+                type: struct_declaration.member_types[index]
+            };
+        });
+    }
+    else if (declaration.type === Core.Declaration_type.Union) {
+        const union_declaration = declaration.value as Core.Union_declaration;
+        return union_declaration.member_names.map((member_name, index) => {
+            return {
+                index: index,
+                name: member_name,
+                type: union_declaration.member_types[index]
+            };
+        });
+    }
+    else {
+        return [];
+    }
+}
+
 export function create_declaration_from_enum_declaration(enum_declaration: Core.Enum_declaration): Core.Declaration {
     const declaration: Core.Declaration = {
         name: enum_declaration.name,
