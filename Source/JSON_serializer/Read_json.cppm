@@ -452,6 +452,7 @@ namespace h::json
     export std::optional<Stack_state> get_next_state_integer_type(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_builtin_type_reference(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_function_type(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_null_pointer_type(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_pointer_type(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_module_reference(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_constant_array_type(Stack_state* state, std::string_view const key);
@@ -646,6 +647,13 @@ namespace h::json
         return {};
     }
 
+    export std::optional<Stack_state> get_next_state_null_pointer_type(Stack_state* state, std::string_view const key)
+    {
+        h::Null_pointer_type* parent = static_cast<h::Null_pointer_type*>(state->pointer);
+
+        return {};
+    }
+
     export std::optional<Stack_state> get_next_state_pointer_type(Stack_state* state, std::string_view const key)
     {
         h::Pointer_type* parent = static_cast<h::Pointer_type*>(state->pointer);
@@ -787,7 +795,7 @@ namespace h::json
         {
             auto const set_variant_type = [](Stack_state* state, std::string_view const type) -> void
             {
-                using Variant_type = std::variant<h::Builtin_type_reference, h::Constant_array_type, h::Custom_type_reference, h::Fundamental_type, h::Function_type, h::Integer_type, h::Pointer_type>;
+                using Variant_type = std::variant<h::Builtin_type_reference, h::Constant_array_type, h::Custom_type_reference, h::Fundamental_type, h::Function_type, h::Integer_type, h::Null_pointer_type, h::Pointer_type>;
                 Variant_type* pointer = static_cast<Variant_type*>(state->pointer);
 
                 if (type == "Builtin_type_reference")
@@ -824,6 +832,12 @@ namespace h::json
                 {
                     *pointer = Integer_type{};
                     state->type = "Integer_type";
+                    return;
+                }
+                if (type == "Null_pointer_type")
+                {
+                    *pointer = Null_pointer_type{};
+                    state->type = "Null_pointer_type";
                     return;
                 }
                 if (type == "Pointer_type")
@@ -880,6 +894,11 @@ namespace h::json
                             return get_next_state_integer_type;
                         }
 
+                        if (state->type == "Null_pointer_type")
+                        {
+                            return get_next_state_null_pointer_type;
+                        }
+
                         if (state->type == "Pointer_type")
                         {
                             return get_next_state_pointer_type;
@@ -903,7 +922,7 @@ namespace h::json
             return Stack_state
             {
                 .pointer = &parent->data,
-                .type = "std::variant<Builtin_type_reference,Constant_array_type,Custom_type_reference,Fundamental_type,Function_type,Integer_type,Pointer_type>",
+                .type = "std::variant<Builtin_type_reference,Constant_array_type,Custom_type_reference,Fundamental_type,Function_type,Integer_type,Null_pointer_type,Pointer_type>",
                 .get_next_state = get_next_state,
                 .set_variant_type = set_variant_type,
             };
@@ -3522,6 +3541,16 @@ namespace h::json
                 .pointer = output,
                 .type = "Function_type",
                 .get_next_state = get_next_state_function_type
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Null_pointer_type>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Null_pointer_type",
+                .get_next_state = get_next_state_null_pointer_type
             };
         }
 

@@ -161,6 +161,9 @@ export function get_type_name(
                 const value = type_reference_value.data.value as Core_intermediate_representation.Integer_type;
                 return (value.is_signed ? "Int" : "Uint") + value.number_of_bits.toString();
             }
+        case Core_intermediate_representation.Type_reference_enum.Null_pointer_type: {
+            return "Null_pointer_type";
+        }
         case Core_intermediate_representation.Type_reference_enum.Pointer_type:
             {
                 const value = type_reference_value.data.value as Core_intermediate_representation.Pointer_type;
@@ -170,7 +173,7 @@ export function get_type_name(
             }
     }
 
-    const message = "getUnderlyingTypeName() not implemented for " + type_reference;
+    const message = "get_type_name() not implemented for " + type_reference;
     onThrowError(message);
     throw Error(message);
 }
@@ -194,4 +197,13 @@ export function are_equal(lhs: Core_intermediate_representation.Type_reference[]
     const lhs_name = get_type_name(lhs);
     const rhs_name = get_type_name(rhs);
     return lhs_name === rhs_name;
+}
+
+export function create_null_type(): Core_intermediate_representation.Type_reference {
+    return {
+        data: {
+            type: Core_intermediate_representation.Type_reference_enum.Null_pointer_type,
+            value: {}
+        }
+    };
 }
