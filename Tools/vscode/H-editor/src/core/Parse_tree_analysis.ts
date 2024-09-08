@@ -9,6 +9,7 @@ import * as Parser_node from "./Parser_node";
 import * as Scan_new_changes from "./Scan_new_changes";
 import * as Scanner from "./Scanner";
 import * as Text_formatter from "./Text_formatter";
+import * as Type_utilities from "./Type_utilities";
 
 export function find_statement(
     core_module: Core.Module,
@@ -750,6 +751,14 @@ export async function get_expression_type(
             const value = expression.data.value as Core.Constant_expression;
             return {
                 type: [value.type],
+                is_value: true
+            };
+        }
+        case Core.Expression_enum.Null_pointer_expression: {
+            return {
+                type: [
+                    Type_utilities.create_null_type()
+                ],
                 is_value: true
             };
         }

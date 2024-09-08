@@ -1015,6 +1015,7 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
         case Core_intermediate_representation.Expression_enum.Constant_expression:
         case Core_intermediate_representation.Expression_enum.Continue_expression:
         case Core_intermediate_representation.Expression_enum.Invalid_expression:
+        case Core_intermediate_representation.Expression_enum.Null_pointer_expression:
         case Core_intermediate_representation.Expression_enum.Variable_expression: {
             break;
         }
