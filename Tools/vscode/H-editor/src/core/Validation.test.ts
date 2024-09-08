@@ -1427,6 +1427,35 @@ export union My_union
     });
 });
 
+describe("Validation of expression assignment", () => {
+
+    // - Left hand side and right hand side types match
+
+    it("Validates that left hand side type matches right hand side type", async () => {
+        const input = `module Test;
+
+function run() -> ()
+{
+    mutable value_0 = 0;
+    value_0 = 1;
+    value_0 = 1.0f32;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(7, 15, 7, 21),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Expected type is 'Int32' but got 'Float32'.",
+                related_information: [],
+            }
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+});
+
 describe("Validation of expression unary", () => {
 
     // - Numeric operations
@@ -2708,17 +2737,18 @@ describe("Validation of expression null", () => {
     it("Validates that null can only be assigned to pointer types", async () => {
         const input = `module Test;
 
-function foo(pointer: *Int32, non_pointer: Int32) -> ()
+function foo(pointer: *Int32, non_pointer: Int32) -> (result: *Int32)
 {
+    return null;
 }
 
 struct My_struct
 {
     a: *Int32 = null;
-    b: Int32 = 0;
+    b: Int32 = null;
 }
 
-function run(value: Int32) -> ()
+function run(value: Int32) -> (result: Int32)
 {
     foo(null, null);
     
@@ -2728,29 +2758,45 @@ function run(value: Int32) -> ()
     };
     instance_0.a = null;
     instance_0.b = null;
+
+    return null;
 }
 `;
 
         const expected_diagnostics: Validation.Diagnostic[] = [
             {
-                location: create_diagnostic_location(9, 15, 9, 19),
+                location: create_diagnostic_location(11, 16, 11, 20),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "'null' can only be assigned to pointer types.",
+                message: "Cannot assign expression of type 'Null_pointer_type' to 'My_struct.b' of type 'Int32'.",
                 related_information: [],
             },
             {
-                location: create_diagnostic_location(13, 12, 13, 16),
+                location: create_diagnostic_location(16, 15, 16, 19),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "'null' can only be assigned to pointer types.",
+                message: "Argument 'non_pointer' expects type 'Int32', but 'Null_pointer_type' was provided.",
                 related_information: [],
             },
             {
-                location: create_diagnostic_location(16, 20, 16, 24),
+                location: create_diagnostic_location(20, 12, 20, 16),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "'null' can only be assigned to pointer types.",
+                message: "Cannot assign value of type 'Null_pointer_type' to member 'My_struct.b' of type 'Int32'.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(23, 20, 23, 24),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Expected type is 'Int32' but got 'Null_pointer_type'.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(25, 5, 25, 16),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Return expression type 'Null_pointer_type' does not match function return type 'Int32'.",
                 related_information: [],
             },
         ];

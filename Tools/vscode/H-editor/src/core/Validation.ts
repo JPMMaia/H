@@ -264,6 +264,9 @@ async function validate_current_parser_node_with_module(
         case "Expression_access": {
             return validate_access_expression(uri, language_description, core_module, root, new_value, get_core_module);
         }
+        case "Expression_assignment": {
+            return validate_assignment_expression(uri, language_description, core_module, root, new_value, get_core_module);
+        }
         case "Expression_binary_addition":
         case "Expression_binary_bitwise_and":
         case "Expression_binary_bitwise_xor":
@@ -794,7 +797,7 @@ async function validate_struct_member_default_value_expressions(
                 related_information: [],
             });
         }
-        else if (expression_type === undefined || expression_type.type.length === 0 || (expression_type.type.length > 0 && !deep_equal(expression_type.type[0], member_type))) {
+        else if (expression_type === undefined || expression_type.type.length === 0 || (expression_type.type.length > 0 && !deep_equal(expression_type.type[0], member_type) && !are_compatible_pointer_types(expression_type.type, [member_type]))) {
 
             const member_name = struct_declaration.member_names[member_index];
 
@@ -888,6 +891,10 @@ function validate_member_expressions_are_computed_at_compile_time(
                 return false;
             }
 
+            if (node.word.value === "Expression_null_pointer") {
+                return false;
+            }
+
             if (additional_labels_to_allow.find(label => label === node.word.value) !== undefined) {
                 return false;
             }
@@ -967,6 +974,50 @@ async function validate_access_expression(
                 }
             }
         }
+    }
+
+    return diagnostics;
+}
+
+async function validate_assignment_expression(
+    uri: string,
+    language_description: Language.Description,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    descendant_assignment_expression: { node: Parser_node.Node, position: number[] },
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+    const diagnostics: Diagnostic[] = [];
+
+    const function_value = Parse_tree_analysis.get_function_value_that_contains_node_position(core_module, root, descendant_assignment_expression.position);
+    if (function_value === undefined) {
+        return diagnostics;
+    }
+
+    const scope_declaration = Parse_tree_analysis.create_declaration_from_function_value(function_value);
+
+    const descendant_left_hand_side = Parser_node.get_child(descendant_assignment_expression, 0);
+    const descendant_right_hand_side = Parser_node.get_child(descendant_assignment_expression, 2);
+
+    const left_hand_side_expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_left_hand_side.node);
+    const right_hand_side_expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_right_hand_side.node);
+
+    const left_hand_side_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_left_hand_side.position, left_hand_side_expression, get_core_module);
+    const right_hand_side_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_right_hand_side.position, right_hand_side_expression, get_core_module);
+    if (left_hand_side_type === undefined || right_hand_side_type === undefined || !left_hand_side_type.is_value || !right_hand_side_type.is_value) {
+        return diagnostics;
+    }
+
+    if (!deep_equal(left_hand_side_type, right_hand_side_type) && !are_compatible_pointer_types(left_hand_side_type.type, right_hand_side_type.type)) {
+        const left_hand_side_type_string = Type_utilities.get_type_name(left_hand_side_type.type);
+        const right_hand_side_type_string = Type_utilities.get_type_name(right_hand_side_type.type);
+        diagnostics.push({
+            location: get_parser_node_source_location(uri, descendant_right_hand_side.node),
+            source: Source.Parse_tree_validation,
+            severity: Diagnostic_severity.Error,
+            message: `Expected type is '${left_hand_side_type_string}' but got '${right_hand_side_type_string}'.`,
+            related_information: [],
+        });
     }
 
     return diagnostics;
@@ -1295,7 +1346,7 @@ async function validate_call_expression(
 
         const argument_node = descedant_call_arguments.node.children[parameter_index * 2];
 
-        if (!deep_equal(argument_expression_type.type, parameter_type)) {
+        if (!deep_equal(argument_expression_type.type, parameter_type) && !are_compatible_pointer_types(argument_expression_type.type, parameter_type)) {
             diagnostics.push({
                 location: get_parser_node_source_location(uri, argument_node),
                 source: Source.Parse_tree_validation,
@@ -1949,7 +2000,7 @@ async function validate_that_instantiate_members_types_match(
             continue;
         }
 
-        if (!value_expression_type.is_value || !deep_equal(value_expression_type.type, [expected_member.type])) {
+        if (!value_expression_type.is_value || (!deep_equal(value_expression_type.type, [expected_member.type]) && !are_compatible_pointer_types(value_expression_type.type, [expected_member.type]))) {
             const expected_member_type_string = Type_utilities.get_type_name([expected_member.type], core_module);
             const actual_member_type_string = Type_utilities.get_type_name(value_expression_type.type, core_module);
             diagnostics.push(
@@ -1998,7 +2049,7 @@ async function validate_return_expression(
         );
         return diagnostics;
     }
-    else if (!deep_equal(return_expression_type, function_value.declaration.type.output_parameter_types)) {
+    else if (!deep_equal(return_expression_type, function_value.declaration.type.output_parameter_types) && !are_compatible_pointer_types(return_expression_type, function_value.declaration.type.output_parameter_types)) {
         const return_expression_type_string = Type_utilities.get_type_name(return_expression_type, core_module);
         const function_output_type_string = Type_utilities.get_type_name(function_value.declaration.type.output_parameter_types, core_module);
 
@@ -2399,6 +2450,7 @@ function is_numeric_type(
         case Core.Type_reference_enum.Constant_array_type:
         case Core.Type_reference_enum.Custom_type_reference:
         case Core.Type_reference_enum.Function_type:
+        case Core.Type_reference_enum.Null_pointer_type:
         case Core.Type_reference_enum.Pointer_type: {
             return false;
         }
@@ -2433,6 +2485,44 @@ function is_integer_type(
         default:
             return false;
     }
+}
+
+function are_compatible_pointer_types(
+    first: Core.Type_reference[],
+    second: Core.Type_reference[]
+): boolean {
+    const is_first_pointer = is_pointer_type(first) || is_null_pointer_type(first);
+    const is_second_pointer = is_pointer_type(second) || is_null_pointer_type(second);
+
+    if (!is_first_pointer || !is_second_pointer) {
+        return false;
+    }
+
+    if (deep_equal(first, second)) {
+        return true;
+    }
+
+    return is_null_pointer_type(first) || is_null_pointer_type(second);
+}
+
+function is_pointer_type(
+    type_reference: Core.Type_reference[]
+): boolean {
+    if (type_reference.length === 0) {
+        return false;
+    }
+
+    return type_reference[0].data.type === Core.Type_reference_enum.Pointer_type;
+}
+
+function is_null_pointer_type(
+    type_reference: Core.Type_reference[]
+): boolean {
+    if (type_reference.length === 0) {
+        return false;
+    }
+
+    return type_reference[0].data.type === Core.Type_reference_enum.Null_pointer_type;
 }
 
 function is_numeric_unary_operation(
