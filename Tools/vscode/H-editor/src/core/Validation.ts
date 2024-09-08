@@ -297,6 +297,9 @@ async function validate_current_parser_node_with_module(
         case "Expression_if": {
             return validate_if_expression(uri, language_description, core_module, root, new_value, get_core_module);
         }
+        case "Expression_instantiate": {
+            return validate_instantiate_expression(uri, language_description, core_module, root, new_value, get_core_module);
+        }
         case "Expression_return": {
             return validate_return_expression(uri, language_description, core_module, root, new_value, get_core_module);
         }
@@ -1688,6 +1691,277 @@ async function validate_if_expression(
             }
         );
         return diagnostics;
+    }
+
+    return diagnostics;
+}
+
+async function validate_instantiate_expression(
+    uri: string,
+    language_description: Language.Description,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    descendant_instantiate_expression: { node: Parser_node.Node, position: number[] },
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+    const diagnostics: Diagnostic[] = [];
+
+    const function_value = Parse_tree_analysis.get_function_value_that_contains_node_position(core_module, root, descendant_instantiate_expression.position);
+    if (function_value === undefined) {
+        return diagnostics;
+    }
+
+    const scope_declaration = Parse_tree_analysis.create_declaration_from_function_value(function_value);
+
+    const instantiate_expression_type = get_instantiate_expression_type(descendant_instantiate_expression);
+
+    const type_to_instantiate = await Parse_tree_analysis.find_instantiate_declaration_from_node(language_description, core_module, root, descendant_instantiate_expression.position, get_core_module);
+    if (type_to_instantiate === undefined) {
+        return diagnostics;
+    }
+    const expected_members = await Parse_tree_analysis.get_declaration_member_types(type_to_instantiate.core_module, type_to_instantiate.declaration, get_core_module);
+
+    const descendant_members_array = Parser_node.find_descendant_position_if(descendant_instantiate_expression, node => node.word.value === "Expression_instantiate_members");
+    if (descendant_members_array === undefined) {
+        return diagnostics;
+    }
+
+    const descendant_members = descendant_members_array.node.children
+        .filter((_, index) => index % 2 === 0)
+        .map((_, index) => Parser_node.get_child(descendant_members_array, 2 * index));
+
+    const descendant_member_names = descendant_members.map(descendant => Parser_node.find_descendant_position_if(descendant, node => node.word.value === "Expression_instantiate_member_name"));
+    const descendant_member_value_expressions = descendant_members.map(descendant => Parser_node.find_descendant_position_if(descendant, node => node.word.value === "Generic_expression_or_instantiate"));
+
+    diagnostics.push(...validate_that_instantiate_members_exist(uri, type_to_instantiate, expected_members, descendant_member_names));
+    diagnostics.push(...validate_that_instantiate_members_are_not_duplicated(uri, descendant_member_names));
+    if (diagnostics.length > 0) {
+        return diagnostics;
+    }
+
+    if (instantiate_expression_type === Core.Instantiate_expression_type.Explicit) {
+        diagnostics.push(...validate_that_instantiate_members_are_all_set(uri, type_to_instantiate, expected_members, descendant_instantiate_expression, descendant_member_names));
+    }
+
+    diagnostics.push(...validate_that_instantiate_members_are_sorted(uri, expected_members, descendant_instantiate_expression, descendant_member_names));
+
+    diagnostics.push(...await validate_that_instantiate_members_types_match(uri, language_description, core_module, root, scope_declaration, type_to_instantiate, expected_members, descendant_member_names, descendant_member_value_expressions, get_core_module));
+
+    return diagnostics;
+}
+
+function get_instantiate_expression_type(
+    descendant_instantiate_expression: { node: Parser_node.Node, position: number[] }
+): Core.Instantiate_expression_type {
+    const descendant = Parser_node.find_descendant_position_if(descendant_instantiate_expression, node => node.word.value === "Expression_instantiate_expression_type");
+
+    if (descendant !== undefined && descendant.node.children.length === 1 && descendant.node.children[0].word.value === "explicit") {
+        return Core.Instantiate_expression_type.Explicit;
+    }
+
+    return Core.Instantiate_expression_type.Default;
+}
+
+function validate_that_instantiate_members_are_not_duplicated(
+    uri: string,
+    descendant_member_names: ({ node: Parser_node.Node, position: number[] } | undefined)[],
+): Diagnostic[] {
+
+    const diagnostics: Diagnostic[] = [];
+
+    for (let index = 0; index < descendant_member_names.length; index++) {
+        const descendant_member_name = descendant_member_names[index];
+        if (descendant_member_name === undefined) {
+            continue;
+        }
+
+        const member_name = descendant_member_name.node.children[0].word.value;
+
+        const found_index = descendant_member_names.findIndex(
+            (descendant, current_index) => {
+                if (current_index === index) {
+                    return false;
+                }
+
+                if (descendant === undefined) {
+                    return false;
+                }
+
+                return descendant.node.children[0].word.value === member_name;
+            }
+        );
+
+        if (found_index !== -1) {
+            diagnostics.push(
+                {
+                    location: get_parser_node_source_location(uri, descendant_member_name.node),
+                    source: Source.Parse_tree_validation,
+                    severity: Diagnostic_severity.Error,
+                    message: `Duplicate instantiate member '${member_name}'.`,
+                    related_information: [],
+                }
+            );
+        }
+    }
+
+    return diagnostics;
+}
+
+function validate_that_instantiate_members_exist(
+    uri: string,
+    module_declaration: { core_module: Core.Module, declaration: Core.Declaration },
+    expected_members: { index: number, name: string, type: Core.Type_reference }[],
+    descendant_member_names: ({ node: Parser_node.Node, position: number[] } | undefined)[]
+): Diagnostic[] {
+    const diagnostics: Diagnostic[] = [];
+
+    for (const descendant_member_name of descendant_member_names) {
+        if (descendant_member_name === undefined) {
+            continue;
+        }
+
+        const member_name = descendant_member_name.node.children[0].word.value;
+
+        const foundIndex = expected_members.findIndex(expected_member => expected_member.name === member_name);
+        if (foundIndex === -1) {
+            diagnostics.push(
+                {
+                    location: get_parser_node_source_location(uri, descendant_member_name.node),
+                    source: Source.Parse_tree_validation,
+                    severity: Diagnostic_severity.Error,
+                    message: `'${module_declaration.declaration.name}.${member_name}' does not exist.`,
+                    related_information: [],
+                }
+            );
+        }
+    }
+
+    return diagnostics;
+}
+
+function validate_that_instantiate_members_are_all_set(
+    uri: string,
+    module_declaration: { core_module: Core.Module, declaration: Core.Declaration },
+    expected_members: { index: number, name: string, type: Core.Type_reference }[],
+    descendant_instantiate_expression: { node: Parser_node.Node, position: number[] },
+    descendant_member_names: ({ node: Parser_node.Node, position: number[] } | undefined)[]
+): Diagnostic[] {
+    const diagnostics: Diagnostic[] = [];
+
+    for (const expected_member of expected_members) {
+
+        const found_index = descendant_member_names.findIndex(
+            descendant_member_name => {
+                if (descendant_member_name === undefined) {
+                    return false;
+                }
+
+                return descendant_member_name.node.children[0].word.value === expected_member.name;
+            }
+        );
+
+        if (found_index === -1) {
+            diagnostics.push(
+                {
+                    location: get_parser_node_source_location(uri, descendant_instantiate_expression.node),
+                    source: Source.Parse_tree_validation,
+                    severity: Diagnostic_severity.Error,
+                    message: `'${module_declaration.declaration.name}.${expected_member.name}' is not set. Explicit instantiate expression requires all members to be set.`,
+                    related_information: [],
+                }
+            );
+        }
+    }
+
+    return diagnostics;
+}
+
+function validate_that_instantiate_members_are_sorted(
+    uri: string,
+    expected_members: { index: number, name: string, type: Core.Type_reference }[],
+    descendant_instantiate_expression: { node: Parser_node.Node, position: number[] },
+    descendant_member_names: ({ node: Parser_node.Node, position: number[] } | undefined)[]
+): Diagnostic[] {
+
+    let current_index = 0;
+
+    for (const descendant_member_name of descendant_member_names) {
+        if (descendant_member_name === undefined) {
+            return [];
+        }
+
+        const member_name = descendant_member_name.node.children[0].word.value;
+
+        const foundIndex = expected_members.findIndex(expected_member => expected_member.name === member_name);
+        if (foundIndex === -1) {
+            return [];
+        }
+
+        if (foundIndex < current_index) {
+            return [
+                {
+                    location: get_parser_node_source_location(uri, descendant_instantiate_expression.node),
+                    source: Source.Parse_tree_validation,
+                    severity: Diagnostic_severity.Error,
+                    message: `Instantiate members are not sorted. They must appear in the order they were declarated in the struct declaration.`,
+                    related_information: [],
+                }
+            ];
+        }
+
+        current_index = foundIndex;
+    }
+
+    return [];
+}
+
+async function validate_that_instantiate_members_types_match(
+    uri: string,
+    language_description: Language.Description,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    scope_declaration: Core.Declaration,
+    module_declaration: { core_module: Core.Module, declaration: Core.Declaration },
+    expected_members: { index: number, name: string, type: Core.Type_reference }[],
+    descendant_member_names: ({ node: Parser_node.Node, position: number[] } | undefined)[],
+    descendant_member_value_expressions: ({ node: Parser_node.Node, position: number[] } | undefined)[],
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+    const diagnostics: Diagnostic[] = [];
+
+    for (let index = 0; index < descendant_member_names.length; index++) {
+        const descendant_member_name = descendant_member_names[index];
+        const descendant_member_value_expression = descendant_member_value_expressions[index];
+        if (descendant_member_name === undefined || descendant_member_value_expression === undefined) {
+            continue;
+        }
+
+        const member_name = descendant_member_name.node.children[0].word.value;
+
+        const expected_member = expected_members.find(expected_member => expected_member.name === member_name);
+        if (expected_member === undefined) {
+            continue;
+        }
+
+        const value_expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_member_value_expression.node);
+        const value_expression_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_member_value_expression.position, value_expression, get_core_module);
+        if (value_expression_type === undefined) {
+            continue;
+        }
+
+        if (!value_expression_type.is_value || !deep_equal(value_expression_type.type, [expected_member.type])) {
+            const expected_member_type_string = Type_utilities.get_type_name([expected_member.type], core_module);
+            const actual_member_type_string = Type_utilities.get_type_name(value_expression_type.type, core_module);
+            diagnostics.push(
+                {
+                    location: get_parser_node_source_location(uri, descendant_member_value_expression.node),
+                    source: Source.Parse_tree_validation,
+                    severity: Diagnostic_severity.Error,
+                    message: `Cannot assign value of type '${actual_member_type_string}' to member '${module_declaration.declaration.name}.${member_name}' of type '${expected_member_type_string}'.`,
+                    related_information: [],
+                }
+            );
+        }
     }
 
     return diagnostics;

@@ -2515,9 +2515,50 @@ function run(value: My_enum) -> ()
 
 describe("Validation of expression instantiate", () => {
 
+    // - Members are not duplicate
     // - Members need to be sorted (if not add quick fix to sort members)
     // - If explicit, then all members need to be present (if not add quick fix to add missing members), and indicate members that do not exist
     // - Validate that members that are set in the instantiate expression are present in the struct
+    // - Validate that assigned values match member types
+
+    it("Validates that members are not duplicate", async () => {
+        const input = `module Test;
+
+struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = 0;
+    c: Int32 = 0;
+}
+
+function run(value: Int32) -> ()
+{
+    var instance_0: My_struct = {
+        a: 0,
+        a: 0
+    };
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(13, 9, 13, 10),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Duplicate instantiate member 'a'.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(14, 9, 14, 10),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Duplicate instantiate member 'a'.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
 
     it("Validates that members are sorted", async () => {
         const input = `module Test;
@@ -2533,12 +2574,12 @@ function run(value: Int32) -> ()
 {
     var instance_0: My_struct = {
         a: 0,
-        c: 0,
+        c: 0
     };
 
     var instance_1: My_struct = {
         c: 0,
-        a: 0,
+        a: 0
     };
 }
 `;
@@ -2570,22 +2611,22 @@ function run(value: Int32) -> ()
 {
     var instance_0: My_struct = {
         a: 0,
-        c: 0,
+        c: 0
     };
 
     var instance_1: My_struct = explicit {
         a: 0,
-        c: 0,
+        c: 0
     };
 }
 `;
 
         const expected_diagnostics: Validation.Diagnostic[] = [
             {
-                location: create_diagnostic_location(17, 42, 20, 6),
+                location: create_diagnostic_location(17, 33, 20, 6),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "Member 'b' is missing. Explicit instantiate expression requires all members to be set.",
+                message: "'My_struct.b' is not set. Explicit instantiate expression requires all members to be set.",
                 related_information: [],
             },
         ];
@@ -2607,7 +2648,7 @@ function run(value: Int32) -> ()
 {
     var instance_0: My_struct = {
         a: 0,
-        c: 0,
+        c: 0
     };
 
     var instance_1: My_struct = explicit {
@@ -2622,6 +2663,36 @@ function run(value: Int32) -> ()
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
                 message: "'My_struct.d' does not exist.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+
+    it("Validates that assigned value types match the member types", async () => {
+        const input = `module Test;
+
+struct My_struct
+{
+    a: Int32 = 0;
+}
+
+function run(value: Int32) -> ()
+{
+    var instance_0: My_struct = {
+        a: 0.0f32
+    };
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(11, 12, 11, 18),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot assign value of type 'Float32' to member 'My_struct.a' of type 'Int32'.",
                 related_information: [],
             },
         ];
