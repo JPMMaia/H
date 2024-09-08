@@ -303,6 +303,7 @@ export enum Type_reference_enum {
     Fundamental_type = "Fundamental_type",
     Function_type = "Function_type",
     Integer_type = "Integer_type",
+    Null_pointer_type = "Null_pointer_type",
     Pointer_type = "Pointer_type",
 }
 
@@ -416,6 +417,19 @@ function intermediate_to_core_function_type(intermediate_value: Function_type): 
     };
 }
 
+export interface Null_pointer_type {
+}
+
+function core_to_intermediate_null_pointer_type(core_value: Core.Null_pointer_type): Null_pointer_type {
+    return {
+    };
+}
+
+function intermediate_to_core_null_pointer_type(intermediate_value: Null_pointer_type): Core.Null_pointer_type {
+    return {
+    };
+}
+
 export interface Pointer_type {
     element_type: Type_reference[];
     is_mutable: boolean;
@@ -496,7 +510,7 @@ function intermediate_to_core_custom_type_reference(intermediate_value: Custom_t
 }
 
 export interface Type_reference {
-    data: Variant<Type_reference_enum, Builtin_type_reference | Constant_array_type | Custom_type_reference | Fundamental_type | Function_type | Integer_type | Pointer_type>;
+    data: Variant<Type_reference_enum, Builtin_type_reference | Constant_array_type | Custom_type_reference | Fundamental_type | Function_type | Integer_type | Null_pointer_type | Pointer_type>;
 }
 
 function core_to_intermediate_type_reference(core_value: Core.Type_reference): Type_reference {
@@ -537,6 +551,12 @@ function core_to_intermediate_type_reference(core_value: Core.Type_reference): T
                     return {
                         type: core_value.data.type,
                         value: core_to_intermediate_integer_type(core_value.data.value as Core.Integer_type)
+                    };
+                }
+                case Core.Type_reference_enum.Null_pointer_type: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_null_pointer_type(core_value.data.value as Core.Null_pointer_type)
                     };
                 }
                 case Core.Type_reference_enum.Pointer_type: {
@@ -597,6 +617,14 @@ function intermediate_to_core_type_reference(intermediate_value: Type_reference)
                 data: {
                     type: intermediate_value.data.type,
                     value: intermediate_to_core_integer_type(intermediate_value.data.value as Integer_type)
+                }
+            };
+        }
+        case Type_reference_enum.Null_pointer_type: {
+            return {
+                data: {
+                    type: intermediate_value.data.type,
+                    value: intermediate_to_core_null_pointer_type(intermediate_value.data.value as Null_pointer_type)
                 }
             };
         }

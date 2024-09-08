@@ -92,6 +92,7 @@ export enum Type_reference_enum {
     Fundamental_type = "Fundamental_type",
     Function_type = "Function_type",
     Integer_type = "Integer_type",
+    Null_pointer_type = "Null_pointer_type",
     Pointer_type = "Pointer_type",
 }
 
@@ -143,6 +144,9 @@ export interface Function_type {
     is_variadic: boolean;
 }
 
+export interface Null_pointer_type {
+}
+
 export interface Pointer_type {
     element_type: Vector<Type_reference>;
     is_mutable: boolean;
@@ -163,7 +167,7 @@ export interface Custom_type_reference {
 }
 
 export interface Type_reference {
-    data: Variant<Type_reference_enum, Builtin_type_reference | Constant_array_type | Custom_type_reference | Fundamental_type | Function_type | Integer_type | Pointer_type>;
+    data: Variant<Type_reference_enum, Builtin_type_reference | Constant_array_type | Custom_type_reference | Fundamental_type | Function_type | Integer_type | Null_pointer_type | Pointer_type>;
 }
 
 export interface Indexed_comment {

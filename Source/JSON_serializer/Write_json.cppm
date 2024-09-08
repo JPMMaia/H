@@ -306,6 +306,12 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Null_pointer_type const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Pointer_type const& input
         );
 
@@ -781,6 +787,16 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Null_pointer_type const& output
+        )
+    {
+        writer.StartObject();
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Pointer_type const& output
         )
     {
@@ -891,6 +907,14 @@ namespace h::json
             writer.String("Integer_type");
             writer.Key("value");
             Integer_type const& value = std::get<Integer_type>(output.data);
+            write_object(writer, value);
+        }
+        else if (std::holds_alternative<Null_pointer_type>(output.data))
+        {
+            writer.Key("type");
+            writer.String("Null_pointer_type");
+            writer.Key("value");
+            Null_pointer_type const& value = std::get<Null_pointer_type>(output.data);
             write_object(writer, value);
         }
         else if (std::holds_alternative<Pointer_type>(output.data))
