@@ -2,4 +2,6 @@ module project_1.completion_0;
 
 import c.complex as complex;
 
-export function run(value: 
+export function run(value: ) -> ()
+{
+}
