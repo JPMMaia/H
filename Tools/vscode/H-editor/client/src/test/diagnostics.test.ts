@@ -17,6 +17,14 @@ suite("Should get diagnostics", () => {
 			{ message: "Did not expect 'f' as number suffix. Did you mean 'f16', 'f32' or 'f64'?", range: to_range(4, 12, 4, 16), severity: vscode.DiagnosticSeverity.Error, source: "Parse Tree Validation" },
 		]);
 	});
+
+	test("Diagnoses missing members in an explicit instantiate expression", async () => {
+		const document_uri = get_document_uri("diagnostics_missing_explicit_instantiate_members.hltxt");
+		await test_diagnostics(document_uri, [
+			{ message: "'My_struct.a' is not set. Explicit instantiate expression requires all members to be set.", range: to_range(10, 30, 10, 41), severity: vscode.DiagnosticSeverity.Error, source: "Parse Tree Validation" },
+			{ message: "'My_struct.b' is not set. Explicit instantiate expression requires all members to be set.", range: to_range(10, 30, 10, 41), severity: vscode.DiagnosticSeverity.Error, source: "Parse Tree Validation" },
+		]);
+	});
 });
 
 function to_range(sLine: number, sChar: number, eLine: number, eChar: number) {
