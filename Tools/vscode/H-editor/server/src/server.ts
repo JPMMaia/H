@@ -192,7 +192,7 @@ connection.onDefinition(async (parameters: vscode_node.DefinitionParams): Promis
 	return Definition.find_definition_link(parameters, server_data, workspace_folder_uri);
 });
 
-connection.languages.diagnostics.on(async (parameters) => {
+connection.languages.diagnostics.on(async (parameters): Promise<vscode_node.DocumentDiagnosticReport> => {
 
 	const document_state = server_data.document_states.get(parameters.textDocument.uri);
 	if (document_state === undefined) {
@@ -202,9 +202,15 @@ connection.languages.diagnostics.on(async (parameters) => {
 		} satisfies vscode_node.DocumentDiagnosticReport;
 	}
 
-	const diagnostics = document_state.diagnostics;
-
-	// TODO await validate_text_document(document)
+	const diagnostics = [...document_state.diagnostics];
+	if (diagnostics.length === 0 && document_state.parse_tree !== undefined) {
+		diagnostics.push(...Validation.validate_parser_node(parameters.textDocument.uri, [], document_state.parse_tree));
+		if (diagnostics.length === 0) {
+			const workspace_folder_uri = await get_workspace_folder_uri_for_document(parameters.textDocument.uri);
+			const get_core_module = Server_data.create_get_core_module(server_data, workspace_folder_uri)
+			diagnostics.push(...await Validation.validate_module(parameters.textDocument.uri, server_data.language_description, document_state.text, document_state.module, document_state.parse_tree, [], document_state.parse_tree, get_core_module))
+		}
+	}
 
 	const items = diagnostics.map((value: Validation.Diagnostic): vscode_node.Diagnostic => {
 
@@ -250,7 +256,7 @@ connection.languages.diagnostics.on(async (parameters) => {
 	return {
 		kind: vscode_node.DocumentDiagnosticReportKind.Full,
 		items: items
-	} satisfies vscode_node.DocumentDiagnosticReport;
+	};
 });
 
 connection.onDidOpenTextDocument((parameters) => {

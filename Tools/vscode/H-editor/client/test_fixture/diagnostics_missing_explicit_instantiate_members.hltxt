@@ -1,0 +1,12 @@
+module my_module;
+
+struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = 0;
+}
+
+function run() -> ()
+{
+    var instance: My_struct = explicit {};
+}
