@@ -61,6 +61,7 @@ export async function get_code_actions(
                         root,
                         { node: ancestor.node, position: [...ancestor.position] },
                         descendant_instantiate_members,
+                        parameters.context.diagnostics,
                         get_core_module
                     );
                     if (add_missing_members_code_action !== undefined) {
@@ -145,6 +146,7 @@ async function create_add_missing_members_to_instantiate_expression(
     root: Parser_node.Node,
     descendant_instantiate_expression: { node: Parser_node.Node, position: number[] },
     descendant_instantiate_members: { node: Parser_node.Node, position: number[] }[],
+    diagnostics: vscode.Diagnostic[],
     get_core_module: (module_name: string) => Promise<Core.Module | undefined>
 ): Promise<vscode.CodeAction | undefined> {
 
@@ -248,8 +250,40 @@ async function create_add_missing_members_to_instantiate_expression(
     const changes: { [uri: vscode.DocumentUri]: vscode.TextEdit[]; } = {};
     changes[document_uri] = [edit];
     const workspace_edit: vscode.WorkspaceEdit = { changes: changes };
-    const code_action_kind = vscode.CodeActionKind.RefactorRewrite;
+
+    const is_explicit = instantiate_type_text.startsWith("explicit");
+
+    const code_action_kind = is_explicit ? vscode.CodeActionKind.QuickFix : vscode.CodeActionKind.RefactorRewrite;
     const code_action = vscode.CodeAction.create(title, workspace_edit, code_action_kind);
 
+    if (is_explicit && document_state.parse_tree !== undefined) {
+        const instantiate_expression_node_range = Parse_tree_analysis.find_node_range(document_state.parse_tree, descendant_instantiate_expression.node, descendant_instantiate_expression.position, document_state.text);
+        if (instantiate_expression_node_range !== undefined) {
+            const diagnostics_to_fix: vscode.Diagnostic[] = [];
+            for (const diagnostic of diagnostics) {
+                if (diagnostic.range.start.line === instantiate_expression_node_range.start.line - 1 &&
+                    diagnostic.range.start.character === instantiate_expression_node_range.start.column - 1 &&
+                    diagnostic.range.end.line === instantiate_expression_node_range.end.line - 1 &&
+                    diagnostic.range.end.character === instantiate_expression_node_range.end.column - 1
+                ) {
+                    diagnostics_to_fix.push(diagnostic);
+                }
+            }
+            code_action.diagnostics = diagnostics_to_fix;
+        }
+    }
+
     return code_action;
+}
+
+function get_instantiate_expression_type(
+    descendant_instantiate_expression: { node: Parser_node.Node, position: number[] }
+): Core.Instantiate_expression_type {
+    const descendant = Parser_node.find_descendant_position_if(descendant_instantiate_expression, node => node.word.value === "Expression_instantiate_expression_type");
+
+    if (descendant !== undefined && descendant.node.children.length === 1 && descendant.node.children[0].word.value === "explicit") {
+        return Core.Instantiate_expression_type.Explicit;
+    }
+
+    return Core.Instantiate_expression_type.Default;
 }
