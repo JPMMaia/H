@@ -52,6 +52,17 @@ suite("Should get instantiate expression add missing members code action", () =>
             }
         ]);
     });
+
+    test("Add missing instantiate members inside an explicit instantiate expression", async () => {
+        const document_uri = get_document_uri("code_action_instantiate_5.hltxt");
+        await test_code_actions(document_uri, to_range(12, 40, 12, 40), vscode.CodeActionKind.RefactorRewrite, [
+            {
+                title: "Add missing instantiate members",
+                kind: vscode.CodeActionKind.QuickFix,
+                edit: create_replace_workspace_edit(document_uri, to_range(12, 40, 12, 40), "\n        a: 0,\n        b: 1,\n        c: 2,\n        d: 3\n    ")
+            }
+        ]);
+    });
 });
 
 function to_range(start_line: number, start_character: number, end_line: number, end_character: number): vscode.Range {
