@@ -106,7 +106,7 @@ export async function find_definition_link(
             const expression = Parse_tree_analysis.get_expression_from_node(server_data.language_description, core_module, ancestor.node);
             if (expression.data.type === Core.Expression_enum.Access_expression) {
                 const access_expression = expression.data.value as Core.Access_expression;
-                const components = await Parse_tree_analysis.get_access_expression_components(core_module, access_expression, root, ancestor.node, ancestor.position, get_core_module);
+                const components = await Parse_tree_analysis.get_access_expression_components(server_data.language_description, core_module, access_expression, root, ancestor.node, ancestor.position, get_core_module);
                 if (components.length === 0) {
                     return [];
                 }

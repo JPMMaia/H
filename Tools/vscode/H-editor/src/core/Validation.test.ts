@@ -460,6 +460,46 @@ struct My_struct
 
         await test_validate_module(input, [], expected_diagnostics);
     });
+
+    it("Validates that instantiate expressions can only be assigned to struct or union types", async () => {
+        const input = `module Test;
+
+struct My_struct_0
+{
+    a: Int32 = 0;
+}
+
+union My_union_0
+{
+    a: Int32;
+    b: Float32;
+}
+
+struct My_struct_1
+{
+    a: My_struct_0 = {};
+    b: My_struct_1 = explicit {
+        a: 1
+    };
+    c: My_union_0 = {
+        b: 1.0f32
+    };
+    d: Int32 = {};
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(23, 16, 23, 18),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot initialize 'My_struct_1.d' member of type 'Int32' with an instantiate expression.",
+                related_information: [],
+            }
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
 });
 
 describe("Validation of unions", () => {

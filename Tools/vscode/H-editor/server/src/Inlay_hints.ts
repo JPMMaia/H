@@ -75,7 +75,7 @@ export async function create(
                         if (descendant.node.word.value === "Expression_variable_declaration" && statement.expression.data.type === Core.Expression_enum.Variable_declaration_expression) {
                             const expression = statement.expression.data.value as Core.Variable_declaration_expression;
                             const scope_declaration = Parse_tree_analysis.create_declaration_from_function_value(function_value);
-                            const right_hand_side_type = await Parse_tree_analysis.get_expression_type(document_state.module, scope_declaration, iterator.root, statement_node_position, expression.right_hand_side, get_core_module);
+                            const right_hand_side_type = await Parse_tree_analysis.get_expression_type(server_data.language_description, document_state.module, scope_declaration, iterator.root, statement_node_position, expression.right_hand_side, get_core_module);
                             if (right_hand_side_type !== undefined && right_hand_side_type.type.length > 0) {
                                 const variable_name_descendant = Parser_node.find_descendant_position_if({ node: statement_node, position: statement_node_position }, node => node.word.value === "Variable_name") as { node: Parser_node.Node, position: number[] };
                                 const variable_name_source_location = Parse_tree_text_iterator.get_node_source_location(iterator.root, iterator.text, [...variable_name_descendant.position, 0]) as Parser_node.Source_location;
@@ -101,7 +101,7 @@ export async function create(
                             if (expression.data.type === Core.Expression_enum.Call_expression) {
                                 const call_expression = expression.data.value as Core.Call_expression;
                                 const scope_declaration = Parse_tree_analysis.create_declaration_from_function_value(function_value);
-                                const left_hand_side_type = await Parse_tree_analysis.get_expression_type(document_state.module, scope_declaration, iterator.root, statement_node_position, call_expression.expression, get_core_module);
+                                const left_hand_side_type = await Parse_tree_analysis.get_expression_type(server_data.language_description, document_state.module, scope_declaration, iterator.root, statement_node_position, call_expression.expression, get_core_module);
                                 if (left_hand_side_type !== undefined && left_hand_side_type.is_value && left_hand_side_type.type.length > 0 && left_hand_side_type.type[0].data.type === Core.Type_reference_enum.Custom_type_reference) {
                                     const custom_type_reference = left_hand_side_type.type[0].data.value as Core.Custom_type_reference;
                                     const declaration = await Parse_tree_analysis.get_custom_type_reference_declaration(custom_type_reference, get_core_module);
