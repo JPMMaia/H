@@ -29,6 +29,7 @@ let has_configuration_capability = false;
 let has_workspace_folder_capability = false;
 let has_diagnostic_related_information_capability = false;
 let has_code_action_literal_support_capability = false;
+let is_initialized = false;
 
 connection.onInitialize(async (params: vscode_node.InitializeParams) => {
 	const capabilities = params.capabilities;
@@ -111,6 +112,21 @@ connection.onInitialize(async (params: vscode_node.InitializeParams) => {
 		};
 	}
 
+	server_data.initialize_promise = new Promise((resolve) => {
+		let timer: NodeJS.Timer | undefined = undefined;
+
+		const check = () => {
+			if (is_initialized) {
+				if (timer !== undefined) {
+					clearInterval(timer);
+				}
+				resolve();
+			}
+		};
+
+		timer = setInterval(check, 500);
+	});
+
 	return result;
 });
 
@@ -126,6 +142,7 @@ connection.onInitialized(async () => {
 	}
 
 	await create_projects_data();
+	is_initialized = true;
 });
 
 async function create_projects_data(): Promise<void> {

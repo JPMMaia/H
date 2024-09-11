@@ -16,6 +16,7 @@ export interface Server_data {
     document_states: Map<string, Document.State>;
     core_modules_with_source_locations: Map<string, Core.Module>;
     projects: Map<string, Project.Project_data>;
+    initialize_promise: Promise<void> | undefined;
 }
 
 export function create_server_data(): Server_data {
@@ -25,6 +26,7 @@ export function create_server_data(): Server_data {
     const document_states = new Map<string, Document.State>();
     const core_modules_with_source_locations = new Map<string, Core.Module>();
     const projects = new Map<string, Project.Project_data>();
+    const initialize_promise = undefined;
 
     return {
         storage_cache,
@@ -32,7 +34,8 @@ export function create_server_data(): Server_data {
         documents,
         document_states,
         core_modules_with_source_locations,
-        projects
+        projects,
+        initialize_promise
     };
 }
 
@@ -83,6 +86,10 @@ export async function get_core_module(
 
     if (workspace_folder_uri === undefined) {
         return undefined;
+    }
+
+    if (server_data.initialize_promise !== undefined) {
+        await server_data.initialize_promise;
     }
 
     const project = server_data.projects.get(workspace_folder_uri);
