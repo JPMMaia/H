@@ -85,7 +85,7 @@ async function test_find_variable_type(
     const get_core_module_function = get_core_module !== undefined ? get_core_module : create_default_get_core_module(core_module);
 
     const root = Parse_tree_convertor.module_to_parse_tree(core_module, language_description.production_rules, language_description.mappings);
-    const actual_variable_type = await Parse_tree_analysis.find_variable_type(core_module, function_value, root, variable_node_position, variable_name, get_core_module_function);
+    const actual_variable_type = await Parse_tree_analysis.find_variable_type(language_description, core_module, function_value, root, variable_node_position, variable_name, get_core_module_function);
 
     assert.deepEqual(actual_variable_type, expected_variable_type);
 }
@@ -412,7 +412,7 @@ async function test_get_expression_type(
     const get_core_module_function = get_core_module !== undefined ? get_core_module : create_default_get_core_module(core_module);
 
     const root = Parse_tree_convertor.module_to_parse_tree(core_module, language_description.production_rules, language_description.mappings);
-    const actual_expression_type = await Parse_tree_analysis.get_expression_type(core_module, core_module.declarations[declaration_index], root, variable_node_position, expression, get_core_module_function);
+    const actual_expression_type = await Parse_tree_analysis.get_expression_type(language_description, core_module, core_module.declarations[declaration_index], root, variable_node_position, expression, get_core_module_function);
 
     assert.deepEqual(actual_expression_type, expected_expression_type);
 }

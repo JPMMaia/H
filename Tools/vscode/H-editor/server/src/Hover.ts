@@ -91,7 +91,7 @@ export async function get_hover(
             const expression = Parse_tree_analysis.get_expression_from_node(server_data.language_description, core_module, ancestor_expression.node);
             if (expression.data.type === Core.Expression_enum.Access_expression) {
                 const access_expression = expression.data.value as Core.Access_expression;
-                const components = await Parse_tree_analysis.get_access_expression_components(core_module, access_expression, root, ancestor_expression.node, ancestor_expression.position, get_core_module);
+                const components = await Parse_tree_analysis.get_access_expression_components(server_data.language_description, core_module, access_expression, root, ancestor_expression.node, ancestor_expression.position, get_core_module);
                 const member_name_component = Parse_tree_analysis.select_access_expression_component(components, before_cursor.node, before_cursor.node_position, after_cursor.node_position);
                 if (member_name_component.type === Parse_tree_analysis.Component_type.Member_name) {
                     const declaration_component = components[components.length - 2];

@@ -434,7 +434,7 @@ async function find_core_declaration_of_expression_type(
             return Server_data.get_core_module(server_data, workspace_folder_uri, module_name);
         };
 
-        const expression_type = await Parse_tree_analysis.get_expression_type(core_module, declaration, root, before_cursor_node_position, expression, get_core_module);
+        const expression_type = await Parse_tree_analysis.get_expression_type(server_data.language_description, core_module, declaration, root, before_cursor_node_position, expression, get_core_module);
         if (expression_type !== undefined && expression_type.type.length > 0) {
             if (expression_type.type[0].data.type === Core.Type_reference_enum.Custom_type_reference) {
                 const custom_type_reference = expression_type.type[0].data.value as Core.Custom_type_reference;

@@ -741,7 +741,7 @@ async function validate_enum_value_generic_expressions(
         }
 
         const expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_expression.node);
-        const expression_type = await Parse_tree_analysis.get_expression_type(core_module, declaration, root, descendant_expression.position, expression, get_core_module);
+        const expression_type = await Parse_tree_analysis.get_expression_type(language_description, core_module, declaration, root, descendant_expression.position, expression, get_core_module);
         if (expression_type !== undefined && expression_type.is_value && !deep_equal(expression_type.type, [int32_type])) {
 
             const descendant_member_name = Parser_node.find_descendant_position_if(descendant_member, node => node.word.value === "Enum_value_name");
@@ -784,7 +784,7 @@ async function validate_struct_member_default_value_expressions(
         }
 
         const expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_expression.node);
-        const expression_type = await Parse_tree_analysis.get_expression_type(core_module, declaration, root, descendant_expression.position, expression, get_core_module);
+        const expression_type = await Parse_tree_analysis.get_expression_type(language_description, core_module, declaration, root, descendant_expression.position, expression, get_core_module);
 
         const member_type = struct_declaration.member_types[member_index];
 
@@ -794,6 +794,19 @@ async function validate_struct_member_default_value_expressions(
                 source: Source.Parse_tree_validation,
                 severity: Diagnostic_severity.Error,
                 message: `Expected a value, but got a type.`,
+                related_information: [],
+            });
+        }
+        else if (expression_type === undefined && expression.data.type === Core.Expression_enum.Instantiate_expression) {
+            const member_name = struct_declaration.member_names[member_index];
+
+            const member_type_string = Type_utilities.get_type_name([member_type]);
+
+            diagnostics.push({
+                location: get_parser_node_source_location(uri, descendant_expression.node),
+                source: Source.Parse_tree_validation,
+                severity: Diagnostic_severity.Error,
+                message: `Cannot initialize '${declaration.name}.${member_name}' member of type '${member_type_string}' with an instantiate expression.`,
                 related_information: [],
             });
         }
@@ -938,7 +951,7 @@ async function validate_access_expression(
     }
 
     const access_expression = expression.data.value as Core.Access_expression;;
-    const access_components = await Parse_tree_analysis.get_access_expression_components(core_module, access_expression, root, descendant_access_expression.node, descendant_access_expression.position, get_core_module);
+    const access_components = await Parse_tree_analysis.get_access_expression_components(language_description, core_module, access_expression, root, descendant_access_expression.node, descendant_access_expression.position, get_core_module);
 
     if (access_components.length >= 2) {
         const last_component = access_components[access_components.length - 1];
@@ -1002,8 +1015,8 @@ async function validate_assignment_expression(
     const left_hand_side_expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_left_hand_side.node);
     const right_hand_side_expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_right_hand_side.node);
 
-    const left_hand_side_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_left_hand_side.position, left_hand_side_expression, get_core_module);
-    const right_hand_side_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_right_hand_side.position, right_hand_side_expression, get_core_module);
+    const left_hand_side_type = await Parse_tree_analysis.get_expression_type(language_description, core_module, scope_declaration, root, descendant_left_hand_side.position, left_hand_side_expression, get_core_module);
+    const right_hand_side_type = await Parse_tree_analysis.get_expression_type(language_description, core_module, scope_declaration, root, descendant_right_hand_side.position, right_hand_side_expression, get_core_module);
     if (left_hand_side_type === undefined || right_hand_side_type === undefined || !left_hand_side_type.is_value || !right_hand_side_type.is_value) {
         return diagnostics;
     }
@@ -1050,8 +1063,8 @@ async function validate_binary_expression(
     const descendant_left_operand = Parser_node.get_child(descendant_binary_expression, 0);
     const descendant_right_operand = Parser_node.get_child(descendant_binary_expression, 2);
 
-    const left_expression_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_left_operand.position, binary_expression.left_hand_side, get_core_module);
-    const right_expression_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_right_operand.position, binary_expression.right_hand_side, get_core_module);
+    const left_expression_type = await Parse_tree_analysis.get_expression_type(language_description, core_module, scope_declaration, root, descendant_left_operand.position, binary_expression.left_hand_side, get_core_module);
+    const right_expression_type = await Parse_tree_analysis.get_expression_type(language_description, core_module, scope_declaration, root, descendant_right_operand.position, binary_expression.right_hand_side, get_core_module);
 
     const descendant_symbol = Parser_node.get_child(Parser_node.get_child(descendant_binary_expression, 1), 0);
     const operation = binary_expression.operation;
@@ -1339,7 +1352,7 @@ async function validate_call_expression(
         const parameter_type = [function_declaration.type.input_parameter_types[parameter_index]];
 
         const argument_expression = call_expression.arguments[parameter_index];
-        const argument_expression_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_call_expression.position, argument_expression, get_core_module);
+        const argument_expression_type = await Parse_tree_analysis.get_expression_type(language_description, core_module, scope_declaration, root, descendant_call_expression.position, argument_expression, get_core_module);
         if (argument_expression_type === undefined) {
             continue;
         }
@@ -1391,7 +1404,7 @@ async function validate_cast_expression(
         return diagnostics;
     }
 
-    const source_expression_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_source_expression.position, cast_expression.source, get_core_module);
+    const source_expression_type = await Parse_tree_analysis.get_expression_type(language_description, core_module, scope_declaration, root, descendant_source_expression.position, cast_expression.source, get_core_module);
     if (source_expression_type === undefined) {
         return diagnostics;
     }
@@ -1598,7 +1611,7 @@ async function get_return_expression_type(
     }
 
     const expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_expression.node);
-    const expression_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_expression.position, expression, get_core_module);
+    const expression_type = await Parse_tree_analysis.get_expression_type(language_description, core_module, scope_declaration, root, descendant_expression.position, expression, get_core_module);
     if (expression_type === undefined || !expression_type.is_value) {
         return undefined;
     }
@@ -1639,8 +1652,8 @@ async function validate_for_loop_expression(
     const range_begin_expression = for_loop_expression.range_begin;
     const range_end_expression = for_loop_expression.range_end.expression;
 
-    const range_begin_expression_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_range_begin.position, range_begin_expression, get_core_module);
-    const range_end_expression_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_range_end.position, range_end_expression, get_core_module);
+    const range_begin_expression_type = await Parse_tree_analysis.get_expression_type(language_description, core_module, scope_declaration, root, descendant_range_begin.position, range_begin_expression, get_core_module);
+    const range_end_expression_type = await Parse_tree_analysis.get_expression_type(language_description, core_module, scope_declaration, root, descendant_range_end.position, range_end_expression, get_core_module);
 
     if (range_begin_expression_type === undefined || !range_begin_expression_type.is_value || range_end_expression_type === undefined || !range_end_expression_type.is_value) {
         return diagnostics;
@@ -1662,7 +1675,7 @@ async function validate_for_loop_expression(
 
         const descendant_step_by_number_expression = Parser_node.find_descendant_position_if(descendant_step, node => node.word.value === "Expression_for_loop_number_expression");
         if (descendant_step_by_number_expression !== undefined) {
-            const step_by_expression_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_step_by_number_expression.position, step_by_expression, get_core_module);
+            const step_by_expression_type = await Parse_tree_analysis.get_expression_type(language_description, core_module, scope_declaration, root, descendant_step_by_number_expression.position, step_by_expression, get_core_module);
             if (step_by_expression_type !== undefined && step_by_expression_type.is_value) {
                 if (!deep_equal(range_begin_expression_type, step_by_expression_type)) {
                     diagnostics.push({
@@ -1713,7 +1726,7 @@ async function validate_if_expression(
     }
 
     const condition_expession = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_condition.node);
-    const condition_expression_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_condition.position, condition_expession, get_core_module);
+    const condition_expression_type = await Parse_tree_analysis.get_expression_type(language_description, core_module, scope_declaration, root, descendant_condition.position, condition_expession, get_core_module);
 
     const expected_type = [Parse_tree_analysis.create_boolean_type()];
 
@@ -1995,7 +2008,7 @@ async function validate_that_instantiate_members_types_match(
         }
 
         const value_expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_member_value_expression.node);
-        const value_expression_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_member_value_expression.position, value_expression, get_core_module);
+        const value_expression_type = await Parse_tree_analysis.get_expression_type(language_description, core_module, scope_declaration, root, descendant_member_value_expression.position, value_expression, get_core_module);
         if (value_expression_type === undefined) {
             continue;
         }
@@ -2087,7 +2100,7 @@ async function validate_switch_expression(
 
     const descendant_condition = Parser_node.get_child(descendant_switch_expression, 1);
     const condition_expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_condition.node);
-    const condition_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_switch_expression.position, condition_expression, get_core_module);
+    const condition_type = await Parse_tree_analysis.get_expression_type(language_description, core_module, scope_declaration, root, descendant_switch_expression.position, condition_expression, get_core_module);
 
     if (!await is_valid_switch_condition(condition_type, get_core_module)) {
         diagnostics.push(
@@ -2116,7 +2129,7 @@ async function validate_switch_expression(
         }
 
         const switch_case_condition_expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_switch_case_condition.node.children[0]);
-        const switch_case_condition_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_switch_expression.position, switch_case_condition_expression, get_core_module);
+        const switch_case_condition_type = await Parse_tree_analysis.get_expression_type(language_description, core_module, scope_declaration, root, descendant_switch_expression.position, switch_case_condition_expression, get_core_module);
 
         if (!await is_valid_switch_case(switch_case_condition_expression, switch_case_condition_type, get_core_module)) {
             diagnostics.push(
@@ -2264,7 +2277,7 @@ async function validate_unary_expression(
     }
 
     const operand_expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_operand.node);
-    const expression_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant_operand.position, operand_expression, get_core_module);
+    const expression_type = await Parse_tree_analysis.get_expression_type(language_description, core_module, scope_declaration, root, descendant_operand.position, operand_expression, get_core_module);
 
     if (expression_type === undefined || !expression_type.is_value) {
         const symbol = map_unary_operation_to_symbol(unary_expression.operation);
@@ -2704,7 +2717,7 @@ async function validate_variable_declaration_type(
 
     const declaration = Parse_tree_analysis.create_declaration_from_function_value(function_value);
     const right_hand_side_expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_right_hand_side.node);
-    const right_hand_side_type = await Parse_tree_analysis.get_expression_type(core_module, declaration, root, descendant_variable_declaration_expression.position, right_hand_side_expression, get_core_module);
+    const right_hand_side_type = await Parse_tree_analysis.get_expression_type(language_description, core_module, declaration, root, descendant_variable_declaration_expression.position, right_hand_side_expression, get_core_module);
     if (right_hand_side_type !== undefined && right_hand_side_type.type.length === 0) {
         diagnostics.push(
             {
@@ -2773,7 +2786,7 @@ async function validate_expression_type_is(
     get_core_module: (module_name: string) => Promise<Core.Module | undefined>
 ): Promise<Diagnostic[]> {
     const expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant.node);
-    const expression_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, descendant.position, expression, get_core_module);
+    const expression_type = await Parse_tree_analysis.get_expression_type(language_description, core_module, scope_declaration, root, descendant.position, expression, get_core_module);
 
     if (expression_type === undefined || !deep_equal(expression_type.type, expected_type)) {
         const expression_type_string = expression_type !== undefined ? Type_utilities.get_type_name(expression_type.type, core_module) : "<undefined>";
@@ -2810,8 +2823,8 @@ async function validate_expression_types_are_equal(
     const first_expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, first_descendant.node);
     const second_expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, second_descendant.node);
 
-    const first_expression_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, first_descendant.position, first_expression, get_core_module);
-    const second_expression_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, root, second_descendant.position, second_expression, get_core_module);
+    const first_expression_type = await Parse_tree_analysis.get_expression_type(language_description, core_module, scope_declaration, root, first_descendant.position, first_expression, get_core_module);
+    const second_expression_type = await Parse_tree_analysis.get_expression_type(language_description, core_module, scope_declaration, root, second_descendant.position, second_expression, get_core_module);
 
     // TODO check if expression is a value, and not a type?
 
