@@ -22,7 +22,7 @@ describe("Text_formatter.to_string", () => {
         const production_rules = Grammar.create_production_rules(grammar_description);
         const mappings = Parse_tree_convertor_mappings.create_mapping();
         const parse_tree = Parse_tree_convertor.module_to_parse_tree(module, production_rules, mappings);
-        const text_cache = Parse_tree_text_position_cache.create_cache();
+        const text_cache = Parse_tree_text_position_cache.create_empty_cache();
         const actual_text = Text_formatter.to_string(parse_tree, text_cache, []);
         return actual_text;
     }

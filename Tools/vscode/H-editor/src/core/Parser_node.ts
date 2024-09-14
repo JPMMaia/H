@@ -1,3 +1,4 @@
+import * as Grammar from "./Grammar";
 import * as Scanner from "./Scanner";
 
 export interface Source_location {
@@ -11,6 +12,19 @@ export interface Node {
     production_rule_index: number | undefined;
     children: Node[];
     source_location?: Source_location;
+}
+
+export function create_empty_node(): Node {
+    return {
+        word: {
+            value: "",
+            type: Grammar.Word_type.Invalid,
+            source_location: { line: 0, column: 0 },
+        },
+        state: -1,
+        production_rule_index: -1,
+        children: [],
+    };
 }
 
 export function clone_node(node: Node): Node {

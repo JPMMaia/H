@@ -60,7 +60,7 @@ export function create_state_from_module(document_file_path: string, core_module
 
     const mappings = Parse_tree_convertor_mappings.create_mapping();
     const parse_tree_without_state = Parse_tree_convertor.module_to_parse_tree(module, language_description.production_rules, mappings);
-    const parse_tree_text_position_cache = Parse_tree_text_position_cache.create_cache();
+    const parse_tree_text_position_cache = Parse_tree_text_position_cache.create_empty_cache();
     const text = Text_formatter.to_string(parse_tree_without_state, parse_tree_text_position_cache, production_rules_to_cache);
     const scanned_words = Scanner.scan(text, 0, text.length, { line: 1, column: 1 });
     const parse_tree = Parser.parse(document_file_path, scanned_words, language_description.actions_table, language_description.go_to_table, language_description.array_infos, language_description.map_word_to_terminal).parse_tree;

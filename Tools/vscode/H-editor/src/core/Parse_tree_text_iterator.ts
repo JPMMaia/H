@@ -146,14 +146,24 @@ export function next(iterator: Iterator): Iterator {
         return end(iterator.root, iterator.text, false);
     }
 
-    const next_word_position = go_to_next_word(iterator);
-
     const next = Parser_node.get_next_node_with_condition(iterator.root, iterator.node, iterator.node_position, is_terminal_node_with_text);
-
     if (next === undefined) {
         return end(iterator.root, iterator.text, false);
     }
 
+    if (Parser_node.is_node_ancestor_of(iterator.node_position, next.position)) {
+        return {
+            root: iterator.root,
+            text: iterator.text,
+            node: next.node,
+            node_position: next.position,
+            offset: iterator.offset,
+            line: iterator.line,
+            column: iterator.column
+        };
+    }
+
+    const next_word_position = go_to_next_word(iterator);
     return {
         root: iterator.root,
         text: iterator.text,

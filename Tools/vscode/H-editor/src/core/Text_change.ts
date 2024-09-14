@@ -22,6 +22,18 @@ export interface Text_change {
     text: string;
 }
 
+export function apply_text_changes(text: string, changes: Text_change[]): string {
+    let new_text = text;
+
+    for (const change of changes) {
+        const before_text = new_text.substring(0, change.range.start);
+        const after_text = new_text.substring(change.range.end, new_text.length);
+        new_text = before_text + change.text + after_text;
+    }
+
+    return new_text;
+}
+
 export function update(
     language_description: Language.Description,
     state: Document.State,
