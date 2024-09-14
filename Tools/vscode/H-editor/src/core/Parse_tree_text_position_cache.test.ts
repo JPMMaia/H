@@ -72,20 +72,28 @@ function test_get_node_text_position(
     assert.deepEqual(actual_text_position, expected_text_position);
 }
 
-describe("Parse_tree_text_position_cache.get_node_text_position()", () => {
+describe("Parse_tree_text_position_cache.get_node_text_position", () => {
     const storage_cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
     const language = Language.create_default_description(storage_cache);
 
-    const text = `module My_module;
+    const text = `// A comment
+// describing the module.
+module My_module;
 
+// Another comment
+// describing the function.
 function name_0() -> ()
 {
+    // A comment
+    // inside the function.
 }
 
 function name_1() -> ()
 {
 }
 
+// Another comment
+// describing the struct.
 struct name_2
 {
     member_0: type_0;
@@ -105,26 +113,26 @@ struct name_2
     update_cache(cache, language, undefined, "", text_change);
 
     it("Retrieves the correct node text position of 'module'", () => {
-        test_get_node_text_position(cache, find_node(cache.root, "module"), { line: 1, column: 1, offset: 0 });
+        test_get_node_text_position(cache, find_node(cache.root, "module"), { line: 3, column: 1, offset: 39 });
     });
 
     it("Retrieves the correct node text position of 'My_module'", () => {
-        test_get_node_text_position(cache, find_node(cache.root, "My_module"), { line: 1, column: 8, offset: 7 });
+        test_get_node_text_position(cache, find_node(cache.root, "My_module"), { line: 3, column: 8, offset: 46 });
     });
 
     it("Retrieves the correct node text position of 'name_0' declaration", () => {
-        test_get_node_text_position(cache, find_declaration_node(cache.root, "name_0"), { line: 3, column: 1, offset: 19 });
+        test_get_node_text_position(cache, find_declaration_node(cache.root, "name_0"), { line: 5, column: 1, offset: 58 });
     });
 
     it("Retrieves the correct node text position of 'name_0'", () => {
-        test_get_node_text_position(cache, find_node(cache.root, "name_0"), { line: 3, column: 10, offset: 28 });
+        test_get_node_text_position(cache, find_node(cache.root, "name_0"), { line: 7, column: 10, offset: 114 });
     });
 
     it("Retrieves the correct node text position of 'name_2' declaration", () => {
-        test_get_node_text_position(cache, find_declaration_node(cache.root, "name_2"), { line: 11, column: 1, offset: 77 });
+        test_get_node_text_position(cache, find_declaration_node(cache.root, "name_2"), { line: 17, column: 1, offset: 208 });
     });
 
     it("Retrieves the correct node text position of 'member_0'", () => {
-        test_get_node_text_position(cache, find_node(cache.root, "member_0"), { line: 13, column: 5, offset: 97 });
+        test_get_node_text_position(cache, find_node(cache.root, "member_0"), { line: 21, column: 5, offset: 273 });
     });
 });
