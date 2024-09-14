@@ -1294,7 +1294,7 @@ function create_module_changes(
 
     const mappings = Parse_tree_convertor_mappings.create_mapping();
     const initial_parse_tree = Parse_tree_convertor.module_to_parse_tree(module, language_description.production_rules, mappings);
-    const text_cache = Parse_tree_text_position_cache.create_cache();
+    const text_cache = Parse_tree_text_position_cache.create_empty_cache();
 
     const initial_parse_tree_text = Text_formatter.to_string(initial_parse_tree, text_cache, []);
 

@@ -1,296 +1,185 @@
+import * as Parse_tree_text_iterator from "./Parse_tree_text_iterator";
+import * as Parser from "./Parser";
 import * as Parser_node from "./Parser_node";
 import * as Scanner from "./Scanner";
 
 const g_debug = false;
 
-interface Cache_entry {
+export interface Text_range_offset {
+    start: number;
+    end: number;
+}
+
+export interface Text_change {
+    range: Text_range_offset;
+    text: string;
+}
+
+export interface Text_position {
+    line: number;
+    column: number;
     offset: number;
+}
+
+interface Cache_entry {
+    text_position: Text_position;
     node: Parser_node.Node;
     node_position: number[];
 }
 
 export interface Cache {
     elements: Cache_entry[];
+    root: Parser_node.Node;
+    text: string;
 }
 
-export function create_cache(): Cache {
+const nodes_to_cache = [
+    "Module",
+    "Declaration"
+];
+
+export function create_empty_cache(): Cache {
     return {
-        elements: []
+        elements: [],
+        root: Parser_node.create_empty_node(),
+        text: ""
     };
 }
 
-function are_adjacent_offsets_ordered(elements: Cache_entry[], index: number): number {
+export function update_cache(cache: Cache, parser_changes: Parser.Change[], text_change: Text_change, text_after_changes: string): void {
 
-    const current_element = elements[index];
 
-    if (index > 0) {
-        const previous_element = elements[index - 1];
-        if (previous_element.offset > current_element.offset) {
-            return -1;
+    for (const change of parser_changes) {
+        if (change.type === Parser.Change_type.Modify) {
+            const modify_change = change.value as Parser.Modify_change;
+            if (modify_change.position.length === 0) {
+                const iterator = Parse_tree_text_iterator.begin(modify_change.new_node, text_after_changes);
+                update_cache_entries(cache, modify_change.new_node, modify_change.position, text_after_changes, iterator, true);
+            }
         }
     }
 
-    if ((index + 1) < elements.length) {
-        const next_element = elements[index + 1];
-        if (next_element.offset < current_element.offset) {
-            return 1;
+    cache.text = text_after_changes;
+}
+
+function update_cache_entries(cache: Cache, new_node: Parser_node.Node, new_node_position: number[], text_after_changes: string, iterator: Parse_tree_text_iterator.Iterator, is_modify: boolean): void {
+    // TODO Delete entries
+
+    if (new_node.word.value === "Module") {
+        cache.root = new_node;
+    }
+
+    if (new_node_position.length !== 0) {
+        iterator = Parse_tree_text_iterator.go_to_next_node_position(iterator, new_node_position);
+    }
+
+    if (nodes_to_cache.find(value => value === new_node.word.value) !== undefined) {
+        add_cache_entry(cache, new_node, new_node_position, iterator, is_modify);
+    }
+
+    if (new_node.word.value === "Module" || new_node.word.value === "Module_body") {
+        for (let child_index = 0; child_index < new_node.children.length; ++child_index) {
+            update_cache_entries(cache, new_node.children[child_index], [...new_node_position, child_index], text_after_changes, iterator, is_modify);
         }
     }
 
-    return 0;
+    // TODO update next entries text positions and node positions
 }
 
-function swap_elements(elements: Cache_entry[], first_index: number, second_index: number): void {
-    const temp = elements[first_index];
-    elements[first_index] = elements[second_index];
-    elements[second_index] = temp;
-}
+function add_cache_entry(cache: Cache, new_node: Parser_node.Node, new_node_position: number[], iterator: Parse_tree_text_iterator.Iterator, is_modify: boolean): void {
 
-function insert_to_sorted_position(elements: Cache_entry[], offset: number, node: Parser_node.Node, node_position: number[]): void {
-
-    const new_element: Cache_entry = {
-        offset: offset,
-        node: node,
-        node_position: node_position
+    const cache_entry: Cache_entry = {
+        text_position: {
+            line: iterator.line,
+            column: iterator.column,
+            offset: iterator.offset
+        },
+        node: new_node,
+        node_position: new_node_position
     };
 
-    for (let index = 0; index < elements.length; ++index) {
-        if (elements[index].offset > offset) {
-            elements.splice(index, 0, new_element);
-            return;
-        }
+    if (new_node_position.length === 0 && cache.elements.length > 0) {
+        cache.elements[0] = cache_entry;
     }
-
-    elements.push(new_element);
-}
-
-function sort_after_offset_update(elements: Cache_entry[], update_index: number): void {
-
-    let current_index = update_index;
-    let order_result = are_adjacent_offsets_ordered(elements, current_index);
-
-    while (order_result !== 0) {
-
-        if (order_result === -1) {
-            swap_elements(elements, current_index - 1, current_index);
-            current_index = current_index - 1;
+    else if (new_node_position.length === 3) {
+        const declaration_index = new_node_position[2];
+        const index = cache.elements.findIndex(entry => entry.node_position.length === 3 && entry.node_position[2] >= declaration_index);
+        if (index !== -1) {
+            if (is_modify) {
+                cache.elements[index] = cache_entry;
+            }
+            else {
+                cache.elements.splice(index, 0, cache_entry);
+            }
         }
         else {
-            swap_elements(elements, current_index, current_index + 1);
-            current_index = current_index + 1;
+            cache.elements.push(cache_entry);
         }
-
-        order_result = are_adjacent_offsets_ordered(elements, current_index);
-    }
-}
-
-export function set_entry(cache: Cache, offset: number, node: Parser_node.Node, node_position: number[]): void {
-
-    const index = cache.elements.findIndex(element => element.node === node);
-    if (index === -1) {
-        insert_to_sorted_position(cache.elements, offset, node, node_position);
     }
     else {
-        cache.elements[index].offset = offset;
-        sort_after_offset_update(cache.elements, index);
+        cache.elements.push(cache_entry);
     }
 }
 
-export function delete_entry(cache: Cache, node: Parser_node.Node): void {
-    const index = cache.elements.findIndex(element => element.node === node);
-    if (index !== -1) {
-        cache.elements.splice(index, 1);
-    }
-}
+export function get_iterator_at_node_position(cache: Cache, node_position: number[]): Parse_tree_text_iterator.Iterator {
 
-export function has_node(cache: Cache, node: Parser_node.Node): boolean {
-    const index = cache.elements.findIndex(element => element.node === node);
-    return index !== -1;
-}
-
-export function update_offsets(cache: Cache, start_offset: number, delta_offset: number): void {
-
-    const start_element_index = cache.elements.findIndex(element => element.offset >= start_offset);
-
-    if (start_element_index === -1) {
-        return;
+    if (node_position.length === 0) {
+        return Parse_tree_text_iterator.begin(cache.root, cache.text);
     }
 
-    for (let index = start_element_index; index < cache.elements.length; ++index) {
-        const element = cache.elements[index];
-        element.offset += delta_offset;
+    if (node_position[0] === 0) {
+        return create_text_iterator_at_node_position(cache, cache.elements[0], node_position);
     }
+
+    if (node_position.length === 1 && node_position[0] === 1) {
+        if (cache.elements.length >= 2) {
+            return create_text_iterator_at_node_position(cache, cache.elements[1], node_position);
+        }
+        else {
+            return create_text_iterator_at_node_position(cache, cache.elements[0], node_position);
+        }
+    }
+
+    const cache_entry = cache.elements.find(entry => entry.node_position[1] >= node_position[1]);
+    if (cache_entry === undefined || cache_entry.node_position[1] > node_position[1]) {
+        return create_text_iterator_at_node_position(cache, cache.elements[cache.elements.length - 1], node_position);
+    }
+
+    return create_text_iterator_at_node_position(cache, cache_entry, node_position);
 }
 
-function is_terminal_node_with_text(node: Parser_node.Node, position: number[]): boolean {
-    return node.children.length === 0 && node.production_rule_index === undefined && node.word.value.length > 0;
-}
-
-function go_to_next_word(text: string, current_word_offset: number, current_word_length: number): number {
-    let current_offset = current_word_offset + current_word_length;
-    const ignore_result = Scanner.ignore_whitespace_or_new_lines(text, current_offset, { line: 0, column: 0 });
-    current_offset += ignore_result.processed_characters;
-    return current_offset;
-}
-
-function iterate_forward_until_offset(root: Parser_node.Node, start_offset: number, start_node: Parser_node.Node, start_node_position: number[], target_offset: number, text: string): { node: Parser_node.Node, position: number[] } | undefined {
-
-    let current_offset = start_offset;
-    let current_node = start_node;
-    let current_node_position = start_node_position;
-
-    const is_node_at_offset = (node: Parser_node.Node, offset: number): boolean => {
-        return target_offset < (offset + node.word.value.length);
+export function get_node_text_position(cache: Cache, node_position: number[]): Text_position {
+    const iterator = get_iterator_at_node_position(cache, node_position);
+    return {
+        line: iterator.line,
+        column: iterator.column,
+        offset: iterator.offset
     };
-
-    if (!is_terminal_node_with_text(current_node, current_node_position)) {
-        let result = Parser_node.get_next_node_with_condition(root, current_node, current_node_position, is_terminal_node_with_text);
-        if (result === undefined) {
-            return { node: current_node, position: current_node_position };
-        }
-
-        current_node = result.node;
-        current_node_position = result.position;
-    }
-
-    if (is_node_at_offset(current_node, current_offset)) {
-        return { node: current_node, position: current_node_position };
-    }
-
-    let result = Parser_node.get_next_node_with_condition(root, current_node, current_node_position, is_terminal_node_with_text);
-
-    while (result !== undefined) {
-
-        current_offset = go_to_next_word(text, current_offset, current_node.word.value.length);
-        current_node = result.node;
-        current_node_position = result.position;
-
-        if (g_debug) {
-            const range = Scanner.get_next_word_range(text, current_offset);
-            if (range.start !== current_offset) {
-                throw Error("Error: expected range.start === current_offset");
-            }
-            const current_word = text.substring(range.start, range.end);
-            if (current_node.word.value !== current_word) {
-                throw Error("Error: expected current_node.word.value === current_word");
-            }
-        }
-
-        if (is_node_at_offset(current_node, current_offset)) {
-            return { node: current_node, position: current_node_position };
-        }
-
-        result = Parser_node.get_next_node_with_condition(root, current_node, current_node_position, is_terminal_node_with_text);
-    }
-
-    return undefined;
 }
 
-export function get_node(cache: Cache, offset: number, root: Parser_node.Node, text: string): { node: Parser_node.Node, position: number[] } | undefined {
-
-    const index = cache.elements.findIndex(element => element.offset >= offset);
-
-    if (index !== -1) {
-        const cached_element = cache.elements[index];
-
-        if (offset === cached_element.offset) {
-            const node_and_position = iterate_forward_until_offset(root, cached_element.offset, cached_element.node, cached_element.node_position, offset, text);
-            return node_and_position;
-        }
-        else if (index === 0 && offset < cached_element.offset) {
-            const node_and_position = iterate_forward_until_offset(root, 0, root, [], offset, text);
-            return node_and_position;
-        }
-    }
-
-    const cached_element = index > 0 ? cache.elements[index - 1] : cache.elements[cache.elements.length - 1];
-
-    const node_and_position = iterate_forward_until_offset(root, cached_element.offset, cached_element.node, cached_element.node_position, offset, text);
-    return node_and_position;
+function create_text_iterator_at_node_position(cache: Cache, cache_entry: Cache_entry, node_position: number[]): Parse_tree_text_iterator.Iterator {
+    const begin: Parse_tree_text_iterator.Iterator = {
+        root: cache.root,
+        text: cache.text,
+        node: cache_entry.node,
+        node_position: cache_entry.node_position,
+        offset: cache_entry.text_position.offset,
+        line: cache_entry.text_position.line,
+        column: cache_entry.text_position.column
+    };
+    return Parse_tree_text_iterator.go_to_next_node_position(begin, node_position);
 }
 
-function find_closest_element_index_to_offset(elements: Cache_entry[], node_position: number[]): number {
-
-    let element_index = 0;
-
-    for (let position_index = 0; position_index < node_position.length; ++position_index) {
-
-        const child_index = node_position[position_index];
-
-        while (element_index < elements.length) {
-            const element = elements[element_index];
-            const cached_child_index = element.node_position[position_index];
-
-            for (let index = 0; index < position_index; ++index) {
-                if (node_position[index] !== element.node_position[index]) {
-                    return element_index - 1;
-                }
-            }
-
-            // If is ancestor:
-            if (cached_child_index === undefined) {
-                return element_index;
-            }
-
-            if (child_index === cached_child_index) {
-                break;
-            }
-
-            if (child_index < cached_child_index) {
-                return element_index - 1;
-            }
-
-            element_index += 1;
-        }
-    }
-
-    return node_position.length - 1;
+export function get_node_that_contains_text_position(cache: Cache, line: number, column: number): { node: Parser_node.Node, position: number[] } {
+    return {
+        node: Parser_node.create_empty_node(),
+        position: []
+    };
 }
 
-export function get_offset(cache: Cache, root: Parser_node.Node, node: Parser_node.Node, node_position: number[], text: string): number {
-
-    {
-        const index = cache.elements.findIndex(element => element.node === node);
-
-        if (index !== -1) {
-            const cached_element = cache.elements[index];
-            return cached_element.offset;
-        }
-    }
-
-    const closest_element_index = find_closest_element_index_to_offset(cache.elements, node_position);
-    const closest_element = cache.elements[closest_element_index];
-
-    let current_node = closest_element.node;
-    let current_node_position = closest_element.node_position;
-    let current_offset = closest_element.offset;
-
-    if (!is_terminal_node_with_text(current_node, current_node_position)) {
-        let result = Parser_node.get_next_node_with_condition(root, current_node, current_node_position, is_terminal_node_with_text);
-        if (result === undefined) {
-            throw Error("Could not find offset of node!");
-        }
-        current_node = result.node;
-        current_node_position = result.position;
-
-        if (Parser_node.is_same_position(node_position, current_node_position) || Parser_node.is_node_ancestor_of(node_position, current_node_position)) {
-            return current_offset;
-        }
-    }
-
-    let result = Parser_node.get_next_node_with_condition(root, current_node, current_node_position, is_terminal_node_with_text);
-
-    while (result !== undefined) {
-        current_offset = go_to_next_word(text, current_offset, current_node.word.value.length);
-        current_node = result.node;
-        current_node_position = result.position;
-
-        if (Parser_node.is_same_position(node_position, current_node_position) || Parser_node.is_node_ancestor_of(node_position, current_node_position)) {
-            return current_offset;
-        }
-
-        result = Parser_node.get_next_node_with_condition(root, current_node, current_node_position, is_terminal_node_with_text);
-    }
-
-    throw Error("Could not find offset of node!");
+export function get_node_that_contains_text_offset(cache: Cache, offset: number): { node: Parser_node.Node, position: number[] } {
+    return {
+        node: Parser_node.create_empty_node(),
+        position: []
+    };
 }

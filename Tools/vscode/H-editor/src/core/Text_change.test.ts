@@ -9,17 +9,7 @@ import * as Storage_cache from "./Storage_cache";
 import * as Text_change from "./Text_change";
 import * as Type_utilities from "./Type_utilities";
 
-function apply_text_changes(text: string, changes: Text_change.Text_change[]): string {
-    let new_text = text;
 
-    for (const change of changes) {
-        const before_text = new_text.substring(0, change.range.start);
-        const after_text = new_text.substring(change.range.end, new_text.length);
-        new_text = before_text + change.text + after_text;
-    }
-
-    return new_text;
-}
 
 describe("Text_change.update", () => {
 
@@ -2303,7 +2293,7 @@ function run() -> ()
             }
         ];
 
-        const program_2 = apply_text_changes(program, text_changes_2);
+        const program_2 = Text_change.apply_text_changes(program, text_changes_2);
 
         const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
@@ -2347,7 +2337,7 @@ import
             }
         ];
 
-        const program_2 = apply_text_changes(program, text_changes_2);
+        const program_2 = Text_change.apply_text_changes(program, text_changes_2);
 
         const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
@@ -2395,7 +2385,7 @@ export function run() -> ()
             }
         ];
 
-        const program_2 = apply_text_changes(program, text_changes_2);
+        const program_2 = Text_change.apply_text_changes(program, text_changes_2);
 
         const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
@@ -2483,7 +2473,7 @@ function run() -> (result: Int32)
             }
         ];
 
-        const program_2 = apply_text_changes(program, text_changes_2);
+        const program_2 = Text_change.apply_text_changes(program, text_changes_2);
 
         const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
@@ -2524,7 +2514,7 @@ function run(value:
             }
         ];
 
-        const program_2 = apply_text_changes(program, text_changes_2);
+        const program_2 = Text_change.apply_text_changes(program, text_changes_2);
 
         const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
@@ -2656,7 +2646,7 @@ function run(a: Node) -> (b: Node)
             }
         ];
 
-        const program_2 = apply_text_changes(program, text_changes_2);
+        const program_2 = Text_change.apply_text_changes(program, text_changes_2);
 
         const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
@@ -2750,7 +2740,7 @@ function run(a: alias_0.My_struct) -> (b: alias_0.My_struct)
             }
         ];
 
-        const program_2 = apply_text_changes(program, text_changes_2);
+        const program_2 = Text_change.apply_text_changes(program, text_changes_2);
 
         const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
@@ -3084,7 +3074,7 @@ function simulate_typing(
         end: start_range
     };
 
-    let current_program = apply_text_changes(document_state.text, document_state.pending_text_changes);
+    let current_program = Text_change.apply_text_changes(document_state.text, document_state.pending_text_changes);
     let current_document_state = document_state;
 
     for (let index = 0; index < text.length; ++index) {
@@ -3098,7 +3088,7 @@ function simulate_typing(
             }
         ];
 
-        const new_program = apply_text_changes(current_program, text_changes);
+        const new_program = Text_change.apply_text_changes(current_program, text_changes);
 
         const new_document_state = Text_change.update(language_description, current_document_state, text_changes, new_program);
 
@@ -3123,7 +3113,7 @@ function simulate_erasing(
         end: end_range
     };
 
-    let current_program = apply_text_changes(document_state.text, document_state.pending_text_changes);
+    let current_program = Text_change.apply_text_changes(document_state.text, document_state.pending_text_changes);
     let current_document_state = document_state;
 
     const characters_to_erase_count = end_range - start_range;
@@ -3137,7 +3127,7 @@ function simulate_erasing(
             }
         ];
 
-        const new_program = apply_text_changes(current_program, text_changes);
+        const new_program = Text_change.apply_text_changes(current_program, text_changes);
 
         const new_document_state = Text_change.update(language_description, current_document_state, text_changes, new_program);
 
@@ -3176,7 +3166,7 @@ function simulate_typing_aggretate_changes(
             },
         ];
 
-        const new_program = apply_text_changes(current_program, text_changes);
+        const new_program = Text_change.apply_text_changes(current_program, text_changes);
 
         const aggregated_changes = Text_change.aggregate_text_changes(program, [...pending_text_changes, ...text_changes]);
         pending_text_changes = [aggregated_changes];

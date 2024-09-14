@@ -1,440 +1,130 @@
 import "mocha";
 
 import * as assert from "assert";
-import * as Grammar from "./Grammar";
+import * as Language from "./Language";
+import * as Parser from "./Parser";
 import * as Parser_node from "./Parser_node";
 import * as Parse_tree_text_position_cache from "./Parse_tree_text_position_cache";
+import * as Scan_new_changes from "./Scan_new_changes";
+import * as Storage_cache from "./Storage_cache";
+import * as Text_change from "./Text_change";
 
-function create_parse_node(value: string, production_rule_index: number | undefined, children: Parser_node.Node[]): Parser_node.Node {
-    return {
-        word: { value: value, type: Grammar.Word_type.Alphanumeric, source_location: { line: 0, column: 0 } },
-        state: -1,
-        production_rule_index: production_rule_index,
-        children: children
-    };
-}
+function update_cache(
+    cache: Parse_tree_text_position_cache.Cache,
+    language_description: Language.Description,
+    root: Parser_node.Node | undefined,
+    original_text: string,
+    text_change: Parse_tree_text_position_cache.Text_change
+): void {
 
-function create_test_parse_tree(): Parser_node.Node {
-    const root = create_parse_node(
-        "S", 0,
-        [
-            create_parse_node("Declaration", 1, [
-                create_parse_node("Function", 2, [
-                    create_parse_node("Function_declaration", 3, [
-                        create_parse_node("function", undefined, []),
-                        create_parse_node("name_0", undefined, []),
-                        create_parse_node("(", undefined, []),
-                        create_parse_node(")", undefined, []),
-                        create_parse_node("->", undefined, []),
-                        create_parse_node("(", undefined, []),
-                        create_parse_node(")", undefined, []),
-                    ]),
-                    create_parse_node("Function_definition", 4, [
-                        create_parse_node("{", undefined, []),
-                        create_parse_node("}", undefined, []),
-                    ]),
-                ]),
-            ]),
-            create_parse_node("Declaration", 1, [
-                create_parse_node("Function", 2, [
-                    create_parse_node("Function_declaration", 3, [
-                        create_parse_node("function", undefined, []),
-                        create_parse_node("name_1", undefined, []),
-                        create_parse_node("(", undefined, []),
-                        create_parse_node(")", undefined, []),
-                        create_parse_node("->", undefined, []),
-                        create_parse_node("(", undefined, []),
-                        create_parse_node(")", undefined, []),
-                    ]),
-                    create_parse_node("Function_definition", 4, [
-                        create_parse_node("{", undefined, []),
-                        create_parse_node("}", undefined, []),
-                    ]),
-                ]),
-            ]),
-            create_parse_node("Declaration", 1, [
-                create_parse_node("Struct_declaration", 5, [
-                    create_parse_node("struct", undefined, []),
-                    create_parse_node("name_2", undefined, []),
-                    create_parse_node("{", undefined, []),
-                    create_parse_node("Members", 6, [
-                        create_parse_node("Member", 7, [
-                            create_parse_node("member_0", undefined, []),
-                            create_parse_node(":", undefined, []),
-                            create_parse_node("type_0", undefined, []),
-                            create_parse_node(";", undefined, []),
-                        ]),
-                        create_parse_node("Member", 7, [
-                            create_parse_node("member_1", undefined, []),
-                            create_parse_node(":", undefined, []),
-                            create_parse_node("type_1", undefined, []),
-                            create_parse_node(";", undefined, []),
-                        ]),
-                    ]),
-                    create_parse_node("}", undefined, []),
-                ]),
-            ])
-        ]
+    const scanned_input_change = Scan_new_changes.scan_new_change(
+        root,
+        original_text,
+        text_change.range.start,
+        text_change.range.end,
+        text_change.text
     );
 
-    return root;
+
+    const start_change_node_position = (scanned_input_change.start_change !== undefined && scanned_input_change.start_change.node !== undefined) ? scanned_input_change.start_change.node_position : undefined;
+    const after_change_node_position = (scanned_input_change.after_change !== undefined && scanned_input_change.after_change.node !== undefined) ? scanned_input_change.after_change.node_position : undefined;
+
+    const parse_result = Parser.parse_incrementally(
+        "",
+        root,
+        start_change_node_position,
+        scanned_input_change.new_words,
+        after_change_node_position,
+        language_description.actions_table,
+        language_description.go_to_table,
+        language_description.array_infos,
+        language_description.map_word_to_terminal
+    );
+
+    assert.equal(parse_result.status, Parser.Parse_status.Accept);
+
+    const text_after_changes = Text_change.apply_text_changes(original_text, [text_change]);
+    Parse_tree_text_position_cache.update_cache(cache, parse_result.changes, text_change, text_after_changes);
 }
 
-function create_test_text(): string {
-    const text = `
-        function name_0() -> ()
-        {
-        }
-
-        function name_1() -> ()
-        {
-        }
-
-        struct name_2
-        {
-            member_0: type_0;
-            member_1: type_1;
-        }
-    `;
-
-    return text;
+function find_declaration_node(
+    root: Parser_node.Node,
+    name: string
+): { node: Parser_node.Node, position: number[] } {
+    const descendant_name = Parser_node.find_descendant_position_if({ node: root, position: [] }, node => node.word.value === name) as { node: Parser_node.Node, position: number[] };
+    const ancestor = Parser_node.get_ancestor_with_name(root, descendant_name.position, "Declaration") as { node: Parser_node.Node, position: number[] };
+    return ancestor;
 }
 
-function create_test_cache(parse_tree: Parser_node.Node, text: string): Parse_tree_text_position_cache.Cache {
-
-    const declaration_0 = parse_tree.children[0];
-    const declaration_0_offset = text.indexOf("function");
-
-    const declaration_2 = parse_tree.children[2];
-    const declaration_2_offset = text.indexOf("struct");
-
-    const cache = Parse_tree_text_position_cache.create_cache();
-    Parse_tree_text_position_cache.set_entry(cache, declaration_0_offset, declaration_0, [0]);
-    Parse_tree_text_position_cache.set_entry(cache, declaration_2_offset, declaration_2, [2]);
-    return cache;
+function find_node(
+    root: Parser_node.Node,
+    name: string
+): { node: Parser_node.Node, position: number[] } {
+    return Parser_node.find_descendant_position_if({ node: root, position: [] }, node => node.word.value === name) as { node: Parser_node.Node, position: number[] };
 }
 
-describe("Parse_tree_text_position_cache", () => {
+function test_get_node_text_position(
+    cache: Parse_tree_text_position_cache.Cache,
+    node_and_position: { node: Parser_node.Node, position: number[] },
+    expected_text_position: Parse_tree_text_position_cache.Text_position
+): void {
+    const actual_text_position = Parse_tree_text_position_cache.get_node_text_position(cache, node_and_position.position);
+    assert.deepEqual(actual_text_position, expected_text_position);
+}
 
-    const root = create_test_parse_tree();
-    const text = create_test_text();
+describe("Parse_tree_text_position_cache.get_node_text_position()", () => {
+    const storage_cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
+    const language = Language.create_default_description(storage_cache);
 
-    const declaration_0 = root.children[0];
-    const declaration_0_offset = text.indexOf("function");
+    const text = `module My_module;
 
-    const declaration_1 = root.children[1];
+function name_0() -> ()
+{
+}
 
-    const declaration_2 = root.children[2];
-    const declaration_2_offset = text.indexOf("struct");
+function name_1() -> ()
+{
+}
 
-    it("Contains the cached nodes after insertions", () => {
-        const cache = create_test_cache(root, text);
+struct name_2
+{
+    member_0: type_0;
+    member_1: type_1;
+}
+`;
 
-        assert.equal(Parse_tree_text_position_cache.has_node(cache, declaration_0), true);
-        assert.equal(Parse_tree_text_position_cache.has_node(cache, declaration_1), false);
-        assert.equal(Parse_tree_text_position_cache.has_node(cache, declaration_2), true);
+    const text_change: Parse_tree_text_position_cache.Text_change = {
+        range: {
+            start: 0,
+            end: 0
+        },
+        text: text
+    };
+
+    const cache = Parse_tree_text_position_cache.create_empty_cache();
+    update_cache(cache, language, undefined, "", text_change);
+
+    it("Retrieves the correct node text position of 'module'", () => {
+        test_get_node_text_position(cache, find_node(cache.root, "module"), { line: 1, column: 1, offset: 0 });
     });
 
-    it("Returns the offset of a cached node", () => {
-        const cache = create_test_cache(root, text);
-
-        {
-            const actual_offset = Parse_tree_text_position_cache.get_offset(cache, root, declaration_0, [0], text);
-            assert.equal(actual_offset, declaration_0_offset);
-        }
-        {
-            const actual_offset = Parse_tree_text_position_cache.get_offset(cache, root, declaration_2, [2], text);
-            assert.equal(actual_offset, declaration_2_offset);
-        }
+    it("Retrieves the correct node text position of 'My_module'", () => {
+        test_get_node_text_position(cache, find_node(cache.root, "My_module"), { line: 1, column: 8, offset: 7 });
     });
 
-    it("Returns the offset of the non-cached node [0,0,0,0]", () => {
-        const cache = create_test_cache(root, text);
-
-        const node_position = [0, 0, 0, 0];
-        const node = Parser_node.get_node_at_position(root, node_position);
-        const expected_offset = text.indexOf(node.word.value);
-        const actual_offset = Parse_tree_text_position_cache.get_offset(cache, root, root, node_position, text);
-        assert.equal(actual_offset, expected_offset);
+    it("Retrieves the correct node text position of 'name_0' declaration", () => {
+        test_get_node_text_position(cache, find_declaration_node(cache.root, "name_0"), { line: 3, column: 1, offset: 19 });
     });
 
-    it("Returns the offset of the non-cached node [0,0,0,1]", () => {
-        const cache = create_test_cache(root, text);
-
-        const node_position = [0, 0, 0, 1];
-        const node = Parser_node.get_node_at_position(root, node_position);
-        const expected_offset = text.indexOf(node.word.value);
-        const actual_offset = Parse_tree_text_position_cache.get_offset(cache, root, root, node_position, text);
-        assert.equal(actual_offset, expected_offset);
+    it("Retrieves the correct node text position of 'name_0'", () => {
+        test_get_node_text_position(cache, find_node(cache.root, "name_0"), { line: 3, column: 10, offset: 28 });
     });
 
-    it("Returns the offset of the non-cached node [1]", () => {
-        const cache = create_test_cache(root, text);
-
-        const node_position = [1];
-        const expected_offset = text.lastIndexOf("function");
-        const actual_offset = Parse_tree_text_position_cache.get_offset(cache, root, root, node_position, text);
-        assert.equal(actual_offset, expected_offset);
+    it("Retrieves the correct node text position of 'name_2' declaration", () => {
+        test_get_node_text_position(cache, find_declaration_node(cache.root, "name_2"), { line: 11, column: 1, offset: 77 });
     });
 
-    it("Returns the offset of the non-cached node [1,0,0,1]", () => {
-        const cache = create_test_cache(root, text);
-
-        const node_position = [1, 0, 0, 1];
-        const node = Parser_node.get_node_at_position(root, node_position);
-        const expected_offset = text.indexOf(node.word.value);
-        const actual_offset = Parse_tree_text_position_cache.get_offset(cache, root, root, node_position, text);
-        assert.equal(actual_offset, expected_offset);
-    });
-
-    it("Returns the offset of the non-cached node [2,0,0]", () => {
-        const cache = create_test_cache(root, text);
-
-        const node_position = [2, 0, 0];
-        const node = Parser_node.get_node_at_position(root, node_position);
-        const expected_offset = text.indexOf(node.word.value);
-        const actual_offset = Parse_tree_text_position_cache.get_offset(cache, root, root, node_position, text);
-        assert.equal(actual_offset, expected_offset);
-    });
-
-    it("Returns the offset of the non-cached node [2,0,1]", () => {
-        const cache = create_test_cache(root, text);
-
-        const node_position = [2, 0, 1];
-        const node = Parser_node.get_node_at_position(root, node_position);
-        const expected_offset = text.indexOf(node.word.value);
-        const actual_offset = Parse_tree_text_position_cache.get_offset(cache, root, root, node_position, text);
-        assert.equal(actual_offset, expected_offset);
-    });
-
-    it("Returns the offset of the non-cached node [2,0,3,0,0]", () => {
-        const cache = create_test_cache(root, text);
-
-        const node_position = [2, 0, 3, 0, 0];
-        const node = Parser_node.get_node_at_position(root, node_position);
-        const expected_offset = text.indexOf(node.word.value);
-        const actual_offset = Parse_tree_text_position_cache.get_offset(cache, root, root, node_position, text);
-        assert.equal(actual_offset, expected_offset);
-    });
-
-    it("Returns the offset of the non-cached node [2,0,3,0,2]", () => {
-        const cache = create_test_cache(root, text);
-
-        const node_position = [2, 0, 3, 0, 2];
-        const node = Parser_node.get_node_at_position(root, node_position);
-        const expected_offset = text.indexOf(node.word.value);
-        const actual_offset = Parse_tree_text_position_cache.get_offset(cache, root, root, node_position, text);
-        assert.equal(actual_offset, expected_offset);
-    });
-
-    it("Returns the offset of the non-cached node [2,0,3,1,0]", () => {
-        const cache = create_test_cache(root, text);
-
-        const node_position = [2, 0, 3, 1, 0];
-        const node = Parser_node.get_node_at_position(root, node_position);
-        const expected_offset = text.indexOf(node.word.value);
-        const actual_offset = Parse_tree_text_position_cache.get_offset(cache, root, root, node_position, text);
-        assert.equal(actual_offset, expected_offset);
-    });
-
-    it("Returns the offset of the non-cached node [2,0,3,1,2]", () => {
-        const cache = create_test_cache(root, text);
-
-        const node_position = [2, 0, 3, 1, 2];
-        const node = Parser_node.get_node_at_position(root, node_position);
-        const expected_offset = text.indexOf(node.word.value);
-        const actual_offset = Parse_tree_text_position_cache.get_offset(cache, root, root, node_position, text);
-        assert.equal(actual_offset, expected_offset);
-    });
-
-    it("Returns the non-cached node [0,0,0,0] at the offset", () => {
-        const cache = create_test_cache(root, text);
-
-        const node_position = [0, 0, 0, 0];
-        const node = Parser_node.get_node_at_position(root, node_position);
-        const node_offset = text.indexOf(node.word.value);
-
-        {
-            const actual_node_and_position = Parse_tree_text_position_cache.get_node(cache, node_offset, root, text);
-
-            assert.notEqual(actual_node_and_position, undefined);
-            if (actual_node_and_position !== undefined) {
-                assert.equal(actual_node_and_position.node, node);
-                assert.deepEqual(actual_node_and_position.position, node_position);
-            }
-        }
-
-        {
-            const actual_node_and_position = Parse_tree_text_position_cache.get_node(cache, 0, root, text);
-
-            assert.notEqual(actual_node_and_position, undefined);
-            if (actual_node_and_position !== undefined) {
-                assert.equal(actual_node_and_position.node, node);
-                assert.deepEqual(actual_node_and_position.position, node_position);
-            }
-        }
-    });
-
-    it("Returns the non-cached node [0,0,0,1] at the offset", () => {
-        const cache = create_test_cache(root, text);
-
-        const node_position = [0, 0, 0, 1];
-        const node = Parser_node.get_node_at_position(root, node_position);
-        const node_offset = text.indexOf(node.word.value);
-
-        {
-            const actual_node_and_position = Parse_tree_text_position_cache.get_node(cache, node_offset, root, text);
-
-            assert.notEqual(actual_node_and_position, undefined);
-            if (actual_node_and_position !== undefined) {
-                assert.equal(actual_node_and_position.node, node);
-                assert.deepEqual(actual_node_and_position.position, node_position);
-            }
-        }
-
-        {
-            const actual_node_and_position = Parse_tree_text_position_cache.get_node(cache, node_offset - 1, root, text);
-
-            assert.notEqual(actual_node_and_position, undefined);
-            if (actual_node_and_position !== undefined) {
-                assert.equal(actual_node_and_position.node, node);
-                assert.deepEqual(actual_node_and_position.position, node_position);
-            }
-        }
-    });
-
-    it("Returns the non-cached node [2,0,0] at the offset", () => {
-        const cache = create_test_cache(root, text);
-
-        const node_position = [2, 0, 0];
-        const node = Parser_node.get_node_at_position(root, node_position);
-        const node_offset = text.indexOf(node.word.value);
-        const actual_node_and_position = Parse_tree_text_position_cache.get_node(cache, node_offset, root, text);
-
-        assert.notEqual(actual_node_and_position, undefined);
-        if (actual_node_and_position !== undefined) {
-            assert.equal(actual_node_and_position.node, node);
-            assert.deepEqual(actual_node_and_position.position, node_position);
-        }
-    });
-
-    it("Returns the non-cached node [2,0,1] at the offset", () => {
-        const cache = create_test_cache(root, text);
-
-        const node_position = [2, 0, 1];
-        const node = Parser_node.get_node_at_position(root, node_position);
-        const node_offset = text.indexOf(node.word.value);
-        const actual_node_and_position = Parse_tree_text_position_cache.get_node(cache, node_offset, root, text);
-
-        assert.notEqual(actual_node_and_position, undefined);
-        if (actual_node_and_position !== undefined) {
-            assert.equal(actual_node_and_position.node, node);
-            assert.deepEqual(actual_node_and_position.position, node_position);
-        }
-    });
-
-    it("Returns the non-cached node [2,0,3,0,0] at the offset", () => {
-        const cache = create_test_cache(root, text);
-
-        const node_position = [2, 0, 3, 0, 0];
-        const node = Parser_node.get_node_at_position(root, node_position);
-        const node_offset = text.indexOf(node.word.value);
-        const actual_node_and_position = Parse_tree_text_position_cache.get_node(cache, node_offset, root, text);
-
-        assert.notEqual(actual_node_and_position, undefined);
-        if (actual_node_and_position !== undefined) {
-            assert.equal(actual_node_and_position.node, node);
-            assert.deepEqual(actual_node_and_position.position, node_position);
-        }
-    });
-
-    it("Returns the non-cached node [2,0,3,0,2] at the offset", () => {
-        const cache = create_test_cache(root, text);
-
-        const node_position = [2, 0, 3, 0, 2];
-        const node = Parser_node.get_node_at_position(root, node_position);
-        const node_offset = text.indexOf(node.word.value);
-        const actual_node_and_position = Parse_tree_text_position_cache.get_node(cache, node_offset, root, text);
-
-        assert.notEqual(actual_node_and_position, undefined);
-        if (actual_node_and_position !== undefined) {
-            assert.equal(actual_node_and_position.node, node);
-            assert.deepEqual(actual_node_and_position.position, node_position);
-        }
-    });
-
-    it("Returns the non-cached node [2,0,3,1,0] at the offset", () => {
-        const cache = create_test_cache(root, text);
-
-        const node_position = [2, 0, 3, 1, 0];
-        const node = Parser_node.get_node_at_position(root, node_position);
-        const node_offset = text.indexOf(node.word.value);
-        const actual_node_and_position = Parse_tree_text_position_cache.get_node(cache, node_offset, root, text);
-
-        assert.notEqual(actual_node_and_position, undefined);
-        if (actual_node_and_position !== undefined) {
-            assert.equal(actual_node_and_position.node, node);
-            assert.deepEqual(actual_node_and_position.position, node_position);
-        }
-    });
-
-    it("Returns the non-cached node [2,0,3,1,2] at the offset", () => {
-        const cache = create_test_cache(root, text);
-
-        const node_position = [2, 0, 3, 1, 2];
-        const node = Parser_node.get_node_at_position(root, node_position);
-        const node_offset = text.indexOf(node.word.value);
-        const actual_node_and_position = Parse_tree_text_position_cache.get_node(cache, node_offset, root, text);
-
-        assert.notEqual(actual_node_and_position, undefined);
-        if (actual_node_and_position !== undefined) {
-            assert.equal(actual_node_and_position.node, node);
-            assert.deepEqual(actual_node_and_position.position, node_position);
-        }
-    });
-
-    it("Returns undefined if getting node offset after last word", () => {
-        const cache = create_test_cache(root, text);
-
-        {
-            const actual_node_and_position = Parse_tree_text_position_cache.get_node(cache, text.length, root, text);
-            assert.equal(actual_node_and_position, undefined);
-        }
-        {
-            const actual_node_and_position = Parse_tree_text_position_cache.get_node(cache, text.length - 1, root, text);
-            assert.equal(actual_node_and_position, undefined);
-        }
-    });
-
-    it("Updates cached offsets 0", () => {
-        const cache = create_test_cache(root, text);
-
-        Parse_tree_text_position_cache.update_offsets(cache, 0, 5);
-        const new_text = " ".repeat(5) + text;
-
-        {
-            const actual_offset = Parse_tree_text_position_cache.get_offset(cache, root, declaration_0, [0], new_text);
-            assert.equal(actual_offset, declaration_0_offset + 5);
-        }
-        {
-            const actual_offset = Parse_tree_text_position_cache.get_offset(cache, root, declaration_2, [2], new_text);
-            assert.equal(actual_offset, declaration_2_offset + 5);
-        }
-    });
-
-    it("Updates cached offsets 1", () => {
-        const cache = create_test_cache(root, text);
-
-        Parse_tree_text_position_cache.update_offsets(cache, declaration_0_offset + 8, 20);
-        const new_text = text.substring(0, declaration_0_offset + 8) + " ".repeat(20) + text.substring(declaration_0_offset + 8, text.length);
-
-        {
-            const actual_offset = Parse_tree_text_position_cache.get_offset(cache, root, declaration_0, [0], new_text);
-            assert.equal(actual_offset, declaration_0_offset);
-        }
-        {
-            const actual_offset = Parse_tree_text_position_cache.get_offset(cache, root, declaration_2, [2], new_text);
-            assert.equal(actual_offset, declaration_2_offset + 20);
-        }
+    it("Retrieves the correct node text position of 'member_0'", () => {
+        test_get_node_text_position(cache, find_node(cache.root, "member_0"), { line: 13, column: 5, offset: 97 });
     });
 });
