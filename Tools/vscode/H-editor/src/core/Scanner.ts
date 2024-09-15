@@ -82,6 +82,8 @@ export function ignore_whitespace_or_new_lines_and_count(code: string, current_o
 }
 
 function is_comment(code: string, offset: number): boolean {
+    const ignore_result = ignore_whitespace_or_new_lines(code, offset, { line: 1, column: 1 });
+    offset += ignore_result.processed_characters;
     return ((offset + 1) < code.length) && code[offset] === "/" && code[offset + 1] === "/";
 }
 
@@ -383,23 +385,23 @@ function scan_comments(
         line: start_source_location.line,
         column: start_source_location.column
     };
-    let ignored_characters = 0;
 
     while (is_comment(code, current_offset)) {
+
+        const ignore_result = ignore_whitespace_or_new_lines(code, current_offset, current_source_location);
+        const ignored_characters = ignore_result.processed_characters;
+
+        current_source_location = ignore_result.new_source_location;
+        current_offset += ignored_characters;
+
         const scan_result = scan_comment(code, current_offset);
 
         comments.push(scan_result.word);
         current_offset += scan_result.processed_characters;
         current_source_location.column += scan_result.processed_characters;
-
-        const ignore_result = ignore_whitespace_or_new_lines(code, current_offset, current_source_location);
-        ignored_characters = ignore_result.processed_characters;
-
-        current_source_location = ignore_result.new_source_location;
-        current_offset += ignored_characters;
     }
 
-    const processed_characters = current_offset - ignored_characters - start_offset;
+    const processed_characters = current_offset - start_offset;
 
     return {
         comments: comments,

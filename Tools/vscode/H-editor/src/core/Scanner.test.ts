@@ -249,6 +249,38 @@ describe("Scanner.scan", () => {
         assert.equal(scanned_words[2].type, Grammar.Word_type.Alphanumeric);
     });
 
+    it("Scans comments and source location", () => {
+        const input = `module my_module;
+
+// A comment
+// of the struct
+struct MyStruct
+{
+    a: Int32 = 0;
+    b: Int32 = 0;
+}
+`;
+        const scanned_words = Scanner.scan(input, 0, input.length, { line: 1, column: 1 });
+
+        assert.equal(scanned_words.length >= 5, true);
+
+        assert.equal(scanned_words[0].value, "module");
+        assert.equal(scanned_words[0].type, Grammar.Word_type.Alphanumeric);
+        assert.deepEqual(scanned_words[0].source_location, { line: 1, column: 1 });
+
+        assert.equal(scanned_words[1].value, "my_module");
+        assert.equal(scanned_words[1].type, Grammar.Word_type.Alphanumeric);
+        assert.deepEqual(scanned_words[1].source_location, { line: 1, column: 8 });
+
+        assert.equal(scanned_words[3].value, "// A comment\n// of the struct");
+        assert.equal(scanned_words[3].type, Grammar.Word_type.Comment);
+        assert.deepEqual(scanned_words[3].source_location, { line: 3, column: 1 });
+
+        assert.equal(scanned_words[4].value, "struct");
+        assert.equal(scanned_words[4].type, Grammar.Word_type.Alphanumeric);
+        assert.deepEqual(scanned_words[4].source_location, { line: 5, column: 1 });
+    });
+
     it("Scans comments without \\r", () => {
         const input = "// This is a comment!\r\n// This is another one\r\n";
         const scanned_words = Scanner.scan(input, 0, input.length, { line: 1, column: 1 });
