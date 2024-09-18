@@ -48,7 +48,6 @@ export function create_empty_cache(): Cache {
 
 export function update_cache(cache: Cache, parser_changes: Parser.Change[], text_change: Text_change, text_after_changes: string): void {
 
-
     for (const change of parser_changes) {
         if (change.type === Parser.Change_type.Modify) {
             const modify_change = change.value as Parser.Modify_change;
@@ -56,6 +55,8 @@ export function update_cache(cache: Cache, parser_changes: Parser.Change[], text
                 const iterator = Parse_tree_text_iterator.begin(modify_change.new_node, text_after_changes);
                 update_cache_entries(cache, modify_change.new_node, modify_change.position, text_after_changes, iterator, true);
             }
+
+            // update_cache_entries_text_positions(cache, text_change);
         }
     }
 
@@ -86,6 +87,39 @@ function update_cache_entries(cache: Cache, new_node: Parser_node.Node, new_node
     // TODO update next entries text positions and node positions
 }
 
+function update_cache_entries_text_positions(cache: Cache, text_change: Text_change): void {
+
+    const start_index = cache.elements.findIndex(entry => entry.text_position.offset >= text_change.range.start);
+
+    const newlines_difference = calculate_newlines_difference(cache.text, text_change);
+    const offset_difference = text_change.text.length - (text_change.range.end - text_change.range.start);
+
+    for (let index = start_index; index < cache.elements.length; ++index) {
+        const cache_entry = cache.elements[index];
+        cache_entry.text_position.line += newlines_difference;
+        cache_entry.text_position.offset += offset_difference;
+    }
+}
+
+function calculate_newlines_difference(original_text: string, text_change: Text_change): number {
+
+    let newlines_difference = 0;
+
+    for (let index = text_change.range.start; index < text_change.range.end; ++index) {
+        if (original_text[index] === "\n") {
+            --newlines_difference;
+        }
+    }
+
+    for (let index = 0; index < text_change.text.length; ++index) {
+        if (text_change.text[index] === "\n") {
+            ++newlines_difference;
+        }
+    }
+
+    return newlines_difference;
+}
+
 function add_cache_entry(cache: Cache, new_node: Parser_node.Node, new_node_position: number[], iterator: Parse_tree_text_iterator.Iterator, is_modify: boolean): void {
 
     const cache_entry: Cache_entry = {
@@ -101,9 +135,9 @@ function add_cache_entry(cache: Cache, new_node: Parser_node.Node, new_node_posi
     if (new_node_position.length === 0 && cache.elements.length > 0) {
         cache.elements[0] = cache_entry;
     }
-    else if (new_node_position.length === 3) {
-        const declaration_index = new_node_position[2];
-        const index = cache.elements.findIndex(entry => entry.node_position.length === 3 && entry.node_position[2] >= declaration_index);
+    else if (new_node_position.length === 2) {
+        const declaration_index = new_node_position[1];
+        const index = cache.elements.findIndex(entry => entry.node_position.length === 2 && entry.node_position[1] >= declaration_index);
         if (index !== -1) {
             if (is_modify) {
                 cache.elements[index] = cache_entry;
