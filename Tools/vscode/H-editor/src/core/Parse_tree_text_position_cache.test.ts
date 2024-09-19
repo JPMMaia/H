@@ -44,6 +44,11 @@ function update_cache(
     assert.equal(parse_result.status, Parser.Parse_status.Accept);
 
     const text_after_changes = Text_change.apply_text_changes(original_text, [text_change]);
+
+    if (root !== undefined) {
+        Parser.apply_changes(root, [], parse_result.changes);
+    }
+
     Parse_tree_text_position_cache.update_cache(cache, parse_result.changes, text_change, text_after_changes);
 }
 
@@ -101,6 +106,22 @@ function calculate_text_range(text: string, start_line: number, start_column: nu
     };
 }
 
+function create_initial_cache(
+    language_description: Language.Description,
+    text: string
+): Parse_tree_text_position_cache.Cache {
+
+    const text_change: Parse_tree_text_position_cache.Text_change = {
+        range: calculate_text_range(text, 1, 1, 1, 1),
+        text: text
+    };
+
+    const cache = Parse_tree_text_position_cache.create_empty_cache();
+    update_cache(cache, language_description, undefined, "", text_change);
+
+    return cache;
+}
+
 function test_get_node_text_position(
     cache: Parse_tree_text_position_cache.Cache,
     node_and_position: { node: Parser_node.Node, position: number[] },
@@ -144,39 +165,39 @@ struct name_2
 }
 `;
 
-    const text_change: Parse_tree_text_position_cache.Text_change = {
-        range: calculate_text_range(text, 1, 1, 1, 1),
-        text: text
-    };
-
-    const cache = Parse_tree_text_position_cache.create_empty_cache();
-    update_cache(cache, language, undefined, "", text_change);
-
     it("Retrieves the correct node text position of 'module'", () => {
+        const cache = create_initial_cache(language, text);
         test_get_node_text_position(cache, find_node(cache.root, "module"), { line: 3, column: 1 });
     });
 
     it("Retrieves the correct node text position of 'My_module'", () => {
+        const cache = create_initial_cache(language, text);
         test_get_node_text_position(cache, find_node(cache.root, "My_module"), { line: 3, column: 8 });
     });
 
     it("Retrieves the correct node text position of 'name_0' declaration", () => {
+        const cache = create_initial_cache(language, text);
         test_get_node_text_position(cache, find_declaration_node(cache.root, "name_0"), { line: 5, column: 1 });
     });
 
     it("Retrieves the correct node text position of 'name_0'", () => {
+        const cache = create_initial_cache(language, text);
         test_get_node_text_position(cache, find_node(cache.root, "name_0"), { line: 7, column: 10 });
     });
 
     it("Retrieves the correct node text position of 'name_2' declaration", () => {
+        const cache = create_initial_cache(language, text);
         test_get_node_text_position(cache, find_declaration_node(cache.root, "name_2"), { line: 17, column: 1 });
     });
 
     it("Retrieves the correct node text position of 'member_0'", () => {
+        const cache = create_initial_cache(language, text);
         test_get_node_text_position(cache, find_node(cache.root, "member_0"), { line: 21, column: 5 });
     });
 
     it("Retrieves the correct node text position after incremental change 0", () => {
+        const cache = create_initial_cache(language, text);
+
         const incremental_text_change: Parse_tree_text_position_cache.Text_change = {
             range: calculate_text_range(text, 1, 1, 1, 1),
             text: "// One more comment\n"
@@ -192,6 +213,8 @@ struct name_2
     });
 
     it("Retrieves the correct node text position after incremental change 1", () => {
+        const cache = create_initial_cache(language, text);
+
         const incremental_text_change: Parse_tree_text_position_cache.Text_change = {
             range: calculate_text_range(text, 13, 1, 13, 1),
             text: "function name_3() -> ()\n{\n}\n\n"
@@ -203,12 +226,14 @@ struct name_2
         test_get_node_text_position(cache, find_declaration_node(cache.root, "name_0"), { line: 5, column: 1 });
         test_get_node_text_position(cache, find_node(cache.root, "name_0"), { line: 7, column: 10 });
         test_get_node_text_position(cache, find_declaration_node(cache.root, "name_3"), { line: 13, column: 1 });
-        test_get_node_text_position(cache, find_node(cache.root, "name_3"), { line: 13, column: 8 });
-        test_get_node_text_position(cache, find_declaration_node(cache.root, "name_2"), { line: 22, column: 1 });
-        test_get_node_text_position(cache, find_node(cache.root, "member_0"), { line: 26, column: 5 });
+        test_get_node_text_position(cache, find_node(cache.root, "name_3"), { line: 13, column: 10 });
+        test_get_node_text_position(cache, find_declaration_node(cache.root, "name_2"), { line: 21, column: 1 });
+        test_get_node_text_position(cache, find_node(cache.root, "member_0"), { line: 25, column: 5 });
     });
 
     it("Retrieves the correct node text position after incremental change 2", () => {
+        const cache = create_initial_cache(language, text);
+
         const incremental_text_change: Parse_tree_text_position_cache.Text_change = {
             range: calculate_text_range(text, 5, 1, 13, 1),
             text: ""
@@ -218,12 +243,14 @@ struct name_2
         test_get_node_text_position(cache, find_node(cache.root, "module"), { line: 3, column: 1 });
         test_get_node_text_position(cache, find_node(cache.root, "My_module"), { line: 3, column: 8 });
         test_get_node_text_position(cache, find_declaration_node(cache.root, "name_1"), { line: 5, column: 1 });
-        test_get_node_text_position(cache, find_node(cache.root, "name_1"), { line: 5, column: 8 });
-        test_get_node_text_position(cache, find_declaration_node(cache.root, "name_2"), { line: 11, column: 1 });
-        test_get_node_text_position(cache, find_node(cache.root, "member_0"), { line: 15, column: 5 });
+        test_get_node_text_position(cache, find_node(cache.root, "name_1"), { line: 5, column: 10 });
+        test_get_node_text_position(cache, find_declaration_node(cache.root, "name_2"), { line: 9, column: 1 });
+        test_get_node_text_position(cache, find_node(cache.root, "member_0"), { line: 13, column: 5 });
     });
 
     it("Retrieves the correct node text position after incremental change 3", () => {
+        const cache = create_initial_cache(language, text);
+
         const incremental_text_change: Parse_tree_text_position_cache.Text_change = {
             range: calculate_text_range(text, 7, 10, 7, 16),
             text: "name_4"
