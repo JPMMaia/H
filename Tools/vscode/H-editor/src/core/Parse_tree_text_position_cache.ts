@@ -55,8 +55,47 @@ export function update_cache(cache: Cache, parser_changes: Parser.Change[], text
                 const iterator = Parse_tree_text_iterator.begin(modify_change.new_node, text_after_changes);
                 update_cache_entries(cache, modify_change.new_node, modify_change.position, text_after_changes, iterator, true);
             }
+            /*else {
+                const iterator = Parse_tree_text_iterator.begin(modify_change.new_node, text_after_changes);
+                update_cache_entries(cache, modify_change.new_node, modify_change.position, text_after_changes, iterator, true);
+                update_cache_entries_text_positions(cache, text_change);
+            }*/
 
-            // update_cache_entries_text_positions(cache, text_change);
+        }
+        else if (change.type === Parser.Change_type.Add) {
+            const add_change = change.value as Parser.Add_change;
+            if (add_change.parent_position.length === 1 && add_change.parent_position[0] === 1) {
+                let iterator = Parse_tree_text_iterator.begin(cache.root, text_after_changes);
+
+                update_cache_entries_text_positions(cache, text_change);
+                update_cache_entries_node_positions_after_add(cache, add_change);
+
+                const new_entries = add_change.new_nodes.map((node, index): Cache_entry => {
+                    iterator = Parse_tree_text_iterator.go_to_next_node_position(iterator, [...add_change.parent_position, add_change.index + index]);
+                    return {
+                        text_position: {
+                            line: iterator.line,
+                            column: iterator.column,
+                            offset: iterator.offset
+                        },
+                        node: node,
+                        node_position: [...add_change.parent_position, add_change.index + index]
+                    };
+                });
+
+                const element_index = add_change.index + 1;
+                cache.elements.splice(element_index, 0, ...new_entries);
+            }
+        }
+        else if (change.type === Parser.Change_type.Remove) {
+            const remove_change = change.value as Parser.Remove_change;
+            if (remove_change.parent_position.length === 1 && remove_change.parent_position[0] === 1) {
+                const element_index = remove_change.index + 1;
+                cache.elements.splice(element_index, remove_change.count);
+
+                update_cache_entries_text_positions(cache, text_change);
+                update_cache_entries_node_positions_after_remove(cache, remove_change);
+            }
         }
     }
 
@@ -64,7 +103,6 @@ export function update_cache(cache: Cache, parser_changes: Parser.Change[], text
 }
 
 function update_cache_entries(cache: Cache, new_node: Parser_node.Node, new_node_position: number[], text_after_changes: string, iterator: Parse_tree_text_iterator.Iterator, is_modify: boolean): void {
-    // TODO Delete entries
 
     if (new_node.word.value === "Module") {
         cache.root = new_node;
@@ -83,8 +121,27 @@ function update_cache_entries(cache: Cache, new_node: Parser_node.Node, new_node
             update_cache_entries(cache, new_node.children[child_index], [...new_node_position, child_index], text_after_changes, iterator, is_modify);
         }
     }
+}
 
-    // TODO update next entries text positions and node positions
+function update_cache_entries_node_positions_after_add(cache: Cache, add_change: Parser.Add_change): void {
+
+    const start_index = cache.elements.findIndex(entry => Parser_node.is_same_position(entry.node_position, [...add_change.parent_position, add_change.index]));
+    const end_index = start_index + add_change.new_nodes.length;
+
+    for (let index = end_index; index < cache.elements.length; ++index) {
+        const cache_entry = cache.elements[index];
+        cache_entry.node_position[cache_entry.node_position.length - 1] += add_change.new_nodes.length;
+    }
+}
+
+function update_cache_entries_node_positions_after_remove(cache: Cache, remove_change: Parser.Remove_change): void {
+
+    const start_index = cache.elements.findIndex((entry, index) => index > 0 && entry.node_position[1] >= remove_change.index);
+
+    for (let index = start_index; index < cache.elements.length; ++index) {
+        const cache_entry = cache.elements[index];
+        cache_entry.node_position[cache_entry.node_position.length - 1] -= remove_change.count;
+    }
 }
 
 function update_cache_entries_text_positions(cache: Cache, text_change: Text_change): void {
