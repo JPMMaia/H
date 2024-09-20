@@ -75,7 +75,7 @@ function is_terminal_node_with_text(node: Node, position: number[]): boolean {
     return node.children.length === 0 && node.production_rule_index === undefined && node.word.value.length > 0;
 }
 
-function try_to_skip_first_word_and_calulate_start_change_node(root: Node, before: Parse_tree_text_iterator.Iterator | undefined, after: Parse_tree_text_iterator.Iterator, new_words: Scanner.Scanned_word[]): Parse_tree_text_iterator.Iterator | undefined {
+function try_to_skip_first_word_and_calulate_start_change_node(root: Node, before: Parse_tree_text_iterator.Iterator | undefined, after: Parse_tree_text_iterator.Iterator, new_words: Scanner.Scanned_word[]): Parse_tree_text_iterator.Iterator {
     if (before !== undefined && before.node !== undefined && new_words.length > 0 && new_words[0].value === before.node.word.value) {
         new_words.splice(0, 1);
 
@@ -83,7 +83,7 @@ function try_to_skip_first_word_and_calulate_start_change_node(root: Node, befor
         return new_before;
     }
 
-    return before !== undefined && before.node !== undefined ? before : after;
+    return before !== undefined && before.node !== undefined ? before : Parse_tree_text_iterator.begin(root, after.text);
 }
 
 function try_to_skip_last_word_and_calculate_after_change_node(root: Node, before: Parse_tree_text_iterator.Iterator | undefined, after: Parse_tree_text_iterator.Iterator, new_words: Scanner.Scanned_word[]): Parse_tree_text_iterator.Iterator {
@@ -98,6 +98,10 @@ function try_to_skip_last_word_and_calculate_after_change_node(root: Node, befor
 
         const new_after = Parse_tree_text_iterator.next(after);
         return new_after;
+    }
+
+    if (after.line === -1 && after.column === -1) {
+        return Parse_tree_text_iterator.end(root, after.text, true);
     }
 
     return after;
