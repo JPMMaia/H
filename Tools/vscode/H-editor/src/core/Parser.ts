@@ -408,6 +408,17 @@ function can_be_modiy_change(first: Change, second: Change): boolean {
     return false;
 }
 
+export function is_replacing_root(changes: Change[]): boolean {
+    if (changes.length === 1 && changes[0].type === Change_type.Modify) {
+        const modify_change = changes[0].value as Modify_change;
+        if (modify_change.new_node.production_rule_index === 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 export function simplify_changes(root: Node, changes: Change[]): Change[] {
 
     const simplified_changes: Change[] = [];

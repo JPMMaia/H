@@ -55,12 +55,6 @@ export function update_cache(cache: Cache, parser_changes: Parser.Change[], text
                 const iterator = Parse_tree_text_iterator.begin(modify_change.new_node, text_after_changes);
                 update_cache_entries(cache, modify_change.new_node, modify_change.position, text_after_changes, iterator, true);
             }
-            /*else {
-                const iterator = Parse_tree_text_iterator.begin(modify_change.new_node, text_after_changes);
-                update_cache_entries(cache, modify_change.new_node, modify_change.position, text_after_changes, iterator, true);
-                update_cache_entries_text_positions(cache, text_change);
-            }*/
-
         }
         else if (change.type === Parser.Change_type.Add) {
             const add_change = change.value as Parser.Add_change;
@@ -68,7 +62,7 @@ export function update_cache(cache: Cache, parser_changes: Parser.Change[], text
                 let iterator = Parse_tree_text_iterator.begin(cache.root, text_after_changes);
 
                 update_cache_entries_text_positions(cache, text_change);
-                update_cache_entries_node_positions_after_add(cache, add_change);
+                update_cache_entries_node_positions_before_add(cache, add_change);
 
                 const new_entries = add_change.new_nodes.map((node, index): Cache_entry => {
                     iterator = Parse_tree_text_iterator.go_to_next_node_position(iterator, [...add_change.parent_position, add_change.index + index]);
@@ -106,6 +100,7 @@ function update_cache_entries(cache: Cache, new_node: Parser_node.Node, new_node
 
     if (new_node.word.value === "Module") {
         cache.root = new_node;
+        cache.elements = [];
     }
 
     if (new_node_position.length !== 0) {
@@ -123,12 +118,11 @@ function update_cache_entries(cache: Cache, new_node: Parser_node.Node, new_node
     }
 }
 
-function update_cache_entries_node_positions_after_add(cache: Cache, add_change: Parser.Add_change): void {
+function update_cache_entries_node_positions_before_add(cache: Cache, add_change: Parser.Add_change): void {
 
-    const start_index = cache.elements.findIndex(entry => Parser_node.is_same_position(entry.node_position, [...add_change.parent_position, add_change.index]));
-    const end_index = start_index + add_change.new_nodes.length;
+    const start_index = cache.elements.findIndex((entry, index) => index > 0 && entry.node_position[1] >= add_change.index);
 
-    for (let index = end_index; index < cache.elements.length; ++index) {
+    for (let index = start_index; index < cache.elements.length; ++index) {
         const cache_entry = cache.elements[index];
         cache_entry.node_position[cache_entry.node_position.length - 1] += add_change.new_nodes.length;
     }

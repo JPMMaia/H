@@ -88,7 +88,7 @@ export function update(
                 }
             }
 
-            if (is_replacing_root(parse_result.changes)) {
+            if (Parser.is_replacing_root(parse_result.changes)) {
                 const modify_change = parse_result.changes[0].value as Parser.Modify_change;
                 const new_parse_tree = modify_change.new_node;
 
@@ -215,17 +215,6 @@ function validate_parse_changes(
     }
 
     return [];
-}
-
-function is_replacing_root(changes: Parser.Change[]): boolean {
-    if (changes.length === 1 && changes[0].type === Parser.Change_type.Modify) {
-        const modify_change = changes[0].value as Parser.Modify_change;
-        if (modify_change.new_node.production_rule_index === 0) {
-            return true;
-        }
-    }
-
-    return false;
 }
 
 function compose_text_changes(original_text: string, first: Text_change, second: Text_change): Text_change {
