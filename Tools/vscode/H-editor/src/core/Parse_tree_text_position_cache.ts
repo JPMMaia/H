@@ -46,6 +46,17 @@ export function create_empty_cache(): Cache {
     };
 }
 
+export function create_cache(root: Parser_node.Node, text: string): Cache {
+    const cache = create_empty_cache();
+
+    cache.root = root;
+    const iterator = Parse_tree_text_iterator.begin(root, text);
+    update_cache_entries(cache, root, [], text, iterator, true);
+    cache.text = text;
+
+    return cache;
+}
+
 export function update_cache(cache: Cache, parser_changes: Parser.Change[], text_change: Text_change, text_after_changes: string): void {
 
     for (const change of parser_changes) {

@@ -4,6 +4,7 @@ import * as Language from "./Language";
 import * as Parse_tree_convertor from "./Parse_tree_convertor";
 import * as Parse_tree_convertor_mappings from "./Parse_tree_convertor_mappings";
 import * as Parse_tree_text_iterator from "./Parse_tree_text_iterator";
+import * as Parse_tree_text_position_cache from "./Parse_tree_text_position_cache";
 import * as Parser from "./Parser";
 import * as Parser_node from "./Parser_node";
 import * as Scan_new_changes from "./Scan_new_changes";
@@ -1792,6 +1793,45 @@ export function find_node_range_using_scanned_word_source_location(
         end: {
             line: right_most_descendant.node.word.source_location.line,
             column: right_most_descendant.node.word.source_location.column + right_most_descendant.node.word.value.length
+        }
+    };
+}
+
+export function find_node_range_using_text_position_cache(
+    cache: Parse_tree_text_position_cache.Cache,
+    descendant: { node: Parser_node.Node, position: number[] }
+): { start: Scanner.Source_location, end: Scanner.Source_location } {
+
+    if (descendant.node.children.length === 0) {
+
+        const text_position = Parse_tree_text_position_cache.get_node_text_position(cache, descendant.position);
+
+        return {
+            start: {
+                line: text_position.line,
+                column: text_position.column
+            },
+            end: {
+                line: text_position.line,
+                column: text_position.column + descendant.node.word.value.length
+            }
+        };
+    }
+
+    const left_most_descedant = Parser_node.get_leftmost_descendant(descendant.node, []) as { node: Parser_node.Node, position: number[] };
+    const right_most_descendant = Parser_node.get_rightmost_descendant_terminal_node(descendant.node, []) as { node: Parser_node.Node, position: number[] };
+
+    const left_most_text_position = Parse_tree_text_position_cache.get_node_text_position(cache, [...descendant.position, ...left_most_descedant.position]);
+    const right_most_text_position = Parse_tree_text_position_cache.get_node_text_position(cache, [...descendant.position, ...right_most_descendant.position]);
+
+    return {
+        start: {
+            line: left_most_text_position.line,
+            column: left_most_text_position.column
+        },
+        end: {
+            line: right_most_text_position.line,
+            column: right_most_text_position.column + right_most_descendant.node.word.value.length
         }
     };
 }

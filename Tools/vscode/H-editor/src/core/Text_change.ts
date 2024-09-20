@@ -81,7 +81,8 @@ export function update(
         if (parse_result.status === Parser.Parse_status.Accept) {
 
             {
-                const diagnostics = validate_parse_changes(state.document_file_path, parse_result.changes);
+                // TODO clone cache and apply temporary changes for validation?
+                const diagnostics = validate_parse_changes(state.document_file_path, parse_result.changes, state.parse_tree_text_position_cache);
                 if (diagnostics.length > 0) {
                     state.diagnostics.push(...diagnostics);
                     return state;
@@ -117,6 +118,7 @@ export function update(
 
             state.text = text_after_changes;
             state.pending_text_changes = [];
+            Parse_tree_text_position_cache.update_cache(state.parse_tree_text_position_cache, parse_result.changes, text_change, text_after_changes);
         }
 
         if (g_debug_validate) {
@@ -148,6 +150,7 @@ export function update(
     else {
         state.text = text_after_changes;
         state.pending_text_changes = [];
+        Parse_tree_text_position_cache.update_cache(state.parse_tree_text_position_cache, [], text_change, text_after_changes);
     }
 
     return state;
@@ -187,7 +190,8 @@ export function full_parse_with_source_locations(
 
 function validate_parse_changes(
     document_file_path: string,
-    changes: Parser.Change[]
+    changes: Parser.Change[],
+    cache: Parse_tree_text_position_cache.Cache
 ): Validation.Diagnostic[] {
 
     for (const change of changes) {
@@ -198,7 +202,7 @@ function validate_parse_changes(
                 const new_node_position = [...add_change.parent_position, add_change.index + node_index];
                 const new_node = add_change.new_nodes[node_index];
 
-                const diagnostics = Validation.validate_parser_node(document_file_path, new_node_position, new_node);
+                const diagnostics = Validation.validate_parser_node(document_file_path, new_node_position, new_node, cache);
                 if (diagnostics.length > 0) {
                     return diagnostics;
                 }
@@ -207,7 +211,7 @@ function validate_parse_changes(
         else if (change.type === Parser.Change_type.Modify) {
             const modify_change = change.value as Parser.Modify_change;
 
-            const diagnostics = Validation.validate_parser_node(document_file_path, modify_change.position, modify_change.new_node);
+            const diagnostics = Validation.validate_parser_node(document_file_path, modify_change.position, modify_change.new_node, cache);
             if (diagnostics.length > 0) {
                 return diagnostics;
             }

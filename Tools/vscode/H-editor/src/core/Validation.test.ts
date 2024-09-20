@@ -5,6 +5,7 @@ import * as assert from "assert";
 import * as Core from "./Core_intermediate_representation";
 import * as Grammar from "./Grammar";
 import * as Language from "./Language";
+import * as Parse_tree_text_position_cache from "./Parse_tree_text_position_cache";
 import * as Parser_node from "./Parser_node";
 import * as Scanner from "./Scanner";
 import * as Storage_cache from "./Storage_cache";
@@ -62,7 +63,20 @@ function test_validate_parser_node(
     node: Parser_node.Node,
     expected_diagnostics: Validation.Diagnostic[]
 ): void {
-    const actual_diagnostics = Validation.validate_parser_node(create_dummy_uri(), create_dummy_node_position(), node);
+    const text_position_cache = Parse_tree_text_position_cache.create_empty_cache();
+    text_position_cache.elements.push(
+        {
+            text_position: {
+                line: node.children[0].word.source_location.line,
+                column: node.children[0].word.source_location.column,
+                offset: 0
+            },
+            node: node.children[0],
+            node_position: [...create_dummy_node_position(), 0]
+        }
+    );
+
+    const actual_diagnostics = Validation.validate_parser_node(create_dummy_uri(), create_dummy_node_position(), node, text_position_cache);
     assert.deepEqual(actual_diagnostics, expected_diagnostics);
 }
 
@@ -330,6 +344,8 @@ async function test_validate_module(
         return dependency.module;
     };
 
+    const text_position_cache = Parse_tree_text_position_cache.create_cache(parse_result.parse_tree, input_text);
+
     const actual_diagnostics = await Validation.validate_module(
         uri,
         language_description,
@@ -338,6 +354,7 @@ async function test_validate_module(
         parse_result.parse_tree,
         [],
         parse_result.parse_tree,
+        text_position_cache,
         get_core_module
     );
     assert.deepEqual(actual_diagnostics, expected_diagnostics);
