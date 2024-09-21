@@ -188,6 +188,24 @@ export function full_parse_with_source_locations(
     return { module: module, parse_tree: parse_tree, diagnostics: parse_tree_result.diagnostics };
 }
 
+export async function get_all_diagnostics(
+    language_description: Language.Description,
+    document_state: Document.State,
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Validation.Diagnostic[]> {
+    const diagnostics = [...document_state.diagnostics];
+
+    if (diagnostics.length === 0 && document_state.parse_tree !== undefined) {
+        diagnostics.push(...Validation.validate_parser_node(document_state.document_file_path, [], document_state.parse_tree, document_state.parse_tree_text_position_cache));
+
+        if (diagnostics.length === 0) {
+            diagnostics.push(...await Validation.validate_module(document_state.document_file_path, language_description, document_state.text, document_state.module, document_state.parse_tree, [], document_state.parse_tree, document_state.parse_tree_text_position_cache, get_core_module));
+        }
+    }
+
+    return diagnostics;
+}
+
 function validate_parse_changes(
     document_file_path: string,
     changes: Parser.Change[],
