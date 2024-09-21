@@ -181,6 +181,23 @@ function can_be_identifier(word: Grammar.Word): boolean {
         case "enum":
         case "struct":
         case "union":
+        case "as":
+        case "break":
+        case "case":
+        case "continue":
+        case "default":
+        case "else":
+        case "for":
+        case "has":
+        case "in":
+        case "if":
+        case "mutable":
+        case "null":
+        case "step_by":
+        case "switch":
+        case "return":
+        case "var":
+        case "while":
             return false;
         default:
             return true;
