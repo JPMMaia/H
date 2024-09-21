@@ -219,15 +219,10 @@ connection.languages.diagnostics.on(async (parameters): Promise<vscode_node.Docu
 		} satisfies vscode_node.DocumentDiagnosticReport;
 	}
 
-	const diagnostics = [...document_state.diagnostics];
-	if (diagnostics.length === 0 && document_state.parse_tree !== undefined) {
-		diagnostics.push(...Validation.validate_parser_node(parameters.textDocument.uri, [], document_state.parse_tree, document_state.parse_tree_text_position_cache));
-		if (diagnostics.length === 0) {
-			const workspace_folder_uri = await get_workspace_folder_uri_for_document(parameters.textDocument.uri);
-			const get_core_module = Server_data.create_get_core_module(server_data, workspace_folder_uri)
-			diagnostics.push(...await Validation.validate_module(parameters.textDocument.uri, server_data.language_description, document_state.text, document_state.module, document_state.parse_tree, [], document_state.parse_tree, document_state.parse_tree_text_position_cache, get_core_module))
-		}
-	}
+	const workspace_folder_uri = await get_workspace_folder_uri_for_document(parameters.textDocument.uri);
+	const get_core_module = Server_data.create_get_core_module(server_data, workspace_folder_uri);
+
+	const diagnostics = await Text_change.get_all_diagnostics(server_data.language_description, document_state, get_core_module);
 
 	const items = diagnostics.map((value: Validation.Diagnostic): vscode_node.Diagnostic => {
 

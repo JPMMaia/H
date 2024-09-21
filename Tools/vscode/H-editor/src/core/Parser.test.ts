@@ -1673,25 +1673,17 @@ describe("Parser.parse_incrementally array with separators", () => {
         const add_change = change.value as Parser.Add_change;
 
         assert.deepEqual(add_change.parent_position, [0]);
-        assert.equal(add_change.index, 2);
+        assert.equal(add_change.index, 1);
         assert.equal(add_change.new_nodes.length, 4);
 
         {
             const new_node = add_change.new_nodes[0];
-            assert.equal(new_node.word.value, "Element");
-
-            const child_node = new_node.children[0];
-            assert.equal(child_node.word.value, "id");
+            assert.equal(new_node.word.value, ",");
+            assert.equal(new_node.children.length, 0);
         }
 
         {
             const new_node = add_change.new_nodes[1];
-            assert.equal(new_node.word.value, ",");
-            assert.equal(new_node.children.length, 0);
-        }
-
-        {
-            const new_node = add_change.new_nodes[2];
             assert.equal(new_node.word.value, "Element");
 
             const child_node = new_node.children[0];
@@ -1699,9 +1691,17 @@ describe("Parser.parse_incrementally array with separators", () => {
         }
 
         {
-            const new_node = add_change.new_nodes[3];
+            const new_node = add_change.new_nodes[2];
             assert.equal(new_node.word.value, ",");
             assert.equal(new_node.children.length, 0);
+        }
+
+        {
+            const new_node = add_change.new_nodes[3];
+            assert.equal(new_node.word.value, "Element");
+
+            const child_node = new_node.children[0];
+            assert.equal(child_node.word.value, "id");
         }
     });
 

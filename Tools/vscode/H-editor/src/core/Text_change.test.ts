@@ -5,11 +5,37 @@ import * as Core_intermediate_representation from "./Core_intermediate_represent
 import * as Document from "./Document";
 import * as Language from "./Language";
 import * as Module_examples from "./Module_examples";
+import * as Parser from "./Parser";
+import * as Scanner from "./Scanner";
 import * as Storage_cache from "./Storage_cache";
 import * as Text_change from "./Text_change";
 import * as Type_utilities from "./Type_utilities";
 
+function validate_document_state(
+    language_description: Language.Description,
+    document_state: Document.State
+): void {
+    const input_text = Text_change.apply_text_changes(document_state.text, document_state.pending_text_changes);
 
+    const scanned_words = Scanner.scan(input_text, 0, input_text.length, { line: 1, column: 1 });
+
+    const parse_tree_result = Parser.parse_incrementally(
+        document_state.document_file_path,
+        undefined,
+        undefined,
+        scanned_words,
+        undefined,
+        language_description.actions_table,
+        language_description.go_to_table,
+        language_description.array_infos,
+        language_description.map_word_to_terminal
+    );
+
+    assert.equal(parse_tree_result.status, Parser.Parse_status.Accept);
+
+    const parse_tree = (parse_tree_result.changes[0].value as Parser.Modify_change).new_node;
+    assert.deepEqual(document_state.parse_tree, parse_tree);
+}
 
 describe("Text_change.update", () => {
 
@@ -2435,51 +2461,6 @@ export function run() -> ()
         assert.deepEqual(new_document_state_3.module, expected_module);
     });
 
-    it("Handles keywords as identifiers depending on the context", () => {
-
-        const document_state = Document.create_empty_state("", language_description.production_rules);
-
-        const program = `
-module Recover_from_error;
-
-function run() -> (result: Int32)
-{
-    var a = 0;
-    return a;
-}
-`;
-
-        const text_changes: Text_change.Text_change[] = [
-            {
-                range: {
-                    start: 0,
-                    end: 0
-                },
-                text: program
-            }
-        ];
-
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
-        assert.equal(new_document_state.pending_text_changes.length, 0);
-        assert.equal(new_document_state.diagnostics.length, 0);
-
-        const text_changes_2: Text_change.Text_change[] = [
-            {
-                range: {
-                    start: 92,
-                    end: 92
-                },
-                text: "s"
-            }
-        ];
-
-        const program_2 = Text_change.apply_text_changes(program, text_changes_2);
-
-        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2);
-        assert.equal(new_document_state_2.pending_text_changes.length, 0);
-        assert.equal(new_document_state_2.diagnostics.length, 0);
-    });
-
     it("Recovers from errors 4", () => {
 
         const document_state = Document.create_empty_state("", language_description.production_rules);
@@ -2562,6 +2543,114 @@ function run() -> ()
         const new_document_state_4 = simulate_typing(language_description, new_document_state_3, 83, "dep.");
         assert.equal(new_document_state_4.pending_text_changes.length, 0);
         assert.equal(new_document_state_4.diagnostics.length, 1);
+    });
+
+    it("Recovers from errors 6", async () => {
+
+        const document_state = Document.create_empty_state("", language_description.production_rules);
+
+        const program_0 = `
+module Recover_from_error;
+
+function run() -> (result: Int32)
+{
+    var x = 0;
+    var y = 0;
+    return 0;
+}
+`;
+
+        const text_changes_0: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program_0
+            }
+        ];
+
+        const new_document_state_0 = Text_change.update(language_description, document_state, text_changes_0, program_0);
+        assert.equal(new_document_state_0.pending_text_changes.length, 0);
+        assert.equal(new_document_state_0.diagnostics.length, 0);
+        validate_document_state(language_description, new_document_state_0);
+
+        const text_changes_1: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: calculate_offset(program_0, 7, 5),
+                    end: calculate_offset(program_0, 7, 15)
+                },
+                text: ""
+            }
+        ];
+        const program_1 = Text_change.apply_text_changes(program_0, text_changes_1);
+
+        const new_document_state_1 = Text_change.update(language_description, new_document_state_0, text_changes_1, program_1);
+        assert.equal(new_document_state_1.pending_text_changes.length, 0);
+        assert.equal(new_document_state_1.diagnostics.length, 0);
+        validate_document_state(language_description, new_document_state_1);
+    });
+
+    it("Recovers from errors 7", () => {
+
+        const document_state = Document.create_empty_state("", language_description.production_rules);
+
+        const program = `
+module Recover_from_error;
+
+function run() -> (result: Int32)
+{
+    var a = 0;
+    return a;
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+        assert.equal(new_document_state.diagnostics.length, 0);
+
+        const text_changes_2: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 92,
+                    end: 92
+                },
+                text: "s"
+            }
+        ];
+
+        const program_2 = Text_change.apply_text_changes(program, text_changes_2);
+
+        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2);
+        assert.equal(new_document_state_2.pending_text_changes.length, 1);
+        assert.equal(new_document_state_2.diagnostics.length, 1);
+
+        const text_changes_3: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 93,
+                    end: 93
+                },
+                text: "d"
+            }
+        ];
+
+        const program_3 = Text_change.apply_text_changes(program, text_changes_3);
+
+        const new_document_state_3 = Text_change.update(language_description, new_document_state_2, text_changes_3, program_3);
+        assert.equal(new_document_state_3.pending_text_changes.length, 0);
+        assert.equal(new_document_state_3.diagnostics.length, 0);
     });
 
     it("Handles changing module name and update custom type references", () => {
@@ -3177,4 +3266,33 @@ function simulate_typing_aggretate_changes(
     }
 
     return pending_text_changes;
+}
+
+function calculate_offset(text: string, target_line: number, target_column: number): number {
+
+    let current_line = 1;
+    let current_column = 1;
+    let current_offset = 0;
+
+    for (let index = 0; index < text.length; index++) {
+        if (current_line === target_line && current_column === target_column) {
+            return current_offset;
+        }
+
+        const character = text.charAt(index);
+        if (character === "\n") {
+            current_line += 1;
+            current_column = 1;
+        } else {
+            current_column += 1;
+        }
+        current_offset += 1;
+    }
+
+    return current_offset;
+}
+
+function create_empty_get_core_module(): (module_name: string) => Promise<Core_intermediate_representation.Module | undefined> {
+    const get_core_module = async (_: string) => undefined;
+    return get_core_module;
 }

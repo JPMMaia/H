@@ -1601,6 +1601,34 @@ function get_parent_array_element(
     return undefined;
 }
 
+function get_original_tree_array_elements(
+    parent_node: Parser_node.Node
+): Parser_node.Node[] {
+    return parent_node.children;
+}
+
+function get_current_tree_array_elements(
+    original_node_tree: Parser_node.Node,
+    mark: Parsing_stack_element,
+    stack: Parsing_stack_element[],
+    array_info: Grammar.Array_info
+): Parser_node.Node[] | undefined {
+
+    const all_nodes = [
+        ...get_all_stack_elements_on_tree(original_node_tree, mark.original_tree_position, mark.node).map(element => element.node),
+        ...stack.map(element => element.node)
+    ];
+
+    for (let index = all_nodes.length; index > 0; --index) {
+        const node = all_nodes[index - 1];
+        if (node.word.value !== array_info.element_label && node.word.value !== array_info.separator_label) {
+            return all_nodes.slice(index, all_nodes.length);
+        }
+    }
+
+    return all_nodes;
+}
+
 function handle_array_changes(
     original_node_tree: Node,
     stack: Parsing_stack_element[],
@@ -1623,37 +1651,24 @@ function handle_array_changes(
             const parent_node = result.parent;
             const array_info = result.array_info;
 
-            const start_index_in_original = start_change_original_node_position[parent_node_position.length];
             const after_index_in_original = after_change_original_node_position[parent_node_position.length];
 
-            const new_elements = stack
-                .filter(value => {
-                    if (value.node.word.value !== array_info.element_label && value.node.word.value !== array_info.separator_label) {
-                        return false;
-                    }
+            const original_elements = get_original_tree_array_elements(parent_node);
+            const original_elements_slice = original_elements.slice(0, after_index_in_original);
 
-                    if (value.original_tree_position === undefined) {
-                        return true;
-                    }
+            const current_elements = get_current_tree_array_elements(original_node_tree, mark, stack, array_info);
+            if (current_elements === undefined) {
+                return undefined;
+            }
 
-                    const index = value.original_tree_position[parent_node_position.length];
-                    return index <= start_index_in_original;
-                });
-
-            const start_index = new_elements.length > 0 &&
-                new_elements[0].original_tree_position !== undefined ? new_elements[0].original_tree_position[parent_node_position.length] :
-                start_index_in_original;
-
-            const original_elements = parent_node.children.slice(start_index, after_index_in_original);
-            const patches = Fast_array_diff.getPatch(original_elements, new_elements.map(element => element.node), deep_equal);
-
+            const patches = Fast_array_diff.getPatch(original_elements_slice, current_elements, deep_equal);
             for (const patch of patches) {
                 if (patch.type === "add") {
-                    const new_change = create_add_change(parent_node_position, start_index + patch.newPos, patch.items);
+                    const new_change = create_add_change(parent_node_position, patch.newPos, patch.items);
                     changes.push(new_change);
                 }
                 else if (patch.type === "remove") {
-                    const new_change = create_remove_change(parent_node_position, start_index + patch.newPos, patch.items.length);
+                    const new_change = create_remove_change(parent_node_position, patch.newPos, patch.items.length);
                     changes.push(new_change);
                 }
             }
