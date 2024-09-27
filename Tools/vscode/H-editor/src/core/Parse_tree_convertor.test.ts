@@ -2124,7 +2124,7 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     it("Handles adding a newline after the module declaration", () => {
 
-        const module = Module_examples.create_comments_in_functions();
+        const module = Module_examples.create_comments_in_functions(false);
 
         const module_changes = create_module_changes(
             language_description,
@@ -2383,7 +2383,7 @@ describe("Parse_tree_convertor.parse_tree_to_module", () => {
 
     it("Handles if expressions", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
-        const expected_module = Module_examples.create_if_expressions();
+        const expected_module = Module_examples.create_if_expressions(false);
         const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
 
         assert.deepEqual(actual_module.declarations, expected_module.declarations);
@@ -2487,7 +2487,7 @@ describe("Parse_tree_convertor.parse_tree_to_module", () => {
 
     it("Handles comments in functions", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
-        const expected_module = Module_examples.create_comments_in_functions();
+        const expected_module = Module_examples.create_comments_in_functions(false);
         const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
 
         assert.deepEqual(actual_module.declarations, expected_module.declarations);

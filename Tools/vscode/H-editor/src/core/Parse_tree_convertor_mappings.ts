@@ -173,7 +173,8 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
         create_module_changes_map: create_module_changes_map,
         node_to_core_object_map: node_to_core_object_map,
         extract_comments_from_node: extract_comments_from_node,
-        extract_newlines_after_terminal_from_stack: extract_newlines_after_terminal_from_stack
+        extract_newlines_after_terminal_from_stack: extract_newlines_after_terminal_from_stack,
+        get_node_source_location: get_node_source_location
     };
 }
 
@@ -3405,14 +3406,6 @@ function extract_newlines_after_terminal_from_stack(
     return undefined;
 }
 
-function get_newlines_after_last_descendant(node: Parser_node.Node): number {
-    const rightmost_terminal = Parser_node.get_rightmost_descendant_terminal_node(node, []);
-    if (rightmost_terminal === undefined) {
-        return 0;
-    }
-    return rightmost_terminal.node.word.newlines_after !== undefined ? rightmost_terminal.node.word.newlines_after : 0;
-}
-
 function remove_comments_formatting(comments: string): string {
     const array = comments.split("\n");
 
@@ -3437,6 +3430,35 @@ function extract_comments_from_node(node: Parser_node.Node): string | undefined 
     }
     else if (node.word.value === "Module") {
         return extract_comments_from_node(node.children[0].children[0].children[0]);
+    }
+
+    return undefined;
+}
+
+function get_node_source_location(
+    node: Parser_node.Node,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    production_rules: Grammar.Production_rule[]
+): Parser_node.Source_location | undefined {
+
+    if (node.word.value === "Statement") {
+        const statement = get_statement_from_stack(stack, stack.length - 1, production_rules);
+
+        if (statement.expression.data.type === Core_intermediate_representation.Expression_enum.If_expression) {
+            const if_expression = statement.expression.data.value as Core_intermediate_representation.If_expression;
+            if (if_expression.series.length > 0) {
+                const first_serie = if_expression.series[0];
+                if (first_serie.block_source_location !== undefined) {
+                    return first_serie.block_source_location;
+                }
+                else if (first_serie.condition !== undefined) {
+                    return first_serie.condition.expression.source_location;
+                }
+            }
+            return undefined;
+        }
+
+        return statement.expression.source_location;
     }
 
     return undefined;
