@@ -57,6 +57,24 @@ export function create_cache(root: Parser_node.Node, text: string): Cache {
     return cache;
 }
 
+export function clone_cache(cache: Cache): Cache {
+    return {
+        elements: cache.elements.map(entry => {
+            return {
+                text_position: {
+                    line: entry.text_position.line,
+                    column: entry.text_position.column,
+                    offset: entry.text_position.offset
+                },
+                node: entry.node,
+                node_position: [...entry.node_position]
+            };
+        }),
+        root: cache.root,
+        text: cache.text
+    };
+}
+
 export function update_cache(cache: Cache, parser_changes: Parser.Change[], text_change: Text_change, text_after_changes: string): void {
 
     for (const change of parser_changes) {
@@ -250,6 +268,14 @@ export function get_node_text_position(cache: Cache, node_position: number[]): T
         line: iterator.line,
         column: iterator.column,
         offset: iterator.offset
+    };
+}
+
+export function get_node_source_location(cache: Cache, node_position: number[]): Parser_node.Source_location {
+    const iterator = get_iterator_at_node_position(cache, node_position);
+    return {
+        line: iterator.line,
+        column: iterator.column
     };
 }
 
