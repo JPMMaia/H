@@ -21,8 +21,7 @@ function create_node(
         word: {
             value: value,
             type: Grammar.Word_type.Alphanumeric,
-            source_location: { line: -1, column: -1 },
-            newlines_after: undefined
+            source_location: { line: -1, column: -1 }
         },
         state: -1,
         production_rule_index: 1,
@@ -41,8 +40,7 @@ function create_terminal_node(
         word: {
             value: word_value,
             type: word_type,
-            source_location: source_location,
-            newlines_after: undefined
+            source_location: source_location
         },
         state: -1,
         production_rule_index: undefined,

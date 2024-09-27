@@ -2221,11 +2221,6 @@ function node_to_statement(node: Parser_node.Node, key_to_production_rule_indice
         expression: expression
     };
 
-    const newlines_after = get_newlines_after_last_descendant(node);
-    if (newlines_after > 1) {
-        output.newlines_after = newlines_after;
-    }
-
     return output;
 }
 

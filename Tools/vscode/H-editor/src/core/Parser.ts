@@ -937,7 +937,6 @@ function get_action_column_and_try_to_recover_from_error(
             value: "",
             type: Grammar.Word_type.Invalid,
             source_location: current_word.source_location,
-            newlines_after: current_word.newlines_after
         };
 
         if (g_debug) {
@@ -1485,9 +1484,6 @@ function create_apply_matching_changes(
         production_rule_index: mark_parent_node.production_rule_index,
         children: top_nodes.map(value => value.node)
     };
-    if (mark_parent_clone.word.newlines_after !== undefined) {
-        mark_parent_clone.word.newlines_after = mark_parent_node.word.newlines_after;
-    }
 
     if (g_debug) {
         const stack_description = node_stack_to_string(original_node_tree, mark.original_tree_position, mark.node, stack);

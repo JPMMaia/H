@@ -2511,7 +2511,7 @@ describe("Parse_tree_convertor.parse_tree_to_module", () => {
 
     it("Handles newlines after statements", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
-        const expected_module = Module_examples.create_newlines_after_statements();
+        const expected_module = Module_examples.create_newlines_after_statements(false);
         const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
 
         assert.deepEqual(actual_module.declarations, expected_module.declarations);

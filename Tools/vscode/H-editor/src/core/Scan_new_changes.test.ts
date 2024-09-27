@@ -9,7 +9,7 @@ import { get_node_before_text_position, get_node_after_text_position, get_text_b
 
 function create_parse_node(value: string, children: Node[], production_rule_index?: number): Node {
     return {
-        word: { value: value, type: Grammar.Word_type.Alphanumeric, newlines_after: 0, source_location: { line: 0, column: 0 } },
+        word: { value: value, type: Grammar.Word_type.Alphanumeric, source_location: { line: 0, column: 0 } },
         state: -1,
         production_rule_index: production_rule_index,
         children: children
@@ -308,7 +308,7 @@ describe("Scan_new_changes.scan_new_change", () => {
         if (result.start_change !== undefined) {
             assert.deepEqual(result.start_change.node_position, [0]);
         }
-        assert.deepEqual(result.new_words, [{ value: "module", type: Grammar.Word_type.Alphanumeric, newlines_after: 0, source_location: { line: 1, column: 1 } }]);
+        assert.deepEqual(result.new_words, [{ value: "module", type: Grammar.Word_type.Alphanumeric, source_location: { line: 1, column: 1 } }]);
         assert.notEqual(result.after_change, undefined);
         if (result.after_change !== undefined) {
             assert.equal(result.after_change.node, undefined);
@@ -342,7 +342,7 @@ describe("Scan_new_changes.scan_new_change", () => {
         if (result.start_change !== undefined) {
             assert.deepEqual(result.start_change.node_position, [0]);
         }
-        assert.deepEqual(result.new_words, [{ value: "mo", type: Grammar.Word_type.Alphanumeric, newlines_after: 0, source_location: { line: 1, column: 1 } }, { value: "dule", type: Grammar.Word_type.Alphanumeric, newlines_after: 0, source_location: { line: 1, column: 4 } }]);
+        assert.deepEqual(result.new_words, [{ value: "mo", type: Grammar.Word_type.Alphanumeric, source_location: { line: 1, column: 1 } }, { value: "dule", type: Grammar.Word_type.Alphanumeric, source_location: { line: 1, column: 4 } }]);
         assert.notEqual(result.after_change, undefined);
         if (result.after_change !== undefined) {
             assert.equal(result.after_change.node, undefined);
@@ -410,7 +410,7 @@ describe("Scan_new_changes.scan_new_change", () => {
         if (result.start_change !== undefined) {
             assert.deepEqual(result.start_change.node_position, [0]);
         }
-        assert.deepEqual(result.new_words, [{ value: "mode", type: Grammar.Word_type.Alphanumeric, newlines_after: 0, source_location: { line: 1, column: 1 } }]);
+        assert.deepEqual(result.new_words, [{ value: "mode", type: Grammar.Word_type.Alphanumeric, source_location: { line: 1, column: 1 } }]);
         assert.notEqual(result.after_change, undefined);
         if (result.after_change !== undefined) {
             assert.equal(result.after_change.node, undefined);
@@ -444,7 +444,7 @@ describe("Scan_new_changes.scan_new_change", () => {
         if (result.start_change !== undefined) {
             assert.deepEqual(result.start_change.node_position, [0]);
         }
-        assert.deepEqual(result.new_words, [{ value: "model", type: Grammar.Word_type.Alphanumeric, newlines_after: 0, source_location: { line: 1, column: 1 } }]);
+        assert.deepEqual(result.new_words, [{ value: "model", type: Grammar.Word_type.Alphanumeric, source_location: { line: 1, column: 1 } }]);
         assert.notEqual(result.after_change, undefined);
         if (result.after_change !== undefined) {
             assert.equal(result.after_change.node, undefined);
@@ -480,7 +480,7 @@ describe("Scan_new_changes.scan_new_change", () => {
         if (result.start_change !== undefined) {
             assert.deepEqual(result.start_change.node_position, [1]);
         }
-        assert.deepEqual(result.new_words, [{ value: "nome", type: Grammar.Word_type.Alphanumeric, newlines_after: 0, source_location: { line: 1, column: 8 } }]);
+        assert.deepEqual(result.new_words, [{ value: "nome", type: Grammar.Word_type.Alphanumeric, source_location: { line: 1, column: 8 } }]);
         assert.notEqual(result.after_change, undefined);
         if (result.after_change !== undefined) {
             assert.deepEqual(result.after_change.node_position, [2]);
@@ -516,7 +516,7 @@ describe("Scan_new_changes.scan_new_change", () => {
         if (result.start_change !== undefined) {
             assert.deepEqual(result.start_change.node_position, [0]);
         }
-        assert.deepEqual(result.new_words, [{ value: "modulename", type: Grammar.Word_type.Alphanumeric, newlines_after: 0, source_location: { line: 1, column: 1 } }]);
+        assert.deepEqual(result.new_words, [{ value: "modulename", type: Grammar.Word_type.Alphanumeric, source_location: { line: 1, column: 1 } }]);
         assert.notEqual(result.after_change, undefined);
         if (result.after_change !== undefined) {
             assert.deepEqual(result.after_change.node_position, [2]);
@@ -552,7 +552,7 @@ describe("Scan_new_changes.scan_new_change", () => {
         if (result.start_change !== undefined) {
             assert.deepEqual(result.start_change.node_position, [1]);
         }
-        assert.deepEqual(result.new_words, [{ value: "name_", type: Grammar.Word_type.Alphanumeric, newlines_after: 0, source_location: { line: 1, column: 8 } }]);
+        assert.deepEqual(result.new_words, [{ value: "name_", type: Grammar.Word_type.Alphanumeric, source_location: { line: 1, column: 8 } }]);
         assert.notEqual(result.after_change, undefined);
         if (result.after_change !== undefined) {
             assert.deepEqual(result.after_change.node_position, [2]);
@@ -589,7 +589,7 @@ describe("Scan_new_changes.scan_new_change", () => {
         if (result.start_change !== undefined) {
             assert.deepEqual(result.start_change.node_position, [0, 0]);
         }
-        assert.deepEqual(result.new_words, [{ value: "_export", type: Grammar.Word_type.Alphanumeric, newlines_after: 0, source_location: { line: 1, column: 1 } }]);
+        assert.deepEqual(result.new_words, [{ value: "_export", type: Grammar.Word_type.Alphanumeric, source_location: { line: 1, column: 1 } }]);
         assert.notEqual(result.after_change, undefined);
         if (result.after_change !== undefined) {
             assert.deepEqual(result.after_change.node_position, [1]);
@@ -627,7 +627,7 @@ describe("Scan_new_changes.scan_new_change", () => {
         if (result.start_change !== undefined) {
             assert.deepEqual(result.start_change.node_position, [1]);
         }
-        assert.deepEqual(result.new_words, [{ value: "_struct", type: Grammar.Word_type.Alphanumeric, newlines_after: 0, source_location: { line: 1, column: 1 } }]);
+        assert.deepEqual(result.new_words, [{ value: "_struct", type: Grammar.Word_type.Alphanumeric, source_location: { line: 1, column: 1 } }]);
         assert.notEqual(result.after_change, undefined);
         if (result.after_change !== undefined) {
             assert.deepEqual(result.after_change.node_position, [2, 0]);
@@ -662,7 +662,7 @@ describe("Scan_new_changes.scan_new_change", () => {
         if (result.start_change !== undefined) {
             assert.deepEqual(result.start_change.node_position, [1]);
         }
-        assert.deepEqual(result.new_words, [{ value: "Declaration_0_5", type: Grammar.Word_type.Alphanumeric, newlines_after: 1, source_location: { line: 2, column: 1 } }]);
+        assert.deepEqual(result.new_words, [{ value: "Declaration_0_5", type: Grammar.Word_type.Alphanumeric, source_location: { line: 2, column: 1 } }]);
         assert.notEqual(result.after_change, undefined);
         if (result.after_change !== undefined) {
             assert.deepEqual(result.after_change.node_position, [1]);
@@ -696,7 +696,7 @@ describe("Scan_new_changes.scan_new_change", () => {
         if (result.start_change !== undefined) {
             assert.deepEqual(result.start_change.node_position, [0]);
         }
-        assert.deepEqual(result.new_words, [{ value: "another", type: Grammar.Word_type.Alphanumeric, newlines_after: 0, source_location: { line: 1, column: 2 } }]);
+        assert.deepEqual(result.new_words, [{ value: "another", type: Grammar.Word_type.Alphanumeric, source_location: { line: 1, column: 2 } }]);
         assert.notEqual(result.after_change, undefined);
         if (result.after_change !== undefined) {
             assert.deepEqual(result.after_change.node_position, [0]);
@@ -765,7 +765,7 @@ describe("Scan_new_changes.scan_new_change", () => {
         if (result.start_change !== undefined) {
             assert.deepEqual(result.start_change.node_position, [0]);
         }
-        assert.deepEqual(result.new_words, [{ value: "// A comment\n// Another comment", type: Grammar.Word_type.Comment, newlines_after: 1, source_location: { line: 1, column: 1 } }]);
+        assert.deepEqual(result.new_words, [{ value: "// A comment\n// Another comment", type: Grammar.Word_type.Comment, source_location: { line: 1, column: 1 } }]);
         assert.notEqual(result.after_change, undefined);
         if (result.after_change !== undefined) {
             assert.deepEqual(result.after_change.node_position, [0]);

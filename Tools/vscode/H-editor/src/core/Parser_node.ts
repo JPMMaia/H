@@ -38,9 +38,7 @@ export function clone_node(node: Node): Node {
         production_rule_index: node.production_rule_index,
         children: node.children,
     };
-    if (node.word.newlines_after !== undefined) {
-        output.word.newlines_after = node.word.newlines_after;
-    }
+
     return output;
 }
 
@@ -58,9 +56,7 @@ export function deep_clone_node(node: Node): Node {
         production_rule_index: node.production_rule_index,
         children: children,
     };
-    if (node.word.newlines_after !== undefined) {
-        output.word.newlines_after = node.word.newlines_after;
-    }
+
     return output;
 }
 
