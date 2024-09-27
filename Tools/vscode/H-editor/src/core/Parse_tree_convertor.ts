@@ -57,6 +57,12 @@ export type Extract_newlines_after_terminal_from_stack_handler = (
     terminal: string
 ) => number | undefined;
 
+export type Get_node_source_location_handler = (
+    node: Parser_node.Node,
+    stack: Module_to_parse_tree_stack_element[],
+    production_rules: Grammar.Production_rule[]
+) => Parser_node.Source_location | undefined;
+
 export interface Parse_tree_mappings {
     value_map: Map<string, string[]>;
     value_transforms: Map<string, (value: any) => string>;
@@ -68,6 +74,7 @@ export interface Parse_tree_mappings {
     node_to_core_object_map: Map<string, Node_to_core_object_handler>;
     extract_comments_from_node: Extract_comments_from_node_handler;
     extract_newlines_after_terminal_from_stack: Extract_newlines_after_terminal_from_stack_handler;
+    get_node_source_location: Get_node_source_location_handler;
 }
 
 function find_parent_state_index(
@@ -272,6 +279,11 @@ export function module_to_parse_tree(
                 children: []
             };
 
+            const source_location = mappings.get_node_source_location(child_node, stack, production_rules);
+            if (source_location !== undefined) {
+                child_node.source_location = source_location;
+            }
+
             parent_node.children.push(child_node);
         }
         else {
@@ -301,6 +313,12 @@ export function module_to_parse_tree(
                 current_child_index: 0,
                 is_array_production_rule: is_next_production_rule_array
             };
+
+            const source_location = mappings.get_node_source_location(child_stack_element.node, stack, production_rules);
+            if (source_location !== undefined) {
+                child_stack_element.node.source_location = source_location;
+            }
+
             stack.push(child_stack_element);
 
             parent_node.children.push(child_stack_element.node);
