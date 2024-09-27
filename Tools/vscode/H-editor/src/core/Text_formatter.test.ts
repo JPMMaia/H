@@ -91,7 +91,7 @@ describe("Text_formatter.to_string", () => {
     });
 
     it("Formats comments in functions correctly", () => {
-        const module = Module_examples.create_comments_in_functions();
+        const module = Module_examples.create_comments_in_functions(true);
         const actual_text = run_text_formatter(module);
         const expected_text = "module Comments_in_functions;\n\n// Function comment\n// No arguments\nexport function use_comments() -> ()\n{\n    // This is a comment\n    var i = 0;\n\n    // This is another comment\n    // And yet another\n    var x = 0;\n}";
         assert.equal(actual_text, expected_text);
@@ -114,12 +114,12 @@ describe("Text_formatter.to_string", () => {
     it("Preserves newlines after statements", () => {
         const module = Module_examples.create_newlines_after_statements();
         const actual_text = run_text_formatter(module);
-        const expected_text = "module Newlines_after_statements;\n\nfunction use_newlines() -> ()\n{\n    var i = 0;\n    var j = 1;\n\n    var k = 2;\n\n    // A comment\n    var l = 3;\n\n\n    var m = 4;\n\n}";
+        const expected_text = "module Newlines_after_statements;\n\nfunction use_newlines() -> ()\n{\n    var i = 0;\n    var j = 1;\n\n    var k = 2;\n\n    // A comment\n    var l = 3;\n\n\n    var m = 4;\n}";
         assert.equal(actual_text, expected_text);
     });
 
     it("Formats if statements correctly", () => {
-        const module = Module_examples.create_if_expressions();
+        const module = Module_examples.create_if_expressions(true);
         const actual_text = run_text_formatter(module);
         const expected_text = "module If_expressions;\n\nimport C.stdio as stdio;\n\nfunction print_message(message: * C_char) -> ()\n{\n    stdio.printf(\"%s\\n\"c, message);\n}\n\nexport function run_ifs(value: Int32) -> ()\n{\n    if value == 0\n    {\n        print_message(\"zero\"c);\n    }\n\n    if value == 0\n    {\n        print_message(\"zero\"c);\n    }\n    else if value == 1\n    {\n        print_message(\"one\"c);\n    }\n\n    if value < 0\n    {\n        print_message(\"negative\"c);\n    }\n    else\n    {\n        print_message(\"non-negative\"c);\n    }\n\n    if value < 0\n    {\n        print_message(\"negative\"c);\n    }\n    else if value > 0\n    {\n        print_message(\"positive\"c);\n    }\n    else\n    {\n        print_message(\"zero\"c);\n    }\n\n    if value < 0\n    {\n        print_message(\"message_0\"c);\n        print_message(\"message_1\"c);\n    }\n}";
         assert.equal(actual_text, expected_text);

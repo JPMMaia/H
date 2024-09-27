@@ -21,11 +21,21 @@ function create_default_options(): Options {
     };
 }
 
+interface Source_location_state {
+    save_next_source_location: boolean;
+    add_new_lines: boolean;
+    actual_source_location: Parser_node.Source_location;
+    expected_source_location: Parser_node.Source_location;
+    previous_expected_source_location: Parser_node.Source_location;
+}
+
 interface State {
     buffer: string[];
     indentation_count: number;
     symbol_stack: string[];
     previous_symbol: string | undefined;
+    source_location: Parser_node.Source_location;
+    source_location_state_stack: Source_location_state[];
 }
 
 export function node_to_string(
@@ -61,7 +71,7 @@ export function node_to_string(
             iterator.current_node.word.value,
             iterator.current_node.word.type,
             iterator.current_node.production_rule_index,
-            iterator.current_node.word.newlines_after,
+            iterator.current_node.source_location,
             iterator.current_direction,
             options
         );
@@ -75,7 +85,7 @@ export function node_to_string(
             after_character,
             Scanner.get_word_type(after_character),
             undefined,
-            0,
+            undefined,
             Parser_node.Iterate_direction.Down,
             options
         );
@@ -96,7 +106,7 @@ function update_state(
     word_value: string,
     word_type: Grammar.Word_type,
     production_rule_index: number | undefined,
-    new_lines_after: number | undefined,
+    node_source_location: Parser_node.Source_location | undefined,
     current_direction: Parser_node.Iterate_direction,
     options: Options
 ): void {
@@ -110,40 +120,140 @@ function update_state(
         else if (action === Stack_symbol_action.Pop) {
             state.previous_symbol = state.symbol_stack.pop();
         }
+
+        update_source_location_state(state, node_source_location, word_value, current_direction);
     }
     else if (word_value.length > 0) {
 
         if (should_add_new_line(state.symbol_stack, state.previous_symbol, state.buffer, word_value, options)) {
-            state.buffer.push("\n");
+            add_new_line(state);
         }
         if (should_add_new_line(state.symbol_stack, state.previous_symbol, state.buffer, word_value, options)) {
-            state.buffer.push("\n");
+            add_new_line(state);
         }
+
+        add_new_lines_to_preserve_expected_new_lines(state);
 
         if (word_type === Grammar.Word_type.Comment) {
             const comments = word_value.split("\n");
             for (const comment of comments) {
                 const spaces = create_indentation(options.indentation_width, state.indentation_count);
                 const line = `${spaces}${comment}`;
-                state.buffer.push(line);
-                state.buffer.push("\n");
+                add_text(state, line);
+                add_new_line(state);
             }
         }
         else {
 
             if (should_add_indentation(state.buffer, state.indentation_count)) {
-                state.buffer.push(create_indentation(options.indentation_width, state.indentation_count));
+                const indentation = create_indentation(options.indentation_width, state.indentation_count);
+                add_text(state, indentation);
             }
             else if (should_add_space_2(state.symbol_stack, state.buffer, word_value, options)) {
-                state.buffer.push(" ");
+                add_text(state, " ");
             }
 
             state.buffer.push(word_value);
-            add_additional_new_lines(state.buffer, word_type, new_lines_after);
+            add_additional_new_lines(state, word_type);
         }
 
         state.previous_symbol = undefined;
     }
+}
+
+function update_source_location_state(
+    state: State,
+    node_source_location: Parser_node.Source_location | undefined,
+    word_value: string,
+    current_direction: Parser_node.Iterate_direction
+): void {
+
+    switch (word_value) {
+        case "Statements":
+        case "Expression_block_statements":
+        case "Expression_for_loop_statements":
+        case "Expression_if_statements":
+        case "Expression_switch_case_statements":
+        case "Expression_while_loop_statements": {
+            if (current_direction === Parser_node.Iterate_direction.Down) {
+                state.source_location_state_stack.push({
+                    save_next_source_location: false,
+                    add_new_lines: false,
+                    actual_source_location: { line: 1, column: 1 },
+                    expected_source_location: { line: 1, column: 1 },
+                    previous_expected_source_location: { line: 1, column: 1 },
+                });
+            }
+            else {
+                state.source_location_state_stack.pop();
+            }
+            break;
+        }
+    }
+
+    if (state.previous_symbol === "Statement" && word_value === "Statement" && node_source_location !== undefined) {
+        const source_location_state = state.source_location_state_stack[state.source_location_state_stack.length - 1];
+        source_location_state.add_new_lines = true;
+    }
+
+    if (word_value === "Statement" && node_source_location !== undefined) {
+        const source_location_state = state.source_location_state_stack[state.source_location_state_stack.length - 1];
+        source_location_state.save_next_source_location = true;
+        source_location_state.previous_expected_source_location = source_location_state.expected_source_location;
+        source_location_state.expected_source_location = {
+            line: node_source_location.line,
+            column: node_source_location.column
+        };
+    }
+}
+
+function add_new_lines_to_preserve_expected_new_lines(
+    state: State
+): void {
+
+    if (state.source_location_state_stack.length === 0) {
+        return;
+    }
+
+    const source_location_state = state.source_location_state_stack[state.source_location_state_stack.length - 1];
+
+    if (source_location_state.add_new_lines) {
+        source_location_state.add_new_lines = false;
+
+        const actual_line_difference = state.source_location.line - source_location_state.actual_source_location.line;
+        const expected_line_difference = source_location_state.expected_source_location.line - source_location_state.previous_expected_source_location.line;
+
+        if (expected_line_difference > actual_line_difference) {
+            const new_lines_to_add = expected_line_difference - actual_line_difference;
+            for (let i = 0; i < new_lines_to_add; i++) {
+                add_new_line(state);
+            }
+        }
+    }
+
+    if (source_location_state.save_next_source_location) {
+        source_location_state.save_next_source_location = false;
+        source_location_state.actual_source_location = {
+            line: state.source_location.line,
+            column: state.source_location.column
+        };
+    }
+}
+
+function add_new_line(
+    state: State
+): void {
+    state.buffer.push("\n");
+    state.source_location.line += 1;
+    state.source_location.column = 1;
+}
+
+function add_text(
+    state: State,
+    text: string
+): void {
+    state.buffer.push(text);
+    state.source_location.column += text.length;
 }
 
 function calculate_initial_state(
@@ -177,7 +287,9 @@ function calculate_initial_state(
         buffer: [],
         indentation_count: indentation_count,
         symbol_stack: symbol_stack.reverse(),
-        previous_symbol: previous_symbol
+        previous_symbol: previous_symbol,
+        source_location: { line: 1, column: 1 },
+        source_location_state_stack: []
     };
 }
 
@@ -223,6 +335,7 @@ function calculate_stack_symbol_action(
         case "Module_body":
         case "Declaration":
         case "Enum_values":
+        case "Statement":
         case "Expression_call_arguments":
         case "Expression_instantiate":
         case "Expression_instantiate_members":
@@ -436,18 +549,11 @@ function is_assignment_symbol(value: string): boolean {
 }
 
 function add_additional_new_lines(
-    buffer: string[],
-    word_type: Grammar.Word_type,
-    new_lines_after: number | undefined
+    state: State,
+    word_type: Grammar.Word_type
 ): void {
-    if (new_lines_after !== undefined) {
-        for (let index = 0; index < new_lines_after; ++index) {
-            buffer.push("\n");
-        }
-    }
-
     if (word_type === Grammar.Word_type.Comment) {
-        buffer.push("\n");
+        add_new_line(state);
     }
 }
 
