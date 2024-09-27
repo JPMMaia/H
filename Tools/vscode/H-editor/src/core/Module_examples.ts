@@ -4964,12 +4964,6 @@ function create_statement(expression: IR.Expression, source_location?: IR.Source
     return statement;
 }
 
-function add_newlines(statements: IR.Statement[], statement_indices: number[]) {
-    for (const index of statement_indices) {
-        statements[index].newlines_after = 2;
-    }
-}
-
 function add_source_locations(
     statements: IR.Statement[],
     start_source_location: IR.Source_location,

@@ -51,12 +51,6 @@ export type Extract_comments_from_node_handler = (
     node: Parser_node.Node
 ) => string | undefined;
 
-export type Extract_newlines_after_terminal_from_stack_handler = (
-    stack: Module_to_parse_tree_stack_element[],
-    production_rules: Grammar.Production_rule[],
-    terminal: string
-) => number | undefined;
-
 export type Get_node_source_location_handler = (
     node: Parser_node.Node,
     stack: Module_to_parse_tree_stack_element[],
@@ -73,7 +67,6 @@ export interface Parse_tree_mappings {
     create_module_changes_map: Map<string, Create_module_changes_handler>;
     node_to_core_object_map: Map<string, Node_to_core_object_handler>;
     extract_comments_from_node: Extract_comments_from_node_handler;
-    extract_newlines_after_terminal_from_stack: Extract_newlines_after_terminal_from_stack_handler;
     get_node_source_location: Get_node_source_location_handler;
 }
 
@@ -511,8 +504,6 @@ export function map_terminal_to_word(
 ): Scanner.Scanned_word {
 
     const label = stack[stack.length - 1].node.word.value;
-
-    const newlines_after = mappings.extract_newlines_after_terminal_from_stack(stack, production_rules, terminal);
 
     {
         const map = mappings.terminal_to_word_map.get(label);

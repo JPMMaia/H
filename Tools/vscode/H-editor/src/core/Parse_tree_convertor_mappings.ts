@@ -173,7 +173,6 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
         create_module_changes_map: create_module_changes_map,
         node_to_core_object_map: node_to_core_object_map,
         extract_comments_from_node: extract_comments_from_node,
-        extract_newlines_after_terminal_from_stack: extract_newlines_after_terminal_from_stack,
         get_node_source_location: get_node_source_location
     };
 }
@@ -3363,38 +3362,6 @@ function extract_comments_from_stack(
             }
             default:
                 break;
-        }
-    }
-
-    return undefined;
-}
-
-function extract_newlines_after_terminal_from_stack(
-    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    production_rules: Grammar.Production_rule[],
-    terminal: string
-): number | undefined {
-
-    if (terminal !== ";" && terminal !== "}") {
-        return undefined;
-    }
-
-    for (let stack_index = 0; stack_index < stack.length; ++stack_index) {
-        const element_index = stack.length - stack_index - 1;
-        const element = stack[element_index];
-
-        if (element.node.word.value === "Statement") {
-            const statement = get_statement_from_stack(stack, element_index - 1, production_rules);
-
-            if (statement.expression.data.type === Core_intermediate_representation.Expression_enum.If_expression) {
-                const if_expression = statement.expression.data.value as Core_intermediate_representation.If_expression;
-                const serie_index = Parse_tree_convertor.get_if_serie_index(stack);
-                if (serie_index + 1 < if_expression.series.length) {
-                    return 1;
-                }
-            }
-
-            return statement.newlines_after !== undefined ? statement.newlines_after : 1;
         }
     }
 
