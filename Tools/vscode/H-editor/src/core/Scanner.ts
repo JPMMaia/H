@@ -572,7 +572,6 @@ export interface Scanned_word {
     value: string;
     type: Grammar.Word_type;
     source_location: Source_location;
-    newlines_after?: number;
 }
 
 export function scan(
@@ -604,8 +603,7 @@ export function scan(
                 {
                     value: word_scan_result.word,
                     type: word_scan_result.type,
-                    source_location: word_scan_result.word_source_location,
-                    newlines_after: newlines_scan_result.newlines
+                    source_location: word_scan_result.word_source_location
                 }
             );
         }

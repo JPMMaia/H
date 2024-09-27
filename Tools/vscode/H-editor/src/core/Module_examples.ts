@@ -935,7 +935,7 @@ export function create_numbers(): IR.Module {
         statements.push(statement);
     }
 
-    add_newlines(statements, [3, 7, 10]);
+    // add_source_locations(statements, { line: 5, column: 5 }, [3, 7, 10]);
 
     return {
         name: "Numbers",
@@ -1047,7 +1047,7 @@ export function create_numeric_casts(): IR.Module {
         statements.push(statement);
     }
 
-    add_newlines(statements, [2, 5, 7, 9, 12, 15]);
+    // add_newlines(statements, [2, 5, 7, 9, 12, 15]);
 
     return {
         name: "Numeric_casts",
@@ -1213,7 +1213,7 @@ export function create_binary_expressions(): IR.Module {
         statements.push(statement);
     }
 
-    add_newlines(statements, [4, 6, 10, 12]);
+    // add_newlines(statements, [4, 6, 10, 12]);
 
     return {
         name: "Binary_expressions",
@@ -1294,7 +1294,7 @@ export function create_binary_expressions_operator_precedence(): IR.Module {
         statements.push(statement);
     }
 
-    add_newlines(statements, [3, 5, 7, 11]);
+    // add_newlines(statements, [3, 5, 7, 11]);
 
     return {
         name: "Binary_expressions_operator_precedence",
@@ -1354,7 +1354,7 @@ export function create_assignment_expressions(): IR.Module {
         statements.push(statement);
     }
 
-    add_newlines(statements, [0, 1, 6]);
+    // add_newlines(statements, [0, 1, 6]);
 
     return {
         name: "Assignment_expressions",
@@ -1557,10 +1557,10 @@ export function create_pointer_types(): IR.Module {
 export function create_block_expressions(): IR.Module {
 
     const statements: IR.Statement[] = [
-        create_statement(IR.create_variable_declaration_expression("a", false, IR.create_constant_expression(create_integer_type(32, true), "0")), 2),
+        create_statement(IR.create_variable_declaration_expression("a", false, IR.create_constant_expression(create_integer_type(32, true), "0"))),
         create_statement(IR.create_block_expression([
             create_statement(IR.create_variable_declaration_expression("b", false, IR.create_variable_expression("a", IR.Access_type.Read))),
-        ]), 2),
+        ])),
         create_statement(IR.create_variable_declaration_expression("b", false, IR.create_variable_expression("a", IR.Access_type.Read))),
     ];
 
@@ -1582,7 +1582,7 @@ export function create_block_expressions(): IR.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
                     },
                     definition: {
                         name: "run_blocks",
@@ -1618,7 +1618,7 @@ export function create_for_loop_expressions(): IR.Module {
                     )
                 ]
             ),
-            2
+            //2
         ),
         create_statement(
             IR.create_for_loop_expression(
@@ -1638,7 +1638,7 @@ export function create_for_loop_expressions(): IR.Module {
                     )
                 ]
             ),
-            2
+            //2
         ),
         create_statement(
             IR.create_for_loop_expression(
@@ -1661,7 +1661,7 @@ export function create_for_loop_expressions(): IR.Module {
                     )
                 ]
             ),
-            2
+            //2
         ),
         create_statement(
             IR.create_for_loop_expression(
@@ -1752,7 +1752,7 @@ export function create_for_loop_expressions(): IR.Module {
     };
 }
 
-export function create_if_expressions(): IR.Module {
+export function create_if_expressions(add_source_locations: boolean): IR.Module {
 
     const c_string_type = create_pointer_type([create_fundamental_type(IR.Fundamental_type.C_char)], false);
     const int32_type = create_integer_type(32, true);
@@ -1767,7 +1767,8 @@ export function create_if_expressions(): IR.Module {
                                 IR.create_variable_expression("value", IR.Access_type.Read),
                                 IR.create_constant_expression(int32_type, "0"),
                                 IR.Binary_operation.Equal
-                            )
+                            ),
+                            add_source_locations ? { line: 12, column: 8 } : undefined
                         ),
                         then_statements: [
                             create_statement(
@@ -1776,13 +1777,14 @@ export function create_if_expressions(): IR.Module {
                                     [
                                         IR.create_constant_expression(c_string_type, "zero")
                                     ]
-                                )
+                                ),
+                                add_source_locations ? { line: 14, column: 9 } : undefined
                             )
                         ]
                     }
                 ]
             ),
-            2
+            add_source_locations ? { line: 12, column: 5 } : undefined
         ),
         create_statement(
             IR.create_if_expression(
@@ -1793,7 +1795,8 @@ export function create_if_expressions(): IR.Module {
                                 IR.create_variable_expression("value", IR.Access_type.Read),
                                 IR.create_constant_expression(int32_type, "0"),
                                 IR.Binary_operation.Equal
-                            )
+                            ),
+                            add_source_locations ? { line: 17, column: 8 } : undefined
                         ),
                         then_statements: [
                             create_statement(
@@ -1802,8 +1805,9 @@ export function create_if_expressions(): IR.Module {
                                     [
                                         IR.create_constant_expression(c_string_type, "zero")
                                     ]
-                                )
-                            )
+                                ),
+                                add_source_locations ? { line: 19, column: 9 } : undefined
+                            ),
                         ]
                     },
                     {
@@ -1812,7 +1816,8 @@ export function create_if_expressions(): IR.Module {
                                 IR.create_variable_expression("value", IR.Access_type.Read),
                                 IR.create_constant_expression(int32_type, "1"),
                                 IR.Binary_operation.Equal
-                            )
+                            ),
+                            add_source_locations ? { line: 21, column: 13 } : undefined
                         ),
                         then_statements: [
                             create_statement(
@@ -1821,13 +1826,14 @@ export function create_if_expressions(): IR.Module {
                                     [
                                         IR.create_constant_expression(c_string_type, "one")
                                     ]
-                                )
+                                ),
+                                add_source_locations ? { line: 23, column: 9 } : undefined
                             )
                         ]
                     }
                 ]
             ),
-            2
+            add_source_locations ? { line: 17, column: 5 } : undefined
         ),
         create_statement(
             IR.create_if_expression(
@@ -1838,7 +1844,8 @@ export function create_if_expressions(): IR.Module {
                                 IR.create_variable_expression("value", IR.Access_type.Read),
                                 IR.create_constant_expression(int32_type, "0"),
                                 IR.Binary_operation.Less_than
-                            )
+                            ),
+                            add_source_locations ? { line: 26, column: 8 } : undefined
                         ),
                         then_statements: [
                             create_statement(
@@ -1847,7 +1854,8 @@ export function create_if_expressions(): IR.Module {
                                     [
                                         IR.create_constant_expression(c_string_type, "negative")
                                     ]
-                                )
+                                ),
+                                add_source_locations ? { line: 28, column: 9 } : undefined
                             )
                         ]
                     },
@@ -1860,13 +1868,14 @@ export function create_if_expressions(): IR.Module {
                                     [
                                         IR.create_constant_expression(c_string_type, "non-negative")
                                     ]
-                                )
+                                ),
+                                add_source_locations ? { line: 32, column: 9 } : undefined
                             )
                         ]
                     }
                 ]
             ),
-            2
+            add_source_locations ? { line: 26, column: 5 } : undefined
         ),
         create_statement(
             IR.create_if_expression(
@@ -1877,7 +1886,8 @@ export function create_if_expressions(): IR.Module {
                                 IR.create_variable_expression("value", IR.Access_type.Read),
                                 IR.create_constant_expression(int32_type, "0"),
                                 IR.Binary_operation.Less_than
-                            )
+                            ),
+                            add_source_locations ? { line: 35, column: 8 } : undefined
                         ),
                         then_statements: [
                             create_statement(
@@ -1886,7 +1896,8 @@ export function create_if_expressions(): IR.Module {
                                     [
                                         IR.create_constant_expression(c_string_type, "negative")
                                     ]
-                                )
+                                ),
+                                add_source_locations ? { line: 37, column: 9 } : undefined
                             )
                         ]
                     },
@@ -1896,7 +1907,8 @@ export function create_if_expressions(): IR.Module {
                                 IR.create_variable_expression("value", IR.Access_type.Read),
                                 IR.create_constant_expression(int32_type, "0"),
                                 IR.Binary_operation.Greater_than
-                            )
+                            ),
+                            add_source_locations ? { line: 39, column: 13 } : undefined
                         ),
                         then_statements: [
                             create_statement(
@@ -1905,7 +1917,8 @@ export function create_if_expressions(): IR.Module {
                                     [
                                         IR.create_constant_expression(c_string_type, "positive")
                                     ]
-                                )
+                                ),
+                                add_source_locations ? { line: 41, column: 9 } : undefined
                             )
                         ]
                     },
@@ -1918,13 +1931,14 @@ export function create_if_expressions(): IR.Module {
                                     [
                                         IR.create_constant_expression(c_string_type, "zero")
                                     ]
-                                )
+                                ),
+                                add_source_locations ? { line: 45, column: 9 } : undefined
                             )
                         ]
                     }
                 ]
             ),
-            2
+            add_source_locations ? { line: 35, column: 5 } : undefined
         ),
         create_statement(
             IR.create_if_expression(
@@ -1935,7 +1949,8 @@ export function create_if_expressions(): IR.Module {
                                 IR.create_variable_expression("value", IR.Access_type.Read),
                                 IR.create_constant_expression(int32_type, "0"),
                                 IR.Binary_operation.Less_than
-                            )
+                            ),
+                            add_source_locations ? { line: 48, column: 8 } : undefined
                         ),
                         then_statements: [
                             create_statement(
@@ -1944,7 +1959,8 @@ export function create_if_expressions(): IR.Module {
                                     [
                                         IR.create_constant_expression(c_string_type, "message_0")
                                     ]
-                                )
+                                ),
+                                add_source_locations ? { line: 50, column: 9 } : undefined
                             ),
                             create_statement(
                                 IR.create_call_expression(
@@ -1952,12 +1968,14 @@ export function create_if_expressions(): IR.Module {
                                     [
                                         IR.create_constant_expression(c_string_type, "message_1")
                                     ]
-                                )
+                                ),
+                                add_source_locations ? { line: 51, column: 9 } : undefined
                             )
                         ]
                     }
                 ]
-            )
+            ),
+            add_source_locations ? { line: 48, column: 5 } : undefined
         ),
     ];
 
@@ -1997,8 +2015,9 @@ export function create_if_expressions(): IR.Module {
                                         IR.create_constant_expression(c_string_type, "%s\\n"),
                                         IR.create_variable_expression("message", IR.Access_type.Read)
                                     ]
-                                )
-                            )
+                                ),
+                                add_source_locations ? { line: 7, column: 5 } : undefined
+                            ),
                         ]
                     }
                 }
@@ -2057,7 +2076,7 @@ export function create_switch_expressions(): IR.Module {
                     }
                 ]
             ),
-            2
+            //2
         ),
         create_statement(
             IR.create_switch_expression(
@@ -2111,7 +2130,7 @@ export function create_switch_expressions(): IR.Module {
                     },
                 ],
             ),
-            2
+            //2
         ),
         create_statement(
             IR.create_switch_expression(
@@ -2133,7 +2152,7 @@ export function create_switch_expressions(): IR.Module {
                     },
                 ]
             ),
-            2
+            //2
         ),
         create_statement(
             IR.create_return_expression(
@@ -2321,7 +2340,7 @@ export function create_while_loop_expressions(): IR.Module {
                     )
                 ]
             ),
-            2
+            //2
         ),
         create_statement(
             IR.create_block_expression(
@@ -2364,7 +2383,7 @@ export function create_while_loop_expressions(): IR.Module {
                                             }
                                         ]
                                     ),
-                                    2
+                                    //2
                                 ),
                                 create_statement(
                                     IR.create_if_expression(
@@ -2385,7 +2404,7 @@ export function create_while_loop_expressions(): IR.Module {
                                             }
                                         ]
                                     ),
-                                    2
+                                    //2
                                 ),
                                 create_statement(
                                     IR.create_call_expression(
@@ -2646,7 +2665,7 @@ export function create_break_expressions(): IR.Module {
                                 }
                             ]
                         ),
-                        2
+                        //2
                     ),
                     create_statement(
                         IR.create_call_expression(
@@ -2658,7 +2677,7 @@ export function create_break_expressions(): IR.Module {
                     ),
                 ]
             ),
-            2
+            //2
         ),
         create_statement(
             IR.create_for_loop_expression(
@@ -2676,7 +2695,7 @@ export function create_break_expressions(): IR.Module {
                             true,
                             IR.create_constant_expression(int32_type, "0")
                         ),
-                        2
+                        //2
                     ),
                     create_statement(
                         IR.create_while_loop_expression(
@@ -2707,7 +2726,7 @@ export function create_break_expressions(): IR.Module {
                                             }
                                         ]
                                     ),
-                                    2
+                                    //2
                                 ),
                                 create_statement(
                                     IR.create_call_expression(
@@ -2726,7 +2745,7 @@ export function create_break_expressions(): IR.Module {
                                 )
                             ]
                         ),
-                        2
+                        //2
                     ),
                     create_statement(
                         IR.create_call_expression(
@@ -2738,7 +2757,7 @@ export function create_break_expressions(): IR.Module {
                     ),
                 ]
             ),
-            2
+            //2
         ),
         create_statement(
             IR.create_for_loop_expression(
@@ -2756,7 +2775,7 @@ export function create_break_expressions(): IR.Module {
                             true,
                             IR.create_constant_expression(int32_type, "0")
                         ),
-                        2
+                        //2
                     ),
                     create_statement(
                         IR.create_while_loop_expression(
@@ -2787,7 +2806,7 @@ export function create_break_expressions(): IR.Module {
                                             }
                                         ]
                                     ),
-                                    2
+                                    //2
                                 ),
                                 create_statement(
                                     IR.create_call_expression(
@@ -2806,7 +2825,7 @@ export function create_break_expressions(): IR.Module {
                                 )
                             ]
                         ),
-                        2
+                        //2
                     ),
                     create_statement(
                         IR.create_call_expression(
@@ -2999,7 +3018,7 @@ export function create_using_enums(): IR.Module {
                                         IR.Access_type.Read
                                     )
                                 ),
-                                2
+                                //2
                             ),
                             create_statement(
                                 IR.create_switch_expression(
@@ -3032,7 +3051,7 @@ export function create_using_enums(): IR.Module {
                                                     IR.create_return_expression(
                                                         IR.create_constant_expression(int32_type, "0")
                                                     ),
-                                                    2
+                                                    //2
                                                 )
                                             ]
                                         },
@@ -3060,7 +3079,7 @@ export function create_using_enums(): IR.Module {
                                         }
                                     ]
                                 ),
-                                2
+                                //2
                             ),
                             create_statement(
                                 IR.create_return_expression(
@@ -3182,7 +3201,7 @@ export function create_using_enum_flags(): IR.Module {
                                         IR.Binary_operation.Bitwise_xor
                                     )
                                 ),
-                                2
+                                //2
                             ),
                             create_statement(
                                 IR.create_if_expression(
@@ -3205,7 +3224,7 @@ export function create_using_enum_flags(): IR.Module {
                                         }
                                     ]
                                 ),
-                                2
+                                //2
                             ),
                             create_statement(
                                 IR.create_if_expression(
@@ -3232,7 +3251,7 @@ export function create_using_enum_flags(): IR.Module {
                                         }
                                     ]
                                 ),
-                                2
+                                //2
                             ),
                             create_statement(
                                 IR.create_if_expression(
@@ -3259,7 +3278,7 @@ export function create_using_enum_flags(): IR.Module {
                                         }
                                     ]
                                 ),
-                                2
+                                //2
                             ),
                             create_statement(
                                 IR.create_if_expression(
@@ -3286,7 +3305,7 @@ export function create_using_enum_flags(): IR.Module {
                                         }
                                     ]
                                 ),
-                                2
+                                //2
                             ),
                             create_statement(
                                 IR.create_return_expression(
@@ -3415,7 +3434,7 @@ export function create_using_structs(): IR.Module {
                                         IR.Access_type.Read
                                     )
                                 ),
-                                2
+                                //2
                             ),
                             create_statement(
                                 IR.create_variable_declaration_with_type_expression(
@@ -3426,7 +3445,7 @@ export function create_using_structs(): IR.Module {
                                         IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [])
                                     )
                                 ),
-                                2
+                                //2
                             ),
                             create_statement(
                                 IR.create_variable_declaration_with_type_expression(
@@ -3444,7 +3463,7 @@ export function create_using_structs(): IR.Module {
                                         ])
                                     )
                                 ),
-                                2
+                                //2
                             ),
                             create_statement(
                                 IR.create_variable_declaration_with_type_expression(
@@ -3455,7 +3474,7 @@ export function create_using_structs(): IR.Module {
                                         IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [])
                                     )
                                 ),
-                                2
+                                //2
                             ),
                             create_statement(
                                 IR.create_variable_declaration_with_type_expression(
@@ -3498,7 +3517,7 @@ export function create_using_structs(): IR.Module {
                                         ])
                                     )
                                 ),
-                                2
+                                //2
                             ),
                             create_statement(
                                 IR.create_variable_declaration_expression(
@@ -3514,7 +3533,7 @@ export function create_using_structs(): IR.Module {
                                         IR.Access_type.Read
                                     )
                                 ),
-                                2
+                                //2
                             ),
                             create_statement(
                                 IR.create_variable_declaration_with_type_expression(
@@ -3536,7 +3555,7 @@ export function create_using_structs(): IR.Module {
                                     IR.create_constant_expression(int32_type, "0"),
                                     undefined
                                 ),
-                                2
+                                //2
                             ),
                             create_statement(
                                 IR.create_call_expression(
@@ -3800,7 +3819,7 @@ export function create_using_unions(): IR.Module {
                                         }
                                     ]
                                 ),
-                                2
+                                //2
                             ),
                             create_statement(
                                 IR.create_variable_declaration_with_type_expression(
@@ -3835,7 +3854,7 @@ export function create_using_unions(): IR.Module {
                                         ])
                                     )
                                 ),
-                                2
+                                //2
                             ),
                             create_statement(
                                 IR.create_variable_declaration_with_type_expression(
@@ -3870,7 +3889,7 @@ export function create_using_unions(): IR.Module {
                                         ])
                                     )
                                 ),
-                                2
+                                //2
                             ),
                             create_statement(
                                 IR.create_variable_declaration_with_type_expression(
@@ -3929,7 +3948,7 @@ export function create_using_unions(): IR.Module {
                                         ])
                                     )
                                 ),
-                                2
+                                //2
                             ),
                             create_statement(
                                 IR.create_variable_declaration_expression(
@@ -3945,7 +3964,7 @@ export function create_using_unions(): IR.Module {
                                         IR.Access_type.Read
                                     )
                                 ),
-                                2
+                                //2
                             ),
                             create_statement(
                                 IR.create_variable_declaration_with_type_expression(
@@ -3977,7 +3996,7 @@ export function create_using_unions(): IR.Module {
                                     ]),
                                     undefined
                                 ),
-                                2
+                                //2
                             ),
                             create_statement(
                                 IR.create_call_expression(
@@ -4147,9 +4166,9 @@ export function create_comments_in_enums(): IR.Module {
     };
 }
 
-export function create_comments_in_functions(): IR.Module {
+export function create_comments_in_functions(add_source_locations: boolean): IR.Module {
     const int32_type = create_integer_type(32, true);
-    return {
+    const module: IR.Module = {
         name: "Comments_in_functions",
         imports: [],
         declarations: [
@@ -4174,7 +4193,8 @@ export function create_comments_in_functions(): IR.Module {
                         name: "use_comments",
                         statements: [
                             create_statement(
-                                IR.create_comment_expression("This is a comment")
+                                IR.create_comment_expression("This is a comment"),
+                                add_source_locations ? { line: 7, column: 5 } : undefined
                             ),
                             create_statement(
                                 IR.create_variable_declaration_expression(
@@ -4182,17 +4202,19 @@ export function create_comments_in_functions(): IR.Module {
                                     false,
                                     IR.create_constant_expression(int32_type, "0")
                                 ),
-                                2
+                                add_source_locations ? { line: 8, column: 5 } : undefined
                             ),
                             create_statement(
-                                IR.create_comment_expression("This is another comment\nAnd yet another")
+                                IR.create_comment_expression("This is another comment\nAnd yet another"),
+                                add_source_locations ? { line: 10, column: 5 } : undefined
                             ),
                             create_statement(
                                 IR.create_variable_declaration_expression(
                                     "x",
                                     false,
                                     IR.create_constant_expression(int32_type, "0")
-                                )
+                                ),
+                                add_source_locations ? { line: 12, column: 5 } : undefined
                             ),
                         ]
                     }
@@ -4200,6 +4222,12 @@ export function create_comments_in_functions(): IR.Module {
             }
         ]
     };
+
+    if (add_source_locations) {
+        (module.declarations[0].value as IR.Function).declaration.source_location = { line: 5, column: 17 };
+    }
+
+    return module;
 }
 
 export function create_comments_in_structs(): IR.Module {
@@ -4313,7 +4341,8 @@ export function create_newlines_after_statements(): IR.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.Private
+                        linkage: IR.Linkage.Private,
+                        source_location: { line: 3, column: 10 }
                     },
                     definition: {
                         name: "use_newlines",
@@ -4323,7 +4352,8 @@ export function create_newlines_after_statements(): IR.Module {
                                     "i",
                                     false,
                                     IR.create_constant_expression(int32_type, "0")
-                                )
+                                ),
+                                { line: 5, column: 5 }
                             ),
                             create_statement(
                                 IR.create_variable_declaration_expression(
@@ -4331,7 +4361,7 @@ export function create_newlines_after_statements(): IR.Module {
                                     false,
                                     IR.create_constant_expression(int32_type, "1")
                                 ),
-                                2
+                                { line: 6, column: 5 }
                             ),
                             create_statement(
                                 IR.create_variable_declaration_expression(
@@ -4339,10 +4369,11 @@ export function create_newlines_after_statements(): IR.Module {
                                     false,
                                     IR.create_constant_expression(int32_type, "2")
                                 ),
-                                2
+                                { line: 8, column: 5 }
                             ),
                             create_statement(
-                                IR.create_comment_expression("A comment")
+                                IR.create_comment_expression("A comment"),
+                                { line: 10, column: 5 }
                             ),
                             create_statement(
                                 IR.create_variable_declaration_expression(
@@ -4350,7 +4381,7 @@ export function create_newlines_after_statements(): IR.Module {
                                     false,
                                     IR.create_constant_expression(int32_type, "3")
                                 ),
-                                3
+                                { line: 11, column: 5 }
                             ),
                             create_statement(
                                 IR.create_variable_declaration_expression(
@@ -4358,7 +4389,7 @@ export function create_newlines_after_statements(): IR.Module {
                                     false,
                                     IR.create_constant_expression(int32_type, "4")
                                 ),
-                                2
+                                { line: 14, column: 5 }
                             ),
                         ]
                     }
@@ -4581,8 +4612,7 @@ export function create_variable_declaration_inside_while_loop(): IR.Module {
                         )
                     )
                 ]
-            ),
-            2
+            )
         ),
     ];
 
@@ -4916,14 +4946,14 @@ function create_pointer_type(element_type: IR.Type_reference[], is_mutable: bool
     };
 }
 
-function create_statement(expression: IR.Expression, newlines_after?: number): IR.Statement {
+function create_statement(expression: IR.Expression, source_location?: IR.Source_location): IR.Statement {
 
     const statement: IR.Statement = {
         expression: expression
     };
 
-    if (newlines_after !== undefined) {
-        statement.newlines_after = newlines_after;
+    if (source_location !== undefined) {
+        statement.expression.source_location = source_location;
     }
 
     return statement;
@@ -4932,5 +4962,30 @@ function create_statement(expression: IR.Expression, newlines_after?: number): I
 function add_newlines(statements: IR.Statement[], statement_indices: number[]) {
     for (const index of statement_indices) {
         statements[index].newlines_after = 2;
+    }
+}
+
+function add_source_locations(
+    statements: IR.Statement[],
+    start_source_location: IR.Source_location,
+    additional_new_lines: number[]
+) {
+
+    const current_source_location: IR.Source_location = {
+        line: start_source_location.line,
+        column: start_source_location.column
+    };
+
+    for (let index = 0; index < statements.length; index++) {
+        statements[index].expression.source_location = {
+            line: current_source_location.line,
+            column: current_source_location.column
+        };
+
+        current_source_location.line += 1;
+
+        if (additional_new_lines.includes(index)) {
+            current_source_location.line += 1;
+        }
     }
 }
