@@ -4321,9 +4321,9 @@ export function create_comments_in_unions(): IR.Module {
     };
 }
 
-export function create_newlines_after_statements(): IR.Module {
+export function create_newlines_after_statements(add_source_locations: boolean): IR.Module {
     const int32_type = create_integer_type(32, true);
-    return {
+    const output: IR.Module = {
         name: "Newlines_after_statements",
         imports: [],
         declarations: [
@@ -4341,8 +4341,7 @@ export function create_newlines_after_statements(): IR.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.Private,
-                        source_location: { line: 3, column: 10 }
+                        linkage: IR.Linkage.Private
                     },
                     definition: {
                         name: "use_newlines",
@@ -4353,7 +4352,7 @@ export function create_newlines_after_statements(): IR.Module {
                                     false,
                                     IR.create_constant_expression(int32_type, "0")
                                 ),
-                                { line: 5, column: 5 }
+                                add_source_locations ? { line: 5, column: 5 } : undefined
                             ),
                             create_statement(
                                 IR.create_variable_declaration_expression(
@@ -4361,7 +4360,7 @@ export function create_newlines_after_statements(): IR.Module {
                                     false,
                                     IR.create_constant_expression(int32_type, "1")
                                 ),
-                                { line: 6, column: 5 }
+                                add_source_locations ? { line: 6, column: 5 } : undefined
                             ),
                             create_statement(
                                 IR.create_variable_declaration_expression(
@@ -4369,11 +4368,11 @@ export function create_newlines_after_statements(): IR.Module {
                                     false,
                                     IR.create_constant_expression(int32_type, "2")
                                 ),
-                                { line: 8, column: 5 }
+                                add_source_locations ? { line: 8, column: 5 } : undefined
                             ),
                             create_statement(
                                 IR.create_comment_expression("A comment"),
-                                { line: 10, column: 5 }
+                                add_source_locations ? { line: 10, column: 5 } : undefined
                             ),
                             create_statement(
                                 IR.create_variable_declaration_expression(
@@ -4381,7 +4380,7 @@ export function create_newlines_after_statements(): IR.Module {
                                     false,
                                     IR.create_constant_expression(int32_type, "3")
                                 ),
-                                { line: 11, column: 5 }
+                                add_source_locations ? { line: 11, column: 5 } : undefined
                             ),
                             create_statement(
                                 IR.create_variable_declaration_expression(
@@ -4389,7 +4388,7 @@ export function create_newlines_after_statements(): IR.Module {
                                     false,
                                     IR.create_constant_expression(int32_type, "4")
                                 ),
-                                { line: 14, column: 5 }
+                                add_source_locations ? { line: 14, column: 5 } : undefined
                             ),
                         ]
                     }
@@ -4397,6 +4396,12 @@ export function create_newlines_after_statements(): IR.Module {
             }
         ]
     };
+
+    if (add_source_locations) {
+        (output.declarations[0].value as IR.Function).declaration.source_location = { line: 3, column: 10 };
+    }
+
+    return output;
 }
 
 export function create_add_function(): IR.Module {

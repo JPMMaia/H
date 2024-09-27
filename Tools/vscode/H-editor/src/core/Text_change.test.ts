@@ -1393,7 +1393,7 @@ export function run_ifs(value: Int32) -> ()
         const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
-        const expected_module = Module_examples.create_if_expressions();
+        const expected_module = Module_examples.create_if_expressions(false);
         assert.deepEqual(new_document_state.module, expected_module);
     });
 
@@ -2164,7 +2164,7 @@ export function use_comments() -> ()
         const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
-        const expected_module = Module_examples.create_comments_in_functions();
+        const expected_module = Module_examples.create_comments_in_functions(false);
         assert.deepEqual(new_document_state.module, expected_module);
     });
 
@@ -2278,7 +2278,7 @@ function use_newlines() -> ()
         const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
-        const expected_module = Module_examples.create_newlines_after_statements();
+        const expected_module = Module_examples.create_newlines_after_statements(false);
         assert.deepEqual(new_document_state.module, expected_module);
     });
 

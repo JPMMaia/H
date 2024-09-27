@@ -112,7 +112,7 @@ describe("Text_formatter.to_string", () => {
     });
 
     it("Preserves newlines after statements", () => {
-        const module = Module_examples.create_newlines_after_statements();
+        const module = Module_examples.create_newlines_after_statements(true);
         const actual_text = run_text_formatter(module);
         const expected_text = "module Newlines_after_statements;\n\nfunction use_newlines() -> ()\n{\n    var i = 0;\n    var j = 1;\n\n    var k = 2;\n\n    // A comment\n    var l = 3;\n\n\n    var m = 4;\n}";
         assert.equal(actual_text, expected_text);

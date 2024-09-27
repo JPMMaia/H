@@ -521,19 +521,18 @@ export function map_terminal_to_word(
             return {
                 value: word.value,
                 type: word.type,
-                newlines_after: newlines_after,
                 source_location: { line: 0, column: 0 }
             };
         }
     }
 
     if (terminal !== "identifier" && terminal !== "number") {
-        return { value: terminal, type: Scanner.get_word_type(terminal), newlines_after: newlines_after, source_location: { line: 0, column: 0 } };
+        return { value: terminal, type: Scanner.get_word_type(terminal), source_location: { line: 0, column: 0 } };
     }
 
     const position_with_placeholders = mappings.value_map.get(label);
     if (position_with_placeholders === undefined) {
-        return { value: terminal, type: Scanner.get_word_type(terminal), newlines_after: newlines_after, source_location: { line: 0, column: 0 } };
+        return { value: terminal, type: Scanner.get_word_type(terminal), source_location: { line: 0, column: 0 } };
     }
 
     const position = replace_placeholders_by_values(module, position_with_placeholders, production_rules, stack, mappings);
@@ -549,7 +548,7 @@ export function map_terminal_to_word(
     const transformed_value = transform !== undefined ? transform(object_reference.value) : object_reference.value.toString();
 
     return {
-        value: transformed_value, type: Scanner.get_word_type(transformed_value), newlines_after: newlines_after, source_location: { line: 0, column: 0 }
+        value: transformed_value, type: Scanner.get_word_type(transformed_value), source_location: { line: 0, column: 0 }
     };
 }
 
