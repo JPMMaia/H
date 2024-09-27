@@ -989,17 +989,6 @@ namespace h::json
             };
         }
 
-        if (key == "newlines_after")
-        {
-            parent->newlines_after = std::uint32_t{};
-            return Stack_state
-            {
-                .pointer = &parent->newlines_after.value(),
-                .type = "std::uint32_t",
-                .get_next_state = nullptr,
-            };
-        }
-
         return {};
     }
 

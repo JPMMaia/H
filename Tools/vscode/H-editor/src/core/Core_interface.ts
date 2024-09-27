@@ -177,7 +177,6 @@ export interface Indexed_comment {
 
 export interface Statement {
     expressions: Vector<Expression>;
-    newlines_after?: number;
 }
 
 export interface Alias_type_declaration {
