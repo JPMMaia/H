@@ -46,21 +46,32 @@ namespace h
     return llvm_ir.substr(current_index, llvm_ir.size());
   }
 
+  struct Test_options
+  {
+    bool debug = false;
+    std::string_view target_triple = "x86_64-pc-linux-gnu";
+  };
+
   void test_create_llvm_module(
     std::string_view const input_file,
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map,
     std::string_view const expected_llvm_ir,
-    bool const debug = false
+    Test_options const test_options = {}
   )
   {
     std::optional<h::Module> core_module = h::compiler::read_core_module(g_test_files_path / input_file);
     REQUIRE(core_module.has_value());
 
-    h::compiler::LLVM_data llvm_data = h::compiler::initialize_llvm({});
+    h::compiler::LLVM_options const llvm_options
+    {
+      .target_triple = test_options.target_triple,
+    };
+
+    h::compiler::LLVM_data llvm_data = h::compiler::initialize_llvm(llvm_options);
 
     h::compiler::Compilation_options const compilation_options
     {
-      .debug = debug,
+      .debug = test_options.debug,
       .is_optimized = false,
     };
 
@@ -899,7 +910,7 @@ attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !24 = !DILocation(line: 10, column: 5, scope: !3)
 )", g_test_source_files_path.generic_string(), root_directory_path.generic_string());
 
-    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, true);
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
   }
 
   TEST_CASE("Compile Debug Information For Loop")
@@ -971,7 +982,7 @@ attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !16 = !DILocation(line: 12, column: 5, scope: !3)
 )", g_test_source_files_path.generic_string());
 
-    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, true);
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
   }
 
   TEST_CASE("Compile Debug Information Function Call")
@@ -1041,7 +1052,7 @@ attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !23 = !DILocation(line: 5, column: 5, scope: !13)
 )", g_test_source_files_path.generic_string());
 
-    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, true);
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
   }
 
   TEST_CASE("Compile Debug Information If")
@@ -1105,7 +1116,7 @@ attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !17 = distinct !DILexicalBlock(scope: !3, file: !2, line: 14, column: 5)
 )", g_test_source_files_path.generic_string());
 
-    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, true);
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
   }
 
   TEST_CASE("Compile Debug Information Struct")
@@ -1154,7 +1165,7 @@ attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !15 = !DILocation(line: 12, column: 5, scope: !3)
 )", g_test_source_files_path.generic_string());
 
-    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, true);
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
   }
 
   TEST_CASE("Compile Debug Information Switch")
@@ -1217,7 +1228,7 @@ attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !15 = !DILocation(line: 12, column: 9, scope: !3)
 )", g_test_source_files_path.generic_string());
 
-    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, true);
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
   }
 
   TEST_CASE("Compile Debug Information Union")
@@ -1271,7 +1282,7 @@ attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !17 = !DILocation(line: 12, column: 5, scope: !3)
 )", g_test_source_files_path.generic_string());
 
-    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, true);
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
   }
 
   TEST_CASE("Compile Debug Information Variables")
@@ -1316,7 +1327,7 @@ attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !12 = !DILocation(line: 7, column: 5, scope: !3)
 )", g_test_source_files_path.generic_string());
 
-    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, true);
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
   }
 
   TEST_CASE("Compile Debug Information While Loop")
@@ -1387,7 +1398,7 @@ attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !18 = !DILocation(line: 14, column: 5, scope: !3)
 )", g_test_source_files_path.generic_string());
 
-    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, true);
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
   }
 
   TEST_CASE("Compile Empty Return Expression")
@@ -2712,5 +2723,56 @@ struct My_struct
     h::Struct_layout const actual_struct_layout = h::compiler::calculate_struct_layout(llvm_data.data_layout, type_database, "my_module", "My_struct");
 
     CHECK(actual_struct_layout == expected_struct_layout);
+  }
+
+  TEST_CASE("C Interoperability 0")
+  {
+    char const* const input_file = "c_interoperability_0.hl";
+
+    std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "c_interoperability_0";
+    std::filesystem::create_directories(root_directory_path);
+
+    std::string const header_content = R"(
+typedef struct My_struct
+{
+    int v0;
+    int v1;
+    int v2;
+    int v3;
+} My_struct;
+
+void foo(My_struct argument);
+)";
+
+    std::filesystem::path const header_file_path = root_directory_path / "my_header.h";
+    h::common::write_to_file(header_file_path, header_content);
+
+    std::filesystem::path const header_module_file_path = root_directory_path / "my_header.hl";
+    h::c::import_header_and_write_to_file("my_module", header_file_path, header_module_file_path, {});
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+        { "my_module", header_module_file_path }
+    };
+
+    char const* const expected_llvm_ir = R"(
+%struct.My_struct = type { i32, i32, i32, i32 }
+
+define dso_local void @run() {
+entry:
+  %instance = alloca %struct.My_struct, align 4
+  store %My_struct zeroinitializer, ptr %instance, align 4
+  %0 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 0
+  %1 = load i64, ptr %0, align 4
+  %2 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 1
+  %3 = load i64, ptr %2, align 4
+  call void @foo(i64 %1, i64 %3)
+  ret void
+}
+
+declare void @foo(i64, i64) #1
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 }

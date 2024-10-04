@@ -1132,11 +1132,6 @@ namespace h::compiler
 
         llvm::Function* const llvm_function = static_cast<llvm::Function*>(left_hand_side.value);
 
-        if (expression.arguments.size() != llvm_function->arg_size() && !llvm_function->isVarArg())
-        {
-            throw std::runtime_error{ "Incorrect # arguments passed." };
-        }
-
         std::pmr::vector<llvm::Value*> llvm_arguments{ temporaries_allocator };
         llvm_arguments.resize(expression.arguments.size());
 
@@ -1148,7 +1143,9 @@ namespace h::compiler
 
             Expression_parameters new_parameters = parameters;
             new_parameters.expression_type = i < function_type.input_parameter_types.size() ? function_type.input_parameter_types[i] : std::optional<Type_reference>{};
-            Value_and_type const temporary = create_loaded_expression_value(expression_index, statement, new_parameters);
+            //Value_and_type const temporary = create_loaded_expression_value(expression_index, statement, new_parameters);
+            Value_and_type const temporary = create_expression_value(expression_index, statement, parameters);
+            temporary.value->dump();
 
             llvm_arguments[i] = temporary.value;
         }
@@ -1156,7 +1153,16 @@ namespace h::compiler
         if (parameters.debug_info != nullptr)
             set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
 
-        llvm::Value* call_instruction = llvm_builder.CreateCall(llvm_function, llvm_arguments);
+        llvm::Value* call_instruction = generate_function_call(
+            parameters.llvm_context,
+            parameters.clang_module_data,
+            parameters.core_module,
+            function_type,
+            *llvm_function,
+            llvm_builder,
+            llvm_arguments,
+            parameters.declaration_database
+        );
 
         std::optional<Type_reference> function_output_type_reference = get_function_output_type_reference(function_type, parameters.core_module);
 
@@ -1274,6 +1280,32 @@ namespace h::compiler
         };
     }
 
+    bool is_fundamental_type_signed(Fundamental_type const fundamental_type)
+    {
+        switch (fundamental_type)
+        {
+        case Fundamental_type::C_char:
+        case Fundamental_type::C_schar:
+        case Fundamental_type::C_short:
+        case Fundamental_type::C_int:
+        case Fundamental_type::C_long:
+        case Fundamental_type::C_longlong: {
+            return true;
+        }
+        case Fundamental_type::C_bool:
+        case Fundamental_type::C_uchar:
+        case Fundamental_type::C_ushort:
+        case Fundamental_type::C_uint:
+        case Fundamental_type::C_ulong:
+        case Fundamental_type::C_ulonglong: {
+            return false;
+        }
+        default: {
+            return false;
+        }
+        }
+    }
+
     Value_and_type create_constant_expression_value(
         Constant_expression const& expression,
         llvm::LLVMContext& llvm_context,
@@ -1341,6 +1373,36 @@ namespace h::compiler
                 double const value = std::strtod(expression.data.c_str(), &end);
 
                 llvm::Value* const instruction = llvm::ConstantFP::get(llvm_type, value);
+
+                return
+                {
+                    .name = "",
+                    .value = instruction,
+                    .type = expression.type
+                };
+            }
+            case Fundamental_type::C_bool:
+            case Fundamental_type::C_char:
+            case Fundamental_type::C_schar:
+            case Fundamental_type::C_uchar:
+            case Fundamental_type::C_short:
+            case Fundamental_type::C_ushort:
+            case Fundamental_type::C_int:
+            case Fundamental_type::C_uint:
+            case Fundamental_type::C_long:
+            case Fundamental_type::C_ulong:
+            case Fundamental_type::C_longlong:
+            case Fundamental_type::C_ulonglong: {
+                llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, expression.type, type_database);
+
+                char* end;
+                std::uint64_t const data = std::strtoull(expression.data.c_str(), &end, 0);
+
+                unsigned const number_of_bits = llvm_type->getIntegerBitWidth();
+                bool const is_signed = is_fundamental_type_signed(fundamental_type);
+                llvm::APInt const value{ number_of_bits, data, is_signed };
+
+                llvm::Value* const instruction = llvm::ConstantInt::get(llvm_type, value);
 
                 return
                 {

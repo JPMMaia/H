@@ -1,0 +1,9 @@
+module c_interoperability_0;
+
+import my_module as m;
+
+function run() -> ()
+{
+    var instance: m.My_struct = {};
+    m.foo(instance);
+}
