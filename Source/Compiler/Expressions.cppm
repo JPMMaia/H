@@ -17,6 +17,7 @@ export module h.compiler.expressions;
 
 import h.core;
 import h.core.declarations;
+import h.compiler.clang_code_generation;
 import h.compiler.debug_info;
 import h.compiler.types;
 
@@ -57,6 +58,7 @@ namespace h::compiler
         llvm::IRBuilder<>& llvm_builder;
         llvm::Function* const llvm_parent_function;
         llvm::Module& llvm_module;
+        Clang_module_data& clang_module_data;
         Module const& core_module;
         std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies;
         Declaration_database const& declaration_database;

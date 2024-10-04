@@ -16,7 +16,26 @@ target_compile_definitions(H_compiler PUBLIC ${LLVM_DEFINITIONS} LLVM_DISABLE_AB
 
 target_include_directories(H_compiler PUBLIC ${LLVM_INCLUDE_DIRS})
 
-llvm_map_components_to_libnames(llvm_libs BinaryFormat Core LibDriver LTO MC nativecodegen OrcJIT Object Option Passes ProfileData Support TargetParser WindowsDriver WindowsManifest X86 X86asmparser)
+llvm_map_components_to_libnames(
+   llvm_libs
+   BinaryFormat
+   Core
+   LibDriver
+   LTO
+   MC
+   nativecodegen
+   OrcJIT
+   Object
+   Option
+   Passes
+   ProfileData
+   Support
+   TargetParser
+   WindowsDriver
+   WindowsManifest
+   X86
+   X86asmparser
+)
 
 target_link_libraries(H_compiler PUBLIC ${llvm_libs})
 
@@ -38,6 +57,16 @@ if(WIN32)
    install(FILES ${ZLIB_DLL_RELEASE} TYPE BIN CONFIGURATIONS Release)
 endif()
 
+find_package(Clang CONFIG REQUIRED)
+target_include_directories(H_compiler PRIVATE ${CLANG_INCLUDE_DIRS})
+target_link_libraries(
+   H_compiler
+   PRIVATE
+   clangBasic
+   clangCodeGen
+   libclang
+)
+
 ## End LLVM ##
 
 target_link_libraries(H_compiler PUBLIC "wtr.hdr_watcher")
@@ -55,6 +84,8 @@ else()
 endif()
 
 target_sources(H_compiler PRIVATE
+   "Clang_code_generation.cppm"
+   "Clang_code_generation.cpp"
    "Common.cppm"
    "Common.cpp"
    "Compiler.cppm"

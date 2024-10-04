@@ -20,6 +20,7 @@ export module h.compiler;
 
 import h.core;
 import h.compiler.types;
+import h.compiler.clang_code_generation;
 
 namespace h::compiler
 {
@@ -40,6 +41,7 @@ namespace h::compiler
         llvm::DataLayout data_layout;
         std::unique_ptr<llvm::LLVMContext> context;
         Optimization_managers optimization_managers;
+        Clang_data clang_data;
     };
 
     export struct LLVM_module_data
