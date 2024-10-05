@@ -30,6 +30,8 @@ module;
 
 module h.compiler.clang_code_generation;
 
+import h.compiler.instructions;
+import h.compiler.types;
 import h.core;
 import h.core.declarations;
 
@@ -390,11 +392,14 @@ namespace h::compiler
 
     std::pmr::vector<llvm::Value*> transform_arguments(
         llvm::LLVMContext& llvm_context,
-        Clang_module_data& clang_module_data,
-        h::Function_type const& function_type,
         llvm::IRBuilder<>& llvm_builder,
+        llvm::DataLayout const& llvm_data_layout,
+        Clang_module_data& clang_module_data,
+        h::Module const& core_module,
+        h::Function_type const& function_type,
         std::span<llvm::Value* const> const original_arguments,
-        Declaration_database const& declaration_database
+        Declaration_database const& declaration_database,
+        Type_database const& type_database
     )
     {
         clang::CodeGen::CGFunctionInfo const& function_info = create_clang_function_info(clang_module_data, function_type, declaration_database);
@@ -417,10 +422,13 @@ namespace h::compiler
                     if (new_type->isStructTy())
                     {
                         llvm::StructType* const new_struct_type = static_cast<llvm::StructType*>(new_type);
-
                         llvm::ArrayRef<llvm::Type*> const new_elements = new_struct_type->elements();
 
                         llvm::Value* const original_argument = original_arguments[argument_index];
+
+                        h::Type_reference const& original_argument_type = function_type.input_parameter_types[argument_index];
+                        llvm::Type* const original_argument_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, original_argument_type, type_database);
+                        llvm::Align const original_argument_alignment = llvm_data_layout.getABITypeAlign(original_argument_llvm_type);
 
                         for (unsigned new_element_index = 0; new_element_index < new_elements.size(); ++new_element_index)
                         {
@@ -431,11 +439,9 @@ namespace h::compiler
                             };
 
                             llvm::Value* const pointer_to_element = llvm_builder.CreateInBoundsGEP(new_type, original_argument, indices);
-                            pointer_to_element->dump();
 
                             llvm::Type* const element_type = new_elements[new_element_index];
-                            llvm::Value* const loaded_element = llvm_builder.CreateLoad(element_type, pointer_to_element);
-                            loaded_element->dump();
+                            llvm::Value* const loaded_element = llvm_builder.CreateAlignedLoad(element_type, pointer_to_element, original_argument_alignment);
 
                             transformed_arguments.push_back(loaded_element);
                         }
@@ -540,16 +546,18 @@ namespace h::compiler
 
     llvm::Value* generate_function_call(
         llvm::LLVMContext& llvm_context,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::DataLayout const& llvm_data_layout,
         Clang_module_data& clang_module_data,
         h::Module const& core_module,
         h::Function_type const& function_type,
         llvm::Function& llvm_function,
-        llvm::IRBuilder<>& llvm_builder,
         std::span<llvm::Value* const> const arguments,
-        Declaration_database const& declaration_database
+        Declaration_database const& declaration_database,
+        Type_database const& type_database
     )
     {
-        std::pmr::vector<llvm::Value*> const transformed_arguments = transform_arguments(llvm_context, clang_module_data, function_type, llvm_builder, arguments, declaration_database);
+        std::pmr::vector<llvm::Value*> const transformed_arguments = transform_arguments(llvm_context, llvm_builder, llvm_data_layout, clang_module_data, core_module, function_type, arguments, declaration_database, type_database);
 
         llvm::Value* call_instruction = llvm_builder.CreateCall(&llvm_function, transformed_arguments);
 

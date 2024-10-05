@@ -96,6 +96,8 @@ target_sources(H_compiler PRIVATE
    "Expressions.cpp"
    "Hash.cppm"
    "Hash.cpp"
+   "Instructions.cppm"
+   "Instructions.cpp"
    "Linker.cppm"
    "Linker.cpp"
    "Recompilation.cppm"

@@ -2756,11 +2756,11 @@ void foo(My_struct argument);
     };
 
     char const* const expected_llvm_ir = R"(
-%struct.My_struct = type { i32, i32, i32, i32 }
+%My_struct = type { i32, i32, i32, i32 }
 
-define dso_local void @run() {
+define private void @c_interoperability_0_run() {
 entry:
-  %instance = alloca %struct.My_struct, align 4
+  %instance = alloca %My_struct, align 4
   store %My_struct zeroinitializer, ptr %instance, align 4
   %0 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 0
   %1 = load i64, ptr %0, align 4
@@ -2770,7 +2770,7 @@ entry:
   ret void
 }
 
-declare void @foo(i64, i64) #1
+declare void @foo(i64, i64)
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);

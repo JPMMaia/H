@@ -33,6 +33,7 @@ export module h.compiler.clang_code_generation;
 
 import h.core;
 import h.core.declarations;
+import h.compiler.types;
 
 namespace h::compiler
 {
@@ -90,23 +91,27 @@ namespace h::compiler
 
     std::pmr::vector<llvm::Value*> transform_arguments(
         llvm::LLVMContext& llvm_context,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::DataLayout const& llvm_data_layout,
         Clang_module_data& clang_module_data,
         h::Module const& core_module,
         h::Function_type const& function_type,
-        llvm::IRBuilder<>& builder,
         std::span<llvm::Value* const> const arguments,
-        Declaration_database const& declaration_database
+        Declaration_database const& declaration_database,
+        Type_database const& type_database
     );
 
     export llvm::Value* generate_function_call(
         llvm::LLVMContext& llvm_context,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::DataLayout const& llvm_data_layout,
         Clang_module_data& clang_module_data,
         h::Module const& core_module,
         h::Function_type const& function_type,
         llvm::Function& llvm_function,
-        llvm::IRBuilder<>& llvm_builder,
         std::span<llvm::Value* const> const arguments,
-        Declaration_database const& declaration_database
+        Declaration_database const& declaration_database,
+        Type_database const& type_database
     );
 
     clang::QualType create_type(
