@@ -25,6 +25,7 @@ import h.core.declarations;
 import h.core.types;
 import h.compiler.common;
 import h.compiler.debug_info;
+import h.compiler.instructions;
 import h.compiler.types;
 
 namespace h::compiler
@@ -135,6 +136,7 @@ namespace h::compiler
 
     llvm::Value* load_if_needed(
         llvm::IRBuilder<>& llvm_builder,
+        llvm::DataLayout const& llvm_data_layout,
         llvm::Value* const value,
         llvm::Type* const type
     )
@@ -146,7 +148,7 @@ namespace h::compiler
 
         if (value->getType()->isPointerTy())
         {
-            return llvm_builder.CreateLoad(type, value);
+            return create_load_instruction(llvm_builder, llvm_data_layout, type, value);
         }
 
         throw std::runtime_error{ "Could not load variable!" };
@@ -568,6 +570,7 @@ namespace h::compiler
     )
     {
         llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
+        llvm::DataLayout const& llvm_data_layout = parameters.llvm_data_layout;
 
         Value_and_type const left_hand_side = create_expression_value(expression.left_hand_side.expression_index, statement, parameters);
 
@@ -583,7 +586,7 @@ namespace h::compiler
         if (parameters.debug_info != nullptr)
             set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
 
-        llvm::Value* store_instruction = llvm_builder.CreateStore(result.value, left_hand_side.value);
+        llvm::Value* store_instruction = create_store_instruction(llvm_builder, llvm_data_layout, result.value, left_hand_side.value);
 
         return
         {
@@ -1155,13 +1158,15 @@ namespace h::compiler
 
         llvm::Value* call_instruction = generate_function_call(
             parameters.llvm_context,
+            llvm_builder,
+            parameters.llvm_data_layout,
             parameters.clang_module_data,
             parameters.core_module,
             function_type,
             *llvm_function,
-            llvm_builder,
             llvm_arguments,
-            parameters.declaration_database
+            parameters.declaration_database,
+            parameters.type_database
         );
 
         std::optional<Type_reference> function_output_type_reference = get_function_output_type_reference(function_type, parameters.core_module);
@@ -1531,10 +1536,10 @@ namespace h::compiler
         // Loop variable declaration:
         Type_reference const& variable_type = range_begin_temporary.type.value();
         llvm::Type* const variable_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, variable_type, type_database);
-        llvm::Value* const variable_alloca = llvm_builder.CreateAlloca(variable_llvm_type, nullptr, expression.variable_name.c_str());
+        llvm::AllocaInst* const variable_alloca = create_alloca_instruction(llvm_builder, llvm_data_layout, variable_llvm_type, expression.variable_name.c_str());
         if (parameters.debug_info != nullptr)
             create_local_variable_debug_description(*parameters.debug_info, parameters, expression.variable_name.c_str(), variable_alloca, variable_type);
-        llvm_builder.CreateStore(range_begin_temporary.value, variable_alloca);
+        create_store_instruction(llvm_builder, llvm_data_layout, range_begin_temporary.value, variable_alloca);
         Value_and_type const variable_value = { .name = expression.variable_name, .value = variable_alloca, .type = variable_type };
 
         llvm::BasicBlock* const condition_block = llvm::BasicBlock::Create(llvm_context, "for_loop_condition", llvm_parent_function);
@@ -1559,7 +1564,7 @@ namespace h::compiler
             Value_and_type const loaded_variable_value
             {
                 .name = expression.variable_name,
-                .value = llvm_builder.CreateLoad(variable_llvm_type, variable_alloca),
+                .value = create_load_instruction(llvm_builder, llvm_data_layout, variable_llvm_type, variable_alloca),
                 .type = variable_type,
             };
 
@@ -1613,9 +1618,9 @@ namespace h::compiler
             if (parameters.debug_info != nullptr)
                 set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
 
-            llvm::Value* const loaded_value_value = llvm_builder.CreateLoad(variable_llvm_type, variable_value.value);
+            llvm::Value* const loaded_value_value = create_load_instruction(llvm_builder, llvm_data_layout, variable_llvm_type, variable_value.value);
             llvm::Value* new_variable_value = llvm_builder.CreateAdd(loaded_value_value, step_by_value.value);
-            llvm_builder.CreateStore(new_variable_value, variable_value.value);
+            create_store_instruction(llvm_builder, llvm_data_layout, new_variable_value, variable_value.value);
 
             llvm_builder.CreateBr(condition_block);
         }
@@ -1871,9 +1876,9 @@ namespace h::compiler
         if (parameters.debug_info != nullptr)
             set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
 
-        llvm::Value* const union_instance = llvm_builder.CreateAlloca(llvm_union_type);
+        llvm::AllocaInst* const union_instance = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_union_type);
         llvm::Value* const bitcast_instruction = llvm_builder.CreateBitCast(union_instance, member_value.value->getType()->getPointerTo());
-        llvm_builder.CreateStore(member_value.value, bitcast_instruction);
+        create_store_instruction(llvm_builder, llvm_data_layout, member_value.value, bitcast_instruction);
 
         return Value_and_type
         {
@@ -2151,7 +2156,7 @@ namespace h::compiler
             if (is_bool(type))
             {
                 llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, value_expression.type.value(), type_database);
-                llvm::Value* const loaded_value = load_if_needed(llvm_builder, value_expression.value, llvm_type);
+                llvm::Value* const loaded_value = load_if_needed(llvm_builder, llvm_data_layout, value_expression.value, llvm_type);
                 return Value_and_type
                 {
                     .name = "",
@@ -2165,7 +2170,7 @@ namespace h::compiler
             if (is_integer(type))
             {
                 llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, value_expression.type.value(), type_database);
-                llvm::Value* const loaded_value = load_if_needed(llvm_builder, value_expression.value, llvm_type);
+                llvm::Value* const loaded_value = load_if_needed(llvm_builder, llvm_data_layout, value_expression.value, llvm_type);
                 return Value_and_type
                 {
                     .name = "",
@@ -2179,7 +2184,7 @@ namespace h::compiler
             if (is_integer(type))
             {
                 llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, value_expression.type.value(), type_database);
-                llvm::Value* const loaded_value = load_if_needed(llvm_builder, value_expression.value, llvm_type);
+                llvm::Value* const loaded_value = load_if_needed(llvm_builder, llvm_data_layout, value_expression.value, llvm_type);
                 return Value_and_type
                 {
                     .name = "",
@@ -2200,13 +2205,13 @@ namespace h::compiler
                 bool const is_increment = (operation == Unary_operation::Pre_increment) || (operation == Unary_operation::Post_increment);
                 bool const is_post = (operation == Unary_operation::Post_decrement) || (operation == Unary_operation::Post_increment);
 
-                llvm::Value* const current_value = llvm_builder.CreateLoad(llvm_value_type, value_expression.value);
+                llvm::Value* const current_value = create_load_instruction(llvm_builder, llvm_data_layout, llvm_value_type, value_expression.value);
 
                 llvm::Value* const new_value = is_increment ?
                     llvm_builder.CreateAdd(current_value, llvm::ConstantInt::get(current_value->getType(), 1)) :
                     llvm_builder.CreateSub(current_value, llvm::ConstantInt::get(current_value->getType(), 1));
 
-                llvm_builder.CreateStore(new_value, value_expression.value);
+                create_store_instruction(llvm_builder, llvm_data_layout, new_value, value_expression.value);
 
                 llvm::Value* const returned_value = is_post ? current_value : new_value;
 
@@ -2225,8 +2230,8 @@ namespace h::compiler
                 Type_reference const core_pointee_type = remove_pointer(type).value();
                 llvm::Type* const llvm_pointee_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, core_pointee_type, type_database);
 
-                llvm::Value* const load_address = llvm_builder.CreateLoad(value_expression.value->getType(), value_expression.value);
-                llvm::Value* const load_value = llvm_builder.CreateLoad(llvm_pointee_type, load_address);
+                llvm::Value* const load_address = create_load_instruction(llvm_builder, llvm_data_layout, value_expression.value->getType(), value_expression.value);
+                llvm::Value* const load_value = create_load_instruction(llvm_builder, llvm_data_layout, llvm_pointee_type, load_address);
 
                 return Value_and_type
                 {
@@ -2264,18 +2269,19 @@ namespace h::compiler
     )
     {
         llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
+        llvm::DataLayout const& llvm_data_layout = parameters.llvm_data_layout;
 
         Value_and_type const& right_hand_side = create_loaded_expression_value(expression.right_hand_side.expression_index, statement, parameters);
 
         if (parameters.debug_info != nullptr)
             set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
 
-        llvm::Value* const alloca = llvm_builder.CreateAlloca(right_hand_side.value->getType(), nullptr, expression.name.c_str());
+        llvm::AllocaInst* const alloca = create_alloca_instruction(llvm_builder, llvm_data_layout, right_hand_side.value->getType(), expression.name.c_str());
 
         if (parameters.debug_info != nullptr)
             create_local_variable_debug_description(*parameters.debug_info, parameters, expression.name, alloca, *right_hand_side.type);
 
-        llvm_builder.CreateStore(right_hand_side.value, alloca);
+        create_store_instruction(llvm_builder, llvm_data_layout, right_hand_side.value, alloca);
 
         return Value_and_type
         {
@@ -2310,12 +2316,12 @@ namespace h::compiler
         if (parameters.debug_info != nullptr)
             set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
 
-        llvm::Value* const alloca = llvm_builder.CreateAlloca(llvm_type, nullptr, expression.name.c_str());
+        llvm::AllocaInst* const alloca = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_type, expression.name.c_str());
 
         if (parameters.debug_info != nullptr)
             create_local_variable_debug_description(*parameters.debug_info, parameters, expression.name, alloca, core_type);
 
-        llvm_builder.CreateStore(right_hand_side.value, alloca);
+        create_store_instruction(llvm_builder, llvm_data_layout, right_hand_side.value, alloca);
 
         return Value_and_type
         {
