@@ -4,8 +4,17 @@ module;
 
 export module h.compiler.instructions;
 
+import h.core;
+
 namespace h::compiler
 {
+    export struct Value_and_type
+    {
+        std::pmr::string name;
+        llvm::Value* value;
+        std::optional<h::Type_reference> type;
+    };
+
     export llvm::AllocaInst* create_alloca_instruction(
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,

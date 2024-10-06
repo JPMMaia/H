@@ -466,62 +466,20 @@ namespace h::compiler
         {
             std::pmr::vector<Block_info> block_infos;
 
-            std::pmr::vector<Value_and_type> function_arguments{ temporaries_allocator };
-            function_arguments.reserve(llvm_function.arg_size());
-
-            for (std::size_t argument_index = 0; argument_index < function_declaration.type.input_parameter_types.size(); ++argument_index)
-            {
-                llvm::Argument* const llvm_argument = llvm_function.getArg(argument_index);
-                std::pmr::string const& name = function_declaration.input_parameter_names[argument_index];
-                Type_reference const& core_type = function_declaration.type.input_parameter_types[argument_index];
-
-                llvm::AllocaInst* const alloca_instruction = llvm_builder.CreateAlloca(llvm_argument->getType(), nullptr, name.c_str());
-
-                if (debug_info != nullptr)
-                {
-                    Source_location const function_declaration_source_location =
-                        function_declaration.source_location.value_or(Source_location{});
-                    Source_location const parameter_source_location =
-                        function_declaration.input_parameter_source_locations.has_value() ?
-                        function_declaration.input_parameter_source_locations.value()[argument_index] :
-                        function_declaration_source_location;
-
-                    llvm::DIType* const llvm_argument_debug_type = type_reference_to_llvm_debug_type(
-                        *debug_info->llvm_builder,
-                        llvm_data_layout,
-                        core_module,
-                        core_type,
-                        debug_info->type_database
-                    );
-
-                    llvm::DIScope* const debug_scope = get_debug_scope(*debug_info);
-
-                    llvm::DILocalVariable* debug_parameter_variable = debug_info->llvm_builder->createParameterVariable(
-                        debug_scope,
-                        name.c_str(),
-                        argument_index + 1,
-                        debug_scope->getFile(),
-                        parameter_source_location.line,
-                        llvm_argument_debug_type,
-                        true
-                    );
-
-                    llvm::DILocation* const debug_location = llvm::DILocation::get(llvm_context, parameter_source_location.line, parameter_source_location.column, debug_scope);
-
-                    debug_info->llvm_builder->insertDeclare(
-                        alloca_instruction,
-                        debug_parameter_variable,
-                        debug_info->llvm_builder->createExpression(),
-                        debug_location,
-                        block
-                    );
-                }
-
-                llvm_builder.CreateStore(llvm_argument, alloca_instruction);
-
-                function_arguments.push_back({ .name = name, .value = alloca_instruction, .type = std::move(core_type) });
-            }
-
+            std::pmr::vector<Value_and_type> function_arguments = generate_function_arguments(
+                llvm_context,
+                llvm_builder,
+                llvm_data_layout,
+                clang_module_data,
+                core_module,
+                function_declaration,
+                llvm_function,
+                *block,
+                declaration_database,
+                type_database,
+                debug_info
+            );
+            
             if (debug_info != nullptr)
             {
                 Source_location const function_declaration_source_location = function_declaration.source_location.value_or(Source_location{});

@@ -19,6 +19,7 @@ import h.core;
 import h.core.declarations;
 import h.compiler.clang_code_generation;
 import h.compiler.debug_info;
+import h.compiler.instructions;
 import h.compiler.types;
 
 namespace h::compiler
@@ -35,13 +36,6 @@ namespace h::compiler
         Block_type block_type = {};
         llvm::BasicBlock* repeat_block = nullptr;
         llvm::BasicBlock* after_block = nullptr;
-    };
-
-    export struct Value_and_type
-    {
-        std::pmr::string name;
-        llvm::Value* value;
-        std::optional<Type_reference> type;
     };
 
     using Enum_constants = std::pmr::vector<llvm::Constant*>;

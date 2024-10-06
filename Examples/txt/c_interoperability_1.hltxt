@@ -1,0 +1,20 @@
+module c_interoperability_1;
+
+struct My_struct
+{
+    v0: Int32 = 0;
+    v1: Int32 = 0;
+    v2: Int32 = 0;
+    v3: Int32 = 0;
+}
+
+function add_all(instance: My_struct) -> (result: Int32)
+{
+    return instance.v0 + instance.v1 + instance.v2 + instance.v3;
+}
+
+function run() -> (result: Int32)
+{
+    var instance: My_struct = {};
+    return add_all(instance);
+}

@@ -44,6 +44,7 @@ Convert_hltxt_to_hl(
         "${CMAKE_CURRENT_LIST_DIR}/txt/booleans.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/break_expressions.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/c_interoperability_0.hltxt"
+        "${CMAKE_CURRENT_LIST_DIR}/txt/c_interoperability_1.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/comment_expressions.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/debug_information_all.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/debug_information_c_headers.hltxt"

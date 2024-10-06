@@ -30,6 +30,7 @@ module;
 
 module h.compiler.clang_code_generation;
 
+import h.compiler.debug_info;
 import h.compiler.instructions;
 import h.compiler.types;
 import h.core;
@@ -564,6 +565,171 @@ namespace h::compiler
         return call_instruction;
     }
 
+    void set_function_input_parameter_debug_information(
+        llvm::LLVMContext& llvm_context,
+        llvm::DataLayout const& llvm_data_layout,
+        h::Module const& core_module,
+        h::Function_declaration const& function_declaration,
+        std::size_t const input_parameter_index,
+        llvm::BasicBlock& llvm_block,
+        llvm::Value& alloca_instruction,
+        Debug_info* debug_info
+    )
+    {
+        if (debug_info == nullptr)
+            return;
+
+        std::pmr::string const& name = function_declaration.input_parameter_names[input_parameter_index];
+        Type_reference const& core_type = function_declaration.type.input_parameter_types[input_parameter_index];
+        
+        Source_location const function_declaration_source_location =
+            function_declaration.source_location.value_or(Source_location{});
+
+        Source_location const parameter_source_location =
+            function_declaration.input_parameter_source_locations.has_value() ?
+            function_declaration.input_parameter_source_locations.value()[input_parameter_index] :
+            function_declaration_source_location;
+
+        llvm::DIType* const llvm_argument_debug_type = type_reference_to_llvm_debug_type(
+            *debug_info->llvm_builder,
+            llvm_data_layout,
+            core_module,
+            core_type,
+            debug_info->type_database
+        );
+
+        llvm::DIScope* const debug_scope = get_debug_scope(*debug_info);
+
+        llvm::DILocalVariable* debug_parameter_variable = debug_info->llvm_builder->createParameterVariable(
+            debug_scope,
+            name.c_str(),
+            input_parameter_index + 1,
+            debug_scope->getFile(),
+            parameter_source_location.line,
+            llvm_argument_debug_type,
+            true
+        );
+
+        llvm::DILocation* const debug_location = llvm::DILocation::get(llvm_context, parameter_source_location.line, parameter_source_location.column, debug_scope);
+
+        debug_info->llvm_builder->insertDeclare(
+            &alloca_instruction,
+            debug_parameter_variable,
+            debug_info->llvm_builder->createExpression(),
+            debug_location,
+            &llvm_block
+        );
+    }
+
+    std::pmr::vector<Value_and_type> generate_function_arguments(
+        llvm::LLVMContext& llvm_context,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::DataLayout const& llvm_data_layout,
+        Clang_module_data& clang_module_data,
+        h::Module const& core_module,
+        h::Function_declaration const& function_declaration,
+        llvm::Function& llvm_function,
+        llvm::BasicBlock& llvm_block,
+        Declaration_database const& declaration_database,
+        Type_database const& type_database,
+        Debug_info* debug_info
+    )
+    {
+        clang::CodeGen::CGFunctionInfo const& function_info = create_clang_function_info(clang_module_data, function_declaration.type, declaration_database);
+        llvm::ArrayRef<clang::CodeGen::CGFunctionInfoArgInfo> const argument_infos = function_info.arguments();
+
+        std::pmr::vector<Value_and_type> restored_arguments;
+        restored_arguments.reserve(argument_infos.size());
+
+        unsigned function_argument_index = 0;
+
+        for (unsigned restored_argument_index = 0; restored_argument_index < argument_infos.size(); ++restored_argument_index)
+        {
+            clang::CodeGen::CGFunctionInfoArgInfo const& argument_info = argument_infos[restored_argument_index];
+
+            clang::CodeGen::ABIArgInfo::Kind const kind = argument_info.info.getKind();
+
+            std::pmr::string const& restored_argument_name = function_declaration.input_parameter_names[restored_argument_index];
+            h::Type_reference const& restored_argument_type = function_declaration.type.input_parameter_types[restored_argument_index];
+            llvm::Type* const restored_argument_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, restored_argument_type, type_database);
+            llvm::Align const restored_argument_alignment = llvm_data_layout.getABITypeAlign(restored_argument_llvm_type);
+
+            llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, restored_argument_llvm_type, restored_argument_name.data());
+            restored_arguments.push_back(Value_and_type{.name = restored_argument_name, .value = alloca_instruction, .type = restored_argument_type});
+
+            set_function_input_parameter_debug_information(
+                llvm_context,
+                llvm_data_layout,
+                core_module,
+                function_declaration,
+                restored_argument_index,
+                llvm_block,
+                *alloca_instruction,
+                debug_info
+            );
+
+            switch (kind)
+            {
+                case clang::CodeGen::ABIArgInfo::Direct: {
+                    llvm::Type* const function_argument_type = argument_info.info.getCoerceToType();
+
+                    if (function_argument_type->isStructTy())
+                    {
+                        llvm::StructType* const function_argument_struct_type = static_cast<llvm::StructType*>(function_argument_type);
+                        llvm::ArrayRef<llvm::Type*> const function_argument_elements = function_argument_struct_type->elements();
+
+
+                        for (unsigned function_argument_element_index = 0; function_argument_element_index < function_argument_elements.size(); ++function_argument_element_index)
+                        {
+                            std::array<llvm::Value*, 2> const indices
+                            {
+                                llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm_context), 0),
+                                llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm_context), function_argument_element_index),
+                            };
+                            llvm::Value* const pointer_to_restored_argument = llvm_builder.CreateInBoundsGEP(function_argument_type, alloca_instruction, indices);
+
+                            llvm::Value* const function_argument = llvm_function.getArg(function_argument_index);
+                            llvm_builder.CreateAlignedStore(function_argument, pointer_to_restored_argument, restored_argument_alignment);
+
+                            function_argument_index += 1;
+                        }
+                    }
+                    else
+                    {
+                        llvm::Value* const function_argument = llvm_function.getArg(function_argument_index);
+                        llvm_builder.CreateAlignedStore(function_argument, alloca_instruction, restored_argument_alignment);
+                        function_argument_index += 1;
+                    }
+
+                    break;
+                }
+                case clang::CodeGen::ABIArgInfo::Extend: {
+                    break;
+                }
+                case clang::CodeGen::ABIArgInfo::Indirect: {
+                    break;
+                }
+                case clang::CodeGen::ABIArgInfo::IndirectAliased: {
+                    break;
+                }
+                case clang::CodeGen::ABIArgInfo::Ignore: {
+                    break;
+                }
+                case clang::CodeGen::ABIArgInfo::Expand: {
+                    break;
+                }
+                case clang::CodeGen::ABIArgInfo::CoerceAndExpand: {
+                    break;
+                }
+                case clang::CodeGen::ABIArgInfo::InAlloca: {
+                    break;
+                }
+            }
+        }
+
+        return restored_arguments;
+    }
+
     clang::QualType create_type(
         clang::ASTContext& clang_ast_context,
         h::Type_reference const& type_reference,
@@ -578,6 +744,11 @@ namespace h::compiler
             {
                 return clang_ast_context.IntTy;
             }
+        }
+        else if (std::holds_alternative<h::Integer_type>(type_reference.data))
+        {
+            h::Integer_type const integer_type = std::get<h::Integer_type>(type_reference.data);
+            return clang_ast_context.getIntTypeForBitwidth(static_cast<unsigned>(integer_type.number_of_bits), integer_type.is_signed ? 1 : 0);
         }
         else if (std::holds_alternative<h::Custom_type_reference>(type_reference.data))
         {
