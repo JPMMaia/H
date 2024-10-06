@@ -2775,4 +2775,53 @@ declare void @foo(i64, i64)
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
+
+  TEST_CASE("C Interoperability 1")
+  {
+    char const* const input_file = "c_interoperability_1.hl";
+
+    std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "c_interoperability_1";
+    std::filesystem::create_directories(root_directory_path);
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map{};
+
+    char const* const expected_llvm_ir = R"(
+%c_interoperability_1_My_struct = type { i32, i32, i32, i32 }
+
+define private i32 @c_interoperability_1_add_all(i64 %"arguments[0].instance_0", i64 %"arguments[0].instance_1") {
+entry:
+  %instance = alloca %c_interoperability_1_My_struct, align 4
+  %0 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 0
+  store i64 %"arguments[0].instance_0", ptr %0, align 4
+  %1 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 1
+  store i64 %"arguments[0].instance_1", ptr %1, align 4
+  %2 = getelementptr inbounds %c_interoperability_1_My_struct, ptr %instance, i32 0, i32 0
+  %3 = load i32, ptr %2, align 4
+  %4 = getelementptr inbounds %c_interoperability_1_My_struct, ptr %instance, i32 0, i32 1
+  %5 = load i32, ptr %4, align 4
+  %6 = add i32 %3, %5
+  %7 = getelementptr inbounds %c_interoperability_1_My_struct, ptr %instance, i32 0, i32 2
+  %8 = load i32, ptr %7, align 4
+  %9 = add i32 %6, %8
+  %10 = getelementptr inbounds %c_interoperability_1_My_struct, ptr %instance, i32 0, i32 3
+  %11 = load i32, ptr %10, align 4
+  %12 = add i32 %9, %11
+  ret i32 %12
+}
+
+define private i32 @c_interoperability_1_run() {
+entry:
+  %instance = alloca %c_interoperability_1_My_struct, align 4
+  store %c_interoperability_1_My_struct zeroinitializer, ptr %instance, align 4
+  %0 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 0
+  %1 = load i64, ptr %0, align 4
+  %2 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 1
+  %3 = load i64, ptr %2, align 4
+  %4 = call i32 @c_interoperability_1_add_all(i64 %1, i64 %3)
+  ret i32 %4
+}
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
 }
