@@ -44,4 +44,32 @@ namespace h::compiler
         llvm::StoreInst* const instruction = llvm_builder.CreateAlignedStore(value, pointer, type_alignment);
         return instruction;
     }
+
+    llvm::Value* create_memcpy_call(
+        llvm::LLVMContext& llvm_context,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::Module& llvm_module,
+        llvm::Value* const destination_pointer,
+        llvm::Value* const source_pointer,
+        unsigned const size_in_bits,
+        llvm::Align const alignment
+    )
+    {
+        llvm::Type* const int64_type = llvm::Type::getInt64Ty(llvm_context);
+        llvm::Type* const int1_type = llvm::Type::getInt1Ty(llvm_context);
+        llvm::Type* const pointer_type = llvm::Type::getInt8PtrTy(llvm_context);
+        llvm::Function* const memcpy_function = llvm::Intrinsic::getDeclaration(&llvm_module, llvm::Intrinsic::memcpy, {pointer_type, pointer_type, int64_type});
+
+        llvm::Value* const size = llvm::ConstantInt::get(int64_type, size_in_bits);
+        llvm::Value* const is_volatile = llvm::ConstantInt::get(int1_type, 0);
+
+        llvm::CallInst* const call = llvm_builder.CreateCall(memcpy_function, {destination_pointer, source_pointer, size, is_volatile});    
+        if (alignment != llvm::Align{})
+        {
+            call->addParamAttr(0, llvm::Attribute::getWithAlignment(llvm_context, alignment));
+            call->addParamAttr(1, llvm::Attribute::getWithAlignment(llvm_context, alignment));
+        }
+        
+        return call;
+    }
 }

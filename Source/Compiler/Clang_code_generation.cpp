@@ -367,34 +367,42 @@ namespace h::compiler
                     break;
                 }
                 case clang::CodeGen::ABIArgInfo::Extend: {
-                    break;
+                    throw std::runtime_error{ "Clang_code_generation.set_llvm_function_argument_names(): Extend not implemented!" };
                 }
                 case clang::CodeGen::ABIArgInfo::Indirect: {
+                    std::string const argument_name = std::format("arguments[{}].{}", argument_info_index, name);
+    
+                    llvm::Argument* const argument = llvm_function.getArg(new_argument_index);
+                    argument->setName(argument_name.c_str());
+                    argument->addAttr(llvm::Attribute::NoUndef);
+
+                    new_argument_index += 1;
                     break;
                 }
                 case clang::CodeGen::ABIArgInfo::IndirectAliased: {
-                    break;
+                    throw std::runtime_error{ "Clang_code_generation.set_llvm_function_argument_names(): IndirectAliased not implemented!" };
                 }
                 case clang::CodeGen::ABIArgInfo::Ignore: {
-                    break;
+                    throw std::runtime_error{ "Clang_code_generation.set_llvm_function_argument_names(): Ignore not implemented!" };
                 }
                 case clang::CodeGen::ABIArgInfo::Expand: {
-                    break;
+                    throw std::runtime_error{ "Clang_code_generation.set_llvm_function_argument_names(): Expand not implemented!" };
                 }
                 case clang::CodeGen::ABIArgInfo::CoerceAndExpand: {
-                    break;
+                    throw std::runtime_error{ "Clang_code_generation.set_llvm_function_argument_names(): CoerceAndExpand not implemented!" };
                 }
                 case clang::CodeGen::ABIArgInfo::InAlloca: {
-                    break;
+                    throw std::runtime_error{ "Clang_code_generation.set_llvm_function_argument_names(): InAlloca not implemented!" };
                 }
             }
         }
     }
 
-    std::pmr::vector<llvm::Value*> transform_arguments(
+    Transformed_arguments transform_arguments(
         llvm::LLVMContext& llvm_context,
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,
+        llvm::Module& llvm_module,
         Clang_module_data& clang_module_data,
         h::Module const& core_module,
         h::Function_type const& function_type,
@@ -407,7 +415,7 @@ namespace h::compiler
 
         llvm::ArrayRef<clang::CodeGen::CGFunctionInfoArgInfo> const argument_infos = function_info.arguments();
 
-        std::pmr::vector<llvm::Value*> transformed_arguments;
+        Transformed_arguments transformed_arguments;
 
         for (unsigned argument_index = 0; argument_index < argument_infos.size(); ++argument_index)
         {
@@ -444,37 +452,60 @@ namespace h::compiler
                             llvm::Type* const element_type = new_elements[new_element_index];
                             llvm::Value* const loaded_element = llvm_builder.CreateAlignedLoad(element_type, pointer_to_element, original_argument_alignment);
 
-                            transformed_arguments.push_back(loaded_element);
+                            transformed_arguments.values.push_back(loaded_element);
+                            transformed_arguments.attributes.push_back({});
                         }
                     }
                     else
                     {
                         llvm::Value* const new_argument = original_arguments[argument_index];
-                        transformed_arguments.push_back(new_argument);
+                        
+                        transformed_arguments.values.push_back(new_argument);
+                        transformed_arguments.attributes.push_back({});
                     }
 
                     break;
                 }
                 case clang::CodeGen::ABIArgInfo::Extend: {
-                    break;
+                    throw std::runtime_error{ "Clang_code_generation.transform_arguments(): Extend not implemented!" };
                 }
                 case clang::CodeGen::ABIArgInfo::Indirect: {
+
+                    h::Type_reference const& original_argument_type = function_type.input_parameter_types[argument_index];
+                    llvm::Type* const original_argument_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, original_argument_type, type_database);
+                    std::uint64_t const original_argument_size_in_bits = llvm_data_layout.getTypeAllocSize(original_argument_llvm_type);
+                    llvm::Align const original_argument_alignment = llvm_data_layout.getABITypeAlign(original_argument_llvm_type);
+                    
+                    llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, original_argument_llvm_type);
+
+                    create_memcpy_call(
+                        llvm_context,
+                        llvm_builder,
+                        llvm_module,
+                        alloca_instruction,
+                        original_arguments[argument_index],
+                        original_argument_size_in_bits,
+                        original_argument_alignment
+                    );
+
+                    transformed_arguments.values.push_back(alloca_instruction);
+                    transformed_arguments.attributes.push_back(std::pmr::vector<llvm::Attribute>{{ llvm::Attribute::get(llvm_context, llvm::Attribute::NoUndef) }});
                     break;
                 }
                 case clang::CodeGen::ABIArgInfo::IndirectAliased: {
-                    break;
+                    throw std::runtime_error{ "Clang_code_generation.transform_arguments(): IndirectAliased not implemented!" };
                 }
                 case clang::CodeGen::ABIArgInfo::Ignore: {
-                    break;
+                    throw std::runtime_error{ "Clang_code_generation.transform_arguments(): Ignore not implemented!" };
                 }
                 case clang::CodeGen::ABIArgInfo::Expand: {
-                    break;
+                    throw std::runtime_error{ "Clang_code_generation.transform_arguments(): Expand not implemented!" };
                 }
                 case clang::CodeGen::ABIArgInfo::CoerceAndExpand: {
-                    break;
+                    throw std::runtime_error{ "Clang_code_generation.transform_arguments(): CoerceAndExpand not implemented!" };
                 }
                 case clang::CodeGen::ABIArgInfo::InAlloca: {
-                    break;
+                    throw std::runtime_error{ "Clang_code_generation.transform_arguments(): InAlloca not implemented!" };
                 }
             }
         }
@@ -549,6 +580,7 @@ namespace h::compiler
         llvm::LLVMContext& llvm_context,
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,
+        llvm::Module& llvm_module,
         Clang_module_data& clang_module_data,
         h::Module const& core_module,
         h::Function_type const& function_type,
@@ -558,9 +590,19 @@ namespace h::compiler
         Type_database const& type_database
     )
     {
-        std::pmr::vector<llvm::Value*> const transformed_arguments = transform_arguments(llvm_context, llvm_builder, llvm_data_layout, clang_module_data, core_module, function_type, arguments, declaration_database, type_database);
+        Transformed_arguments const transformed_arguments = transform_arguments(llvm_context, llvm_builder, llvm_data_layout, llvm_module, clang_module_data, core_module, function_type, arguments, declaration_database, type_database);
 
-        llvm::Value* call_instruction = llvm_builder.CreateCall(&llvm_function, transformed_arguments);
+        llvm::CallInst* call_instruction = llvm_builder.CreateCall(&llvm_function, transformed_arguments.values);
+
+        for (std::size_t argument_index = 0; argument_index <transformed_arguments.attributes.size(); ++argument_index)
+        {
+            std::span<llvm::Attribute const> const attributes = transformed_arguments.attributes[argument_index];
+
+            for (llvm::Attribute const& attribute : attributes)
+            {
+                call_instruction->addParamAttr(static_cast<unsigned>(argument_index), attribute);
+            }
+        }
 
         return call_instruction;
     }
@@ -704,25 +746,25 @@ namespace h::compiler
                     break;
                 }
                 case clang::CodeGen::ABIArgInfo::Extend: {
-                    break;
+                    throw std::runtime_error{ "Clang_code_generation.generate_function_arguments(): Extend not implemented!" };
                 }
                 case clang::CodeGen::ABIArgInfo::Indirect: {
-                    break;
+                    throw std::runtime_error{ "Clang_code_generation.generate_function_arguments(): Indirect not implemented!" };
                 }
                 case clang::CodeGen::ABIArgInfo::IndirectAliased: {
-                    break;
+                    throw std::runtime_error{ "Clang_code_generation.generate_function_arguments(): IndirectAliased not implemented!" };
                 }
                 case clang::CodeGen::ABIArgInfo::Ignore: {
-                    break;
+                    throw std::runtime_error{ "Clang_code_generation.generate_function_arguments(): Ignore not implemented!" };
                 }
                 case clang::CodeGen::ABIArgInfo::Expand: {
-                    break;
+                    throw std::runtime_error{ "Clang_code_generation.generate_function_arguments(): Expand not implemented!" };
                 }
                 case clang::CodeGen::ABIArgInfo::CoerceAndExpand: {
-                    break;
+                    throw std::runtime_error{ "Clang_code_generation.generate_function_arguments(): CoerceAndExpand not implemented!" };
                 }
                 case clang::CodeGen::ABIArgInfo::InAlloca: {
-                    break;
+                    throw std::runtime_error{ "Clang_code_generation.generate_function_arguments(): InAlloca not implemented!" };
                 }
             }
         }

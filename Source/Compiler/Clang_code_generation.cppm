@@ -91,11 +91,18 @@ namespace h::compiler
         Declaration_database const& declaration_database
     );
 
-    std::pmr::vector<llvm::Value*> transform_arguments(
+    struct Transformed_arguments
+    {
+        std::pmr::vector<llvm::Value*> values;
+        std::pmr::vector<std::pmr::vector<llvm::Attribute>> attributes;
+    };
+
+    Transformed_arguments transform_arguments(
         llvm::LLVMContext& llvm_context,
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,
         Clang_module_data& clang_module_data,
+        llvm::Module& llvm_module,
         h::Module const& core_module,
         h::Function_type const& function_type,
         std::span<llvm::Value* const> const arguments,
@@ -107,6 +114,7 @@ namespace h::compiler
         llvm::LLVMContext& llvm_context,
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,
+        llvm::Module& llvm_module,
         Clang_module_data& clang_module_data,
         h::Module const& core_module,
         h::Function_type const& function_type,
