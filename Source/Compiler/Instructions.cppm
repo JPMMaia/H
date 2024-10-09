@@ -35,4 +35,14 @@ namespace h::compiler
         llvm::Value* const value,
         llvm::Value* const pointer
     );
+
+    export llvm::Value* create_memcpy_call(
+        llvm::LLVMContext& llvm_context,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::Module& llvm_module,
+        llvm::Value* const destination_pointer,
+        llvm::Value* const source_pointer,
+        unsigned const size_in_bits,
+        llvm::Align const alignment = {}
+    );
 }

@@ -2725,7 +2725,10 @@ struct My_struct
     CHECK(actual_struct_layout == expected_struct_layout);
   }
 
-  TEST_CASE("C Interoperability 0")
+  void test_c_interoperability_call_function_with_struct_argument(
+    std::string_view const target_triple,
+    std::string_view const expected_llvm_ir
+  )
   {
     char const* const input_file = "c_interoperability_0.hl";
 
@@ -2755,6 +2758,16 @@ void foo(My_struct argument);
         { "my_module", header_module_file_path }
     };
 
+    Test_options const test_options
+    {
+      .target_triple = target_triple,
+    };
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, test_options);
+  }
+
+  TEST_CASE("C Interoperability - Call function with struct argument x86_64-pc-linux-gnu")
+  {
     char const* const expected_llvm_ir = R"(
 %My_struct = type { i32, i32, i32, i32 }
 
@@ -2773,10 +2786,39 @@ entry:
 declare void @foo(i64, i64)
 )";
 
-    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+    test_c_interoperability_call_function_with_struct_argument("x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
-  TEST_CASE("C Interoperability 1")
+    TEST_CASE("C Interoperability - Call function with struct argument x86_64-pc-windows-msvc")
+  {
+    char const* const expected_llvm_ir = R"(
+%My_struct = type { i32, i32, i32, i32 }
+
+define private void @c_interoperability_0_run() {
+entry:
+  %instance = alloca %My_struct, align 4
+  store %My_struct zeroinitializer, ptr %instance, align 4
+  %0 = alloca %My_struct, align 4
+  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %0, ptr align 4 %instance, i64 16, i1 false)
+  call void @foo(ptr noundef %0)
+  ret void
+}
+
+declare void @foo(ptr noundef)
+
+; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly, ptr noalias nocapture readonly, i64, i1 immarg) #0
+
+attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
+)";
+
+    test_c_interoperability_call_function_with_struct_argument("x86_64-pc-windows-msvc", expected_llvm_ir);
+  }
+
+  void test_c_interoperability_definition_of_function_with_struct_argument(
+    std::string_view const target_triple,
+    std::string_view const expected_llvm_ir
+  )
   {
     char const* const input_file = "c_interoperability_1.hl";
 
@@ -2785,6 +2827,16 @@ declare void @foo(i64, i64)
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map{};
 
+    Test_options const test_options
+    {
+      .target_triple = target_triple,
+    };
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, test_options);
+  }
+
+  TEST_CASE("C Interoperability - Definition of function with struct argument x86_64-pc-linux-gnu")
+  {
     char const* const expected_llvm_ir = R"(
 %c_interoperability_1_My_struct = type { i32, i32, i32, i32 }
 
@@ -2822,6 +2874,48 @@ entry:
 }
 )";
 
-    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+    test_c_interoperability_definition_of_function_with_struct_argument("x86_64-pc-linux-gnu", expected_llvm_ir);
+  }
+
+  TEST_CASE("C Interoperability - Definition of function with struct argument x86_64-pc-windows-msvc")
+  {
+    char const* const expected_llvm_ir = R"(
+%c_interoperability_1_My_struct = type { i32, i32, i32, i32 }
+
+define private i32 @c_interoperability_1_add_all(i64 %"arguments[0].instance_0", i64 %"arguments[0].instance_1") {
+entry:
+  %instance = alloca %c_interoperability_1_My_struct, align 4
+  %0 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 0
+  store i64 %"arguments[0].instance_0", ptr %0, align 4
+  %1 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 1
+  store i64 %"arguments[0].instance_1", ptr %1, align 4
+  %2 = getelementptr inbounds %c_interoperability_1_My_struct, ptr %instance, i32 0, i32 0
+  %3 = load i32, ptr %2, align 4
+  %4 = getelementptr inbounds %c_interoperability_1_My_struct, ptr %instance, i32 0, i32 1
+  %5 = load i32, ptr %4, align 4
+  %6 = add i32 %3, %5
+  %7 = getelementptr inbounds %c_interoperability_1_My_struct, ptr %instance, i32 0, i32 2
+  %8 = load i32, ptr %7, align 4
+  %9 = add i32 %6, %8
+  %10 = getelementptr inbounds %c_interoperability_1_My_struct, ptr %instance, i32 0, i32 3
+  %11 = load i32, ptr %10, align 4
+  %12 = add i32 %9, %11
+  ret i32 %12
+}
+
+define private i32 @c_interoperability_1_run() {
+entry:
+  %instance = alloca %c_interoperability_1_My_struct, align 4
+  store %c_interoperability_1_My_struct zeroinitializer, ptr %instance, align 4
+  %0 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 0
+  %1 = load i64, ptr %0, align 4
+  %2 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 1
+  %3 = load i64, ptr %2, align 4
+  %4 = call i32 @c_interoperability_1_add_all(i64 %1, i64 %3)
+  ret i32 %4
+}
+)";
+
+    test_c_interoperability_definition_of_function_with_struct_argument("x86_64-pc-windows-msvc", expected_llvm_ir);
   }
 }
