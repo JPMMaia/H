@@ -688,31 +688,32 @@ namespace h::compiler
         for (unsigned restored_argument_index = 0; restored_argument_index < argument_infos.size(); ++restored_argument_index)
         {
             clang::CodeGen::CGFunctionInfoArgInfo const& argument_info = argument_infos[restored_argument_index];
-
-            clang::CodeGen::ABIArgInfo::Kind const kind = argument_info.info.getKind();
-
             std::pmr::string const& restored_argument_name = function_declaration.input_parameter_names[restored_argument_index];
             h::Type_reference const& restored_argument_type = function_declaration.type.input_parameter_types[restored_argument_index];
-            llvm::Type* const restored_argument_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, restored_argument_type, type_database);
-            llvm::Align const restored_argument_alignment = llvm_data_layout.getABITypeAlign(restored_argument_llvm_type);
 
-            llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, restored_argument_llvm_type, restored_argument_name.data());
-            restored_arguments.push_back(Value_and_type{.name = restored_argument_name, .value = alloca_instruction, .type = restored_argument_type});
-
-            set_function_input_parameter_debug_information(
-                llvm_context,
-                llvm_data_layout,
-                core_module,
-                function_declaration,
-                restored_argument_index,
-                llvm_block,
-                *alloca_instruction,
-                debug_info
-            );
+            clang::CodeGen::ABIArgInfo::Kind const kind = argument_info.info.getKind();
 
             switch (kind)
             {
                 case clang::CodeGen::ABIArgInfo::Direct: {
+
+                    llvm::Type* const restored_argument_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, restored_argument_type, type_database);
+                    llvm::Align const restored_argument_alignment = llvm_data_layout.getABITypeAlign(restored_argument_llvm_type);
+
+                    llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, restored_argument_llvm_type, restored_argument_name.data());
+                    restored_arguments.push_back(Value_and_type{.name = restored_argument_name, .value = alloca_instruction, .type = restored_argument_type});
+
+                    set_function_input_parameter_debug_information(
+                        llvm_context,
+                        llvm_data_layout,
+                        core_module,
+                        function_declaration,
+                        restored_argument_index,
+                        llvm_block,
+                        *alloca_instruction,
+                        debug_info
+                    );
+
                     llvm::Type* const function_argument_type = argument_info.info.getCoerceToType();
 
                     if (function_argument_type->isStructTy())
@@ -749,7 +750,29 @@ namespace h::compiler
                     throw std::runtime_error{ "Clang_code_generation.generate_function_arguments(): Extend not implemented!" };
                 }
                 case clang::CodeGen::ABIArgInfo::Indirect: {
-                    throw std::runtime_error{ "Clang_code_generation.generate_function_arguments(): Indirect not implemented!" };
+
+                    llvm::Type* const pointer_type = llvm::Type::getInt8PtrTy(llvm_context);
+                    llvm::Align const pointer_type_alignment = llvm_data_layout.getABITypeAlign(pointer_type);
+
+                    llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, pointer_type, restored_argument_name.data());
+                    restored_arguments.push_back(Value_and_type{.name = restored_argument_name, .value = alloca_instruction, .type = restored_argument_type});
+
+                    set_function_input_parameter_debug_information(
+                        llvm_context,
+                        llvm_data_layout,
+                        core_module,
+                        function_declaration,
+                        restored_argument_index,
+                        llvm_block,
+                        *alloca_instruction,
+                        debug_info
+                    );
+
+                    llvm::Value* const function_argument = llvm_function.getArg(function_argument_index);
+                    llvm_builder.CreateAlignedStore(function_argument, alloca_instruction, pointer_type_alignment);
+                    function_argument_index += 1;
+
+                    break;
                 }
                 case clang::CodeGen::ABIArgInfo::IndirectAliased: {
                     throw std::runtime_error{ "Clang_code_generation.generate_function_arguments(): IndirectAliased not implemented!" };
