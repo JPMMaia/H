@@ -2882,38 +2882,38 @@ entry:
     char const* const expected_llvm_ir = R"(
 %c_interoperability_1_My_struct = type { i32, i32, i32, i32 }
 
-define private i32 @c_interoperability_1_add_all(i64 %"arguments[0].instance_0", i64 %"arguments[0].instance_1") {
+define private i32 @c_interoperability_1_add_all(ptr noundef %"arguments[0].instance") {
 entry:
-  %instance = alloca %c_interoperability_1_My_struct, align 4
-  %0 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 0
-  store i64 %"arguments[0].instance_0", ptr %0, align 4
-  %1 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 1
-  store i64 %"arguments[0].instance_1", ptr %1, align 4
-  %2 = getelementptr inbounds %c_interoperability_1_My_struct, ptr %instance, i32 0, i32 0
+  %instance = alloca ptr, align 8
+  store ptr %"arguments[0].instance", ptr %instance, align 8
+  %0 = getelementptr inbounds %c_interoperability_1_My_struct, ptr %instance, i32 0, i32 0
+  %1 = load i32, ptr %0, align 4
+  %2 = getelementptr inbounds %c_interoperability_1_My_struct, ptr %instance, i32 0, i32 1
   %3 = load i32, ptr %2, align 4
-  %4 = getelementptr inbounds %c_interoperability_1_My_struct, ptr %instance, i32 0, i32 1
-  %5 = load i32, ptr %4, align 4
-  %6 = add i32 %3, %5
-  %7 = getelementptr inbounds %c_interoperability_1_My_struct, ptr %instance, i32 0, i32 2
-  %8 = load i32, ptr %7, align 4
-  %9 = add i32 %6, %8
-  %10 = getelementptr inbounds %c_interoperability_1_My_struct, ptr %instance, i32 0, i32 3
-  %11 = load i32, ptr %10, align 4
-  %12 = add i32 %9, %11
-  ret i32 %12
+  %4 = add i32 %1, %3
+  %5 = getelementptr inbounds %c_interoperability_1_My_struct, ptr %instance, i32 0, i32 2
+  %6 = load i32, ptr %5, align 4
+  %7 = add i32 %4, %6
+  %8 = getelementptr inbounds %c_interoperability_1_My_struct, ptr %instance, i32 0, i32 3
+  %9 = load i32, ptr %8, align 4
+  %10 = add i32 %7, %9
+  ret i32 %10
 }
 
 define private i32 @c_interoperability_1_run() {
 entry:
   %instance = alloca %c_interoperability_1_My_struct, align 4
   store %c_interoperability_1_My_struct zeroinitializer, ptr %instance, align 4
-  %0 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 0
-  %1 = load i64, ptr %0, align 4
-  %2 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 1
-  %3 = load i64, ptr %2, align 4
-  %4 = call i32 @c_interoperability_1_add_all(i64 %1, i64 %3)
-  ret i32 %4
+  %0 = alloca %c_interoperability_1_My_struct, align 4
+  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %0, ptr align 4 %instance, i64 16, i1 false)
+  %1 = call i32 @c_interoperability_1_add_all(ptr noundef %0)
+  ret i32 %1
 }
+
+; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly, ptr noalias nocapture readonly, i64, i1 immarg) #0
+
+attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
 )";
 
     test_c_interoperability_definition_of_function_with_struct_argument("x86_64-pc-windows-msvc", expected_llvm_ir);
