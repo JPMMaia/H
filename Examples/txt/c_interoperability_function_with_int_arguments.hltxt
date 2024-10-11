@@ -1,0 +1,10 @@
+module c_interoperability;
+
+function foo(a: Int32, b: Int32) -> ()
+{
+}
+
+function run() -> ()
+{
+    foo(0, 0);
+}

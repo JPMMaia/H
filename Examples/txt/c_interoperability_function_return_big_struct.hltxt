@@ -1,0 +1,19 @@
+module c_interoperability;
+
+struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = 0;
+    c: Int32 = 0;
+    d: Int32 = 0;
+    e: Int32 = 0;
+}
+
+function foo() -> (result: My_struct)
+{
+}
+
+function run() -> ()
+{
+    var instance = foo();
+}

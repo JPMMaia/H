@@ -1,0 +1,11 @@
+module c_interoperability;
+
+function foo() -> (result: *Int32)
+{
+    return null;
+}
+
+function run() -> ()
+{
+    var value = foo();
+}

@@ -1,4 +1,4 @@
-module c_interoperability_1;
+module c_interoperability;
 
 struct My_struct
 {

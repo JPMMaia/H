@@ -1,4 +1,4 @@
-module c_interoperability_0;
+module c_interoperability;
 
 import my_module as m;
 
