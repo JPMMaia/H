@@ -1,0 +1,15 @@
+module c_interoperability;
+
+struct My_struct
+{
+}
+
+function foo(instance: My_struct) -> ()
+{
+}
+
+function run() -> ()
+{
+    var instance: My_struct = {};
+    foo(instance);
+}
