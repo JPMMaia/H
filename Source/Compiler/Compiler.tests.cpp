@@ -2918,4 +2918,164 @@ attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite
 
     test_c_interoperability_definition_of_function_with_struct_argument("x86_64-pc-windows-msvc", expected_llvm_ir);
   }
+
+  void test_c_interoperability_common(
+    std::string_view const input_file,
+    std::string_view const target_triple,
+    std::string_view const expected_llvm_ir
+  )
+  {
+    std::string_view const directory_name = input_file.substr(0, input_file.find_last_of('.'));
+    std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / directory_name;
+    std::filesystem::create_directories(root_directory_path);
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map{};
+
+    Test_options const test_options
+    {
+      .target_triple = target_triple,
+    };
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, test_options);
+  }
+  
+  TEST_CASE("C Interoperability - function_return_big_struct x86_64-pc-linux-gnu")
+  {
+    char const* const expected_llvm_ir = R"()";
+
+    test_c_interoperability_common("c_interoperability_function_return_big_struct.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+  }
+
+  TEST_CASE("C Interoperability - function_return_big_struct x86_64-pc-windows-msvc")
+  {
+    char const* const expected_llvm_ir = R"()";
+
+    test_c_interoperability_common("c_interoperability_function_return_big_struct.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+  }
+  
+  TEST_CASE("C Interoperability - function_return_empty_struct x86_64-pc-linux-gnu")
+  {
+    char const* const expected_llvm_ir = R"()";
+
+    test_c_interoperability_common("c_interoperability_function_return_empty_struct.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+  }
+
+  TEST_CASE("C Interoperability - function_return_empty_struct x86_64-pc-windows-msvc")
+  {
+    char const* const expected_llvm_ir = R"()";
+
+    test_c_interoperability_common("c_interoperability_function_return_empty_struct.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+  }
+  
+  TEST_CASE("C Interoperability - function_return_int x86_64-pc-linux-gnu")
+  {
+    char const* const expected_llvm_ir = R"()";
+
+    test_c_interoperability_common("c_interoperability_function_return_int.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+  }
+
+  TEST_CASE("C Interoperability - function_return_int x86_64-pc-windows-msvc")
+  {
+    char const* const expected_llvm_ir = R"()";
+
+    test_c_interoperability_common("c_interoperability_function_return_int.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+  }
+  
+  TEST_CASE("C Interoperability - function_return_pointer x86_64-pc-linux-gnu")
+  {
+    char const* const expected_llvm_ir = R"()";
+
+    test_c_interoperability_common("c_interoperability_function_return_pointer.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+  }
+
+  TEST_CASE("C Interoperability - function_return_pointer x86_64-pc-windows-msvc")
+  {
+    char const* const expected_llvm_ir = R"()";
+
+    test_c_interoperability_common("c_interoperability_function_return_pointer.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+  }
+  
+  TEST_CASE("C Interoperability - function_return_small_struct x86_64-pc-linux-gnu")
+  {
+    char const* const expected_llvm_ir = R"()";
+
+    test_c_interoperability_common("c_interoperability_function_return_small_struct.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+  }
+
+  TEST_CASE("C Interoperability - function_return_small_struct x86_64-pc-windows-msvc")
+  {
+    char const* const expected_llvm_ir = R"()";
+
+    test_c_interoperability_common("c_interoperability_function_return_small_struct.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+  }
+  
+  TEST_CASE("C Interoperability - function_with_big_struct x86_64-pc-linux-gnu")
+  {
+    char const* const expected_llvm_ir = R"()";
+
+    test_c_interoperability_common("c_interoperability_function_with_big_struct.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+  }
+
+  TEST_CASE("C Interoperability - function_with_big_struct x86_64-pc-windows-msvc")
+  {
+    char const* const expected_llvm_ir = R"()";
+
+    test_c_interoperability_common("c_interoperability_function_with_big_struct.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+  }
+  
+  TEST_CASE("C Interoperability - function_with_empty_struct x86_64-pc-linux-gnu")
+  {
+    char const* const expected_llvm_ir = R"()";
+
+    test_c_interoperability_common("c_interoperability_function_with_empty_struct.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+  }
+
+  TEST_CASE("C Interoperability - function_with_empty_struct x86_64-pc-windows-msvc")
+  {
+    char const* const expected_llvm_ir = R"()";
+
+    test_c_interoperability_common("c_interoperability_function_with_empty_struct.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+  }
+  
+  TEST_CASE("C Interoperability - function_with_int_arguments x86_64-pc-linux-gnu")
+  {
+    char const* const expected_llvm_ir = R"()";
+
+    test_c_interoperability_common("c_interoperability_function_with_int_arguments.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+  }
+
+  TEST_CASE("C Interoperability - function_with_int_arguments x86_64-pc-windows-msvc")
+  {
+    char const* const expected_llvm_ir = R"()";
+
+    test_c_interoperability_common("c_interoperability_function_with_int_arguments.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+  }
+  
+  TEST_CASE("C Interoperability - function_with_pointer x86_64-pc-linux-gnu")
+  {
+    char const* const expected_llvm_ir = R"()";
+
+    test_c_interoperability_common("c_interoperability_function_with_pointer.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+  }
+
+  TEST_CASE("C Interoperability - function_with_pointer x86_64-pc-windows-msvc")
+  {
+    char const* const expected_llvm_ir = R"()";
+
+    test_c_interoperability_common("c_interoperability_function_with_pointer.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+  }
+  
+  TEST_CASE("C Interoperability - function_with_small_struct x86_64-pc-linux-gnu")
+  {
+    char const* const expected_llvm_ir = R"()";
+
+    test_c_interoperability_common("c_interoperability_function_with_small_struct.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+  }
+
+  TEST_CASE("C Interoperability - function_with_small_struct x86_64-pc-windows-msvc")
+  {
+    char const* const expected_llvm_ir = R"()";
+
+    test_c_interoperability_common("c_interoperability_function_with_small_struct.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+  }
 }
