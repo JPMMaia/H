@@ -413,9 +413,40 @@ namespace h::compiler
     {
         clang::CodeGen::CGFunctionInfo const& function_info = create_clang_function_info(clang_module_data, function_type, declaration_database);
 
-        llvm::ArrayRef<clang::CodeGen::CGFunctionInfoArgInfo> const argument_infos = function_info.arguments();
-
         Transformed_arguments transformed_arguments;
+
+        if (function_type.output_parameter_types.size() > 0)
+        {
+            clang::CodeGen::ABIArgInfo const& return_info = function_info.getReturnInfo();
+            clang::CodeGen::ABIArgInfo::Kind const kind = return_info.getKind();
+
+            switch (kind)
+            {
+                case clang::CodeGen::ABIArgInfo::Direct: {
+                    break;
+                }
+                case clang::CodeGen::ABIArgInfo::Indirect: {
+
+                    // Pass return type as argument pointer
+
+                    h::Type_reference const& original_return_type = function_type.output_parameter_types[0];
+                    llvm::Type* const original_return_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, original_return_type, type_database);
+                    llvm::Align const original_return_alignment = llvm_data_layout.getABITypeAlign(original_return_llvm_type);
+                    
+                    llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, original_return_llvm_type);
+
+                    transformed_arguments.values.push_back(alloca_instruction);
+                    transformed_arguments.attributes.push_back(std::pmr::vector<llvm::Attribute>{{ llvm::Attribute::get(llvm_context, llvm::Attribute::NoUndef) }});
+                    transformed_arguments.is_return_value_passed_as_first_argument = true;
+                    break;
+                }
+                default: {
+                    throw std::runtime_error{ "Clang_code_generation.transform_arguments(): return kind not implemented!" };
+                }
+            }
+        }
+
+        llvm::ArrayRef<clang::CodeGen::CGFunctionInfoArgInfo> const argument_infos = function_info.arguments();
 
         for (unsigned argument_index = 0; argument_index < argument_infos.size(); ++argument_index)
         {
@@ -604,7 +635,14 @@ namespace h::compiler
             }
         }
 
-        return call_instruction;
+        if (transformed_arguments.is_return_value_passed_as_first_argument)
+        {
+            return transformed_arguments.values[0];
+        }
+        else
+        {
+            return call_instruction;
+        }
     }
 
     void set_function_input_parameter_debug_information(
@@ -793,6 +831,78 @@ namespace h::compiler
         }
 
         return restored_arguments;
+    }
+
+    llvm::Value* generate_function_return_instruction(
+        llvm::LLVMContext& llvm_context,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Module& llvm_module,
+        Clang_module_data& clang_module_data,
+        h::Module const& core_module,
+        h::Function_type const& function_type,
+        llvm::Function& llvm_function,
+        Declaration_database const& declaration_database,
+        Type_database const& type_database,
+        Value_and_type const& value_to_return
+    )
+    {
+        clang::CodeGen::CGFunctionInfo const& function_info = create_clang_function_info(clang_module_data, function_type, declaration_database);
+
+        if (function_type.output_parameter_types.empty())
+        {
+            llvm::Value* const instruction = llvm_builder.CreateRetVoid();
+            return instruction;
+        }
+
+        clang::CodeGen::ABIArgInfo const& return_info = function_info.getReturnInfo();
+        clang::CodeGen::ABIArgInfo::Kind const kind = return_info.getKind();
+
+        switch (kind)
+        {
+            case clang::CodeGen::ABIArgInfo::Direct: {
+                llvm::Value* const instruction = llvm_builder.CreateRet(value_to_return.value);
+                return instruction;
+            }
+            case clang::CodeGen::ABIArgInfo::Indirect: {
+
+                // Return value was passed as the first argument pointer
+                // So here we need to store the result in that first argument pointer
+
+                llvm::Argument* const return_argument = llvm_function.getArg(0);
+
+                h::Type_reference const& return_type = function_type.output_parameter_types[0];
+                llvm::Type* const return_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, return_type, type_database);
+                std::uint64_t const return_size_in_bits = llvm_data_layout.getTypeAllocSize(return_llvm_type);
+                llvm::Align const return_alignment = llvm_data_layout.getABITypeAlign(return_llvm_type);
+
+                if (value_to_return.value->getType()->isPointerTy())
+                {
+                    create_memcpy_call(
+                        llvm_context,
+                        llvm_builder,
+                        llvm_module,
+                        return_argument,
+                        value_to_return.value,
+                        return_size_in_bits,
+                        return_alignment
+                    );
+
+                    llvm::Value* const return_instruction = llvm_builder.CreateRetVoid();
+                    return return_instruction;
+                }
+                else
+                {
+                    llvm_builder.CreateAlignedStore(value_to_return.value, return_argument, return_alignment);
+
+                    llvm::Value* const return_instruction = llvm_builder.CreateRetVoid();
+                    return return_instruction;
+                }
+            }
+            default: {
+                throw std::runtime_error{ "Clang_code_generation.generate_function_return_value(): return kind not implemented!" };
+            }
+        }
     }
 
     clang::QualType create_type(

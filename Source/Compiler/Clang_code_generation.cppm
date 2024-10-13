@@ -95,6 +95,7 @@ namespace h::compiler
     {
         std::pmr::vector<llvm::Value*> values;
         std::pmr::vector<std::pmr::vector<llvm::Attribute>> attributes;
+        bool is_return_value_passed_as_first_argument = false;
     };
 
     Transformed_arguments transform_arguments(
@@ -136,6 +137,20 @@ namespace h::compiler
         Declaration_database const& declaration_database,
         Type_database const& type_database,
         Debug_info* debug_info
+    );
+
+    export llvm::Value* generate_function_return_instruction(
+        llvm::LLVMContext& llvm_context,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Module& llvm_module,
+        Clang_module_data& clang_module_data,
+        h::Module const& core_module,
+        h::Function_type const& function_type,
+        llvm::Function& llvm_function,
+        Declaration_database const& declaration_database,
+        Type_database const& type_database,
+        Value_and_type const& value_to_return
     );
 
     clang::QualType create_type(

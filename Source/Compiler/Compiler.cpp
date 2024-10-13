@@ -516,7 +516,7 @@ namespace h::compiler
 
         auto const return_void_is_missing = [&]() -> bool
         {
-            if (!function_declaration.type.output_parameter_types.empty())
+            if (!llvm_function.getReturnType()->isVoidTy())
                 return false;
 
             if (!function_definition.statements.empty())

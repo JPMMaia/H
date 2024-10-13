@@ -1965,7 +1965,19 @@ namespace h::compiler
         if (parameters.debug_info != nullptr)
             set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
 
-        llvm::Value* const instruction = llvm_builder.CreateRet(temporary.value);
+        llvm::Value* const instruction = generate_function_return_instruction(
+            parameters.llvm_context,
+            parameters.llvm_builder,
+            parameters.llvm_data_layout,
+            parameters.llvm_module,
+            parameters.clang_module_data,
+            parameters.core_module,
+            function_type,
+            *parameters.llvm_parent_function,
+            parameters.declaration_database,
+            parameters.type_database,
+            temporary
+        );
 
         return
         {

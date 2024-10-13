@@ -2941,14 +2941,50 @@ attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite
   
   TEST_CASE("C Interoperability - function_return_big_struct x86_64-pc-linux-gnu")
   {
-    char const* const expected_llvm_ir = R"()";
+    char const* const expected_llvm_ir = R"(
+%c_interoperability_My_struct = type { i32, i32, i32, i32, i32 }
+
+define private void @c_interoperability_foo(ptr %0) {
+entry:
+  store %c_interoperability_My_struct zeroinitializer, ptr %0, align 4
+  ret void
+}
+
+define private void @c_interoperability_run() {
+entry:
+  %0 = alloca %c_interoperability_My_struct, align 4
+  call void @c_interoperability_foo(ptr noundef %0)
+  %1 = load %c_interoperability_My_struct, ptr %0, align 4
+  %instance = alloca %c_interoperability_My_struct, align 4
+  store %c_interoperability_My_struct %1, ptr %instance, align 4
+  ret void
+}
+)";
 
     test_c_interoperability_common("c_interoperability_function_return_big_struct.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
   TEST_CASE("C Interoperability - function_return_big_struct x86_64-pc-windows-msvc")
   {
-    char const* const expected_llvm_ir = R"()";
+    char const* const expected_llvm_ir = R"(
+%c_interoperability_My_struct = type { i32, i32, i32, i32, i32 }
+
+define private void @c_interoperability_foo(ptr %0) {
+entry:
+  store %c_interoperability_My_struct zeroinitializer, ptr %0, align 4
+  ret void
+}
+
+define private void @c_interoperability_run() {
+entry:
+  %0 = alloca %c_interoperability_My_struct, align 4
+  call void @c_interoperability_foo(ptr noundef %0)
+  %1 = load %c_interoperability_My_struct, ptr %0, align 4
+  %instance = alloca %c_interoperability_My_struct, align 4
+  store %c_interoperability_My_struct %1, ptr %instance, align 4
+  ret void
+}
+)";
 
     test_c_interoperability_common("c_interoperability_function_return_big_struct.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
@@ -2969,14 +3005,40 @@ attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite
   
   TEST_CASE("C Interoperability - function_return_int x86_64-pc-linux-gnu")
   {
-    char const* const expected_llvm_ir = R"()";
+    char const* const expected_llvm_ir = R"(
+define private i32 @c_interoperability_foo() {
+entry:
+  ret i32 0
+}
+
+define private void @c_interoperability_run() {
+entry:
+  %0 = call i32 @c_interoperability_foo()
+  %value = alloca i32, align 4
+  store i32 %0, ptr %value, align 4
+  ret void
+}
+)";
 
     test_c_interoperability_common("c_interoperability_function_return_int.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
   TEST_CASE("C Interoperability - function_return_int x86_64-pc-windows-msvc")
   {
-    char const* const expected_llvm_ir = R"()";
+    char const* const expected_llvm_ir = R"(
+define private i32 @c_interoperability_foo() {
+entry:
+  ret i32 0
+}
+
+define private void @c_interoperability_run() {
+entry:
+  %0 = call i32 @c_interoperability_foo()
+  %value = alloca i32, align 4
+  store i32 %0, ptr %value, align 4
+  ret void
+}
+)";
 
     test_c_interoperability_common("c_interoperability_function_return_int.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }

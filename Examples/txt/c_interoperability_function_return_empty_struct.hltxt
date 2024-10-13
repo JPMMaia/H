@@ -6,6 +6,7 @@ struct My_struct
 
 function foo() -> (result: My_struct)
 {
+    return {};
 }
 
 function run() -> ()
