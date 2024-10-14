@@ -2289,6 +2289,15 @@ namespace h::compiler
             set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
 
         llvm::AllocaInst* const alloca = create_alloca_instruction(llvm_builder, llvm_data_layout, right_hand_side.value->getType(), expression.name.c_str());
+        if (alloca == nullptr)
+        {
+            return Value_and_type
+            {
+                .name = expression.name,
+                .value = nullptr,
+                .type = right_hand_side.type
+            };    
+        }
 
         if (parameters.debug_info != nullptr)
             create_local_variable_debug_description(*parameters.debug_info, parameters, expression.name, alloca, *right_hand_side.type);
