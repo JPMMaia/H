@@ -2991,7 +2991,18 @@ entry:
   
   TEST_CASE("C Interoperability - function_return_empty_struct x86_64-pc-linux-gnu")
   {
-    char const* const expected_llvm_ir = R"()";
+    char const* const expected_llvm_ir = R"(
+define private void @c_interoperability_foo() {
+entry:
+  ret void
+}
+
+define private void @c_interoperability_run() {
+entry:
+  call void @c_interoperability_foo()
+  ret void
+}
+)";
 
     test_c_interoperability_common("c_interoperability_function_return_empty_struct.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }

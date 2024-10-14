@@ -13,6 +13,10 @@ namespace h::compiler
         std::string_view const name
     )
     {
+        // If the value is not sized, we cannot create alloca for it.
+        if (!llvm_type->isSized())
+            return nullptr;
+
         llvm::AllocaInst* const instruction = llvm_builder.CreateAlloca(llvm_type, nullptr, name.data());
         
         llvm::Align const type_alignment = llvm_data_layout.getABITypeAlign(llvm_type);
@@ -28,6 +32,10 @@ namespace h::compiler
         llvm::Value* const pointer
     )
     {
+        // If the value is not sized, we cannot load it.
+        if (!llvm_type->isSized())
+            return nullptr;
+
         llvm::Align const type_alignment = llvm_data_layout.getABITypeAlign(llvm_type);
         llvm::LoadInst* const instruction = llvm_builder.CreateAlignedLoad(llvm_type, pointer, type_alignment);
         return instruction;
@@ -40,6 +48,10 @@ namespace h::compiler
         llvm::Value* const pointer
     )
     {
+        // If the value is not sized, we cannot store it.
+        if (!value->getType()->isSized())
+            return nullptr;
+
         llvm::Align const type_alignment = llvm_data_layout.getABITypeAlign(value->getType());
         llvm::StoreInst* const instruction = llvm_builder.CreateAlignedStore(value, pointer, type_alignment);
         return instruction;
@@ -55,6 +67,9 @@ namespace h::compiler
         llvm::Align const alignment
     )
     {
+        if (size_in_bits == 0)
+            return nullptr;
+
         llvm::Type* const int64_type = llvm::Type::getInt64Ty(llvm_context);
         llvm::Type* const int1_type = llvm::Type::getInt1Ty(llvm_context);
         llvm::Type* const pointer_type = llvm::Type::getInt8PtrTy(llvm_context);

@@ -422,7 +422,8 @@ namespace h::compiler
 
             switch (kind)
             {
-                case clang::CodeGen::ABIArgInfo::Direct: {
+                case clang::CodeGen::ABIArgInfo::Direct:
+                case clang::CodeGen::ABIArgInfo::Ignore: {
                     break;
                 }
                 case clang::CodeGen::ABIArgInfo::Indirect: {
@@ -898,6 +899,10 @@ namespace h::compiler
                     llvm::Value* const return_instruction = llvm_builder.CreateRetVoid();
                     return return_instruction;
                 }
+            }
+            case clang::CodeGen::ABIArgInfo::Ignore: {
+                llvm::Value* const return_instruction = llvm_builder.CreateRetVoid();
+                return return_instruction;
             }
             default: {
                 throw std::runtime_error{ "Clang_code_generation.generate_function_return_value(): return kind not implemented!" };
