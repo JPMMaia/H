@@ -47,6 +47,7 @@ import h.core;
 import h.core.declarations;
 import h.core.types;
 import h.compiler.clang_code_generation;
+import h.compiler.clang_data;
 import h.compiler.common;
 import h.compiler.debug_info;
 import h.compiler.expressions;
@@ -1128,11 +1129,6 @@ namespace h::compiler
     {
         std::pmr::vector<h::Module const*> const sorted_core_module_dependencies = sort_core_modules(core_module_dependencies, {}, {});
 
-        Type_database type_database = create_type_database(*llvm_data.context);
-        for (Module const* module_dependency : sorted_core_module_dependencies)
-            add_module_types(type_database, *llvm_data.context, llvm_data.data_layout, *module_dependency);
-        add_module_types(type_database, *llvm_data.context, llvm_data.data_layout, core_module);
-
         Declaration_database declaration_database = create_declaration_database();
         for (Module const* module_dependency : sorted_core_module_dependencies)
             add_declarations(declaration_database, *module_dependency);
@@ -1145,6 +1141,11 @@ namespace h::compiler
             sorted_core_module_dependencies,
             declaration_database
         );
+
+        Type_database type_database = create_type_database(*llvm_data.context);
+        for (Module const* module_dependency : sorted_core_module_dependencies)
+            add_module_types(type_database, *llvm_data.context, llvm_data.data_layout, clang_module_data, *module_dependency);
+        add_module_types(type_database, *llvm_data.context, llvm_data.data_layout, clang_module_data, core_module);
 
         std::unique_ptr<llvm::Module> llvm_module = create_module(*llvm_data.context, llvm_data.target_triple, llvm_data.data_layout, clang_module_data, core_module, core_module_dependencies, functions_to_compile, declaration_database, type_database, compilation_options);
         return llvm_module;

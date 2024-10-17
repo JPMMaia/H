@@ -19,8 +19,8 @@ module;
 export module h.compiler;
 
 import h.core;
+import h.compiler.clang_data;
 import h.compiler.types;
-import h.compiler.clang_code_generation;
 
 namespace h::compiler
 {

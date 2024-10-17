@@ -862,7 +862,30 @@ namespace h::compiler
         switch (kind)
         {
             case clang::CodeGen::ABIArgInfo::Direct: {
-                llvm::Value* const instruction = llvm_builder.CreateRet(value_to_return.value);
+
+                h::Type_reference const& original_return_type = function_type.output_parameter_types[0];
+                llvm::Type* const original_return_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, original_return_type, type_database);
+                llvm::Align const original_return_type_alignment = llvm_data_layout.getABITypeAlign(original_return_llvm_type);
+
+                llvm::Type* const new_return_llvm_type = return_info.getCoerceToType();
+
+                if (original_return_llvm_type == new_return_llvm_type)
+                {
+                    llvm::Value* const instruction = llvm_builder.CreateRet(value_to_return.value);
+                    return instruction;
+                }
+
+                std::array<llvm::Value*, 2> const indices
+                {
+                    llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm_context), 0),
+                    llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm_context), 0),
+                };
+
+                llvm::Value* const pointer_to_element = llvm_builder.CreateInBoundsGEP(original_return_llvm_type, value_to_return.value, indices);
+
+                llvm::Value* const loaded_element = llvm_builder.CreateAlignedLoad(new_return_llvm_type, pointer_to_element, original_return_type_alignment);
+                
+                llvm::Value* const instruction = llvm_builder.CreateRet(loaded_element);
                 return instruction;
             }
             case clang::CodeGen::ABIArgInfo::Indirect: {
@@ -908,6 +931,19 @@ namespace h::compiler
                 throw std::runtime_error{ "Clang_code_generation.generate_function_return_value(): return kind not implemented!" };
             }
         }
+    }
+
+    llvm::Type* convert_type(
+        Clang_module_data const& clang_module_data,
+        std::string_view const module_name,
+        std::string_view const declaration_name
+    )
+    {
+        Clang_module_declarations const& clang_declarations = clang_module_data.declaration_database.map.at(module_name.data());
+        clang::RecordDecl* const record_declaration = clang_declarations.struct_declarations.at(declaration_name.data());
+        clang::QualType const qual_type = clang_module_data.ast_context.getRecordType(record_declaration);
+        llvm::Type* const clang_type = clang::CodeGen::convertTypeForMemory(clang_module_data.code_generator->CGM(), qual_type);
+        return clang_type;
     }
 
     clang::QualType create_type(

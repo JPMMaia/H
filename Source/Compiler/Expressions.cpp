@@ -23,6 +23,8 @@ module h.compiler.expressions;
 import h.core;
 import h.core.declarations;
 import h.core.types;
+import h.compiler.clang_data;
+import h.compiler.clang_code_generation;
 import h.compiler.common;
 import h.compiler.debug_info;
 import h.compiler.instructions;
@@ -1792,10 +1794,24 @@ namespace h::compiler
                 struct_instance_value = llvm_builder.CreateInsertValue(struct_instance_value, member_value.value, { static_cast<unsigned>(member_index) });
             }
 
+            llvm::AllocaInst* alloca_instruction = create_alloca_instruction(
+                llvm_builder,
+                llvm_data_layout,
+                llvm_struct_type,
+                "temporary_struct_instance"
+            );
+
+            create_store_instruction(
+                llvm_builder,
+                llvm_data_layout,
+                struct_instance_value,
+                alloca_instruction
+            );
+
             return Value_and_type
             {
                 .name = "",
-                .value = struct_instance_value,
+                .value = alloca_instruction,
                 .type = struct_type_reference
             };
         }
@@ -1823,10 +1839,24 @@ namespace h::compiler
                 struct_instance_value = llvm_builder.CreateInsertValue(struct_instance_value, member_value.value, { static_cast<unsigned>(member_index) });
             }
 
+            llvm::AllocaInst* alloca_instruction = create_alloca_instruction(
+                llvm_builder,
+                llvm_data_layout,
+                llvm_struct_type,
+                "temporary_struct_instance"
+            );
+
+            create_store_instruction(
+                llvm_builder,
+                llvm_data_layout,
+                struct_instance_value,
+                alloca_instruction
+            );
+
             return Value_and_type
             {
                 .name = "",
-                .value = struct_instance_value,
+                .value = alloca_instruction,
                 .type = struct_type_reference
             };
         }
@@ -1960,7 +1990,7 @@ namespace h::compiler
 
         Expression_parameters new_parameters = parameters;
         new_parameters.expression_type = function_output_type.has_value() ? function_output_type.value() : std::optional<Type_reference>{};
-        Value_and_type const temporary = create_loaded_expression_value(expression.expression->expression_index, statement, new_parameters);
+        Value_and_type const temporary = create_expression_value(expression.expression->expression_index, statement, new_parameters);
 
         if (parameters.debug_info != nullptr)
             set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
