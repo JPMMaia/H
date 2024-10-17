@@ -86,6 +86,7 @@ endif()
 target_sources(H_compiler PRIVATE
    "Clang_code_generation.cppm"
    "Clang_code_generation.cpp"
+   "Clang_data.cppm"
    "Common.cppm"
    "Common.cpp"
    "Compiler.cppm"

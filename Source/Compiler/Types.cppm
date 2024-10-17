@@ -16,6 +16,7 @@ module;
 
 export module h.compiler.types;
 
+import h.compiler.clang_data;
 import h.core;
 import h.core.struct_layout;
 
@@ -63,6 +64,7 @@ namespace h::compiler
         Type_database& type_database,
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
+        Clang_module_data const& clang_module_data,
         Module const& core_module
     );
 

@@ -17,7 +17,7 @@ export module h.compiler.expressions;
 
 import h.core;
 import h.core.declarations;
-import h.compiler.clang_code_generation;
+import h.compiler.clang_data;
 import h.compiler.debug_info;
 import h.compiler.instructions;
 import h.compiler.types;

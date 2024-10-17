@@ -21,6 +21,8 @@ module;
 module h.compiler.types;
 
 import h.common;
+import h.compiler.clang_code_generation;
+import h.compiler.clang_data;
 import h.compiler.common;
 import h.core;
 import h.core.types;
@@ -345,30 +347,27 @@ namespace h::compiler
     }
 
     void set_struct_definitions(
-        llvm::LLVMContext& llvm_context,
-        llvm::DataLayout const& llvm_data_layout,
+        Clang_module_data const& clang_module_data,
         Module const& core_module,
         std::span<Struct_declaration const> const struct_declarations,
-        Type_database const& type_database,
         LLVM_type_map const& llvm_type_map
     )
     {
         for (Struct_declaration const& struct_declaration : struct_declarations)
         {
-            std::pmr::vector<llvm::Type*> const llvm_types = type_references_to_llvm_types(
-                llvm_context,
-                llvm_data_layout,
-                core_module,
-                struct_declaration.member_types,
-                type_database,
-                {}
+            llvm::Type* const converted_type = convert_type(
+                clang_module_data,
+                core_module.name,
+                struct_declaration.name
             );
 
             llvm::Type* const llvm_type = llvm_type_map.at(struct_declaration.name);
-            if (llvm::StructType::classof(llvm_type))
+            if (llvm::StructType::classof(llvm_type) && llvm::StructType::classof(converted_type))
             {
+                llvm::StructType* const converted_struct_type = static_cast<llvm::StructType*>(converted_type);
+
                 llvm::StructType* const llvm_struct_type = static_cast<llvm::StructType*>(llvm_type);
-                llvm_struct_type->setBody(llvm_types);
+                llvm_struct_type->setBody(converted_struct_type->elements(), converted_struct_type->isPacked());
             }
         }
     }
@@ -494,47 +493,27 @@ namespace h::compiler
     }
 
     void set_union_definitions(
-        llvm::LLVMContext& llvm_context,
-        llvm::DataLayout const& llvm_data_layout,
+        Clang_module_data const& clang_module_data,
         Module const& core_module,
         std::span<Union_declaration const> const union_declarations,
-        Type_database const& type_database,
         LLVM_type_map const& llvm_type_map
     )
     {
         for (Union_declaration const& union_declaration : union_declarations)
         {
-            std::pmr::vector<llvm::Type*> const llvm_types = type_references_to_llvm_types(
-                llvm_context,
-                llvm_data_layout,
-                core_module,
-                union_declaration.member_types,
-                type_database,
-                {}
+            llvm::Type* const converted_type = convert_type(
+                clang_module_data,
+                core_module.name,
+                union_declaration.name
             );
 
-            llvm::TypeSize max_element_size{ 1, false };
-
-            for (std::size_t index = 0; index < llvm_types.size(); ++index)
+            llvm::Type* const llvm_type = llvm_type_map.at(union_declaration.name);
+            if (llvm::StructType::classof(llvm_type) && llvm::StructType::classof(converted_type))
             {
-                llvm::Type* const llvm_type = llvm_types[index];
+                llvm::StructType* const converted_union_type = static_cast<llvm::StructType*>(converted_type);
 
-                llvm::TypeSize const type_size = llvm_data_layout.getTypeAllocSize(llvm_type);
-
-                if (type_size > max_element_size)
-                {
-                    max_element_size = type_size;
-                }
-            }
-
-            llvm::Type* const llvm_union_body_type = llvm::ArrayType::get(llvm::Type::getInt8Ty(llvm_context), max_element_size);
-
-            llvm::Type* const llvm_union_type = llvm_type_map.at(union_declaration.name);
-
-            if (llvm::StructType::classof(llvm_union_type))
-            {
-                llvm::StructType* const llvm_struct_type = static_cast<llvm::StructType*>(llvm_union_type);
-                llvm_struct_type->setBody(llvm_union_body_type);
+                llvm::StructType* const llvm_union_type = static_cast<llvm::StructType*>(llvm_type);
+                llvm_union_type->setBody(converted_union_type->elements(), converted_union_type->isPacked());
             }
         }
     }
@@ -667,6 +646,7 @@ namespace h::compiler
         Type_database& type_database,
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
+        Clang_module_data const& clang_module_data,
         Module const& core_module
     )
     {
@@ -684,11 +664,11 @@ namespace h::compiler
         add_alias_types(llvm_context, llvm_data_layout, core_module.export_declarations.alias_type_declarations, core_module, type_database, llvm_type_map);
         add_alias_types(llvm_context, llvm_data_layout, core_module.internal_declarations.alias_type_declarations, core_module, type_database, llvm_type_map);
 
-        set_struct_definitions(llvm_context, llvm_data_layout, core_module, core_module.export_declarations.struct_declarations, type_database, llvm_type_map);
-        set_struct_definitions(llvm_context, llvm_data_layout, core_module, core_module.internal_declarations.struct_declarations, type_database, llvm_type_map);
+        set_struct_definitions(clang_module_data, core_module, core_module.export_declarations.struct_declarations, llvm_type_map);
+        set_struct_definitions(clang_module_data, core_module, core_module.internal_declarations.struct_declarations, llvm_type_map);
 
-        set_union_definitions(llvm_context, llvm_data_layout, core_module, core_module.export_declarations.union_declarations, type_database, llvm_type_map);
-        set_union_definitions(llvm_context, llvm_data_layout, core_module, core_module.internal_declarations.union_declarations, type_database, llvm_type_map);
+        set_union_definitions(clang_module_data, core_module, core_module.export_declarations.union_declarations, llvm_type_map);
+        set_union_definitions(clang_module_data, core_module, core_module.internal_declarations.union_declarations, llvm_type_map);
     }
 
     void add_module_debug_types(

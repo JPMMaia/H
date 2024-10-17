@@ -33,50 +33,13 @@ export module h.compiler.clang_code_generation;
 
 import h.core;
 import h.core.declarations;
+import h.compiler.clang_data;
 import h.compiler.debug_info;
 import h.compiler.instructions;
 import h.compiler.types;
 
 namespace h::compiler
 {
-    export struct Clang_data
-    {
-        std::unique_ptr<clang::CompilerInstance> compiler_instance;
-    };
-
-    export Clang_data create_clang_data(
-        llvm::LLVMContext& llvm_context,
-        llvm::Triple const& llvm_triple,
-        unsigned int const optimization_level
-    );
-
-    struct Clang_module_declarations
-    {
-        std::pmr::unordered_map<std::pmr::string, clang::FunctionDecl*> function_declarations;
-        std::pmr::unordered_map<std::pmr::string, clang::EnumDecl*> enum_declarations;
-        std::pmr::unordered_map<std::pmr::string, clang::RecordDecl*> struct_declarations;
-    };
-
-    struct Clang_declaration_database
-    {
-        std::pmr::unordered_map<std::pmr::string, Clang_module_declarations> map;
-    };
-
-    export struct Clang_module_data
-    {
-        clang::ASTContext& ast_context;
-        std::unique_ptr<clang::CodeGenerator> code_generator;
-        Clang_declaration_database declaration_database;
-    };
-
-    export Clang_module_data create_clang_module_data(
-        llvm::LLVMContext& llvm_context,
-        Clang_data const& clang_data,
-        h::Module const& core_module,
-        std::span<h::Module const* const> const sorted_core_module_dependencies,
-        Declaration_database const& declaration_database
-    );
-
     export llvm::FunctionType* create_llvm_function_type(
         Clang_module_data& clang_module_data,
         h::Module const& core_module,
@@ -151,6 +114,12 @@ namespace h::compiler
         Declaration_database const& declaration_database,
         Type_database const& type_database,
         Value_and_type const& value_to_return
+    );
+
+    export llvm::Type* convert_type(
+        Clang_module_data const& clang_module_data,
+        std::string_view const module_name,
+        std::string_view const declaration_name
     );
 
     clang::QualType create_type(
