@@ -986,6 +986,21 @@ namespace h::compiler
                 }
             }
         }
+        else if (std::holds_alternative<h::Pointer_type>(type_reference.data))
+        {
+            h::Pointer_type const pointer_type = std::get<h::Pointer_type>(type_reference.data);
+            if (pointer_type.element_type.empty())
+                return clang_ast_context.getPointerType(clang_ast_context.VoidTy);
+
+            clang::QualType const element_type = create_type(
+                clang_ast_context,
+                pointer_type.element_type[0],
+                declaration_database,
+                clang_declaration_database
+            );
+
+            return clang_ast_context.getPointerType(element_type);
+        }
 
         throw std::runtime_error{ "Clang_code_generation.create_type(): Not implemented!" };
     }

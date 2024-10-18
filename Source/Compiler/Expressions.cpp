@@ -1953,6 +1953,30 @@ namespace h::compiler
         throw std::runtime_error{ std::format("Instantiate_expression can only be used to instantiate either structs or unions! Tried to instantiate '{}.{}'", declaration_module_name, custom_type_reference.name) };
     }
 
+    Value_and_type create_null_pointer_expression_value(
+        Statement const& statement,
+        Expression_parameters const& parameters
+    )
+    {
+        if (!parameters.expression_type.has_value())
+            throw std::runtime_error{ "Could not create null pointer expression because cannot infer the pointer type!" };
+
+        h::Type_reference const& element_type = *parameters.expression_type;
+        llvm::Type* const element_llvm_type = type_reference_to_llvm_type(parameters.llvm_context, parameters.llvm_data_layout, parameters.core_module, element_type, parameters.type_database);
+        if (!element_llvm_type->isPointerTy())
+            throw std::runtime_error{ "Cannot assign null pointer to non-pointer type!" };
+
+        llvm::PointerType* const pointer_llvm_type = static_cast<llvm::PointerType*>(element_llvm_type);
+        llvm::Constant* const null_pointer_value = llvm::ConstantPointerNull::get(pointer_llvm_type);
+
+        return
+        {
+            .name = "",
+            .value = null_pointer_value,
+            .type = element_type
+        };
+    }
+
     Value_and_type create_parenthesis_expression_value(
         Parenthesis_expression const& expression,
         Statement const& statement,
@@ -2625,6 +2649,10 @@ namespace h::compiler
         {
             Instantiate_expression const& data = std::get<Instantiate_expression>(expression.data);
             return create_instantiate_expression_value(data, new_parameters);
+        }
+        else if (std::holds_alternative<Null_pointer_expression>(expression.data))
+        {
+            return create_null_pointer_expression_value(statement, new_parameters);
         }
         else if (std::holds_alternative<Parenthesis_expression>(expression.data))
         {
