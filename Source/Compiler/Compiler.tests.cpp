@@ -3117,14 +3117,40 @@ entry:
   
   TEST_CASE("C Interoperability - function_return_pointer x86_64-pc-linux-gnu")
   {
-    char const* const expected_llvm_ir = R"()";
+    char const* const expected_llvm_ir = R"(
+define private ptr @c_interoperability_foo() {
+entry:
+  ret ptr null
+}
+
+define private void @c_interoperability_run() {
+entry:
+  %0 = call ptr @c_interoperability_foo()
+  %value = alloca ptr, align 8
+  store ptr %0, ptr %value, align 8
+  ret void
+}
+)";
 
     test_c_interoperability_common("c_interoperability_function_return_pointer.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
   TEST_CASE("C Interoperability - function_return_pointer x86_64-pc-windows-msvc")
   {
-    char const* const expected_llvm_ir = R"()";
+    char const* const expected_llvm_ir = R"(
+define private ptr @c_interoperability_foo() {
+entry:
+  ret ptr null
+}
+
+define private void @c_interoperability_run() {
+entry:
+  %0 = call ptr @c_interoperability_foo()
+  %value = alloca ptr, align 8
+  store ptr %0, ptr %value, align 8
+  ret void
+}
+)";
 
     test_c_interoperability_common("c_interoperability_function_return_pointer.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
