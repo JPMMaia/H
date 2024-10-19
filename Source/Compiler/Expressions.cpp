@@ -1149,7 +1149,7 @@ namespace h::compiler
             Expression_parameters new_parameters = parameters;
             new_parameters.expression_type = i < function_type.input_parameter_types.size() ? function_type.input_parameter_types[i] : std::optional<Type_reference>{};
             //Value_and_type const temporary = create_loaded_expression_value(expression_index, statement, new_parameters);
-            Value_and_type const temporary = create_expression_value(expression_index, statement, parameters);
+            Value_and_type const temporary = create_expression_value(expression_index, statement, new_parameters);
 
             llvm_arguments[i] = temporary.value;
         }

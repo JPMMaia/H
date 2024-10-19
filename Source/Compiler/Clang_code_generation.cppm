@@ -74,6 +74,26 @@ namespace h::compiler
         Type_database const& type_database
     );
 
+    llvm::Value* read_function_return_instruction(
+        llvm::LLVMContext& llvm_context,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::DataLayout const& llvm_data_layout,
+        h::Module const& core_module,
+        h::Function_type const& function_type,
+        clang::CodeGen::CGFunctionInfo const& function_info,
+        Type_database const& type_database,
+        llvm::Value* const call_instruction
+    );
+
+    llvm::Value* read_from_type(
+        llvm::LLVMContext& llvm_context,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Value* const source_llvm_value,
+        llvm::Type* const source_llvm_type,
+        llvm::Type* const destination_llvm_type
+    );
+
     export llvm::Value* generate_function_call(
         llvm::LLVMContext& llvm_context,
         llvm::IRBuilder<>& llvm_builder,

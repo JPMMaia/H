@@ -383,7 +383,7 @@ namespace h::compiler
                     throw std::runtime_error{ "Clang_code_generation.set_llvm_function_argument_names(): IndirectAliased not implemented!" };
                 }
                 case clang::CodeGen::ABIArgInfo::Ignore: {
-                    throw std::runtime_error{ "Clang_code_generation.set_llvm_function_argument_names(): Ignore not implemented!" };
+                    break;
                 }
                 case clang::CodeGen::ABIArgInfo::Expand: {
                     throw std::runtime_error{ "Clang_code_generation.set_llvm_function_argument_names(): Expand not implemented!" };
@@ -403,16 +403,13 @@ namespace h::compiler
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,
         llvm::Module& llvm_module,
-        Clang_module_data& clang_module_data,
         h::Module const& core_module,
         h::Function_type const& function_type,
+        clang::CodeGen::CGFunctionInfo const& function_info,
         std::span<llvm::Value* const> const original_arguments,
-        Declaration_database const& declaration_database,
         Type_database const& type_database
     )
     {
-        clang::CodeGen::CGFunctionInfo const& function_info = create_clang_function_info(clang_module_data, function_type, declaration_database);
-
         Transformed_arguments transformed_arguments;
 
         if (function_type.output_parameter_types.size() > 0)
@@ -490,9 +487,20 @@ namespace h::compiler
                     }
                     else
                     {
-                        llvm::Value* const new_argument = original_arguments[argument_index];
-                        
-                        transformed_arguments.values.push_back(new_argument);
+                        llvm::Value* const original_argument = original_arguments[argument_index];
+                        h::Type_reference const& original_argument_type = function_type.input_parameter_types[argument_index];
+                        llvm::Type* const original_argument_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, original_argument_type, type_database);
+
+                        llvm::Value* transformed_argument = read_from_type(
+                            llvm_context,
+                            llvm_builder,
+                            llvm_data_layout,
+                            original_argument,
+                            original_argument_llvm_type,
+                            new_type
+                        );
+
+                        transformed_arguments.values.push_back(transformed_argument);
                         transformed_arguments.attributes.push_back({});
                     }
 
@@ -528,7 +536,7 @@ namespace h::compiler
                     throw std::runtime_error{ "Clang_code_generation.transform_arguments(): IndirectAliased not implemented!" };
                 }
                 case clang::CodeGen::ABIArgInfo::Ignore: {
-                    throw std::runtime_error{ "Clang_code_generation.transform_arguments(): Ignore not implemented!" };
+                    break;
                 }
                 case clang::CodeGen::ABIArgInfo::Expand: {
                     throw std::runtime_error{ "Clang_code_generation.transform_arguments(): Expand not implemented!" };
@@ -622,7 +630,9 @@ namespace h::compiler
         Type_database const& type_database
     )
     {
-        Transformed_arguments const transformed_arguments = transform_arguments(llvm_context, llvm_builder, llvm_data_layout, llvm_module, clang_module_data, core_module, function_type, arguments, declaration_database, type_database);
+        clang::CodeGen::CGFunctionInfo const& function_info = create_clang_function_info(clang_module_data, function_type, declaration_database);
+
+        Transformed_arguments const transformed_arguments = transform_arguments(llvm_context, llvm_builder, llvm_data_layout, llvm_module, core_module, function_type, function_info, arguments, type_database);
 
         llvm::CallInst* call_instruction = llvm_builder.CreateCall(&llvm_function, transformed_arguments.values);
 
@@ -640,10 +650,17 @@ namespace h::compiler
         {
             return transformed_arguments.values[0];
         }
-        else
-        {
-            return call_instruction;
-        }
+
+        return read_function_return_instruction(
+            llvm_context,
+            llvm_builder,
+            llvm_data_layout,
+            core_module,
+            function_type,
+            function_info,
+            type_database,
+            call_instruction
+        );
     }
 
     void set_function_input_parameter_debug_information(
@@ -817,7 +834,7 @@ namespace h::compiler
                     throw std::runtime_error{ "Clang_code_generation.generate_function_arguments(): IndirectAliased not implemented!" };
                 }
                 case clang::CodeGen::ABIArgInfo::Ignore: {
-                    throw std::runtime_error{ "Clang_code_generation.generate_function_arguments(): Ignore not implemented!" };
+                    break;
                 }
                 case clang::CodeGen::ABIArgInfo::Expand: {
                     throw std::runtime_error{ "Clang_code_generation.generate_function_arguments(): Expand not implemented!" };
@@ -929,6 +946,123 @@ namespace h::compiler
             }
             default: {
                 throw std::runtime_error{ "Clang_code_generation.generate_function_return_value(): return kind not implemented!" };
+            }
+        }
+    }
+
+    llvm::ConstantInt* get_constant(
+        llvm::LLVMContext& llvm_context,
+        unsigned value
+    )
+    {
+        return llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm_context), value);
+    }
+
+    llvm::Value* read_from_different_type(
+        llvm::LLVMContext& llvm_context,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Value* const source_llvm_value,
+        llvm::Type* const source_llvm_type,
+        llvm::Type* const destination_llvm_type
+    )
+    {
+        if (source_llvm_type->isStructTy() && destination_llvm_type->isStructTy())
+        {
+            llvm::AllocaInst* const destination = create_alloca_instruction(llvm_builder, llvm_data_layout, destination_llvm_type);
+            
+            llvm::StructType* const source_struct_llvm_type = static_cast<llvm::StructType*>(source_llvm_type);
+            llvm::ArrayRef<llvm::Type*> const source_struct_elements = source_struct_llvm_type->elements();
+
+            for (unsigned source_element_index = 0; source_element_index < source_struct_elements.size(); ++source_element_index)
+            {
+                llvm::Value* const pointer_to_destination = llvm_builder.CreateInBoundsGEP(source_llvm_type, destination, {get_constant(llvm_context, 0), get_constant(llvm_context, source_element_index)});
+                llvm::Value* const extract_value = llvm_builder.CreateExtractValue(source_llvm_value, {source_element_index});
+                llvm_builder.CreateAlignedStore(extract_value, pointer_to_destination, llvm_data_layout.getABITypeAlign(destination_llvm_type));
+            }
+
+            return destination;
+        }
+        else if (!source_llvm_type->isStructTy() && destination_llvm_type->isStructTy())
+        {
+            llvm::AllocaInst* const destination = create_alloca_instruction(llvm_builder, llvm_data_layout, destination_llvm_type);
+            llvm_builder.CreateAlignedStore(source_llvm_value, destination, llvm_data_layout.getABITypeAlign(destination_llvm_type));
+            return destination;
+        }
+        else if (source_llvm_type->isStructTy() && !destination_llvm_type->isStructTy())
+        {
+            llvm::Value* const pointer_to_source = llvm_builder.CreateInBoundsGEP(source_llvm_type, source_llvm_value, {get_constant(llvm_context, 0), get_constant(llvm_context, 0)});
+            llvm::LoadInst* const destination_value = llvm_builder.CreateAlignedLoad(destination_llvm_type, pointer_to_source, llvm_data_layout.getABITypeAlign(destination_llvm_type));
+            return destination_value;
+        }
+
+        throw std::runtime_error{ "read_from_different_type not implemented yet!" };
+    }
+
+    llvm::Value* read_from_type(
+        llvm::LLVMContext& llvm_context,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Value* const source_llvm_value,
+        llvm::Type* const source_llvm_type,
+        llvm::Type* const destination_llvm_type
+    )
+    {   
+        if (source_llvm_type == destination_llvm_type)
+            return source_llvm_value;
+
+        return read_from_different_type(
+            llvm_context,
+            llvm_builder,
+            llvm_data_layout,
+            source_llvm_value,
+            source_llvm_type,
+            destination_llvm_type
+        );
+    }
+
+    llvm::Value* read_function_return_instruction(
+        llvm::LLVMContext& llvm_context,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::DataLayout const& llvm_data_layout,
+        h::Module const& core_module,
+        h::Function_type const& function_type,
+        clang::CodeGen::CGFunctionInfo const& function_info,
+        Type_database const& type_database,
+        llvm::Value* const call_instruction
+    )
+    {
+        if (function_type.output_parameter_types.empty())
+        {
+            return call_instruction;
+        }
+
+        clang::CodeGen::ABIArgInfo const& return_info = function_info.getReturnInfo();
+        clang::CodeGen::ABIArgInfo::Kind const kind = return_info.getKind();
+
+        switch (kind)
+        {
+            case clang::CodeGen::ABIArgInfo::Direct: {
+
+                h::Type_reference const& original_return_type = function_type.output_parameter_types[0];
+                llvm::Type* const original_return_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, original_return_type, type_database);
+
+                llvm::Type* const new_return_llvm_type = return_info.getCoerceToType();
+
+                return read_from_type(
+                    llvm_context,
+                    llvm_builder,
+                    llvm_data_layout,
+                    call_instruction,
+                    new_return_llvm_type,
+                    original_return_llvm_type
+                );
+            }
+            case clang::CodeGen::ABIArgInfo::Ignore: {
+                return call_instruction;
+            }
+            default: {
+                throw std::runtime_error{ "Clang_code_generation.read_function_return_instruction(): return kind not implemented!" };
             }
         }
     }
