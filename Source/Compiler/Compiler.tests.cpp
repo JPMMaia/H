@@ -3226,70 +3226,274 @@ attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite
   
   TEST_CASE("C Interoperability - function_with_big_struct x86_64-pc-linux-gnu")
   {
-    char const* const expected_llvm_ir = R"()";
+    char const* const expected_llvm_ir = R"(
+%c_interoperability_My_struct = type { i32, i32, i32, i32, i32 }
+
+define private void @c_interoperability_foo(ptr noundef %"arguments[0].instance") {
+entry:
+  %instance = alloca ptr, align 8
+  store ptr %"arguments[0].instance", ptr %instance, align 8
+  ret void
+}
+
+define private void @c_interoperability_run() {
+entry:
+  %temporary_struct_instance = alloca %c_interoperability_My_struct, align 4
+  store %c_interoperability_My_struct zeroinitializer, ptr %temporary_struct_instance, align 4
+  %0 = load %c_interoperability_My_struct, ptr %temporary_struct_instance, align 4
+  %instance = alloca %c_interoperability_My_struct, align 4
+  store %c_interoperability_My_struct %0, ptr %instance, align 4
+  %1 = alloca %c_interoperability_My_struct, align 4
+  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %1, ptr align 4 %instance, i64 20, i1 false)
+  call void @c_interoperability_foo(ptr noundef %1)
+  ret void
+}
+
+; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly, ptr noalias nocapture readonly, i64, i1 immarg) #0
+
+attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
+)";
 
     test_c_interoperability_common("c_interoperability_function_with_big_struct.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
   TEST_CASE("C Interoperability - function_with_big_struct x86_64-pc-windows-msvc")
   {
-    char const* const expected_llvm_ir = R"()";
+    char const* const expected_llvm_ir = R"(
+%c_interoperability_My_struct = type { i32, i32, i32, i32, i32 }
+
+define private void @c_interoperability_foo(ptr noundef %"arguments[0].instance") {
+entry:
+  %instance = alloca ptr, align 8
+  store ptr %"arguments[0].instance", ptr %instance, align 8
+  ret void
+}
+
+define private void @c_interoperability_run() {
+entry:
+  %temporary_struct_instance = alloca %c_interoperability_My_struct, align 4
+  store %c_interoperability_My_struct zeroinitializer, ptr %temporary_struct_instance, align 4
+  %0 = load %c_interoperability_My_struct, ptr %temporary_struct_instance, align 4
+  %instance = alloca %c_interoperability_My_struct, align 4
+  store %c_interoperability_My_struct %0, ptr %instance, align 4
+  %1 = alloca %c_interoperability_My_struct, align 4
+  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %1, ptr align 4 %instance, i64 20, i1 false)
+  call void @c_interoperability_foo(ptr noundef %1)
+  ret void
+}
+
+; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly, ptr noalias nocapture readonly, i64, i1 immarg) #0
+
+attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
+)";
 
     test_c_interoperability_common("c_interoperability_function_with_big_struct.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
   TEST_CASE("C Interoperability - function_with_empty_struct x86_64-pc-linux-gnu")
   {
-    char const* const expected_llvm_ir = R"()";
+    char const* const expected_llvm_ir = R"(
+%c_interoperability_My_struct = type {}
+
+define private void @c_interoperability_foo() {
+entry:
+  ret void
+}
+
+define private void @c_interoperability_run() {
+entry:
+  %temporary_struct_instance = alloca %c_interoperability_My_struct, align 1
+  store %c_interoperability_My_struct undef, ptr %temporary_struct_instance, align 1
+  %0 = load %c_interoperability_My_struct, ptr %temporary_struct_instance, align 1
+  %instance = alloca %c_interoperability_My_struct, align 1
+  store %c_interoperability_My_struct %0, ptr %instance, align 1
+  call void @c_interoperability_foo()
+  ret void
+}
+)";
 
     test_c_interoperability_common("c_interoperability_function_with_empty_struct.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
   TEST_CASE("C Interoperability - function_with_empty_struct x86_64-pc-windows-msvc")
   {
-    char const* const expected_llvm_ir = R"()";
+    char const* const expected_llvm_ir = R"(
+%c_interoperability_My_struct = type { [4 x i8] }
+
+define private void @c_interoperability_foo(i32 %"arguments[0].instance") {
+entry:
+  %instance = alloca %c_interoperability_My_struct, align 1
+  store i32 %"arguments[0].instance", ptr %instance, align 1
+  ret void
+}
+
+define private void @c_interoperability_run() {
+entry:
+  %temporary_struct_instance = alloca %c_interoperability_My_struct, align 1
+  store %c_interoperability_My_struct undef, ptr %temporary_struct_instance, align 1
+  %0 = load %c_interoperability_My_struct, ptr %temporary_struct_instance, align 1
+  %instance = alloca %c_interoperability_My_struct, align 1
+  store %c_interoperability_My_struct %0, ptr %instance, align 1
+  %1 = getelementptr inbounds %c_interoperability_My_struct, ptr %instance, i32 0, i32 0
+  %2 = load i32, ptr %1, align 4
+  call void @c_interoperability_foo(i32 %2)
+  ret void
+}
+)";
 
     test_c_interoperability_common("c_interoperability_function_with_empty_struct.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
   TEST_CASE("C Interoperability - function_with_int_arguments x86_64-pc-linux-gnu")
   {
-    char const* const expected_llvm_ir = R"()";
+    char const* const expected_llvm_ir = R"(
+define private void @c_interoperability_foo(i32 %"arguments[0].a", i32 %"arguments[1].b") {
+entry:
+  %a = alloca i32, align 4
+  store i32 %"arguments[0].a", ptr %a, align 4
+  %b = alloca i32, align 4
+  store i32 %"arguments[1].b", ptr %b, align 4
+  ret void
+}
+
+define private void @c_interoperability_run() {
+entry:
+  call void @c_interoperability_foo(i32 0, i32 0)
+  ret void
+}
+)";
 
     test_c_interoperability_common("c_interoperability_function_with_int_arguments.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
   TEST_CASE("C Interoperability - function_with_int_arguments x86_64-pc-windows-msvc")
   {
-    char const* const expected_llvm_ir = R"()";
+    char const* const expected_llvm_ir = R"(
+define private void @c_interoperability_foo(i32 %"arguments[0].a", i32 %"arguments[1].b") {
+entry:
+  %a = alloca i32, align 4
+  store i32 %"arguments[0].a", ptr %a, align 4
+  %b = alloca i32, align 4
+  store i32 %"arguments[1].b", ptr %b, align 4
+  ret void
+}
+
+define private void @c_interoperability_run() {
+entry:
+  call void @c_interoperability_foo(i32 0, i32 0)
+  ret void
+}
+)";
 
     test_c_interoperability_common("c_interoperability_function_with_int_arguments.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
   TEST_CASE("C Interoperability - function_with_pointer x86_64-pc-linux-gnu")
   {
-    char const* const expected_llvm_ir = R"()";
+    char const* const expected_llvm_ir = R"(
+define private void @c_interoperability_foo(ptr %"arguments[0].value") {
+entry:
+  %value = alloca ptr, align 8
+  store ptr %"arguments[0].value", ptr %value, align 8
+  ret void
+}
+
+define private void @c_interoperability_run() {
+entry:
+  call void @c_interoperability_foo(ptr null)
+  ret void
+}
+)";
 
     test_c_interoperability_common("c_interoperability_function_with_pointer.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
   TEST_CASE("C Interoperability - function_with_pointer x86_64-pc-windows-msvc")
   {
-    char const* const expected_llvm_ir = R"()";
+    char const* const expected_llvm_ir = R"(
+define private void @c_interoperability_foo(ptr %"arguments[0].value") {
+entry:
+  %value = alloca ptr, align 8
+  store ptr %"arguments[0].value", ptr %value, align 8
+  ret void
+}
+
+define private void @c_interoperability_run() {
+entry:
+  call void @c_interoperability_foo(ptr null)
+  ret void
+}
+)";
 
     test_c_interoperability_common("c_interoperability_function_with_pointer.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
   TEST_CASE("C Interoperability - function_with_small_struct x86_64-pc-linux-gnu")
   {
-    char const* const expected_llvm_ir = R"()";
+    char const* const expected_llvm_ir = R"(
+%c_interoperability_My_struct = type { i32, i32, i32, i32 }
+
+define private void @c_interoperability_foo(i64 %"arguments[0].instance_0", i64 %"arguments[0].instance_1") {
+entry:
+  %instance = alloca %c_interoperability_My_struct, align 4
+  %0 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 0
+  store i64 %"arguments[0].instance_0", ptr %0, align 4
+  %1 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 1
+  store i64 %"arguments[0].instance_1", ptr %1, align 4
+  ret void
+}
+
+define private void @c_interoperability_run() {
+entry:
+  %temporary_struct_instance = alloca %c_interoperability_My_struct, align 4
+  store %c_interoperability_My_struct zeroinitializer, ptr %temporary_struct_instance, align 4
+  %0 = load %c_interoperability_My_struct, ptr %temporary_struct_instance, align 4
+  %instance = alloca %c_interoperability_My_struct, align 4
+  store %c_interoperability_My_struct %0, ptr %instance, align 4
+  %1 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 0
+  %2 = load i64, ptr %1, align 4
+  %3 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 1
+  %4 = load i64, ptr %3, align 4
+  call void @c_interoperability_foo(i64 %2, i64 %4)
+  ret void
+}
+)";
 
     test_c_interoperability_common("c_interoperability_function_with_small_struct.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
   TEST_CASE("C Interoperability - function_with_small_struct x86_64-pc-windows-msvc")
   {
-    char const* const expected_llvm_ir = R"()";
+    char const* const expected_llvm_ir = R"(
+%c_interoperability_My_struct = type { i32, i32, i32, i32 }
+
+define private void @c_interoperability_foo(ptr noundef %"arguments[0].instance") {
+entry:
+  %instance = alloca ptr, align 8
+  store ptr %"arguments[0].instance", ptr %instance, align 8
+  ret void
+}
+
+define private void @c_interoperability_run() {
+entry:
+  %temporary_struct_instance = alloca %c_interoperability_My_struct, align 4
+  store %c_interoperability_My_struct zeroinitializer, ptr %temporary_struct_instance, align 4
+  %0 = load %c_interoperability_My_struct, ptr %temporary_struct_instance, align 4
+  %instance = alloca %c_interoperability_My_struct, align 4
+  store %c_interoperability_My_struct %0, ptr %instance, align 4
+  %1 = alloca %c_interoperability_My_struct, align 4
+  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %1, ptr align 4 %instance, i64 16, i1 false)
+  call void @c_interoperability_foo(ptr noundef %1)
+  ret void
+}
+
+; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly, ptr noalias nocapture readonly, i64, i1 immarg) #0
+
+attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
+)";
 
     test_c_interoperability_common("c_interoperability_function_with_small_struct.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
