@@ -1,5 +1,10 @@
 module;
 
+#include <clang/AST/ASTContext.h>
+#include <clang/AST/Decl.h>
+#include <clang/AST/DeclBase.h>
+#include <clang/AST/Type.h>
+
 #include <nlohmann/json.hpp>
 
 #include <cstdio>
@@ -17,9 +22,12 @@ module h.builder;
 
 import h.common;
 import h.core;
+import h.core.declarations;
 import h.core.struct_layout;
 import h.compiler;
 import h.compiler.artifact;
+import h.compiler.clang_code_generation;
+import h.compiler.clang_data;
 import h.compiler.common;
 import h.compiler.linker;
 import h.compiler.repository;
@@ -408,8 +416,19 @@ namespace h::builder
         };
         h::compiler::LLVM_data llvm_data = h::compiler::initialize_llvm(options);
 
+        h::Declaration_database declaration_database = h::create_declaration_database();
+        h::add_declarations(declaration_database, *core_module);
+
+        h::compiler::Clang_module_data clang_module_data = h::compiler::create_clang_module_data(
+            *llvm_data.context,
+            llvm_data.clang_data,
+            *core_module,
+            {},
+            declaration_database
+        );
+
         h::compiler::Type_database type_database = h::compiler::create_type_database(*llvm_data.context);
-        h::compiler::add_module_types(type_database, *llvm_data.context, llvm_data.data_layout, *core_module);
+        h::compiler::add_module_types(type_database, *llvm_data.context, llvm_data.data_layout, clang_module_data, *core_module);
 
         h::Struct_layout const struct_layout = h::compiler::calculate_struct_layout(llvm_data.data_layout, type_database, core_module->name, struct_name);
 
