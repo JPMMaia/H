@@ -716,7 +716,13 @@ namespace h::compiler
     )
     {
         std::pmr::unordered_map<std::pmr::string, h::Module> core_module_dependencies;
-        core_module_dependencies.reserve(module_name_to_file_path_map.size());
+        core_module_dependencies.reserve(module_name_to_file_path_map.size() + 1);
+
+        std::filesystem::path const builtin_file_path = BUILTIN_HL_FILE_PATH;
+        std::optional<h::Module> builtin_module = h::json::read_module(builtin_file_path);
+        if (!builtin_module.has_value())
+            throw std::runtime_error{"Failed to read builtin module!"};
+        core_module_dependencies.insert(std::make_pair(builtin_module->name, std::move(builtin_module.value())));
 
         create_dependency_core_modules(core_module, module_name_to_file_path_map, core_module_dependencies);
 

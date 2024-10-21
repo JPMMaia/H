@@ -1,0 +1,13 @@
+module H.Builtin;
+
+export struct String
+{
+    data: *Byte = null;
+    length: Uint64 = 0u64;
+}
+
+export struct String_view
+{
+    data: *Byte = null;
+    length: Uint64 = 0u64;
+}

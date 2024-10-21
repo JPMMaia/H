@@ -142,17 +142,26 @@ namespace h::compiler
         std::string_view const declaration_name
     );
 
-    clang::QualType create_type(
+    std::optional<clang::QualType> create_type(
         clang::ASTContext& clang_ast_context,
         std::span<h::Type_reference const> const type_reference,
         Declaration_database const& declaration_database,
         Clang_declaration_database const& clang_declaration_database
     );
 
-    clang::QualType create_type(
+    std::optional<clang::QualType> create_type(
         clang::ASTContext& clang_ast_context,
         h::Type_reference const& type_reference,
         Declaration_database const& declaration_database,
         Clang_declaration_database const& clang_declaration_database
+    );
+
+    llvm::Value* read_from_different_type(
+        llvm::LLVMContext& llvm_context,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Value* const source_llvm_value,
+        llvm::Type* const source_llvm_type,
+        llvm::Type* const destination_llvm_type
     );
 }
