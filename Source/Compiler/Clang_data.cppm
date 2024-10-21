@@ -50,8 +50,10 @@ namespace h::compiler
     export struct Clang_module_declarations
     {
         std::pmr::unordered_map<std::pmr::string, clang::FunctionDecl*> function_declarations;
+        std::pmr::unordered_map<std::pmr::string, clang::TypedefDecl*> alias_type_declarations;
         std::pmr::unordered_map<std::pmr::string, clang::EnumDecl*> enum_declarations;
         std::pmr::unordered_map<std::pmr::string, clang::RecordDecl*> struct_declarations;
+        std::pmr::unordered_map<std::pmr::string, clang::RecordDecl*> union_declarations;
     };
 
     export struct Clang_declaration_database
