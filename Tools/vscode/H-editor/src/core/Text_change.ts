@@ -81,8 +81,10 @@ export function update(
         if (parse_result.status === Parser.Parse_status.Accept) {
 
             {
-                // TODO clone cache and apply temporary changes for validation?
-                const diagnostics = validate_parse_changes(state.document_file_path, parse_result.changes, state.parse_tree_text_position_cache);
+                const cache_for_validation = Parse_tree_text_position_cache.clone_cache(state.parse_tree_text_position_cache);
+                Parse_tree_text_position_cache.update_cache(cache_for_validation, parse_result.changes, text_change, text_after_changes);
+
+                const diagnostics = validate_parse_changes(state.document_file_path, parse_result.changes, cache_for_validation);
                 if (diagnostics.length > 0) {
                     state.diagnostics.push(...diagnostics);
                     return state;
