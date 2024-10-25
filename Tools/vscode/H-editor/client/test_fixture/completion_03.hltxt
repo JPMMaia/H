@@ -1,4 +1,4 @@
-module my_module;
+module completion_03;
 
 using My_alias = Int32;
 
