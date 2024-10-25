@@ -1,4 +1,4 @@
-module my_module;
+module diagnostics_parser_error;
 
 function run()
 {

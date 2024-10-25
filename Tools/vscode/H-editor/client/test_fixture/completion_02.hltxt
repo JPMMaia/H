@@ -1,4 +1,4 @@
-module my_module;
+module completion_02;
 
 function add_implementation(lhs: Int32, rhs: Int32) -> (result: Int32)
 {
