@@ -26,13 +26,16 @@ export async function get_code_actions(
     }
 
     const document_state = server_data.document_states.get(parameters.textDocument.uri);
-    if (document_state === undefined || document_state.parse_tree === undefined) {
+    if (document_state === undefined) {
         return [];
     }
-    const root = document_state.parse_tree;
+    const root = Document.get_parse_tree(document_state);
+    if (root === undefined) {
+        return [];
+    }
 
     const get_core_module = Server_data.create_get_core_module(server_data, workspace_uri);
-    const core_module = await get_core_module(document_state.module.name);
+    const core_module = await get_core_module(Document.get_module(document_state).name);
     if (core_module === undefined) {
         return [];
     }
@@ -208,7 +211,7 @@ async function create_add_missing_members_to_instantiate_expression(
         }
     }
 
-    const original_text_range = Parse_tree_analysis.find_node_range(root, descendant_instantiate_expression.node, descendant_instantiate_expression.position, document_state.text);
+    const original_text_range = Parse_tree_analysis.find_node_range(root, descendant_instantiate_expression.node, descendant_instantiate_expression.position, Document.get_text(document_state));
     if (original_text_range === undefined) {
         return undefined;
     }
@@ -256,8 +259,8 @@ async function create_add_missing_members_to_instantiate_expression(
     const code_action_kind = is_explicit ? vscode.CodeActionKind.QuickFix : vscode.CodeActionKind.RefactorRewrite;
     const code_action = vscode.CodeAction.create(title, workspace_edit, code_action_kind);
 
-    if (is_explicit && document_state.parse_tree !== undefined) {
-        const instantiate_expression_node_range = Parse_tree_analysis.find_node_range(document_state.parse_tree, descendant_instantiate_expression.node, descendant_instantiate_expression.position, document_state.text);
+    if (is_explicit && root !== undefined) {
+        const instantiate_expression_node_range = Parse_tree_analysis.find_node_range(root, descendant_instantiate_expression.node, descendant_instantiate_expression.position, Document.get_text(document_state));
         if (instantiate_expression_node_range !== undefined) {
             const diagnostics_to_fix: vscode.Diagnostic[] = [];
             for (const diagnostic of diagnostics) {

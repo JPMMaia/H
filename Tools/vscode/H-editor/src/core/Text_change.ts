@@ -41,12 +41,12 @@ export function update(
     text_after_changes: string
 ): Document.State {
 
-    const text_change = aggregate_text_changes(state.text, [...state.pending_text_changes, ...text_changes]);
+    const text_change = aggregate_text_changes(state.valid.text, [...state.pending_text_changes, ...text_changes]);
     state.pending_text_changes = [text_change];
 
     const scanned_input_change = scan_new_change(
-        state.parse_tree,
-        state.text,
+        state.valid.parse_tree,
+        state.valid.text,
         text_change.range.start,
         text_change.range.end,
         text_change.text
@@ -67,7 +67,7 @@ export function update(
 
         const parse_result = Parser.parse_incrementally(
             state.document_file_path,
-            state.parse_tree,
+            state.valid.parse_tree,
             start_change_node_position,
             scanned_input_change.new_words,
             after_change_node_position,
@@ -81,7 +81,7 @@ export function update(
         if (parse_result.status === Parser.Parse_status.Accept) {
 
             {
-                const cache_for_validation = Parse_tree_text_position_cache.clone_cache(state.parse_tree_text_position_cache);
+                const cache_for_validation = Parse_tree_text_position_cache.clone_cache(state.valid.parse_tree_text_position_cache);
                 Parse_tree_text_position_cache.update_cache(cache_for_validation, parse_result.changes, text_change, text_after_changes);
 
                 const diagnostics = validate_parse_changes(state.document_file_path, parse_result.changes, cache_for_validation);
@@ -95,64 +95,106 @@ export function update(
                 const modify_change = parse_result.changes[0].value as Parser.Modify_change;
                 const new_parse_tree = modify_change.new_node;
 
-                state.parse_tree = new_parse_tree;
-                state.module = Parse_tree_convertor.parse_tree_to_module(new_parse_tree, language_description.production_rules, language_description.mappings, language_description.key_to_production_rule_indices);
+                const new_module = Parse_tree_convertor.parse_tree_to_module(new_parse_tree, language_description.production_rules, language_description.mappings, language_description.key_to_production_rule_indices);
                 if (state.document_file_path.length > 0) {
-                    state.module.source_file_path = state.document_file_path;
+                    new_module.source_file_path = state.document_file_path;
+                }
+
+                if (state.diagnostics.length === 0) {
+                    state.valid.parse_tree = new_parse_tree;
+                    state.valid.module = new_module;
+                    Parse_tree_text_position_cache.update_cache(state.valid.parse_tree_text_position_cache, parse_result.changes, text_change, text_after_changes);
+                    state.valid.text = text_after_changes;
+                    state.pending_text_changes = [];
+                    state.with_errors = undefined;
+                }
+                else {
+                    const new_cache = Parse_tree_text_position_cache.clone_cache(state.valid.parse_tree_text_position_cache);
+                    Parse_tree_text_position_cache.update_cache(new_cache, parse_result.changes, text_change, text_after_changes);
+
+                    state.with_errors = {
+                        module: new_module,
+                        parse_tree: new_parse_tree,
+                        parse_tree_text_position_cache: new_cache,
+                        text: text_after_changes
+                    };
                 }
             }
-            else if (state.parse_tree !== undefined) {
-                const simplified_changes = Parser.simplify_changes(state.parse_tree, parse_result.changes);
+            else if (state.valid.parse_tree !== undefined) {
+                const simplified_changes = Parser.simplify_changes(state.valid.parse_tree, parse_result.changes);
 
                 const module_changes = Parse_tree_convertor.create_module_changes(
-                    state.module,
+                    state.valid.module,
                     language_description.production_rules,
-                    state.parse_tree,
+                    state.valid.parse_tree,
                     simplified_changes,
                     language_description.mappings,
                     language_description.key_to_production_rule_indices
                 );
 
-                Parser.apply_changes(state.parse_tree, [], parse_result.changes);
+                if (state.diagnostics.length === 0) {
+                    Parser.apply_changes(state.valid.parse_tree, [], parse_result.changes);
+                    Parse_tree_convertor.apply_module_changes(state.valid.module, module_changes);
+                    Parse_tree_text_position_cache.update_cache(state.valid.parse_tree_text_position_cache, parse_result.changes, text_change, text_after_changes);
+                    state.valid.text = text_after_changes;
+                    state.pending_text_changes = [];
+                    state.with_errors = undefined;
+                }
+                else {
+                    const parse_tree_with_errors = Parser_node.deep_clone_node(state.valid.parse_tree);
+                    Parser.apply_changes(parse_tree_with_errors, [], parse_result.changes);
 
-                Parse_tree_convertor.apply_module_changes(state.module, module_changes);
+                    const module_with_errors = JSON.parse(JSON.stringify(state.valid.module));
+                    Parse_tree_convertor.apply_module_changes(module_with_errors, module_changes);
+
+                    const new_cache = Parse_tree_text_position_cache.clone_cache(state.valid.parse_tree_text_position_cache);
+                    Parse_tree_text_position_cache.update_cache(new_cache, parse_result.changes, text_change, text_after_changes);
+
+                    state.with_errors = {
+                        module: module_with_errors,
+                        parse_tree: parse_tree_with_errors,
+                        parse_tree_text_position_cache: new_cache,
+                        text: text_after_changes
+                    };
+                }
             }
-
-            state.text = text_after_changes;
-            state.pending_text_changes = [];
-            Parse_tree_text_position_cache.update_cache(state.parse_tree_text_position_cache, parse_result.changes, text_change, text_after_changes);
         }
 
         if (g_debug_validate) {
             const scanned_words = Scanner.scan(text_after_changes, 0, text_after_changes.length, { line: 1, column: 1 });
-            const expected_parse_tree = Parser.parse(state.document_file_path, scanned_words, language_description.actions_table, language_description.go_to_table, language_description.array_infos, language_description.map_word_to_terminal).parse_tree;
+            const expected_parse_result = Parser.parse(state.document_file_path, scanned_words, language_description.actions_table, language_description.go_to_table, language_description.array_infos, language_description.map_word_to_terminal);
+            if (expected_parse_result.diagnostics.length === 0) {
+                const expected_parse_tree = expected_parse_result.parse_tree;
 
-            if ((state.parse_tree === undefined && expected_parse_tree !== undefined) || (state.parse_tree !== undefined && expected_parse_tree === undefined)) {
-                console.log("Error: state.parse_tree does not match expected_parse_tree");
-            }
-
-            if (state.parse_tree !== undefined && expected_parse_tree !== undefined && !Parser_node.are_equal(state.parse_tree, expected_parse_tree)) {
-                console.log("Error: state.parse_tree does not match expected_parse_tree");
-            }
-
-            if (expected_parse_tree !== undefined) {
-                const expected_module = Parse_tree_convertor.parse_tree_to_module(expected_parse_tree, language_description.production_rules, language_description.mappings, language_description.key_to_production_rule_indices);
-
-                const expected_module_string = expected_module.toString();
-                const actual_module_string = state.module.toString();
-                if (actual_module_string !== expected_module_string) {
-                    console.log("Error: state.module does not match expected_module");
+                if ((state.valid.parse_tree === undefined && expected_parse_tree !== undefined) || (state.valid.parse_tree !== undefined && expected_parse_tree === undefined)) {
+                    console.log("Error: state.parse_tree does not match expected_parse_tree");
                 }
-            }
-            else {
-                // TODO compare module with empty
+
+                if (state.valid.parse_tree !== undefined && expected_parse_tree !== undefined && !Parser_node.are_equal(state.valid.parse_tree, expected_parse_tree)) {
+                    console.log("Error: state.parse_tree does not match expected_parse_tree");
+                }
+
+                if (expected_parse_tree !== undefined) {
+                    const expected_module = Parse_tree_convertor.parse_tree_to_module(expected_parse_tree, language_description.production_rules, language_description.mappings, language_description.key_to_production_rule_indices);
+
+                    const expected_module_string = expected_module.toString();
+                    const actual_module_string = state.valid.module.toString();
+                    if (actual_module_string !== expected_module_string) {
+                        console.log("Error: state.module does not match expected_module");
+                    }
+                }
+                else {
+                    // TODO compare module with empty
+                }
             }
         }
     }
     else {
-        state.text = text_after_changes;
+        Parse_tree_text_position_cache.update_cache(state.valid.parse_tree_text_position_cache, [], text_change, text_after_changes);
+        state.valid.text = text_after_changes;
         state.pending_text_changes = [];
-        Parse_tree_text_position_cache.update_cache(state.parse_tree_text_position_cache, [], text_change, text_after_changes);
+        state.with_errors = undefined;
+        state.diagnostics = [];
     }
 
     return state;
@@ -197,11 +239,18 @@ export async function get_all_diagnostics(
 ): Promise<Validation.Diagnostic[]> {
     const diagnostics = [...document_state.diagnostics];
 
-    if (diagnostics.length === 0 && document_state.parse_tree !== undefined) {
-        diagnostics.push(...Validation.validate_parser_node(document_state.document_file_path, [], document_state.parse_tree, document_state.parse_tree_text_position_cache));
+    if (diagnostics.length === 0 && document_state.with_errors !== undefined && document_state.with_errors.parse_tree !== undefined) {
+        diagnostics.push(...Validation.validate_parser_node(document_state.document_file_path, [], document_state.with_errors.parse_tree, document_state.with_errors.parse_tree_text_position_cache));
 
         if (diagnostics.length === 0) {
-            diagnostics.push(...await Validation.validate_module(document_state.document_file_path, language_description, document_state.text, document_state.module, document_state.parse_tree, [], document_state.parse_tree, document_state.parse_tree_text_position_cache, get_core_module));
+            diagnostics.push(...await Validation.validate_module(document_state.document_file_path, language_description, document_state.with_errors.text, document_state.with_errors.module, document_state.with_errors.parse_tree, [], document_state.with_errors.parse_tree, document_state.with_errors.parse_tree_text_position_cache, get_core_module));
+        }
+    }
+    else if (diagnostics.length === 0 && document_state.valid.parse_tree !== undefined) {
+        diagnostics.push(...Validation.validate_parser_node(document_state.document_file_path, [], document_state.valid.parse_tree, document_state.valid.parse_tree_text_position_cache));
+
+        if (diagnostics.length === 0) {
+            diagnostics.push(...await Validation.validate_module(document_state.document_file_path, language_description, document_state.valid.text, document_state.valid.module, document_state.valid.parse_tree, [], document_state.valid.parse_tree, document_state.valid.parse_tree_text_position_cache, get_core_module));
         }
     }
 

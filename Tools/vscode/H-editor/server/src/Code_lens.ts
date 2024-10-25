@@ -5,6 +5,7 @@ import * as Server_data from "./Server_data";
 import * as vscode from "vscode-languageserver/node";
 
 import * as Core from "@core/Core_intermediate_representation";
+import * as Document from "@core/Document";
 import * as Parse_tree_text_iterator from "@core/Parse_tree_text_iterator";
 import * as Parser_node from "@core/Parser_node";
 
@@ -20,7 +21,11 @@ export async function create(
     }
 
     const document_state = server_data.document_states.get(parameters.textDocument.uri);
-    if (document_state === undefined || document_state.parse_tree === undefined) {
+    if (document_state === undefined) {
+        return [];
+    }
+    const root = Document.get_parse_tree(document_state);
+    if (root === undefined) {
         return [];
     }
 
@@ -30,12 +35,12 @@ export async function create(
     }
 
     const get_core_module = Server_data.create_get_core_module(server_data, workspace_uri);
-    const core_module = await get_core_module(document_state.module.name);
+    const core_module = await get_core_module(Document.get_module(document_state).name);
     if (core_module === undefined) {
         return [];
     }
 
-    const start_node_iterator = Parse_tree_text_iterator.begin(document_state.parse_tree, document.getText());
+    const start_node_iterator = Parse_tree_text_iterator.begin(root, document.getText());
 
     const code_lens: vscode.CodeLens[] = [];
 

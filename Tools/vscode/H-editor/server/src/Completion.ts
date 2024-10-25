@@ -28,13 +28,26 @@ export async function on_completion(
     if (document_state === undefined) {
         return [];
     }
+    const root = Document.get_parse_tree(document_state);
+
+    const get_core_module = Server_data.create_get_core_module(server_data, workspace_uri);
+    const core_module = await get_core_module(Document.get_module(document_state).name);
+    if (core_module === undefined) {
+        return [
+            {
+                label: "module",
+                kind: vscode.CompletionItemKind.Keyword,
+                data: 0
+            }
+        ];
+    }
 
     const project_data = workspace_uri !== undefined ? server_data.projects.get(workspace_uri) : undefined;
 
     const before_cursor_node_iterator =
-        document_state.parse_tree !== undefined ?
+        root !== undefined ?
             Scan_new_changes.get_node_before_text_position(
-                document_state.parse_tree,
+                root,
                 document.getText(),
                 document.offsetAt(text_document_position.position)
             ) :
@@ -44,7 +57,7 @@ export async function on_completion(
     const after_cursor_node_position = after_cursor !== undefined ? after_cursor.position : [];
 
     const allowed_labels = Parser.get_allowed_labels(
-        document_state.parse_tree,
+        root,
         after_cursor_node_position.length > 0 ? after_cursor_node_position : undefined,
         server_data.language_description.array_infos,
         server_data.language_description.actions_table
@@ -58,31 +71,31 @@ export async function on_completion(
         if (can_be_identifier && is_cursor_at_type(before_cursor_node_iterator.root, before_cursor_node_iterator.node_position, after_cursor_node_position)) {
             if (is_cursor_at_import_module_type(before_cursor_node_iterator.root, before_cursor_node_iterator.node_position)) {
                 if (workspace_uri !== undefined) {
-                    items.push(...await get_import_module_type_items(server_data, workspace_uri, document_state.module, before_cursor_node_iterator.root, before_cursor_node_iterator.node_position));
+                    items.push(...await get_import_module_type_items(server_data, workspace_uri, core_module, before_cursor_node_iterator.root, before_cursor_node_iterator.node_position));
                 }
             }
             else {
                 items.push(...get_builtin_type_items());
-                items.push(...get_module_type_items(document_state.module, false));
-                items.push(...get_module_import_alias_items(document_state.module));
+                items.push(...get_module_type_items(core_module, false));
+                items.push(...get_module_import_alias_items(core_module));
             }
         }
         else if (can_be_identifier && is_inside_statements_block(before_cursor_node_iterator.root, before_cursor_node_iterator.node_position)) {
             if (is_cursor_at_expression_access(before_cursor_node_iterator.root, before_cursor_node_iterator.node_position)) {
                 if (workspace_uri !== undefined) {
-                    items.push(...await get_expression_access_items(server_data, workspace_uri, document_state.module, before_cursor_node_iterator.root, before_cursor_node_iterator.node_position));
+                    items.push(...await get_expression_access_items(server_data, workspace_uri, core_module, before_cursor_node_iterator.root, before_cursor_node_iterator.node_position));
                 }
             }
             else {
                 items.push(...get_keyword_and_value_items(allowed_labels, server_data));
-                items.push(...get_function_declaration_items(document_state.module, false));
-                items.push(...get_function_local_variable_items(document_state, before_cursor_node_iterator));
-                items.push(...get_module_import_alias_items(document_state.module));
+                items.push(...get_function_declaration_items(core_module, false));
+                items.push(...get_function_local_variable_items(core_module, before_cursor_node_iterator));
+                items.push(...get_module_import_alias_items(core_module));
             }
         }
         else if (is_cursor_at_import_module_name(before_cursor_node_iterator.root, before_cursor_node_iterator.node_position)) {
             if (project_data !== undefined) {
-                items.push(...get_import_module_name_items(project_data, text_document_position.textDocument.uri, document_state.module));
+                items.push(...get_import_module_name_items(project_data, text_document_position.textDocument.uri, core_module));
             }
         }
         else if (is_cursor_at_module_body(allowed_labels)) {
@@ -182,11 +195,11 @@ function get_function_declaration_items(
 }
 
 function get_function_local_variable_items(
-    document_state: Document.State,
+    core_module: Core.Module,
     iterator: Parse_tree_text_iterator.Iterator
 ): vscode.CompletionItem[] {
 
-    const declaration = get_current_function(document_state.module, iterator.root, iterator.node_position);
+    const declaration = get_current_function(core_module, iterator.root, iterator.node_position);
     if (declaration === undefined) {
         return [];
     }
