@@ -6,6 +6,7 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 
 import * as Comments from "@core/Comments";
 import * as Core from "@core/Core_intermediate_representation";
+import * as Document from "@core/Document";
 import * as Language from "@core/Language";
 import * as Parse_tree_analysis from "@core/Parse_tree_analysis";
 import * as Parse_tree_convertor_mappings from "@core/Parse_tree_convertor_mappings";
@@ -26,11 +27,13 @@ export async function create(
     }
 
     const document_state = server_data.document_states.get(parameters.textDocument.uri);
-    if (document_state === undefined || document_state.parse_tree === undefined) {
+    if (document_state === undefined) {
         return null;
     }
-
-    const root = document_state.parse_tree;
+    const root = Document.get_parse_tree(document_state);
+    if (root === undefined) {
+        return null;
+    }
 
     const before_cursor_iterator = Scan_new_changes.get_node_before_text_position(
         root,
@@ -41,9 +44,11 @@ export async function create(
         return null;
     }
 
-    const get_core_module = (module_name: string): Promise<Core.Module | undefined> => {
-        return Server_data.get_core_module(server_data, workspace_uri, module_name);
-    };
+    const get_core_module = Server_data.create_get_core_module(server_data, workspace_uri);
+    const core_module = await get_core_module(Document.get_module(document_state).name);
+    if (core_module === undefined) {
+        return null;
+    }
 
     const ancestor = Parser_node.get_first_ancestor_with_name(root, before_cursor_iterator.node_position, [
         "Expression_call",
@@ -53,14 +58,14 @@ export async function create(
     if (ancestor !== undefined) {
         if (ancestor.node.word.value === "Expression_call") {
             const expression_call_info = await Parse_tree_analysis.get_function_value_and_parameter_index_from_expression_call(
-                server_data.language_description, document_state.module, root, before_cursor_iterator.node_position, get_core_module
+                server_data.language_description, core_module, root, before_cursor_iterator.node_position, get_core_module
             );
             if (expression_call_info !== undefined) {
-                return get_function_signature_help(document_state.module, expression_call_info.function_value.declaration, expression_call_info.input_parameter_index);
+                return get_function_signature_help(core_module, expression_call_info.function_value.declaration, expression_call_info.input_parameter_index);
             }
         }
         else if (ancestor.node.word.value === "Expression_instantiate") {
-            const signature_help = await get_struct_signature_help(server_data.language_description, document_state.module, before_cursor_iterator.root, before_cursor_iterator.node_position, get_core_module);
+            const signature_help = await get_struct_signature_help(server_data.language_description, core_module, before_cursor_iterator.root, before_cursor_iterator.node_position, get_core_module);
             if (signature_help !== undefined) {
                 return signature_help;
             }

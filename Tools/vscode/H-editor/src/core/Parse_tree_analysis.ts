@@ -1847,13 +1847,19 @@ export function format_text(
     text_change: Text_change_2
 ): Text_change_2 | undefined {
 
-    if (state.parse_tree === undefined) {
+    const parse_tree = state.diagnostics.length === 0 ? state.valid.parse_tree : state.with_errors?.parse_tree;
+    if (parse_tree === undefined) {
+        return undefined;
+    }
+
+    const text = state.diagnostics.length === 0 ? state.valid.text : state.with_errors?.text;
+    if (text === undefined) {
         return undefined;
     }
 
     const scanned_input_change = Scan_new_changes.scan_new_change(
-        state.parse_tree,
-        state.text,
+        parse_tree,
+        text,
         text_change.range.start.offset,
         text_change.range.end.offset,
         text_change.text
@@ -1866,7 +1872,7 @@ export function format_text(
 
         const parse_result = Parser.parse_incrementally(
             state.document_file_path,
-            state.parse_tree,
+            parse_tree,
             start_change_node_position,
             scanned_input_change.new_words,
             after_change_node_position,
@@ -1878,27 +1884,27 @@ export function format_text(
 
         if (parse_result.status === Parser.Parse_status.Accept) {
 
-            const simplified_changes = Parser.simplify_parser_changes(state.parse_tree, parse_result.changes);
+            const simplified_changes = Parser.simplify_parser_changes(parse_tree, parse_result.changes);
 
             const ancestor_position = Parser.get_changes_common_ancestor(simplified_changes);
             if (ancestor_position === undefined) {
                 return undefined;
             }
-            const ancestor_node = Parser_node.get_node_at_position(state.parse_tree, ancestor_position);
+            const ancestor_node = Parser_node.get_node_at_position(parse_tree, ancestor_position);
 
-            const original_text_range = find_node_range(state.parse_tree, ancestor_node, ancestor_position, state.text);
+            const original_text_range = find_node_range(parse_tree, ancestor_node, ancestor_position, text);
             if (original_text_range === undefined) {
                 return undefined;
             }
 
-            const ancestor_node_clone = Parser_node.deep_clone_node(Parser_node.get_node_at_position(state.parse_tree, ancestor_position));
+            const ancestor_node_clone = Parser_node.deep_clone_node(Parser_node.get_node_at_position(parse_tree, ancestor_position));
             Parser.apply_changes(ancestor_node_clone, ancestor_position, simplified_changes);
 
-            const before_character: string | undefined = state.text[original_text_range.start.offset - 1];
-            const after_character: string | undefined = state.text[original_text_range.end.offset];
+            const before_character: string | undefined = text[original_text_range.start.offset - 1];
+            const after_character: string | undefined = text[original_text_range.end.offset];
 
             const formatted_text = Text_formatter.node_to_string(
-                state.parse_tree,
+                parse_tree,
                 { node: ancestor_node_clone, position: ancestor_position },
                 before_character,
                 after_character

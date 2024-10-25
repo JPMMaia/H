@@ -4,6 +4,7 @@ import * as Server_data from "./Server_data";
 import * as vscode from "vscode-languageserver/node";
 
 import * as Core from "@core/Core_intermediate_representation";
+import * as Document from "@core/Document";
 import * as Parse_tree_analysis from "@core/Parse_tree_analysis";
 import * as Parser_node from "@core/Parser_node";
 import * as Scan_new_changes from "@core/Scan_new_changes";
@@ -20,10 +21,13 @@ export async function find_definition_link(
     }
 
     const document_state = server_data.document_states.get(parameters.textDocument.uri);
-    if (document_state === undefined || document_state.parse_tree === undefined) {
+    if (document_state === undefined) {
         return [];
     }
-    const root = document_state.parse_tree;
+    const root = Document.get_parse_tree(document_state);
+    if (root === undefined) {
+        return [];
+    }
 
     const after_cursor = Scan_new_changes.get_node_after_text_position(
         root,
@@ -36,7 +40,7 @@ export async function find_definition_link(
     const after_cursor_node_position = after_cursor.node_position;
 
     const get_core_module = Server_data.create_get_core_module(server_data, workspace_uri);
-    const core_module = await get_core_module(document_state.module.name);
+    const core_module = await get_core_module(Document.get_module(document_state).name);
     if (core_module === undefined) {
         return [];
     }

@@ -420,7 +420,11 @@ connection.languages.semanticTokens.on(
 	async (parameters: vscode_node.SemanticTokensParams): Promise<vscode_node.SemanticTokens> => {
 
 		const document_state = server_data.document_states.get(parameters.textDocument.uri);
-		if (document_state === undefined || document_state.parse_tree === undefined) {
+		if (document_state === undefined) {
+			return { data: [] };
+		}
+		const root = Document.get_parse_tree(document_state);
+		if (root === undefined) {
 			return { data: [] };
 		}
 
@@ -450,7 +454,7 @@ connection.languages.semanticTokens.onRange(
 	async (parameters: vscode_node.SemanticTokensRangeParams): Promise<vscode_node.SemanticTokens> => {
 
 		const document_state = server_data.document_states.get(parameters.textDocument.uri);
-		if (document_state === undefined || document_state.parse_tree === undefined) {
+		if (document_state === undefined) {
 			return { data: [] };
 		}
 

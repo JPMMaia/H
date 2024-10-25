@@ -896,6 +896,7 @@ function get_action_column_and_try_to_recover_from_error(
     row: Grammar.Action_column[],
     terminals: string[],
     current_word: Scanner.Scanned_word,
+    previous_word: Scanner.Scanned_word | undefined,
     diagnostics: Validation.Diagnostic[]
 ): { column: Grammar.Action_column, current_word: Scanner.Scanned_word } | undefined {
     const column = choose_action(row, terminals);
@@ -933,8 +934,13 @@ function get_action_column_and_try_to_recover_from_error(
     // Try to recover from error:
     const new_column = find_column_in_case_of_error(row);
     if (new_column !== undefined) {
+
+        // If the previous and current words share the same line, and it can be an identifier, then consume the current word:
+        const can_be_identifier = new_column.label === "identifier" && current_word.type === Grammar.Word_type.Alphanumeric;
+        const should_consume_current_word = can_be_identifier && previous_word !== undefined && (previous_word.source_location.line === current_word.source_location.line || previous_word.value === ",");
+
         const new_word: Scanner.Scanned_word = {
-            value: "",
+            value: should_consume_current_word ? current_word.value : "",
             type: Grammar.Word_type.Invalid,
             source_location: current_word.source_location,
         };
@@ -968,6 +974,7 @@ export function parse_incrementally(
     const stack: Parsing_stack_element[] = [];
 
     let current_word_index = 0;
+    let previous_word: Scanner.Scanned_word | undefined = undefined;
 
     while (current_word_index <= new_words.length) {
 
@@ -978,7 +985,7 @@ export function parse_incrementally(
 
         const row = parsing_table[top_of_stack.node.state];
         const terminals = map_word_to_terminal(current_word);
-        const column_and_word = get_action_column_and_try_to_recover_from_error(document_uri, row, terminals, current_word, diagnostics);
+        const column_and_word = get_action_column_and_try_to_recover_from_error(document_uri, row, terminals, current_word, previous_word, diagnostics);
 
         if (column_and_word === undefined) {
             return {
@@ -1111,8 +1118,11 @@ export function parse_incrementally(
                     node_to_shift.word = column_and_word.current_word;
                     apply_shift(stack, node_to_shift, undefined, shift_action.next_state, original_node_tree, mark);
 
-                    // If the word type is invalid, then it means that it was inserted by get_action_column_and_try_to_recover_from_error(). In that case, don't go to the next word.
-                    if (node_to_shift.word.type !== Grammar.Word_type.Invalid) {
+                    // If the word type is invalid, then it means that it was inserted by get_action_column_and_try_to_recover_from_error().
+                    // If the length of the word is 0, it means that we should not skip to the next word, because we are assuming that there is a word before that that is missing.
+                    // If the length of the word is greater than 0, it means that we should consume the current word (as if it was mispelled).
+                    if (node_to_shift.word.type !== Grammar.Word_type.Invalid || node_to_shift.word.value.length > 0) {
+                        previous_word = current_word;
                         current_word_index += 1;
                     }
 
@@ -1226,7 +1236,7 @@ function parse_incrementally_after_changes_if_ready(
                 const top_of_stack = get_top_of_stack(stack, mark);
                 const row = parsing_table[top_of_stack.node.state];
 
-                const column_and_word = get_action_column_and_try_to_recover_from_error(document_uri, row, map_word_to_terminal(after_change_node.word), after_change_node.word, diagnostics);
+                const column_and_word = get_action_column_and_try_to_recover_from_error(document_uri, row, map_word_to_terminal(after_change_node.word), after_change_node.word, new_words[new_words.length - 1], diagnostics);
                 if (column_and_word === undefined) {
                     return {
                         status: Parse_status.Failed,
@@ -1245,6 +1255,7 @@ function parse_incrementally_after_changes_if_ready(
                 original_node_tree,
                 start_change_node_position,
                 after_change_node_position,
+                new_words[new_words.length - 1],
                 stack,
                 mark,
                 parsing_table,
@@ -1754,6 +1765,7 @@ function parse_incrementally_after_change(
     original_node_tree: Node,
     start_change_node_position: number[],
     after_change_node_position: number[],
+    word_before_after_change: Scanner.Scanned_word | undefined,
     stack: Parsing_stack_element[],
     mark: Parsing_stack_element,
     parsing_table: Grammar.Action_column[][],
@@ -1783,6 +1795,8 @@ function parse_incrementally_after_change(
         }
     }
 
+    let previous_word = word_before_after_change;
+
     let next_word_node = clone_node(after_change_node);
     let next_word_node_position = after_change_node_position;
     let current_word_index = 0;
@@ -1794,7 +1808,7 @@ function parse_incrementally_after_change(
 
         const row = parsing_table[top_of_stack.node.state];
 
-        const column_and_word = get_action_column_and_try_to_recover_from_error(document_uri, row, map_word_to_terminal(next_word_node.word), next_word_node.word, diagnostics);
+        const column_and_word = get_action_column_and_try_to_recover_from_error(document_uri, row, map_word_to_terminal(next_word_node.word), next_word_node.word, previous_word, diagnostics);
         if (column_and_word === undefined) {
             return {
                 status: Parse_status.Failed,
@@ -1810,6 +1824,7 @@ function parse_incrementally_after_change(
 
             {
                 const iterate_result = get_next_terminal_node(original_node_tree, next_word_node, next_word_node_position);
+                previous_word = next_word_node.word;
                 next_word_node = iterate_result !== undefined ? clone_node(iterate_result.node) : create_bottom_of_stack_node();
                 next_word_node_position = iterate_result !== undefined ? iterate_result.position : [];
                 current_word_index += 1;
@@ -1848,6 +1863,7 @@ function parse_incrementally_after_change(
             {
                 const rightmost_brother = get_top_of_stack(stack, mark);
                 const iterate_result = get_next_sibling_terminal_node(original_node_tree, rightmost_brother.node, rightmost_brother.original_tree_position as number[]);
+                previous_word = next_word_node.word;
                 next_word_node = iterate_result !== undefined ? clone_node(iterate_result.node) : create_bottom_of_stack_node();
                 next_word_node_position = iterate_result !== undefined ? iterate_result.position : [];
                 current_word_index += 1; // TODO
@@ -1856,7 +1872,7 @@ function parse_incrementally_after_change(
             const top_of_stack = get_top_of_stack(stack, mark);
             const row = parsing_table[top_of_stack.node.state];
 
-            const column_and_word = get_action_column_and_try_to_recover_from_error(document_uri, row, map_word_to_terminal(next_word_node.word), next_word_node.word, diagnostics);
+            const column_and_word = get_action_column_and_try_to_recover_from_error(document_uri, row, map_word_to_terminal(next_word_node.word), next_word_node.word, previous_word, diagnostics);
             if (column_and_word === undefined || column_and_word.column.action.type !== Grammar.Action_type.Reduce) {
                 return {
                     status: Parse_status.Failed,
@@ -1945,6 +1961,7 @@ function parse_incrementally_after_change(
             const result = perform_actions(
                 document_uri,
                 original_node_tree,
+                previous_word,
                 next_word_node,
                 next_word_node_position,
                 stack,
@@ -1988,6 +2005,7 @@ function parse_incrementally_after_change(
 function perform_actions(
     document_uri: string,
     original_node_tree: Node,
+    previous_word: Scanner.Scanned_word | undefined,
     next_word_node: Node,
     next_word_position: number[],
     stack: Parsing_stack_element[],
@@ -2005,7 +2023,7 @@ function perform_actions(
         const top_of_stack = get_top_of_stack(stack, mark);
         const row = parsing_table[top_of_stack.node.state];
         const possible_terminals = map_word_to_terminal(next_word_node.word);
-        const column_and_word = get_action_column_and_try_to_recover_from_error(document_uri, row, possible_terminals, next_word_node.word, diagnostics);
+        const column_and_word = get_action_column_and_try_to_recover_from_error(document_uri, row, possible_terminals, next_word_node.word, previous_word, diagnostics);
 
         if (column_and_word === undefined) {
             return {

@@ -22,14 +22,35 @@ export interface Text_change {
     text: string;
 }
 
-export interface State {
-    document_file_path: string;
+export interface Module_state {
     module: Core_intermediate_representation.Module;
     parse_tree: Parser_node.Node | undefined;
     parse_tree_text_position_cache: Parse_tree_text_position_cache.Cache;
     text: string;
+}
+
+export function clone_module_state(state: Module_state): Module_state {
+    return JSON.parse(JSON.stringify(state));
+}
+
+export interface State {
+    document_file_path: string;
+    valid: Module_state;
+    with_errors: Module_state | undefined;
     pending_text_changes: Text_change[];
     diagnostics: Validation.Diagnostic[];
+}
+
+export function get_module(state: State): Core_intermediate_representation.Module {
+    return state.with_errors !== undefined ? state.with_errors.module : state.valid.module;
+}
+
+export function get_parse_tree(state: State): Parser_node.Node | undefined {
+    return state.with_errors !== undefined ? state.with_errors.parse_tree : state.valid.parse_tree;
+}
+
+export function get_text(state: State): string {
+    return state.with_errors !== undefined ? state.with_errors.text : state.valid.text;
 }
 
 export function create_empty_state(document_file_path: string, production_rules: Grammar.Production_rule[]): State {
@@ -41,13 +62,15 @@ export function create_empty_state(document_file_path: string, production_rules:
     const text = "";
     const parse_tree_text_position_cache = Parse_tree_text_position_cache.create_empty_cache();
 
-
     return {
         document_file_path: document_file_path,
-        module: module,
-        parse_tree: parse_tree,
-        parse_tree_text_position_cache: parse_tree_text_position_cache,
-        text: text,
+        valid: {
+            module: module,
+            parse_tree: parse_tree,
+            parse_tree_text_position_cache: parse_tree_text_position_cache,
+            text: text,
+        },
+        with_errors: undefined,
         pending_text_changes: [],
         diagnostics: []
     };
@@ -67,10 +90,13 @@ export function create_state_from_module(document_file_path: string, core_module
 
     return {
         document_file_path: document_file_path,
-        module: module,
-        parse_tree: parse_tree,
-        parse_tree_text_position_cache: parse_tree_text_position_cache,
-        text: text,
+        valid: {
+            module: module,
+            parse_tree: parse_tree,
+            parse_tree_text_position_cache: parse_tree_text_position_cache,
+            text: text,
+        },
+        with_errors: undefined,
         pending_text_changes: [],
         diagnostics: []
     };

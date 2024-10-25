@@ -511,5 +511,5 @@ function create_core_module_from_text(
 
     const document_state = Document.create_empty_state("", language_description.production_rules);
     const new_document_state = Text_change.update(language_description, document_state, text_changes, text);
-    return new_document_state.module;
+    return new_document_state.valid.module;
 }

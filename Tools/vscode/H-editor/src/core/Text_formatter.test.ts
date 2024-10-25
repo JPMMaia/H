@@ -247,9 +247,10 @@ function parse_text_and_format(input_text: string): string {
         input_text
     );
 
-    assert.notEqual(new_document_state.parse_tree, undefined);
-    if (new_document_state.parse_tree !== undefined) {
-        return Text_formatter.to_string(new_document_state.parse_tree, undefined, []);
+    assert.equal(new_document_state.diagnostics.length, 0);
+    assert.notEqual(new_document_state.valid.parse_tree, undefined);
+    if (new_document_state.valid.parse_tree !== undefined) {
+        return Text_formatter.to_string(new_document_state.valid.parse_tree, undefined, []);
     }
     else {
         return "";

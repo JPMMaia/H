@@ -5,6 +5,7 @@ import * as Core_intermediate_representation from "./Core_intermediate_represent
 import * as Document from "./Document";
 import * as Language from "./Language";
 import * as Module_examples from "./Module_examples";
+import * as Parse_tree_convertor from "./Parse_tree_convertor";
 import * as Parser from "./Parser";
 import * as Scanner from "./Scanner";
 import * as Storage_cache from "./Storage_cache";
@@ -15,7 +16,7 @@ function validate_document_state(
     language_description: Language.Description,
     document_state: Document.State
 ): void {
-    const input_text = Text_change.apply_text_changes(document_state.text, document_state.pending_text_changes);
+    const input_text = Text_change.apply_text_changes(document_state.valid.text, document_state.pending_text_changes);
 
     const scanned_words = Scanner.scan(input_text, 0, input_text.length, { line: 1, column: 1 });
 
@@ -33,8 +34,11 @@ function validate_document_state(
 
     assert.equal(parse_tree_result.status, Parser.Parse_status.Accept);
 
-    const parse_tree = (parse_tree_result.changes[0].value as Parser.Modify_change).new_node;
-    assert.deepEqual(document_state.parse_tree, parse_tree);
+    const expected_parse_tree = (parse_tree_result.changes[0].value as Parser.Modify_change).new_node;
+    assert.deepEqual(document_state.valid.parse_tree, expected_parse_tree);
+
+    const expected_module = Parse_tree_convertor.parse_tree_to_module(expected_parse_tree, language_description.production_rules, language_description.mappings, language_description.key_to_production_rule_indices);
+    assert.deepEqual(document_state.valid.module, expected_module);
 }
 
 describe("Text_change.update", () => {
@@ -93,7 +97,7 @@ describe("Text_change.update", () => {
             text_after_changes
         );
 
-        assert.equal(document_state.module.name, "Foo");
+        assert.equal(document_state.valid.module.name, "Foo");
     });
 
     it("Handles aggregating multiple text changes", () => {
@@ -126,7 +130,7 @@ describe("Text_change.update", () => {
             text_after_changes
         );
 
-        assert.equal(document_state.module.name, "Bar");
+        assert.equal(document_state.valid.module.name, "Bar");
     });
 
     it("Handles updating module name", () => {
@@ -153,7 +157,7 @@ describe("Text_change.update", () => {
                 text_after_changes
             );
 
-            assert.equal(document_state.module.name, "Foo");
+            assert.equal(document_state.valid.module.name, "Foo");
         }
 
         {
@@ -176,7 +180,7 @@ describe("Text_change.update", () => {
                 text_after_changes
             );
 
-            assert.equal(document_state.module.name, "Bar");
+            assert.equal(document_state.valid.module.name, "Bar");
         }
     });
 
@@ -225,7 +229,7 @@ describe("Text_change.update", () => {
                 text_after_changes
             );
 
-            assert.equal(document_state.module.name, "Foo");
+            assert.equal(document_state.valid.module.name, "Foo");
         }
     });
 
@@ -253,7 +257,7 @@ describe("Text_change.update", () => {
                 text_after_changes
             );
 
-            assert.equal(document_state.module.name, "Foo");
+            assert.equal(document_state.valid.module.name, "Foo");
         }
 
         {
@@ -278,9 +282,9 @@ describe("Text_change.update", () => {
 
             assert.equal(document_state.pending_text_changes.length, 0);
 
-            assert.equal(document_state.module.declarations.length, 1);
+            assert.equal(document_state.valid.module.declarations.length, 1);
 
-            const declaration = document_state.module.declarations[0];
+            const declaration = document_state.valid.module.declarations[0];
             assert.equal(declaration.name, "My_float");
             assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Alias);
             assert.equal(declaration.is_export, true);
@@ -317,13 +321,13 @@ describe("Text_change.update", () => {
                 text_after_changes
             );
 
-            assert.equal(document_state.module.name, "Foo");
+            assert.equal(document_state.valid.module.name, "Foo");
 
             assert.equal(document_state.pending_text_changes.length, 0);
 
-            assert.equal(document_state.module.declarations.length, 1);
+            assert.equal(document_state.valid.module.declarations.length, 1);
 
-            const declaration = document_state.module.declarations[0];
+            const declaration = document_state.valid.module.declarations[0];
             assert.equal(declaration.name, "My_float");
             assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Alias);
             assert.equal(declaration.is_export, true);
@@ -357,7 +361,7 @@ describe("Text_change.update", () => {
 
             assert.equal(document_state.pending_text_changes.length, 0);
 
-            assert.equal(document_state.module.declarations.length, 0);
+            assert.equal(document_state.valid.module.declarations.length, 0);
         }
     });
 
@@ -385,13 +389,13 @@ describe("Text_change.update", () => {
                 text_after_changes
             );
 
-            assert.equal(document_state.module.name, "Foo");
+            assert.equal(document_state.valid.module.name, "Foo");
 
             assert.equal(document_state.pending_text_changes.length, 0);
 
-            assert.equal(document_state.module.declarations.length, 1);
+            assert.equal(document_state.valid.module.declarations.length, 1);
 
-            const declaration = document_state.module.declarations[0];
+            const declaration = document_state.valid.module.declarations[0];
             assert.equal(declaration.name, "My_float");
             assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Alias);
             assert.equal(declaration.is_export, true);
@@ -425,9 +429,9 @@ describe("Text_change.update", () => {
 
             assert.equal(document_state.pending_text_changes.length, 0);
 
-            assert.equal(document_state.module.declarations.length, 1);
+            assert.equal(document_state.valid.module.declarations.length, 1);
 
-            const declaration = document_state.module.declarations[0];
+            const declaration = document_state.valid.module.declarations[0];
             assert.equal(declaration.name, "My_float");
             assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Alias);
             assert.equal(declaration.is_export, true);
@@ -461,9 +465,9 @@ describe("Text_change.update", () => {
 
             assert.equal(document_state.pending_text_changes.length, 0);
 
-            assert.equal(document_state.module.declarations.length, 1);
+            assert.equal(document_state.valid.module.declarations.length, 1);
 
-            const declaration = document_state.module.declarations[0];
+            const declaration = document_state.valid.module.declarations[0];
             assert.equal(declaration.name, "My_float");
             assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Alias);
             assert.equal(declaration.is_export, true);
@@ -500,13 +504,13 @@ describe("Text_change.update", () => {
                 text_after_changes
             );
 
-            assert.equal(document_state.module.name, "Foo");
+            assert.equal(document_state.valid.module.name, "Foo");
 
             assert.equal(document_state.pending_text_changes.length, 0);
 
-            assert.equal(document_state.module.declarations.length, 1);
+            assert.equal(document_state.valid.module.declarations.length, 1);
 
-            const declaration = document_state.module.declarations[0];
+            const declaration = document_state.valid.module.declarations[0];
             assert.equal(declaration.name, "My_float");
             assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Alias);
             assert.equal(declaration.is_export, true);
@@ -540,9 +544,9 @@ describe("Text_change.update", () => {
 
             assert.equal(document_state.pending_text_changes.length, 0);
 
-            assert.equal(document_state.module.declarations.length, 1);
+            assert.equal(document_state.valid.module.declarations.length, 1);
 
-            const declaration = document_state.module.declarations[0];
+            const declaration = document_state.valid.module.declarations[0];
             assert.equal(declaration.name, "My_float");
             assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Alias);
             assert.equal(declaration.is_export, true);
@@ -579,13 +583,13 @@ describe("Text_change.update", () => {
                 text_after_changes
             );
 
-            assert.equal(document_state.module.name, "Foo");
+            assert.equal(document_state.valid.module.name, "Foo");
 
             assert.equal(document_state.pending_text_changes.length, 0);
 
-            assert.equal(document_state.module.declarations.length, 1);
+            assert.equal(document_state.valid.module.declarations.length, 1);
 
-            const declaration = document_state.module.declarations[0];
+            const declaration = document_state.valid.module.declarations[0];
             assert.equal(declaration.name, "My_function");
             assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Function);
             assert.equal(declaration.is_export, true);
@@ -622,13 +626,13 @@ describe("Text_change.update", () => {
                 text_after_changes
             );
 
-            assert.equal(document_state.module.name, "Foo");
+            assert.equal(document_state.valid.module.name, "Foo");
 
             assert.equal(document_state.pending_text_changes.length, 0);
 
-            assert.equal(document_state.module.declarations.length, 1);
+            assert.equal(document_state.valid.module.declarations.length, 1);
 
-            const declaration = document_state.module.declarations[0];
+            const declaration = document_state.valid.module.declarations[0];
             assert.equal(declaration.name, "My_function");
             assert.equal(declaration.type, Core_intermediate_representation.Declaration_type.Function);
             assert.equal(declaration.is_export, true);
@@ -675,7 +679,7 @@ export function hello() -> ()
         const new_document_state = Text_change.update(language_description, document_state, text_changes, hello_world_program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
-        assert.equal(new_document_state.module.name, "Hello_world");
+        assert.equal(new_document_state.valid.module.name, "Hello_world");
 
         const expected_imports: Core_intermediate_representation.Import_module_with_alias[] = [
             {
@@ -684,7 +688,7 @@ export function hello() -> ()
                 usages: ["puts"]
             }
         ];
-        assert.deepEqual(new_document_state.module.imports, expected_imports);
+        assert.deepEqual(new_document_state.valid.module.imports, expected_imports);
 
         const expected_declarations: Core_intermediate_representation.Declaration[] = [
             {
@@ -754,7 +758,7 @@ export function hello() -> ()
                 }
             }
         ];
-        assert.deepEqual(new_document_state.module.declarations, expected_declarations);
+        assert.deepEqual(new_document_state.valid.module.declarations, expected_declarations);
     });
 
     it("Handles adding return statement", () => {
@@ -841,7 +845,7 @@ export function main() -> (result: Int32)
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_variables();
-        assert.deepEqual(new_document_state.module, expected_module);
+        assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
     it("Handles numbers", () => {
@@ -885,7 +889,7 @@ export function main() -> (result: Int32)
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_numbers();
-        assert.deepEqual(new_document_state.module, expected_module);
+        assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
     it("Handles numeric casts", () => {
@@ -937,7 +941,7 @@ export function main() -> (result: Int32)
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_numeric_casts();
-        assert.deepEqual(new_document_state.module, expected_module);
+        assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
     it("Handles booleans", () => {
@@ -968,7 +972,7 @@ export function foo() -> ()
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_booleans();
-        assert.deepEqual(new_document_state.module, expected_module);
+        assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
     it("Handles binary expressions", () => {
@@ -1024,7 +1028,7 @@ export function foo(
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_binary_expressions();
-        assert.deepEqual(new_document_state.module, expected_module);
+        assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
     it("Handles binary expressions operator precedence", () => {
@@ -1077,7 +1081,7 @@ export function foo(
         const expected_function_value = expected_module.declarations[0].value as Core_intermediate_representation.Function;
         const expected_statements = (expected_function_value.definition as Core_intermediate_representation.Function_definition).statements;
 
-        const actual_module = new_document_state.module;
+        const actual_module = new_document_state.valid.module;
         const actual_function_value = actual_module.declarations[0].value as Core_intermediate_representation.Function;
 
         assert.notEqual(actual_function_value.definition, undefined);
@@ -1090,7 +1094,7 @@ export function foo(
             assert.deepEqual(actual_statement, expected_statement, `case_${statement_index} did not match`);
         }
 
-        assert.deepEqual(new_document_state.module, expected_module);
+        assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
     it("Handles assignment expressions", () => {
@@ -1136,7 +1140,7 @@ export function foo(
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_assignment_expressions();
-        assert.deepEqual(new_document_state.module, expected_module);
+        assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
     it("Handles unary expressions", () => {
@@ -1177,7 +1181,7 @@ export function foo(
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_unary_expressions();
-        assert.deepEqual(new_document_state.module, expected_module);
+        assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
     it("Handles pointer types", () => {
@@ -1226,7 +1230,7 @@ export function run(
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_pointer_types();
-        assert.deepEqual(new_document_state.module, expected_module);
+        assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
     it("Handles block expressions", () => {
@@ -1262,7 +1266,7 @@ export function run_blocks() -> ()
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_block_expressions();
-        assert.deepEqual(new_document_state.module, expected_module);
+        assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
     it("Handles for loop expressions", () => {
@@ -1317,7 +1321,7 @@ export function run_for_loops() -> ()
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_for_loop_expressions();
-        assert.deepEqual(new_document_state.module, expected_module);
+        assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
     it("Handles if expressions", () => {
@@ -1394,7 +1398,7 @@ export function run_ifs(value: Int32) -> ()
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_if_expressions(false);
-        assert.deepEqual(new_document_state.module, expected_module);
+        assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
     it("Handles handles modifying return void to return with value", () => {
@@ -1447,7 +1451,7 @@ function run() -> (result: Int32)
         assert.equal(new_document_state_2.diagnostics.length, 0);
 
         const expected_module = Module_examples.create_function_with_int32_return_expression();
-        assert.deepEqual(new_document_state_2.module, expected_module);
+        assert.deepEqual(new_document_state_2.valid.module, expected_module);
     });
 
 
@@ -1506,7 +1510,7 @@ export function run_switch(value: Int32) -> (result: Int32)
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_switch_expressions();
-        assert.deepEqual(new_document_state.module, expected_module);
+        assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
     it("Handles ternary condition expressions", () => {
@@ -1539,7 +1543,7 @@ export function run_ternary_conditions(first_boolean: Bool, second_boolean: Bool
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_ternary_condition_expressions();
-        assert.deepEqual(new_document_state.module, expected_module);
+        assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
     it("Handles while loop expressions", () => {
@@ -1602,7 +1606,7 @@ export function run_while_loops(size: Int32) -> ()
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_while_loop_expressions();
-        assert.deepEqual(new_document_state.module, expected_module);
+        assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
     it("Handles empty return expressions", () => {
@@ -1633,7 +1637,7 @@ function run() -> ()
         assert.equal(new_document_state.diagnostics.length, 0);
 
         const expected_module = Module_examples.create_function_with_empty_return_expression();
-        assert.deepEqual(new_document_state.module, expected_module);
+        assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
     it("Handles break expressions", () => {
@@ -1713,10 +1717,10 @@ export function run_breaks(size: Int32) -> ()
         const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
-        console.log(new_document_state.text);
+        console.log(new_document_state.valid.text);
 
         const expected_module = Module_examples.create_break_expressions();
-        assert.deepEqual(new_document_state.module, expected_module);
+        assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
     it("Handles using alias", () => {
@@ -1747,7 +1751,7 @@ export function use_alias(size: My_int) -> ()
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_using_alias();
-        assert.deepEqual(new_document_state.module, expected_module);
+        assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
     it("Handles using enums", () => {
@@ -1801,7 +1805,7 @@ export function use_enums(enum_argument: My_enum) -> (result: Int32)
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_using_enums();
-        assert.deepEqual(new_document_state.module, expected_module);
+        assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
     it("Handles using enum flags", () => {
@@ -1859,7 +1863,7 @@ export function use_enums(enum_argument: My_enum_flag) -> (result: Int32)
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_using_enum_flags();
-        assert.deepEqual(new_document_state.module, expected_module);
+        assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
     it("Handles using structs", () => {
@@ -1943,7 +1947,7 @@ function return_struct() -> (my_struct: My_struct)
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_using_structs();
-        assert.deepEqual(new_document_state.module, expected_module);
+        assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
     it("Handles using unions", () => {
@@ -2036,7 +2040,7 @@ function return_union() -> (my_union: My_union)
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_using_unions();
-        assert.deepEqual(new_document_state.module, expected_module);
+        assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
     it("Handles comments in the module declaration", () => {
@@ -2063,7 +2067,7 @@ module Comments_in_module_declaration;
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_comments_in_module_declaration();
-        assert.deepEqual(new_document_state.module, expected_module);
+        assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
     it("Handles comments in alias", () => {
@@ -2092,7 +2096,7 @@ using My_int = Int32;
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_comments_in_alias();
-        assert.deepEqual(new_document_state.module, expected_module);
+        assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
     it("Handles comments in enums", () => {
@@ -2128,7 +2132,7 @@ enum My_enum
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_comments_in_enums();
-        assert.deepEqual(new_document_state.module, expected_module);
+        assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
     it("Handles comments in functions", () => {
@@ -2165,7 +2169,7 @@ export function use_comments() -> ()
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_comments_in_functions(false);
-        assert.deepEqual(new_document_state.module, expected_module);
+        assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
     it("Handles comments in structs", () => {
@@ -2202,7 +2206,7 @@ struct My_struct
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_comments_in_structs();
-        assert.deepEqual(new_document_state.module, expected_module);
+        assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
     it("Handles comments in unions", () => {
@@ -2239,7 +2243,7 @@ union My_union
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_comments_in_unions();
-        assert.deepEqual(new_document_state.module, expected_module);
+        assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
     it("Handles newlines after statements", () => {
@@ -2279,7 +2283,7 @@ function use_newlines() -> ()
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_newlines_after_statements(false);
-        assert.deepEqual(new_document_state.module, expected_module);
+        assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
     it("Recovers from errors 0", () => {
@@ -2306,7 +2310,7 @@ function run() -> ()
         ];
 
         const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
-        assert.equal(new_document_state.pending_text_changes.length, 0);
+        assert.equal(new_document_state.pending_text_changes.length, 1);
         assert.equal(new_document_state.diagnostics.length, 1);
 
         const text_changes_2: Text_change.Text_change[] = [
@@ -2326,7 +2330,7 @@ function run() -> ()
         assert.equal(new_document_state_2.diagnostics.length, 0);
 
         const expected_module = Module_examples.create_function_with_empty_return_expression();
-        assert.deepEqual(new_document_state_2.module, expected_module);
+        assert.deepEqual(new_document_state_2.valid.module, expected_module);
     });
 
     it("Recovers from errors 1", () => {
@@ -2350,7 +2354,7 @@ import
         ];
 
         const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
-        assert.equal(new_document_state.pending_text_changes.length, 0);
+        assert.equal(new_document_state.pending_text_changes.length, 1);
         assert.equal(new_document_state.diagnostics.length, 1);
 
         const text_changes_2: Text_change.Text_change[] = [
@@ -2370,7 +2374,7 @@ import
         assert.equal(new_document_state_2.diagnostics.length, 0);
 
         const expected_module = Module_examples.create_import_module();
-        assert.deepEqual(new_document_state_2.module, expected_module);
+        assert.deepEqual(new_document_state_2.valid.module, expected_module);
     });
 
     it("Recovers from errors 2", () => {
@@ -2398,7 +2402,7 @@ export function run() -> ()
         ];
 
         const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
-        assert.equal(new_document_state.pending_text_changes.length, 0);
+        assert.equal(new_document_state.pending_text_changes.length, 1);
         assert.equal(new_document_state.diagnostics.length, 1);
 
         const text_changes_2: Text_change.Text_change[] = [
@@ -2418,7 +2422,7 @@ export function run() -> ()
         assert.equal(new_document_state_2.diagnostics.length, 0);
 
         const expected_module = Module_examples.create_import_module_with_empty_function();
-        assert.deepEqual(new_document_state_2.module, expected_module);
+        assert.deepEqual(new_document_state_2.valid.module, expected_module);
     });
 
     it("Recovers from errors 3", () => {
@@ -2450,7 +2454,7 @@ export function run() -> ()
         assert.equal(new_document_state.diagnostics.length, 0);
 
         const new_document_state_2 = simulate_typing(language_description, new_document_state, 39, "import ");
-        assert.equal(new_document_state_2.pending_text_changes.length, 0);
+        assert.equal(new_document_state_2.pending_text_changes.length, 1);
         assert.equal(new_document_state_2.diagnostics.length, 1);
 
         const new_document_state_3 = simulate_typing(language_description, new_document_state_2, 46, "some_module as some_module_alias;");
@@ -2458,7 +2462,7 @@ export function run() -> ()
         assert.equal(new_document_state_3.diagnostics.length, 0);
 
         const expected_module = Module_examples.create_import_module_with_empty_function();
-        assert.deepEqual(new_document_state_3.module, expected_module);
+        assert.deepEqual(new_document_state_3.valid.module, expected_module);
     });
 
     it("Recovers from errors 4", () => {
@@ -2533,7 +2537,7 @@ function run() -> ()
         assert.equal(new_document_state.diagnostics.length, 0);
 
         const new_document_state_2 = simulate_typing(language_description, new_document_state, 83, "dep.");
-        assert.equal(new_document_state_2.pending_text_changes.length, 0);
+        assert.equal(new_document_state_2.pending_text_changes.length, 1);
         assert.equal(new_document_state_2.diagnostics.length, 1);
 
         const new_document_state_3 = simulate_erasing(language_description, new_document_state_2, 83, 87);
@@ -2541,7 +2545,7 @@ function run() -> ()
         assert.equal(new_document_state_3.diagnostics.length, 0);
 
         const new_document_state_4 = simulate_typing(language_description, new_document_state_3, 83, "dep.");
-        assert.equal(new_document_state_4.pending_text_changes.length, 0);
+        assert.equal(new_document_state_4.pending_text_changes.length, 1);
         assert.equal(new_document_state_4.diagnostics.length, 1);
     });
 
@@ -2639,14 +2643,14 @@ function run() -> (result: Int32)
         const text_changes_3: Text_change.Text_change[] = [
             {
                 range: {
-                    start: 93,
+                    start: 92,
                     end: 93
                 },
-                text: "d"
+                text: ""
             }
         ];
 
-        const program_3 = Text_change.apply_text_changes(program, text_changes_3);
+        const program_3 = Text_change.apply_text_changes(program_2, text_changes_3);
 
         const new_document_state_3 = Text_change.update(language_description, new_document_state_2, text_changes_3, program_3);
         assert.equal(new_document_state_3.pending_text_changes.length, 0);
@@ -2674,7 +2678,7 @@ function run(a: Node) -> (b: Node)
 
         const visit_custom_type_references = (core_module: Core_intermediate_representation.Module, visitor: (type: Core_intermediate_representation.Custom_type_reference) => void): void => {
             {
-                const declaration = new_document_state.module.declarations[0];
+                const declaration = new_document_state.valid.module.declarations[0];
                 const struct_declaration = declaration.value as Core_intermediate_representation.Struct_declaration;
                 const member_type = struct_declaration.member_types[0];
                 const pointer_type = member_type.data.value as Core_intermediate_representation.Pointer_type;
@@ -2683,7 +2687,7 @@ function run(a: Node) -> (b: Node)
             }
 
             {
-                const declaration = new_document_state.module.declarations[1];
+                const declaration = new_document_state.valid.module.declarations[1];
                 const function_value = declaration.value as Core_intermediate_representation.Function;
 
                 {
@@ -2723,7 +2727,7 @@ function run(a: Node) -> (b: Node)
         assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 0);
 
-        visit_custom_type_references(new_document_state.module, (type: Core_intermediate_representation.Custom_type_reference) => assert.equal(type.module_reference.name, "name_0"));
+        visit_custom_type_references(new_document_state.valid.module, (type: Core_intermediate_representation.Custom_type_reference) => assert.equal(type.module_reference.name, "name_0"));
 
         const text_changes_2: Text_change.Text_change[] = [
             {
@@ -2741,7 +2745,7 @@ function run(a: Node) -> (b: Node)
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 0);
 
-        visit_custom_type_references(new_document_state_2.module, (type: Core_intermediate_representation.Custom_type_reference) => assert.equal(type.module_reference.name, "name_1"));
+        visit_custom_type_references(new_document_state_2.valid.module, (type: Core_intermediate_representation.Custom_type_reference) => assert.equal(type.module_reference.name, "name_1"));
     });
 
     it("Handles changing import module name and update custom type references", () => {
@@ -2767,7 +2771,7 @@ function run(a: alias_0.My_struct) -> (b: alias_0.My_struct)
 
         const visit_custom_type_references = (core_module: Core_intermediate_representation.Module, visitor: (type: Core_intermediate_representation.Custom_type_reference) => void): void => {
             {
-                const declaration = new_document_state.module.declarations[0];
+                const declaration = new_document_state.valid.module.declarations[0];
                 const struct_declaration = declaration.value as Core_intermediate_representation.Struct_declaration;
                 const member_type = struct_declaration.member_types[0];
                 const custom_type_reference = member_type.data.value as Core_intermediate_representation.Custom_type_reference;
@@ -2775,7 +2779,7 @@ function run(a: alias_0.My_struct) -> (b: alias_0.My_struct)
             }
 
             {
-                const declaration = new_document_state.module.declarations[1];
+                const declaration = new_document_state.valid.module.declarations[1];
                 const function_value = declaration.value as Core_intermediate_representation.Function;
 
                 {
@@ -2815,7 +2819,7 @@ function run(a: alias_0.My_struct) -> (b: alias_0.My_struct)
         assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 0);
 
-        visit_custom_type_references(new_document_state.module, (type: Core_intermediate_representation.Custom_type_reference) => {
+        visit_custom_type_references(new_document_state.valid.module, (type: Core_intermediate_representation.Custom_type_reference) => {
             assert.equal(type.module_reference.name, "name_0");
         });
 
@@ -2835,7 +2839,7 @@ function run(a: alias_0.My_struct) -> (b: alias_0.My_struct)
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 0);
 
-        visit_custom_type_references(new_document_state_2.module, (type: Core_intermediate_representation.Custom_type_reference) => {
+        visit_custom_type_references(new_document_state_2.valid.module, (type: Core_intermediate_representation.Custom_type_reference) => {
             assert.equal(type.module_reference.name, "name_1");
         });
     });
@@ -3163,7 +3167,7 @@ function simulate_typing(
         end: start_range
     };
 
-    let current_program = Text_change.apply_text_changes(document_state.text, document_state.pending_text_changes);
+    let current_program = Text_change.apply_text_changes(document_state.valid.text, document_state.pending_text_changes);
     let current_document_state = document_state;
 
     for (let index = 0; index < text.length; ++index) {
@@ -3202,7 +3206,7 @@ function simulate_erasing(
         end: end_range
     };
 
-    let current_program = Text_change.apply_text_changes(document_state.text, document_state.pending_text_changes);
+    let current_program = Text_change.apply_text_changes(document_state.valid.text, document_state.pending_text_changes);
     let current_document_state = document_state;
 
     const characters_to_erase_count = end_range - start_range;

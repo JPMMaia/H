@@ -5,6 +5,7 @@ import * as vscode from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
 
 import * as Core from "@core/Core_intermediate_representation";
+import * as Document from "@core/Document";
 import * as Parse_tree_analysis from "@core/Parse_tree_analysis";
 import * as Parse_tree_text_iterator from "@core/Parse_tree_text_iterator";
 import * as Parser_node from "@core/Parser_node";
@@ -26,12 +27,12 @@ export async function create(
     if (document_state === undefined) {
         return [];
     }
-
-    if (document_state.parse_tree === undefined) {
+    const root = Document.get_parse_tree(document_state);
+    if (root === undefined) {
         return [];
     }
 
-    const start_node_iterator = get_start_iterator(document, parameters.range, document_state.parse_tree);
+    const start_node_iterator = get_start_iterator(document, parameters.range, root);
 
     const is_within_range = (iterator: Parse_tree_text_iterator.Iterator): boolean => {
 
@@ -54,15 +55,17 @@ export async function create(
 
     const inlay_hints: vscode.InlayHint[] = [];
 
-    const get_core_module = (module_name: string): Promise<Core.Module | undefined> => {
-        return Server_data.get_core_module(server_data, workspace_uri, module_name);
-    };
+    const get_core_module = Server_data.create_get_core_module(server_data, workspace_uri);
+    const core_module = await get_core_module(Document.get_module(document_state).name);
+    if (core_module === undefined) {
+        return [];
+    }
 
     while (is_within_range(iterator)) {
 
         if (iterator.node !== undefined) {
             if (Parser_node.has_ancestor_with_name(iterator.root, iterator.node_position, ["Statement"])) {
-                const result = Parse_tree_analysis.find_statement(document_state.module, iterator.root, iterator.node_position);
+                const result = Parse_tree_analysis.find_statement(core_module, iterator.root, iterator.node_position);
                 if (result !== undefined) {
                     const descendants = Parser_node.find_descendants_if({ node: result.node, position: result.node_position }, node => node.word.value === "Expression_variable_declaration" || node.word.value === "Expression_call");
                     for (const descendant of descendants) {
@@ -75,7 +78,7 @@ export async function create(
                         if (descendant.node.word.value === "Expression_variable_declaration" && statement.expression.data.type === Core.Expression_enum.Variable_declaration_expression) {
                             const expression = statement.expression.data.value as Core.Variable_declaration_expression;
                             const scope_declaration = Parse_tree_analysis.create_declaration_from_function_value(function_value);
-                            const right_hand_side_type = await Parse_tree_analysis.get_expression_type(server_data.language_description, document_state.module, scope_declaration, iterator.root, statement_node_position, expression.right_hand_side, get_core_module);
+                            const right_hand_side_type = await Parse_tree_analysis.get_expression_type(server_data.language_description, core_module, scope_declaration, iterator.root, statement_node_position, expression.right_hand_side, get_core_module);
                             if (right_hand_side_type !== undefined && right_hand_side_type.type.length > 0) {
                                 const variable_name_descendant = Parser_node.find_descendant_position_if({ node: statement_node, position: statement_node_position }, node => node.word.value === "Variable_name") as { node: Parser_node.Node, position: number[] };
                                 const variable_name_source_location = Parse_tree_text_iterator.get_node_source_location(iterator.root, iterator.text, [...variable_name_descendant.position, 0]) as Parser_node.Source_location;
@@ -85,7 +88,7 @@ export async function create(
                                     character: variable_name_source_location.column - 1 + variable_name.length
                                 };
 
-                                const label_parts = await create_label_parts_for_type(right_hand_side_type.type[0], document_state.module, get_core_module);
+                                const label_parts = await create_label_parts_for_type(right_hand_side_type.type[0], core_module, get_core_module);
 
                                 inlay_hints.push(
                                     {
@@ -97,11 +100,11 @@ export async function create(
                             }
                         }
                         else if (descendant.node.word.value === "Expression_call") {
-                            const expression = Parse_tree_analysis.get_expression_from_node(server_data.language_description, document_state.module, descendant.node);
+                            const expression = Parse_tree_analysis.get_expression_from_node(server_data.language_description, core_module, descendant.node);
                             if (expression.data.type === Core.Expression_enum.Call_expression) {
                                 const call_expression = expression.data.value as Core.Call_expression;
                                 const scope_declaration = Parse_tree_analysis.create_declaration_from_function_value(function_value);
-                                const left_hand_side_type = await Parse_tree_analysis.get_expression_type(server_data.language_description, document_state.module, scope_declaration, iterator.root, statement_node_position, call_expression.expression, get_core_module);
+                                const left_hand_side_type = await Parse_tree_analysis.get_expression_type(server_data.language_description, core_module, scope_declaration, iterator.root, statement_node_position, call_expression.expression, get_core_module);
                                 if (left_hand_side_type !== undefined && left_hand_side_type.is_value && left_hand_side_type.type.length > 0 && left_hand_side_type.type[0].data.type === Core.Type_reference_enum.Custom_type_reference) {
                                     const custom_type_reference = left_hand_side_type.type[0].data.value as Core.Custom_type_reference;
                                     const declaration = await Parse_tree_analysis.get_custom_type_reference_declaration(custom_type_reference, get_core_module);

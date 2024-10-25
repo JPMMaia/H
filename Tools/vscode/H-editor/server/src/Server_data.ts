@@ -44,7 +44,7 @@ export function get_document_state(
     module_name: string
 ): { document_uri: string, document_state: Document.State } | undefined {
     for (const [document_uri, document_state] of server_data.document_states) {
-        if (document_state.module.name === module_name) {
+        if (Document.get_module(document_state).name === module_name) {
             return { document_uri: document_uri, document_state: document_state };
         }
     }
@@ -73,7 +73,7 @@ export async function get_core_module(
             const core_module_with_source_location = Text_change.full_parse_with_source_locations(
                 server_data.language_description,
                 document_state.document_file_path,
-                document_state.text
+                Document.get_text(document_state)
             );
             if (core_module_with_source_location !== undefined) {
                 if (core_module_with_source_location.module !== undefined) {
