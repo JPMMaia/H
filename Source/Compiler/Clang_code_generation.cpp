@@ -1185,7 +1185,7 @@ namespace h::compiler
         else if (source_llvm_type->isStructTy() && !destination_llvm_type->isStructTy())
         {
             llvm::Value* const pointer_to_source = llvm_builder.CreateInBoundsGEP(source_llvm_type, source_llvm_value, {get_constant(llvm_context, 0), get_constant(llvm_context, 0)});
-            llvm::LoadInst* const destination_value = llvm_builder.CreateAlignedLoad(destination_llvm_type, pointer_to_source, llvm_data_layout.getABITypeAlign(destination_llvm_type));
+            llvm::LoadInst* const destination_value = llvm_builder.CreateAlignedLoad(destination_llvm_type, pointer_to_source, llvm_data_layout.getABITypeAlign(source_llvm_type));
             return destination_value;
         }
 
@@ -1203,9 +1203,9 @@ namespace h::compiler
     {   
         if (source_llvm_type == destination_llvm_type)
         {
-            if (source_llvm_value->getType()->isPointerTy())
+            if (source_llvm_value->getType() != source_llvm_type && source_llvm_value->getType()->isPointerTy())
             {
-                llvm::Value* const loaded_value = llvm_builder.CreateLoad(destination_llvm_type, source_llvm_value);
+                llvm::Value* const loaded_value = create_load_instruction(llvm_builder, llvm_data_layout, destination_llvm_type, source_llvm_value);
                 return loaded_value;
             }
             else
