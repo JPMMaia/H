@@ -1,37 +1,23 @@
 {
   "compilerOptions": {
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "resolveJsonModule": true,
-    "target": "es2020",
-    "outDir": "out",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "target": "ES2022",
     "lib": [
       "es2020",
-      "dom"
+      "DOM"
     ],
-    "sourceMap": true,
-    "rootDir": "src",
-    "strict": true
+    "outDir": "./out",
+    "rootDir": ".",
+    "sourceMap": true
   },
-  "include": [],
+  "include": [
+    "packages/core/src/**/*.ts",
+    "packages/client/src/**/*.ts",
+    "packages/server/src/**/*.ts",
+  ],
   "exclude": [
     "node_modules",
-    ".vscode-test",
-    "webview-ui"
-  ],
-  "references": [
-    {
-      "path": "./client"
-    },
-    {
-      "path": "./server"
-    },
-    {
-      "path": "./src"
-    }
-  ],
-  "_moduleAliases": {
-    "@core": "out/src/core",
-    "@utilities": "out/src/utilities"
-  }
+    ".vscode-test"
+  ]
 }

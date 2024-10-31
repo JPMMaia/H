@@ -1,0 +1,26 @@
+{
+    "compilerOptions": {
+        "target": "ES5",
+        "module": "commonJS",
+        "moduleResolution": "Node",
+        "resolveJsonModule": false,
+        "outDir": "../../out",
+        "types": [
+            "mocha",
+            "node"
+        ],
+        "lib": [
+            "ES5",
+            "dom"
+        ],
+        "sourceMap": true,
+        "baseUrl": "."
+    },
+    "include": [
+        "./src/**/*.ts",
+        "../core/**/*.ts"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}

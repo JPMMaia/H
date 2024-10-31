@@ -1,86 +1,25 @@
-set(PARSER_SOURCE_PATH "${CMAKE_SOURCE_DIR}/Tools/vscode/H-editor/src")
+set(VSCODE_EXTENSION_SOURCE_PATH "${CMAKE_SOURCE_DIR}/Tools/vscode/H-editor")
+set(PARSER_SOURCE_PATH "${CMAKE_SOURCE_DIR}/Tools/vscode/H-editor/packages")
+
+set(PARSER_JAVASCRIPT_LOCATION "${VSCODE_EXTENSION_SOURCE_PATH}/dist/parser.js")
 
 add_custom_command(
-    OUTPUT
-        "${CMAKE_CURRENT_BINARY_DIR}/js/webpack_config/package.json.in"
-        "${CMAKE_CURRENT_BINARY_DIR}/js/webpack_config/tsconfig.json.in"
-        "${CMAKE_CURRENT_BINARY_DIR}/js/webpack_config/webpack.config.js.in"
-    COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "${PARSER_SOURCE_PATH}" "${CMAKE_CURRENT_BINARY_DIR}/js"
+    OUTPUT "${PARSER_JAVASCRIPT_LOCATION}"
+    COMMAND "${npm}" "run" "webpack:parser"
+    WORKING_DIRECTORY "${VSCODE_EXTENSION_SOURCE_PATH}"
     DEPENDS
-        "${PARSER_SOURCE_PATH}/application/*.ts"
-        "${PARSER_SOURCE_PATH}/core/*.ts"
-        "${PARSER_SOURCE_PATH}/webpack_config/*.json.in"
-        "${PARSER_SOURCE_PATH}/webpack_config/*.js.in"
-    VERBATIM
-    COMMENT "Copy Parser source"
-)
-
-add_custom_command(
-    OUTPUT
-        "${CMAKE_CURRENT_BINARY_DIR}/js/package.json"
-        "${CMAKE_CURRENT_BINARY_DIR}/js/tsconfig.json"
-        "${CMAKE_CURRENT_BINARY_DIR}/js/webpack.config.js"
-    COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_BINARY_DIR}/js/webpack_config/package.json.in" "${CMAKE_CURRENT_BINARY_DIR}/js/package.json"
-    COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_BINARY_DIR}/js/webpack_config/tsconfig.json.in" "${CMAKE_CURRENT_BINARY_DIR}/js/tsconfig.json"
-    COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${CMAKE_CURRENT_BINARY_DIR}/js/webpack_config/webpack.config.js.in" "${CMAKE_CURRENT_BINARY_DIR}/js/webpack.config.js"
-    COMMAND "${CMAKE_COMMAND}" "-E" "rm" "${CMAKE_CURRENT_BINARY_DIR}/js/application/tsconfig.json"
-    COMMAND "${CMAKE_COMMAND}" "-E" "rm" "${CMAKE_CURRENT_BINARY_DIR}/js/application/package.json"
-    DEPENDS
-        "${CMAKE_CURRENT_BINARY_DIR}/js/webpack_config/package.json.in"
-        "${CMAKE_CURRENT_BINARY_DIR}/js/webpack_config/tsconfig.json.in"
-        "${CMAKE_CURRENT_BINARY_DIR}/js/webpack_config/webpack.config.js.in"
-    VERBATIM
-    COMMENT "Copy Parser application configuration files"
-)
-
-find_program(npm npm REQUIRED)
-
-add_custom_command(
-    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/js/node_modules/.package-lock.json"
-    COMMAND "${npm}" "install"
-    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/js"
-    DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/js/package.json"
-    VERBATIM
-    COMMENT "Install Parser dependencies"
-)
-
-add_custom_command(
-    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/js/out/application/Application.js"
-    COMMAND "${npm}" "run" "build_tsc"
-    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/js"
-    DEPENDS
-        "${CMAKE_CURRENT_BINARY_DIR}/js/node_modules/.package-lock.json"
-        "${PARSER_SOURCE_PATH}/application/*.ts"
-        "${PARSER_SOURCE_PATH}/application/*.json.in"
-        "${PARSER_SOURCE_PATH}/application/*.js.in"
-        "${PARSER_SOURCE_PATH}/core/*.ts"
-    VERBATIM
-    COMMENT "Compile Parser TypeScript to JavaScript"
-)
-
-add_custom_command(
-    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/js/dist/main.js"
-    COMMAND "${npm}" "run" "build_webpack"
-    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/js"
-    DEPENDS
-        "${CMAKE_CURRENT_BINARY_DIR}/js/node_modules/.package-lock.json"
-        "${CMAKE_CURRENT_BINARY_DIR}/js/package.json"
-        "${CMAKE_CURRENT_BINARY_DIR}/js/tsconfig.json"
-        "${CMAKE_CURRENT_BINARY_DIR}/js/webpack.config.js"
-        "${PARSER_SOURCE_PATH}/application/*.ts"
-        "${PARSER_SOURCE_PATH}/application/*.json.in"
-        "${PARSER_SOURCE_PATH}/application/*.js.in"
-        "${PARSER_SOURCE_PATH}/core/*.ts"
+        "${VSCODE_EXTENSION_SOURCE_PATH}/packages/core/src/*.ts"
+        "${VSCODE_EXTENSION_SOURCE_PATH}/packages/parser/src/*.ts"
     VERBATIM
     COMMENT "Run Webpack on Parser"
 )
 
-add_custom_target(Parser DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/js/dist/main.js")
+add_custom_target(Parser DEPENDS "${PARSER_JAVASCRIPT_LOCATION}")
 
-set_property(GLOBAL PROPERTY parser_javascript_location "${CMAKE_CURRENT_BINARY_DIR}/js/dist/main.js")
+set_property(GLOBAL PROPERTY parser_javascript_location "${PARSER_JAVASCRIPT_LOCATION}")
 
 install(
-    FILES "${CMAKE_CURRENT_BINARY_DIR}/js/dist/main.js"
+    FILES "${PARSER_JAVASCRIPT_LOCATION}"
     TYPE BIN
     RENAME "parser.js"
 )

@@ -1,105 +1,112 @@
 {
-	"name": "h-editor",
-	"displayName": "H Editor",
-	"description": "Editor for the H programming language",
-	"version": "0.0.1",
-	"publisher": "JPMMaia",
-	"private": true,
-	"license": "MIT",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/JPMMaia/H"
-	},
-	"engines": {
-		"vscode": "^1.75.0"
-	},
-	"categories": [],
-	"main": "./out/client/extension",
-	"activationEvents": [],
-	"contributes": {
-		"configuration": {
-			"type": "object",
-			"title": "Configuration",
-			"properties": {
-				"hlang_language_server.hlang_executable": {
-					"scope": "resource",
-					"type": "string",
-					"default": [],
-					"description": "Specify the file path to the hlang executable."
-				},
-				"hlang_language_server.repositories": {
-					"scope": "resource",
-					"type": "array",
-					"default": [],
-					"description": "Specify repositories that specify additional projects that can be added as dependencies to your project."
-				},
-				"hlang_language_server.trace.server": {
-					"scope": "window",
-					"type": "string",
-					"enum": [
-						"off",
-						"messages",
-						"verbose"
-					],
-					"default": "off",
-					"description": "Traces the communication between VS Code and the language server."
-				}
-			}
-		},
-		"grammars": [
-			{
-				"language": "hlang",
-				"scopeName": "source.hlang",
-				"path": "./syntaxes/hlang.tmGrammar.json"
-			}
-		],
-		"languages": [
-			{
-				"id": "hlang",
-				"extensions": [
-					".hltxt"
-				],
-				"configuration": "./language_configuration.json"
-			}
-		]
-	},
-	"scripts": {
-		"vscode:prepublish": "npm run compile",
-		"compile": "tsc -b",
-		"pretest": "npm run compile && npm run lint",
-		"lint": "eslint ./client/src ./server/src --ext .ts,.tsx",
-		"watch": "tsc -b -w",
-		"test:extension": "sh ./scripts/e2e.sh",
-		"test:scripts": "mocha --require ts-node/register src/**/*.test.ts",
-		"clean": "rimraf out"
-	},
-	"devDependencies": {
-		"@types/node": "^12.12.0",
-		"@types/object-hash": "^3.0.6",
-		"@types/vscode": "^1.52.0",
-		"@typescript-eslint/eslint-plugin": "^7.1.0",
-		"@typescript-eslint/parser": "^7.1.0",
-		"@vscode/codicons": "0.0.32",
-		"eslint": "^8.57.0",
-		"mocha": "^10.0.0",
-		"rimraf": "^5.0.7",
-		"ts-node": "latest",
-		"tsconfig-paths": "^4.2.0",
-		"typescript": "^5.3.3"
-	},
-	"dependencies": {
-		"@types/mocha": "^9.1.1",
-		"@vscode/codicons": "0.0.32",
-		"fast-array-diff": "^1.1.0",
-		"module-alias": "^2.2.3",
-		"object-hash": "^3.0.0"
-	},
-	"workspaces": [
-		"client",
-		"server"
-	],
-	"_moduleAliases": {
-		"@core": "out/shared/core",
-		"@utilities": "out/shared/utilities"
-	}
+  "name": "hlang-language-server",
+  "displayName": "Hlang Language Server",
+  "description": "Language server for the Hlang programming language",
+  "version": "0.0.1",
+  "publisher": "JPMMaia",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JPMMaia/H"
+  },
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [],
+  "main": "./dist/client.js",
+  "activationEvents": [],
+  "contributes": {
+    "configuration": {
+      "type": "object",
+      "title": "Configuration",
+      "properties": {
+        "hlang_language_server.hlang_executable": {
+          "scope": "resource",
+          "type": "string",
+          "default": [],
+          "description": "Specify the file path to the hlang executable."
+        },
+        "hlang_language_server.repositories": {
+          "scope": "resource",
+          "type": "array",
+          "default": [],
+          "description": "Specify repositories that specify additional projects that can be added as dependencies to your project."
+        },
+        "hlang_language_server.trace.server": {
+          "scope": "window",
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "Traces the communication between VS Code and the language server."
+        }
+      }
+    },
+    "grammars": [
+      {
+        "language": "hlang",
+        "scopeName": "source.hlang",
+        "path": "./syntaxes/hlang.tmGrammar.json"
+      }
+    ],
+    "languages": [
+      {
+        "id": "hlang",
+        "extensions": [
+          ".hltxt"
+        ],
+        "configuration": "./language_configuration.json"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -b",
+    "compile:client_test": "tsc -b ./packages/client/src/test && npm run webpack:client && npm run webpack:server",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint ./client/src ./server/src --ext .ts,.tsx",
+    "watch": "tsc -b -w",
+    "watch:client": "webpack --mode development --config ./packages/client/webpack.config.js --watch",
+    "watch:client_test": "tsc -b -w ./packages/client/src/test",
+    "watch:server": "webpack --mode development --config ./packages/server/webpack.config.js --watch",
+    "test:extension": "sh ./scripts/e2e.sh",
+    "test:scripts": "mocha --require ts-node/register",
+    "clean": "rimraf out",
+    "webpack:client": "webpack --mode production --config ./packages/client/webpack.config.js",
+    "webpack:server": "webpack --mode production --config ./packages/server/webpack.config.js",
+    "webpack:parser": "webpack --mode production --config ./packages/parser/webpack.config.js"
+  },
+  "devDependencies": {
+    "@types/node": "^12.12.0",
+    "@types/object-hash": "^3.0.6",
+    "@types/vscode": "^1.52.0",
+    "@typescript-eslint/eslint-plugin": "^7.1.0",
+    "@typescript-eslint/parser": "^7.1.0",
+    "@vscode/codicons": "0.0.32",
+    "eslint": "^8.57.0",
+    "merge-options": "^3.0.4",
+    "mocha": "^10.8.2",
+    "rimraf": "^5.0.7",
+    "ts-loader": "^9.5.1",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.6.3",
+    "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "@types/mocha": "^9.1.1",
+    "@vscode/codicons": "0.0.32",
+    "fast-array-diff": "^1.1.0",
+    "object-hash": "^3.0.0",
+    "vscode": "^1.1.34"
+  },
+  "private": true,
+  "workspaces": [
+    "packages/core",
+    "packages/client",
+    "packages/server"
+  ]
 }
