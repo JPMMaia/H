@@ -16,11 +16,11 @@ macro(convert_hltxt_to_hl)
 
         add_custom_command(
             OUTPUT "${output_path}"
-            COMMAND "node" "${CMAKE_BINARY_DIR}/Source/Parser/js/dist/main.js" "write" "${output_path}" "--input" "${text_file}"
+            COMMAND "node" "${parser_javascript_location}" "write" "${output_path}" "--input" "${text_file}"
             WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/working_directory"
             VERBATIM
             COMMENT "Generating ${output_path}"
-            DEPENDS Parser "${text_file}" "${CMAKE_BINARY_DIR}/Source/Parser/js/dist/main.js"
+            DEPENDS Parser "${text_file}" "${parser_javascript_location}"
         )
     endforeach()
 

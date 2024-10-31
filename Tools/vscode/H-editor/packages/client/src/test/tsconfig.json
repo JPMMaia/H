@@ -1,0 +1,20 @@
+{
+	"compilerOptions": {
+		"module": "CommonJS",
+		"moduleResolution": "Node",
+		"target": "ES2022",
+		"lib": [
+			"es2020"
+		],
+		"outDir": "../../../../out/client",
+		"rootDir": "../../../../",
+		"sourceMap": true
+	},
+	"include": [
+		"."
+	],
+	"exclude": [
+		"node_modules",
+		".vscode-test"
+	]
+}

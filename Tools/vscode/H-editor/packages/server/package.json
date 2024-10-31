@@ -1,0 +1,21 @@
+{
+  "name": "hlang-lsp-server",
+  "description": "Hlang VSCode LSP server",
+  "version": "0.0.1",
+  "author": "JPMMaia",
+  "license": "MIT",
+  "engines": {
+    "node": "*"
+  },
+  "type": "commonjs",
+  "dependencies": {
+    "@types/vscode": "^1.95.0",
+    "hlang-core": "*",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.11",
+    "vscode-uri": "^3.0.8"
+  },
+  "devDependencies": {
+    "@types/glob": "^8.1.0"
+  }
+}
