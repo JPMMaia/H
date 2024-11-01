@@ -698,7 +698,8 @@ namespace h::compiler
                             llvm_data_layout,
                             original_argument,
                             original_argument_llvm_type,
-                            new_type
+                            new_type,
+                            Convertion_type::From_original_to_abi
                         );
 
                         transformed_arguments.values.push_back(transformed_argument);
@@ -1092,7 +1093,8 @@ namespace h::compiler
                     llvm_data_layout,
                     value_to_return.value,
                     original_return_llvm_type,
-                    new_return_llvm_type
+                    new_return_llvm_type,
+                    Convertion_type::From_original_to_abi
                 );
                 
                 llvm::Value* const instruction = llvm_builder.CreateRet(converted_value);
@@ -1157,24 +1159,33 @@ namespace h::compiler
         llvm::DataLayout const& llvm_data_layout,
         llvm::Value* const source_llvm_value,
         llvm::Type* const source_llvm_type,
-        llvm::Type* const destination_llvm_type
+        llvm::Type* const destination_llvm_type,
+        Convertion_type const convertion_type
     )
     {
         if (source_llvm_type->isStructTy() && destination_llvm_type->isStructTy())
         {
-            llvm::AllocaInst* const destination = create_alloca_instruction(llvm_builder, llvm_data_layout, destination_llvm_type);
-            
-            llvm::StructType* const source_struct_llvm_type = static_cast<llvm::StructType*>(source_llvm_type);
-            llvm::ArrayRef<llvm::Type*> const source_struct_elements = source_struct_llvm_type->elements();
-
-            for (unsigned source_element_index = 0; source_element_index < source_struct_elements.size(); ++source_element_index)
+            if (convertion_type == Convertion_type::From_original_to_abi)
             {
-                llvm::Value* const pointer_to_destination = llvm_builder.CreateInBoundsGEP(source_llvm_type, destination, {get_constant(llvm_context, 0), get_constant(llvm_context, source_element_index)});
-                llvm::Value* const extract_value = llvm_builder.CreateExtractValue(source_llvm_value, {source_element_index});
-                llvm_builder.CreateAlignedStore(extract_value, pointer_to_destination, llvm_data_layout.getABITypeAlign(destination_llvm_type));
+                llvm::Value* const load_instruction = llvm_builder.CreateAlignedLoad(destination_llvm_type, source_llvm_value, llvm_data_layout.getABITypeAlign(source_llvm_type));
+                return load_instruction;
             }
+            else
+            {
+                llvm::AllocaInst* const destination = create_alloca_instruction(llvm_builder, llvm_data_layout, destination_llvm_type);
+            
+                llvm::StructType* const source_struct_llvm_type = static_cast<llvm::StructType*>(source_llvm_type);
+                llvm::ArrayRef<llvm::Type*> const source_struct_elements = source_struct_llvm_type->elements();
 
-            return destination;
+                for (unsigned source_element_index = 0; source_element_index < source_struct_elements.size(); ++source_element_index)
+                {
+                    llvm::Value* const pointer_to_destination = llvm_builder.CreateInBoundsGEP(source_llvm_type, destination, {get_constant(llvm_context, 0), get_constant(llvm_context, source_element_index)});
+                    llvm::Value* const extract_value = llvm_builder.CreateExtractValue(source_llvm_value, {source_element_index});
+                    llvm_builder.CreateAlignedStore(extract_value, pointer_to_destination, llvm_data_layout.getABITypeAlign(destination_llvm_type));
+                }
+
+                return destination;
+            }
         }
         else if (!source_llvm_type->isStructTy() && destination_llvm_type->isStructTy())
         {
@@ -1198,7 +1209,8 @@ namespace h::compiler
         llvm::DataLayout const& llvm_data_layout,
         llvm::Value* const source_llvm_value,
         llvm::Type* const source_llvm_type,
-        llvm::Type* const destination_llvm_type
+        llvm::Type* const destination_llvm_type,
+        Convertion_type const convertion_type
     )
     {   
         if (source_llvm_type == destination_llvm_type)
@@ -1220,7 +1232,8 @@ namespace h::compiler
             llvm_data_layout,
             source_llvm_value,
             source_llvm_type,
-            destination_llvm_type
+            destination_llvm_type,
+            convertion_type
         );
     }
 
@@ -1258,7 +1271,8 @@ namespace h::compiler
                     llvm_data_layout,
                     call_instruction,
                     new_return_llvm_type,
-                    original_return_llvm_type
+                    original_return_llvm_type,
+                    Convertion_type::From_abi_to_original
                 );
             }
             case clang::CodeGen::ABIArgInfo::Ignore: {
