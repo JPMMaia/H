@@ -156,12 +156,19 @@ namespace h::compiler
         Clang_declaration_database const& clang_declaration_database
     );
 
-    llvm::Value* read_from_different_type(
+    enum class Convertion_type
+    {
+        From_original_to_abi,
+        From_abi_to_original
+    };
+
+    llvm::Value* read_from_type(
         llvm::LLVMContext& llvm_context,
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,
         llvm::Value* const source_llvm_value,
         llvm::Type* const source_llvm_type,
-        llvm::Type* const destination_llvm_type
+        llvm::Type* const destination_llvm_type,
+        Convertion_type const convertion_type
     );
 }

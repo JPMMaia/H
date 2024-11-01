@@ -3167,9 +3167,8 @@ define private { i64, i64 } @c_interoperability_foo() {
 entry:
   %temporary_struct_instance = alloca %c_interoperability_My_struct, align 4
   store %c_interoperability_My_struct zeroinitializer, ptr %temporary_struct_instance, align 4
-  %0 = getelementptr inbounds %c_interoperability_My_struct, ptr %temporary_struct_instance, i32 0, i32 0
-  %1 = load { i64, i64 }, ptr %0, align 4
-  ret { i64, i64 } %1
+  %0 = load { i64, i64 }, ptr %temporary_struct_instance, align 4
+  ret { i64, i64 } %0
 }
 
 define private void @c_interoperability_run() {
@@ -3337,7 +3336,7 @@ entry:
   %instance = alloca %c_interoperability_My_struct, align 1
   store %c_interoperability_My_struct %0, ptr %instance, align 1
   %1 = getelementptr inbounds %c_interoperability_My_struct, ptr %instance, i32 0, i32 0
-  %2 = load i32, ptr %1, align 4
+  %2 = load i32, ptr %1, align 1
   call void @c_interoperability_foo(i32 %2)
   ret void
 }
