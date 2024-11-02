@@ -10,7 +10,7 @@
     "url": "https://github.com/JPMMaia/H"
   },
   "engines": {
-    "vscode": "^1.75.0"
+    "vscode": "^1.95.0"
   },
   "categories": [],
   "main": "./dist/client.js",
@@ -63,7 +63,6 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
     "compile": "tsc -b",
     "compile:client_test": "tsc -b ./packages/client/src/test && npm run webpack:client && npm run webpack:server",
     "pretest": "npm run compile && npm run lint",
@@ -75,21 +74,22 @@
     "test:extension": "sh ./scripts/e2e.sh",
     "test:scripts": "mocha --require ts-node/register",
     "clean": "rimraf out",
-    "webpack:client": "webpack --mode production --config ./packages/client/webpack.config.js",
-    "webpack:server": "webpack --mode production --config ./packages/server/webpack.config.js",
-    "webpack:parser": "webpack --mode production --config ./packages/parser/webpack.config.js"
+    "webpack:client": "webpack --mode production --config ./packages/client/webpack.config.js --devtool hidden-source-map",
+    "webpack:server": "webpack --mode production --config ./packages/server/webpack.config.js --devtool hidden-source-map",
+    "webpack:parser": "webpack --mode production --config ./packages/parser/webpack.config.js --devtool hidden-source-map",
+    "vscode:prepublish": "npm run package",
+    "package": "npm run webpack:client && npm run webpack:server"
   },
   "devDependencies": {
-    "@types/node": "^12.12.0",
+    "@types/node": "^22.8.6",
     "@types/object-hash": "^3.0.6",
-    "@types/vscode": "^1.52.0",
-    "@typescript-eslint/eslint-plugin": "^7.1.0",
-    "@typescript-eslint/parser": "^7.1.0",
-    "@vscode/codicons": "0.0.32",
-    "eslint": "^8.57.0",
+    "@types/vscode": "^1.95.0",
+    "@typescript-eslint/eslint-plugin": "^8.12.2",
+    "@typescript-eslint/parser": "^8.12.2",
+    "eslint": "^9.14.0",
     "merge-options": "^3.0.4",
     "mocha": "^10.8.2",
-    "rimraf": "^5.0.7",
+    "rimraf": "^6.0.1",
     "ts-loader": "^9.5.1",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
@@ -97,11 +97,9 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
-    "@types/mocha": "^9.1.1",
-    "@vscode/codicons": "0.0.32",
+    "@types/mocha": "^10.0.9",
     "fast-array-diff": "^1.1.0",
-    "object-hash": "^3.0.0",
-    "vscode": "^1.1.34"
+    "object-hash": "^3.0.0"
   },
   "private": true,
   "workspaces": [

@@ -110,7 +110,7 @@ connection.onInitialize(async (params: vscode_node.InitializeParams) => {
 	}
 
 	server_data.initialize_promise = new Promise((resolve) => {
-		let timer: NodeJS.Timer | undefined = undefined;
+		let timer: NodeJS.Timeout | undefined = undefined;
 
 		const check = () => {
 			if (is_initialized) {
