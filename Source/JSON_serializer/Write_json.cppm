@@ -91,6 +91,10 @@ namespace h::json
         {
             return "C_ulonglong";
         }
+        else if (value == Fundamental_type::C_longdouble)
+        {
+            return "C_longdouble";
+        }
 
         throw std::runtime_error{ "Failed to write enum 'Fundamental_type'!\n" };
     }

@@ -117,6 +117,8 @@ namespace h::c
         case CXType_Half:
         case CXType_Float16:
             return h::Fundamental_type::Float16;
+            case CXType_LongDouble:
+            return h::Fundamental_type::C_longdouble;
         default:
             return std::nullopt;
         }
@@ -179,12 +181,12 @@ namespace h::c
         throw std::runtime_error("Could not find enum name!");
     }
 
-    std::optional<h::Type_reference> create_type_reference(C_declarations const& declarations, CXType type);
+    std::optional<h::Type_reference> create_type_reference(C_declarations const& declarations, CXCursor cursor, CXType type);
 
-    h::Function_type create_function_type(C_declarations const& declarations, CXType const function_type)
+    h::Function_type create_function_type(C_declarations const& declarations, CXCursor const cursor, CXType const function_type)
     {
         CXType const result_type = clang_getResultType(function_type);
-        std::optional<h::Type_reference> result_type_reference = create_type_reference(declarations, result_type);
+        std::optional<h::Type_reference> result_type_reference = create_type_reference(declarations, cursor, result_type);
         std::pmr::vector<h::Type_reference> output_parameter_types =
             result_type_reference.has_value() ?
             std::pmr::vector<h::Type_reference>{*result_type_reference} :
@@ -199,7 +201,7 @@ namespace h::c
         {
             CXType const argument_type = clang_getArgType(function_type, argument_index);
 
-            std::optional<h::Type_reference> parameter_type = create_type_reference(declarations, argument_type);
+            std::optional<h::Type_reference> parameter_type = create_type_reference(declarations, cursor, argument_type);
             if (!parameter_type.has_value())
             {
                 throw std::runtime_error{ "Parameter type is void which is invalid!" };
@@ -240,7 +242,7 @@ namespace h::c
         }
     }
 
-    std::optional<h::Type_reference> create_type_reference(C_declarations const& declarations, CXType const type)
+    std::optional<h::Type_reference> create_type_reference(C_declarations const& declarations, CXCursor const cursor, CXType const type)
     {
         {
             std::optional<h::Fundamental_type> const fundamental_type =
@@ -267,12 +269,13 @@ namespace h::c
 
         switch (type.kind)
         {
+        case CXType_IncompleteArray:
         case CXType_Pointer:
         {
-            CXType const pointee_type = clang_getPointeeType(type);
+            CXType const pointee_type = type.kind == CXType_Pointer ? clang_getPointeeType(type) : clang_getArrayElementType(type);
             bool const is_const = clang_isConstQualifiedType(pointee_type);
 
-            std::optional<Type_reference> element_type = create_type_reference(declarations, pointee_type);
+            std::optional<Type_reference> element_type = create_type_reference(declarations, cursor, pointee_type);
 
             h::Pointer_type pointer_type
             {
@@ -346,7 +349,7 @@ namespace h::c
             {
                 CXType const canonical_type = clang_getCanonicalType(type);
                 if (canonical_type.kind == CXType_Enum || canonical_type.kind == CXType_Record)
-                    return create_type_reference(declarations, canonical_type);
+                    return create_type_reference(declarations, cursor, canonical_type);
 
                 std::string const message = std::format("Could not find typedef with name '{}'\n", typedef_name);
                 std::cerr << message;
@@ -370,7 +373,7 @@ namespace h::c
         }
         case CXType_FunctionProto:
         {
-            h::Function_type function_type = create_function_type(declarations, type);
+            h::Function_type function_type = create_function_type(declarations, cursor, type);
             return h::Type_reference
             {
                 .data = function_type
@@ -391,14 +394,14 @@ namespace h::c
         case CXType_Elaborated:
         {
             CXType const named_type = clang_Type_getNamedType(type);
-            return create_type_reference(declarations, named_type);
+            return create_type_reference(declarations, cursor, named_type);
         }
         case CXType_ConstantArray:
         {
             CXType const element_type = clang_getArrayElementType(type);
             long long const size = clang_getArraySize(type);
 
-            std::optional<h::Type_reference> element_type_reference = create_type_reference(declarations, element_type);
+            std::optional<h::Type_reference> element_type_reference = create_type_reference(declarations, cursor, element_type);
 
             if (!element_type_reference.has_value())
             {
@@ -420,10 +423,13 @@ namespace h::c
         }
         default:
         {
+            Header_source_location const source_location = get_cursor_source_location(cursor);
+            String const file_path = { clang_getFileName(source_location.file) };
+
             String const type_spelling = { clang_getTypeSpelling(type) };
             String const type_kind_spelling = { clang_getTypeKindSpelling(type.kind) };
 
-            std::cerr << "Did not recognize type.kind '" << type_kind_spelling.string_view() << "'! Type name is '" << type_spelling.string_view() << "'\n";
+            std::cerr << std::format("{}: Line {} Column {} Did not recognize type.kind '{}'! Type name is '{}\n", file_path.string_view(), source_location.source_location.line, source_location.source_location.column, type_kind_spelling.string_view(), type_spelling.string_view());
             throw std::runtime_error{ "Did not recognize type.kind!" };
         }
         }
@@ -442,7 +448,7 @@ namespace h::c
         if (type_name == underlying_type_name)
             return std::nullopt;
 
-        std::optional<h::Type_reference> underlying_type_reference = create_type_reference(declarations, underlying_type);
+        std::optional<h::Type_reference> underlying_type_reference = create_type_reference(declarations, cursor, underlying_type);
 
         std::pmr::vector<h::Type_reference> alias_type;
         if (underlying_type_reference.has_value())
@@ -637,7 +643,7 @@ namespace h::c
 
         CXType const function_type = clang_getCursorType(cursor);
 
-        h::Function_type h_function_type = create_function_type(declarations, function_type);
+        h::Function_type h_function_type = create_function_type(declarations, cursor, function_type);
 
         std::pmr::vector<std::pmr::string> input_parameter_names = create_input_parameter_names(cursor);
         std::pmr::vector<std::pmr::string> output_parameter_names = create_output_parameter_names(h_function_type.output_parameter_types.size());
@@ -734,7 +740,7 @@ namespace h::c
                 }
                 else
                 {
-                    std::optional<h::Type_reference> const member_type_reference = create_type_reference(*data->declarations, member_type);
+                    std::optional<h::Type_reference> const member_type_reference = create_type_reference(*data->declarations, current_cursor, member_type);
 
                     if (!member_type_reference.has_value())
                     {
@@ -824,7 +830,7 @@ namespace h::c
                 }
                 else
                 {
-                    std::optional<h::Type_reference> const member_type_reference = create_type_reference(*data->declarations, member_type);
+                    std::optional<h::Type_reference> const member_type_reference = create_type_reference(*data->declarations, current_cursor, member_type);
 
                     if (!member_type_reference.has_value())
                     {
@@ -1391,7 +1397,7 @@ namespace h::c
             arguments.size(),
             nullptr,
             0,
-            CXTranslationUnit_None,
+            CXTranslationUnit_SkipFunctionBodies,
             &unit
         );
 

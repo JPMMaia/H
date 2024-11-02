@@ -130,6 +130,11 @@ namespace h::json
             output = Fundamental_type::C_ulonglong;
             return true;
         }
+        else if (value == "C_longdouble")
+        {
+            output = Fundamental_type::C_longdouble;
+            return true;
+        }
 
         std::cerr << std::format("Failed to read enum 'Fundamental_type' with value '{}'\n", value);
         return false;
