@@ -78,7 +78,7 @@
     "webpack:server": "webpack --mode production --config ./packages/server/webpack.config.js --devtool hidden-source-map",
     "webpack:parser": "webpack --mode production --config ./packages/parser/webpack.config.js --devtool hidden-source-map",
     "vscode:prepublish": "npm run package",
-    "package": "npm run webpack:client && npm run webpack:server"
+    "package": "npm run compile && npm run webpack:client && npm run webpack:server"
   },
   "devDependencies": {
     "@types/node": "^22.8.6",
