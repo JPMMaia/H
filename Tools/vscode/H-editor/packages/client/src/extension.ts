@@ -18,7 +18,7 @@ export async function activate(context: ExtensionContext): Promise<LanguageClien
 	// The server is implemented in node
 	const server_module = context.asAbsolutePath(
 		use_webpack_server ?
-			path.join("dist", "server.js", "server") :
+			path.join("dist", "server.js") :
 			path.join("out", "packages", "server", "src", "server.js")
 	);
 
