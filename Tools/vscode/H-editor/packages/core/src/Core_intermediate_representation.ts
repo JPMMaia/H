@@ -237,6 +237,7 @@ export enum Fundamental_type {
     C_ulong = "C_ulong",
     C_longlong = "C_longlong",
     C_ulonglong = "C_ulonglong",
+    C_longdouble = "C_longdouble",
 }
 
 export enum Access_type {
@@ -797,7 +798,7 @@ function intermediate_to_core_struct_declaration(intermediate_value: Struct_decl
             elements: intermediate_value.member_comments.map(value => intermediate_to_core_indexed_comment(value)),
         },
         source_location: intermediate_value.source_location !== undefined ? intermediate_to_core_source_location(intermediate_value.source_location) : undefined,
-        member_source_locations: intermediate_value.member_source_locations !== undefined ? { size: intermediate_value.member_source_locations.length, elements: intermediate_value.member_source_locations } : undefined,
+        member_source_locations: intermediate_value.member_source_locations !== undefined ? { size: intermediate_value.member_source_locations.length, elements : intermediate_value.member_source_locations } : undefined,
     };
 }
 
@@ -843,7 +844,7 @@ function intermediate_to_core_union_declaration(intermediate_value: Union_declar
             elements: intermediate_value.member_comments.map(value => intermediate_to_core_indexed_comment(value)),
         },
         source_location: intermediate_value.source_location !== undefined ? intermediate_to_core_source_location(intermediate_value.source_location) : undefined,
-        member_source_locations: intermediate_value.member_source_locations !== undefined ? { size: intermediate_value.member_source_locations.length, elements: intermediate_value.member_source_locations } : undefined,
+        member_source_locations: intermediate_value.member_source_locations !== undefined ? { size: intermediate_value.member_source_locations.length, elements : intermediate_value.member_source_locations } : undefined,
     };
 }
 
@@ -2349,8 +2350,8 @@ function intermediate_to_core_function_declaration(intermediate_value: Function_
         linkage: intermediate_value.linkage,
         comment: intermediate_value.comment,
         source_location: intermediate_value.source_location !== undefined ? intermediate_to_core_source_location(intermediate_value.source_location) : undefined,
-        input_parameter_source_locations: intermediate_value.input_parameter_source_locations !== undefined ? { size: intermediate_value.input_parameter_source_locations.length, elements: intermediate_value.input_parameter_source_locations } : undefined,
-        output_parameter_source_locations: intermediate_value.output_parameter_source_locations !== undefined ? { size: intermediate_value.output_parameter_source_locations.length, elements: intermediate_value.output_parameter_source_locations } : undefined,
+        input_parameter_source_locations: intermediate_value.input_parameter_source_locations !== undefined ? { size: intermediate_value.input_parameter_source_locations.length, elements : intermediate_value.input_parameter_source_locations } : undefined,
+        output_parameter_source_locations: intermediate_value.output_parameter_source_locations !== undefined ? { size: intermediate_value.output_parameter_source_locations.length, elements : intermediate_value.output_parameter_source_locations } : undefined,
     };
 }
 

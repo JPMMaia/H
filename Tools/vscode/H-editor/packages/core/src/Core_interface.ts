@@ -28,6 +28,7 @@ export enum Fundamental_type {
     C_ulong = "C_ulong",
     C_longlong = "C_longlong",
     C_ulonglong = "C_ulonglong",
+    C_longdouble = "C_longdouble",
 }
 
 export enum Access_type {

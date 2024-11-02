@@ -46,7 +46,8 @@ namespace h
         C_long,
         C_ulong,
         C_longlong,
-        C_ulonglong
+        C_ulonglong,
+        C_longdouble
     };
 
     export struct Integer_type
