@@ -707,16 +707,37 @@ namespace h::c
         }
     }
 
-    h::Struct_declaration create_struct_declaration(C_declarations const& declarations, CXCursor const cursor)
+    std::pmr::string create_declaration_name(C_declarations const& declarations, CXCursor const cursor)
+    {
+        bool const is_anonymous = clang_Cursor_isAnonymousRecordDecl(cursor);
+        if (is_anonymous)
+        {
+            std::uint32_t const anonymous_id = declarations.anonymous_count;
+            return std::pmr::string{ std::format("_Anonymous_{}", anonymous_id) };
+        }
+
+        String const cursor_spelling = { clang_getCursorSpelling(cursor) };
+        std::string_view const declaration_name = cursor_spelling.string_view();
+        return std::pmr::string{ declaration_name };
+    }
+
+    std::pmr::string create_anonymous_member_name(std::span<std::pmr::string const> const member_names)
+    {
+        std::size_t anonymous_member_count = std::count_if(member_names.begin(), member_names.end(), [](std::string_view const member_name) -> bool { return member_name.starts_with("anonymous_"); });
+        return std::pmr::string{ std::format("anonymous_{}", anonymous_member_count) };
+    }
+
+    h::Union_declaration create_union_declaration(C_declarations& declarations, CXCursor const cursor);
+
+    h::Struct_declaration create_struct_declaration(C_declarations& declarations, CXCursor const cursor)
     {
         struct Client_data
         {
-            C_declarations const* declarations;
+            C_declarations* declarations;
             h::Struct_declaration* struct_declaration;
         };
 
-        String const cursor_spelling = { clang_getCursorSpelling(cursor) };
-        std::string_view const struct_name = cursor_spelling.string_view();
+        std::pmr::string const struct_name = create_declaration_name(declarations, cursor);
 
         auto const visitor = [](CXCursor current_cursor, CXCursor parent, CXClientData client_data) -> CXChildVisitResult
         {
@@ -761,6 +782,44 @@ namespace h::c
                     );
                 }
             }
+            else if (cursor_kind == CXCursor_StructDecl)
+            {
+                h::Struct_declaration nested_struct_declaration = create_struct_declaration(*data->declarations, current_cursor);
+
+                h::Custom_type_reference reference
+                {
+                    .module_reference = {
+                        .name = {}
+                    },
+                    .name = nested_struct_declaration.name
+                };
+
+                std::pmr::string member_name = create_anonymous_member_name(data->struct_declaration->member_names);
+                data->struct_declaration->member_names.push_back(std::move(member_name));
+                data->struct_declaration->member_types.push_back({ .data = std::move(reference) });
+
+                data->declarations->struct_declarations.push_back(std::move(nested_struct_declaration));
+                data->declarations->anonymous_count += 1;
+            }
+            else if (cursor_kind == CXCursor_UnionDecl)
+            {
+                h::Union_declaration nested_union_declaration = create_union_declaration(*data->declarations, current_cursor);
+
+                h::Custom_type_reference reference
+                {
+                    .module_reference = {
+                        .name = {}
+                    },
+                    .name = nested_union_declaration.name
+                };
+
+                std::pmr::string member_name = create_anonymous_member_name(data->struct_declaration->member_names);
+                data->struct_declaration->member_names.push_back(std::move(member_name));
+                data->struct_declaration->member_types.push_back({ .data = std::move(reference) });
+
+                data->declarations->union_declarations.push_back(std::move(nested_union_declaration));
+                data->declarations->anonymous_count += 1;
+            }
 
             return CXChildVisit_Continue;
         };
@@ -771,8 +830,8 @@ namespace h::c
 
         h::Struct_declaration struct_declaration
         {
-            .name = std::pmr::string{struct_name},
-            .unique_name = std::pmr::string{struct_name},
+            .name = struct_name,
+            .unique_name = struct_name,
             .member_types = {},
             .member_names = {},
             .member_default_values = {},
@@ -797,16 +856,15 @@ namespace h::c
         return struct_declaration;
     }
 
-    h::Union_declaration create_union_declaration(C_declarations const& declarations, CXCursor const cursor)
+    h::Union_declaration create_union_declaration(C_declarations& declarations, CXCursor const cursor)
     {
         struct Client_data
         {
-            C_declarations const* declarations;
+            C_declarations* declarations;
             h::Union_declaration* union_declaration;
         };
-
-        String const cursor_spelling = { clang_getCursorSpelling(cursor) };
-        std::string_view const union_name = cursor_spelling.string_view();
+        
+        std::pmr::string const union_name = create_declaration_name(declarations, cursor);
 
         auto const visitor = [](CXCursor current_cursor, CXCursor parent, CXClientData client_data) -> CXChildVisitResult
         {
@@ -851,6 +909,44 @@ namespace h::c
                     );
                 }
             }
+            else if (cursor_kind == CXCursor_StructDecl)
+            {
+                h::Struct_declaration nested_struct_declaration = create_struct_declaration(*data->declarations, current_cursor);
+
+                h::Custom_type_reference reference
+                {
+                    .module_reference = {
+                        .name = {}
+                    },
+                    .name = nested_struct_declaration.name
+                };
+
+                std::pmr::string member_name = create_anonymous_member_name(data->union_declaration->member_names);
+                data->union_declaration->member_names.push_back(std::move(member_name));
+                data->union_declaration->member_types.push_back({ .data = std::move(reference) });
+
+                data->declarations->struct_declarations.push_back(std::move(nested_struct_declaration));
+                data->declarations->anonymous_count += 1;
+            }
+            else if (cursor_kind == CXCursor_UnionDecl)
+            {
+                h::Union_declaration nested_union_declaration = create_union_declaration(*data->declarations, current_cursor);
+
+                h::Custom_type_reference reference
+                {
+                    .module_reference = {
+                        .name = {}
+                    },
+                    .name = nested_union_declaration.name
+                };
+
+                std::pmr::string member_name = create_anonymous_member_name(data->union_declaration->member_names);
+                data->union_declaration->member_names.push_back(std::move(member_name));
+                data->union_declaration->member_types.push_back({ .data = std::move(reference) });
+
+                data->declarations->union_declarations.push_back(std::move(nested_union_declaration));
+                data->declarations->anonymous_count += 1;
+            }
 
             return CXChildVisit_Continue;
         };
@@ -861,8 +957,8 @@ namespace h::c
 
         h::Union_declaration union_declaration
         {
-            .name = std::pmr::string{union_name},
-            .unique_name = std::pmr::string{union_name},
+            .name = union_name,
+            .unique_name = union_name,
             .member_types = {},
             .member_names = {},
             .source_location = cursor_location.source_location,
