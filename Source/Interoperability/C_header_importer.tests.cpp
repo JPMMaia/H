@@ -653,6 +653,184 @@ namespace h::c
         }
     }
 
+    TEST_CASE("Handles anonymous declarations inside structs")
+    {
+        std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "c_header_importer" / "anonymous_declarations_inside_structs";
+        std::filesystem::create_directories(root_directory_path);
+
+        std::string const header_content = R"(
+struct My_data
+{
+    int type;
+    union
+    {
+        int x;
+        double y;
+        float z;
+    };
+    struct
+    {
+        int v1;
+        int v2;
+    };
+    union
+    {
+        int a;
+        double b;
+        float c;
+    };
+};
+)";
+
+        std::filesystem::path const header_file_path = root_directory_path / "My_data.h";
+        h::common::write_to_file(header_file_path, header_content);
+
+        h::Module const header_module = h::c::import_header("c.My_data", header_file_path, {});
+
+        CHECK(header_module.source_file_path == header_file_path);
+
+        {
+            h::Struct_declaration const& declaration = header_module.export_declarations.struct_declarations[1];
+
+            CHECK(declaration.member_names[0] == "type");
+            CHECK(declaration.member_types[0] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
+
+            CHECK(declaration.member_names[1] == "anonymous_0");
+            CHECK(declaration.member_types[1] == h::create_custom_type_reference("c.My_data", "_Anonymous_0"));
+
+            CHECK(declaration.member_names[2] == "anonymous_1");
+            CHECK(declaration.member_types[2] == h::create_custom_type_reference("c.My_data", "_Anonymous_1"));
+
+            CHECK(declaration.member_names[3] == "anonymous_2");
+            CHECK(declaration.member_types[3] == h::create_custom_type_reference("c.My_data", "_Anonymous_2"));
+        }
+
+        {
+            h::Union_declaration const& declaration = header_module.export_declarations.union_declarations[0];
+
+            CHECK(declaration.member_names[0] == "x");
+            CHECK(declaration.member_types[0] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
+
+            CHECK(declaration.member_names[1] == "y");
+            CHECK(declaration.member_types[1] == h::create_fundamental_type_type_reference(h::Fundamental_type::Float64));
+
+            CHECK(declaration.member_names[2] == "z");
+            CHECK(declaration.member_types[2] == h::create_fundamental_type_type_reference(h::Fundamental_type::Float32));
+        }
+
+        {
+            h::Struct_declaration const& declaration = header_module.export_declarations.struct_declarations[0];
+
+            CHECK(declaration.member_names[0] == "v1");
+            CHECK(declaration.member_types[0] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
+
+            CHECK(declaration.member_names[1] == "v2");
+            CHECK(declaration.member_types[1] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
+        }
+
+        {
+            h::Union_declaration const& declaration = header_module.export_declarations.union_declarations[1];
+
+            CHECK(declaration.member_names[0] == "a");
+            CHECK(declaration.member_types[0] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
+
+            CHECK(declaration.member_names[1] == "b");
+            CHECK(declaration.member_types[1] == h::create_fundamental_type_type_reference(h::Fundamental_type::Float64));
+
+            CHECK(declaration.member_names[2] == "c");
+            CHECK(declaration.member_types[2] == h::create_fundamental_type_type_reference(h::Fundamental_type::Float32));
+        }
+    }
+
+    TEST_CASE("Handles anonymous declarations inside unions")
+    {
+        std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "c_header_importer" / "anonymous_declarations_inside_unions";
+        std::filesystem::create_directories(root_directory_path);
+
+        std::string const header_content = R"(
+union My_data
+{
+    int type;
+    union
+    {
+        int x;
+        double y;
+        float z;
+    };
+    struct
+    {
+        int v1;
+        int v2;
+    };
+    union
+    {
+        int a;
+        double b;
+        float c;
+    };
+};
+)";
+
+        std::filesystem::path const header_file_path = root_directory_path / "My_data.h";
+        h::common::write_to_file(header_file_path, header_content);
+
+        h::Module const header_module = h::c::import_header("c.My_data", header_file_path, {});
+
+        CHECK(header_module.source_file_path == header_file_path);
+
+        {
+            h::Union_declaration const& declaration = header_module.export_declarations.union_declarations[2];
+
+            CHECK(declaration.member_names[0] == "type");
+            CHECK(declaration.member_types[0] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
+
+            CHECK(declaration.member_names[1] == "anonymous_0");
+            CHECK(declaration.member_types[1] == h::create_custom_type_reference("c.My_data", "_Anonymous_0"));
+
+            CHECK(declaration.member_names[2] == "anonymous_1");
+            CHECK(declaration.member_types[2] == h::create_custom_type_reference("c.My_data", "_Anonymous_1"));
+
+            CHECK(declaration.member_names[3] == "anonymous_2");
+            CHECK(declaration.member_types[3] == h::create_custom_type_reference("c.My_data", "_Anonymous_2"));
+        }
+
+        {
+            h::Union_declaration const& declaration = header_module.export_declarations.union_declarations[0];
+
+            CHECK(declaration.member_names[0] == "x");
+            CHECK(declaration.member_types[0] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
+
+            CHECK(declaration.member_names[1] == "y");
+            CHECK(declaration.member_types[1] == h::create_fundamental_type_type_reference(h::Fundamental_type::Float64));
+
+            CHECK(declaration.member_names[2] == "z");
+            CHECK(declaration.member_types[2] == h::create_fundamental_type_type_reference(h::Fundamental_type::Float32));
+        }
+
+        {
+            h::Struct_declaration const& declaration = header_module.export_declarations.struct_declarations[0];
+
+            CHECK(declaration.member_names[0] == "v1");
+            CHECK(declaration.member_types[0] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
+
+            CHECK(declaration.member_names[1] == "v2");
+            CHECK(declaration.member_types[1] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
+        }
+
+        {
+            h::Union_declaration const& declaration = header_module.export_declarations.union_declarations[1];
+
+            CHECK(declaration.member_names[0] == "a");
+            CHECK(declaration.member_types[0] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
+
+            CHECK(declaration.member_names[1] == "b");
+            CHECK(declaration.member_types[1] == h::create_fundamental_type_type_reference(h::Fundamental_type::Float64));
+
+            CHECK(declaration.member_names[2] == "c");
+            CHECK(declaration.member_types[2] == h::create_fundamental_type_type_reference(h::Fundamental_type::Float32));
+        }
+    }
+
     TEST_CASE("Include debug information of function declarations")
     {
         std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "c_header_importer" / "debug_information_functions";
