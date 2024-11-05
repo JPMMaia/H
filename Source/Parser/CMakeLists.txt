@@ -14,7 +14,7 @@ add_custom_command(
     COMMENT "Run Webpack on Parser"
 )
 
-add_custom_target(Parser DEPENDS "${PARSER_JAVASCRIPT_LOCATION}")
+add_custom_target(Parser DEPENDS "${PARSER_JAVASCRIPT_LOCATION}" ALL)
 
 set_property(GLOBAL PROPERTY parser_javascript_location "${PARSER_JAVASCRIPT_LOCATION}")
 
