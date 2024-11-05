@@ -72,7 +72,7 @@ namespace h::compiler
 
         llvm::Type* const int64_type = llvm::Type::getInt64Ty(llvm_context);
         llvm::Type* const int1_type = llvm::Type::getInt1Ty(llvm_context);
-        llvm::Type* const pointer_type = llvm::Type::getInt8PtrTy(llvm_context);
+        llvm::Type* const pointer_type = llvm::PointerType::get(llvm::Type::getInt8Ty(llvm_context), 0);
         llvm::Function* const memcpy_function = llvm::Intrinsic::getDeclaration(&llvm_module, llvm::Intrinsic::memcpy, {pointer_type, pointer_type, int64_type});
 
         llvm::Value* const size = llvm::ConstantInt::get(int64_type, size_in_bits);

@@ -28,6 +28,7 @@ llvm_map_components_to_libnames(
    LTO
    MC
    nativecodegen
+   OrcDebugging
    OrcJIT
    Object
    Option

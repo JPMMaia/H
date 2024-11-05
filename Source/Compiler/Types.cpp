@@ -36,7 +36,7 @@ namespace h::compiler
 
     Builtin_types create_builtin_types(llvm::LLVMContext& llvm_context)
     {
-        llvm::Type* int8_pointer_type = llvm::Type::getInt8PtrTy(llvm_context);
+        llvm::Type* int8_pointer_type = llvm::PointerType::get(llvm::Type::getInt8Ty(llvm_context), 0);
         llvm::Type* int64_type = llvm::Type::getInt64Ty(llvm_context);
 
         llvm::StructType* string_type = llvm::StructType::create({ int8_pointer_type, int64_type }, "__hl_string");
@@ -821,7 +821,7 @@ namespace h::compiler
         Type_database const& type_database
     )
     {
-        llvm::Type* pointed_type = !type.element_type.empty() ? type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, type.element_type[0], type_database) : llvm::Type::getInt8PtrTy(llvm_context);
+        llvm::Type* pointed_type = !type.element_type.empty() ? type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, type.element_type[0], type_database) : llvm::PointerType::get(llvm::Type::getInt8Ty(llvm_context), 0);
         return pointed_type->getPointerTo();
     }
 

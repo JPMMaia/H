@@ -2,6 +2,7 @@ module;
 
 #include <llvm/ExecutionEngine/JITSymbol.h>
 #include <llvm/ExecutionEngine/SectionMemoryManager.h>
+#include <llvm/ExecutionEngine/Orc/Debugging/DebuggerSupport.h>
 #include <llvm/ExecutionEngine/Orc/Core.h>
 #include <llvm/ExecutionEngine/Orc/EPCIndirectionUtils.h>
 #include <llvm/ExecutionEngine/Orc/ExecutorProcessControl.h>
@@ -68,7 +69,13 @@ namespace h::compiler
 
         if (debug)
         {
-            builder.setEnableDebuggerSupport(true);
+              builder.setPrePlatformSetup(
+                [](llvm::orc::LLJIT& llvm_jit) -> llvm::Error
+                {
+                    llvm::Error const error = llvm::orc::enableDebuggerSupport(llvm_jit);
+                    return llvm::Error::success();
+                }
+            );
         }
 
         llvm::Expected<std::unique_ptr<llvm::orc::LLJIT>> llvm_jit_result = builder.create();
