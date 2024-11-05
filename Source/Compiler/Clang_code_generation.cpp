@@ -131,7 +131,7 @@ namespace h::compiler
 
         clang::RecordDecl* const record_declaration = clang::RecordDecl::Create(
             clang_ast_context,
-            clang::TTK_Struct,
+            clang::TagTypeKind::Struct,
             clang_ast_context.getTranslationUnitDecl(),
             clang::SourceLocation(),
             clang::SourceLocation(),
@@ -193,7 +193,7 @@ namespace h::compiler
 
         clang::RecordDecl* const record_declaration = clang::RecordDecl::Create(
             clang_ast_context,
-            clang::TTK_Union,
+            clang::TagTypeKind::Union,
             clang_ast_context.getTranslationUnitDecl(),
             clang::SourceLocation(),
             clang::SourceLocation(),
@@ -1009,7 +1009,7 @@ namespace h::compiler
                 }
                 case clang::CodeGen::ABIArgInfo::Indirect: {
 
-                    llvm::Type* const pointer_type = llvm::Type::getInt8PtrTy(llvm_context);
+                    llvm::Type* const pointer_type = llvm::PointerType::get(llvm::Type::getInt8Ty(llvm_context), 0);
                     llvm::Align const pointer_type_alignment = llvm_data_layout.getABITypeAlign(pointer_type);
 
                     llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, pointer_type, restored_argument_name.data());

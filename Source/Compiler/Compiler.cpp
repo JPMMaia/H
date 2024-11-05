@@ -13,11 +13,11 @@ module;
 #include <llvm/Passes/PassBuilder.h>
 #include <llvm/Passes/StandardInstrumentations.h>
 #include <llvm/Support/FileSystem.h>
-#include <llvm/Support/Host.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Target/TargetOptions.h>
+#include <llvm/TargetParser/Host.h>
 #include <llvm/Transforms/InstCombine/InstCombine.h>
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Transforms/Scalar/GVN.h>
@@ -671,7 +671,7 @@ namespace h::compiler
                 throw std::runtime_error{ error_code.message() };
             }
 
-            if (target_machine->addPassesToEmitFile(pass_manager, output_stream, nullptr, llvm::CGFT_ObjectFile))
+            if (target_machine->addPassesToEmitFile(pass_manager, output_stream, nullptr, llvm::CodeGenFileType::ObjectFile))
             {
                 llvm::errs() << "target_machine can't emit a file of this type";
                 throw std::runtime_error{ error_code.message() };
@@ -1029,7 +1029,7 @@ namespace h::compiler
         llvm::TargetMachine* target_machine = target.createTargetMachine(target_triple, cpu, features, target_options, code_model);
 
         // TODO set according to optimization level
-        target_machine->setOptLevel(llvm::CodeGenOpt::Level::None);
+        target_machine->setOptLevel(llvm::CodeGenOptLevel::Default);
 
         llvm::DataLayout llvm_data_layout = target_machine->createDataLayout();
 
@@ -1238,7 +1238,7 @@ namespace h::compiler
         }
 
         llvm::legacy::PassManager pass_manager;
-        if (llvm_data.target_machine->addPassesToEmitFile(pass_manager, output_stream, nullptr, llvm::CGFT_ObjectFile))
+        if (llvm_data.target_machine->addPassesToEmitFile(pass_manager, output_stream, nullptr, llvm::CodeGenFileType::ObjectFile))
         {
             std::string const error_message = error_code.message();
             llvm::errs() << "Could not emit object file: " << error_message;
