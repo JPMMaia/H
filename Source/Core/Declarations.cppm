@@ -10,6 +10,7 @@ module;
 export module h.core.declarations;
 
 import h.core;
+import h.core.string_hash;
 
 namespace h
 {
@@ -27,11 +28,11 @@ namespace h
     };
 
     using Module_name = std::pmr::string;
-    using Declaration_map = std::pmr::unordered_map<std::pmr::string, Declaration>;
+    using Declaration_map = std::pmr::unordered_map<std::pmr::string, Declaration, String_hash, String_equal>;
 
     export struct Declaration_database
     {
-        std::pmr::unordered_map<Module_name, Declaration_map> map;
+        std::pmr::unordered_map<Module_name, Declaration_map, String_hash, String_equal> map;
     };
 
     export Declaration_database create_declaration_database();
