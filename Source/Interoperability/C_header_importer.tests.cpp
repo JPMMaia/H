@@ -678,7 +678,12 @@ struct My_data
         int a;
         double b;
         float c;
-    };
+    } member_1;
+    struct
+    {
+        int v1;
+        int v2;
+    } member_2;
 };
 )";
 
@@ -690,7 +695,8 @@ struct My_data
         CHECK(header_module.source_file_path == header_file_path);
 
         {
-            h::Struct_declaration const& declaration = header_module.export_declarations.struct_declarations[1];
+            h::Struct_declaration const& declaration = header_module.export_declarations.struct_declarations[2];
+            CHECK(declaration.name == "My_data");
 
             CHECK(declaration.member_names[0] == "type");
             CHECK(declaration.member_types[0] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
@@ -701,12 +707,16 @@ struct My_data
             CHECK(declaration.member_names[2] == "anonymous_1");
             CHECK(declaration.member_types[2] == h::create_custom_type_reference("c.My_data", "_Anonymous_1"));
 
-            CHECK(declaration.member_names[3] == "anonymous_2");
+            CHECK(declaration.member_names[3] == "member_1");
             CHECK(declaration.member_types[3] == h::create_custom_type_reference("c.My_data", "_Anonymous_2"));
+
+            CHECK(declaration.member_names[4] == "member_2");
+            CHECK(declaration.member_types[4] == h::create_custom_type_reference("c.My_data", "_Anonymous_3"));
         }
 
         {
             h::Union_declaration const& declaration = header_module.export_declarations.union_declarations[0];
+            CHECK(declaration.name == "_Anonymous_0");
 
             CHECK(declaration.member_names[0] == "x");
             CHECK(declaration.member_types[0] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
@@ -720,6 +730,7 @@ struct My_data
 
         {
             h::Struct_declaration const& declaration = header_module.export_declarations.struct_declarations[0];
+            CHECK(declaration.name == "_Anonymous_1");
 
             CHECK(declaration.member_names[0] == "v1");
             CHECK(declaration.member_types[0] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
@@ -730,6 +741,7 @@ struct My_data
 
         {
             h::Union_declaration const& declaration = header_module.export_declarations.union_declarations[1];
+            CHECK(declaration.name == "_Anonymous_2");
 
             CHECK(declaration.member_names[0] == "a");
             CHECK(declaration.member_types[0] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
@@ -739,6 +751,17 @@ struct My_data
 
             CHECK(declaration.member_names[2] == "c");
             CHECK(declaration.member_types[2] == h::create_fundamental_type_type_reference(h::Fundamental_type::Float32));
+        }
+
+        {
+            h::Struct_declaration const& declaration = header_module.export_declarations.struct_declarations[1];
+            CHECK(declaration.name == "_Anonymous_3");
+
+            CHECK(declaration.member_names[0] == "v1");
+            CHECK(declaration.member_types[0] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
+
+            CHECK(declaration.member_names[1] == "v2");
+            CHECK(declaration.member_types[1] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
         }
     }
 
@@ -767,7 +790,12 @@ union My_data
         int a;
         double b;
         float c;
-    };
+    } member_1;
+    struct
+    {
+        int v1;
+        int v2;
+    } member_2;
 };
 )";
 
@@ -780,6 +808,7 @@ union My_data
 
         {
             h::Union_declaration const& declaration = header_module.export_declarations.union_declarations[2];
+            CHECK(declaration.name == "My_data");
 
             CHECK(declaration.member_names[0] == "type");
             CHECK(declaration.member_types[0] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
@@ -790,12 +819,16 @@ union My_data
             CHECK(declaration.member_names[2] == "anonymous_1");
             CHECK(declaration.member_types[2] == h::create_custom_type_reference("c.My_data", "_Anonymous_1"));
 
-            CHECK(declaration.member_names[3] == "anonymous_2");
+            CHECK(declaration.member_names[3] == "member_1");
             CHECK(declaration.member_types[3] == h::create_custom_type_reference("c.My_data", "_Anonymous_2"));
+
+            CHECK(declaration.member_names[4] == "member_2");
+            CHECK(declaration.member_types[4] == h::create_custom_type_reference("c.My_data", "_Anonymous_3"));
         }
 
         {
             h::Union_declaration const& declaration = header_module.export_declarations.union_declarations[0];
+            CHECK(declaration.name == "_Anonymous_0");
 
             CHECK(declaration.member_names[0] == "x");
             CHECK(declaration.member_types[0] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
@@ -809,6 +842,7 @@ union My_data
 
         {
             h::Struct_declaration const& declaration = header_module.export_declarations.struct_declarations[0];
+            CHECK(declaration.name == "_Anonymous_1");
 
             CHECK(declaration.member_names[0] == "v1");
             CHECK(declaration.member_types[0] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
@@ -819,6 +853,7 @@ union My_data
 
         {
             h::Union_declaration const& declaration = header_module.export_declarations.union_declarations[1];
+            CHECK(declaration.name == "_Anonymous_2");
 
             CHECK(declaration.member_names[0] == "a");
             CHECK(declaration.member_types[0] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
@@ -828,6 +863,17 @@ union My_data
 
             CHECK(declaration.member_names[2] == "c");
             CHECK(declaration.member_types[2] == h::create_fundamental_type_type_reference(h::Fundamental_type::Float32));
+        }
+
+        {
+            h::Struct_declaration const& declaration = header_module.export_declarations.struct_declarations[1];
+            CHECK(declaration.name == "_Anonymous_3");
+
+            CHECK(declaration.member_names[0] == "v1");
+            CHECK(declaration.member_types[0] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
+
+            CHECK(declaration.member_names[1] == "v2");
+            CHECK(declaration.member_types[1] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
         }
     }
 

@@ -1,5 +1,6 @@
 module;
 
+#include <cassert>
 #include <filesystem>
 #include <format>
 #include <iostream>
@@ -707,12 +708,36 @@ namespace h::c
         }
     }
 
+    bool is_unnamed_type(CXType const type)
+    {
+        if (type.kind == CXType_Elaborated)
+        {
+            CXType const named_type = clang_Type_getNamedType(type);
+            CXCursor const declaration_cursor = clang_getTypeDeclaration(named_type);
+            
+            return clang_Cursor_isAnonymous(declaration_cursor);
+        }
+
+        CXCursor const cursor = clang_getTypeDeclaration(type);
+        return clang_Cursor_isAnonymous(cursor);
+    }
+
+    bool is_unnamed_type(CXCursor const cursor)
+    {
+        return is_unnamed_type(clang_getCursorType(cursor));
+    }
+
+    bool is_unnamed_or_anonymous_type(CXCursor const cursor)
+    {
+        return clang_Cursor_isAnonymousRecordDecl(cursor) || is_unnamed_type(cursor);
+    }
+
     std::pmr::string create_declaration_name(C_declarations const& declarations, CXCursor const cursor)
     {
         bool const is_anonymous = clang_Cursor_isAnonymousRecordDecl(cursor);
-        if (is_anonymous)
+        if (is_anonymous || is_unnamed_type(cursor))
         {
-            std::uint32_t const anonymous_id = declarations.anonymous_count;
+            std::uint32_t const anonymous_id = declarations.unnamed_count;
             return std::pmr::string{ std::format("_Anonymous_{}", anonymous_id) };
         }
 
@@ -721,8 +746,66 @@ namespace h::c
         return std::pmr::string{ declaration_name };
     }
 
-    std::pmr::string create_anonymous_member_name(std::span<std::pmr::string const> const member_names)
+    std::optional<std::pmr::string> find_named_field_with_type(CXCursor const cursor, CXType const anonymous_type)
     {
+        struct Client_data
+        {
+            CXType type_to_find;
+            bool found = false;
+            std::pmr::string found_field_name;
+        };
+
+        Client_data client_data
+        {
+            .type_to_find = anonymous_type,
+        };
+
+        auto const visitor = [](CXCursor const current_cursor, CXCursor const parent, CXClientData const client_data) -> CXChildVisitResult
+        {
+            Client_data* const data = reinterpret_cast<Client_data*>(client_data);
+
+            CXCursorKind const cursor_kind = clang_getCursorKind(current_cursor);
+            if (cursor_kind == CXCursor_FieldDecl)
+            {
+                CXType const cursor_type = clang_getCursorType(current_cursor);
+                if (cursor_type.kind == CXType_Elaborated)
+                {
+                    CXType const named_type = clang_Type_getNamedType(cursor_type);
+
+                    if (clang_equalTypes(named_type, data->type_to_find) != 0)
+                    {
+                        String const field_spelling = clang_getCursorSpelling(current_cursor);
+                        std::string_view const field_name = field_spelling.string_view();
+
+                        data->found = true;
+                        data->found_field_name = std::pmr::string{ field_name };
+                        return CXChildVisit_Break;
+                    }
+                }
+            }
+
+            return CXChildVisit_Continue;
+        };
+
+        clang_visitChildren(
+            cursor,
+            visitor,
+            &client_data
+        );
+
+        if (client_data.found)
+            return std::move(client_data.found_field_name);
+        else
+            return std::nullopt;
+    }
+
+    std::pmr::string create_member_name_that_has_unnamed_type(CXCursor current_cursor, CXCursor parent, std::span<std::pmr::string const> const member_names)
+    {
+        /*CXType const unnamed_type = clang_getCursorType(current_cursor);
+        std::optional<std::pmr::string> named_field = find_named_field_with_type(parent, unnamed_type);
+        if (named_field.has_value())
+            return *named_field;*/
+
         std::size_t anonymous_member_count = std::count_if(member_names.begin(), member_names.end(), [](std::string_view const member_name) -> bool { return member_name.starts_with("anonymous_"); });
         return std::pmr::string{ std::format("anonymous_{}", anonymous_member_count) };
     }
@@ -752,7 +835,11 @@ namespace h::c
 
                 CXType const member_type = clang_getCursorType(current_cursor);
 
-                if (clang_Cursor_isBitField(current_cursor))
+                if (is_unnamed_type(member_type))
+                {
+                    data->struct_declaration->member_names.push_back(std::pmr::string{ member_name });
+                }
+                else if (clang_Cursor_isBitField(current_cursor))
                 {
                     h::Type_reference member_type_reference = create_type_reference_from_bit_field(current_cursor, member_type);
 
@@ -782,9 +869,15 @@ namespace h::c
                     );
                 }
             }
-            else if (cursor_kind == CXCursor_StructDecl)
+            else if (cursor_kind == CXCursor_StructDecl && is_unnamed_or_anonymous_type(current_cursor))
             {
                 h::Struct_declaration nested_struct_declaration = create_struct_declaration(*data->declarations, current_cursor);
+
+                if (clang_Cursor_isAnonymousRecordDecl(current_cursor))
+                {
+                    std::pmr::string member_name = create_member_name_that_has_unnamed_type(current_cursor, parent, data->struct_declaration->member_names);
+                    data->struct_declaration->member_names.push_back(std::move(member_name));
+                }
 
                 h::Custom_type_reference reference
                 {
@@ -793,17 +886,20 @@ namespace h::c
                     },
                     .name = nested_struct_declaration.name
                 };
-
-                std::pmr::string member_name = create_anonymous_member_name(data->struct_declaration->member_names);
-                data->struct_declaration->member_names.push_back(std::move(member_name));
                 data->struct_declaration->member_types.push_back({ .data = std::move(reference) });
 
                 data->declarations->struct_declarations.push_back(std::move(nested_struct_declaration));
-                data->declarations->anonymous_count += 1;
+                data->declarations->unnamed_count += 1;
             }
-            else if (cursor_kind == CXCursor_UnionDecl)
+            else if (cursor_kind == CXCursor_UnionDecl && is_unnamed_or_anonymous_type(current_cursor))
             {
                 h::Union_declaration nested_union_declaration = create_union_declaration(*data->declarations, current_cursor);
+
+                if (clang_Cursor_isAnonymousRecordDecl(current_cursor))
+                {
+                    std::pmr::string member_name = create_member_name_that_has_unnamed_type(current_cursor, parent, data->struct_declaration->member_names);
+                    data->struct_declaration->member_names.push_back(std::move(member_name));
+                }
 
                 h::Custom_type_reference reference
                 {
@@ -812,13 +908,10 @@ namespace h::c
                     },
                     .name = nested_union_declaration.name
                 };
-
-                std::pmr::string member_name = create_anonymous_member_name(data->struct_declaration->member_names);
-                data->struct_declaration->member_names.push_back(std::move(member_name));
                 data->struct_declaration->member_types.push_back({ .data = std::move(reference) });
-
+    
                 data->declarations->union_declarations.push_back(std::move(nested_union_declaration));
-                data->declarations->anonymous_count += 1;
+                data->declarations->unnamed_count += 1;
             }
 
             return CXChildVisit_Continue;
@@ -853,6 +946,8 @@ namespace h::c
             &client_data
         );
 
+        assert(struct_declaration.member_names.size() == struct_declaration.member_types.size());
+
         return struct_declaration;
     }
 
@@ -879,7 +974,11 @@ namespace h::c
 
                 CXType const member_type = clang_getCursorType(current_cursor);
 
-                if (clang_Cursor_isBitField(current_cursor))
+                if (is_unnamed_type(member_type))
+                {
+                    data->union_declaration->member_names.push_back(std::pmr::string{ member_name });
+                }
+                else if (clang_Cursor_isBitField(current_cursor))
                 {
                     h::Type_reference member_type_reference = create_type_reference_from_bit_field(current_cursor, member_type);
 
@@ -909,9 +1008,15 @@ namespace h::c
                     );
                 }
             }
-            else if (cursor_kind == CXCursor_StructDecl)
+            else if (cursor_kind == CXCursor_StructDecl && is_unnamed_or_anonymous_type(current_cursor))
             {
                 h::Struct_declaration nested_struct_declaration = create_struct_declaration(*data->declarations, current_cursor);
+
+                if (clang_Cursor_isAnonymousRecordDecl(current_cursor))
+                {
+                    std::pmr::string member_name = create_member_name_that_has_unnamed_type(current_cursor, parent, data->union_declaration->member_names);
+                    data->union_declaration->member_names.push_back(std::move(member_name));
+                }
 
                 h::Custom_type_reference reference
                 {
@@ -920,18 +1025,21 @@ namespace h::c
                     },
                     .name = nested_struct_declaration.name
                 };
-
-                std::pmr::string member_name = create_anonymous_member_name(data->union_declaration->member_names);
-                data->union_declaration->member_names.push_back(std::move(member_name));
                 data->union_declaration->member_types.push_back({ .data = std::move(reference) });
 
                 data->declarations->struct_declarations.push_back(std::move(nested_struct_declaration));
-                data->declarations->anonymous_count += 1;
+                data->declarations->unnamed_count += 1;
             }
-            else if (cursor_kind == CXCursor_UnionDecl)
+            else if (cursor_kind == CXCursor_UnionDecl && is_unnamed_or_anonymous_type(current_cursor))
             {
                 h::Union_declaration nested_union_declaration = create_union_declaration(*data->declarations, current_cursor);
 
+                if (clang_Cursor_isAnonymousRecordDecl(current_cursor))
+                {
+                    std::pmr::string member_name = create_member_name_that_has_unnamed_type(current_cursor, parent, data->union_declaration->member_names);
+                    data->union_declaration->member_names.push_back(std::move(member_name));
+                }
+                
                 h::Custom_type_reference reference
                 {
                     .module_reference = {
@@ -939,13 +1047,10 @@ namespace h::c
                     },
                     .name = nested_union_declaration.name
                 };
-
-                std::pmr::string member_name = create_anonymous_member_name(data->union_declaration->member_names);
-                data->union_declaration->member_names.push_back(std::move(member_name));
                 data->union_declaration->member_types.push_back({ .data = std::move(reference) });
 
                 data->declarations->union_declarations.push_back(std::move(nested_union_declaration));
-                data->declarations->anonymous_count += 1;
+                data->declarations->unnamed_count += 1;
             }
 
             return CXChildVisit_Continue;
@@ -976,6 +1081,8 @@ namespace h::c
             visitor,
             &client_data
         );
+
+        assert(union_declaration.member_names.size() == union_declaration.member_types.size());
 
         return union_declaration;
     }
