@@ -1375,6 +1375,9 @@ namespace h::compiler
                 case h::Fundamental_type::C_ulonglong: {
                     return clang_ast_context.UnsignedLongLongTy;
                 }
+                case h::Fundamental_type::C_longdouble: {
+                    return clang_ast_context.LongDoubleTy;
+                }
             }
         }
         else if (std::holds_alternative<h::Integer_type>(type_reference.data))
