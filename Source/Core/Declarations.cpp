@@ -91,12 +91,12 @@ namespace h
         std::string_view const declaration_name
     )
     {
-        auto const declaration_map_location = database.map.find(module_name.data());
+        auto const declaration_map_location = database.map.find(module_name);
         if (declaration_map_location == database.map.end())
             return std::nullopt;
 
         Declaration_map const& declaration_map = declaration_map_location->second;
-        auto const declaration_location = declaration_map.find(declaration_name.data());
+        auto const declaration_location = declaration_map.find(declaration_name);
         if (declaration_location == declaration_map.end())
             return std::nullopt;
 
