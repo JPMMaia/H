@@ -1618,6 +1618,61 @@ namespace h::c
         return unit;
     }
 
+    bool is_private_declaration(std::string_view const declaration_name)
+    {
+        if (declaration_name.size() > 0 && declaration_name[0] == '_')
+            return true;
+
+        return false;
+    }
+
+    void group_declarations_by_visibility(
+        C_declarations const& declarations,
+        h::Module_declarations& export_declarations,
+        h::Module_declarations& internal_declarations
+    )
+    {
+        for (h::Alias_type_declaration const& declaration : declarations.alias_type_declarations)
+        {
+            if (is_private_declaration(declaration.name))
+                internal_declarations.alias_type_declarations.push_back(declaration);
+            else
+                export_declarations.alias_type_declarations.push_back(declaration);
+        }
+
+        for (h::Enum_declaration const& declaration : declarations.enum_declarations)
+        {
+            if (is_private_declaration(declaration.name))
+                internal_declarations.enum_declarations.push_back(declaration);
+            else
+                export_declarations.enum_declarations.push_back(declaration);
+        }
+
+        for (h::Struct_declaration const& declaration : declarations.struct_declarations)
+        {
+            if (is_private_declaration(declaration.name))
+                internal_declarations.struct_declarations.push_back(declaration);
+            else
+                export_declarations.struct_declarations.push_back(declaration);
+        }
+
+        for (h::Union_declaration const& declaration : declarations.union_declarations)
+        {
+            if (is_private_declaration(declaration.name))
+                internal_declarations.union_declarations.push_back(declaration);
+            else
+                export_declarations.union_declarations.push_back(declaration);
+        }
+
+        for (h::Function_declaration const& declaration : declarations.function_declarations)
+        {
+            if (is_private_declaration(declaration.name))
+                internal_declarations.function_declarations.push_back(declaration);
+            else
+                export_declarations.function_declarations.push_back(declaration);
+        }
+    }
+
     h::Module import_header(
         std::string_view const header_name,
         std::filesystem::path const& header_path,
@@ -1712,20 +1767,17 @@ namespace h::c
             },
             .name = std::pmr::string{ header_name },
             .dependencies = {},
-            .export_declarations = {
-                .alias_type_declarations = std::move(declarations_with_fixed_width_integers.alias_type_declarations),
-                .enum_declarations = std::move(declarations_with_fixed_width_integers.enum_declarations),
-                .struct_declarations = std::move(declarations_with_fixed_width_integers.struct_declarations),
-                .union_declarations = std::move(declarations_with_fixed_width_integers.union_declarations),
-                .function_declarations = std::move(declarations_with_fixed_width_integers.function_declarations),
-            },
+            .export_declarations = {},
             .internal_declarations = {},
             .definitions = {},
             .source_file_path = header_path
         };
 
+        group_declarations_by_visibility(declarations_with_fixed_width_integers, header_module.export_declarations, header_module.internal_declarations);
+
         h::fix_custom_type_references(header_module);
         add_struct_member_default_values(header_module, header_module.export_declarations, declaration_database);
+        add_struct_member_default_values(header_module, header_module.internal_declarations, declaration_database);
 
         return header_module;
     }
