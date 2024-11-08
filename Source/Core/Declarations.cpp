@@ -115,11 +115,11 @@ namespace h
             Custom_type_reference const& data = std::get<Custom_type_reference>(type_reference.data);
             std::string_view const module_name = find_module_name(current_core_module, data.module_reference);
 
-            Declaration_map const& declaration_map = declaration_database.map.at(module_name.data());
-            Declaration const& declaration = declaration_map.at(data.name);
-            if (std::holds_alternative<Alias_type_declaration const*>(declaration.data))
+            std::optional<Declaration> const declaration = find_declaration(declaration_database, module_name, data.name);
+
+            if (declaration.has_value() && std::holds_alternative<Alias_type_declaration const*>(declaration->data))
             {
-                Alias_type_declaration const* alias_declaration = std::get<Alias_type_declaration const*>(declaration.data);
+                Alias_type_declaration const* alias_declaration = std::get<Alias_type_declaration const*>(declaration->data);
 
                 Module const& found_module = find_module(current_core_module, core_module_dependencies, module_name);
                 std::optional<Type_reference> alias_type = get_underlying_type(declaration_database, *alias_declaration, found_module, core_module_dependencies);
