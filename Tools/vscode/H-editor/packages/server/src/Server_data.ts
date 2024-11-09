@@ -157,6 +157,7 @@ export async function parse_source_file_and_write_to_disk_if_needed(
     const core_module = await Project.parse_source_file_and_write_to_disk(
         module_name,
         source_file_path,
+        artifact,
         server_data.language_description,
         parsed_file_path,
         project.hlang_executable

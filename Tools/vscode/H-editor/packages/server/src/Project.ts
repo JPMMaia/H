@@ -106,7 +106,18 @@ function read_artifact(file_path: string): Build.Artifact {
     if (json_data.dependencies === undefined) {
         json_data.dependencies = [];
     }
+
     const artifact = json_data as Build.Artifact;
+
+    if (artifact.library !== undefined) {
+        if (artifact.library.c_headers === undefined) {
+            artifact.library.c_headers = [];
+        }
+        if (artifact.library.c_header_search_paths === undefined) {
+            artifact.library.c_header_search_paths = [];
+        }
+    }
+
     return artifact;
 }
 
@@ -332,6 +343,10 @@ function find_file(
     search_paths: string[]
 ): string | undefined {
 
+    if (path.isAbsolute(file_name)) {
+        return fs.existsSync(file_name) ? file_name : undefined;
+    }
+
     for (const search_path of search_paths) {
         const file_path = path.join(search_path, file_name);
         if (fs.existsSync(file_path)) {
@@ -345,6 +360,7 @@ function find_file(
 export async function parse_source_file_and_write_to_disk(
     module_name: string,
     source_file_path: string,
+    artifact: Build.Artifact,
     language_description: Language.Description,
     destination_file_path: string,
     hlang_executable: string | undefined
@@ -357,7 +373,17 @@ export async function parse_source_file_and_write_to_disk(
                 return undefined;
             }
 
-            const success = await Helpers.execute_command(hlang_executable, "import-c-header", [module_name, Helpers.normalize_path(source_file_path), Helpers.normalize_path(destination_file_path)]);
+            const command_arguments: string[] = [
+                module_name,
+                Helpers.normalize_path(source_file_path),
+                Helpers.normalize_path(destination_file_path),
+            ];
+
+            const search_paths = artifact.library !== undefined ? artifact.library.c_header_search_paths : [];
+            const search_paths_argument = search_paths.map(path => `--header-search-path=${path}`);
+            command_arguments.push(...search_paths_argument);
+
+            const success = await Helpers.execute_command(hlang_executable, "import-c-header", command_arguments);
             if (success) {
                 return read_parsed_file(destination_file_path);
             }

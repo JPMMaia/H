@@ -2,6 +2,7 @@ module;
 
 #include <filesystem>
 #include <memory_resource>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -33,6 +34,7 @@ namespace h::c
     export struct Options
     {
         std::optional<std::string_view> target_triple;
+        std::span<std::filesystem::path const> include_directories;
     };
 
     export h::Module import_header(std::string_view const header_name, std::filesystem::path const& header_path, Options const& options);

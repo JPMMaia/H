@@ -1574,6 +1574,21 @@ namespace h::c
         }
     }
 
+    static std::pmr::vector<char const*> convert_to_c_string(
+        std::span<std::pmr::string const> strings
+    )
+    {
+        std::pmr::vector<char const*> c_strings;
+        c_strings.reserve(strings.size());
+
+        for (std::pmr::string const& string : strings)
+        {
+            c_strings.push_back(string.data());
+        }
+
+        return c_strings;
+    }
+
     static CXTranslationUnit create_translation_unit(
         CXIndex const index,
         std::filesystem::path const& header_path,
@@ -1584,14 +1599,22 @@ namespace h::c
 
         CXTranslationUnit unit;
 
-        std::pmr::vector<char const*> arguments;
-        arguments.reserve(2);
+        std::pmr::vector<std::pmr::string> arguments_storage;
+        arguments_storage.reserve(2 + options.include_directories.size());
 
         if (options.target_triple.has_value())
         {
-            arguments.push_back("-target");
-            arguments.push_back(options.target_triple->data());
+            arguments_storage.push_back("-target");
+            arguments_storage.push_back(options.target_triple->data());
         }
+
+        for (std::filesystem::path const& include_directory : options.include_directories)
+        {
+            std::string argument = std::format("-I{}", include_directory.generic_string());
+            arguments_storage.push_back(std::pmr::string{argument});
+        }
+
+        std::pmr::vector<char const*> arguments = convert_to_c_string(arguments_storage);
 
         CXErrorCode const error = clang_parseTranslationUnit2(
             index,
