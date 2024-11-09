@@ -26,6 +26,7 @@ export interface Executable_info {
 
 export interface Library_info {
     c_headers: C_header[];
+    c_header_search_paths: string[];
     external_libraries: Map<string, string>;
 }
 

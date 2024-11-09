@@ -50,6 +50,7 @@ namespace h::compiler
     export struct Library_info
     {
         std::pmr::vector<C_header> c_headers;
+        std::pmr::vector<std::filesystem::path> c_header_search_paths;
         std::pmr::unordered_map<std::pmr::string, std::pmr::string> external_libraries;
     };
 

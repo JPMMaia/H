@@ -355,7 +355,13 @@ namespace h::builder
                 std::filesystem::path const header_module_filename = header_path.value().filename().replace_extension("hl");
                 std::filesystem::path const output_header_module_path = output_directory_path / header_module_filename;
 
-                h::c::import_header_and_write_to_file(header_module_name, header_path.value(), output_header_module_path, {});
+                h::c::Options const options
+                {
+                    .target_triple = std::nullopt,
+                    .include_directories = library_info.c_header_search_paths,
+                };
+
+                h::c::import_header_and_write_to_file(header_module_name, header_path.value(), output_header_module_path, options);
 
                 module_name_to_file_path_map.insert(std::make_pair(std::pmr::string{ header_module_name }, output_header_module_path));
             }

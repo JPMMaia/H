@@ -76,6 +76,19 @@ argparse::Argument& add_no_debug_argument(argparse::ArgumentParser& command)
         .flag();
 }
 
+argparse::Argument& add_target_triple_argument(argparse::ArgumentParser& command)
+{
+    return command.add_argument("--target")
+        .help("Target triple that identifies the platform.")
+        .default_value("default");
+}
+
+std::optional<std::string_view> get_target_triple(argparse::ArgumentParser const& subprogram)
+{
+    std::string const target_triple = subprogram.get<std::string>("--target");
+    return (!target_triple.empty() && target_triple != "default") ? std::optional<std::string_view>{target_triple} : std::nullopt;
+}
+
 int main(int const argc, char const* const* argv)
 {
     argparse::ArgumentParser program("hlang");
@@ -126,6 +139,8 @@ int main(int const argc, char const* const* argv)
         .help("C Header file path to import");
     import_c_header_command.add_argument("output")
         .help("Write hlang module to this location");
+    add_target_triple_argument(import_c_header_command);
+    add_header_search_path_argument(import_c_header_command);
     program.add_subparser(import_c_header_command);
 
     // hlang print-struct-layout <file> <struct_name> [--target=<target_triple>]
@@ -135,9 +150,7 @@ int main(int const argc, char const* const* argv)
         .help("Path to the core module file that contains the struct");
     print_struct_layout_command.add_argument("struct_name")
         .help("Name of the struct");
-    print_struct_layout_command.add_argument("--target")
-        .help("Target triple that identifies the platform.")
-        .default_value("default");
+    add_target_triple_argument(print_struct_layout_command);
     program.add_subparser(print_struct_layout_command);
 
     try
@@ -241,8 +254,16 @@ int main(int const argc, char const* const* argv)
         std::string const module_name = subprogram.get<std::string>("module_name");
         std::filesystem::path const input_file_path = subprogram.get<std::string>("header");
         std::filesystem::path const output_file_path = subprogram.get<std::string>("output");
+        std::optional<std::string_view> const target_triple = get_target_triple(subprogram);
+        std::pmr::vector<std::filesystem::path> const header_search_paths = convert_to_path(subprogram.get<std::vector<std::string>>("--header-search-path"));
 
-        h::c::import_header_and_write_to_file(module_name, input_file_path, output_file_path, {});
+        h::c::Options const options
+        {
+            .target_triple = target_triple,
+            .include_directories = header_search_paths,
+        };
+
+        h::c::import_header_and_write_to_file(module_name, input_file_path, output_file_path, options);
     }
     else if (program.is_subcommand_used("print-struct-layout"))
     {
@@ -250,12 +271,12 @@ int main(int const argc, char const* const* argv)
 
         std::filesystem::path const input_file_path = subprogram.get<std::string>("file");
         std::string const struct_name = subprogram.get<std::string>("struct_name");
-        std::string const target_triple = subprogram.get<std::string>("--target");
+        std::optional<std::string_view> const target_triple = get_target_triple(subprogram);
 
         h::builder::print_struct_layout(
             input_file_path,
             struct_name,
-            (!target_triple.empty() && target_triple != "default") ? std::optional<std::string_view>{target_triple} : std::nullopt
+            target_triple
         );
     }
 
