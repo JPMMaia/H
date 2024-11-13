@@ -145,6 +145,18 @@ namespace h
         friend auto operator<=>(Statement const&, Statement const&) = default;
     };
 
+    export struct Global_variable_declaration
+    {
+        std::pmr::string name;
+        std::optional<std::pmr::string> unique_name;
+        Type_reference type;
+        std::optional<Statement> value;
+        std::optional<std::pmr::string> comment;
+        std::optional<Source_location> source_location;
+
+        friend auto operator<=>(Global_variable_declaration const& lhs, Global_variable_declaration const& rhs) = default;
+    };
+
     export struct Alias_type_declaration
     {
         std::pmr::string name;
@@ -595,6 +607,7 @@ namespace h
     {
         std::pmr::vector<Alias_type_declaration> alias_type_declarations;
         std::pmr::vector<Enum_declaration> enum_declarations;
+        std::pmr::vector<Global_variable_declaration> global_variable_declarations;
         std::pmr::vector<Struct_declaration> struct_declarations;
         std::pmr::vector<Union_declaration> union_declarations;
         std::pmr::vector<Function_declaration> function_declarations;

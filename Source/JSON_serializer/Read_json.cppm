@@ -465,6 +465,7 @@ namespace h::json
     export std::optional<Stack_state> get_next_state_type_reference(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_indexed_comment(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_statement(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_global_variable_declaration(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_alias_type_declaration(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_enum_value(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_enum_declaration(Stack_state* state, std::string_view const key);
@@ -991,6 +992,79 @@ namespace h::json
                 .set_vector_size = set_vector_size,
                 .get_element = get_element,
                 .get_next_state_element = get_next_state_expression
+            };
+        }
+
+        return {};
+    }
+
+    export std::optional<Stack_state> get_next_state_global_variable_declaration(Stack_state* state, std::string_view const key)
+    {
+        h::Global_variable_declaration* parent = static_cast<h::Global_variable_declaration*>(state->pointer);
+
+        if (key == "name")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "unique_name")
+        {
+            parent->unique_name = std::pmr::string{};
+            return Stack_state
+            {
+                .pointer = &parent->unique_name.value(),
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "type")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->type,
+                .type = "Type_reference",
+                .get_next_state = get_next_state_type_reference,
+            };
+        }
+
+        if (key == "value")
+        {
+            parent->value = Statement{};
+            return Stack_state
+            {
+                .pointer = &parent->value.value(),
+                .type = "Statement",
+                .get_next_state = get_next_state_statement
+            };
+        }
+
+        if (key == "comment")
+        {
+            parent->comment = std::pmr::string{};
+            return Stack_state
+            {
+                .pointer = &parent->comment.value(),
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "source_location")
+        {
+            parent->source_location = Source_location{};
+            return Stack_state
+            {
+                .pointer = &parent->source_location.value(),
+                .type = "Source_location",
+                .get_next_state = get_next_state_source_location
             };
         }
 
@@ -3290,6 +3364,31 @@ namespace h::json
             };
         }
 
+        if (key == "global_variable_declarations")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Global_variable_declaration>* parent = static_cast<std::pmr::vector<Global_variable_declaration>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Global_variable_declaration>* parent = static_cast<std::pmr::vector<Global_variable_declaration>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->global_variable_declarations,
+                .type = "std::pmr::vector<Global_variable_declaration>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_global_variable_declaration
+            };
+        }
+
         if (key == "struct_declarations")
         {
             auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
@@ -3615,6 +3714,16 @@ namespace h::json
                 .pointer = output,
                 .type = "Statement",
                 .get_next_state = get_next_state_statement
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Global_variable_declaration>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Global_variable_declaration",
+                .get_next_state = get_next_state_global_variable_declaration
             };
         }
 

@@ -180,6 +180,15 @@ export interface Statement {
     expressions: Vector<Expression>;
 }
 
+export interface Global_variable_declaration {
+    name: string;
+    unique_name?: string;
+    type: Type_reference;
+    value?: Statement;
+    comment?: string;
+    source_location?: Source_location;
+}
+
 export interface Alias_type_declaration {
     name: string;
     unique_name?: string;
@@ -417,6 +426,7 @@ export interface Module_dependencies {
 export interface Module_declarations {
     alias_type_declarations: Vector<Alias_type_declaration>;
     enum_declarations: Vector<Enum_declaration>;
+    global_variable_declarations: Vector<Global_variable_declaration>;
     struct_declarations: Vector<Struct_declaration>;
     union_declarations: Vector<Union_declaration>;
     function_declarations: Vector<Function_declaration>;

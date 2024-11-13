@@ -657,6 +657,37 @@ function intermediate_to_core_indexed_comment(intermediate_value: Indexed_commen
     };
 }
 
+export interface Global_variable_declaration {
+    name: string;
+    unique_name?: string;
+    type: Type_reference;
+    value?: Statement;
+    comment?: string;
+    source_location?: Source_location;
+}
+
+function core_to_intermediate_global_variable_declaration(core_value: Core.Global_variable_declaration): Global_variable_declaration {
+    return {
+        name: core_value.name,
+        unique_name: core_value.unique_name,
+        type: core_to_intermediate_type_reference(core_value.type),
+        value: core_value.value !== undefined ? core_to_intermediate_statement(core_value.value) : undefined,
+        comment: core_value.comment,
+        source_location: core_value.source_location !== undefined ? core_to_intermediate_source_location(core_value.source_location) : undefined,
+    };
+}
+
+function intermediate_to_core_global_variable_declaration(intermediate_value: Global_variable_declaration): Core.Global_variable_declaration {
+    return {
+        name: intermediate_value.name,
+        unique_name: intermediate_value.unique_name,
+        type: intermediate_to_core_type_reference(intermediate_value.type),
+        value: intermediate_value.value !== undefined ? intermediate_to_core_statement(intermediate_value.value) : undefined,
+        comment: intermediate_value.comment,
+        source_location: intermediate_value.source_location !== undefined ? intermediate_to_core_source_location(intermediate_value.source_location) : undefined,
+    };
+}
+
 export interface Alias_type_declaration {
     name: string;
     unique_name?: string;

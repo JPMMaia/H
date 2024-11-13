@@ -30,8 +30,10 @@ namespace h
     export std::optional<Type_reference> get_function_output_type_reference(Type_reference const& type, Module const& core_module);
 
     export Type_reference create_fundamental_type_type_reference(Fundamental_type const value);
-    export bool is_c_string(Type_reference const& type_reference);
     export bool is_floating_point(Type_reference const& type);
+    
+    export Type_reference create_c_string_type_reference(bool const is_mutable);
+    export bool is_c_string(Type_reference const& type_reference);
 
     export Type_reference create_integer_type_type_reference(std::uint32_t number_of_bits, bool is_signed);
     export bool is_integer(Type_reference const& type);
