@@ -1,6 +1,7 @@
 module;
 
 #include <cassert>
+#include <cstdio>
 #include <filesystem>
 #include <format>
 #include <iostream>
@@ -45,6 +46,21 @@ namespace h::c
         }
 
         CXString value;
+    };
+
+    struct Evaluation_result
+    {
+        Evaluation_result(CXEvalResult value) noexcept :
+            value{ value }
+        {
+        }
+        ~Evaluation_result() noexcept
+        {
+            if (value != nullptr)
+                clang_EvalResult_dispose(value);
+        }
+
+        CXEvalResult value;
     };
 
     struct Header_source_location
@@ -270,6 +286,19 @@ namespace h::c
 
         switch (type.kind)
         {
+        case CXType_Auto:
+        {
+            CXCursor const initializer_cursor = clang_Cursor_getVarDeclInitializer(cursor);
+
+            if (clang_Cursor_isNull(initializer_cursor))
+                return std::nullopt;
+
+            CXType const result_type = clang_getCursorType(initializer_cursor);
+            if (result_type.kind == CXType_Auto)
+                return std::nullopt;
+            
+            return create_type_reference(declarations, initializer_cursor, result_type);
+        }
         case CXType_IncompleteArray:
         case CXType_Pointer:
         {
@@ -663,6 +692,115 @@ namespace h::c
             .source_location = cursor_location.source_location,
             .input_parameter_source_locations = std::move(input_parameter_source_locations),
             .output_parameter_source_locations = std::move(output_parameter_source_locations),
+        };
+    }
+
+    C_macro_declaration create_macro_declaration(CXCursor const cursor)
+    {
+        String const macro_spelling = { clang_getCursorSpelling(cursor) };
+        std::string_view const macro_name = macro_spelling.string_view();
+
+        bool const is_function_like = clang_Cursor_isMacroFunctionLike(cursor) != 0;
+
+        Header_source_location const cursor_location = get_cursor_source_location(
+            cursor
+        );
+
+        C_macro_declaration macro
+        {
+            .name = std::pmr::string{ macro_name },
+            .is_function_like = false,
+            .source_location = cursor_location.source_location,
+        };
+
+        return macro;
+    }
+
+    std::optional<h::Statement> get_global_variable_initial_value(CXCursor const cursor, Type_reference const& type_reference)
+    {
+        CXCursor const initializer_cursor = clang_Cursor_getVarDeclInitializer(cursor);
+
+        if (!clang_Cursor_isNull(initializer_cursor))
+        {
+            Evaluation_result const evaluation_result = clang_Cursor_Evaluate(initializer_cursor);
+            if (evaluation_result.value != nullptr)
+            {
+                switch (clang_EvalResult_getKind(evaluation_result.value))
+                {
+                case CXEval_Int:
+                {
+                    int const value = clang_EvalResult_getAsInt(evaluation_result.value);
+                    return h::create_statement(
+                        {
+                            h::create_constant_expression(
+                                type_reference,
+                                std::to_string(value)
+                            )
+                        }
+                    );
+                }
+                case CXEval_Float:
+                {
+                    double const value = clang_EvalResult_getAsDouble(evaluation_result.value);
+                    return h::create_statement(
+                        {
+                            h::create_constant_expression(
+                                type_reference,
+                                std::to_string(value)
+                            )
+                        }
+                    );
+                    break;
+                }
+                case CXEval_StrLiteral:
+                {
+                    char const* const value = clang_EvalResult_getAsStr(evaluation_result.value);
+                    return h::create_statement(
+                        {
+                            h::create_constant_expression(
+                                type_reference,
+                                value
+                            )
+                        }
+                    );
+                    break;
+                }
+                default:
+                {
+                    return std::nullopt;
+                }
+                }
+            }
+        }
+
+        return std::nullopt;
+    }
+
+    std::optional<h::Global_variable_declaration> create_global_variable_declaration(C_declarations const& declarations, CXCursor const cursor)
+    {
+        String const cursor_spelling = { clang_getCursorSpelling(cursor) };
+        std::string_view const variable_name = cursor_spelling.string_view();
+
+        CXType const variable_type = clang_getCursorType(cursor);
+
+        std::optional<h::Type_reference> const member_type_reference = create_type_reference(declarations, cursor, variable_type);
+        if (!member_type_reference.has_value())
+            return std::nullopt;
+
+        std::optional<h::Statement> initial_value = get_global_variable_initial_value(cursor, *member_type_reference);
+
+        Header_source_location const cursor_location = get_cursor_source_location(
+            cursor
+        );
+
+        return h::Global_variable_declaration
+        {
+            .name = std::pmr::string{variable_name},
+            .unique_name = std::pmr::string{variable_name},
+            .type = std::move(*member_type_reference),
+            .value = std::move(initial_value),
+            .comment = std::nullopt,
+            .source_location = cursor_location.source_location,
         };
     }
 
@@ -1600,7 +1738,9 @@ namespace h::c
         CXTranslationUnit unit;
 
         std::pmr::vector<std::pmr::string> arguments_storage;
-        arguments_storage.reserve(2 + options.include_directories.size());
+        arguments_storage.reserve(3 + options.include_directories.size());
+
+        arguments_storage.push_back("-std=c23");
 
         if (options.target_triple.has_value())
         {
@@ -1616,6 +1756,11 @@ namespace h::c
 
         std::pmr::vector<char const*> arguments = convert_to_c_string(arguments_storage);
 
+        unsigned const flags =
+            CXTranslationUnit_DetailedPreprocessingRecord |
+            CXTranslationUnit_KeepGoing |
+            CXTranslationUnit_SkipFunctionBodies;
+
         CXErrorCode const error = clang_parseTranslationUnit2(
             index,
             source_filename.c_str(),
@@ -1623,7 +1768,7 @@ namespace h::c
             arguments.size(),
             nullptr,
             0,
-            CXTranslationUnit_SkipFunctionBodies,
+            flags,
             &unit
         );
 
@@ -1671,6 +1816,14 @@ namespace h::c
                 export_declarations.enum_declarations.push_back(declaration);
         }
 
+        for (h::Global_variable_declaration const& declaration : declarations.global_variable_declarations)
+        {
+            if (is_private_declaration(declaration.name))
+                internal_declarations.global_variable_declarations.push_back(declaration);
+            else
+                export_declarations.global_variable_declarations.push_back(declaration);
+        }
+
         for (h::Struct_declaration const& declaration : declarations.struct_declarations)
         {
             if (is_private_declaration(declaration.name))
@@ -1694,6 +1847,93 @@ namespace h::c
             else
                 export_declarations.function_declarations.push_back(declaration);
         }
+    }
+
+    void convert_macro_constants_to_global_constant_variables(
+        std::string_view const header_name,
+        CXIndex const index,
+        std::filesystem::path const& header_path,
+        Options const& options,
+        C_declarations& declarations
+    )
+    {
+        std::filesystem::path const generated_headers_directory = std::filesystem::current_path() / "build" / "generated";
+
+        if (!std::filesystem::exists(generated_headers_directory))
+            std::filesystem::create_directories(generated_headers_directory);
+
+        std::filesystem::path const generated_header_path = generated_headers_directory / std::format("{}.h", header_name);
+        char const* special_prefix = "__h_global_variable_";
+
+        {
+            auto const filename = generated_header_path.generic_string();
+            std::FILE* const file = std::fopen(filename.c_str(), "w");
+            if (file == nullptr)
+                throw std::runtime_error{std::format("Cannot write to file {}\n", filename)};
+
+            std::fputs("#include \"", file);
+            std::fputs(header_path.generic_string().c_str(), file);
+            std::fputs("\"\n\n", file);
+
+            for (C_macro_declaration const& macro_declaration : declarations.macro_declarations)
+            {
+                if (!macro_declaration.name.starts_with("_") && !macro_declaration.is_function_like)
+                {
+                    std::fputs("auto const ", file);
+                    std::fputs(special_prefix, file);
+                    std::fputs(macro_declaration.name.c_str(), file);
+                    std::fputs(" = ", file);
+                    std::fputs(macro_declaration.name.c_str(), file);
+                    std::fputs(";\n", file);
+                }
+            }
+
+            std::fclose(file);
+        }
+
+        CXTranslationUnit unit = create_translation_unit(index, generated_header_path, options);
+
+        auto const visitor = [](CXCursor current_cursor, CXCursor parent, CXClientData client_data) -> CXChildVisitResult
+        {
+            C_declarations* const declarations = reinterpret_cast<C_declarations*>(client_data);
+            std::string_view const special_prefix = "__h_global_variable_";
+
+            CXCursorKind const cursor_kind = clang_getCursorKind(current_cursor);
+
+            if (cursor_kind == CXCursor_VarDecl)
+            {
+                String const variable_spelling = { clang_getCursorSpelling(current_cursor) };
+                std::string_view const variable_name = variable_spelling.string_view();
+
+                if (variable_name.starts_with(special_prefix))
+                {
+                    std::optional<h::Global_variable_declaration> declaration = create_global_variable_declaration(*declarations, current_cursor);
+                    if (declaration.has_value() && declaration->value.has_value())
+                    {
+                        declaration->name = variable_name.substr(special_prefix.size());
+                        declaration->unique_name = declaration->name;
+
+                        auto const macro_location = std::find_if(declarations->macro_declarations.begin(), declarations->macro_declarations.end(), [&](C_macro_declaration const& macro_declaration) -> bool { return macro_declaration.name == declaration->name; });
+                        if (macro_location != declarations->macro_declarations.end())
+                            declaration->source_location = macro_location->source_location;
+
+                        declarations->global_variable_declarations.push_back(std::move(*declaration));
+                    }
+                }
+            }
+
+            return CXChildVisit_Continue;
+        };
+
+        CXCursor cursor = clang_getTranslationUnitCursor(unit);
+
+        clang_visitChildren(
+            cursor,
+            visitor,
+            &declarations
+        );
+
+        clang_disposeTranslationUnit(unit);
     }
 
     h::Module import_header(
@@ -1725,9 +1965,7 @@ namespace h::c
             }
 
             // TODO add builtin typedefs?
-
-            // TODO generate IDs from names
-
+            
             if (cursor_kind == CXCursor_EnumDecl)
             {
                 h::Enum_declaration declaration = create_enum_declaration(*declarations, current_cursor);
@@ -1743,6 +1981,10 @@ namespace h::c
             {
                 declarations->function_declarations.push_back(create_function_declaration(*declarations, current_cursor));
             }
+            else if (cursor_kind == CXCursor_MacroDefinition)
+            {
+                declarations->macro_declarations.push_back(create_macro_declaration(current_cursor));
+            }
             else if (cursor_kind == CXCursor_StructDecl)
             {
                 declarations->struct_declarations.push_back(create_struct_declaration(*declarations, current_cursor));
@@ -1750,6 +1992,12 @@ namespace h::c
             else if (cursor_kind == CXCursor_UnionDecl)
             {
                 declarations->union_declarations.push_back(create_union_declaration(*declarations, current_cursor));
+            }
+            else if (cursor_kind == CXCursor_VarDecl)
+            {
+                std::optional<h::Global_variable_declaration> declaration = create_global_variable_declaration(*declarations, current_cursor);
+                if (declaration.has_value())
+                    declarations->global_variable_declarations.push_back(std::move(*declaration));
             }
 
             return CXChildVisit_Continue;
@@ -1765,11 +2013,21 @@ namespace h::c
             &declarations
         );
 
+        convert_macro_constants_to_global_constant_variables(
+            header_name,
+            index,
+            header_path,
+            options,
+            declarations
+        );
+
         clang_disposeTranslationUnit(unit);
         clang_disposeIndex(index);
 
+
         C_declarations declarations_with_fixed_width_integers = convert_fixed_width_integers_typedefs_to_integer_types(declarations);
 
+        // TODO add global variable declarations
         h::Declaration_database declaration_database = h::create_declaration_database();
         h::add_declarations(
             declaration_database,

@@ -13,6 +13,9 @@ import h.core;
 import h.core.expressions;
 import h.core.types;
 import h.c_header_converter;
+import h.json_serializer.operators;
+
+using h::json::operators::operator<<;
 
 #include <catch2/catch_all.hpp>
 
@@ -695,7 +698,7 @@ struct My_data
         CHECK(header_module.source_file_path == header_file_path);
 
         {
-            h::Struct_declaration const& declaration = header_module.export_declarations.struct_declarations[2];
+            h::Struct_declaration const& declaration = header_module.export_declarations.struct_declarations[0];
             CHECK(declaration.name == "My_data");
 
             CHECK(declaration.member_names[0] == "type");
@@ -715,7 +718,7 @@ struct My_data
         }
 
         {
-            h::Union_declaration const& declaration = header_module.export_declarations.union_declarations[0];
+            h::Union_declaration const& declaration = header_module.internal_declarations.union_declarations[0];
             CHECK(declaration.name == "_Anonymous_0");
 
             CHECK(declaration.member_names[0] == "x");
@@ -729,7 +732,7 @@ struct My_data
         }
 
         {
-            h::Struct_declaration const& declaration = header_module.export_declarations.struct_declarations[0];
+            h::Struct_declaration const& declaration = header_module.internal_declarations.struct_declarations[0];
             CHECK(declaration.name == "_Anonymous_1");
 
             CHECK(declaration.member_names[0] == "v1");
@@ -740,7 +743,7 @@ struct My_data
         }
 
         {
-            h::Union_declaration const& declaration = header_module.export_declarations.union_declarations[1];
+            h::Union_declaration const& declaration = header_module.internal_declarations.union_declarations[1];
             CHECK(declaration.name == "_Anonymous_2");
 
             CHECK(declaration.member_names[0] == "a");
@@ -754,7 +757,7 @@ struct My_data
         }
 
         {
-            h::Struct_declaration const& declaration = header_module.export_declarations.struct_declarations[1];
+            h::Struct_declaration const& declaration = header_module.internal_declarations.struct_declarations[1];
             CHECK(declaration.name == "_Anonymous_3");
 
             CHECK(declaration.member_names[0] == "v1");
@@ -807,7 +810,7 @@ union My_data
         CHECK(header_module.source_file_path == header_file_path);
 
         {
-            h::Union_declaration const& declaration = header_module.export_declarations.union_declarations[2];
+            h::Union_declaration const& declaration = header_module.export_declarations.union_declarations[0];
             CHECK(declaration.name == "My_data");
 
             CHECK(declaration.member_names[0] == "type");
@@ -827,7 +830,7 @@ union My_data
         }
 
         {
-            h::Union_declaration const& declaration = header_module.export_declarations.union_declarations[0];
+            h::Union_declaration const& declaration = header_module.internal_declarations.union_declarations[0];
             CHECK(declaration.name == "_Anonymous_0");
 
             CHECK(declaration.member_names[0] == "x");
@@ -841,7 +844,7 @@ union My_data
         }
 
         {
-            h::Struct_declaration const& declaration = header_module.export_declarations.struct_declarations[0];
+            h::Struct_declaration const& declaration = header_module.internal_declarations.struct_declarations[0];
             CHECK(declaration.name == "_Anonymous_1");
 
             CHECK(declaration.member_names[0] == "v1");
@@ -852,7 +855,7 @@ union My_data
         }
 
         {
-            h::Union_declaration const& declaration = header_module.export_declarations.union_declarations[1];
+            h::Union_declaration const& declaration = header_module.internal_declarations.union_declarations[1];
             CHECK(declaration.name == "_Anonymous_2");
 
             CHECK(declaration.member_names[0] == "a");
@@ -866,7 +869,7 @@ union My_data
         }
 
         {
-            h::Struct_declaration const& declaration = header_module.export_declarations.struct_declarations[1];
+            h::Struct_declaration const& declaration = header_module.internal_declarations.struct_declarations[1];
             CHECK(declaration.name == "_Anonymous_3");
 
             CHECK(declaration.member_names[0] == "v1");
@@ -874,6 +877,118 @@ union My_data
 
             CHECK(declaration.member_names[1] == "v2");
             CHECK(declaration.member_types[1] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
+        }
+    }
+
+    
+    TEST_CASE("Global constants are imported as constants")
+    {
+        std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "c_header_importer" / "global_constants";
+        std::filesystem::create_directories(root_directory_path);
+
+        std::string const header_content = R"(
+#define FLOAT(c) c ## f
+#define MY_FLOAT FLOAT(3.5);
+
+const auto my_global_0 = MY_FLOAT;
+)";
+
+        std::filesystem::path const header_file_path = root_directory_path / "My_data.h";
+        h::common::write_to_file(header_file_path, header_content);
+
+        h::Module const header_module = h::c::import_header("c.My_data", header_file_path, {});
+
+        CHECK(header_module.source_file_path == header_file_path);
+
+        {
+            h::Global_variable_declaration const& declaration = header_module.export_declarations.global_variable_declarations[0];
+            CHECK(declaration.name == "my_global_0");
+            CHECK(declaration.name == declaration.unique_name.value());
+            
+            CHECK(declaration.type == h::create_fundamental_type_type_reference(h::Fundamental_type::Float32));
+            CHECK(*declaration.value == h::create_statement({ h::create_constant_expression(declaration.type, "3.500000") }));
+
+            CHECK(*declaration.source_location == h::Source_location{ .line = 5, .column = 12 });
+        }
+    }
+
+    TEST_CASE("Macros constants are imported as constants")
+    {
+        std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "c_header_importer" / "macro_constants";
+        std::filesystem::create_directories(root_directory_path);
+
+        std::string const header_content = R"(
+#define MY_INT 10
+#define NOT_CONSTANT struct
+#define MY_FLOAT 3.5f
+#define MY_DOUBLE 3.5
+#define MY_STRING "a string"
+
+#define A_UINT64(c) c ## ULL
+#define MY_UINT64 A_UINT64(20)
+
+)";
+
+        std::filesystem::path const header_file_path = root_directory_path / "My_data.h";
+        h::common::write_to_file(header_file_path, header_content);
+
+        h::Module const header_module = h::c::import_header("c.My_data", header_file_path, {});
+
+        CHECK(header_module.source_file_path == header_file_path);
+
+        {
+            h::Global_variable_declaration const& declaration = header_module.export_declarations.global_variable_declarations[0];
+            CHECK(declaration.name == "MY_INT");
+            CHECK(declaration.name == declaration.unique_name.value());
+            
+            CHECK(declaration.type == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
+            CHECK(*declaration.value == h::create_statement({ h::create_constant_expression(declaration.type, "10") }));
+
+            CHECK(*declaration.source_location == h::Source_location{ .line = 2, .column = 9 });
+        }
+
+        {
+            h::Global_variable_declaration const& declaration = header_module.export_declarations.global_variable_declarations[1];
+            CHECK(declaration.name == "MY_FLOAT");
+            CHECK(declaration.name == declaration.unique_name.value());
+            
+            CHECK(declaration.type == h::create_fundamental_type_type_reference(h::Fundamental_type::Float32));
+            CHECK(*declaration.value == h::create_statement({ h::create_constant_expression(declaration.type, "3.500000") }));
+
+            CHECK(*declaration.source_location == h::Source_location{ .line = 4, .column = 9 });
+        }
+
+        {
+            h::Global_variable_declaration const& declaration = header_module.export_declarations.global_variable_declarations[2];
+            CHECK(declaration.name == "MY_DOUBLE");
+            CHECK(declaration.name == declaration.unique_name.value());
+            
+            CHECK(declaration.type == h::create_fundamental_type_type_reference(h::Fundamental_type::Float64));
+            CHECK(*declaration.value == h::create_statement({ h::create_constant_expression(declaration.type, "3.500000") }));
+
+            CHECK(*declaration.source_location == h::Source_location{ .line = 5, .column = 9 });
+        }
+
+        {
+            h::Global_variable_declaration const& declaration = header_module.export_declarations.global_variable_declarations[3];
+            CHECK(declaration.name == "MY_STRING");
+            CHECK(declaration.name == declaration.unique_name.value());
+            
+            CHECK(declaration.type == h::create_c_string_type_reference(true));
+            CHECK(*declaration.value == h::create_statement({ h::create_constant_expression(declaration.type, "a string") }));
+
+            CHECK(*declaration.source_location == h::Source_location{ .line = 6, .column = 9 });
+        }
+
+        {
+            h::Global_variable_declaration const& declaration = header_module.export_declarations.global_variable_declarations[4];
+            CHECK(declaration.name == "MY_UINT64");
+            CHECK(declaration.name == declaration.unique_name.value());
+            
+            CHECK(declaration.type == h::create_fundamental_type_type_reference(h::Fundamental_type::C_ulonglong));
+            CHECK(*declaration.value == h::create_statement({ h::create_constant_expression(declaration.type, "20") }));
+
+            CHECK(*declaration.source_location == h::Source_location{ .line = 9, .column = 9 });
         }
     }
 

@@ -14,13 +14,22 @@ import h.core.struct_layout;
 
 namespace h::c
 {
+    export struct C_macro_declaration
+    {
+        std::pmr::string name;
+        bool is_function_like = false;
+        h::Source_location source_location;
+    };
+
     export struct C_declarations
     {
         std::pmr::vector<h::Alias_type_declaration> alias_type_declarations;
         std::pmr::vector<h::Enum_declaration> enum_declarations;
+        std::pmr::vector<h::Global_variable_declaration> global_variable_declarations;
         std::pmr::vector<h::Struct_declaration> struct_declarations;
         std::pmr::vector<h::Union_declaration> union_declarations;
         std::pmr::vector<h::Function_declaration> function_declarations;
+        std::pmr::vector<C_macro_declaration> macro_declarations;
         std::uint32_t unnamed_count = 0;
     };
 

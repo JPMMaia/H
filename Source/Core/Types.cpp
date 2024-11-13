@@ -148,6 +148,35 @@ namespace h
         };
     }
 
+    bool is_floating_point(Type_reference const& type)
+    {
+        if (std::holds_alternative<Fundamental_type>(type.data))
+        {
+            Fundamental_type const data = std::get<Fundamental_type>(type.data);
+            return (data == Fundamental_type::Float16) || (data == Fundamental_type::Float32) || (data == Fundamental_type::Float64);
+        }
+
+        return false;
+    }
+
+    Type_reference create_c_string_type_reference(bool const is_mutable)
+    {
+        return Type_reference
+        {
+            .data = Pointer_type
+            {
+                .element_type =
+                {
+                    Type_reference
+                    {
+                        .data = Fundamental_type::C_char
+                    }
+                },
+                .is_mutable = is_mutable
+            }
+        };
+    }
+
     bool is_c_string(Type_reference const& type_reference)
     {
         if (std::holds_alternative<Pointer_type>(type_reference.data))
@@ -170,18 +199,6 @@ namespace h
 
         return false;
     }
-
-    bool is_floating_point(Type_reference const& type)
-    {
-        if (std::holds_alternative<Fundamental_type>(type.data))
-        {
-            Fundamental_type const data = std::get<Fundamental_type>(type.data);
-            return (data == Fundamental_type::Float16) || (data == Fundamental_type::Float32) || (data == Fundamental_type::Float64);
-        }
-
-        return false;
-    }
-
 
     Type_reference create_integer_type_type_reference(std::uint32_t const number_of_bits, bool const is_signed)
     {
