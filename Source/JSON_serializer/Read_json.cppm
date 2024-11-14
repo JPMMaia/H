@@ -1026,12 +1026,12 @@ namespace h::json
 
         if (key == "type")
         {
-
+            parent->type = Type_reference{};
             return Stack_state
             {
-                .pointer = &parent->type,
+                .pointer = &parent->type.value(),
                 .type = "Type_reference",
-                .get_next_state = get_next_state_type_reference,
+                .get_next_state = get_next_state_type_reference
             };
         }
 
@@ -1043,6 +1043,17 @@ namespace h::json
                 .pointer = &parent->value.value(),
                 .type = "Statement",
                 .get_next_state = get_next_state_statement
+            };
+        }
+
+        if (key == "is_mutable")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->is_mutable,
+                .type = "bool",
+                .get_next_state = nullptr,
             };
         }
 

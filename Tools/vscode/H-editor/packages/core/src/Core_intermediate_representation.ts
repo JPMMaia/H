@@ -38,6 +38,8 @@ export function create_core_module(module: Module, language_version: Core.Langua
     const internal_enums: Core.Enum_declaration[] = [];
     const export_functions: Core.Function_declaration[] = [];
     const internal_functions: Core.Function_declaration[] = [];
+    const export_global_variables: Core.Global_variable_declaration[] = [];
+    const internal_global_variables: Core.Global_variable_declaration[] = [];
     const export_structs: Core.Struct_declaration[] = [];
     const internal_structs: Core.Struct_declaration[] = [];
     const export_unions: Core.Union_declaration[] = [];
@@ -63,6 +65,11 @@ export function create_core_module(module: Module, language_version: Core.Langua
                 if (function_value.definition !== undefined) {
                     function_definitions.push(intermediate_to_core_function_definition(function_value.definition));
                 }
+                break;
+            }
+            case Declaration_type.Global_variable: {
+                const array = declaration.is_export ? export_global_variables : internal_global_variables;
+                array.push(intermediate_to_core_global_variable_declaration(declaration.value as Global_variable_declaration));
                 break;
             }
             case Declaration_type.Struct: {
@@ -100,6 +107,10 @@ export function create_core_module(module: Module, language_version: Core.Langua
                 size: export_functions.length,
                 elements: export_functions
             },
+            global_variable_declarations: {
+                size: export_global_variables.length,
+                elements: export_global_variables,
+            },
             struct_declarations: {
                 size: export_structs.length,
                 elements: export_structs
@@ -121,6 +132,10 @@ export function create_core_module(module: Module, language_version: Core.Langua
             function_declarations: {
                 size: internal_functions.length,
                 elements: internal_functions
+            },
+            global_variable_declarations: {
+                size: internal_global_variables.length,
+                elements: internal_global_variables,
             },
             struct_declarations: {
                 size: internal_structs.length,
@@ -146,6 +161,7 @@ export enum Declaration_type {
     Alias,
     Enum,
     Function,
+    Global_variable,
     Struct,
     Union
 }
@@ -154,7 +170,7 @@ export interface Declaration {
     name: string;
     type: Declaration_type;
     is_export: boolean;
-    value: Alias_type_declaration | Enum_declaration | Function | Struct_declaration | Union_declaration
+    value: Alias_type_declaration | Enum_declaration | Function | Global_variable_declaration | Struct_declaration | Union_declaration
 }
 
 function create_declarations(module: Core.Module): Declaration[] {
@@ -163,11 +179,13 @@ function create_declarations(module: Core.Module): Declaration[] {
         ...module.export_declarations.alias_type_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Alias, is_export: true, value: core_to_intermediate_alias_type_declaration(value) }; }),
         ...module.export_declarations.enum_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Enum, is_export: true, value: core_to_intermediate_enum_declaration(value) }; }),
         ...module.export_declarations.function_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Function, is_export: true, value: core_to_intermediate_function(module, value) }; }),
+        ...module.export_declarations.global_variable_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Global_variable, is_export: true, value: core_to_intermediate_global_variable_declaration(value) }; }),
         ...module.export_declarations.struct_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Struct, is_export: true, value: core_to_intermediate_struct_declaration(value) }; }),
         ...module.export_declarations.union_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Union, is_export: true, value: core_to_intermediate_union_declaration(value) }; }),
         ...module.internal_declarations.alias_type_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Alias, is_export: false, value: core_to_intermediate_alias_type_declaration(value) }; }),
         ...module.internal_declarations.enum_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Enum, is_export: false, value: core_to_intermediate_enum_declaration(value) }; }),
         ...module.internal_declarations.function_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Function, is_export: false, value: core_to_intermediate_function(module, value) }; }),
+        ...module.internal_declarations.global_variable_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Global_variable, is_export: false, value: core_to_intermediate_global_variable_declaration(value) }; }),
         ...module.internal_declarations.struct_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Struct, is_export: false, value: core_to_intermediate_struct_declaration(value) }; }),
         ...module.internal_declarations.union_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Union, is_export: true, value: core_to_intermediate_union_declaration(value) }; }),
     ];
@@ -660,8 +678,9 @@ function intermediate_to_core_indexed_comment(intermediate_value: Indexed_commen
 export interface Global_variable_declaration {
     name: string;
     unique_name?: string;
-    type: Type_reference;
+    type?: Type_reference;
     value?: Statement;
+    is_mutable: boolean;
     comment?: string;
     source_location?: Source_location;
 }
@@ -670,8 +689,9 @@ function core_to_intermediate_global_variable_declaration(core_value: Core.Globa
     return {
         name: core_value.name,
         unique_name: core_value.unique_name,
-        type: core_to_intermediate_type_reference(core_value.type),
+        type: core_value.type !== undefined ? core_to_intermediate_type_reference(core_value.type) : undefined,
         value: core_value.value !== undefined ? core_to_intermediate_statement(core_value.value) : undefined,
+        is_mutable: core_value.is_mutable,
         comment: core_value.comment,
         source_location: core_value.source_location !== undefined ? core_to_intermediate_source_location(core_value.source_location) : undefined,
     };
@@ -681,8 +701,9 @@ function intermediate_to_core_global_variable_declaration(intermediate_value: Gl
     return {
         name: intermediate_value.name,
         unique_name: intermediate_value.unique_name,
-        type: intermediate_to_core_type_reference(intermediate_value.type),
+        type: intermediate_value.type !== undefined ? intermediate_to_core_type_reference(intermediate_value.type) : undefined,
         value: intermediate_value.value !== undefined ? intermediate_to_core_statement(intermediate_value.value) : undefined,
+        is_mutable: intermediate_value.is_mutable,
         comment: intermediate_value.comment,
         source_location: intermediate_value.source_location !== undefined ? intermediate_to_core_source_location(intermediate_value.source_location) : undefined,
     };

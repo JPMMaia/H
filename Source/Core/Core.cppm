@@ -149,8 +149,9 @@ namespace h
     {
         std::pmr::string name;
         std::optional<std::pmr::string> unique_name;
-        Type_reference type;
+        std::optional<Type_reference> type;
         std::optional<Statement> value;
+        bool is_mutable;
         std::optional<std::pmr::string> comment;
         std::optional<Source_location> source_location;
 

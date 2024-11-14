@@ -19,6 +19,7 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Enum_value_name", ["declarations", "$declaration_index", "value", "values", "$order_index", "name"]],
             ["Function_name", ["declarations", "$declaration_index", "value", "declaration", "name"]],
             ["Function_parameter_name", ["declarations", "$declaration_index", "value", "declaration", "$parameter_names", "$order_index"]],
+            ["Global_variable_name", ["declarations", "$declaration_index", "value", "name"]],
             ["Statement", ["declarations", "$declaration_index", "value", "definition", "statements", "$order_index"]],
             ["Struct_name", ["declarations", "$declaration_index", "value", "name"]],
             ["Struct_member_name", ["declarations", "$declaration_index", "value", "member_names", "$order_index"]],
@@ -104,6 +105,7 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Type", choose_production_rule_type],
             ["Pointer_type", choose_production_rule_pointer_type],
             ["Enum_value", choose_production_rule_enum_value],
+            ["Global_variable_type", choose_production_rule_global_variable_type],
             ["Statement", choose_production_rule_statement],
             ["Expression_assignment_symbol", choose_production_rule_expression_assignment_symbol],
             ["Expression_binary_addition_symbol", choose_production_rule_expression_binary_symbol],
@@ -494,6 +496,8 @@ function get_underlying_declaration_production_rule_lhs(type: Core_intermediate_
             return "Enum";
         case Core_intermediate_representation.Declaration_type.Function:
             return "Function";
+        case Core_intermediate_representation.Declaration_type.Global_variable:
+            return "Global_variable";
         case Core_intermediate_representation.Declaration_type.Struct:
             return "Struct";
         case Core_intermediate_representation.Declaration_type.Union:
@@ -698,6 +702,31 @@ function choose_production_rule_enum_value(
     const enum_value = enum_declaration.values[enum_value_index];
 
     const index = enum_value.value !== undefined ? 1 : 0;
+    return {
+        next_state: {
+            index: 0,
+            value: top.state.value
+        },
+        next_production_rule_index: production_rule_indices[index]
+    };
+}
+
+function choose_production_rule_global_variable_type(
+    module: Core_intermediate_representation.Module,
+    production_rules: Grammar.Production_rule[],
+    production_rule_indices: number[],
+    label: string,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    mappings: Parse_tree_convertor.Parse_tree_mappings,
+    key_to_production_rule_indices: Map<string, number[]>
+): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
+    const top = stack[stack.length - 1];
+
+    const global_variable_declaration_state = stack[stack.length - 1];
+    const global_variable_declaration = global_variable_declaration_state.state.value.value as Core_intermediate_representation.Global_variable_declaration;
+
+    const index = global_variable_declaration.type !== undefined ? 1 : 0;
+
     return {
         next_state: {
             index: 0,
@@ -1599,6 +1628,32 @@ function choose_production_rule_generic_expression(
             next_production_rule_index: next_production_rule_index !== undefined ? next_production_rule_index : production_rule_indices[production_rule_indices.length - 1]
         };
     }
+    else if (top.node.word.value === "Global_variable") {
+        const global_variable_state = stack[stack.length - 1];
+        const global_variable_declaration = global_variable_state.state.value.value as Core_intermediate_representation.Global_variable_declaration;
+
+        if (global_variable_declaration.value === undefined) {
+            return {
+                next_state: {
+                    index: 0,
+                    value: undefined
+                },
+                next_production_rule_index: production_rule_indices[production_rule_indices.length - 1]
+            };
+        }
+
+        const expression = global_variable_declaration.value.expression;
+        const expression_label = map_expression_type_to_production_rule_label(expression);
+
+        const next_production_rule_index = production_rule_indices.find(index => production_rules[index].rhs[0] === expression_label);
+        return {
+            next_state: {
+                index: 0,
+                value: expression
+            },
+            next_production_rule_index: next_production_rule_index !== undefined ? next_production_rule_index : production_rule_indices[production_rule_indices.length - 1]
+        };
+    }
     else {
         const expression = top.state.value as Core_intermediate_representation.Expression;
         const next = get_generic_expression(stack, production_rules, expression);
@@ -1806,6 +1861,15 @@ function node_to_declaration(
                 value: value,
             };
         }
+        case "Global_variable": {
+            const declaration = node_to_global_variable_declaration(node, key_to_production_rule_indices);
+            return {
+                name: declaration.name,
+                type: Core_intermediate_representation.Declaration_type.Global_variable,
+                is_export: is_export,
+                value: declaration,
+            };
+        }
         case "Struct": {
             const value = node_to_struct_declaration(node, key_to_production_rule_indices);
             return {
@@ -1987,6 +2051,42 @@ function node_to_enum_declaration(node: Parser_node.Node, key_to_production_rule
 
     if (enum_node.source_location !== undefined) {
         const name_node = find_node(enum_node, "Enum_name", key_to_production_rule_indices) as Parser_node.Node;
+        output.source_location = name_node.source_location;
+    }
+
+    return output;
+}
+
+function node_to_global_variable_declaration(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Global_variable_declaration {
+
+    const comments_node = node.children[0];
+    const global_variable_node = node.children[1];
+
+    const name = find_node_value(global_variable_node, "Global_variable_name", key_to_production_rule_indices);
+
+    const variable_type_node = find_node(global_variable_node, "Global_variable_type", key_to_production_rule_indices) as Parser_node.Node;
+    const variable_type = variable_type_node.children.length > 0 ? node_to_type_reference(variable_type_node.children[1], key_to_production_rule_indices) : undefined;
+
+    const variable_value_node = find_node(global_variable_node, "Generic_expression_or_instantiate", key_to_production_rule_indices) as Parser_node.Node;
+    const variable_value_expression = node_to_expression(variable_value_node, key_to_production_rule_indices);
+
+    const output: Core_intermediate_representation.Global_variable_declaration = {
+        name: name,
+        value: { expression: variable_value_expression },
+        is_mutable: false,
+    };
+
+    if (variable_type !== undefined) {
+        output.type = variable_type[0];
+    }
+
+    const comments = extract_comments_from_node(comments_node);
+    if (comments !== undefined) {
+        output.comment = comments;
+    }
+
+    if (global_variable_node.source_location !== undefined) {
+        const name_node = find_node(global_variable_node, "Global_variable_name", key_to_production_rule_indices) as Parser_node.Node;
         output.source_location = name_node.source_location;
     }
 
@@ -3283,6 +3383,10 @@ function get_declaration_comment(declaration: Core_intermediate_representation.D
         case Core_intermediate_representation.Declaration_type.Function: {
             const value = declaration.value as Core_intermediate_representation.Function;
             return value.declaration.comment;
+        }
+        case Core_intermediate_representation.Declaration_type.Global_variable: {
+            const value = declaration.value as Core_intermediate_representation.Global_variable_declaration;
+            return value.comment;
         }
         case Core_intermediate_representation.Declaration_type.Struct: {
             const value = declaration.value as Core_intermediate_representation.Struct_declaration;
