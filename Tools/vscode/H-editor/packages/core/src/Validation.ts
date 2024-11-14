@@ -260,6 +260,9 @@ async function validate_current_parser_node_with_module(
         case "Enum": {
             return await validate_enum(uri, language_description, core_module, root, new_value, cache, get_core_module);
         }
+        case "Global_variable": {
+            return await validate_global_variable(uri, language_description, core_module, root, new_value, cache, get_core_module);
+        }
         case "Struct": {
             return await validate_struct(uri, language_description, core_module, root, new_value, cache, get_core_module);
         }
@@ -670,6 +673,74 @@ function validate_enum_values_use_previous_values(
     return diagnostics;
 }
 
+async function validate_global_variable(
+    uri: string,
+    language_description: Language.Description,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    descendant_global_variable: { node: Parser_node.Node, position: number[] },
+    cache: Parse_tree_text_position_cache.Cache,
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+
+    const diagnostics: Diagnostic[] = [];
+
+    const descendant_variable_name = Parser_node.find_descendant_position_if(descendant_global_variable, descendant => descendant.word.value === "Global_variable_name");
+    if (descendant_variable_name === undefined) {
+        return diagnostics;
+    }
+    const variable_name = descendant_variable_name.node.children[0].word.value;
+    const declaration = core_module.declarations.find(declaration => declaration.name === variable_name);
+    if (declaration === undefined || declaration.type !== Core.Declaration_type.Global_variable) {
+        return diagnostics;
+    }
+    const global_variable_declaration = declaration.value as Core.Global_variable_declaration;
+
+    if (global_variable_declaration.value !== undefined) {
+        const descendant_expression = Parser_node.find_descendant_position_if(descendant_global_variable, descendant => descendant.word.value === "Generic_expression_or_instantiate");
+        if (descendant_expression !== undefined) {
+            if (!is_expression_computable_at_compile_time(descendant_expression, [])) {
+                diagnostics.push({
+                    location: get_parser_node_position_source_location(uri, cache, descendant_expression),
+                    source: Source.Parse_tree_validation,
+                    severity: Diagnostic_severity.Error,
+                    message: `The value of '${variable_name}' must be a computable at compile-time.`,
+                    related_information: [],
+                });
+            }
+
+            if (global_variable_declaration.type !== undefined) {
+                const expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_expression.node);
+                const expression_type = await Parse_tree_analysis.get_expression_type(language_description, core_module, declaration, root, descendant_expression.position, expression, get_core_module);
+
+                if (expression_type !== undefined && !expression_type.is_value) {
+                    diagnostics.push({
+                        location: get_parser_node_position_source_location(uri, cache, descendant_expression),
+                        source: Source.Parse_tree_validation,
+                        severity: Diagnostic_severity.Error,
+                        message: `Expected a value, but got a type.`,
+                        related_information: [],
+                    });
+                }
+                else if (expression_type === undefined || expression_type.type.length === 0 || (expression_type.type.length > 0 && !deep_equal(expression_type.type[0], global_variable_declaration.type) && !are_compatible_pointer_types(expression_type.type, [global_variable_declaration.type]))) {
+
+                    const member_type_string = Type_utilities.get_type_name([global_variable_declaration.type]);
+                    const expression_type_string = expression_type !== undefined ? Type_utilities.get_type_name(expression_type.type) : "<undefined>";
+
+                    diagnostics.push({
+                        location: get_parser_node_position_source_location(uri, cache, descendant_expression),
+                        source: Source.Parse_tree_validation,
+                        severity: Diagnostic_severity.Error,
+                        message: `Expression type '${expression_type_string}' does not match expected type '${member_type_string}'.`,
+                        related_information: [],
+                    });
+                }
+            }
+        }
+    }
+
+    return diagnostics;
+}
 
 async function validate_struct(
     uri: string,
@@ -902,37 +973,7 @@ function validate_member_expressions_are_computed_at_compile_time(
             continue;
         }
 
-        const non_constant_descendants = Parser_node.find_descendant_position_if(descendant_expression, node => {
-
-            if (node.production_rule_index === undefined) {
-                return false;
-            }
-
-            if (node.word.value.startsWith("Generic_expression") || node.word.value.startsWith("Expression_level")) {
-                return false;
-            }
-
-            if (node.word.value.startsWith("Expression_binary")) {
-                return false;
-            }
-
-            if (node.word.value === "Expression_constant") {
-                return false;
-            }
-
-            if (node.word.value === "Expression_null_pointer") {
-                return false;
-            }
-
-            if (additional_labels_to_allow.find(label => label === node.word.value) !== undefined) {
-                return false;
-            }
-
-            return true;
-        });
-
-        if (non_constant_descendants !== undefined) {
-
+        if (!is_expression_computable_at_compile_time(descendant_expression, additional_labels_to_allow)) {
             const descendant_member_name = Parser_node.find_descendant_position_if(descendant_member, node => node.word.value === member_name_node_name);
             if (descendant_member_name !== undefined) {
                 const member_name = descendant_member_name.node.children[0].word.value;
@@ -949,6 +990,43 @@ function validate_member_expressions_are_computed_at_compile_time(
     }
 
     return diagnostics;
+}
+
+function is_expression_computable_at_compile_time(
+    descendant_expression: { node: Parser_node.Node, position: number[] },
+    additional_labels_to_allow: string[]
+): boolean {
+
+    const non_constant_descendants = Parser_node.find_descendant_position_if(descendant_expression, node => {
+
+        if (node.production_rule_index === undefined) {
+            return false;
+        }
+
+        if (node.word.value.startsWith("Generic_expression") || node.word.value.startsWith("Expression_level")) {
+            return false;
+        }
+
+        if (node.word.value.startsWith("Expression_binary")) {
+            return false;
+        }
+
+        if (node.word.value === "Expression_constant") {
+            return false;
+        }
+
+        if (node.word.value === "Expression_null_pointer") {
+            return false;
+        }
+
+        if (additional_labels_to_allow.find(label => label === node.word.value) !== undefined) {
+            return false;
+        }
+
+        return true;
+    });
+
+    return non_constant_descendants === undefined;
 }
 
 async function validate_access_expression(

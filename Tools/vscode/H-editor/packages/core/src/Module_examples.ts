@@ -437,6 +437,27 @@ export function create_enum_example(): IR.Module {
     };
 }
 
+export function create_global_variables_example(): IR.Module {
+    return {
+        name: "global_variables_example",
+        imports: [],
+        declarations: [
+            {
+                name: "My_global_variable",
+                type: IR.Declaration_type.Global_variable,
+                is_export: true,
+                value: {
+                    name: "My_global_variable",
+                    value: create_statement(
+                        IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float32), "1.0")
+                    ),
+                    is_mutable: false,
+                } as IR.Global_variable_declaration
+            }
+        ]
+    };
+}
+
 export function create_struct_example(): IR.Module {
     return {
         name: "struct_example",
@@ -3320,6 +3341,62 @@ export function create_using_enum_flags(): IR.Module {
     };
 }
 
+export function create_using_global_variables(): IR.Module {
+    const float32_type = create_fundamental_type(IR.Fundamental_type.Float32);
+    return {
+        name: "Global_variables",
+        imports: [],
+        declarations: [
+            {
+                name: "my_global_variable",
+                type: IR.Declaration_type.Global_variable,
+                is_export: false,
+                value: {
+                    name: "my_global_variable",
+                    value: create_statement(
+                        IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float32), "1.0")
+                    ),
+                    is_mutable: false
+                } as IR.Global_variable_declaration
+            },
+            {
+                name: "use_global_variables",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "use_global_variables",
+                        type: {
+                            input_parameter_types: [float32_type],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: ["parameter"],
+                        output_parameter_names: [],
+                        linkage: IR.Linkage.External
+                    },
+                    definition: {
+                        name: "use_global_variables",
+                        statements: [
+                            create_statement(
+                                IR.create_variable_declaration_expression(
+                                    "a",
+                                    false,
+                                    IR.create_binary_expression(
+                                        IR.create_variable_expression("my_global_variable", IR.Access_type.Read),
+                                        IR.create_variable_expression("parameter", IR.Access_type.Read),
+                                        IR.Binary_operation.Add
+                                    )
+                                ),
+                            ),
+                        ]
+                    }
+                }
+            },
+        ]
+    };
+}
+
 export function create_using_structs(): IR.Module {
     const int32_type = create_integer_type(32, true);
     return {
@@ -4228,6 +4305,28 @@ export function create_comments_in_functions(add_source_locations: boolean): IR.
     }
 
     return module;
+}
+
+export function create_comments_in_global_variables(): IR.Module {
+    return {
+        name: "Comments_in_global_variables",
+        imports: [],
+        declarations: [
+            {
+                name: "My_global_variable",
+                type: IR.Declaration_type.Global_variable,
+                is_export: true,
+                value: {
+                    name: "My_global_variable",
+                    value: create_statement(
+                        IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float32), "1.0")
+                    ),
+                    is_mutable: false,
+                    comment: "A global variable comment\nAnother line"
+                } as IR.Global_variable_declaration
+            }
+        ]
+    };
 }
 
 export function create_comments_in_structs(): IR.Module {

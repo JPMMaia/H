@@ -1866,6 +1866,38 @@ export function use_enums(enum_argument: My_enum_flag) -> (result: Int32)
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
+    it("Handles using global variables", () => {
+
+        const document_state = Document.create_empty_state("", language_description.production_rules);
+
+        const program = `
+module Global_variables;
+
+var my_global_variable = 1.0f32;
+
+export function use_global_variables(parameter: Float32) -> ()
+{
+    var a = my_global_variable + parameter;
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_using_global_variables();
+        assert.deepEqual(new_document_state.valid.module, expected_module);
+    });
+
     it("Handles using structs", () => {
 
         const document_state = Document.create_empty_state("", language_description.production_rules);
@@ -2169,6 +2201,35 @@ export function use_comments() -> ()
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_comments_in_functions(false);
+        assert.deepEqual(new_document_state.valid.module, expected_module);
+    });
+
+    it("Handles comments in global variables", () => {
+
+        const document_state = Document.create_empty_state("", language_description.production_rules);
+
+        const program = `
+module Comments_in_global_variables;
+
+// A global variable comment
+// Another line
+export var My_global_variable = 1.0f32;
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_comments_in_global_variables();
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 

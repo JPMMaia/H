@@ -358,6 +358,57 @@ async function test_validate_module(
     assert.deepEqual(actual_diagnostics, expected_diagnostics);
 }
 
+describe("Validation of global variables", () => {
+
+    // - If type is not undefined, then it must match the type of value
+    // - Value can be computed at compile-time
+
+    it("Validates that type and type of value match", async () => {
+        const input = `module Test;
+
+var my_global_0: Float32 = 2.0f32;
+var my_global_1: Int32 = 2.0f32;
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(4, 26, 4, 32),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Expression type 'Float32' does not match expected type 'Int32'.",
+                related_information: [],
+            }
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Validates that expression only uses compile time expressions", async () => {
+        const input = `module Test;
+
+function get_value() -> (result: Int32)
+{
+    return 0;
+}
+
+var my_global_0 = 0;
+var my_global_1 = get_value();
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(9, 19, 9, 30),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "The value of 'my_global_1' must be a computable at compile-time.",
+                related_information: [],
+            }
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+});
+
 describe("Validation of structs", () => {
 
     // - Member names must different
