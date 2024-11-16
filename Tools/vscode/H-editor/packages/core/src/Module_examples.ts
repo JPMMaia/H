@@ -443,15 +443,27 @@ export function create_global_variables_example(): IR.Module {
         imports: [],
         declarations: [
             {
-                name: "My_global_variable",
+                name: "My_global_variable_0",
                 type: IR.Declaration_type.Global_variable,
                 is_export: true,
                 value: {
-                    name: "My_global_variable",
+                    name: "My_global_variable_0",
                     value: create_statement(
                         IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float32), "1.0")
                     ),
                     is_mutable: false,
+                } as IR.Global_variable_declaration
+            },
+            {
+                name: "My_global_variable_1",
+                type: IR.Declaration_type.Global_variable,
+                is_export: true,
+                value: {
+                    name: "My_global_variable_1",
+                    value: create_statement(
+                        IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float32), "1.0")
+                    ),
+                    is_mutable: true,
                 } as IR.Global_variable_declaration
             }
         ]
@@ -3348,15 +3360,27 @@ export function create_using_global_variables(): IR.Module {
         imports: [],
         declarations: [
             {
-                name: "my_global_variable",
+                name: "my_global_variable_0",
                 type: IR.Declaration_type.Global_variable,
                 is_export: false,
                 value: {
-                    name: "my_global_variable",
+                    name: "my_global_variable_0",
                     value: create_statement(
                         IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float32), "1.0")
                     ),
                     is_mutable: false
+                } as IR.Global_variable_declaration
+            },
+            {
+                name: "my_global_variable_1",
+                type: IR.Declaration_type.Global_variable,
+                is_export: false,
+                value: {
+                    name: "my_global_variable_1",
+                    value: create_statement(
+                        IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float32), "1.0")
+                    ),
+                    is_mutable: true
                 } as IR.Global_variable_declaration
             },
             {
@@ -3383,7 +3407,7 @@ export function create_using_global_variables(): IR.Module {
                                     "a",
                                     false,
                                     IR.create_binary_expression(
-                                        IR.create_variable_expression("my_global_variable", IR.Access_type.Read),
+                                        IR.create_variable_expression("my_global_variable_0", IR.Access_type.Read),
                                         IR.create_variable_expression("parameter", IR.Access_type.Read),
                                         IR.Binary_operation.Add
                                     )
