@@ -8,6 +8,8 @@ macro(convert_hltxt_to_hl)
     set(WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/working_directory")
     file(MAKE_DIRECTORY "${WORKING_DIRECTORY}")
 
+    get_property(parser_javascript_location GLOBAL PROPERTY parser_javascript_location)
+
     foreach(text_file IN LISTS ARGUMENT_TEXT_FILES)
         cmake_path(GET text_file STEM text_file_without_extension)
         set(output_path "${ARGUMENT_OUTPUT_DIRECTORY}/${text_file_without_extension}.hl")
@@ -19,7 +21,7 @@ macro(convert_hltxt_to_hl)
             COMMAND "node" "${parser_javascript_location}" "write" "${output_path}" "--input" "${text_file}"
             WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/working_directory"
             VERBATIM
-            COMMENT "Generating ${output_path}"
+            COMMENT "Generating ${output_path}: node ${parser_javascript_location} write ${output_path} --input ${text_file}"
             DEPENDS Parser "${text_file}" "${parser_javascript_location}"
         )
     endforeach()
