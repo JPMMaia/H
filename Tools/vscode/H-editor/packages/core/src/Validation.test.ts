@@ -362,6 +362,7 @@ describe("Validation of global variables", () => {
 
     // - If type is not undefined, then it must match the type of value
     // - Value can be computed at compile-time
+    // - Cannot take a pointer to a constant global variable
 
     it("Validates that type and type of value match", async () => {
         const input = `module Test;
@@ -401,6 +402,32 @@ var my_global_1 = get_value();
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
                 message: "The value of 'my_global_1' must be a computable at compile-time.",
+                related_information: [],
+            }
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Validates that pointers to global constants do not exist", async () => {
+        const input = `module Test;
+
+mutable my_global_0 = 0;
+var my_global_1 = 0;
+
+function run() -> ()
+{
+    var a = &my_global_0;
+    var b = &my_global_1;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(9, 13, 9, 14),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot take address of a global constant.",
                 related_information: [],
             }
         ];

@@ -105,6 +105,7 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Type", choose_production_rule_type],
             ["Pointer_type", choose_production_rule_pointer_type],
             ["Enum_value", choose_production_rule_enum_value],
+            ["Global_variable_mutability", choose_production_rule_global_variable_mutability],
             ["Global_variable_type", choose_production_rule_global_variable_type],
             ["Statement", choose_production_rule_statement],
             ["Expression_assignment_symbol", choose_production_rule_expression_assignment_symbol],
@@ -706,6 +707,29 @@ function choose_production_rule_enum_value(
         next_state: {
             index: 0,
             value: top.state.value
+        },
+        next_production_rule_index: production_rule_indices[index]
+    };
+}
+
+function choose_production_rule_global_variable_mutability(
+    module: Core_intermediate_representation.Module,
+    production_rules: Grammar.Production_rule[],
+    production_rule_indices: number[],
+    label: string,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    mappings: Parse_tree_convertor.Parse_tree_mappings,
+    key_to_production_rule_indices: Map<string, number[]>
+): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
+
+    const top = stack[stack.length - 1];
+
+    const global_variable_declaration = top.state.value as Core_intermediate_representation.Global_variable_declaration;
+    const index = !global_variable_declaration.is_mutable ? 0 : 1;
+    return {
+        next_state: {
+            index: 0,
+            value: global_variable_declaration
         },
         next_production_rule_index: production_rule_indices[index]
     };
@@ -2064,6 +2088,9 @@ function node_to_global_variable_declaration(node: Parser_node.Node, key_to_prod
 
     const name = find_node_value(global_variable_node, "Global_variable_name", key_to_production_rule_indices);
 
+    const mutable_node_value = find_node_value(node, "Global_variable_mutability", key_to_production_rule_indices);
+    const is_mutable = mutable_node_value !== "var";
+
     const variable_type_node = find_node(global_variable_node, "Global_variable_type", key_to_production_rule_indices) as Parser_node.Node;
     const variable_type = variable_type_node.children.length > 0 ? node_to_type_reference(variable_type_node.children[1], key_to_production_rule_indices) : undefined;
 
@@ -2073,7 +2100,7 @@ function node_to_global_variable_declaration(node: Parser_node.Node, key_to_prod
     const output: Core_intermediate_representation.Global_variable_declaration = {
         name: name,
         value: { expression: variable_value_expression },
-        is_mutable: false,
+        is_mutable: is_mutable,
     };
 
     if (variable_type !== undefined) {

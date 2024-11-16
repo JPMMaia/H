@@ -2372,11 +2372,8 @@ async function validate_unary_expression(
     }
 
     const function_value = Parse_tree_analysis.get_function_value_that_contains_node_position(core_module, root, descendant_unary_expression.position);
-    if (function_value === undefined) {
-        return diagnostics;
-    }
 
-    const scope_declaration = Parse_tree_analysis.create_declaration_from_function_value(function_value);
+    const scope_declaration = function_value !== undefined ? Parse_tree_analysis.create_declaration_from_function_value(function_value) : undefined;
 
     const unary_expression = expression.data.value as Core.Unary_expression;
 
@@ -2450,18 +2447,35 @@ async function validate_unary_expression(
         }
     }
     else if (unary_expression.operation === Core.Unary_operation.Address_of) {
-        const is_variable_expression = operand_expression.data.type === Core.Expression_enum.Variable_expression;
-        if (!is_variable_expression) {
-            const symbol = map_unary_operation_to_symbol(unary_expression.operation);
-            diagnostics.push(
-                {
-                    location: get_parser_node_position_source_location(uri, cache, descendant_symbol),
-                    source: Source.Parse_tree_validation,
-                    severity: Diagnostic_severity.Error,
-                    message: `Cannot apply unary operation '${symbol}' to expression.`,
-                    related_information: [],
-                }
-            );
+        const global_variable_declaration = await Parse_tree_analysis.get_global_variable_from_expression(core_module, operand_expression, get_core_module);
+        if (global_variable_declaration !== undefined && global_variable_declaration.declaration.type === Core.Declaration_type.Global_variable) {
+            const global_variable = global_variable_declaration.declaration.value as Core.Global_variable_declaration;
+            if (!global_variable.is_mutable) {
+                diagnostics.push(
+                    {
+                        location: get_parser_node_position_source_location(uri, cache, descendant_symbol),
+                        source: Source.Parse_tree_validation,
+                        severity: Diagnostic_severity.Error,
+                        message: `Cannot take address of a global constant.`,
+                        related_information: [],
+                    }
+                );
+            }
+        }
+        else {
+            const is_variable_expression = operand_expression.data.type === Core.Expression_enum.Variable_expression;
+            if (!is_variable_expression) {
+                const symbol = map_unary_operation_to_symbol(unary_expression.operation);
+                diagnostics.push(
+                    {
+                        location: get_parser_node_position_source_location(uri, cache, descendant_symbol),
+                        source: Source.Parse_tree_validation,
+                        severity: Diagnostic_severity.Error,
+                        message: `Cannot apply unary operation '${symbol}' to expression.`,
+                        related_information: [],
+                    }
+                );
+            }
         }
     }
     else if (unary_expression.operation === Core.Unary_operation.Indirection) {

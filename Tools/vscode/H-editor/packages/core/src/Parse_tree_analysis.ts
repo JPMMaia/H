@@ -562,7 +562,7 @@ export interface Expression_type_reference {
 export async function get_expression_type(
     language_description: Language.Description,
     core_module: Core.Module,
-    scope_declaration: Core.Declaration,
+    scope_declaration: Core.Declaration | undefined,
     root: Parser_node.Node,
     scope_node_position: number[],
     expression: Core.Expression,
@@ -820,7 +820,7 @@ export async function get_expression_type(
         case Core.Expression_enum.Variable_expression: {
             const value = expression.data.value as Core.Variable_expression;
 
-            if (scope_declaration.type === Core.Declaration_type.Function) {
+            if (scope_declaration !== undefined && scope_declaration.type === Core.Declaration_type.Function) {
                 const variable_type = await find_variable_type(language_description, core_module, scope_declaration.value as Core.Function, root, scope_node_position, value.name, get_core_module);
                 if (variable_type !== undefined) {
                     return {
@@ -832,6 +832,11 @@ export async function get_expression_type(
 
             const declaration = core_module.declarations.find(declaration => declaration.name === value.name);
             if (declaration !== undefined) {
+                if (declaration.type === Core.Declaration_type.Global_variable) {
+                    const global_variable = declaration.value as Core.Global_variable_declaration;
+                    return get_global_variable_type(language_description, core_module, global_variable, root, get_core_module);
+                }
+
                 return {
                     type: [create_custom_type_reference(core_module.name, declaration.name)],
                     is_value: declaration.type === Core.Declaration_type.Function
@@ -841,6 +846,78 @@ export async function get_expression_type(
     }
 
     return undefined;
+}
+
+export async function get_global_variable_type(
+    language_description: Language.Description,
+    core_module: Core.Module,
+    global_variable: Core.Global_variable_declaration,
+    root: Parser_node.Node,
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Expression_type_reference | undefined> {
+
+    if (global_variable.type !== undefined) {
+        return {
+            type: [global_variable.type],
+            is_value: true
+        };
+    }
+
+    if (global_variable.value !== undefined) {
+        const type = await get_expression_type(language_description, core_module, undefined, root, [], global_variable.value.expression, get_core_module);
+        return type;
+    }
+
+    return undefined;
+}
+
+export async function get_global_variable(
+    core_module: Core.Module,
+    module_name: string,
+    global_variable_name: string,
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<{ module: Core.Module, declaration: Core.Declaration } | undefined> {
+
+    const declaration_module = core_module.name === module_name ? core_module : await get_core_module(module_name);
+    if (declaration_module === undefined) {
+        return undefined;
+    }
+
+    const declaration = declaration_module.declarations.find(declaration => declaration.name === global_variable_name);
+    if (declaration === undefined || declaration.type !== Core.Declaration_type.Global_variable) {
+        return undefined;
+    }
+
+    return {
+        module: declaration_module,
+        declaration: declaration
+    };
+}
+
+export async function get_global_variable_from_expression(
+    core_module: Core.Module,
+    expression: Core.Expression,
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<{ module: Core.Module, declaration: Core.Declaration } | undefined> {
+    switch (expression.data.type) {
+        case Core.Expression_enum.Access_expression: {
+            const access_expression = expression.data.value as Core.Access_expression;
+            if (access_expression.expression.data.type !== Core.Expression_enum.Variable_expression) {
+                return undefined;
+            }
+
+            const left_hand_side = access_expression.expression.data.value as Core.Variable_expression;
+            const module_name = left_hand_side.name;
+            return get_global_variable(core_module, module_name, access_expression.member_name, get_core_module);
+        }
+        case Core.Expression_enum.Variable_expression: {
+            const variable_expression = expression.data.value as Core.Variable_expression;
+            return get_global_variable(core_module, core_module.name, variable_expression.name, get_core_module);
+        }
+        default: {
+            return undefined;
+        }
+    }
 }
 
 export function get_type_reference_from_node(

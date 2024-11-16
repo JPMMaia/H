@@ -1873,11 +1873,12 @@ export function use_enums(enum_argument: My_enum_flag) -> (result: Int32)
         const program = `
 module Global_variables;
 
-var my_global_variable = 1.0f32;
+var my_global_variable_0 = 1.0f32;
+mutable my_global_variable_1 = 1.0f32;
 
 export function use_global_variables(parameter: Float32) -> ()
 {
-    var a = my_global_variable + parameter;
+    var a = my_global_variable_0 + parameter;
 }
 `;
 
