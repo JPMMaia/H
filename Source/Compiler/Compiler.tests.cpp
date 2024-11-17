@@ -2382,6 +2382,35 @@ switch_case_i5_:                                  ; preds = %switch_case_i4_, %e
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
+  TEST_CASE("Compile Using Global Variables")
+  {
+    char const* const input_file = "using_global_variables.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+@Global_variables_my_global_variable_0 = global float 1.000000e+00
+
+define void @Global_variables_use_global_variables(float %"arguments[0].parameter") {
+entry:
+  %parameter = alloca float, align 4
+  store float %"arguments[0].parameter", ptr %parameter, align 4
+  %0 = load float, ptr @Global_variables_my_global_variable_0, align 4
+  %1 = fadd float 2.000000e+00, %0
+  %2 = load float, ptr %parameter, align 4
+  %3 = fadd float %1, %2
+  %a = alloca float, align 4
+  store float %3, ptr %a, align 4
+  %b = alloca ptr, align 8
+  store ptr @Global_variables_my_global_variable_0, ptr %b, align 8
+  ret void
+}
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
 
   TEST_CASE("Compile Using Structs")
   {

@@ -1656,17 +1656,7 @@ function choose_production_rule_generic_expression(
         const global_variable_state = stack[stack.length - 1];
         const global_variable_declaration = global_variable_state.state.value.value as Core_intermediate_representation.Global_variable_declaration;
 
-        if (global_variable_declaration.value === undefined) {
-            return {
-                next_state: {
-                    index: 0,
-                    value: undefined
-                },
-                next_production_rule_index: production_rule_indices[production_rule_indices.length - 1]
-            };
-        }
-
-        const expression = global_variable_declaration.value.expression;
+        const expression = global_variable_declaration.initial_value.expression;
         const expression_label = map_expression_type_to_production_rule_label(expression);
 
         const next_production_rule_index = production_rule_indices.find(index => production_rules[index].rhs[0] === expression_label);
@@ -2099,7 +2089,7 @@ function node_to_global_variable_declaration(node: Parser_node.Node, key_to_prod
 
     const output: Core_intermediate_representation.Global_variable_declaration = {
         name: name,
-        value: { expression: variable_value_expression },
+        initial_value: { expression: variable_value_expression },
         is_mutable: is_mutable,
     };
 

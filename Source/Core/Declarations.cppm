@@ -20,6 +20,7 @@ namespace h
             Alias_type_declaration const*,
             Enum_declaration const*,
             Function_declaration const*,
+            Global_variable_declaration const*,
             Struct_declaration const*,
             Union_declaration const*
         >;
@@ -42,6 +43,7 @@ namespace h
         std::string_view const module_name,
         std::span<h::Alias_type_declaration const> alias_type_declarations,
         std::span<h::Enum_declaration const> enum_declarations,
+        std::span<h::Global_variable_declaration const> global_variable_declarations,
         std::span<h::Struct_declaration const> struct_declarations,
         std::span<h::Union_declaration const> union_declarations,
         std::span<h::Function_declaration const> function_declarations

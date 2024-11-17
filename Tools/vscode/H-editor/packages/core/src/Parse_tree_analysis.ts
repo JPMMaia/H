@@ -863,12 +863,8 @@ export async function get_global_variable_type(
         };
     }
 
-    if (global_variable.value !== undefined) {
-        const type = await get_expression_type(language_description, core_module, undefined, root, [], global_variable.value.expression, get_core_module);
-        return type;
-    }
-
-    return undefined;
+    const type = await get_expression_type(language_description, core_module, undefined, root, [], global_variable.initial_value.expression, get_core_module);
+    return type;;
 }
 
 export async function get_global_variable(

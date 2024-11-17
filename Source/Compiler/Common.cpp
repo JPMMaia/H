@@ -126,6 +126,11 @@ namespace h::compiler
         return get_value(name, module.export_declarations.enum_declarations, module.internal_declarations.enum_declarations);
     }
 
+    std::optional<Global_variable_declaration const*> find_global_variable_declaration(Module const& module, std::string_view name)
+    {
+        return get_value(name, module.export_declarations.global_variable_declarations, module.internal_declarations.global_variable_declarations);
+    }
+
     std::optional<Function_declaration const*> find_function_declaration(Module const& module, std::string_view const name)
     {
         return get_value(name, module.export_declarations.function_declarations, module.internal_declarations.function_declarations);

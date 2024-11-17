@@ -735,8 +735,10 @@ namespace h::compiler
         llvm::Module& llvm_module,
         Clang_module_data& clang_module_data,
         Module const& core_module,
+        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies,
         std::span<Function_declaration const> const function_declarations,
         std::optional<std::span<std::pmr::string const> const> const functions_to_add,
+        std::span<Global_variable_declaration const> const global_variable_declarations,
         Type_database const& type_database,
         Declaration_database const& declaration_database,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
@@ -774,6 +776,74 @@ namespace h::compiler
                 llvm_function_list.push_back(&llvm_function);
             }
         }
+
+        // Add global variable declarations:
+        {
+            llvm::IRBuilder<> llvm_builder{ llvm_context };
+
+            for (Global_variable_declaration const& global_variable_declaration : global_variable_declarations)
+            {
+                if (!global_variable_declaration.is_mutable)
+                    continue;
+
+                std::string const mangled_name = mangle_name(core_module, global_variable_declaration.name, global_variable_declaration.unique_name);
+
+                // TODO initial value might not have been specified
+                // If it is not specified, then use create_struct_member_default_value() ?
+                // Or perhaps make the initial value required, and use create_struct_member_default_value in c header importer to force it
+        
+                Expression_parameters const expression_parameters
+                {
+                    .llvm_context = llvm_context,
+                    .llvm_data_layout = llvm_data_layout,
+                    .llvm_builder = llvm_builder,
+                    .llvm_parent_function = nullptr,
+                    .llvm_module = llvm_module,
+                    .clang_module_data = clang_module_data,
+                    .core_module = core_module,
+                    .core_module_dependencies = core_module_dependencies,
+                    .declaration_database = declaration_database,
+                    .type_database = type_database,
+                    .enum_value_constants = {},
+                    .blocks = {},
+                    .function_declaration = {},
+                    .function_arguments = {},
+                    .local_variables = {},
+                    .expression_type = std::nullopt,
+                    .debug_info = nullptr,
+                    .source_location = {},
+                    .temporaries_allocator = temporaries_allocator,
+                };
+
+                Value_and_type const statement_value = create_statement_value(
+                    global_variable_declaration.initial_value,
+                    expression_parameters
+                );
+
+                llvm::Constant* const initial_value = fold_constant(statement_value.value, llvm_data_layout);
+                
+                std::optional<Type_reference> const type = global_variable_declaration.type.has_value() ? global_variable_declaration.type : statement_value.type;
+                if (!type.has_value())
+                    throw std::runtime_error{std::format("Cannot deduce type of '{}.{}'.", core_module.name, global_variable_declaration.name)};
+
+                llvm::Type* const llvm_type = type_reference_to_llvm_type(
+                    llvm_context,
+                    llvm_data_layout,
+                    core_module,
+                    *type,
+                    type_database
+                );
+
+                llvm::GlobalVariable* const global_variable = new llvm::GlobalVariable(
+                    llvm_module,
+                    llvm_type,
+                    false,
+                    llvm::GlobalValue::ExternalLinkage, // TODO
+                    initial_value,
+                    mangled_name
+                );
+            }
+        }
     }
 
     void add_dependency_module_declarations(
@@ -806,8 +876,10 @@ namespace h::compiler
                     llvm_module,
                     clang_module_data,
                     core_module_dependency,
+                    core_module_dependencies,
                     core_module_dependency.export_declarations.function_declarations,
                     alias_import_location->usages,
+                    core_module_dependency.export_declarations.global_variable_declarations,
                     type_database,
                     declaration_database,
                     temporaries_allocator
@@ -916,8 +988,8 @@ namespace h::compiler
         llvm_module->setTargetTriple(target_triple);
         llvm_module->setDataLayout(llvm_data_layout);
 
-        add_module_declarations(llvm_context, llvm_data_layout, *llvm_module, clang_module_data, core_module, core_module.export_declarations.function_declarations, std::nullopt, type_database, declaration_database, {});
-        add_module_declarations(llvm_context, llvm_data_layout, *llvm_module, clang_module_data, core_module, core_module.internal_declarations.function_declarations, std::nullopt, type_database, declaration_database, {});
+        add_module_declarations(llvm_context, llvm_data_layout, *llvm_module, clang_module_data, core_module, core_module_dependencies, core_module.export_declarations.function_declarations, std::nullopt, core_module.export_declarations.global_variable_declarations, type_database, declaration_database, {});
+        add_module_declarations(llvm_context, llvm_data_layout, *llvm_module, clang_module_data, core_module, core_module_dependencies, core_module.internal_declarations.function_declarations, std::nullopt, core_module.internal_declarations.global_variable_declarations, type_database, declaration_database, {});
 
         add_dependency_module_declarations(llvm_context, llvm_data_layout, *llvm_module, clang_module_data, type_database, declaration_database, core_module, core_module_dependencies, {});
 

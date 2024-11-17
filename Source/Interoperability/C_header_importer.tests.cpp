@@ -907,7 +907,7 @@ const auto my_global_0 = MY_FLOAT;
             
             CHECK(declaration.type == h::create_fundamental_type_type_reference(h::Fundamental_type::Float32));
             REQUIRE(declaration.type.has_value());
-            CHECK(*declaration.value == h::create_statement({ h::create_constant_expression(*declaration.type, "3.500000") }));
+            CHECK(declaration.initial_value == h::create_statement({ h::create_constant_expression(*declaration.type, "3.500000") }));
 
             CHECK(*declaration.source_location == h::Source_location{ .line = 5, .column = 12 });
         }
@@ -944,7 +944,7 @@ const auto my_global_0 = MY_FLOAT;
             
             REQUIRE(declaration.type.has_value());
             CHECK(*declaration.type == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
-            CHECK(*declaration.value == h::create_statement({ h::create_constant_expression(*declaration.type, "10") }));
+            CHECK(declaration.initial_value == h::create_statement({ h::create_constant_expression(*declaration.type, "10") }));
 
             CHECK(*declaration.source_location == h::Source_location{ .line = 2, .column = 9 });
         }
@@ -956,7 +956,7 @@ const auto my_global_0 = MY_FLOAT;
             
             REQUIRE(declaration.type.has_value());
             CHECK(*declaration.type == h::create_fundamental_type_type_reference(h::Fundamental_type::Float32));
-            CHECK(*declaration.value == h::create_statement({ h::create_constant_expression(*declaration.type, "3.500000") }));
+            CHECK(declaration.initial_value == h::create_statement({ h::create_constant_expression(*declaration.type, "3.500000") }));
 
             CHECK(*declaration.source_location == h::Source_location{ .line = 4, .column = 9 });
         }
@@ -968,7 +968,7 @@ const auto my_global_0 = MY_FLOAT;
             
             REQUIRE(declaration.type.has_value());
             CHECK(*declaration.type == h::create_fundamental_type_type_reference(h::Fundamental_type::Float64));
-            CHECK(*declaration.value == h::create_statement({ h::create_constant_expression(*declaration.type, "3.500000") }));
+            CHECK(declaration.initial_value == h::create_statement({ h::create_constant_expression(*declaration.type, "3.500000") }));
 
             CHECK(*declaration.source_location == h::Source_location{ .line = 5, .column = 9 });
         }
@@ -980,7 +980,7 @@ const auto my_global_0 = MY_FLOAT;
             
             REQUIRE(declaration.type.has_value());
             CHECK(*declaration.type == h::create_c_string_type_reference(true));
-            CHECK(*declaration.value == h::create_statement({ h::create_constant_expression(*declaration.type, "a string") }));
+            CHECK(declaration.initial_value == h::create_statement({ h::create_constant_expression(*declaration.type, "a string") }));
 
             CHECK(*declaration.source_location == h::Source_location{ .line = 6, .column = 9 });
         }
@@ -992,7 +992,7 @@ const auto my_global_0 = MY_FLOAT;
             
             REQUIRE(declaration.type.has_value());
             CHECK(*declaration.type == h::create_fundamental_type_type_reference(h::Fundamental_type::C_ulonglong));
-            CHECK(*declaration.value == h::create_statement({ h::create_constant_expression(*declaration.type, "20") }));
+            CHECK(declaration.initial_value == h::create_statement({ h::create_constant_expression(*declaration.type, "20") }));
 
             CHECK(*declaration.source_location == h::Source_location{ .line = 9, .column = 9 });
         }
