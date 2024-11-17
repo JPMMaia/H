@@ -1035,14 +1035,14 @@ namespace h::json
             };
         }
 
-        if (key == "value")
+        if (key == "initial_value")
         {
-            parent->value = Statement{};
+
             return Stack_state
             {
-                .pointer = &parent->value.value(),
+                .pointer = &parent->initial_value,
                 .type = "Statement",
-                .get_next_state = get_next_state_statement
+                .get_next_state = get_next_state_statement,
             };
         }
 

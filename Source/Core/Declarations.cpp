@@ -26,6 +26,7 @@ namespace h
         std::string_view const module_name,
         std::span<h::Alias_type_declaration const> const alias_type_declarations,
         std::span<h::Enum_declaration const> const enum_declarations,
+        std::span<h::Global_variable_declaration const> global_variable_declarations,
         std::span<h::Struct_declaration const> const struct_declarations,
         std::span<h::Union_declaration const> const union_declarations,
         std::span<h::Function_declaration const> const function_declarations
@@ -44,6 +45,11 @@ namespace h
         }
 
         for (Function_declaration const& declaration : function_declarations)
+        {
+            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration }));
+        }
+
+        for (Global_variable_declaration const& declaration : global_variable_declarations)
         {
             map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration }));
         }
@@ -69,6 +75,7 @@ namespace h
             module.name,
             module.export_declarations.alias_type_declarations,
             module.export_declarations.enum_declarations,
+            module.export_declarations.global_variable_declarations,
             module.export_declarations.struct_declarations,
             module.export_declarations.union_declarations,
             module.export_declarations.function_declarations
@@ -79,6 +86,7 @@ namespace h
             module.name,
             module.internal_declarations.alias_type_declarations,
             module.internal_declarations.enum_declarations,
+            module.export_declarations.global_variable_declarations,
             module.internal_declarations.struct_declarations,
             module.internal_declarations.union_declarations,
             module.internal_declarations.function_declarations

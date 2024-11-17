@@ -184,7 +184,7 @@ export interface Global_variable_declaration {
     name: string;
     unique_name?: string;
     type?: Type_reference;
-    value?: Statement;
+    initial_value: Statement;
     is_mutable: boolean;
     comment?: string;
     source_location?: Source_location;

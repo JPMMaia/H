@@ -448,7 +448,7 @@ export function create_global_variables_example(): IR.Module {
                 is_export: true,
                 value: {
                     name: "My_global_variable_0",
-                    value: create_statement(
+                    initial_value: create_statement(
                         IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float32), "1.0")
                     ),
                     is_mutable: false,
@@ -460,7 +460,7 @@ export function create_global_variables_example(): IR.Module {
                 is_export: true,
                 value: {
                     name: "My_global_variable_1",
-                    value: create_statement(
+                    initial_value: create_statement(
                         IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float32), "1.0")
                     ),
                     is_mutable: true,
@@ -3365,7 +3365,7 @@ export function create_using_global_variables(): IR.Module {
                 is_export: false,
                 value: {
                     name: "my_global_variable_0",
-                    value: create_statement(
+                    initial_value: create_statement(
                         IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float32), "1.0")
                     ),
                     is_mutable: false
@@ -3377,7 +3377,7 @@ export function create_using_global_variables(): IR.Module {
                 is_export: false,
                 value: {
                     name: "my_global_variable_1",
-                    value: create_statement(
+                    initial_value: create_statement(
                         IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float32), "1.0")
                     ),
                     is_mutable: true
@@ -4342,7 +4342,7 @@ export function create_comments_in_global_variables(): IR.Module {
                 is_export: true,
                 value: {
                     name: "My_global_variable",
-                    value: create_statement(
+                    initial_value: create_statement(
                         IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float32), "1.0")
                     ),
                     is_mutable: false,

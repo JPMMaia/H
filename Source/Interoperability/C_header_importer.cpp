@@ -29,6 +29,12 @@ namespace h::c
 {
     static constexpr bool g_debug = false;
 
+    h::Statement create_default_value(
+        Type_reference const& value_type,
+        h::Module const& core_module,
+        h::Declaration_database const& declaration_database
+    );
+
     struct String
     {
         String(CXString&& value) noexcept :
@@ -767,13 +773,32 @@ namespace h::c
                 }
                 default:
                 {
-                    return std::nullopt;
+                    break;
                 }
                 }
             }
         }
 
         return std::nullopt;
+    }
+
+    void set_global_variable_default_values(
+        h::Module const& core_module,
+        h::Module_declarations& declarations,
+        h::Declaration_database const& declaration_database
+    )
+    {
+        for (h::Global_variable_declaration& global_variable_declaration : declarations.global_variable_declarations)
+        {
+            if (global_variable_declaration.initial_value == h::Statement{})
+            {
+                if (!global_variable_declaration.type.has_value())
+                    throw std::runtime_error{std::format("Cannot deduce type of global variable '{}'", global_variable_declaration.name)};
+
+                h::Statement default_value = create_default_value(*global_variable_declaration.type, core_module, declaration_database);
+                global_variable_declaration.initial_value = std::move(default_value);
+            }
+        }
     }
 
     std::optional<h::Global_variable_declaration> create_global_variable_declaration(C_declarations const& declarations, CXCursor const cursor)
@@ -787,18 +812,18 @@ namespace h::c
         if (!member_type_reference.has_value())
             return std::nullopt;
 
-        std::optional<h::Statement> initial_value = get_global_variable_initial_value(cursor, *member_type_reference);
-
         Header_source_location const cursor_location = get_cursor_source_location(
             cursor
         );
+
+        std::optional<h::Statement> initial_value = get_global_variable_initial_value(cursor, *member_type_reference);
 
         return h::Global_variable_declaration
         {
             .name = std::pmr::string{variable_name},
             .unique_name = std::pmr::string{variable_name},
             .type = std::move(*member_type_reference),
-            .value = std::move(initial_value),
+            .initial_value = initial_value.has_value() ? std::move(*initial_value) : h::Statement{},
             .comment = std::nullopt,
             .source_location = cursor_location.source_location,
         };
@@ -1501,22 +1526,22 @@ namespace h::c
         return output;
     }
 
-    h::Statement create_struct_member_default_value(
-        Type_reference const& member_type,
+    h::Statement create_default_value(
+        Type_reference const& value_type,
         h::Module const& core_module,
         h::Declaration_database const& declaration_database
     )
     {
-        if (std::holds_alternative<h::Builtin_type_reference>(member_type.data))
+        if (std::holds_alternative<h::Builtin_type_reference>(value_type.data))
         {
-            h::Builtin_type_reference const& builtin_type_reference = std::get<h::Builtin_type_reference>(member_type.data);
+            h::Builtin_type_reference const& builtin_type_reference = std::get<h::Builtin_type_reference>(value_type.data);
             // TODO
         }
-        else if (std::holds_alternative<h::Constant_array_type>(member_type.data))
+        else if (std::holds_alternative<h::Constant_array_type>(value_type.data))
         {
-            h::Constant_array_type const& constant_array_type = std::get<h::Constant_array_type>(member_type.data);
+            h::Constant_array_type const& constant_array_type = std::get<h::Constant_array_type>(value_type.data);
 
-            h::Statement const element_default_value = create_struct_member_default_value(constant_array_type.value_type[0], core_module, declaration_database);
+            h::Statement const element_default_value = create_default_value(constant_array_type.value_type[0], core_module, declaration_database);
 
             std::pmr::vector<h::Statement> array_data;
             array_data.resize(constant_array_type.size);
@@ -1531,17 +1556,17 @@ namespace h::c
                 }
             );
         }
-        else if (std::holds_alternative<h::Custom_type_reference>(member_type.data))
+        else if (std::holds_alternative<h::Custom_type_reference>(value_type.data))
         {
-            h::Custom_type_reference const& custom_type_reference = std::get<h::Custom_type_reference>(member_type.data);
+            h::Custom_type_reference const& custom_type_reference = std::get<h::Custom_type_reference>(value_type.data);
 
-            std::optional<Declaration> const member_declaration_optional = h::find_declaration(declaration_database, core_module.name, custom_type_reference.name);
-            if (member_declaration_optional.has_value())
+            std::optional<Declaration> const declaration_optional = h::find_declaration(declaration_database, core_module.name, custom_type_reference.name);
+            if (declaration_optional.has_value())
             {
-                h::Declaration const& member_declaration = member_declaration_optional.value();
-                if (std::holds_alternative<h::Alias_type_declaration const*>(member_declaration.data))
+                h::Declaration const& declaration = declaration_optional.value();
+                if (std::holds_alternative<h::Alias_type_declaration const*>(declaration.data))
                 {
-                    h::Alias_type_declaration const* alias_type_declaration = std::get<h::Alias_type_declaration const*>(member_declaration.data);
+                    h::Alias_type_declaration const* alias_type_declaration = std::get<h::Alias_type_declaration const*>(declaration.data);
                     if (alias_type_declaration->type.empty())
                         throw std::runtime_error{ std::format("Alias type '{}' is void!", alias_type_declaration->name) };
 
@@ -1550,11 +1575,11 @@ namespace h::c
                         throw std::runtime_error{ std::format("Alias type '{}' is void!", alias_type_declaration->name) };
 
                     Type_reference const& underlying_type = underlying_type_optional.value();
-                    return create_struct_member_default_value(underlying_type, core_module, declaration_database);
+                    return create_default_value(underlying_type, core_module, declaration_database);
                 }
-                else if (std::holds_alternative<h::Enum_declaration const*>(member_declaration.data))
+                else if (std::holds_alternative<h::Enum_declaration const*>(declaration.data))
                 {
-                    h::Enum_declaration const* enum_declaration = std::get<h::Enum_declaration const*>(member_declaration.data);
+                    h::Enum_declaration const* enum_declaration = std::get<h::Enum_declaration const*>(declaration.data);
 
                     if (enum_declaration->values.empty())
                         throw std::runtime_error{ std::format("Enum '{}' is empty!", enum_declaration->name) };
@@ -1563,7 +1588,7 @@ namespace h::c
                         h::create_enum_value_expressions(enum_declaration->name, enum_declaration->values[0].name)
                     );
                 }
-                else if (std::holds_alternative<h::Struct_declaration const*>(member_declaration.data))
+                else if (std::holds_alternative<h::Struct_declaration const*>(declaration.data))
                 {
                     return h::create_statement(
                         {
@@ -1571,9 +1596,9 @@ namespace h::c
                         }
                     );
                 }
-                else if (std::holds_alternative<h::Union_declaration const*>(member_declaration.data))
+                else if (std::holds_alternative<h::Union_declaration const*>(declaration.data))
                 {
-                    h::Union_declaration const* union_declaration = std::get<h::Union_declaration const*>(member_declaration.data);
+                    h::Union_declaration const* union_declaration = std::get<h::Union_declaration const*>(declaration.data);
 
                     if (union_declaration->member_types.empty()) {
                         return h::create_statement(
@@ -1586,7 +1611,7 @@ namespace h::c
                     h::Instantiate_member_value_pair member_value
                     {
                         .member_name = union_declaration->member_names[0],
-                        .value = create_struct_member_default_value(union_declaration->member_types[0], core_module, declaration_database)
+                        .value = create_default_value(union_declaration->member_types[0], core_module, declaration_database)
                     };
 
                     return h::create_statement(
@@ -1597,9 +1622,9 @@ namespace h::c
                 }
             }
         }
-        else if (std::holds_alternative<h::Fundamental_type>(member_type.data))
+        else if (std::holds_alternative<h::Fundamental_type>(value_type.data))
         {
-            h::Fundamental_type const& fundamental_type = std::get<h::Fundamental_type>(member_type.data);
+            h::Fundamental_type const& fundamental_type = std::get<h::Fundamental_type>(value_type.data);
 
             switch (fundamental_type)
             {
@@ -1607,7 +1632,7 @@ namespace h::c
                 return h::create_statement(
                     {
                         h::create_constant_expression(
-                            member_type,
+                            value_type,
                             "false"
                         )
                     }
@@ -1619,7 +1644,7 @@ namespace h::c
                 return h::create_statement(
                     {
                         h::create_constant_expression(
-                            member_type,
+                            value_type,
                             "0.0"
                         )
                     }
@@ -1629,7 +1654,7 @@ namespace h::c
                 return h::create_statement(
                     {
                         h::create_constant_expression(
-                            member_type,
+                            value_type,
                             ""
                         )
                     }
@@ -1651,7 +1676,7 @@ namespace h::c
                 return h::create_statement(
                     {
                         h::create_constant_expression(
-                            member_type,
+                            value_type,
                             "0"
                         )
                     }
@@ -1659,29 +1684,29 @@ namespace h::c
             }
             }
         }
-        else if (std::holds_alternative<h::Function_type>(member_type.data))
+        else if (std::holds_alternative<h::Function_type>(value_type.data))
         {
-            h::Function_type const& function_type = std::get<h::Function_type>(member_type.data);
+            h::Function_type const& function_type = std::get<h::Function_type>(value_type.data);
             return h::create_statement(
                 {
                     h::create_null_pointer_expression()
                 }
             );
         }
-        else if (std::holds_alternative<h::Integer_type>(member_type.data))
+        else if (std::holds_alternative<h::Integer_type>(value_type.data))
         {
             return h::create_statement(
                 {
                     h::create_constant_expression(
-                        member_type,
+                        value_type,
                         "0"
                     )
                 }
             );
         }
-        else if (std::holds_alternative<h::Pointer_type>(member_type.data))
+        else if (std::holds_alternative<h::Pointer_type>(value_type.data))
         {
-            h::Pointer_type const& pointer_type = std::get<h::Pointer_type>(member_type.data);
+            h::Pointer_type const& pointer_type = std::get<h::Pointer_type>(value_type.data);
             return h::create_statement(
                 {
                     h::create_null_pointer_expression()
@@ -1689,7 +1714,7 @@ namespace h::c
             );
         }
 
-        throw std::runtime_error{ "create_struct_member_default_value() did not handle Type_reference type!" };
+        throw std::runtime_error{ "create_default_value() did not handle Type_reference type!" };
     }
 
     void add_struct_member_default_values(
@@ -1706,7 +1731,7 @@ namespace h::c
             {
                 Type_reference const& member_type = struct_declaration.member_types[index];
 
-                h::Statement default_value = create_struct_member_default_value(member_type, core_module, declaration_database);
+                h::Statement default_value = create_default_value(member_type, core_module, declaration_database);
                 struct_declaration.member_default_values.push_back(std::move(default_value));
             }
         }
@@ -1908,7 +1933,7 @@ namespace h::c
                 if (variable_name.starts_with(special_prefix))
                 {
                     std::optional<h::Global_variable_declaration> declaration = create_global_variable_declaration(*declarations, current_cursor);
-                    if (declaration.has_value() && declaration->value.has_value())
+                    if (declaration.has_value())
                     {
                         declaration->name = variable_name.substr(special_prefix.size());
                         declaration->unique_name = declaration->name;
@@ -2027,13 +2052,13 @@ namespace h::c
 
         C_declarations declarations_with_fixed_width_integers = convert_fixed_width_integers_typedefs_to_integer_types(declarations);
 
-        // TODO add global variable declarations
         h::Declaration_database declaration_database = h::create_declaration_database();
         h::add_declarations(
             declaration_database,
             header_name,
             declarations_with_fixed_width_integers.alias_type_declarations,
             declarations_with_fixed_width_integers.enum_declarations,
+            declarations_with_fixed_width_integers.global_variable_declarations,
             declarations_with_fixed_width_integers.struct_declarations,
             declarations_with_fixed_width_integers.union_declarations,
             declarations_with_fixed_width_integers.function_declarations
@@ -2059,6 +2084,9 @@ namespace h::c
         h::fix_custom_type_references(header_module);
         add_struct_member_default_values(header_module, header_module.export_declarations, declaration_database);
         add_struct_member_default_values(header_module, header_module.internal_declarations, declaration_database);
+
+        set_global_variable_default_values(header_module, header_module.export_declarations, declaration_database);
+        set_global_variable_default_values(header_module, header_module.internal_declarations, declaration_database);
 
         return header_module;
     }

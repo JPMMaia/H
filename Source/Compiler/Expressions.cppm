@@ -70,7 +70,7 @@ namespace h::compiler
 
     export llvm::Constant* fold_constant(
         llvm::Value* value,
-        llvm::DataLayout* llvm_data_layout
+        llvm::DataLayout const& llvm_data_layout
     );
 
     export llvm::Constant* fold_statement_constant(

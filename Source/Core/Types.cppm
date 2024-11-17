@@ -131,6 +131,24 @@ namespace h
     }
 
     export template <typename Function_t>
+    bool visit_type_references(
+        h::Global_variable_declaration const& declaration,
+        Function_t predicate
+    )
+    {
+        if (declaration.type.has_value())
+        {
+            if (visit_type_references(*declaration.type, predicate))
+                return true;
+        }
+
+        if (visit_type_references(declaration.initial_value, predicate))
+            return true;
+
+        return false;
+    }
+
+    export template <typename Function_t>
         bool visit_type_references(
             h::Struct_declaration const& declaration,
             Function_t predicate
@@ -293,6 +311,17 @@ namespace h
                 return true;
         }
 
+        for (Global_variable_declaration const& declaration : declarations.global_variable_declarations)
+        {
+            auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> bool
+            {
+                return predicate(declaration.name, type_reference);
+            };
+
+            if (visit_type_references(declaration, predicate_with_name))
+                return true;
+        }
+
         for (Struct_declaration const& declaration : declarations.struct_declarations)
         {
             auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> bool
@@ -398,6 +427,35 @@ namespace h
                 return true;
             }
         }
+
+        for (Global_variable_declaration const& declaration : core_module.export_declarations.global_variable_declarations)
+        {
+            if (declaration.name == declaration_name)
+            {
+                auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> bool
+                {
+                    return predicate(declaration.name, type_reference);
+                };
+
+                visit_type_references(declaration, predicate_with_name);
+                return true;
+            }
+        }
+
+        for (Global_variable_declaration const& declaration : core_module.internal_declarations.global_variable_declarations)
+        {
+            if (declaration.name == declaration_name)
+            {
+                auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> bool
+                {
+                    return predicate(declaration.name, type_reference);
+                };
+
+                visit_type_references(declaration, predicate_with_name);
+                return true;
+            }
+        }
+
 
         for (Struct_declaration const& declaration : core_module.export_declarations.struct_declarations)
         {
@@ -660,6 +718,12 @@ namespace h
         )
     {
         for (Enum_declaration const& declaration : declarations.enum_declarations)
+        {
+            if (visit_expressions(declaration, predicate))
+                return true;
+        }
+
+        for (Global_variable_declaration const& declaration : declarations.global_variable_declarations)
         {
             if (visit_expressions(declaration, predicate))
                 return true;

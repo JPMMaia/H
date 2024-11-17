@@ -696,45 +696,43 @@ async function validate_global_variable(
     }
     const global_variable_declaration = declaration.value as Core.Global_variable_declaration;
 
-    if (global_variable_declaration.value !== undefined) {
-        const descendant_expression = Parser_node.find_descendant_position_if(descendant_global_variable, descendant => descendant.word.value === "Generic_expression_or_instantiate");
-        if (descendant_expression !== undefined) {
-            if (!is_expression_computable_at_compile_time(descendant_expression, [])) {
+    const descendant_expression = Parser_node.find_descendant_position_if(descendant_global_variable, descendant => descendant.word.value === "Generic_expression_or_instantiate");
+    if (descendant_expression !== undefined) {
+        if (!is_expression_computable_at_compile_time(descendant_expression, [])) {
+            diagnostics.push({
+                location: get_parser_node_position_source_location(uri, cache, descendant_expression),
+                source: Source.Parse_tree_validation,
+                severity: Diagnostic_severity.Error,
+                message: `The value of '${variable_name}' must be a computable at compile-time.`,
+                related_information: [],
+            });
+        }
+
+        if (global_variable_declaration.type !== undefined) {
+            const expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_expression.node);
+            const expression_type = await Parse_tree_analysis.get_expression_type(language_description, core_module, declaration, root, descendant_expression.position, expression, get_core_module);
+
+            if (expression_type !== undefined && !expression_type.is_value) {
                 diagnostics.push({
                     location: get_parser_node_position_source_location(uri, cache, descendant_expression),
                     source: Source.Parse_tree_validation,
                     severity: Diagnostic_severity.Error,
-                    message: `The value of '${variable_name}' must be a computable at compile-time.`,
+                    message: `Expected a value, but got a type.`,
                     related_information: [],
                 });
             }
+            else if (expression_type === undefined || expression_type.type.length === 0 || (expression_type.type.length > 0 && !deep_equal(expression_type.type[0], global_variable_declaration.type) && !are_compatible_pointer_types(expression_type.type, [global_variable_declaration.type]))) {
 
-            if (global_variable_declaration.type !== undefined) {
-                const expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_expression.node);
-                const expression_type = await Parse_tree_analysis.get_expression_type(language_description, core_module, declaration, root, descendant_expression.position, expression, get_core_module);
+                const member_type_string = Type_utilities.get_type_name([global_variable_declaration.type]);
+                const expression_type_string = expression_type !== undefined ? Type_utilities.get_type_name(expression_type.type) : "<undefined>";
 
-                if (expression_type !== undefined && !expression_type.is_value) {
-                    diagnostics.push({
-                        location: get_parser_node_position_source_location(uri, cache, descendant_expression),
-                        source: Source.Parse_tree_validation,
-                        severity: Diagnostic_severity.Error,
-                        message: `Expected a value, but got a type.`,
-                        related_information: [],
-                    });
-                }
-                else if (expression_type === undefined || expression_type.type.length === 0 || (expression_type.type.length > 0 && !deep_equal(expression_type.type[0], global_variable_declaration.type) && !are_compatible_pointer_types(expression_type.type, [global_variable_declaration.type]))) {
-
-                    const member_type_string = Type_utilities.get_type_name([global_variable_declaration.type]);
-                    const expression_type_string = expression_type !== undefined ? Type_utilities.get_type_name(expression_type.type) : "<undefined>";
-
-                    diagnostics.push({
-                        location: get_parser_node_position_source_location(uri, cache, descendant_expression),
-                        source: Source.Parse_tree_validation,
-                        severity: Diagnostic_severity.Error,
-                        message: `Expression type '${expression_type_string}' does not match expected type '${member_type_string}'.`,
-                        related_information: [],
-                    });
-                }
+                diagnostics.push({
+                    location: get_parser_node_position_source_location(uri, cache, descendant_expression),
+                    source: Source.Parse_tree_validation,
+                    severity: Diagnostic_severity.Error,
+                    message: `Expression type '${expression_type_string}' does not match expected type '${member_type_string}'.`,
+                    related_information: [],
+                });
             }
         }
     }

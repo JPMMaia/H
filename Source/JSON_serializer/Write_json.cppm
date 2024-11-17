@@ -977,7 +977,8 @@ namespace h::json
         writer.String(output.name.data(), output.name.size());
         write_optional(writer, "unique_name", output.unique_name);
         write_optional_object(writer, "type", output.type);
-        write_optional_object(writer, "value", output.value);
+        writer.Key("initial_value");
+        write_object(writer, output.initial_value);
         writer.Key("is_mutable");
         writer.Bool(output.is_mutable);
         write_optional(writer, "comment", output.comment);

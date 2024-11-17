@@ -50,6 +50,27 @@ namespace h::compiler
         return location->module_name;
     }
 
+    std::optional<Value_and_type> get_global_variable_value_and_type(
+        h::Global_variable_declaration const& global_variable_declaration,
+        Expression_parameters const& parameters
+    )
+    {
+        std::string const mangled_name = mangle_name(parameters.core_module, global_variable_declaration.name, global_variable_declaration.unique_name);
+        llvm::GlobalValue* const llvm_global_value = parameters.llvm_module.getNamedValue(mangled_name);
+        if (llvm_global_value == nullptr) {
+            return std::nullopt;
+        }
+
+        std::optional<Type_reference> type = global_variable_declaration.type.has_value() ? global_variable_declaration.type : create_statement_value(global_variable_declaration.initial_value, parameters).type;
+
+        return Value_and_type
+        {
+            .name = global_variable_declaration.name,
+            .value = llvm_global_value,
+            .type = std::move(type)
+        };
+    }
+
     static void create_local_variable_debug_description(
         Debug_info& debug_info,
         Expression_parameters const& parameters,
@@ -2311,16 +2332,46 @@ namespace h::compiler
         case Unary_operation::Address_of: {
             std::string_view const variable_name = value_expression.name;
 
-            std::optional<Value_and_type> location = search_in_function_scope(variable_name, {}, local_variables);
-            if (location.has_value())
             {
-                Value_and_type const& variable_declaration = location.value();
-                return Value_and_type
+                std::optional<Value_and_type> location = search_in_function_scope(variable_name, {}, local_variables);
+                if (location.has_value())
                 {
-                    .name = "",
-                    .value = variable_declaration.value,
-                    .type = create_pointer_type_type_reference({ variable_declaration.type.value() }, false)
-                };
+                    Value_and_type const& variable_declaration = location.value();
+                    return Value_and_type
+                    {
+                        .name = "",
+                        .value = variable_declaration.value,
+                        .type = create_pointer_type_type_reference({ variable_declaration.type.value() }, false)
+                    };
+                }
+            }
+
+            {
+                std::optional<Global_variable_declaration const*> const declaration = find_global_variable_declaration(parameters.core_module, variable_name);
+                if (declaration.has_value())
+                {
+                    Global_variable_declaration const& global_variable_declaration = *declaration.value();
+
+                    if (global_variable_declaration.is_mutable)
+                    {
+                        std::optional<Value_and_type> const global_variable = get_global_variable_value_and_type(
+                            global_variable_declaration,
+                            parameters
+                        );
+                        if (global_variable.has_value())
+                        {
+                            if (!global_variable->type.has_value())
+                                throw std::runtime_error{std::format("Could not deduce type of global variable '{}'", global_variable_declaration.name)};
+                            
+                            return Value_and_type
+                            {
+                                .name = "",
+                                .value = global_variable->value,
+                                .type = create_pointer_type_type_reference({ global_variable->type.value() }, false)
+                            };
+                        }
+                    }
+                }
             }
         }
         }
@@ -2408,16 +2459,7 @@ namespace h::compiler
 
     Value_and_type create_variable_expression_value(
         Variable_expression const& expression,
-        Module const& core_module,
-        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies,
-        llvm::LLVMContext& llvm_context,
-        llvm::DataLayout const& llvm_data_layout,
-        llvm::Module& llvm_module,
-        llvm::IRBuilder<>& llvm_builder,
-        std::span<Value_and_type const> const function_arguments,
-        std::span<Value_and_type const> const local_variables,
-        Declaration_database const& declaration_database,
-        Type_database const& type_database
+        Expression_parameters const& parameters
     )
     {
         char const* const variable_name = expression.name.c_str();
@@ -2429,7 +2471,7 @@ namespace h::compiler
 
         // Search in local variables and function arguments:
         {
-            std::optional<Value_and_type> location = search_in_function_scope(variable_name, function_arguments, local_variables);
+            std::optional<Value_and_type> location = search_in_function_scope(variable_name, parameters.function_arguments, parameters.local_variables);
 
             if (location.has_value())
             {
@@ -2439,8 +2481,8 @@ namespace h::compiler
 
         // Search in function arguments:
         {
-            auto const location = std::find_if(function_arguments.begin(), function_arguments.end(), is_variable);
-            if (location != function_arguments.end())
+            auto const location = std::find_if(parameters.function_arguments.begin(), parameters.function_arguments.end(), is_variable);
+            if (location != parameters.function_arguments.end())
             {
                 return *location;
             }
@@ -2448,10 +2490,10 @@ namespace h::compiler
 
         // Search for functions in this module:
         {
-            llvm::Function* const llvm_function = get_llvm_function(core_module, llvm_module, variable_name);
+            llvm::Function* const llvm_function = get_llvm_function(parameters.core_module, parameters.llvm_module, variable_name);
             if (llvm_function != nullptr)
             {
-                std::optional<Function_declaration const*> const function_declaration = find_function_declaration(core_module, variable_name);
+                std::optional<Function_declaration const*> const function_declaration = find_function_declaration(parameters.core_module, variable_name);
 
                 Type_reference type = create_function_type_type_reference(function_declaration.value()->type);
 
@@ -2466,10 +2508,10 @@ namespace h::compiler
 
         // Search for alias in this module:
         {
-            std::optional<Alias_type_declaration const*> const declaration = find_alias_type_declaration(core_module, variable_name);
+            std::optional<Alias_type_declaration const*> const declaration = find_alias_type_declaration(parameters.core_module, variable_name);
             if (declaration.has_value())
             {
-                std::optional<Type_reference> type = get_underlying_type(declaration_database, *declaration.value(), core_module, core_module_dependencies);
+                std::optional<Type_reference> type = get_underlying_type(parameters.declaration_database, *declaration.value(), parameters.core_module, parameters.core_module_dependencies);
 
                 return Value_and_type
                 {
@@ -2482,11 +2524,11 @@ namespace h::compiler
 
         // Search for enums in this module:
         {
-            std::optional<Enum_declaration const*> const declaration = find_enum_declaration(core_module, variable_name);
+            std::optional<Enum_declaration const*> const declaration = find_enum_declaration(parameters.core_module, variable_name);
             if (declaration.has_value())
             {
                 Enum_declaration const& enum_declaration = *declaration.value();
-                Type_reference type = create_custom_type_reference(core_module.name, enum_declaration.name);
+                Type_reference type = create_custom_type_reference(parameters.core_module.name, enum_declaration.name);
 
                 return Value_and_type
                 {
@@ -2497,9 +2539,47 @@ namespace h::compiler
             }
         }
 
+        // Search for global variables:
+        {
+            std::optional<Global_variable_declaration const*> const declaration = find_global_variable_declaration(parameters.core_module, variable_name);
+            if (declaration.has_value())
+            {
+                Global_variable_declaration const& global_variable_declaration = *declaration.value();
+
+                if (!global_variable_declaration.is_mutable)
+                {
+                    Expression_parameters new_parameters = parameters;
+                    new_parameters.expression_type = global_variable_declaration.type;
+
+                    Value_and_type const value = create_statement_value(
+                        global_variable_declaration.initial_value,
+                        new_parameters
+                    );
+
+                    llvm::Constant* const constant = fold_constant(value.value, parameters.llvm_data_layout);
+
+                    return Value_and_type
+                    {
+                        .name = global_variable_declaration.name,
+                        .value = constant,
+                        .type = value.type
+                    };
+                }
+                else
+                {
+                    std::optional<Value_and_type> const global_variable = get_global_variable_value_and_type(
+                        global_variable_declaration,
+                        parameters
+                    );
+                    if (global_variable.has_value())
+                        return *global_variable;
+                }
+            }
+        }
+
         // Search for module dependencies:
         {
-            std::optional<std::string_view> const module_name = get_module_name_from_alias(core_module, variable_name);
+            std::optional<std::string_view> const module_name = get_module_name_from_alias(parameters.core_module, variable_name);
             if (module_name.has_value())
             {
                 return Value_and_type
@@ -2692,7 +2772,7 @@ namespace h::compiler
         else if (std::holds_alternative<Variable_expression>(expression.data))
         {
             Variable_expression const& data = std::get<Variable_expression>(expression.data);
-            return create_variable_expression_value(data, new_parameters.core_module, new_parameters.core_module_dependencies, new_parameters.llvm_context, new_parameters.llvm_data_layout, new_parameters.llvm_module, new_parameters.llvm_builder, new_parameters.function_arguments, new_parameters.local_variables, new_parameters.declaration_database, new_parameters.type_database);
+            return create_variable_expression_value(data, new_parameters);
         }
         else if (std::holds_alternative<While_loop_expression>(expression.data))
         {

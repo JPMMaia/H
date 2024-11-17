@@ -679,7 +679,7 @@ export interface Global_variable_declaration {
     name: string;
     unique_name?: string;
     type?: Type_reference;
-    value?: Statement;
+    initial_value: Statement;
     is_mutable: boolean;
     comment?: string;
     source_location?: Source_location;
@@ -690,7 +690,7 @@ function core_to_intermediate_global_variable_declaration(core_value: Core.Globa
         name: core_value.name,
         unique_name: core_value.unique_name,
         type: core_value.type !== undefined ? core_to_intermediate_type_reference(core_value.type) : undefined,
-        value: core_value.value !== undefined ? core_to_intermediate_statement(core_value.value) : undefined,
+        initial_value: core_to_intermediate_statement(core_value.initial_value),
         is_mutable: core_value.is_mutable,
         comment: core_value.comment,
         source_location: core_value.source_location !== undefined ? core_to_intermediate_source_location(core_value.source_location) : undefined,
@@ -702,7 +702,7 @@ function intermediate_to_core_global_variable_declaration(intermediate_value: Gl
         name: intermediate_value.name,
         unique_name: intermediate_value.unique_name,
         type: intermediate_value.type !== undefined ? intermediate_to_core_type_reference(intermediate_value.type) : undefined,
-        value: intermediate_value.value !== undefined ? intermediate_to_core_statement(intermediate_value.value) : undefined,
+        initial_value: intermediate_to_core_statement(intermediate_value.initial_value),
         is_mutable: intermediate_value.is_mutable,
         comment: intermediate_value.comment,
         source_location: intermediate_value.source_location !== undefined ? intermediate_to_core_source_location(intermediate_value.source_location) : undefined,
