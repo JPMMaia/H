@@ -2386,12 +2386,28 @@ switch_case_i5_:                                  ; preds = %switch_case_i4_, %e
   {
     char const* const input_file = "using_global_variables.hl";
 
+    std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "using_global_variables";
+    std::filesystem::create_directories(root_directory_path);
+
+    std::string const header_content = R"(
+#define MY_DEFINE 2.0f
+float my_global = 0.0f;
+)";
+
+    std::filesystem::path const header_file_path = root_directory_path / "my_header.h";
+    h::common::write_to_file(header_file_path, header_content);
+
+    std::filesystem::path const header_module_file_path = root_directory_path / "my_header.hl";
+    h::c::import_header_and_write_to_file("my_module", header_file_path, header_module_file_path, {});
+
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
+        { "my_module", header_module_file_path }
     };
 
     char const* const expected_llvm_ir = R"(
 @Global_variables_my_global_variable_0 = global float 1.000000e+00
+@my_global = global float 0.000000e+00
 
 define void @Global_variables_use_global_variables(float %"arguments[0].parameter") {
 entry:
@@ -2405,6 +2421,11 @@ entry:
   store float %3, ptr %a, align 4
   %b = alloca ptr, align 8
   store ptr @Global_variables_my_global_variable_0, ptr %b, align 8
+  %c = alloca float, align 4
+  store float 2.000000e+00, ptr %c, align 4
+  %4 = load float, ptr @my_global, align 4
+  %d = alloca float, align 4
+  store float %4, ptr %d, align 4
   ret void
 }
 )";
