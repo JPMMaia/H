@@ -1,5 +1,7 @@
 module Global_variables;
 
+import my_module as My_module;
+
 var my_global_constant_0 = 1.0f32;
 var my_global_constant_1: Float32 = 1.0f32;
 mutable my_global_variable_0 = 1.0f32;
@@ -8,4 +10,6 @@ export function use_global_variables(parameter: Float32) -> ()
 {
     var a = my_global_constant_0 + my_global_constant_1 + my_global_variable_0 + parameter;
     var b = &my_global_variable_0;
+    var c = My_module.MY_DEFINE;
+    var d = My_module.my_global;
 }

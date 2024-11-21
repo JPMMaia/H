@@ -51,24 +51,47 @@ namespace h::compiler
     }
 
     std::optional<Value_and_type> get_global_variable_value_and_type(
+        h::Module const& global_variable_module,
         h::Global_variable_declaration const& global_variable_declaration,
         Expression_parameters const& parameters
     )
     {
-        std::string const mangled_name = mangle_name(parameters.core_module, global_variable_declaration.name, global_variable_declaration.unique_name);
-        llvm::GlobalValue* const llvm_global_value = parameters.llvm_module.getNamedValue(mangled_name);
-        if (llvm_global_value == nullptr) {
-            return std::nullopt;
-        }
-
-        std::optional<Type_reference> type = global_variable_declaration.type.has_value() ? global_variable_declaration.type : create_statement_value(global_variable_declaration.initial_value, parameters).type;
-
-        return Value_and_type
+        if (!global_variable_declaration.is_mutable)
         {
-            .name = global_variable_declaration.name,
-            .value = llvm_global_value,
-            .type = std::move(type)
-        };
+            Expression_parameters new_parameters = parameters;
+            new_parameters.expression_type = global_variable_declaration.type;
+
+            Value_and_type const value = create_statement_value(
+                global_variable_declaration.initial_value,
+                new_parameters
+            );
+
+            llvm::Constant* const constant = fold_constant(value.value, parameters.llvm_data_layout);
+
+            return Value_and_type
+            {
+                .name = global_variable_declaration.name,
+                .value = constant,
+                .type = value.type
+            };
+        }
+        else
+        {
+            std::string const mangled_name = mangle_name(global_variable_module, global_variable_declaration.name, global_variable_declaration.unique_name);
+            llvm::GlobalValue* const llvm_global_value = parameters.llvm_module.getNamedValue(mangled_name);
+            if (llvm_global_value == nullptr) {
+                return std::nullopt;
+            }
+
+            std::optional<Type_reference> type = global_variable_declaration.type.has_value() ? global_variable_declaration.type : create_statement_value(global_variable_declaration.initial_value, parameters).type;
+
+            return Value_and_type
+            {
+                .name = global_variable_declaration.name,
+                .value = llvm_global_value,
+                .type = std::move(type)
+            };
+        }
     }
 
     static void create_local_variable_debug_description(
@@ -379,6 +402,20 @@ namespace h::compiler
                         .value = nullptr,
                         .type = std::move(type)
                     };
+                }
+                else if (std::holds_alternative<Global_variable_declaration const*>(declaration.data))
+                {
+                    Global_variable_declaration const& global_variable_declaration = *std::get<Global_variable_declaration const*>(declaration.data);
+                    
+                    std::optional<Value_and_type> value_and_type = get_global_variable_value_and_type(
+                        external_module,
+                        global_variable_declaration,
+                        parameters
+                    );
+                    if (!value_and_type.has_value())
+                        throw std::runtime_error{std::format("Internal error while trying to find global variable '{}.{}'", external_module.name, declaration_name)};
+
+                    return *value_and_type;
                 }
                 else if (std::holds_alternative<Function_declaration const*>(declaration.data))
                 {
@@ -2355,6 +2392,7 @@ namespace h::compiler
                     if (global_variable_declaration.is_mutable)
                     {
                         std::optional<Value_and_type> const global_variable = get_global_variable_value_and_type(
+                            parameters.core_module,
                             global_variable_declaration,
                             parameters
                         );
@@ -2546,34 +2584,13 @@ namespace h::compiler
             {
                 Global_variable_declaration const& global_variable_declaration = *declaration.value();
 
-                if (!global_variable_declaration.is_mutable)
-                {
-                    Expression_parameters new_parameters = parameters;
-                    new_parameters.expression_type = global_variable_declaration.type;
-
-                    Value_and_type const value = create_statement_value(
-                        global_variable_declaration.initial_value,
-                        new_parameters
-                    );
-
-                    llvm::Constant* const constant = fold_constant(value.value, parameters.llvm_data_layout);
-
-                    return Value_and_type
-                    {
-                        .name = global_variable_declaration.name,
-                        .value = constant,
-                        .type = value.type
-                    };
-                }
-                else
-                {
-                    std::optional<Value_and_type> const global_variable = get_global_variable_value_and_type(
-                        global_variable_declaration,
-                        parameters
-                    );
-                    if (global_variable.has_value())
-                        return *global_variable;
-                }
+                std::optional<Value_and_type> const global_variable = get_global_variable_value_and_type(
+                    parameters.core_module,
+                    global_variable_declaration,
+                    parameters
+                );
+                if (global_variable.has_value())
+                    return *global_variable;
             }
         }
 
