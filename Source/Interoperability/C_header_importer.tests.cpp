@@ -891,6 +891,7 @@ union My_data
 #define MY_FLOAT FLOAT(3.5);
 
 const auto my_global_0 = MY_FLOAT;
+float my_global_1 = 0.0f;
 )";
 
         std::filesystem::path const header_file_path = root_directory_path / "My_data.h";
@@ -904,12 +905,26 @@ const auto my_global_0 = MY_FLOAT;
             h::Global_variable_declaration const& declaration = header_module.export_declarations.global_variable_declarations[0];
             CHECK(declaration.name == "my_global_0");
             CHECK(declaration.name == declaration.unique_name.value());
+            CHECK(declaration.is_mutable == false);
             
             CHECK(declaration.type == h::create_fundamental_type_type_reference(h::Fundamental_type::Float32));
             REQUIRE(declaration.type.has_value());
             CHECK(declaration.initial_value == h::create_statement({ h::create_constant_expression(*declaration.type, "3.500000") }));
 
             CHECK(*declaration.source_location == h::Source_location{ .line = 5, .column = 12 });
+        }
+
+        {
+            h::Global_variable_declaration const& declaration = header_module.export_declarations.global_variable_declarations[1];
+            CHECK(declaration.name == "my_global_1");
+            CHECK(declaration.name == declaration.unique_name.value());
+            CHECK(declaration.is_mutable == true);
+            
+            CHECK(declaration.type == h::create_fundamental_type_type_reference(h::Fundamental_type::Float32));
+            REQUIRE(declaration.type.has_value());
+            CHECK(declaration.initial_value == h::create_statement({ h::create_constant_expression(*declaration.type, "0.000000") }));
+
+            CHECK(*declaration.source_location == h::Source_location{ .line = 6, .column = 7 });
         }
     }
 
