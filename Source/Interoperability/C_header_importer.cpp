@@ -807,6 +807,7 @@ namespace h::c
         std::string_view const variable_name = cursor_spelling.string_view();
 
         CXType const variable_type = clang_getCursorType(cursor);
+        bool const is_const = clang_isConstQualifiedType(variable_type);
 
         std::optional<h::Type_reference> const member_type_reference = create_type_reference(declarations, cursor, variable_type);
         if (!member_type_reference.has_value())
@@ -824,6 +825,7 @@ namespace h::c
             .unique_name = std::pmr::string{variable_name},
             .type = std::move(*member_type_reference),
             .initial_value = initial_value.has_value() ? std::move(*initial_value) : h::Statement{},
+            .is_mutable = !is_const,
             .comment = std::nullopt,
             .source_location = cursor_location.source_location,
         };
