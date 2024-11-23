@@ -21,3 +21,5 @@ typedef union Number
     int int32;
     float float32;
 } Number;
+
+#define PI 3.14

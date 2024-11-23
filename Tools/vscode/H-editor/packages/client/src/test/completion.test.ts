@@ -89,6 +89,7 @@ suite("Should do completion", () => {
 		await test_completion(document_uri, new vscode.Position(2, 7), {
 			items: [
 				{ label: "c.complex", kind: vscode.CompletionItemKind.Module },
+				{ label: "c.entry", kind: vscode.CompletionItemKind.Module },
 				{ label: "project_0.import_completion_1", kind: vscode.CompletionItemKind.Module },
 				{ label: "project_0.main", kind: vscode.CompletionItemKind.Module },
 			]
@@ -100,6 +101,7 @@ suite("Should do completion", () => {
 		await test_completion(document_uri, new vscode.Position(2, 7), {
 			items: [
 				{ label: "c.complex", kind: vscode.CompletionItemKind.Module },
+				{ label: "c.entry", kind: vscode.CompletionItemKind.Module },
 				{ label: "project_0.import_completion_0", kind: vscode.CompletionItemKind.Module },
 				{ label: "project_0.main", kind: vscode.CompletionItemKind.Module },
 			]
@@ -110,6 +112,7 @@ suite("Should do completion", () => {
 		const document_uri = get_document_uri('projects/project_0/main.hltxt');
 		await test_completion(document_uri, new vscode.Position(2, 10), {
 			items: [
+				{ label: "c.entry", kind: vscode.CompletionItemKind.Module },
 				{ label: "project_0.import_completion_0", kind: vscode.CompletionItemKind.Module },
 				{ label: "project_0.import_completion_1", kind: vscode.CompletionItemKind.Module },
 			]

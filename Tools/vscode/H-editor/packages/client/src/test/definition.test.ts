@@ -260,6 +260,31 @@ suite("Should get definition location of enums", () => {
     });
 });
 
+suite("Should get definition location of global variables", () => {
+
+    test("Gets global variable definition location of itself", async () => {
+        const document_uri = get_document_uri("definition_global_variable_0.hltxt");
+        await test_definitions(document_uri, new vscode.Position(2, 6), [
+            new vscode.Location(get_document_uri("definition_global_variable_0.hltxt"), to_range(2, 4, 2, 22))
+        ]);
+    });
+
+    test("Gets definition location of global variable when used as expression", async () => {
+        const document_uri = get_document_uri("definition_global_variable_0.hltxt");
+        await test_definitions(document_uri, new vscode.Position(6, 15), [
+            new vscode.Location(get_document_uri("definition_global_variable_0.hltxt"), to_range(2, 4, 2, 22))
+        ]);
+    });
+
+    test("Gets definition location of define when used as expression", async () => {
+        const document_uri = get_document_uri("projects/project_1/definition_global_variable_0.hltxt");
+        await test_definitions(document_uri, new vscode.Position(6, 20), [
+            new vscode.Location(get_document_uri("projects/complex/complex.h"), to_range(24, 8, 24, 10))
+        ]);
+    });
+});
+
+
 function to_range(start_line: number, start_character: number, end_line: number, end_character: number): vscode.Range {
     const start = new vscode.Position(start_line, start_character);
     const end = new vscode.Position(end_line, end_character);
