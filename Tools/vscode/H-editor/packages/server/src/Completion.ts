@@ -247,18 +247,27 @@ function get_builtin_type_items(): vscode.CompletionItem[] {
     return items;
 }
 
-function declaration_type_to_completion_item_kind(declaration_type: Core.Declaration_type): vscode.CompletionItemKind {
-    switch (declaration_type) {
-        case Core.Declaration_type.Alias:
+function declaration_type_to_completion_item_kind(declaration: Core.Declaration): vscode.CompletionItemKind {
+    switch (declaration.type) {
+        case Core.Declaration_type.Alias: {
             return vscode.CompletionItemKind.TypeParameter;
-        case Core.Declaration_type.Enum:
+        }
+        case Core.Declaration_type.Enum: {
             return vscode.CompletionItemKind.Enum;
-        case Core.Declaration_type.Function:
+        }
+        case Core.Declaration_type.Function: {
             return vscode.CompletionItemKind.Function;
-        case Core.Declaration_type.Struct:
+        }
+        case Core.Declaration_type.Global_variable: {
+            // TODO can be either constant or variable
+            return vscode.CompletionItemKind.Variable;
+        }
+        case Core.Declaration_type.Struct: {
             return vscode.CompletionItemKind.Struct;
-        case Core.Declaration_type.Union:
+        }
+        case Core.Declaration_type.Union: {
             return vscode.CompletionItemKind.TypeParameter;
+        }
     }
 }
 
@@ -267,7 +276,7 @@ function get_module_type_items(
     public_only: boolean
 ): vscode.CompletionItem[] {
 
-    const type_declarations = core_module.declarations.filter(declaration => declaration.type !== Core.Declaration_type.Function);
+    const type_declarations = core_module.declarations.filter(declaration => declaration.type !== Core.Declaration_type.Function && declaration.type !== Core.Declaration_type.Global_variable);
 
     const visible_type_declarations = public_only ?
         type_declarations.filter(declaration => declaration.is_export)
@@ -276,7 +285,7 @@ function get_module_type_items(
     return visible_type_declarations
         .map(
             declaration => {
-                const kind = declaration_type_to_completion_item_kind(declaration.type);
+                const kind = declaration_type_to_completion_item_kind(declaration);
 
                 return {
                     label: declaration.name,

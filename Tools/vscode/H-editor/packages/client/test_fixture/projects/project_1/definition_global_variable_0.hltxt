@@ -1,0 +1,8 @@
+module project_1.definition_global_variable_0;
+
+import c.entry as entry;
+
+function run() -> ()
+{
+    var pi = entry.PI;
+}

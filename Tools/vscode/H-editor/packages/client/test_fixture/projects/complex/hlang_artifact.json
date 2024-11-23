@@ -1,13 +1,17 @@
 {
-    "name": "Complex",
-    "version": "0.1.0",
-    "type": "library",
-    "library": {
-        "c_headers": [
-            {
-                "name": "c.complex",
-                "header": "complex.h"
-            }
-        ]
-    }
+  "name": "Complex",
+  "version": "0.1.0",
+  "type": "library",
+  "library": {
+    "c_headers": [
+      {
+        "name": "c.complex",
+        "header": "complex.h"
+      },
+      {
+        "name": "c.entry",
+        "header": "entry.h"
+      }
+    ]
+  }
 }

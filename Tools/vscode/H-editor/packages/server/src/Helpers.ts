@@ -421,96 +421,53 @@ export function get_declaration_source_location(
         return undefined;
     }
 
-    const range = get_declaration_source_range(declaration);
-    if (range === undefined) {
+    const core_source_location = get_declaration_core_source_location(declaration);
+    if (core_source_location === undefined) {
         return undefined;
     }
 
     return {
-        file_path: file_path,
-        range: range
+        file_path: core_source_location.file_path !== undefined ? core_source_location.file_path : file_path,
+        range: {
+            start: {
+                line: core_source_location.line,
+                column: core_source_location.column
+            },
+            end: {
+                line: core_source_location.line,
+                column: core_source_location.column + declaration.name.length
+            }
+        }
     };
 }
 
-function get_declaration_source_range(
+function get_declaration_core_source_location(
     declaration: Core.Declaration
-): Range | undefined {
-
+): Core.Source_location | undefined {
     switch (declaration.type) {
         case Core.Declaration_type.Alias: {
             const value = declaration.value as Core.Alias_type_declaration;
-            if (value.source_location !== undefined) {
-                return {
-                    start: {
-                        line: value.source_location.line,
-                        column: value.source_location.column
-                    },
-                    end: {
-                        line: value.source_location.line,
-                        column: value.source_location.column + value.name.length
-                    }
-                };
-            }
+            return value.source_location;
         }
         case Core.Declaration_type.Enum: {
             const value = declaration.value as Core.Enum_declaration;
-            if (value.source_location !== undefined) {
-                return {
-                    start: {
-                        line: value.source_location.line,
-                        column: value.source_location.column
-                    },
-                    end: {
-                        line: value.source_location.line,
-                        column: value.source_location.column + value.name.length
-                    }
-                };
-            }
+            return value.source_location;
         }
         case Core.Declaration_type.Function: {
             const value = declaration.value as Core.Function;
-            if (value.declaration.source_location !== undefined) {
-                return {
-                    start: {
-                        line: value.declaration.source_location.line,
-                        column: value.declaration.source_location.column
-                    },
-                    end: {
-                        line: value.declaration.source_location.line,
-                        column: value.declaration.source_location.column + value.declaration.name.length
-                    }
-                };
-            }
+            return value.declaration.source_location;
+        }
+        case Core.Declaration_type.Global_variable: {
+            const value = declaration.value as Core.Global_variable_declaration;
+            return value.source_location;
         }
         case Core.Declaration_type.Struct: {
             const value = declaration.value as Core.Struct_declaration;
-            if (value.source_location !== undefined) {
-                return {
-                    start: {
-                        line: value.source_location.line,
-                        column: value.source_location.column
-                    },
-                    end: {
-                        line: value.source_location.line,
-                        column: value.source_location.column + value.name.length
-                    }
-                };
-            }
+            return value.source_location;
         }
         case Core.Declaration_type.Union: {
             const value = declaration.value as Core.Union_declaration;
-            if (value.source_location !== undefined) {
-                return {
-                    start: {
-                        line: value.source_location.line,
-                        column: value.source_location.column
-                    },
-                    end: {
-                        line: value.source_location.line,
-                        column: value.source_location.column + value.name.length
-                    }
-                };
-            }
+            return value.source_location;
         }
     }
 

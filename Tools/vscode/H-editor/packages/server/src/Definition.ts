@@ -63,7 +63,7 @@ export async function find_definition_link(
     }
 
     const ancestor_declaration_name = Parser_node.get_first_ancestor_with_name(root, after_cursor_node_position, [
-        "Alias_name", "Enum_name", "Function_name", "Struct_name", "Union_name"
+        "Alias_name", "Enum_name", "Function_name", "Global_variable_name", "Struct_name", "Union_name"
     ]);
     if (ancestor_declaration_name !== undefined && after_cursor.node !== undefined) {
         const declaration_name = after_cursor.node.word.value;
@@ -102,7 +102,8 @@ export async function find_definition_link(
     const ancestor = Parse_tree_analysis.get_first_ancestor_with_name_at_cursor_position(root, before_cursor.node_position, after_cursor.node_position, [
         "Expression_access",
         "Expression_call",
-        "Expression_instantiate"
+        "Expression_instantiate",
+        "Expression_variable"
     ]);
 
     if (ancestor !== undefined) {
@@ -161,6 +162,22 @@ export async function find_definition_link(
                 );
                 if (location !== undefined) {
                     return [location];
+                }
+            }
+        }
+        else if (ancestor.node.word.value === "Expression_variable") {
+            const expression = Parse_tree_analysis.get_expression_from_node(server_data.language_description, core_module, ancestor.node);
+            if (expression.data.type === Core.Expression_enum.Variable_expression) {
+                const variable_expression = expression.data.value as Core.Variable_expression;
+
+                const declaration = core_module.declarations.find(value => value.name === variable_expression.name);
+                if (declaration !== undefined) {
+                    const location = Helpers.location_to_vscode_location(
+                        Helpers.get_declaration_source_location(core_module, declaration)
+                    );
+                    if (location !== undefined) {
+                        return [location];
+                    }
                 }
             }
         }

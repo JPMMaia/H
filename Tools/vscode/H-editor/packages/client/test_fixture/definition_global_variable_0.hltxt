@@ -1,0 +1,8 @@
+module definition_global_variable_0;
+
+var my_global_variable = 0;
+
+function run() -> ()
+{
+    var a = my_global_variable;
+}
