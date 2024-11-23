@@ -5,6 +5,7 @@ convert_hltxt_to_hl(
     OUTPUT_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}"
     TEXT_FILES
     "${CMAKE_CURRENT_LIST_DIR}/Builtin.hltxt"
+    ALL
     )
     
 set(BUILTIN_HL_FILE_PATH "${CMAKE_CURRENT_LIST_DIR}/Builtin.hl" PARENT_SCOPE)
