@@ -17,10 +17,19 @@ namespace h
 {
     export struct Source_location
     {
+        std::optional<std::filesystem::path> file_path;
         std::uint32_t line = 0;
         std::uint32_t column = 0;
 
         friend auto operator<=>(Source_location const& lhs, Source_location const& rhs) = default;
+    };
+
+    export struct Source_position
+    {
+        std::uint32_t line = 0;
+        std::uint32_t column = 0;
+
+        friend auto operator<=>(Source_position const& lhs, Source_position const& rhs) = default;
     };
 
     struct Type_reference;
@@ -202,7 +211,7 @@ namespace h
         std::optional<std::pmr::string> comment;
         std::pmr::vector<Indexed_comment> member_comments;
         std::optional<Source_location> source_location;
-        std::optional<std::pmr::vector<Source_location>> member_source_locations;
+        std::optional<std::pmr::vector<Source_position>> member_source_positions;
 
         friend auto operator<=>(Struct_declaration const&, Struct_declaration const&) = default;
     };
@@ -216,7 +225,7 @@ namespace h
         std::optional<std::pmr::string> comment;
         std::pmr::vector<Indexed_comment> member_comments;
         std::optional<Source_location> source_location;
-        std::optional<std::pmr::vector<Source_location>> member_source_locations;
+        std::optional<std::pmr::vector<Source_position>> member_source_positions;
 
         friend auto operator<=>(Union_declaration const&, Union_declaration const&) = default;
     };
@@ -379,7 +388,7 @@ namespace h
     {
         std::optional<Statement> condition;
         std::pmr::vector<Statement> then_statements;
-        std::optional<Source_location> block_source_location;
+        std::optional<Source_position> block_source_position;
 
         friend auto operator<=>(Condition_statement_pair const&, Condition_statement_pair const&) = default;
     };
@@ -543,7 +552,7 @@ namespace h
         > ;
 
         Data_type data;
-        std::optional<Source_location> source_location;
+        std::optional<Source_position> source_position;
 
         friend auto operator<=>(Expression const&, Expression const&) = default;
     };
@@ -564,8 +573,8 @@ namespace h
         Linkage linkage;
         std::optional<std::pmr::string> comment;
         std::optional<Source_location> source_location;
-        std::optional<std::pmr::vector<Source_location>> input_parameter_source_locations;
-        std::optional<std::pmr::vector<Source_location>> output_parameter_source_locations;
+        std::optional<std::pmr::vector<Source_position>> input_parameter_source_positions;
+        std::optional<std::pmr::vector<Source_position>> output_parameter_source_positions;
 
         friend auto operator<=>(Function_declaration const&, Function_declaration const&) = default;
     };

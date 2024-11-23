@@ -555,7 +555,7 @@ export function get_declaration_member_source_location(
         }
         case Core.Declaration_type.Struct: {
             const struct_declaration = declaration.value as Core.Struct_declaration;
-            if (struct_declaration.member_source_locations === undefined) {
+            if (struct_declaration.member_source_positions === undefined) {
                 return undefined;
             }
 
@@ -564,7 +564,7 @@ export function get_declaration_member_source_location(
                 return undefined;
             }
 
-            const source_location = struct_declaration.member_source_locations[member_index];
+            const source_location = struct_declaration.member_source_positions[member_index];
             const range = {
                 start: {
                     line: source_location.line,
@@ -583,7 +583,7 @@ export function get_declaration_member_source_location(
         }
         case Core.Declaration_type.Union: {
             const union_declaration = declaration.value as Core.Union_declaration;
-            if (union_declaration.member_source_locations === undefined) {
+            if (union_declaration.member_source_positions === undefined) {
                 return undefined;
             }
 
@@ -592,7 +592,7 @@ export function get_declaration_member_source_location(
                 return undefined;
             }
 
-            const source_location = union_declaration.member_source_locations[member_index];
+            const source_location = union_declaration.member_source_positions[member_index];
             const range = {
                 start: {
                     line: source_location.line,
@@ -670,7 +670,7 @@ export function get_function_input_parameter_source_location(
     return get_function_parameter_source_location_given_arrays(
         core_module,
         function_declaration.input_parameter_names,
-        function_declaration.input_parameter_source_locations,
+        function_declaration.input_parameter_source_positions,
         input_parameter_index
     );
 }
@@ -683,7 +683,7 @@ export function get_function_output_parameter_source_location(
     return get_function_parameter_source_location_given_arrays(
         core_module,
         function_declaration.output_parameter_names,
-        function_declaration.output_parameter_source_locations,
+        function_declaration.output_parameter_source_positions,
         output_parameter_index
     );
 }
@@ -691,11 +691,11 @@ export function get_function_output_parameter_source_location(
 function get_function_parameter_source_location_given_arrays(
     core_module: Core.Module,
     parameter_names: string[],
-    parameter_source_locations: Core.Source_location[] | undefined,
+    parameter_source_positions: Core.Source_position[] | undefined,
     parameter_index: number
 ): Location | undefined {
 
-    if (parameter_source_locations === undefined || parameter_index >= parameter_source_locations.length || parameter_index >= parameter_names.length) {
+    if (parameter_source_positions === undefined || parameter_index >= parameter_source_positions.length || parameter_index >= parameter_names.length) {
         return undefined;
     }
 
@@ -705,16 +705,16 @@ function get_function_parameter_source_location_given_arrays(
     }
 
     const parameter_name = parameter_names[parameter_index];
-    const parameter_source_location = parameter_source_locations[parameter_index];
+    const parameter_source_position = parameter_source_positions[parameter_index];
 
     const range: Range = {
         start: {
-            line: parameter_source_location.line,
-            column: parameter_source_location.column
+            line: parameter_source_position.line,
+            column: parameter_source_position.column
         },
         end: {
-            line: parameter_source_location.line,
-            column: parameter_source_location.column + parameter_name.length
+            line: parameter_source_position.line,
+            column: parameter_source_position.column + parameter_name.length
         }
     };
 
@@ -730,7 +730,7 @@ export function get_struct_member_source_location(
     member_index: number
 ): Location | undefined {
 
-    if (struct_declaration.member_source_locations === undefined || member_index >= struct_declaration.member_source_locations.length) {
+    if (struct_declaration.member_source_positions === undefined || member_index >= struct_declaration.member_source_positions.length) {
         return undefined;
     }
 
@@ -744,7 +744,7 @@ export function get_struct_member_source_location(
         return undefined;
     }
 
-    const member_source_location = struct_declaration.member_source_locations[member_index];
+    const member_source_location = struct_declaration.member_source_positions[member_index];
     if (member_source_location === undefined) {
         return undefined;
     }

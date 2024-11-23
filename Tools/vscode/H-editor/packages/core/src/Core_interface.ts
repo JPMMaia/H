@@ -126,6 +126,12 @@ export enum Expression_enum {
 }
 
 export interface Source_location {
+    file_path?: string;
+    line: number;
+    column: number;
+}
+
+export interface Source_position {
     line: number;
     column: number;
 }
@@ -224,7 +230,7 @@ export interface Struct_declaration {
     comment?: string;
     member_comments: Vector<Indexed_comment>;
     source_location?: Source_location;
-    member_source_locations?: Vector<Source_location>;
+    member_source_positions?: Vector<Source_position>;
 }
 
 export interface Union_declaration {
@@ -235,7 +241,7 @@ export interface Union_declaration {
     comment?: string;
     member_comments: Vector<Indexed_comment>;
     source_location?: Source_location;
-    member_source_locations?: Vector<Source_location>;
+    member_source_positions?: Vector<Source_position>;
 }
 
 export interface Variable_expression {
@@ -313,7 +319,7 @@ export interface For_loop_expression {
 export interface Condition_statement_pair {
     condition?: Statement;
     then_statements: Vector<Statement>;
-    block_source_location?: Source_location;
+    block_source_position?: Source_position;
 }
 
 export interface If_expression {
@@ -386,7 +392,7 @@ export interface While_loop_expression {
 
 export interface Expression {
     data: Variant<Expression_enum, Access_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Comment_expression | Constant_expression | Constant_array_expression | Continue_expression | For_loop_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
-    source_location?: Source_location;
+    source_position?: Source_position;
 }
 
 export interface Function_declaration {
@@ -398,8 +404,8 @@ export interface Function_declaration {
     linkage: Linkage;
     comment?: string;
     source_location?: Source_location;
-    input_parameter_source_locations?: Vector<Source_location>;
-    output_parameter_source_locations?: Vector<Source_location>;
+    input_parameter_source_positions?: Vector<Source_position>;
+    output_parameter_source_positions?: Vector<Source_position>;
 }
 
 export interface Function_definition {

@@ -5074,32 +5074,32 @@ function create_pointer_type(element_type: IR.Type_reference[], is_mutable: bool
     };
 }
 
-function create_statement(expression: IR.Expression, source_location?: IR.Source_location): IR.Statement {
+function create_statement(expression: IR.Expression, source_position?: IR.Source_position): IR.Statement {
 
     const statement: IR.Statement = {
         expression: expression
     };
 
-    if (source_location !== undefined) {
-        statement.expression.source_location = source_location;
+    if (source_position !== undefined) {
+        statement.expression.source_position = { line: source_position.line, column: source_position.column };
     }
 
     return statement;
 }
 
-function add_source_locations(
+function add_source_positions(
     statements: IR.Statement[],
-    start_source_location: IR.Source_location,
+    start_source_position: IR.Source_position,
     additional_new_lines: number[]
 ) {
 
-    const current_source_location: IR.Source_location = {
-        line: start_source_location.line,
-        column: start_source_location.column
+    const current_source_location: IR.Source_position = {
+        line: start_source_position.line,
+        column: start_source_position.column
     };
 
     for (let index = 0; index < statements.length; index++) {
-        statements[index].expression.source_location = {
+        statements[index].expression.source_position = {
             line: current_source_location.line,
             column: current_source_location.column
         };

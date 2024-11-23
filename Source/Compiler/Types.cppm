@@ -7,6 +7,7 @@ module;
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Type.h>
 
+#include <filesystem>
 #include <memory_resource>
 #include <span>
 #include <string>
@@ -73,6 +74,7 @@ namespace h::compiler
         llvm::DIBuilder& llvm_debug_builder,
         llvm::DIScope& llvm_debug_scope,
         llvm::DIFile& llvm_debug_file,
+        std::unordered_map<std::filesystem::path, llvm::DIFile*>& llvm_debug_files,
         llvm::DataLayout const& llvm_data_layout,
         Module const& core_module,
         std::pmr::unordered_map<std::pmr::string, std::pmr::vector<llvm::Constant*>> const& enum_value_constants,

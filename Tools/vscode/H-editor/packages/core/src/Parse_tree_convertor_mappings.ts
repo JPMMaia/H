@@ -2124,7 +2124,7 @@ function node_to_struct_declaration(node: Parser_node.Node, key_to_production_ru
     const member_types: Core_intermediate_representation.Type_reference[] = [];
     const member_default_values: Core_intermediate_representation.Statement[] = [];
     const member_comments: Core_intermediate_representation.Indexed_comment[] = [];
-    const member_source_locations: Core_intermediate_representation.Source_location[] = [];
+    const member_source_positions: Core_intermediate_representation.Source_position[] = [];
 
     for (let index = 0; index < member_nodes.length; ++index) {
         const member_node = member_nodes[index];
@@ -2147,7 +2147,7 @@ function node_to_struct_declaration(node: Parser_node.Node, key_to_production_ru
             member_comments.push({ index: index, comment: member_comment });
         }
 
-        member_source_locations.push(member_name_node.source_location !== undefined ? member_name_node.source_location : source_location);
+        member_source_positions.push(member_name_node.source_location !== undefined ? member_name_node.source_location : source_location);
     }
 
     const output: Core_intermediate_representation.Struct_declaration = {
@@ -2168,7 +2168,7 @@ function node_to_struct_declaration(node: Parser_node.Node, key_to_production_ru
     if (struct_node.source_location !== undefined) {
         const name_node = find_node(struct_node, "Struct_name", key_to_production_rule_indices) as Parser_node.Node;
         output.source_location = name_node.source_location;
-        output.member_source_locations = member_source_locations;
+        output.member_source_positions = member_source_positions;
     }
 
     return output;
@@ -2187,7 +2187,7 @@ function node_to_union_declaration(node: Parser_node.Node, key_to_production_rul
     const member_names: string[] = [];
     const member_types: Core_intermediate_representation.Type_reference[] = [];
     const member_comments: Core_intermediate_representation.Indexed_comment[] = [];
-    const member_source_locations: Core_intermediate_representation.Source_location[] = [];
+    const member_source_positions: Core_intermediate_representation.Source_position[] = [];
 
     for (let index = 0; index < member_nodes.length; ++index) {
         const member_node = member_nodes[index];
@@ -2206,7 +2206,7 @@ function node_to_union_declaration(node: Parser_node.Node, key_to_production_rul
             member_comments.push({ index: index, comment: member_comment });
         }
 
-        member_source_locations.push(member_name_node.source_location !== undefined ? member_name_node.source_location : source_location);
+        member_source_positions.push(member_name_node.source_location !== undefined ? member_name_node.source_location : source_location);
     }
 
     const output: Core_intermediate_representation.Union_declaration = {
@@ -2224,7 +2224,7 @@ function node_to_union_declaration(node: Parser_node.Node, key_to_production_rul
     if (union_node.source_location !== undefined) {
         const name_node = find_node(union_node, "Union_name", key_to_production_rule_indices) as Parser_node.Node;
         output.source_location = name_node.source_location;
-        output.member_source_locations = member_source_locations;
+        output.member_source_positions = member_source_positions;
     }
 
     return output;
@@ -2265,12 +2265,12 @@ function node_to_function_declaration(node: Parser_node.Node, key_to_production_
     const input_parameter_nodes = find_nodes_inside_parent(function_declaration_node, "Function_input_parameters", "Function_parameter", key_to_production_rule_indices);
     const input_parameter_names = input_parameter_nodes.map(node => find_node_value(node, "Function_parameter_name", key_to_production_rule_indices));
     const input_parameter_types = input_parameter_nodes.map(node => find_node(node, "Function_parameter_type", key_to_production_rule_indices) as Parser_node.Node).map(node => node_to_type_reference(node.children[0], key_to_production_rule_indices)[0]);
-    const input_parameter_source_locations = input_parameter_nodes.map(node => node.source_location !== undefined ? node.source_location : source_location);
+    const input_parameter_source_positions = input_parameter_nodes.map(node => node.source_location !== undefined ? node.source_location : source_location);
 
     const output_parameter_nodes = find_nodes_inside_parent(function_declaration_node, "Function_output_parameters", "Function_parameter", key_to_production_rule_indices);
     const output_parameter_names = output_parameter_nodes.map(node => find_node_value(node, "Function_parameter_name", key_to_production_rule_indices));
     const output_parameter_types = output_parameter_nodes.map(node => find_node(node, "Function_parameter_type", key_to_production_rule_indices) as Parser_node.Node).map(node => node_to_type_reference(node.children[0], key_to_production_rule_indices)[0]);
-    const output_parameter_source_locations = output_parameter_nodes.map(node => node.source_location !== undefined ? node.source_location : source_location);
+    const output_parameter_source_positions = output_parameter_nodes.map(node => node.source_location !== undefined ? node.source_location : source_location);
 
     const export_value = find_node_value(function_declaration_node, "Export", key_to_production_rule_indices);
     const linkage = export_value.length > 0 ? Core_intermediate_representation.Linkage.External : Core_intermediate_representation.Linkage.Private;
@@ -2295,8 +2295,8 @@ function node_to_function_declaration(node: Parser_node.Node, key_to_production_
     if (function_declaration_node.source_location !== undefined) {
         const name_node = find_node(function_declaration_node, "Function_name", key_to_production_rule_indices) as Parser_node.Node;
         output.source_location = name_node.source_location;
-        output.input_parameter_source_locations = input_parameter_source_locations;
-        output.output_parameter_source_locations = output_parameter_source_locations;
+        output.input_parameter_source_positions = input_parameter_source_positions;
+        output.output_parameter_source_positions = output_parameter_source_positions;
     }
 
     return output;
@@ -2344,7 +2344,7 @@ export function node_to_expression(node: Parser_node.Node, key_to_production_rul
     const expression = node_to_expression_without_source_location(node, key_to_production_rule_indices);
 
     if (node.source_location !== undefined) {
-        expression.source_location = node.source_location;
+        expression.source_position = node.source_location;
     }
 
     return expression;
@@ -2978,7 +2978,7 @@ function node_to_expression_if(node: Parser_node.Node, key_to_production_rule_in
 
         const open_block_node = current_node.children.find(child => child.word.value === "{") as Parser_node.Node;
         if (open_block_node.source_location !== undefined) {
-            serie.block_source_location = open_block_node.source_location;
+            serie.block_source_position = open_block_node.source_location;
         }
 
         series.push(serie);
@@ -3531,17 +3531,17 @@ function get_node_source_location(
             const if_expression = statement.expression.data.value as Core_intermediate_representation.If_expression;
             if (if_expression.series.length > 0) {
                 const first_serie = if_expression.series[0];
-                if (first_serie.block_source_location !== undefined) {
-                    return first_serie.block_source_location;
+                if (first_serie.block_source_position !== undefined) {
+                    return first_serie.block_source_position;
                 }
                 else if (first_serie.condition !== undefined) {
-                    return first_serie.condition.expression.source_location;
+                    return first_serie.condition.expression.source_position;
                 }
             }
             return undefined;
         }
 
-        return statement.expression.source_location;
+        return statement.expression.source_position;
     }
 
     return undefined;

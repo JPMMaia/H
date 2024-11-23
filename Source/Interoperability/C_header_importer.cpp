@@ -93,15 +93,24 @@ namespace h::c
             &offset
         );
 
+        std::optional<String> const file_name = file != nullptr ? clang_getFileName(file) : std::optional<String>{};
+        std::optional<std::filesystem::path> file_path = file_name.has_value() ? file_name->string_view() : std::optional<std::filesystem::path>{};
+
         return Header_source_location
         {
             .file = file,
             .source_location =
             {
+                .file_path = std::move(file_path),
                 .line = line,
                 .column = column,
             },
         };
+    }
+
+    h::Source_position get_source_position(Header_source_location const& header_source_location)
+    {
+        return {.line = header_source_location.source_location.line, .column = header_source_location.source_location.column };
     }
 
     std::optional<h::Fundamental_type> to_fundamental_type(CXTypeKind const type_kind) noexcept
@@ -608,14 +617,14 @@ namespace h::c
         return std::pmr::vector<std::pmr::string>{"result"};
     }
 
-    std::pmr::vector<h::Source_location> create_input_parameter_source_locations(
+    std::pmr::vector<h::Source_position> create_input_parameter_source_positions(
         CXCursor const cursor
     )
     {
         int const number_of_arguments = clang_Cursor_getNumArguments(cursor);
 
-        std::pmr::vector<h::Source_location> parameter_source_locations;
-        parameter_source_locations.reserve(number_of_arguments);
+        std::pmr::vector<h::Source_position> parameter_source_positions;
+        parameter_source_positions.reserve(number_of_arguments);
 
         for (int argument_index = 0; argument_index < number_of_arguments; ++argument_index)
         {
@@ -625,13 +634,13 @@ namespace h::c
                 argument_cursor
             );
 
-            parameter_source_locations.push_back(cursor_location.source_location);
+            parameter_source_positions.push_back(get_source_position(cursor_location));
         }
 
-        return parameter_source_locations;
+        return parameter_source_positions;
     }
 
-    std::pmr::vector<h::Source_location> create_output_parameter_source_locations(
+    std::pmr::vector<h::Source_position> create_output_parameter_source_positions(
         CXCursor const cursor,
         std::size_t const number_of_outputs
     )
@@ -684,8 +693,8 @@ namespace h::c
         std::pmr::vector<std::pmr::string> input_parameter_names = create_input_parameter_names(cursor);
         std::pmr::vector<std::pmr::string> output_parameter_names = create_output_parameter_names(h_function_type.output_parameter_types.size());
 
-        std::pmr::vector<h::Source_location> input_parameter_source_locations = create_input_parameter_source_locations(cursor);
-        std::pmr::vector<h::Source_location> output_parameter_source_locations = create_output_parameter_source_locations(cursor, h_function_type.output_parameter_types.size());
+        std::pmr::vector<h::Source_position> input_parameter_source_positions = create_input_parameter_source_positions(cursor);
+        std::pmr::vector<h::Source_position> output_parameter_source_positions = create_output_parameter_source_positions(cursor, h_function_type.output_parameter_types.size());
 
         return h::Function_declaration
         {
@@ -696,8 +705,8 @@ namespace h::c
             .output_parameter_names = std::move(output_parameter_names),
             .linkage = h::Linkage::External,
             .source_location = cursor_location.source_location,
-            .input_parameter_source_locations = std::move(input_parameter_source_locations),
-            .output_parameter_source_locations = std::move(output_parameter_source_locations),
+            .input_parameter_source_positions = std::move(input_parameter_source_positions),
+            .output_parameter_source_positions = std::move(output_parameter_source_positions),
         };
     }
 
@@ -1029,8 +1038,8 @@ namespace h::c
                         current_cursor
                     );
 
-                    data->struct_declaration->member_source_locations->push_back(
-                        cursor_location.source_location
+                    data->struct_declaration->member_source_positions->push_back(
+                        get_source_position(cursor_location)
                     );
                 }
             }
@@ -1096,7 +1105,7 @@ namespace h::c
             .is_packed = false,
             .is_literal = false,
             .source_location = cursor_location.source_location,
-            .member_source_locations = std::pmr::vector<h::Source_location>{}
+            .member_source_positions = std::pmr::vector<h::Source_position>{}
         };
 
         Client_data client_data
@@ -1168,8 +1177,8 @@ namespace h::c
                         current_cursor
                     );
 
-                    data->union_declaration->member_source_locations->push_back(
-                        cursor_location.source_location
+                    data->union_declaration->member_source_positions->push_back(
+                        get_source_position(cursor_location)
                     );
                 }
             }
@@ -1232,7 +1241,7 @@ namespace h::c
             .member_types = {},
             .member_names = {},
             .source_location = cursor_location.source_location,
-            .member_source_locations = std::pmr::vector<h::Source_location>{}
+            .member_source_positions = std::pmr::vector<h::Source_position>{}
         };
 
         Client_data client_data

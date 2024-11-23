@@ -292,6 +292,12 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Source_position const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Integer_type const& input
         );
 
@@ -745,6 +751,21 @@ namespace h::json
         )
     {
         writer.StartObject();
+        write_optional(writer, "file_path", output.file_path);
+        writer.Key("line");
+        writer.Uint(output.line);
+        writer.Key("column");
+        writer.Uint(output.column);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Source_position const& output
+        )
+    {
+        writer.StartObject();
         writer.Key("line");
         writer.Uint(output.line);
         writer.Key("column");
@@ -1059,7 +1080,7 @@ namespace h::json
         writer.Key("member_comments");
         write_object(writer, output.member_comments);
         write_optional_object(writer, "source_location", output.source_location);
-        write_optional(writer, "member_source_locations", output.member_source_locations);
+        write_optional(writer, "member_source_positions", output.member_source_positions);
         writer.EndObject();
     }
 
@@ -1081,7 +1102,7 @@ namespace h::json
         writer.Key("member_comments");
         write_object(writer, output.member_comments);
         write_optional_object(writer, "source_location", output.source_location);
-        write_optional(writer, "member_source_locations", output.member_source_locations);
+        write_optional(writer, "member_source_positions", output.member_source_positions);
         writer.EndObject();
     }
 
@@ -1308,7 +1329,7 @@ namespace h::json
         write_optional_object(writer, "condition", output.condition);
         writer.Key("then_statements");
         write_object(writer, output.then_statements);
-        write_optional_object(writer, "block_source_location", output.block_source_location);
+        write_optional_object(writer, "block_source_position", output.block_source_position);
         writer.EndObject();
     }
 
@@ -1720,7 +1741,7 @@ namespace h::json
         }
         writer.EndObject();
 
-        write_optional_object(writer, "source_location", output.source_location);
+        write_optional_object(writer, "source_position", output.source_position);
         writer.EndObject();
     }
 
@@ -1747,8 +1768,8 @@ namespace h::json
         }
         write_optional(writer, "comment", output.comment);
         write_optional_object(writer, "source_location", output.source_location);
-        write_optional(writer, "input_parameter_source_locations", output.input_parameter_source_locations);
-        write_optional(writer, "output_parameter_source_locations", output.output_parameter_source_locations);
+        write_optional(writer, "input_parameter_source_positions", output.input_parameter_source_positions);
+        write_optional(writer, "output_parameter_source_positions", output.output_parameter_source_positions);
         writer.EndObject();
     }
 

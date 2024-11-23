@@ -32,7 +32,7 @@ namespace h::compiler
 
     void push_debug_lexical_block_scope(
         Debug_info& debug_info,
-        Source_location const source_location
+        Source_position const source_position
     )
     {
         llvm::DIScope* const parent_scope = get_debug_scope(
@@ -42,8 +42,8 @@ namespace h::compiler
         llvm::DILexicalBlock* const lexical_block = debug_info.llvm_builder->createLexicalBlock(
             parent_scope,
             parent_scope->getFile(),
-            source_location.line,
-            source_location.column
+            source_position.line,
+            source_position.column
         );
 
         push_debug_scope(debug_info, lexical_block);

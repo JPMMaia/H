@@ -353,18 +353,40 @@ export enum Expression_enum {
 }
 
 export interface Source_location {
+    file_path?: string;
     line: number;
     column: number;
 }
 
 function core_to_intermediate_source_location(core_value: Core.Source_location): Source_location {
     return {
+        file_path: core_value.file_path,
         line: core_value.line,
         column: core_value.column,
     };
 }
 
 function intermediate_to_core_source_location(intermediate_value: Source_location): Core.Source_location {
+    return {
+        file_path: intermediate_value.file_path,
+        line: intermediate_value.line,
+        column: intermediate_value.column,
+    };
+}
+
+export interface Source_position {
+    line: number;
+    column: number;
+}
+
+function core_to_intermediate_source_position(core_value: Core.Source_position): Source_position {
+    return {
+        line: core_value.line,
+        column: core_value.column,
+    };
+}
+
+function intermediate_to_core_source_position(intermediate_value: Source_position): Core.Source_position {
     return {
         line: intermediate_value.line,
         column: intermediate_value.column,
@@ -807,7 +829,7 @@ export interface Struct_declaration {
     comment?: string;
     member_comments: Indexed_comment[];
     source_location?: Source_location;
-    member_source_locations?: Source_location[];
+    member_source_positions?: Source_position[];
 }
 
 function core_to_intermediate_struct_declaration(core_value: Core.Struct_declaration): Struct_declaration {
@@ -822,7 +844,7 @@ function core_to_intermediate_struct_declaration(core_value: Core.Struct_declara
         comment: core_value.comment,
         member_comments: core_value.member_comments.elements.map(value => core_to_intermediate_indexed_comment(value)),
         source_location: core_value.source_location !== undefined ? core_to_intermediate_source_location(core_value.source_location) : undefined,
-        member_source_locations: core_value.member_source_locations !== undefined ? core_value.member_source_locations.elements.map(value => core_to_intermediate_source_location(value)) : undefined,
+        member_source_positions: core_value.member_source_positions !== undefined ? core_value.member_source_positions.elements.map(value => core_to_intermediate_source_position(value)) : undefined,
     };
 }
 
@@ -850,7 +872,7 @@ function intermediate_to_core_struct_declaration(intermediate_value: Struct_decl
             elements: intermediate_value.member_comments.map(value => intermediate_to_core_indexed_comment(value)),
         },
         source_location: intermediate_value.source_location !== undefined ? intermediate_to_core_source_location(intermediate_value.source_location) : undefined,
-        member_source_locations: intermediate_value.member_source_locations !== undefined ? { size: intermediate_value.member_source_locations.length, elements : intermediate_value.member_source_locations } : undefined,
+        member_source_positions: intermediate_value.member_source_positions !== undefined ? { size: intermediate_value.member_source_positions.length, elements : intermediate_value.member_source_positions } : undefined,
     };
 }
 
@@ -862,7 +884,7 @@ export interface Union_declaration {
     comment?: string;
     member_comments: Indexed_comment[];
     source_location?: Source_location;
-    member_source_locations?: Source_location[];
+    member_source_positions?: Source_position[];
 }
 
 function core_to_intermediate_union_declaration(core_value: Core.Union_declaration): Union_declaration {
@@ -874,7 +896,7 @@ function core_to_intermediate_union_declaration(core_value: Core.Union_declarati
         comment: core_value.comment,
         member_comments: core_value.member_comments.elements.map(value => core_to_intermediate_indexed_comment(value)),
         source_location: core_value.source_location !== undefined ? core_to_intermediate_source_location(core_value.source_location) : undefined,
-        member_source_locations: core_value.member_source_locations !== undefined ? core_value.member_source_locations.elements.map(value => core_to_intermediate_source_location(value)) : undefined,
+        member_source_positions: core_value.member_source_positions !== undefined ? core_value.member_source_positions.elements.map(value => core_to_intermediate_source_position(value)) : undefined,
     };
 }
 
@@ -896,7 +918,7 @@ function intermediate_to_core_union_declaration(intermediate_value: Union_declar
             elements: intermediate_value.member_comments.map(value => intermediate_to_core_indexed_comment(value)),
         },
         source_location: intermediate_value.source_location !== undefined ? intermediate_to_core_source_location(intermediate_value.source_location) : undefined,
-        member_source_locations: intermediate_value.member_source_locations !== undefined ? { size: intermediate_value.member_source_locations.length, elements : intermediate_value.member_source_locations } : undefined,
+        member_source_positions: intermediate_value.member_source_positions !== undefined ? { size: intermediate_value.member_source_positions.length, elements : intermediate_value.member_source_positions } : undefined,
     };
 }
 
@@ -1498,14 +1520,14 @@ export function create_for_loop_expression(variable_name: string, range_begin: E
 export interface Condition_statement_pair {
     condition?: Statement;
     then_statements: Statement[];
-    block_source_location?: Source_location;
+    block_source_position?: Source_position;
 }
 
 function core_to_intermediate_condition_statement_pair(core_value: Core.Condition_statement_pair): Condition_statement_pair {
     return {
         condition: core_value.condition !== undefined ? core_to_intermediate_statement(core_value.condition) : undefined,
         then_statements: core_value.then_statements.elements.map(value => core_to_intermediate_statement(value)),
-        block_source_location: core_value.block_source_location !== undefined ? core_to_intermediate_source_location(core_value.block_source_location) : undefined,
+        block_source_position: core_value.block_source_position !== undefined ? core_to_intermediate_source_position(core_value.block_source_position) : undefined,
     };
 }
 
@@ -1516,7 +1538,7 @@ function intermediate_to_core_condition_statement_pair(intermediate_value: Condi
             size: intermediate_value.then_statements.length,
             elements: intermediate_value.then_statements.map(value => intermediate_to_core_statement(value)),
         },
-        block_source_location: intermediate_value.block_source_location !== undefined ? intermediate_to_core_source_location(intermediate_value.block_source_location) : undefined,
+        block_source_position: intermediate_value.block_source_position !== undefined ? intermediate_to_core_source_position(intermediate_value.block_source_position) : undefined,
     };
 }
 
@@ -2084,7 +2106,7 @@ export function create_while_loop_expression(condition: Statement, then_statemen
 }
 export interface Expression {
     data: Variant<Expression_enum, Access_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Comment_expression | Constant_expression | Constant_array_expression | Continue_expression | For_loop_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
-    source_location?: Source_location;
+    source_position?: Source_position;
 }
 
 function core_to_intermediate_expression(core_value: Core.Expression, statement: Core.Statement): Expression {
@@ -2243,7 +2265,7 @@ function core_to_intermediate_expression(core_value: Core.Expression, statement:
                 }
             }
         })(),
-        source_location: core_value.source_location !== undefined ? core_to_intermediate_source_location(core_value.source_location) : undefined,
+        source_position: core_value.source_position !== undefined ? core_to_intermediate_source_position(core_value.source_position) : undefined,
     };
 }
 
@@ -2353,8 +2375,8 @@ function intermediate_to_core_expression(intermediate_value: Expression, express
         }
     }
 
-    if (intermediate_value.source_location !== undefined) {
-        expressions[expression_index].source_location = intermediate_value.source_location;
+    if (intermediate_value.source_position !== undefined) {
+        expressions[expression_index].source_position = intermediate_value.source_position;
     }
 }
 
@@ -2367,8 +2389,8 @@ export interface Function_declaration {
     linkage: Linkage;
     comment?: string;
     source_location?: Source_location;
-    input_parameter_source_locations?: Source_location[];
-    output_parameter_source_locations?: Source_location[];
+    input_parameter_source_positions?: Source_position[];
+    output_parameter_source_positions?: Source_position[];
 }
 
 function core_to_intermediate_function_declaration(core_value: Core.Function_declaration): Function_declaration {
@@ -2381,8 +2403,8 @@ function core_to_intermediate_function_declaration(core_value: Core.Function_dec
         linkage: core_value.linkage,
         comment: core_value.comment,
         source_location: core_value.source_location !== undefined ? core_to_intermediate_source_location(core_value.source_location) : undefined,
-        input_parameter_source_locations: core_value.input_parameter_source_locations !== undefined ? core_value.input_parameter_source_locations.elements.map(value => core_to_intermediate_source_location(value)) : undefined,
-        output_parameter_source_locations: core_value.output_parameter_source_locations !== undefined ? core_value.output_parameter_source_locations.elements.map(value => core_to_intermediate_source_location(value)) : undefined,
+        input_parameter_source_positions: core_value.input_parameter_source_positions !== undefined ? core_value.input_parameter_source_positions.elements.map(value => core_to_intermediate_source_position(value)) : undefined,
+        output_parameter_source_positions: core_value.output_parameter_source_positions !== undefined ? core_value.output_parameter_source_positions.elements.map(value => core_to_intermediate_source_position(value)) : undefined,
     };
 }
 
@@ -2402,8 +2424,8 @@ function intermediate_to_core_function_declaration(intermediate_value: Function_
         linkage: intermediate_value.linkage,
         comment: intermediate_value.comment,
         source_location: intermediate_value.source_location !== undefined ? intermediate_to_core_source_location(intermediate_value.source_location) : undefined,
-        input_parameter_source_locations: intermediate_value.input_parameter_source_locations !== undefined ? { size: intermediate_value.input_parameter_source_locations.length, elements : intermediate_value.input_parameter_source_locations } : undefined,
-        output_parameter_source_locations: intermediate_value.output_parameter_source_locations !== undefined ? { size: intermediate_value.output_parameter_source_locations.length, elements : intermediate_value.output_parameter_source_locations } : undefined,
+        input_parameter_source_positions: intermediate_value.input_parameter_source_positions !== undefined ? { size: intermediate_value.input_parameter_source_positions.length, elements : intermediate_value.input_parameter_source_positions } : undefined,
+        output_parameter_source_positions: intermediate_value.output_parameter_source_positions !== undefined ? { size: intermediate_value.output_parameter_source_positions.length, elements : intermediate_value.output_parameter_source_positions } : undefined,
     };
 }
 

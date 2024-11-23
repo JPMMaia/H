@@ -391,7 +391,7 @@ namespace h::compiler
             .local_variables = {},
             .expression_type = std::nullopt,
             .debug_info = nullptr,
-            .source_location = {},
+            .source_position = {},
             .temporaries_allocator = temporaries_allocator,
         };
 
@@ -508,7 +508,7 @@ namespace h::compiler
                 .local_variables = {},
                 .expression_type = std::nullopt,
                 .debug_info = debug_info,
-                .source_location = std::nullopt,
+                .source_position = std::nullopt,
                 .temporaries_allocator = temporaries_allocator,
             };
 
@@ -811,7 +811,7 @@ namespace h::compiler
                     .local_variables = {},
                     .expression_type = std::nullopt,
                     .debug_info = nullptr,
-                    .source_location = {},
+                    .source_position = {},
                     .temporaries_allocator = temporaries_allocator,
                 };
 
@@ -909,7 +909,10 @@ namespace h::compiler
 
         std::unique_ptr<llvm::DIBuilder> llvm_debug_builder = std::make_unique<llvm::DIBuilder>(llvm_module);
 
+        std::unordered_map<std::filesystem::path, llvm::DIFile*> llvm_debug_files;
+
         llvm::DIFile* const llvm_debug_file = llvm_debug_builder->createFile(core_module.source_file_path->filename().generic_string(), core_module.source_file_path->parent_path().generic_string());
+        llvm_debug_files.emplace(*core_module.source_file_path, llvm_debug_file);
 
         llvm::DICompileUnit* const llvm_debug_compile_unit = llvm_debug_builder->createCompileUnit(
             llvm::dwarf::DW_LANG_C,
@@ -931,6 +934,7 @@ namespace h::compiler
             *llvm_debug_builder,
             *llvm_debug_compile_unit,
             *llvm_debug_file,
+            llvm_debug_files,
             llvm_data_layout,
             core_module,
             enum_value_constants.map,
@@ -948,12 +952,14 @@ namespace h::compiler
             }
 
             llvm::DIFile* const llvm_dependency_debug_file = llvm_debug_builder->createFile(module_dependency.source_file_path->filename().generic_string(), module_dependency.source_file_path->parent_path().generic_string());
+            llvm_debug_files.emplace(*core_module.source_file_path, llvm_dependency_debug_file);
 
             add_module_debug_types(
                 debug_type_database,
                 *llvm_debug_builder,
                 *llvm_debug_compile_unit,
                 *llvm_dependency_debug_file,
+                llvm_debug_files,
                 llvm_data_layout,
                 module_dependency,
                 enum_value_constants.map,

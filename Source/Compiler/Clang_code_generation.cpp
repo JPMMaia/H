@@ -885,10 +885,10 @@ namespace h::compiler
         Source_location const function_declaration_source_location =
             function_declaration.source_location.value_or(Source_location{});
 
-        Source_location const parameter_source_location =
-            function_declaration.input_parameter_source_locations.has_value() ?
-            function_declaration.input_parameter_source_locations.value()[input_parameter_index] :
-            function_declaration_source_location;
+        Source_position const parameter_source_position =
+            function_declaration.input_parameter_source_positions.has_value() ?
+            function_declaration.input_parameter_source_positions.value()[input_parameter_index] :
+            Source_position{ .line = function_declaration_source_location.line, .column = function_declaration_source_location.column };
 
         llvm::DIType* const llvm_argument_debug_type = type_reference_to_llvm_debug_type(
             *debug_info->llvm_builder,
@@ -905,12 +905,12 @@ namespace h::compiler
             name.c_str(),
             input_parameter_index + 1,
             debug_scope->getFile(),
-            parameter_source_location.line,
+            parameter_source_position.line,
             llvm_argument_debug_type,
             true
         );
 
-        llvm::DILocation* const debug_location = llvm::DILocation::get(llvm_context, parameter_source_location.line, parameter_source_location.column, debug_scope);
+        llvm::DILocation* const debug_location = llvm::DILocation::get(llvm_context, parameter_source_position.line, parameter_source_position.column, debug_scope);
 
         debug_info->llvm_builder->insertDeclare(
             &alloca_instruction,
