@@ -454,6 +454,7 @@ namespace h::json
     }
 
     export std::optional<Stack_state> get_next_state_source_location(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_source_position(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_integer_type(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_builtin_type_reference(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_function_type(Stack_state* state, std::string_view const key);
@@ -512,6 +513,46 @@ namespace h::json
     export std::optional<Stack_state> get_next_state_source_location(Stack_state* state, std::string_view const key)
     {
         h::Source_location* parent = static_cast<h::Source_location*>(state->pointer);
+
+        if (key == "file_path")
+        {
+            parent->file_path = std::filesystem::path{};
+            return Stack_state
+            {
+                .pointer = &parent->file_path.value(),
+                .type = "std::filesystem::path",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "line")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->line,
+                .type = "std::uint32_t",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "column")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->column,
+                .type = "std::uint32_t",
+                .get_next_state = nullptr,
+            };
+        }
+
+        return {};
+    }
+
+    export std::optional<Stack_state> get_next_state_source_position(Stack_state* state, std::string_view const key)
+    {
+        h::Source_position* parent = static_cast<h::Source_position*>(state->pointer);
 
         if (key == "line")
         {
@@ -1455,28 +1496,28 @@ namespace h::json
             };
         }
 
-        if (key == "member_source_locations")
+        if (key == "member_source_positions")
         {
             auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
             {
-                std::pmr::vector<Source_location>* parent = static_cast<std::pmr::vector<Source_location>*>(state->pointer);
+                std::pmr::vector<Source_position>* parent = static_cast<std::pmr::vector<Source_position>*>(state->pointer);
                 parent->resize(size);
             };
 
             auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
             {
-                std::pmr::vector<Source_location>* parent = static_cast<std::pmr::vector<Source_location>*>(state->pointer);
+                std::pmr::vector<Source_position>* parent = static_cast<std::pmr::vector<Source_position>*>(state->pointer);
                 return &((*parent)[index]);
             };
-            parent->member_source_locations = std::pmr::vector<Source_location>{};
+            parent->member_source_positions = std::pmr::vector<Source_position>{};
             return Stack_state
             {
-                .pointer = &parent->member_source_locations.value(),
-                .type = "std::pmr::vector<Source_location>",
+                .pointer = &parent->member_source_positions.value(),
+                .type = "std::pmr::vector<Source_position>",
                 .get_next_state = get_next_state_vector,
                 .set_vector_size = set_vector_size,
                 .get_element = get_element,
-                .get_next_state_element = get_next_state_source_location
+                .get_next_state_element = get_next_state_source_position
             };
         }
 
@@ -1606,28 +1647,28 @@ namespace h::json
             };
         }
 
-        if (key == "member_source_locations")
+        if (key == "member_source_positions")
         {
             auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
             {
-                std::pmr::vector<Source_location>* parent = static_cast<std::pmr::vector<Source_location>*>(state->pointer);
+                std::pmr::vector<Source_position>* parent = static_cast<std::pmr::vector<Source_position>*>(state->pointer);
                 parent->resize(size);
             };
 
             auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
             {
-                std::pmr::vector<Source_location>* parent = static_cast<std::pmr::vector<Source_location>*>(state->pointer);
+                std::pmr::vector<Source_position>* parent = static_cast<std::pmr::vector<Source_position>*>(state->pointer);
                 return &((*parent)[index]);
             };
-            parent->member_source_locations = std::pmr::vector<Source_location>{};
+            parent->member_source_positions = std::pmr::vector<Source_position>{};
             return Stack_state
             {
-                .pointer = &parent->member_source_locations.value(),
-                .type = "std::pmr::vector<Source_location>",
+                .pointer = &parent->member_source_positions.value(),
+                .type = "std::pmr::vector<Source_position>",
                 .get_next_state = get_next_state_vector,
                 .set_vector_size = set_vector_size,
                 .get_element = get_element,
-                .get_next_state_element = get_next_state_source_location
+                .get_next_state_element = get_next_state_source_position
             };
         }
 
@@ -2158,14 +2199,14 @@ namespace h::json
             };
         }
 
-        if (key == "block_source_location")
+        if (key == "block_source_position")
         {
-            parent->block_source_location = Source_location{};
+            parent->block_source_position = Source_position{};
             return Stack_state
             {
-                .pointer = &parent->block_source_location.value(),
-                .type = "Source_location",
-                .get_next_state = get_next_state_source_location
+                .pointer = &parent->block_source_position.value(),
+                .type = "Source_position",
+                .get_next_state = get_next_state_source_position
             };
         }
 
@@ -2954,14 +2995,14 @@ namespace h::json
             };
         }
 
-        if (key == "source_location")
+        if (key == "source_position")
         {
-            parent->source_location = Source_location{};
+            parent->source_position = Source_position{};
             return Stack_state
             {
-                .pointer = &parent->source_location.value(),
-                .type = "Source_location",
-                .get_next_state = get_next_state_source_location
+                .pointer = &parent->source_position.value(),
+                .type = "Source_position",
+                .get_next_state = get_next_state_source_position
             };
         }
 
@@ -3088,53 +3129,53 @@ namespace h::json
             };
         }
 
-        if (key == "input_parameter_source_locations")
+        if (key == "input_parameter_source_positions")
         {
             auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
             {
-                std::pmr::vector<Source_location>* parent = static_cast<std::pmr::vector<Source_location>*>(state->pointer);
+                std::pmr::vector<Source_position>* parent = static_cast<std::pmr::vector<Source_position>*>(state->pointer);
                 parent->resize(size);
             };
 
             auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
             {
-                std::pmr::vector<Source_location>* parent = static_cast<std::pmr::vector<Source_location>*>(state->pointer);
+                std::pmr::vector<Source_position>* parent = static_cast<std::pmr::vector<Source_position>*>(state->pointer);
                 return &((*parent)[index]);
             };
-            parent->input_parameter_source_locations = std::pmr::vector<Source_location>{};
+            parent->input_parameter_source_positions = std::pmr::vector<Source_position>{};
             return Stack_state
             {
-                .pointer = &parent->input_parameter_source_locations.value(),
-                .type = "std::pmr::vector<Source_location>",
+                .pointer = &parent->input_parameter_source_positions.value(),
+                .type = "std::pmr::vector<Source_position>",
                 .get_next_state = get_next_state_vector,
                 .set_vector_size = set_vector_size,
                 .get_element = get_element,
-                .get_next_state_element = get_next_state_source_location
+                .get_next_state_element = get_next_state_source_position
             };
         }
 
-        if (key == "output_parameter_source_locations")
+        if (key == "output_parameter_source_positions")
         {
             auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
             {
-                std::pmr::vector<Source_location>* parent = static_cast<std::pmr::vector<Source_location>*>(state->pointer);
+                std::pmr::vector<Source_position>* parent = static_cast<std::pmr::vector<Source_position>*>(state->pointer);
                 parent->resize(size);
             };
 
             auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
             {
-                std::pmr::vector<Source_location>* parent = static_cast<std::pmr::vector<Source_location>*>(state->pointer);
+                std::pmr::vector<Source_position>* parent = static_cast<std::pmr::vector<Source_position>*>(state->pointer);
                 return &((*parent)[index]);
             };
-            parent->output_parameter_source_locations = std::pmr::vector<Source_location>{};
+            parent->output_parameter_source_positions = std::pmr::vector<Source_position>{};
             return Stack_state
             {
-                .pointer = &parent->output_parameter_source_locations.value(),
-                .type = "std::pmr::vector<Source_location>",
+                .pointer = &parent->output_parameter_source_positions.value(),
+                .type = "std::pmr::vector<Source_position>",
                 .get_next_state = get_next_state_vector,
                 .set_vector_size = set_vector_size,
                 .get_element = get_element,
-                .get_next_state_element = get_next_state_source_location
+                .get_next_state_element = get_next_state_source_position
             };
         }
 
@@ -3615,6 +3656,16 @@ namespace h::json
                 .pointer = output,
                 .type = "Source_location",
                 .get_next_state = get_next_state_source_location
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Source_position>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Source_position",
+                .get_next_state = get_next_state_source_position
             };
         }
 

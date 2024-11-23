@@ -911,7 +911,7 @@ float my_global_1 = 0.0f;
             REQUIRE(declaration.type.has_value());
             CHECK(declaration.initial_value == h::create_statement({ h::create_constant_expression(*declaration.type, "3.500000") }));
 
-            CHECK(*declaration.source_location == h::Source_location{ .line = 5, .column = 12 });
+            CHECK(*declaration.source_location == h::Source_location{ .file_path = header_file_path, .line = 5, .column = 12 });
         }
 
         {
@@ -924,7 +924,7 @@ float my_global_1 = 0.0f;
             REQUIRE(declaration.type.has_value());
             CHECK(declaration.initial_value == h::create_statement({ h::create_constant_expression(*declaration.type, "0.000000") }));
 
-            CHECK(*declaration.source_location == h::Source_location{ .line = 6, .column = 7 });
+            CHECK(*declaration.source_location == h::Source_location{ .file_path = header_file_path, .line = 6, .column = 7 });
         }
     }
 
@@ -961,7 +961,7 @@ float my_global_1 = 0.0f;
             CHECK(*declaration.type == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
             CHECK(declaration.initial_value == h::create_statement({ h::create_constant_expression(*declaration.type, "10") }));
 
-            CHECK(*declaration.source_location == h::Source_location{ .line = 2, .column = 9 });
+            CHECK(*declaration.source_location == h::Source_location{ .file_path = header_file_path, .line = 2, .column = 9 });
         }
 
         {
@@ -973,7 +973,7 @@ float my_global_1 = 0.0f;
             CHECK(*declaration.type == h::create_fundamental_type_type_reference(h::Fundamental_type::Float32));
             CHECK(declaration.initial_value == h::create_statement({ h::create_constant_expression(*declaration.type, "3.500000") }));
 
-            CHECK(*declaration.source_location == h::Source_location{ .line = 4, .column = 9 });
+            CHECK(*declaration.source_location == h::Source_location{ .file_path = header_file_path, .line = 4, .column = 9 });
         }
 
         {
@@ -985,7 +985,7 @@ float my_global_1 = 0.0f;
             CHECK(*declaration.type == h::create_fundamental_type_type_reference(h::Fundamental_type::Float64));
             CHECK(declaration.initial_value == h::create_statement({ h::create_constant_expression(*declaration.type, "3.500000") }));
 
-            CHECK(*declaration.source_location == h::Source_location{ .line = 5, .column = 9 });
+            CHECK(*declaration.source_location == h::Source_location{ .file_path = header_file_path, .line = 5, .column = 9 });
         }
 
         {
@@ -997,7 +997,7 @@ float my_global_1 = 0.0f;
             CHECK(*declaration.type == h::create_c_string_type_reference(true));
             CHECK(declaration.initial_value == h::create_statement({ h::create_constant_expression(*declaration.type, "a string") }));
 
-            CHECK(*declaration.source_location == h::Source_location{ .line = 6, .column = 9 });
+            CHECK(*declaration.source_location == h::Source_location{ .file_path = header_file_path, .line = 6, .column = 9 });
         }
 
         {
@@ -1009,7 +1009,7 @@ float my_global_1 = 0.0f;
             CHECK(*declaration.type == h::create_fundamental_type_type_reference(h::Fundamental_type::C_ulonglong));
             CHECK(declaration.initial_value == h::create_statement({ h::create_constant_expression(*declaration.type, "20") }));
 
-            CHECK(*declaration.source_location == h::Source_location{ .line = 9, .column = 9 });
+            CHECK(*declaration.source_location == h::Source_location{ .file_path = header_file_path, .line = 9, .column = 9 });
         }
     }
 
@@ -1039,22 +1039,22 @@ Vector2i add(Vector2i lhs, Vector2i rhs);
             h::Function_declaration const& declaration = header_module.export_declarations.function_declarations[0];
             CHECK(declaration.name == "add");
 
-            CHECK(declaration.source_location == h::Source_location{ .line = 8, .column = 10 });
+            CHECK(declaration.source_location == h::Source_location{ .file_path = header_file_path, .line = 8, .column = 10 });
 
-            std::pmr::vector<h::Source_location> expected_input_parameter_source_locations
+            std::pmr::vector<h::Source_position> expected_input_parameter_source_positions
             {
                 {.line = 8, .column = 23},
                 {.line = 8, .column = 37},
             };
 
-            CHECK(declaration.input_parameter_source_locations == expected_input_parameter_source_locations);
+            CHECK(declaration.input_parameter_source_positions == expected_input_parameter_source_positions);
 
-            std::pmr::vector<h::Source_location> expected_output_parameter_source_locations
+            std::pmr::vector<h::Source_position> expected_output_parameter_source_positions
             {
                 {.line = 8, .column = 1},
             };
 
-            CHECK(declaration.output_parameter_source_locations == expected_output_parameter_source_locations);
+            CHECK(declaration.output_parameter_source_positions == expected_output_parameter_source_positions);
         }
     }
 
@@ -1084,15 +1084,15 @@ Vector2i add(Vector2i lhs, Vector2i rhs);
             h::Struct_declaration const& declaration = header_module.export_declarations.struct_declarations[0];
             CHECK(declaration.name == "Vector2i");
 
-            CHECK(declaration.source_location == h::Source_location{ .line = 2, .column = 8 });
+            CHECK(declaration.source_location == h::Source_location{ .file_path = header_file_path, .line = 2, .column = 8 });
 
-            std::pmr::vector<h::Source_location> expected_member_source_locations
+            std::pmr::vector<h::Source_position> expected_member_source_positions
             {
                 {.line = 4, .column = 9},
                 {.line = 5, .column = 9},
             };
 
-            CHECK(declaration.member_source_locations == expected_member_source_locations);
+            CHECK(declaration.member_source_positions == expected_member_source_positions);
         }
     }
 
@@ -1120,15 +1120,15 @@ union Value
             h::Union_declaration const& declaration = header_module.export_declarations.union_declarations[0];
             CHECK(declaration.name == "Value");
 
-            CHECK(declaration.source_location == h::Source_location{ .line = 2, .column = 7 });
+            CHECK(declaration.source_location == h::Source_location{ .file_path = header_file_path, .line = 2, .column = 7 });
 
-            std::pmr::vector<h::Source_location> expected_member_source_locations
+            std::pmr::vector<h::Source_position> expected_member_source_positions
             {
                 {.line = 4, .column = 9},
                 {.line = 5, .column = 11},
             };
 
-            CHECK(declaration.member_source_locations == expected_member_source_locations);
+            CHECK(declaration.member_source_positions == expected_member_source_positions);
         }
     }
 
@@ -1156,7 +1156,7 @@ enum My_enum
             h::Enum_declaration const& declaration = header_module.export_declarations.enum_declarations[0];
             CHECK(declaration.name == "My_enum");
 
-            CHECK(declaration.source_location == h::Source_location{ .line = 2, .column = 6 });
+            CHECK(declaration.source_location == h::Source_location{ .file_path = header_file_path, .line = 2, .column = 6 });
         }
     }
 
@@ -1181,14 +1181,14 @@ typedef My_int My_alias;
             h::Alias_type_declaration const& declaration = header_module.export_declarations.alias_type_declarations[0];
             CHECK(declaration.name == "My_int");
 
-            CHECK(declaration.source_location == h::Source_location{ .line = 2, .column = 13 });
+            CHECK(declaration.source_location == h::Source_location{ .file_path = header_file_path, .line = 2, .column = 13 });
         }
 
         {
             h::Alias_type_declaration const& declaration = header_module.export_declarations.alias_type_declarations[1];
             CHECK(declaration.name == "My_alias");
 
-            CHECK(declaration.source_location == h::Source_location{ .line = 3, .column = 16 });
+            CHECK(declaration.source_location == h::Source_location{ .file_path = header_file_path, .line = 3, .column = 16 });
         }
     }
 }

@@ -9,6 +9,7 @@ module;
 #include <llvm/IR/Value.h>
 
 #include <array>
+#include <filesystem>
 #include <functional>
 #include <memory_resource>
 #include <span>
@@ -103,6 +104,26 @@ namespace h::compiler
         {
             .string = string_type,
         };
+    }
+
+    llvm::DIFile* get_or_create_llvm_debug_file(
+        llvm::DIBuilder& llvm_debug_builder,
+        llvm::DIFile& llvm_debug_file,
+        std::unordered_map<std::filesystem::path, llvm::DIFile*>& llvm_debug_files,
+        std::optional<Source_location> const& source_location
+    )
+    {
+        if (!source_location.has_value() || !source_location->file_path.has_value())
+            return &llvm_debug_file;
+
+        auto const location = llvm_debug_files.find(*source_location->file_path);
+        if (location != llvm_debug_files.end())
+            return location->second;
+        
+        llvm::DIFile* const new_llvm_debug_file = llvm_debug_builder.createFile(source_location->file_path->filename().generic_string(), source_location->file_path->parent_path().generic_string());
+        llvm_debug_files.emplace(*source_location->file_path, new_llvm_debug_file);
+
+        return new_llvm_debug_file;
     }
 
     std::pmr::vector<Alias_type_declaration const*> find_nested_alias_types(
@@ -212,6 +233,7 @@ namespace h::compiler
         llvm::DIBuilder& llvm_debug_builder,
         llvm::DIScope& llvm_debug_scope,
         llvm::DIFile& llvm_debug_file,
+        std::unordered_map<std::filesystem::path, llvm::DIFile*>& llvm_debug_files,
         llvm::DataLayout const& llvm_data_layout,
         Alias_type_declaration const& alias_type_declaration,
         Module const& core_module,
@@ -231,16 +253,18 @@ namespace h::compiler
             std::pmr::vector<Alias_type_declaration const*> const nested_alias_types = find_nested_alias_types(core_module, alias_type_declaration.type[0], core_module.export_declarations.alias_type_declarations, core_module.internal_declarations.alias_type_declarations);
             for (Alias_type_declaration const* nested_alias_type : nested_alias_types)
             {
-                add_alias_debug_type(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_data_layout, *nested_alias_type, core_module, type_database, debug_type_database, llvm_debug_type_map);
+                add_alias_debug_type(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_debug_files, llvm_data_layout, *nested_alias_type, core_module, type_database, debug_type_database, llvm_debug_type_map);
             }
         }
 
         llvm::DIType* const llvm_original_debug_type = type_reference_to_llvm_debug_type(llvm_debug_builder, llvm_data_layout, core_module, alias_type_declaration.type, debug_type_database);
 
+        llvm::DIFile* const declaration_llvm_debug_file = get_or_create_llvm_debug_file(llvm_debug_builder, llvm_debug_file, llvm_debug_files, alias_type_declaration.source_location);
+
         llvm::DIType* const llvm_alias_debug_type = llvm_debug_builder.createTypedef(
             llvm_original_debug_type,
             alias_type_declaration.name.c_str(),
-            &llvm_debug_file,
+            declaration_llvm_debug_file,
             alias_type_declaration.source_location.has_value() ? alias_type_declaration.source_location->line : 0,
             &llvm_debug_scope
         );
@@ -252,6 +276,7 @@ namespace h::compiler
         llvm::DIBuilder& llvm_debug_builder,
         llvm::DIScope& llvm_debug_scope,
         llvm::DIFile& llvm_debug_file,
+        std::unordered_map<std::filesystem::path, llvm::DIFile*>& llvm_debug_files,
         llvm::DataLayout const& llvm_data_layout,
         std::span<Alias_type_declaration const> const alias_type_declarations,
         Module const& core_module,
@@ -262,7 +287,7 @@ namespace h::compiler
     {
         for (Alias_type_declaration const& alias_type_declaration : alias_type_declarations)
         {
-            add_alias_debug_type(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_data_layout, alias_type_declaration, core_module, type_database, debug_type_database, llvm_debug_type_map);
+            add_alias_debug_type(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_debug_files, llvm_data_layout, alias_type_declaration, core_module, type_database, debug_type_database, llvm_debug_type_map);
         }
     }
 
@@ -285,6 +310,7 @@ namespace h::compiler
         llvm::DIBuilder& llvm_debug_builder,
         llvm::DIScope& llvm_debug_scope,
         llvm::DIFile& llvm_debug_file,
+        std::unordered_map<std::filesystem::path, llvm::DIFile*>& llvm_debug_files,
         std::span<Enum_declaration const> const enum_declarations,
         std::pmr::unordered_map<std::pmr::string, std::pmr::vector<llvm::Constant*>> const& enum_value_constants,
         LLVM_debug_type_map& llvm_debug_type_map
@@ -316,10 +342,12 @@ namespace h::compiler
                 );
             }
 
+            llvm::DIFile* const declaration_llvm_debug_file = get_or_create_llvm_debug_file(llvm_debug_builder, llvm_debug_file, llvm_debug_files, enum_declaration.source_location);
+
             llvm::DIType* const enum_type = llvm_debug_builder.createEnumerationType(
                 &llvm_debug_scope,
                 enum_declaration.name.c_str(),
-                &llvm_debug_file,
+                declaration_llvm_debug_file,
                 enum_declaration.source_location.has_value() ? enum_declaration.source_location->line : 0,
                 number_of_bits,
                 8,
@@ -376,6 +404,7 @@ namespace h::compiler
         llvm::DIBuilder& llvm_debug_builder,
         llvm::DIScope& llvm_debug_scope,
         llvm::DIFile& llvm_debug_file,
+        std::unordered_map<std::filesystem::path, llvm::DIFile*>& llvm_debug_files,
         Module const& core_module,
         std::span<Struct_declaration const> const struct_declarations,
         LLVM_debug_type_map& llvm_debug_type_map
@@ -385,11 +414,13 @@ namespace h::compiler
         {
             std::string const mangled_name = mangle_struct_name(core_module, struct_declaration.name);
 
+            llvm::DIFile* const declaration_llvm_debug_file = get_or_create_llvm_debug_file(llvm_debug_builder, llvm_debug_file, llvm_debug_files, struct_declaration.source_location);
+
             llvm::DIType* const value = llvm_debug_builder.createReplaceableCompositeType(
                 llvm::dwarf::DW_TAG_structure_type,
                 mangled_name,
                 &llvm_debug_scope,
-                &llvm_debug_file,
+                declaration_llvm_debug_file,
                 struct_declaration.source_location.has_value() ? struct_declaration.source_location->line : 0
             );
 
@@ -401,6 +432,7 @@ namespace h::compiler
         llvm::DIBuilder& llvm_debug_builder,
         llvm::DIScope& llvm_debug_scope,
         llvm::DIFile& llvm_debug_file,
+        std::unordered_map<std::filesystem::path, llvm::DIFile*>& llvm_debug_files,
         llvm::DataLayout const& llvm_data_layout,
         Module const& core_module,
         std::span<Struct_declaration const> const struct_declarations,
@@ -435,8 +467,8 @@ namespace h::compiler
                 llvm::Type* const llvm_type = llvm_struct_type->getElementType(index);
                 std::pmr::string const& member_name = struct_declaration.member_names[index];
 
-                std::optional<std::pmr::vector<Source_location>> const& member_source_locations = struct_declaration.member_source_locations;
-                std::uint32_t const member_line_number = member_source_locations.has_value() ? member_source_locations.value()[index].line : struct_line_number;
+                std::optional<std::pmr::vector<Source_position>> const& member_source_positions = struct_declaration.member_source_positions;
+                std::uint32_t const member_line_number = member_source_positions.has_value() ? member_source_positions.value()[index].line : struct_line_number;
 
                 llvm::DIType* const llvm_member_debug_type = llvm_debug_builder.createMemberType(
                     &llvm_debug_scope,
@@ -459,10 +491,12 @@ namespace h::compiler
 
             llvm::TypeSize const size_in_bits = llvm_data_layout.getTypeSizeInBits(llvm_struct_type);
 
+            llvm::DIFile* const declaration_llvm_debug_file = get_or_create_llvm_debug_file(llvm_debug_builder, llvm_debug_file, llvm_debug_files, struct_declaration.source_location);
+
             llvm::DIType* const llvm_struct_debug_type = llvm_debug_builder.createStructType(
                 &llvm_debug_scope,
                 llvm_forward_declaration_debug_type->getName(),
-                &llvm_debug_file,
+                declaration_llvm_debug_file,
                 struct_line_number,
                 size_in_bits,
                 8,
@@ -522,6 +556,7 @@ namespace h::compiler
         llvm::DIBuilder& llvm_debug_builder,
         llvm::DIScope& llvm_debug_scope,
         llvm::DIFile& llvm_debug_file,
+        std::unordered_map<std::filesystem::path, llvm::DIFile*>& llvm_debug_files,
         Module const& core_module,
         std::span<Union_declaration const> const union_declarations,
         LLVM_debug_type_map& llvm_debug_type_map
@@ -531,11 +566,13 @@ namespace h::compiler
         {
             std::string const mangled_name = mangle_struct_name(core_module, union_declaration.name);
 
+            llvm::DIFile* const declaration_llvm_debug_file = get_or_create_llvm_debug_file(llvm_debug_builder, llvm_debug_file, llvm_debug_files, union_declaration.source_location);
+
             llvm::DIType* const value = llvm_debug_builder.createReplaceableCompositeType(
                 llvm::dwarf::DW_TAG_union_type,
                 mangled_name,
                 &llvm_debug_scope,
-                &llvm_debug_file,
+                declaration_llvm_debug_file,
                 union_declaration.source_location.has_value() ? union_declaration.source_location->line : 0
             );
 
@@ -547,6 +584,7 @@ namespace h::compiler
         llvm::DIBuilder& llvm_debug_builder,
         llvm::DIScope& llvm_debug_scope,
         llvm::DIFile& llvm_debug_file,
+        std::unordered_map<std::filesystem::path, llvm::DIFile*>& llvm_debug_files,
         llvm::DataLayout const& llvm_data_layout,
         Module const& core_module,
         std::span<Union_declaration const> const union_declarations,
@@ -579,8 +617,8 @@ namespace h::compiler
                 llvm::Type* const llvm_type = llvm_union_type->getElementType(0);
                 std::pmr::string const& member_name = union_declaration.member_names[index];
 
-                std::optional<std::pmr::vector<Source_location>> const& member_source_locations = union_declaration.member_source_locations;
-                std::uint32_t const member_line_number = member_source_locations.has_value() ? member_source_locations.value()[index].line : union_line_number;
+                std::optional<std::pmr::vector<Source_position>> const& member_source_positions = union_declaration.member_source_positions;
+                std::uint32_t const member_line_number = member_source_positions.has_value() ? member_source_positions.value()[index].line : union_line_number;
 
                 llvm::DIType* const llvm_member_debug_type = llvm_debug_builder.createMemberType(
                     &llvm_debug_scope,
@@ -601,10 +639,12 @@ namespace h::compiler
 
             llvm::TypeSize const size_in_bits = llvm_data_layout.getTypeSizeInBits(llvm_union_type);
 
+            llvm::DIFile* const declaration_llvm_debug_file = get_or_create_llvm_debug_file(llvm_debug_builder, llvm_debug_file, llvm_debug_files, union_declaration.source_location);
+
             llvm::DIType* const llvm_union_debug_type = llvm_debug_builder.createUnionType(
                 &llvm_debug_scope,
                 llvm_forward_declaration_debug_type->getName(),
-                &llvm_debug_file,
+                declaration_llvm_debug_file,
                 union_line_number,
                 size_in_bits,
                 8,
@@ -676,6 +716,7 @@ namespace h::compiler
         llvm::DIBuilder& llvm_debug_builder,
         llvm::DIScope& llvm_debug_scope,
         llvm::DIFile& llvm_debug_file,
+        std::unordered_map<std::filesystem::path, llvm::DIFile*>& llvm_debug_files,
         llvm::DataLayout const& llvm_data_layout,
         Module const& core_module,
         std::pmr::unordered_map<std::pmr::string, std::pmr::vector<llvm::Constant*>> const& enum_value_constants,
@@ -685,23 +726,23 @@ namespace h::compiler
         LLVM_debug_type_map& llvm_debug_type_map = debug_type_database.name_to_llvm_debug_type[core_module.name];
         LLVM_type_map const& llvm_type_map = type_database.name_to_llvm_type.at(core_module.name);
 
-        add_enum_debug_types(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, core_module.export_declarations.enum_declarations, enum_value_constants, llvm_debug_type_map);
-        add_enum_debug_types(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, core_module.internal_declarations.enum_declarations, enum_value_constants, llvm_debug_type_map);
+        add_enum_debug_types(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_debug_files, core_module.export_declarations.enum_declarations, enum_value_constants, llvm_debug_type_map);
+        add_enum_debug_types(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_debug_files, core_module.internal_declarations.enum_declarations, enum_value_constants, llvm_debug_type_map);
 
-        add_struct_debug_declarations(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, core_module, core_module.export_declarations.struct_declarations, llvm_debug_type_map);
-        add_struct_debug_declarations(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, core_module, core_module.internal_declarations.struct_declarations, llvm_debug_type_map);
+        add_struct_debug_declarations(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_debug_files, core_module, core_module.export_declarations.struct_declarations, llvm_debug_type_map);
+        add_struct_debug_declarations(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_debug_files, core_module, core_module.internal_declarations.struct_declarations, llvm_debug_type_map);
 
-        add_union_debug_declarations(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, core_module, core_module.export_declarations.union_declarations, llvm_debug_type_map);
-        add_union_debug_declarations(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, core_module, core_module.internal_declarations.union_declarations, llvm_debug_type_map);
+        add_union_debug_declarations(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_debug_files, core_module, core_module.export_declarations.union_declarations, llvm_debug_type_map);
+        add_union_debug_declarations(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_debug_files, core_module, core_module.internal_declarations.union_declarations, llvm_debug_type_map);
 
-        add_alias_debug_types(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_data_layout, core_module.export_declarations.alias_type_declarations, core_module, type_database, debug_type_database, llvm_debug_type_map);
-        add_alias_debug_types(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_data_layout, core_module.internal_declarations.alias_type_declarations, core_module, type_database, debug_type_database, llvm_debug_type_map);
+        add_alias_debug_types(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_debug_files, llvm_data_layout, core_module.export_declarations.alias_type_declarations, core_module, type_database, debug_type_database, llvm_debug_type_map);
+        add_alias_debug_types(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_debug_files, llvm_data_layout, core_module.internal_declarations.alias_type_declarations, core_module, type_database, debug_type_database, llvm_debug_type_map);
 
-        set_struct_debug_definitions(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_data_layout, core_module, core_module.export_declarations.struct_declarations, debug_type_database, llvm_type_map, llvm_debug_type_map);
-        set_struct_debug_definitions(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_data_layout, core_module, core_module.internal_declarations.struct_declarations, debug_type_database, llvm_type_map, llvm_debug_type_map);
+        set_struct_debug_definitions(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_debug_files, llvm_data_layout, core_module, core_module.export_declarations.struct_declarations, debug_type_database, llvm_type_map, llvm_debug_type_map);
+        set_struct_debug_definitions(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_debug_files, llvm_data_layout, core_module, core_module.internal_declarations.struct_declarations, debug_type_database, llvm_type_map, llvm_debug_type_map);
 
-        set_union_debug_definitions(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_data_layout, core_module, core_module.export_declarations.union_declarations, debug_type_database, llvm_type_map, llvm_debug_type_map);
-        set_union_debug_definitions(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_data_layout, core_module, core_module.internal_declarations.union_declarations, debug_type_database, llvm_type_map, llvm_debug_type_map);
+        set_union_debug_definitions(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_debug_files, llvm_data_layout, core_module, core_module.export_declarations.union_declarations, debug_type_database, llvm_type_map, llvm_debug_type_map);
+        set_union_debug_definitions(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_debug_files, llvm_data_layout, core_module, core_module.internal_declarations.union_declarations, debug_type_database, llvm_type_map, llvm_debug_type_map);
     }
 
     llvm::Type* fundamental_type_to_llvm_type(

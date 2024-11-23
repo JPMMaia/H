@@ -105,7 +105,7 @@ struct My_struct
         const declaration = module.declarations[0].value as Core_intermediate_representation.Struct_declaration;
         assert.deepEqual(declaration.source_location, { line: 5, column: 8 });
 
-        assert.deepEqual(declaration.member_source_locations, [
+        assert.deepEqual(declaration.member_source_positions, [
             { line: 8, column: 5 },
             { line: 10, column: 5 }
         ]);
@@ -131,7 +131,7 @@ union My_union
         const declaration = module.declarations[0].value as Core_intermediate_representation.Struct_declaration;
         assert.deepEqual(declaration.source_location, { line: 5, column: 7 });
 
-        assert.deepEqual(declaration.member_source_locations, [
+        assert.deepEqual(declaration.member_source_positions, [
             { line: 8, column: 5 },
             { line: 10, column: 5 }
         ]);
@@ -175,12 +175,12 @@ function my_function(a: Int32, b: Int32) -> (c: Int32)
         const declaration = function_value.declaration;
         assert.deepEqual(declaration.source_location, { line: 5, column: 10 });
 
-        assert.deepEqual(declaration.input_parameter_source_locations, [
+        assert.deepEqual(declaration.input_parameter_source_positions, [
             { line: 5, column: 22 },
             { line: 5, column: 32 }
         ]);
 
-        assert.deepEqual(declaration.output_parameter_source_locations, [
+        assert.deepEqual(declaration.output_parameter_source_positions, [
             { line: 5, column: 46 }
         ]);
 
@@ -189,32 +189,32 @@ function my_function(a: Int32, b: Int32) -> (c: Int32)
 
         {
             const if_statement = definition.statements[0];
-            assert.deepEqual(if_statement.expression.source_location, { line: 7, column: 5 });
+            assert.deepEqual(if_statement.expression.source_position, { line: 7, column: 5 });
 
             const if_expression = if_statement.expression.data.value as Core_intermediate_representation.If_expression;
-            assert.deepEqual(if_expression.series[0].block_source_location, { line: 8, column: 5 });
-            assert.deepEqual(if_expression.series[1].block_source_location, { line: 11, column: 5 });
-            assert.deepEqual(if_expression.series[2].block_source_location, { line: 14, column: 5 });
+            assert.deepEqual(if_expression.series[0].block_source_position, { line: 8, column: 5 });
+            assert.deepEqual(if_expression.series[1].block_source_position, { line: 11, column: 5 });
+            assert.deepEqual(if_expression.series[2].block_source_position, { line: 14, column: 5 });
         }
 
         {
             const for_loop_statement = definition.statements[1];
-            assert.deepEqual(for_loop_statement.expression.source_location, { line: 17, column: 5 });
+            assert.deepEqual(for_loop_statement.expression.source_position, { line: 17, column: 5 });
         }
 
         {
             const while_loop_statement = definition.statements[2];
-            assert.deepEqual(while_loop_statement.expression.source_location, { line: 21, column: 5 });
+            assert.deepEqual(while_loop_statement.expression.source_position, { line: 21, column: 5 });
         }
 
         {
             const comment_statement = definition.statements[3];
-            assert.deepEqual(comment_statement.expression.source_location, { line: 25, column: 5 });
+            assert.deepEqual(comment_statement.expression.source_position, { line: 25, column: 5 });
         }
 
         {
             const return_statement = definition.statements[4];
-            assert.deepEqual(return_statement.expression.source_location, { line: 26, column: 5 });
+            assert.deepEqual(return_statement.expression.source_position, { line: 26, column: 5 });
         }
     });
 });

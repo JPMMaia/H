@@ -679,7 +679,7 @@ namespace h
             .is_variadic = false
         };
 
-        std::pmr::vector<h::Source_location> input_parameter_source_locations
+        std::pmr::vector<h::Source_position> input_parameter_source_positions
         {
             {
                 .line = 3,
@@ -687,7 +687,7 @@ namespace h
             }
         };
 
-        std::pmr::vector<h::Source_location> output_parameter_source_locations
+        std::pmr::vector<h::Source_position> output_parameter_source_positions
         {
             {
                 .line = 3,
@@ -704,11 +704,12 @@ namespace h
             .linkage = Linkage::External,
             .source_location = Source_location
             {
+                .file_path = std::nullopt,
                 .line = 3,
                 .column = 0
             },
-            .input_parameter_source_locations = std::move(input_parameter_source_locations),
-            .output_parameter_source_locations = std::move(output_parameter_source_locations)
+            .input_parameter_source_positions = std::move(input_parameter_source_positions),
+            .output_parameter_source_positions = std::move(output_parameter_source_positions)
         };
     }
 
@@ -765,7 +766,7 @@ namespace h
                     "line": 3,
                     "column": 0
                 },
-                "input_parameter_source_locations": {
+                "input_parameter_source_positions": {
                     "size": 1,
                     "elements": [
                         {
@@ -774,7 +775,7 @@ namespace h
                         }
                     ]
                 },
-                "output_parameter_source_locations": {
+                "output_parameter_source_positions": {
                     "size": 1,
                     "elements": [
                         {
@@ -1047,7 +1048,7 @@ namespace h
                                 "line": 3,
                                 "column": 0
                             },
-                            "input_parameter_source_locations": {
+                            "input_parameter_source_positions": {
                                 "size": 1,
                                 "elements": [
                                     {
@@ -1056,7 +1057,7 @@ namespace h
                                     }
                                 ]
                             },
-                            "output_parameter_source_locations": {
+                            "output_parameter_source_positions": {
                                 "size": 1,
                                 "elements": [
                                     {

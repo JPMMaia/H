@@ -64,7 +64,7 @@ namespace h::compiler
         std::span<Value_and_type const> local_variables;
         std::optional<Type_reference> expression_type;
         Debug_info* debug_info;
-        std::optional<Source_location> source_location;
+        std::optional<Source_position> source_position;
         std::pmr::polymorphic_allocator<> const& temporaries_allocator;
     };
 

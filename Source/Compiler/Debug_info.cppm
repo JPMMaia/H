@@ -34,7 +34,7 @@ namespace h::compiler
 
     export void push_debug_lexical_block_scope(
         Debug_info& debug_info,
-        Source_location const source_location
+        Source_position const source_position
     );
 
     export void pop_debug_scope(

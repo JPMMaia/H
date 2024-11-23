@@ -102,7 +102,7 @@ namespace h::compiler
         Type_reference const& type_reference
     )
     {
-        Source_location const source_location = parameters.source_location.value_or(Source_location{});
+        Source_position const source_position = parameters.source_position.value_or(Source_position{});
 
         llvm::DIType* const llvm_argument_debug_type = type_reference_to_llvm_debug_type(
             *debug_info.llvm_builder,
@@ -118,14 +118,14 @@ namespace h::compiler
             debug_scope,
             name.data(),
             debug_scope->getFile(),
-            source_location.line,
+            source_position.line,
             llvm_argument_debug_type
         );
 
         llvm::DILocation* const debug_location = llvm::DILocation::get(
             parameters.llvm_context,
-            source_location.line,
-            source_location.column,
+            source_position.line,
+            source_position.column,
             debug_scope
         );
 
@@ -608,7 +608,7 @@ namespace h::compiler
             Value_and_type const right_hand_side_value = create_loaded_expression_value(right_hand_side.expression_index, statement, right_hand_side_parameters);
 
             if (parameters.debug_info != nullptr)
-                set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
+                set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
 
             Value_and_type const result = create_binary_operation_instruction(llvm_builder, left_hand_side_value, right_hand_side_value, operation);
 
@@ -644,7 +644,7 @@ namespace h::compiler
         );
 
         if (parameters.debug_info != nullptr)
-            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
+            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
 
         llvm::Value* store_instruction = create_store_instruction(llvm_builder, llvm_data_layout, result.value, left_hand_side.value);
 
@@ -1101,7 +1101,7 @@ namespace h::compiler
         Binary_operation const operation = expression.operation;
 
         if (parameters.debug_info != nullptr)
-            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
+            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
 
         Value_and_type value = create_binary_operation_instruction(llvm_builder, left_hand_side, right_hand_side, operation);
         return value;
@@ -1115,7 +1115,7 @@ namespace h::compiler
         std::span<Statement const> statements = block_expression.statements;
 
         if (parameters.debug_info != nullptr)
-            push_debug_lexical_block_scope(*parameters.debug_info, *parameters.source_location);
+            push_debug_lexical_block_scope(*parameters.debug_info, *parameters.source_position);
 
         create_statement_values(
             statements,
@@ -1167,7 +1167,7 @@ namespace h::compiler
         llvm::BasicBlock* const target_block = find_target_block();
 
         if (parameters.debug_info != nullptr)
-            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
+            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
 
         llvm_builder.CreateBr(target_block);
 
@@ -1213,7 +1213,7 @@ namespace h::compiler
         }
 
         if (parameters.debug_info != nullptr)
-            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
+            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
 
         llvm::Value* call_instruction = generate_function_call(
             parameters.llvm_context,
@@ -1557,7 +1557,7 @@ namespace h::compiler
         llvm::BasicBlock* const target_block = find_target_block();
 
         if (parameters.debug_info != nullptr)
-            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
+            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
 
         llvm_builder.CreateBr(target_block);
 
@@ -1586,12 +1586,12 @@ namespace h::compiler
         std::span<Value_and_type const> const local_variables = parameters.local_variables;
 
         if (parameters.debug_info != nullptr)
-            push_debug_lexical_block_scope(*parameters.debug_info, *parameters.source_location);
+            push_debug_lexical_block_scope(*parameters.debug_info, *parameters.source_position);
 
         Value_and_type const& range_begin_temporary = create_loaded_expression_value(expression.range_begin.expression_index, statement, parameters);
 
         if (parameters.debug_info != nullptr)
-            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
+            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
 
         // Loop variable declaration:
         Type_reference const& variable_type = range_begin_temporary.type.value();
@@ -1619,7 +1619,7 @@ namespace h::compiler
             );
 
             if (parameters.debug_info != nullptr)
-                set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
+                set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
 
             Value_and_type const loaded_variable_value
             {
@@ -1676,7 +1676,7 @@ namespace h::compiler
                 create_constant_expression_value(default_step_constant, llvm_context, llvm_data_layout, llvm_module, core_module, type_database);
 
             if (parameters.debug_info != nullptr)
-                set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
+                set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
 
             llvm::Value* const loaded_value_value = create_load_instruction(llvm_builder, llvm_data_layout, variable_llvm_type, variable_value.value);
             llvm::Value* new_variable_value = llvm_builder.CreateAdd(loaded_value_value, step_by_value.value);
@@ -1774,7 +1774,7 @@ namespace h::compiler
                 llvm_builder.SetInsertPoint(then_block);
 
                 if (parameters.debug_info != nullptr)
-                    push_debug_lexical_block_scope(*parameters.debug_info, *serie.block_source_location);
+                    push_debug_lexical_block_scope(*parameters.debug_info, *serie.block_source_position);
 
                 create_statement_values(
                     serie.then_statements,
@@ -1792,7 +1792,7 @@ namespace h::compiler
             else
             {
                 if (parameters.debug_info != nullptr)
-                    push_debug_lexical_block_scope(*parameters.debug_info, *serie.block_source_location);
+                    push_debug_lexical_block_scope(*parameters.debug_info, *serie.block_source_position);
 
                 create_statement_values(
                     serie.then_statements,
@@ -1962,7 +1962,7 @@ namespace h::compiler
         Value_and_type const member_value = create_loaded_statement_value(member_value_pair.value, new_parameters);
 
         if (parameters.debug_info != nullptr)
-            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
+            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
 
         llvm::AllocaInst* const union_instance = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_union_type);
         llvm::Value* const bitcast_instruction = llvm_builder.CreateBitCast(union_instance, member_value.value->getType()->getPointerTo());
@@ -2055,7 +2055,7 @@ namespace h::compiler
         if (!expression.expression.has_value())
         {
             if (parameters.debug_info != nullptr)
-                set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
+                set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
 
             llvm::Value* const instruction = llvm_builder.CreateRetVoid();
 
@@ -2075,7 +2075,7 @@ namespace h::compiler
         Value_and_type const temporary = create_expression_value(expression.expression->expression_index, statement, new_parameters);
 
         if (parameters.debug_info != nullptr)
-            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
+            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
 
         llvm::Value* const instruction = generate_function_return_instruction(
             parameters.llvm_context,
@@ -2429,7 +2429,7 @@ namespace h::compiler
         Value_and_type const& right_hand_side = create_loaded_expression_value(expression.right_hand_side.expression_index, statement, parameters);
 
         if (parameters.debug_info != nullptr)
-            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
+            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
 
         llvm::AllocaInst* const alloca = create_alloca_instruction(llvm_builder, llvm_data_layout, right_hand_side.value->getType(), expression.name.c_str());
         if (alloca == nullptr)
@@ -2478,7 +2478,7 @@ namespace h::compiler
         );
 
         if (parameters.debug_info != nullptr)
-            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_location->line, parameters.source_location->column);
+            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
 
         llvm::AllocaInst* const alloca = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_type, expression.name.c_str());
 
@@ -2651,7 +2651,7 @@ namespace h::compiler
         llvm_builder.SetInsertPoint(then_block);
 
         if (parameters.debug_info != nullptr)
-            push_debug_lexical_block_scope(*parameters.debug_info, *parameters.source_location);
+            push_debug_lexical_block_scope(*parameters.debug_info, *parameters.source_position);
 
         create_statement_values(
             expression.then_statements,
@@ -2681,10 +2681,10 @@ namespace h::compiler
     {
         Expression_parameters new_parameters = parameters;
 
-        if (parameters.debug_info != nullptr && expression.source_location.has_value())
+        if (parameters.debug_info != nullptr && expression.source_position.has_value())
         {
-            Source_location const source_location = *expression.source_location;
-            new_parameters.source_location = source_location;
+            Source_position const source_position = *expression.source_position;
+            new_parameters.source_position = source_position;
         }
 
         if (std::holds_alternative<Access_expression>(expression.data))
@@ -2834,7 +2834,7 @@ namespace h::compiler
             h::Expression const& expression = statement.expressions[expression_index];
 
             if (parameters.debug_info != nullptr)
-                set_debug_location(parameters.llvm_builder, *parameters.debug_info, expression.source_location->line, expression.source_location->column);
+                set_debug_location(parameters.llvm_builder, *parameters.debug_info, expression.source_position->line, expression.source_position->column);
 
             llvm::Value* const loaded_value = parameters.llvm_builder.CreateLoad(llvm_type, value.value);
             return Value_and_type

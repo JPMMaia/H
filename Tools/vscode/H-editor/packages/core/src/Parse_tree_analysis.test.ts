@@ -473,14 +473,14 @@ function create_custom_type_reference(module_name: string, name: string): Core.T
     };
 }
 
-function create_statement(expression: Core.Expression, source_location?: Core.Source_location): Core.Statement {
+function create_statement(expression: Core.Expression, source_position?: Core.Source_position): Core.Statement {
 
     const statement: Core.Statement = {
         expression: expression
     };
 
-    if (source_location !== undefined) {
-        statement.expression.source_location = source_location;
+    if (source_position !== undefined) {
+        statement.expression.source_position = source_position;
     }
 
     return statement;

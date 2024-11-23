@@ -2436,8 +2436,8 @@ namespace h::tools::code_generator
         if (variant_type_enum_name == "Expression_enum")
         {
             output_stream << "\n";
-            output_stream << indent(indentation) << "if (intermediate_value.source_location !== undefined) {\n";
-            output_stream << indent(indentation) << "    expressions[expression_index].source_location = intermediate_value.source_location;\n";
+            output_stream << indent(indentation) << "if (intermediate_value.source_position !== undefined) {\n";
+            output_stream << indent(indentation) << "    expressions[expression_index].source_position = intermediate_value.source_position;\n";
             output_stream << indent(indentation) << "}\n";
         }
     }
