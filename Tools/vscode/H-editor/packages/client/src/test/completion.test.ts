@@ -20,9 +20,11 @@ suite("Should do completion", () => {
 				{ label: "export", kind: vscode.CompletionItemKind.Keyword },
 				{ label: "function", kind: vscode.CompletionItemKind.Keyword },
 				{ label: "import", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "mutable", kind: vscode.CompletionItemKind.Keyword },
 				{ label: "struct", kind: vscode.CompletionItemKind.Keyword },
 				{ label: "union", kind: vscode.CompletionItemKind.Keyword },
 				{ label: "using", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "var", kind: vscode.CompletionItemKind.Keyword },
 			]
 		});
 	});
@@ -54,6 +56,7 @@ suite("Should do completion", () => {
 				{ label: "C_char", kind: vscode.CompletionItemKind.Keyword },
 				{ label: "C_int", kind: vscode.CompletionItemKind.Keyword },
 				{ label: "C_long", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "C_longdouble", kind: vscode.CompletionItemKind.Keyword },
 				{ label: "C_longlong", kind: vscode.CompletionItemKind.Keyword },
 				{ label: "C_schar", kind: vscode.CompletionItemKind.Keyword },
 				{ label: "C_short", kind: vscode.CompletionItemKind.Keyword },
