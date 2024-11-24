@@ -102,6 +102,26 @@ suite("Should add semantic highlights", () => {
 		);
 	});
 
+	test("Provides tokens for semantic_highlight_global_variable.hltxt", async () => {
+		const document_uri = get_document_uri("semantic_highlight_global_variable.hltxt");
+		await test_semantic_highlight(
+			document_uri,
+			[
+				{ line: 2, character: 0, length: 3, token_type: "keyword", token_modifiers: [], },
+				{ line: 2, character: 4, length: 15, token_type: "variable", token_modifiers: ["declaration", "readonly"], },
+				{ line: 2, character: 20, length: 1, token_type: "operator", token_modifiers: [], },
+				{ line: 2, character: 22, length: 1, token_type: "number", token_modifiers: [], },
+				{ line: 2, character: 23, length: 1, token_type: "operator", token_modifiers: [], },
+				{ line: 3, character: 0, length: 7, token_type: "keyword", token_modifiers: [], },
+				{ line: 3, character: 8, length: 15, token_type: "variable", token_modifiers: ["declaration"], },
+				{ line: 3, character: 24, length: 1, token_type: "operator", token_modifiers: [], },
+				{ line: 3, character: 26, length: 6, token_type: "number", token_modifiers: [], },
+				{ line: 3, character: 32, length: 1, token_type: "operator", token_modifiers: [], }
+			],
+			to_range(1, 0, 6, 0)
+		);
+	});
+
 	test("Provides tokens for semantic_highlight_struct.hltxt", async () => {
 		const document_uri = get_document_uri("semantic_highlight_struct.hltxt");
 		await test_semantic_highlight(
