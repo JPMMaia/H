@@ -255,6 +255,7 @@ suite("Should do completion", () => {
 		await test_completion(document_uri, new vscode.Position(6, 24), {
 			items: [
 				{ label: "add", kind: vscode.CompletionItemKind.Function },
+				{ label: "PI", kind: vscode.CompletionItemKind.Constant },
 			]
 		});
 	});
@@ -301,6 +302,16 @@ suite("Should do completion", () => {
 				{ label: "Medium", kind: vscode.CompletionItemKind.EnumMember },
 			]
 		});
+	});
+
+	test("Completes global variables", async () => {
+		const document_uri = get_document_uri('completion_global_variable_0.hltxt');
+		await test_completion(document_uri, new vscode.Position(11, 10), {
+			items: [
+				{ label: "my_global_constant", kind: vscode.CompletionItemKind.Constant },
+				{ label: "my_global_variable", kind: vscode.CompletionItemKind.Variable },
+			]
+		}, true);
 	});
 
 	test("Completes struct members", async () => {

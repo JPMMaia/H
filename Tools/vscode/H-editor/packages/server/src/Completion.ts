@@ -88,7 +88,7 @@ export async function on_completion(
             }
             else {
                 items.push(...get_keyword_and_value_items(allowed_labels, server_data));
-                items.push(...get_function_declaration_items(core_module, false));
+                items.push(...get_value_declaration_items(core_module, false));
                 items.push(...get_function_local_variable_items(core_module, before_cursor_node_iterator));
                 items.push(...get_module_import_alias_items(core_module));
             }
@@ -170,6 +170,19 @@ function get_keyword_and_value_items(
     return items;
 }
 
+function get_value_declaration_items(
+    core_module: Core.Module,
+    public_only: boolean
+): vscode.CompletionItem[] {
+
+    var items: vscode.CompletionItem[] = [];
+
+    items.push(...get_function_declaration_items(core_module, public_only));
+    items.push(...get_global_variable_declaration_items(core_module, public_only));
+
+    return items;
+}
+
 function get_function_declaration_items(
     core_module: Core.Module,
     public_only: boolean
@@ -226,6 +239,30 @@ function get_function_local_variable_items(
     ];
 }
 
+function get_global_variable_declaration_items(
+    core_module: Core.Module,
+    public_only: boolean
+): vscode.CompletionItem[] {
+
+    const global_variable_declarations = core_module.declarations.filter(value => value.type === Core.Declaration_type.Global_variable);
+
+    const visible_function_declarations = public_only ?
+        global_variable_declarations.filter(declaration => declaration.is_export) :
+        global_variable_declarations;
+
+    const items = visible_function_declarations.map(
+        (declaration, index): vscode.CompletionItem => {
+            return {
+                label: declaration.name,
+                kind: declaration_type_to_completion_item_kind(declaration),
+                data: index
+            };
+        }
+    );
+
+    return items;
+}
+
 function get_builtin_type_items(): vscode.CompletionItem[] {
 
     const builtin_types = [
@@ -259,8 +296,8 @@ function declaration_type_to_completion_item_kind(declaration: Core.Declaration)
             return vscode.CompletionItemKind.Function;
         }
         case Core.Declaration_type.Global_variable: {
-            // TODO can be either constant or variable
-            return vscode.CompletionItemKind.Variable;
+            const value = declaration.value as Core.Global_variable_declaration;
+            return value.is_mutable ? vscode.CompletionItemKind.Variable : vscode.CompletionItemKind.Constant;
         }
         case Core.Declaration_type.Struct: {
             return vscode.CompletionItemKind.Struct;
@@ -427,7 +464,7 @@ async function get_expression_access_items(
             }
 
             if (components.length <= 2) {
-                return get_function_declaration_items(imported_module, true);
+                return get_value_declaration_items(imported_module, true);
             }
         }
     }

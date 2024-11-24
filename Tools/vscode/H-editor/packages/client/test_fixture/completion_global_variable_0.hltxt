@@ -1,0 +1,8 @@
+module completion_global_variable_0;
+
+var my_global_constant = 0.0f32;
+mutable my_global_variable = 0.0f32;
+
+export function run() -> ()
+{
+    var value = 
