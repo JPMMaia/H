@@ -61,7 +61,7 @@ export async function get_hover(
     }
 
     const ancestor_declaration_name = Parser_node.get_first_ancestor_with_name(root, after_cursor_node_position, [
-        "Alias_name", "Enum_name", "Function_name", "Struct_name", "Union_name"
+        "Alias_name", "Enum_name", "Function_name", "Global_variable_name", "Struct_name", "Union_name"
     ]);
     if (ancestor_declaration_name !== undefined && after_cursor.node !== undefined) {
         const declaration_name = after_cursor.node.word.value;
@@ -131,20 +131,20 @@ export async function get_hover(
             }
         }
         else if (ancestor_expression.node.word.value === "Expression_variable") {
-            const module_function = await Parse_tree_analysis.get_function_value_from_node(server_data.language_description, core_module, ancestor_expression.node, get_core_module);
-            if (module_function !== undefined) {
-                const declaration: Core.Declaration = {
-                    type: Core.Declaration_type.Function,
-                    value: module_function.function_value,
-                    name: module_function.function_value.declaration.name,
-                    is_export: false
-                };
-                const content = Helpers.get_tooltip_of_declaration(module_function.core_module, declaration);
-                const range = Helpers.get_terminal_node_vscode_range(root, before_cursor.text, ancestor_expression.position);
-                return {
-                    contents: content,
-                    range: range
-                };
+
+            const expression = Parse_tree_analysis.get_expression_from_node(server_data.language_description, core_module, ancestor_expression.node);
+            if (expression.data.type === Core.Expression_enum.Variable_expression) {
+                const variable_expression = expression.data.value as Core.Variable_expression;
+                const declaration = core_module.declarations.find(declaration => declaration.name === variable_expression.name);
+
+                if (declaration !== undefined) {
+                    const content = Helpers.get_tooltip_of_declaration(core_module, declaration);
+                    const range = Helpers.get_terminal_node_vscode_range(root, before_cursor.text, ancestor_expression.position);
+                    return {
+                        contents: content,
+                        range: range
+                    };
+                }
             }
         }
     }

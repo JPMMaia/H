@@ -1,0 +1,16 @@
+module hover_global_variable_0;
+
+// My global constant
+// Cannot modify
+var my_global_constant = 0;
+
+// My global variable
+// Can modify
+mutable my_global_variable = 1.0f32;
+
+function run() -> ()
+{
+    var a = my_global_constant;
+    var b = my_global_variable;
+    my_global_variable = 3.0f32;
+}
