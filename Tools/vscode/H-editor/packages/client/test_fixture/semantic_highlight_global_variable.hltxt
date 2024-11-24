@@ -1,0 +1,4 @@
+module semantic_highlight_global_variable;
+
+var global_constant = 0;
+mutable global_variable = 0.0f32;

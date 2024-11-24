@@ -62,6 +62,8 @@ function get_token(iterator: Parse_tree_text_iterator.Iterator): { type: string,
             return { type: "enum", modifiers: ["declaration"] };
         case "Enum_value_name":
             return { type: "enumMember", modifiers: ["declaration"] };
+        case "Global_variable_name":
+            return get_variable_token(iterator.root, parent_position);
         case "Struct_name":
             return { type: "struct", modifiers: ["declaration"] };
         case "Struct_member_name":
@@ -163,10 +165,11 @@ function get_variable_token(
 
             return { type: "variable", modifiers: modifiers };
         }
+        case "Global_variable":
         case "Expression_variable_declaration":
         case "Expression_variable_declaration_with_type": {
-            const mutability_node = parent_node.children.find(value => value.word.value === "Expression_variable_mutability");
-            const is_read_only = mutability_node !== undefined && mutability_node.word.value !== "mutable";
+            const mutability_node = parent_node.children.find(value => value.word.value === "Expression_variable_mutability" || value.word.value === "Global_variable_mutability");
+            const is_read_only = mutability_node !== undefined && mutability_node.children[0].word.value !== "mutable";
 
             const modifiers: string[] = ["declaration"];
             if (is_read_only) {
