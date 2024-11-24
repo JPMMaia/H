@@ -86,13 +86,12 @@ export function get_tooltip_of_declaration(
     declaration: Core.Declaration
 ): vscode.MarkupContent {
 
-    const declaration_type = Core.Declaration_type[declaration.type].toLowerCase();
     const declaration_label = create_declaration_label(core_module, declaration);
 
     const lines = [
         '```hlang',
         `module ${sanitize_input(core_module.name)}`,
-        `${declaration_type} ${declaration_label}`,
+        `${declaration_label}`,
         '```'
     ];
 
@@ -350,6 +349,10 @@ function get_declaration_comment(
             }
 
             return comments.join("\n\n");
+        }
+        case Core.Declaration_type.Global_variable: {
+            const value = declaration.value as Core.Global_variable_declaration;
+            return value.comment;
         }
         case Core.Declaration_type.Struct: {
             const value = declaration.value as Core.Struct_declaration;
@@ -732,8 +735,19 @@ export function create_declaration_label(
             const function_value = declaration.value as Core.Function;
             return create_function_label(core_module, function_value.declaration);
         }
+        case Core.Declaration_type.Global_variable: {
+            const global_variable = declaration.value as Core.Global_variable_declaration;
+            const keyword = global_variable.is_mutable ? "mutable" : "var";
+            const name = sanitize_input(global_variable.name);
+
+            const default_value = !global_variable.is_mutable ? Parse_tree_analysis.create_member_default_value_text(global_variable.initial_value) : undefined;
+            const default_value_text = default_value !== undefined ? ` = ${sanitize_input(default_value)}` : "";
+
+            return `${keyword} ${name}${default_value_text}`;
+        }
         default: {
-            return sanitize_input(declaration.name);
+            const declaration_type = Core.Declaration_type[declaration.type].toLowerCase();
+            return `${declaration_type} ${sanitize_input(declaration.name)}`;
         }
     }
 }
@@ -744,7 +758,7 @@ export function create_function_label(
 ): string {
     const input_parameters_string = format_function_parameters(core_module, function_declaration.input_parameter_names, function_declaration.type.input_parameter_types);
     const output_parameters_string = format_function_parameters(core_module, function_declaration.output_parameter_names, function_declaration.type.output_parameter_types);
-    return `${function_declaration.name}(${input_parameters_string}) -> (${output_parameters_string})`;
+    return `function ${sanitize_input(function_declaration.name)}(${input_parameters_string}) -> (${output_parameters_string})`;
 }
 
 function format_function_parameters(

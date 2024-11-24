@@ -56,14 +56,14 @@ suite("Should display function signature", () => {
 
 function create_add_function_signature(): vscode.SignatureInformation {
     return {
-        label: "add(lhs: Int32, rhs: Int32) -> (result: Int32)",
+        label: "function add(lhs: Int32, rhs: Int32) -> (result: Int32)",
         parameters: [
             {
-                label: [4, 14],
+                label: [13, 23],
                 documentation: "Left hand side of add expression"
             },
             {
-                label: [16, 26],
+                label: [25, 35],
                 documentation: "Right hand side of add expression"
             }
         ],
@@ -74,14 +74,14 @@ function create_add_function_signature(): vscode.SignatureInformation {
 
 function create_complex_add_function_signature(): vscode.SignatureInformation {
     return {
-        label: "add(lhs: complex.Complex, rhs: complex.Complex) -> (result: complex.Complex)",
+        label: "function add(lhs: complex.Complex, rhs: complex.Complex) -> (result: complex.Complex)",
         parameters: [
             {
-                label: [4, 24],
+                label: [13, 33],
                 documentation: undefined
             },
             {
-                label: [26, 46],
+                label: [35, 55],
                 documentation: undefined
             }
         ],

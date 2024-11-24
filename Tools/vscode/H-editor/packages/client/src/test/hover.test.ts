@@ -132,6 +132,70 @@ function create_add_function_markdown_string(): vscode.MarkdownString {
     );
 }
 
+suite("Should get hover of global variables", () => {
+
+    test("Gets global constant hover at itself", async () => {
+        const document_uri = get_document_uri("hover_global_variable_0.hltxt");
+        await test_hover(document_uri, new vscode.Position(4, 7), [
+            new vscode.Hover([create_global_constant_markdown_string()], to_range(4, 4, 4, 22))
+        ]);
+    });
+
+    test("Gets global variable hover at itself", async () => {
+        const document_uri = get_document_uri("hover_global_variable_0.hltxt");
+        await test_hover(document_uri, new vscode.Position(8, 16), [
+            new vscode.Hover([create_global_variable_markdown_string()], to_range(8, 8, 8, 26))
+        ]);
+    });
+
+    test("Gets global constant hover at expression variable", async () => {
+        const document_uri = get_document_uri("hover_global_variable_0.hltxt");
+        await test_hover(document_uri, new vscode.Position(12, 19), [
+            new vscode.Hover([create_global_constant_markdown_string()], to_range(12, 12, 12, 30))
+        ]);
+    });
+
+    test("Gets global variable hover at expression variable", async () => {
+        const document_uri = get_document_uri("hover_global_variable_0.hltxt");
+        await test_hover(document_uri, new vscode.Position(13, 19), [
+            new vscode.Hover([create_global_variable_markdown_string()], to_range(13, 12, 13, 30))
+        ]);
+    });
+
+    test("Gets global variable hover at expression assignment", async () => {
+        const document_uri = get_document_uri("hover_global_variable_0.hltxt");
+        await test_hover(document_uri, new vscode.Position(14, 10), [
+            new vscode.Hover([create_global_variable_markdown_string()], to_range(14, 4, 14, 22))
+        ]);
+    });
+});
+
+function create_global_constant_markdown_string(): vscode.MarkdownString {
+    return new vscode.MarkdownString(
+        [
+            '```hlang',
+            'module hover_global_variable_0',
+            'var my_global_constant = 0',
+            '```',
+            'My global constant',
+            'Cannot modify',
+        ].join('\n')
+    );
+}
+
+function create_global_variable_markdown_string(): vscode.MarkdownString {
+    return new vscode.MarkdownString(
+        [
+            '```hlang',
+            'module hover_global_variable_0',
+            'mutable my_global_variable',
+            '```',
+            'My global variable',
+            'Can modify',
+        ].join('\n')
+    );
+}
+
 function to_range(start_line: number, start_character: number, end_line: number, end_character: number): vscode.Range {
     const start = new vscode.Position(start_line, start_character);
     const end = new vscode.Position(end_line, end_character);
