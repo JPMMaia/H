@@ -600,6 +600,10 @@ export async function get_expression_type(
                                 is_value: true
                             };
                         }
+                        else if (declaration.type === Core.Declaration_type.Global_variable) {
+                            const global_variable = declaration.value as Core.Global_variable_declaration;
+                            return get_global_variable_type(language_description, core_module, global_variable, root, get_core_module);
+                        }
                         else {
                             return {
                                 type: [create_custom_type_reference(import_module.module_name, declaration.name)],
