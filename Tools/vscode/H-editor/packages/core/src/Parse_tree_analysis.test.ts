@@ -157,6 +157,48 @@ function run() -> ()
         await test_get_expression_type(language_description, core_module, 0, [1, 0, 1, 1, 0, 1, 0], expression_1, { type: [expected_expression_type], is_value: true }, get_core_module);
     });
 
+    it("Finds expression type of access expression of global variable of imported module", async () => {
+        const program_a = `
+        module Module_A;
+
+        export var global_variable = 0.0f64;
+        `;
+
+        const program_b = `
+        module Module_B;
+        
+        import Module_A as my_import;
+        
+        function run() -> ()
+        {
+            var a = my_import.global_variable;
+        }
+        `;
+
+        const expression_0 = Core.create_access_expression(
+            Core.create_variable_expression("my_import", Core.Access_type.Read),
+            "global_variable",
+            Core.Access_type.Read
+        );
+
+        const expected_expression_type = create_fundamental_type(Core.Fundamental_type.Float64);
+        const core_module = create_core_module_from_text(language_description, program_b);
+
+        const get_core_module = (module_name: string): Promise<Core.Module | undefined> => {
+            if (module_name.length === 0 || module_name === core_module.name) {
+                return Promise.resolve(core_module);
+            }
+
+            if (module_name === "Module_A") {
+                return Promise.resolve(create_core_module_from_text(language_description, program_a));
+            }
+
+            return Promise.resolve(undefined);
+        };
+
+        await test_get_expression_type(language_description, core_module, 0, [1, 0, 1, 1, 0, 1, 0], expression_0, { type: [expected_expression_type], is_value: true }, get_core_module);
+    });
+
     it("Finds expression type of access expression of struct", async () => {
         const expression = Core.create_access_expression(
             Core.create_variable_expression("instance_0", Core.Access_type.Read),
@@ -397,6 +439,26 @@ function run() -> ()
 
         await test_get_expression_type(language_description, core_module, 1, [1, 1, 1, 1, 0, 1, 0], expression_0, { type: [expected_expression_type], is_value: false });
         await test_get_expression_type(language_description, core_module, 1, [1, 1, 1, 1, 0, 1, 0], expression_1, { type: [expected_expression_type], is_value: true });
+    });
+
+    it("Finds expression type of variable expression of global variable", async () => {
+
+        const program = `
+module Test;
+
+var global_variable = 0.0f32;
+
+function run() -> ()
+{
+    var a = global_variable;
+}
+`;
+
+        const expression_0 = Core.create_variable_expression("global_variable", Core.Access_type.Read);
+        const expected_expression_type = create_fundamental_type(Core.Fundamental_type.Float32);
+        const core_module = create_core_module_from_text(language_description, program);
+
+        await test_get_expression_type(language_description, core_module, 1, [1, 1, 1, 1, 0, 1, 0], expression_0, { type: [expected_expression_type], is_value: true });
     });
 });
 
