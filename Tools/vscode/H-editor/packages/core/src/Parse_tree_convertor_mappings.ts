@@ -2767,8 +2767,8 @@ function node_to_expression_cast(node: Parser_node.Node, key_to_production_rule_
     const source_node = node.children[0];
     const source_expression = node_to_expression(source_node, key_to_production_rule_indices);
 
-    const destination_type_name = find_node_value(node, "Expression_cast_destination_type", key_to_production_rule_indices);
-    const destination_type = Type_utilities.parse_type_name(destination_type_name);
+    const destination_type_node = find_node(node, "Expression_cast_destination_type", key_to_production_rule_indices);
+    const destination_type = node_to_type_reference(destination_type_node.children[0], key_to_production_rule_indices);
     if (destination_type.length === 0) {
         const message = `Cannot cast to 'void' type.`;
         onThrowError(message);
