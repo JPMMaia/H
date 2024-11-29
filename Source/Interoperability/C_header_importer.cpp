@@ -1651,7 +1651,8 @@ namespace h::c
             }
             case h::Fundamental_type::Float16:
             case h::Fundamental_type::Float32:
-            case h::Fundamental_type::Float64: {
+            case h::Fundamental_type::Float64:
+            case h::Fundamental_type::C_longdouble: {
                 return h::create_statement(
                     {
                         h::create_constant_expression(
@@ -1885,6 +1886,14 @@ namespace h::c
         }
     }
 
+    bool ignore_macro(std::string_view const name)
+    {
+        if (name == "va_start" || name == "va_arg" || name == "va_copy" || name == "va_end" || name == "va_list")
+            return true;
+
+        return false;
+    }
+
     void convert_macro_constants_to_global_constant_variables(
         std::string_view const header_name,
         CXIndex const index,
@@ -1913,7 +1922,7 @@ namespace h::c
 
             for (C_macro_declaration const& macro_declaration : declarations.macro_declarations)
             {
-                if (!macro_declaration.name.starts_with("_") && !macro_declaration.is_function_like)
+                if (!macro_declaration.name.starts_with("_") && !macro_declaration.is_function_like && !ignore_macro(macro_declaration.name))
                 {
                     std::fputs("auto const ", file);
                     std::fputs(special_prefix, file);
