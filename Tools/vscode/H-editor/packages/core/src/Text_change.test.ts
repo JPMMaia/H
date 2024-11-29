@@ -899,6 +899,8 @@ export function main() -> (result: Int32)
         const program = `
 module Numeric_casts;
 
+import Module_a as module_a;
+
 export function main() -> (result: Int32)
 {
     var i64_to_i8 = 1i64 as Int8;
@@ -922,6 +924,8 @@ export function main() -> (result: Int32)
     var f16_to_i32 = 1.0f16 as Int32;
     var f32_to_i32 = 1.0f32 as Int32;
     var f64_to_i32 = 1.0f64 as Int32;
+
+    var i32_to_flags = 1i32 as module_a.Flags;
 
     return 0;
 }
