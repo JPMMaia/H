@@ -926,6 +926,7 @@ export function main() -> (result: Int32)
     var f64_to_i32 = 1.0f64 as Int32;
 
     var i32_to_flags = 1i32 as module_a.Flags;
+    var flags_to_i32 = module_a.Flags as Int32;
 
     return 0;
 }

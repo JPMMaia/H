@@ -239,7 +239,7 @@ export function create_test_grammar_9_description(): string[] {
         "Expression_break_loop_count -> number",
         "Expression_call -> Expression_level_1 ( Expression_call_arguments )",
         "Expression_call_arguments -> Generic_expression_or_instantiate , $0_or_more",
-        "Expression_cast -> Expression_level_0 as Expression_cast_destination_type",
+        "Expression_cast -> Expression_level_1 as Expression_cast_destination_type",
         "Expression_cast_destination_type -> Type",
         "Expression_comment -> comment",
         "Expression_constant -> boolean",
