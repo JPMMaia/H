@@ -3347,6 +3347,48 @@ function run(int_input: Int32, enum_input: My_enum) -> ()
 
         await test_validate_module(input, [], expected_diagnostics);
     });
+
+    it("Validates that the numeric cast destination type is a numeric type or an enum type using imported modules", async () => {
+
+        const dependency = `module Dependency;
+
+export using Flags = Uint32;
+
+export enum My_enum
+{
+    A = 0
+}
+
+export struct My_struct
+{
+    a: Int32 = 0;
+}
+`;
+
+        const input = `module Test;
+
+import Dependency as dependency;
+
+function run(int_input: Int32, enum_input: dependency.My_enum) -> ()
+{
+    var value_0 = int_input as dependency.My_enum;
+    var value_1 = enum_input as dependency.Flags;
+    var value_2 = int_input as dependency.My_struct;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(9, 19, 9, 52),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot apply numeric cast from 'Int32' to 'dependency.My_struct'.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [dependency], expected_diagnostics);
+    });
 });
 
 /*describe("Validation of expression constant array", () => {
