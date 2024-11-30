@@ -1061,7 +1061,8 @@ export function create_numeric_casts(): IR.Module {
         ["f32_to_i32", IR.create_cast_expression(IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float32), "1.0"), create_integer_type(32, true), IR.Cast_type.Numeric)],
         ["f64_to_i32", IR.create_cast_expression(IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float64), "1.0"), create_integer_type(32, true), IR.Cast_type.Numeric)],
 
-        ["i32_to_flags", IR.create_cast_expression(IR.create_constant_expression(create_integer_type(32, true), "1"), create_custom_type_reference("Module_a", "Flags"), IR.Cast_type.Numeric)]
+        ["i32_to_flags", IR.create_cast_expression(IR.create_constant_expression(create_integer_type(32, true), "1"), create_custom_type_reference("Module_a", "Flags"), IR.Cast_type.Numeric)],
+        ["flags_to_i32", IR.create_cast_expression(IR.create_access_expression(IR.create_variable_expression("module_a", IR.Access_type.Read), "Flags", IR.Access_type.Read), create_integer_type(32, true), IR.Cast_type.Numeric)],
     ];
 
     const statements: IR.Statement[] = [];
