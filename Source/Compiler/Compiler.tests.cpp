@@ -2831,15 +2831,15 @@ void foo(My_struct argument);
   TEST_CASE("C Interoperability - Call function with struct argument x86_64-pc-linux-gnu")
   {
     char const* const expected_llvm_ir = R"(
-%My_struct = type { i32, i32, i32, i32 }
+%struct.My_struct = type { i32, i32, i32, i32 }
 
 define private void @c_interoperability_run() {
 entry:
-  %temporary_struct_instance = alloca %My_struct, align 4
-  store %My_struct zeroinitializer, ptr %temporary_struct_instance, align 4
-  %0 = load %My_struct, ptr %temporary_struct_instance, align 4
-  %instance = alloca %My_struct, align 4
-  store %My_struct %0, ptr %instance, align 4
+  %temporary_struct_instance = alloca %struct.My_struct, align 4
+  store %struct.My_struct zeroinitializer, ptr %temporary_struct_instance, align 4
+  %0 = load %struct.My_struct, ptr %temporary_struct_instance, align 4
+  %instance = alloca %struct.My_struct, align 4
+  store %struct.My_struct %0, ptr %instance, align 4
   %1 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 0
   %2 = load i64, ptr %1, align 4
   %3 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 1
@@ -2857,16 +2857,16 @@ declare void @foo(i64, i64)
     TEST_CASE("C Interoperability - Call function with struct argument x86_64-pc-windows-msvc")
   {
     char const* const expected_llvm_ir = R"(
-%My_struct = type { i32, i32, i32, i32 }
+%struct.My_struct = type { i32, i32, i32, i32 }
 
 define private void @c_interoperability_run() {
 entry:
-  %temporary_struct_instance = alloca %My_struct, align 4
-  store %My_struct zeroinitializer, ptr %temporary_struct_instance, align 4
-  %0 = load %My_struct, ptr %temporary_struct_instance, align 4
-  %instance = alloca %My_struct, align 4
-  store %My_struct %0, ptr %instance, align 4
-  %1 = alloca %My_struct, align 4
+  %temporary_struct_instance = alloca %struct.My_struct, align 4
+  store %struct.My_struct zeroinitializer, ptr %temporary_struct_instance, align 4
+  %0 = load %struct.My_struct, ptr %temporary_struct_instance, align 4
+  %instance = alloca %struct.My_struct, align 4
+  store %struct.My_struct %0, ptr %instance, align 4
+  %1 = alloca %struct.My_struct, align 4
   call void @llvm.memcpy.p0.p0.i64(ptr align 4 %1, ptr align 4 %instance, i64 16, i1 false)
   call void @foo(ptr noundef %1)
   ret void
@@ -2906,24 +2906,24 @@ attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite
   TEST_CASE("C Interoperability - Definition of function with struct argument x86_64-pc-linux-gnu")
   {
     char const* const expected_llvm_ir = R"(
-%c_interoperability_My_struct = type { i32, i32, i32, i32 }
+%struct.c_interoperability_My_struct = type { i32, i32, i32, i32 }
 
 define private i32 @c_interoperability_add_all(i64 %"arguments[0].instance_0", i64 %"arguments[0].instance_1") {
 entry:
-  %instance = alloca %c_interoperability_My_struct, align 4
+  %instance = alloca %struct.c_interoperability_My_struct, align 4
   %0 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 0
   store i64 %"arguments[0].instance_0", ptr %0, align 4
   %1 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 1
   store i64 %"arguments[0].instance_1", ptr %1, align 4
-  %2 = getelementptr inbounds %c_interoperability_My_struct, ptr %instance, i32 0, i32 0
+  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 0
   %3 = load i32, ptr %2, align 4
-  %4 = getelementptr inbounds %c_interoperability_My_struct, ptr %instance, i32 0, i32 1
+  %4 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 1
   %5 = load i32, ptr %4, align 4
   %6 = add i32 %3, %5
-  %7 = getelementptr inbounds %c_interoperability_My_struct, ptr %instance, i32 0, i32 2
+  %7 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 2
   %8 = load i32, ptr %7, align 4
   %9 = add i32 %6, %8
-  %10 = getelementptr inbounds %c_interoperability_My_struct, ptr %instance, i32 0, i32 3
+  %10 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 3
   %11 = load i32, ptr %10, align 4
   %12 = add i32 %9, %11
   ret i32 %12
@@ -2931,11 +2931,11 @@ entry:
 
 define private i32 @c_interoperability_run() {
 entry:
-  %temporary_struct_instance = alloca %c_interoperability_My_struct, align 4
-  store %c_interoperability_My_struct zeroinitializer, ptr %temporary_struct_instance, align 4
-  %0 = load %c_interoperability_My_struct, ptr %temporary_struct_instance, align 4
-  %instance = alloca %c_interoperability_My_struct, align 4
-  store %c_interoperability_My_struct %0, ptr %instance, align 4
+  %temporary_struct_instance = alloca %struct.c_interoperability_My_struct, align 4
+  store %struct.c_interoperability_My_struct zeroinitializer, ptr %temporary_struct_instance, align 4
+  %0 = load %struct.c_interoperability_My_struct, ptr %temporary_struct_instance, align 4
+  %instance = alloca %struct.c_interoperability_My_struct, align 4
+  store %struct.c_interoperability_My_struct %0, ptr %instance, align 4
   %1 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 0
   %2 = load i64, ptr %1, align 4
   %3 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 1
@@ -2951,21 +2951,21 @@ entry:
   TEST_CASE("C Interoperability - Definition of function with struct argument x86_64-pc-windows-msvc")
   {
     char const* const expected_llvm_ir = R"(
-%c_interoperability_My_struct = type { i32, i32, i32, i32 }
+%struct.c_interoperability_My_struct = type { i32, i32, i32, i32 }
 
 define private i32 @c_interoperability_add_all(ptr noundef %"arguments[0].instance") {
 entry:
   %instance = alloca ptr, align 8
   store ptr %"arguments[0].instance", ptr %instance, align 8
-  %0 = getelementptr inbounds %c_interoperability_My_struct, ptr %instance, i32 0, i32 0
+  %0 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 0
   %1 = load i32, ptr %0, align 4
-  %2 = getelementptr inbounds %c_interoperability_My_struct, ptr %instance, i32 0, i32 1
+  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 1
   %3 = load i32, ptr %2, align 4
   %4 = add i32 %1, %3
-  %5 = getelementptr inbounds %c_interoperability_My_struct, ptr %instance, i32 0, i32 2
+  %5 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 2
   %6 = load i32, ptr %5, align 4
   %7 = add i32 %4, %6
-  %8 = getelementptr inbounds %c_interoperability_My_struct, ptr %instance, i32 0, i32 3
+  %8 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 3
   %9 = load i32, ptr %8, align 4
   %10 = add i32 %7, %9
   ret i32 %10
@@ -2973,12 +2973,12 @@ entry:
 
 define private i32 @c_interoperability_run() {
 entry:
-  %temporary_struct_instance = alloca %c_interoperability_My_struct, align 4
-  store %c_interoperability_My_struct zeroinitializer, ptr %temporary_struct_instance, align 4
-  %0 = load %c_interoperability_My_struct, ptr %temporary_struct_instance, align 4
-  %instance = alloca %c_interoperability_My_struct, align 4
-  store %c_interoperability_My_struct %0, ptr %instance, align 4
-  %1 = alloca %c_interoperability_My_struct, align 4
+  %temporary_struct_instance = alloca %struct.c_interoperability_My_struct, align 4
+  store %struct.c_interoperability_My_struct zeroinitializer, ptr %temporary_struct_instance, align 4
+  %0 = load %struct.c_interoperability_My_struct, ptr %temporary_struct_instance, align 4
+  %instance = alloca %struct.c_interoperability_My_struct, align 4
+  store %struct.c_interoperability_My_struct %0, ptr %instance, align 4
+  %1 = alloca %struct.c_interoperability_My_struct, align 4
   call void @llvm.memcpy.p0.p0.i64(ptr align 4 %1, ptr align 4 %instance, i64 16, i1 false)
   %2 = call i32 @c_interoperability_add_all(ptr noundef %1)
   ret i32 %2
@@ -3016,23 +3016,23 @@ attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite
   TEST_CASE("C Interoperability - function_return_big_struct x86_64-pc-linux-gnu")
   {
     char const* const expected_llvm_ir = R"(
-%c_interoperability_My_struct = type { i32, i32, i32, i32, i32 }
+%struct.c_interoperability_My_struct = type { i32, i32, i32, i32, i32 }
 
 define private void @c_interoperability_foo(ptr %0) {
 entry:
-  %temporary_struct_instance = alloca %c_interoperability_My_struct, align 4
-  store %c_interoperability_My_struct zeroinitializer, ptr %temporary_struct_instance, align 4
+  %temporary_struct_instance = alloca %struct.c_interoperability_My_struct, align 4
+  store %struct.c_interoperability_My_struct zeroinitializer, ptr %temporary_struct_instance, align 4
   call void @llvm.memcpy.p0.p0.i64(ptr align 4 %0, ptr align 4 %temporary_struct_instance, i64 20, i1 false)
   ret void
 }
 
 define private void @c_interoperability_run() {
 entry:
-  %0 = alloca %c_interoperability_My_struct, align 4
+  %0 = alloca %struct.c_interoperability_My_struct, align 4
   call void @c_interoperability_foo(ptr noundef %0)
-  %1 = load %c_interoperability_My_struct, ptr %0, align 4
-  %instance = alloca %c_interoperability_My_struct, align 4
-  store %c_interoperability_My_struct %1, ptr %instance, align 4
+  %1 = load %struct.c_interoperability_My_struct, ptr %0, align 4
+  %instance = alloca %struct.c_interoperability_My_struct, align 4
+  store %struct.c_interoperability_My_struct %1, ptr %instance, align 4
   ret void
 }
 
@@ -3048,23 +3048,23 @@ attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite
   TEST_CASE("C Interoperability - function_return_big_struct x86_64-pc-windows-msvc")
   {
     char const* const expected_llvm_ir = R"(
-%c_interoperability_My_struct = type { i32, i32, i32, i32, i32 }
+%struct.c_interoperability_My_struct = type { i32, i32, i32, i32, i32 }
 
 define private void @c_interoperability_foo(ptr %0) {
 entry:
-  %temporary_struct_instance = alloca %c_interoperability_My_struct, align 4
-  store %c_interoperability_My_struct zeroinitializer, ptr %temporary_struct_instance, align 4
+  %temporary_struct_instance = alloca %struct.c_interoperability_My_struct, align 4
+  store %struct.c_interoperability_My_struct zeroinitializer, ptr %temporary_struct_instance, align 4
   call void @llvm.memcpy.p0.p0.i64(ptr align 4 %0, ptr align 4 %temporary_struct_instance, i64 20, i1 false)
   ret void
 }
 
 define private void @c_interoperability_run() {
 entry:
-  %0 = alloca %c_interoperability_My_struct, align 4
+  %0 = alloca %struct.c_interoperability_My_struct, align 4
   call void @c_interoperability_foo(ptr noundef %0)
-  %1 = load %c_interoperability_My_struct, ptr %0, align 4
-  %instance = alloca %c_interoperability_My_struct, align 4
-  store %c_interoperability_My_struct %1, ptr %instance, align 4
+  %1 = load %struct.c_interoperability_My_struct, ptr %0, align 4
+  %instance = alloca %struct.c_interoperability_My_struct, align 4
+  store %struct.c_interoperability_My_struct %1, ptr %instance, align 4
   ret void
 }
 
@@ -3080,12 +3080,12 @@ attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite
   TEST_CASE("C Interoperability - function_return_empty_struct x86_64-pc-linux-gnu")
   {
     char const* const expected_llvm_ir = R"(
-%c_interoperability_My_struct = type {}
+%struct.c_interoperability_My_struct = type {}
 
 define private void @c_interoperability_foo() {
 entry:
-  %temporary_struct_instance = alloca %c_interoperability_My_struct, align 1
-  store %c_interoperability_My_struct undef, ptr %temporary_struct_instance, align 1
+  %temporary_struct_instance = alloca %struct.c_interoperability_My_struct, align 1
+  store %struct.c_interoperability_My_struct undef, ptr %temporary_struct_instance, align 1
   ret void
 }
 
@@ -3102,13 +3102,13 @@ entry:
   TEST_CASE("C Interoperability - function_return_empty_struct x86_64-pc-windows-msvc")
   {
     char const* const expected_llvm_ir = R"(
-%c_interoperability_My_struct = type { [4 x i8] }
+%struct.c_interoperability_My_struct = type { [4 x i8] }
 
 define private i32 @c_interoperability_foo() {
 entry:
-  %temporary_struct_instance = alloca %c_interoperability_My_struct, align 1
-  store %c_interoperability_My_struct undef, ptr %temporary_struct_instance, align 1
-  %0 = getelementptr inbounds %c_interoperability_My_struct, ptr %temporary_struct_instance, i32 0, i32 0
+  %temporary_struct_instance = alloca %struct.c_interoperability_My_struct, align 1
+  store %struct.c_interoperability_My_struct undef, ptr %temporary_struct_instance, align 1
+  %0 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %temporary_struct_instance, i32 0, i32 0
   %1 = load i32, ptr %0, align 1
   ret i32 %1
 }
@@ -3116,11 +3116,11 @@ entry:
 define private void @c_interoperability_run() {
 entry:
   %0 = call i32 @c_interoperability_foo()
-  %1 = alloca %c_interoperability_My_struct, align 1
+  %1 = alloca %struct.c_interoperability_My_struct, align 1
   store i32 %0, ptr %1, align 1
-  %2 = load %c_interoperability_My_struct, ptr %1, align 1
-  %instance = alloca %c_interoperability_My_struct, align 1
-  store %c_interoperability_My_struct %2, ptr %instance, align 1
+  %2 = load %struct.c_interoperability_My_struct, ptr %1, align 1
+  %instance = alloca %struct.c_interoperability_My_struct, align 1
+  store %struct.c_interoperability_My_struct %2, ptr %instance, align 1
   ret void
 }
 )";
@@ -3211,12 +3211,12 @@ entry:
   TEST_CASE("C Interoperability - function_return_small_struct x86_64-pc-linux-gnu")
   {
     char const* const expected_llvm_ir = R"(
-%c_interoperability_My_struct = type { i32, i32, i32, i32 }
+%struct.c_interoperability_My_struct = type { i32, i32, i32, i32 }
 
 define private { i64, i64 } @c_interoperability_foo() {
 entry:
-  %temporary_struct_instance = alloca %c_interoperability_My_struct, align 4
-  store %c_interoperability_My_struct zeroinitializer, ptr %temporary_struct_instance, align 4
+  %temporary_struct_instance = alloca %struct.c_interoperability_My_struct, align 4
+  store %struct.c_interoperability_My_struct zeroinitializer, ptr %temporary_struct_instance, align 4
   %0 = load { i64, i64 }, ptr %temporary_struct_instance, align 4
   ret { i64, i64 } %0
 }
@@ -3224,16 +3224,16 @@ entry:
 define private void @c_interoperability_run() {
 entry:
   %0 = call { i64, i64 } @c_interoperability_foo()
-  %1 = alloca %c_interoperability_My_struct, align 4
+  %1 = alloca %struct.c_interoperability_My_struct, align 4
   %2 = getelementptr inbounds { i64, i64 }, ptr %1, i32 0, i32 0
   %3 = extractvalue { i64, i64 } %0, 0
   store i64 %3, ptr %2, align 4
   %4 = getelementptr inbounds { i64, i64 }, ptr %1, i32 0, i32 1
   %5 = extractvalue { i64, i64 } %0, 1
   store i64 %5, ptr %4, align 4
-  %6 = load %c_interoperability_My_struct, ptr %1, align 4
-  %instance = alloca %c_interoperability_My_struct, align 4
-  store %c_interoperability_My_struct %6, ptr %instance, align 4
+  %6 = load %struct.c_interoperability_My_struct, ptr %1, align 4
+  %instance = alloca %struct.c_interoperability_My_struct, align 4
+  store %struct.c_interoperability_My_struct %6, ptr %instance, align 4
   ret void
 }
 )";
@@ -3244,23 +3244,23 @@ entry:
   TEST_CASE("C Interoperability - function_return_small_struct x86_64-pc-windows-msvc")
   {
     char const* const expected_llvm_ir = R"(
-%c_interoperability_My_struct = type { i32, i32, i32, i32 }
+%struct.c_interoperability_My_struct = type { i32, i32, i32, i32 }
 
 define private void @c_interoperability_foo(ptr %0) {
 entry:
-  %temporary_struct_instance = alloca %c_interoperability_My_struct, align 4
-  store %c_interoperability_My_struct zeroinitializer, ptr %temporary_struct_instance, align 4
+  %temporary_struct_instance = alloca %struct.c_interoperability_My_struct, align 4
+  store %struct.c_interoperability_My_struct zeroinitializer, ptr %temporary_struct_instance, align 4
   call void @llvm.memcpy.p0.p0.i64(ptr align 4 %0, ptr align 4 %temporary_struct_instance, i64 16, i1 false)
   ret void
 }
 
 define private void @c_interoperability_run() {
 entry:
-  %0 = alloca %c_interoperability_My_struct, align 4
+  %0 = alloca %struct.c_interoperability_My_struct, align 4
   call void @c_interoperability_foo(ptr noundef %0)
-  %1 = load %c_interoperability_My_struct, ptr %0, align 4
-  %instance = alloca %c_interoperability_My_struct, align 4
-  store %c_interoperability_My_struct %1, ptr %instance, align 4
+  %1 = load %struct.c_interoperability_My_struct, ptr %0, align 4
+  %instance = alloca %struct.c_interoperability_My_struct, align 4
+  store %struct.c_interoperability_My_struct %1, ptr %instance, align 4
   ret void
 }
 
@@ -3276,7 +3276,7 @@ attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite
   TEST_CASE("C Interoperability - function_with_big_struct x86_64-pc-linux-gnu")
   {
     char const* const expected_llvm_ir = R"(
-%c_interoperability_My_struct = type { i32, i32, i32, i32, i32 }
+%struct.c_interoperability_My_struct = type { i32, i32, i32, i32, i32 }
 
 define private void @c_interoperability_foo(ptr noundef %"arguments[0].instance") {
 entry:
@@ -3287,12 +3287,12 @@ entry:
 
 define private void @c_interoperability_run() {
 entry:
-  %temporary_struct_instance = alloca %c_interoperability_My_struct, align 4
-  store %c_interoperability_My_struct zeroinitializer, ptr %temporary_struct_instance, align 4
-  %0 = load %c_interoperability_My_struct, ptr %temporary_struct_instance, align 4
-  %instance = alloca %c_interoperability_My_struct, align 4
-  store %c_interoperability_My_struct %0, ptr %instance, align 4
-  %1 = alloca %c_interoperability_My_struct, align 4
+  %temporary_struct_instance = alloca %struct.c_interoperability_My_struct, align 4
+  store %struct.c_interoperability_My_struct zeroinitializer, ptr %temporary_struct_instance, align 4
+  %0 = load %struct.c_interoperability_My_struct, ptr %temporary_struct_instance, align 4
+  %instance = alloca %struct.c_interoperability_My_struct, align 4
+  store %struct.c_interoperability_My_struct %0, ptr %instance, align 4
+  %1 = alloca %struct.c_interoperability_My_struct, align 4
   call void @llvm.memcpy.p0.p0.i64(ptr align 4 %1, ptr align 4 %instance, i64 20, i1 false)
   call void @c_interoperability_foo(ptr noundef %1)
   ret void
@@ -3310,7 +3310,7 @@ attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite
   TEST_CASE("C Interoperability - function_with_big_struct x86_64-pc-windows-msvc")
   {
     char const* const expected_llvm_ir = R"(
-%c_interoperability_My_struct = type { i32, i32, i32, i32, i32 }
+%struct.c_interoperability_My_struct = type { i32, i32, i32, i32, i32 }
 
 define private void @c_interoperability_foo(ptr noundef %"arguments[0].instance") {
 entry:
@@ -3321,12 +3321,12 @@ entry:
 
 define private void @c_interoperability_run() {
 entry:
-  %temporary_struct_instance = alloca %c_interoperability_My_struct, align 4
-  store %c_interoperability_My_struct zeroinitializer, ptr %temporary_struct_instance, align 4
-  %0 = load %c_interoperability_My_struct, ptr %temporary_struct_instance, align 4
-  %instance = alloca %c_interoperability_My_struct, align 4
-  store %c_interoperability_My_struct %0, ptr %instance, align 4
-  %1 = alloca %c_interoperability_My_struct, align 4
+  %temporary_struct_instance = alloca %struct.c_interoperability_My_struct, align 4
+  store %struct.c_interoperability_My_struct zeroinitializer, ptr %temporary_struct_instance, align 4
+  %0 = load %struct.c_interoperability_My_struct, ptr %temporary_struct_instance, align 4
+  %instance = alloca %struct.c_interoperability_My_struct, align 4
+  store %struct.c_interoperability_My_struct %0, ptr %instance, align 4
+  %1 = alloca %struct.c_interoperability_My_struct, align 4
   call void @llvm.memcpy.p0.p0.i64(ptr align 4 %1, ptr align 4 %instance, i64 20, i1 false)
   call void @c_interoperability_foo(ptr noundef %1)
   ret void
@@ -3344,7 +3344,7 @@ attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite
   TEST_CASE("C Interoperability - function_with_empty_struct x86_64-pc-linux-gnu")
   {
     char const* const expected_llvm_ir = R"(
-%c_interoperability_My_struct = type {}
+%struct.c_interoperability_My_struct = type {}
 
 define private void @c_interoperability_foo() {
 entry:
@@ -3353,11 +3353,11 @@ entry:
 
 define private void @c_interoperability_run() {
 entry:
-  %temporary_struct_instance = alloca %c_interoperability_My_struct, align 1
-  store %c_interoperability_My_struct undef, ptr %temporary_struct_instance, align 1
-  %0 = load %c_interoperability_My_struct, ptr %temporary_struct_instance, align 1
-  %instance = alloca %c_interoperability_My_struct, align 1
-  store %c_interoperability_My_struct %0, ptr %instance, align 1
+  %temporary_struct_instance = alloca %struct.c_interoperability_My_struct, align 1
+  store %struct.c_interoperability_My_struct undef, ptr %temporary_struct_instance, align 1
+  %0 = load %struct.c_interoperability_My_struct, ptr %temporary_struct_instance, align 1
+  %instance = alloca %struct.c_interoperability_My_struct, align 1
+  store %struct.c_interoperability_My_struct %0, ptr %instance, align 1
   call void @c_interoperability_foo()
   ret void
 }
@@ -3369,23 +3369,23 @@ entry:
   TEST_CASE("C Interoperability - function_with_empty_struct x86_64-pc-windows-msvc")
   {
     char const* const expected_llvm_ir = R"(
-%c_interoperability_My_struct = type { [4 x i8] }
+%struct.c_interoperability_My_struct = type { [4 x i8] }
 
 define private void @c_interoperability_foo(i32 %"arguments[0].instance") {
 entry:
-  %instance = alloca %c_interoperability_My_struct, align 1
+  %instance = alloca %struct.c_interoperability_My_struct, align 1
   store i32 %"arguments[0].instance", ptr %instance, align 1
   ret void
 }
 
 define private void @c_interoperability_run() {
 entry:
-  %temporary_struct_instance = alloca %c_interoperability_My_struct, align 1
-  store %c_interoperability_My_struct undef, ptr %temporary_struct_instance, align 1
-  %0 = load %c_interoperability_My_struct, ptr %temporary_struct_instance, align 1
-  %instance = alloca %c_interoperability_My_struct, align 1
-  store %c_interoperability_My_struct %0, ptr %instance, align 1
-  %1 = getelementptr inbounds %c_interoperability_My_struct, ptr %instance, i32 0, i32 0
+  %temporary_struct_instance = alloca %struct.c_interoperability_My_struct, align 1
+  store %struct.c_interoperability_My_struct undef, ptr %temporary_struct_instance, align 1
+  %0 = load %struct.c_interoperability_My_struct, ptr %temporary_struct_instance, align 1
+  %instance = alloca %struct.c_interoperability_My_struct, align 1
+  store %struct.c_interoperability_My_struct %0, ptr %instance, align 1
+  %1 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 0
   %2 = load i32, ptr %1, align 1
   call void @c_interoperability_foo(i32 %2)
   ret void
@@ -3482,11 +3482,11 @@ entry:
   TEST_CASE("C Interoperability - function_with_small_struct x86_64-pc-linux-gnu")
   {
     char const* const expected_llvm_ir = R"(
-%c_interoperability_My_struct = type { i32, i32, i32, i32 }
+%struct.c_interoperability_My_struct = type { i32, i32, i32, i32 }
 
 define private void @c_interoperability_foo(i64 %"arguments[0].instance_0", i64 %"arguments[0].instance_1") {
 entry:
-  %instance = alloca %c_interoperability_My_struct, align 4
+  %instance = alloca %struct.c_interoperability_My_struct, align 4
   %0 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 0
   store i64 %"arguments[0].instance_0", ptr %0, align 4
   %1 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 1
@@ -3496,11 +3496,11 @@ entry:
 
 define private void @c_interoperability_run() {
 entry:
-  %temporary_struct_instance = alloca %c_interoperability_My_struct, align 4
-  store %c_interoperability_My_struct zeroinitializer, ptr %temporary_struct_instance, align 4
-  %0 = load %c_interoperability_My_struct, ptr %temporary_struct_instance, align 4
-  %instance = alloca %c_interoperability_My_struct, align 4
-  store %c_interoperability_My_struct %0, ptr %instance, align 4
+  %temporary_struct_instance = alloca %struct.c_interoperability_My_struct, align 4
+  store %struct.c_interoperability_My_struct zeroinitializer, ptr %temporary_struct_instance, align 4
+  %0 = load %struct.c_interoperability_My_struct, ptr %temporary_struct_instance, align 4
+  %instance = alloca %struct.c_interoperability_My_struct, align 4
+  store %struct.c_interoperability_My_struct %0, ptr %instance, align 4
   %1 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 0
   %2 = load i64, ptr %1, align 4
   %3 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 1
@@ -3516,7 +3516,7 @@ entry:
   TEST_CASE("C Interoperability - function_with_small_struct x86_64-pc-windows-msvc")
   {
     char const* const expected_llvm_ir = R"(
-%c_interoperability_My_struct = type { i32, i32, i32, i32 }
+%struct.c_interoperability_My_struct = type { i32, i32, i32, i32 }
 
 define private void @c_interoperability_foo(ptr noundef %"arguments[0].instance") {
 entry:
@@ -3527,12 +3527,12 @@ entry:
 
 define private void @c_interoperability_run() {
 entry:
-  %temporary_struct_instance = alloca %c_interoperability_My_struct, align 4
-  store %c_interoperability_My_struct zeroinitializer, ptr %temporary_struct_instance, align 4
-  %0 = load %c_interoperability_My_struct, ptr %temporary_struct_instance, align 4
-  %instance = alloca %c_interoperability_My_struct, align 4
-  store %c_interoperability_My_struct %0, ptr %instance, align 4
-  %1 = alloca %c_interoperability_My_struct, align 4
+  %temporary_struct_instance = alloca %struct.c_interoperability_My_struct, align 4
+  store %struct.c_interoperability_My_struct zeroinitializer, ptr %temporary_struct_instance, align 4
+  %0 = load %struct.c_interoperability_My_struct, ptr %temporary_struct_instance, align 4
+  %instance = alloca %struct.c_interoperability_My_struct, align 4
+  store %struct.c_interoperability_My_struct %0, ptr %instance, align 4
+  %1 = alloca %struct.c_interoperability_My_struct, align 4
   call void @llvm.memcpy.p0.p0.i64(ptr align 4 %1, ptr align 4 %instance, i64 16, i1 false)
   call void @c_interoperability_foo(ptr noundef %1)
   ret void
