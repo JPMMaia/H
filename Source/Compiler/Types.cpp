@@ -360,25 +360,10 @@ namespace h::compiler
     }
 
     void add_struct_declarations(
-        llvm::LLVMContext& llvm_context,
-        Module const& core_module,
-        std::span<Struct_declaration const> const struct_declarations,
-        LLVM_type_map& llvm_type_map
-    )
-    {
-        for (Struct_declaration const& struct_declaration : struct_declarations)
-        {
-            std::string const mangled_name = mangle_struct_name(core_module, struct_declaration.name);
-            llvm::StructType* const value = llvm::StructType::create(llvm_context, mangled_name);
-            llvm_type_map.insert(std::make_pair(struct_declaration.name, value));
-        }
-    }
-
-    void set_struct_definitions(
         Clang_module_data const& clang_module_data,
         Module const& core_module,
         std::span<Struct_declaration const> const struct_declarations,
-        LLVM_type_map const& llvm_type_map
+        LLVM_type_map& llvm_type_map
     )
     {
         for (Struct_declaration const& struct_declaration : struct_declarations)
@@ -389,14 +374,7 @@ namespace h::compiler
                 struct_declaration.name
             );
 
-            llvm::Type* const llvm_type = llvm_type_map.at(struct_declaration.name);
-            if (llvm::StructType::classof(llvm_type) && llvm::StructType::classof(converted_type))
-            {
-                llvm::StructType* const converted_struct_type = static_cast<llvm::StructType*>(converted_type);
-
-                llvm::StructType* const llvm_struct_type = static_cast<llvm::StructType*>(llvm_type);
-                llvm_struct_type->setBody(converted_struct_type->elements(), converted_struct_type->isPacked());
-            }
+            llvm_type_map.insert(std::make_pair(struct_declaration.name, converted_type));
         }
     }
 
@@ -512,25 +490,10 @@ namespace h::compiler
     }
 
     void add_union_declarations(
-        llvm::LLVMContext& llvm_context,
-        Module const& core_module,
-        std::span<Union_declaration const> const union_declarations,
-        LLVM_type_map& llvm_type_map
-    )
-    {
-        for (Union_declaration const& union_declaration : union_declarations)
-        {
-            std::string const mangled_name = mangle_union_name(core_module, union_declaration.name);
-            llvm::StructType* const value = llvm::StructType::create(llvm_context, mangled_name);
-            llvm_type_map.insert(std::make_pair(union_declaration.name, value));
-        }
-    }
-
-    void set_union_definitions(
         Clang_module_data const& clang_module_data,
         Module const& core_module,
         std::span<Union_declaration const> const union_declarations,
-        LLVM_type_map const& llvm_type_map
+        LLVM_type_map& llvm_type_map
     )
     {
         for (Union_declaration const& union_declaration : union_declarations)
@@ -541,14 +504,7 @@ namespace h::compiler
                 union_declaration.name
             );
 
-            llvm::Type* const llvm_type = llvm_type_map.at(union_declaration.name);
-            if (llvm::StructType::classof(llvm_type) && llvm::StructType::classof(converted_type))
-            {
-                llvm::StructType* const converted_union_type = static_cast<llvm::StructType*>(converted_type);
-
-                llvm::StructType* const llvm_union_type = static_cast<llvm::StructType*>(llvm_type);
-                llvm_union_type->setBody(converted_union_type->elements(), converted_union_type->isPacked());
-            }
+            llvm_type_map.insert(std::make_pair(union_declaration.name, converted_type));
         }
     }
 
@@ -695,20 +651,14 @@ namespace h::compiler
         add_enum_types(llvm_context, core_module.export_declarations.enum_declarations, llvm_type_map);
         add_enum_types(llvm_context, core_module.internal_declarations.enum_declarations, llvm_type_map);
 
-        add_struct_declarations(llvm_context, core_module, core_module.export_declarations.struct_declarations, llvm_type_map);
-        add_struct_declarations(llvm_context, core_module, core_module.internal_declarations.struct_declarations, llvm_type_map);
+        add_struct_declarations(clang_module_data, core_module, core_module.export_declarations.struct_declarations, llvm_type_map);
+        add_struct_declarations(clang_module_data, core_module, core_module.internal_declarations.struct_declarations, llvm_type_map);
 
-        add_union_declarations(llvm_context, core_module, core_module.export_declarations.union_declarations, llvm_type_map);
-        add_union_declarations(llvm_context, core_module, core_module.internal_declarations.union_declarations, llvm_type_map);
+        add_union_declarations(clang_module_data, core_module, core_module.export_declarations.union_declarations, llvm_type_map);
+        add_union_declarations(clang_module_data, core_module, core_module.internal_declarations.union_declarations, llvm_type_map);
 
         add_alias_types(llvm_context, llvm_data_layout, core_module.export_declarations.alias_type_declarations, core_module, type_database, llvm_type_map);
         add_alias_types(llvm_context, llvm_data_layout, core_module.internal_declarations.alias_type_declarations, core_module, type_database, llvm_type_map);
-
-        set_struct_definitions(clang_module_data, core_module, core_module.export_declarations.struct_declarations, llvm_type_map);
-        set_struct_definitions(clang_module_data, core_module, core_module.internal_declarations.struct_declarations, llvm_type_map);
-
-        set_union_definitions(clang_module_data, core_module, core_module.export_declarations.union_declarations, llvm_type_map);
-        set_union_definitions(clang_module_data, core_module, core_module.internal_declarations.union_declarations, llvm_type_map);
     }
 
     void add_module_debug_types(
