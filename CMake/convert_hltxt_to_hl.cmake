@@ -27,7 +27,7 @@ macro(convert_hltxt_to_hl)
     endforeach()
 
     add_custom_target(
-        ${ARGUMENT_TARGET}
+        ${ARGUMENT_TARGET} ALL
             DEPENDS ${WORKING_DIRECTORY} ${dependencies}
             SOURCES ${dependencies} ${TEXT_FILES}
     )
