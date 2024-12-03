@@ -1633,6 +1633,25 @@ function validate_constant_expression(
                 return [];
             }
 
+            const is_c_type = first_character === "c";
+            if (is_c_type) {
+                switch (suffix) {
+                    case "cc":
+                    case "cs":
+                    case "ci":
+                    case "cl":
+                    case "cll":
+                    case "cuc":
+                    case "cus":
+                    case "cui":
+                    case "cul":
+                    case "cull":
+                        return [];
+                    default:
+                        break;
+                }
+            }
+
             return [
                 {
                     location: get_parser_node_position_source_location(uri, cache, descendant),

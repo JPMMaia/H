@@ -329,6 +329,36 @@ export function constant_expression_to_word(
                 case Core_intermediate_representation.Fundamental_type.String: {
                     return { value: `"${constant_expression.data}"`, type: Grammar.Word_type.String };
                 }
+                case Core_intermediate_representation.Fundamental_type.C_char: {
+                    return { value: `${constant_expression.data}cc`, type: Grammar.Word_type.Number };
+                }
+                case Core_intermediate_representation.Fundamental_type.C_short: {
+                    return { value: `${constant_expression.data}cs`, type: Grammar.Word_type.Number };
+                }
+                case Core_intermediate_representation.Fundamental_type.C_int: {
+                    return { value: `${constant_expression.data}ci`, type: Grammar.Word_type.Number };
+                }
+                case Core_intermediate_representation.Fundamental_type.C_long: {
+                    return { value: `${constant_expression.data}cl`, type: Grammar.Word_type.Number };
+                }
+                case Core_intermediate_representation.Fundamental_type.C_longlong: {
+                    return { value: `${constant_expression.data}cll`, type: Grammar.Word_type.Number };
+                }
+                case Core_intermediate_representation.Fundamental_type.C_uchar: {
+                    return { value: `${constant_expression.data}cuc`, type: Grammar.Word_type.Number };
+                }
+                case Core_intermediate_representation.Fundamental_type.C_ushort: {
+                    return { value: `${constant_expression.data}cus`, type: Grammar.Word_type.Number };
+                }
+                case Core_intermediate_representation.Fundamental_type.C_uint: {
+                    return { value: `${constant_expression.data}cui`, type: Grammar.Word_type.Number };
+                }
+                case Core_intermediate_representation.Fundamental_type.C_ulong: {
+                    return { value: `${constant_expression.data}cul`, type: Grammar.Word_type.Number };
+                }
+                case Core_intermediate_representation.Fundamental_type.C_ulonglong: {
+                    return { value: `${constant_expression.data}cull`, type: Grammar.Word_type.Number };
+                }
                 default: {
                     return { value: constant_expression.data, type: Scanner.get_word_type(constant_expression.data) };
                 }
@@ -2856,6 +2886,52 @@ function node_to_expression_constant(node: Parser_node.Node): Core_intermediate_
                 };
 
                 const fundamental_type = get_fundamental_type();
+                return {
+                    type: {
+                        data: {
+                            type: Core_intermediate_representation.Type_reference_enum.Fundamental_type,
+                            value: fundamental_type
+                        }
+                    },
+                    data: value
+                };
+            }
+
+            const is_c_type = first_character === "c";
+            if (is_c_type) {
+
+                const get_fundamental_type = (): Core_intermediate_representation.Fundamental_type => {
+                    switch (suffix) {
+                        case "cc":
+                            return Core_intermediate_representation.Fundamental_type.C_char;
+                        case "cs":
+                            return Core_intermediate_representation.Fundamental_type.C_short;
+                        case "ci":
+                            return Core_intermediate_representation.Fundamental_type.C_int;
+                        case "cl":
+                            return Core_intermediate_representation.Fundamental_type.C_long;
+                        case "cll":
+                            return Core_intermediate_representation.Fundamental_type.C_longlong;
+                        case "cuc":
+                            return Core_intermediate_representation.Fundamental_type.C_uchar;
+                        case "cus":
+                            return Core_intermediate_representation.Fundamental_type.C_ushort;
+                        case "cui":
+                            return Core_intermediate_representation.Fundamental_type.C_uint;
+                        case "cul":
+                            return Core_intermediate_representation.Fundamental_type.C_ulong;
+                        case "cull":
+                            return Core_intermediate_representation.Fundamental_type.C_ulonglong;
+                        default: {
+                            const message = `${suffix} is not a C supported type.`;
+                            onThrowError(message);
+                            throw message;
+                        }
+                    }
+                };
+
+                const fundamental_type = get_fundamental_type();
+
                 return {
                     type: {
                         data: {

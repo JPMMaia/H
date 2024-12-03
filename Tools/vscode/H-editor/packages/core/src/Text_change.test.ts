@@ -871,6 +871,18 @@ export function main() -> (result: Int32)
     var my_float32 = 1.0f32;
     var my_float64 = 1.0f64;
 
+    var my_c_char = 1cc;
+    var my_c_short = 1cs;
+    var my_c_int = 1ci;
+    var my_c_long = 1cl;
+    var my_c_longlong = 1cll;
+
+    var my_c_uchar = 1cuc;
+    var my_c_ushort = 1cus;
+    var my_c_uint = 1cui;
+    var my_c_ulong = 1cul;
+    var my_c_ulonglong = 1cull;
+
     return 0;
 }
 `;
