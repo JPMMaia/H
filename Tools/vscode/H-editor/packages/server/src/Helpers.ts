@@ -798,6 +798,7 @@ export async function execute_command(
     return new Promise((resolve, reject) => {
 
         const process = child_process.spawn(executable_file_path, [command, ...args]);
+        console.log(`command: ${executable_file_path} ${[command, ...args].join(" ")}`);
 
         process.stdout.on("data", on_stdout ? on_stdout : (data: any) => {
             const message = data.toString("utf-8");

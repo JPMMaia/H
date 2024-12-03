@@ -16,6 +16,13 @@ export interface Dependency {
 export interface C_header {
     name: string;
     header: string;
+    options: string;
+}
+
+export interface C_header_options {
+    search_paths?: string[];
+    public_prefixes?: string[];
+    remove_prefixes?: string[];
 }
 
 export interface Executable_info {
@@ -26,7 +33,7 @@ export interface Executable_info {
 
 export interface Library_info {
     c_headers: C_header[];
-    c_header_search_paths: string[];
+    c_header_options?: Map<string, C_header_options>;
     external_libraries: Map<string, string>;
 }
 

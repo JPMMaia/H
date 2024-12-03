@@ -34,10 +34,18 @@ namespace h::compiler
         std::pmr::string artifact_name;
     };
 
+    export struct C_header_options
+    {
+        std::pmr::vector<std::filesystem::path> search_paths;
+        std::pmr::vector<std::pmr::string> public_prefixes;
+        std::pmr::vector<std::pmr::string> remove_prefixes;
+    };
+
     export struct C_header
     {
         std::pmr::string module_name;
         std::pmr::string header;
+        std::optional<std::pmr::string> options_key;
     };
 
     export struct Executable_info
@@ -50,7 +58,7 @@ namespace h::compiler
     export struct Library_info
     {
         std::pmr::vector<C_header> c_headers;
-        std::pmr::vector<std::filesystem::path> c_header_search_paths;
+        std::pmr::unordered_map<std::pmr::string, C_header_options> c_header_options;
         std::pmr::unordered_map<std::pmr::string, std::pmr::string> external_libraries;
     };
 

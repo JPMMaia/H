@@ -1,0 +1,24 @@
+{
+  "name": "With_prefix",
+  "version": "0.1.0",
+  "type": "library",
+  "library": {
+    "c_headers": [
+      {
+        "name": "c.prefix",
+        "header": "prefix.h",
+        "options": "default"
+      }
+    ],
+    "c_header_options": {
+      "default": {
+        "public_prefixes": [
+          "MY_"
+        ],
+        "remove_prefixes": [
+          "MY_"
+        ]
+      }
+    }
+  }
+}

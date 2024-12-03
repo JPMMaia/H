@@ -113,9 +113,6 @@ function read_artifact(file_path: string): Build.Artifact {
         if (artifact.library.c_headers === undefined) {
             artifact.library.c_headers = [];
         }
-        if (artifact.library.c_header_search_paths === undefined) {
-            artifact.library.c_header_search_paths = [];
-        }
     }
 
     return artifact;
@@ -357,6 +354,38 @@ function find_file(
     return undefined;
 }
 
+function get_c_header(
+    artifact: Build.Artifact,
+    module_name: string
+): Build.C_header | undefined {
+    if (artifact.library === undefined) {
+        return undefined;
+    }
+
+    for (const header of artifact.library.c_headers) {
+        if (header.name === module_name) {
+            return header;
+        }
+    }
+
+    return undefined;
+}
+
+function get_c_header_options(
+    artifact: Build.Artifact,
+    c_header: Build.C_header
+): Build.C_header_options | undefined {
+    if (artifact.library === undefined || c_header.options === undefined || artifact.library.c_header_options === undefined) {
+        return undefined;
+    }
+
+    if (c_header.options in artifact.library.c_header_options) {
+        return artifact.library.c_header_options[c_header.options];
+    }
+
+    return undefined;
+}
+
 export async function parse_source_file_and_write_to_disk(
     module_name: string,
     source_file_path: string,
@@ -373,15 +402,26 @@ export async function parse_source_file_and_write_to_disk(
                 return undefined;
             }
 
+            const c_header = get_c_header(artifact, module_name);
+            const c_header_options = c_header !== undefined ? get_c_header_options(artifact, c_header) : undefined;
+
             const command_arguments: string[] = [
                 module_name,
                 Helpers.normalize_path(source_file_path),
                 Helpers.normalize_path(destination_file_path),
             ];
 
-            const search_paths = artifact.library !== undefined ? artifact.library.c_header_search_paths : [];
+            const search_paths = c_header_options !== undefined && c_header_options.search_paths !== undefined ? c_header_options.search_paths : [];
             const search_paths_argument = search_paths.map(path => `--header-search-path=${path}`);
             command_arguments.push(...search_paths_argument);
+
+            const public_prefixes = c_header_options !== undefined && c_header_options.public_prefixes !== undefined ? c_header_options.public_prefixes : [];
+            const public_prefixes_argument = public_prefixes.map(path => `--header-public-prefix=${path}`);
+            command_arguments.push(...public_prefixes_argument);
+
+            const remove_prefixes = c_header_options !== undefined && c_header_options.remove_prefixes !== undefined ? c_header_options.remove_prefixes : [];
+            const remove_prefixes_argument = remove_prefixes.map(path => `--header-remove-prefix=${path}`);
+            command_arguments.push(...remove_prefixes_argument);
 
             const success = await Helpers.execute_command(hlang_executable, "import-c-header", command_arguments);
             if (success) {

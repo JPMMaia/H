@@ -31,6 +31,19 @@ std::pmr::vector<std::filesystem::path> convert_to_path(std::span<std::string co
     return output;
 }
 
+std::pmr::vector<std::pmr::string> convert_to_vector(std::span<std::string const> const values)
+{
+    std::pmr::vector<std::pmr::string> output;
+    output.reserve(values.size());
+
+    for (std::string const& value : values)
+    {
+        output.push_back(std::pmr::string{value});
+    }
+
+    return output;
+}
+
 argparse::Argument& add_artifact_file_argument(argparse::ArgumentParser& command)
 {
     return command.add_argument("--artifact-file")
@@ -49,6 +62,22 @@ argparse::Argument& add_header_search_path_argument(argparse::ArgumentParser& co
 {
     return command.add_argument("--header-search-path")
         .help("Search directories for C header files.")
+        .default_value<std::vector<std::string>>({})
+        .append();
+}
+
+argparse::Argument& add_header_public_prefix_argument(argparse::ArgumentParser& command)
+{
+    return command.add_argument("--header-public-prefix")
+        .help("Set public prefix for the imported C header file. Declarations that begin with the specified prefix will be made public, and the rest will be made private.")
+        .default_value<std::vector<std::string>>({})
+        .append();
+}
+
+argparse::Argument& add_header_remove_prefix_argument(argparse::ArgumentParser& command)
+{
+    return command.add_argument("--header-remove-prefix")
+        .help("Set public prefix for the imported C header file. If a declaration name begins with specified prefix, the prefix will be removed from the name. The unique name stays unchaged.")
         .default_value<std::vector<std::string>>({})
         .append();
 }
@@ -141,6 +170,8 @@ int main(int const argc, char const* const* argv)
         .help("Write hlang module to this location");
     add_target_triple_argument(import_c_header_command);
     add_header_search_path_argument(import_c_header_command);
+    add_header_public_prefix_argument(import_c_header_command);
+    add_header_remove_prefix_argument(import_c_header_command);
     program.add_subparser(import_c_header_command);
 
     // hlang print-struct-layout <file> <struct_name> [--target=<target_triple>]
@@ -256,11 +287,15 @@ int main(int const argc, char const* const* argv)
         std::filesystem::path const output_file_path = subprogram.get<std::string>("output");
         std::optional<std::string_view> const target_triple = get_target_triple(subprogram);
         std::pmr::vector<std::filesystem::path> const header_search_paths = convert_to_path(subprogram.get<std::vector<std::string>>("--header-search-path"));
+        std::pmr::vector<std::pmr::string> const public_prefixes = convert_to_vector(subprogram.get<std::vector<std::string>>("--header-public-prefix"));
+        std::pmr::vector<std::pmr::string> const remove_prefixes = convert_to_vector(subprogram.get<std::vector<std::string>>("--header-remove-prefix"));
 
         h::c::Options const options
         {
             .target_triple = target_triple,
             .include_directories = header_search_paths,
+            .public_prefixes = public_prefixes,
+            .remove_prefixes = remove_prefixes,
         };
 
         h::c::import_header_and_write_to_file(module_name, input_file_path, output_file_path, options);

@@ -1,0 +1,7 @@
+module with_prefix_use.completion_0;
+
+import c.prefix as cprefix;
+
+export function run() -> (result: Int32)
+{
+    var a: cprefix.
