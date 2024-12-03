@@ -78,9 +78,24 @@ namespace h::compiler
         return dependencies;
     }
 
-    std::pmr::vector<std::pmr::string> parse_include(nlohmann::json const& json)
+    std::pmr::vector<std::pmr::string> parse_string_array(nlohmann::json const& json)
     {
         std::pmr::vector<std::pmr::string> includes;
+        includes.reserve(json.size());
+
+        for (nlohmann::json const& element : json)
+        {
+            includes.push_back(
+                element.get<std::pmr::string>()
+            );
+        }
+
+        return includes;
+    }
+
+    std::pmr::vector<std::filesystem::path> parse_path_array(nlohmann::json const& json)
+    {
+        std::pmr::vector<std::filesystem::path> includes;
         includes.reserve(json.size());
 
         for (nlohmann::json const& element : json)
@@ -100,7 +115,7 @@ namespace h::compiler
         {
             .source = json.at("source").get<std::pmr::string>(),
             .entry_point = json.at("entry_point").get<std::pmr::string>(),
-            .include = parse_include(json.at("include")),
+            .include = parse_string_array(json.at("include")),
         };
     }
 
@@ -111,29 +126,50 @@ namespace h::compiler
 
         for (nlohmann::json const& element : json)
         {
-            headers.push_back(
-                C_header
-                {
-                    .module_name = element.at("name").get<std::pmr::string>(),
-                    .header = element.at("header").get<std::pmr::string>(),
-                }
-                );
+            C_header header
+            {
+                .module_name = element.at("name").get<std::pmr::string>(),
+                .header = element.at("header").get<std::pmr::string>(),
+            };
+
+            if (element.contains("options"))
+                header.options_key = element.at("options").get<std::pmr::string>();
+
+            headers.push_back(std::move(header));
         }
 
         return headers;
     }
 
-    std::pmr::vector<std::filesystem::path> parse_c_header_search_paths(nlohmann::json const& json)
+    C_header_options parse_c_header_options(nlohmann::json const& json)
     {
-        std::pmr::vector<std::filesystem::path> search_paths;
-        search_paths.reserve(json.size());
+        C_header_options options;
 
-        for (nlohmann::json const& element : json)
+        if (json.contains("search_paths"))
+            options.search_paths = parse_path_array(json.at("search_paths"));
+
+        if (json.contains("public_prefixes"))
+            options.public_prefixes = parse_string_array(json.at("public_prefixes"));
+
+        if (json.contains("remove_prefixes"))
+            options.remove_prefixes = parse_string_array(json.at("remove_prefixes"));
+
+        return options;
+    }
+
+    std::pmr::unordered_map<std::pmr::string, C_header_options> parse_c_header_options_map(nlohmann::json const& json)
+    {
+        std::pmr::unordered_map<std::pmr::string, C_header_options> map;
+        map.reserve(json.size());
+
+        for (auto const& pair : json.items())
         {
-            search_paths.push_back(element.get<std::pmr::string>());
+            std::pmr::string key = std::pmr::string{ pair.key() };
+            C_header_options value = parse_c_header_options(pair.value());
+            map.insert(std::make_pair(std::move(key), std::move(value)));
         }
 
-        return search_paths;
+        return map;
     }
 
     std::pmr::unordered_map<std::pmr::string, std::pmr::string> parse_external_library(nlohmann::json const& json)
@@ -153,12 +189,18 @@ namespace h::compiler
 
     Library_info parse_library_info(nlohmann::json const& json)
     {
-        return Library_info
-        {
-            .c_headers = parse_c_headers(json.at("c_headers")),
-            .c_header_search_paths = parse_c_header_search_paths(json.at("c_header_search_paths")),
-            .external_libraries = parse_external_library(json.at("external_library"))
-        };
+        Library_info library_info;
+
+        if (json.contains("c_headers"))
+            library_info.c_headers = parse_c_headers(json.at("c_headers"));
+
+        if (json.contains("c_header_options"))
+            library_info.c_header_options = parse_c_header_options_map(json.at("c_header_options"));
+
+        if (json.contains("external_library"))
+            library_info.external_libraries = parse_external_library(json.at("external_library"));
+
+        return library_info;
     }
 
     std::optional<std::variant<Executable_info, Library_info>> parse_info(nlohmann::json const& json)
@@ -280,22 +322,47 @@ namespace h::compiler
                             { "header", c_header.header },
                         };
 
+                        if (c_header.options_key.has_value())
+                            json["options"] = c_header.options_key.value();
+
                         c_headers_json.push_back(std::move(c_header_json));
                     }
 
-                    json["c_headers"] = std::move(c_headers_json);
+                    library_json["c_headers"] = std::move(c_headers_json);
                 }
 
-                if (!library_info.c_header_search_paths.empty())
+                if (!library_info.c_header_options.empty())
                 {
-                    nlohmann::json search_paths_json;
+                    nlohmann::json c_header_options_map_json;
 
-                    for (std::filesystem::path const& search_path : library_info.c_header_search_paths)
+                    for (auto const& pair : library_info.c_header_options)
                     {
-                        search_paths_json.push_back(search_path.generic_string());
+                        nlohmann::json c_header_options_json;
+
+                        C_header_options const& options = pair.second;
+
+                        if (!options.search_paths.empty())
+                        {
+                            nlohmann::json search_paths_json;
+
+                            for (std::filesystem::path const& search_path : options.search_paths)
+                            {
+                                search_paths_json.push_back(search_path.generic_string());
+                            }
+
+                            c_header_options_json["search_paths"] = std::move(search_paths_json);
+                        }
+
+                        if (!options.public_prefixes.empty())
+                            c_header_options_json["public_prefixes"] = options.public_prefixes;
+
+                        if (!options.remove_prefixes.empty())
+                            c_header_options_json["remove_prefixes"] = options.remove_prefixes;
+                        
+                        c_header_options_map_json[pair.first.c_str()] = c_header_options_json;
                     }
 
-                    json["c_header_search_paths"] = std::move(search_paths_json);
+                    library_json["c_header_options"] = std::move(c_header_options_map_json);
                 }
 
                 if (!library_info.external_libraries.empty())
@@ -307,7 +374,7 @@ namespace h::compiler
                         external_libraries_json[pair.first.c_str()] = pair.second;
                     }
 
-                    json["external_libraries"] = std::move(external_libraries_json);
+                    library_json["external_libraries"] = std::move(external_libraries_json);
                 }
 
                 if (!library_json.empty())

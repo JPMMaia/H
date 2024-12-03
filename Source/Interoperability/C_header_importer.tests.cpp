@@ -1013,6 +1013,102 @@ float my_global_1 = 0.0f;
         }
     }
 
+    TEST_CASE("Declarations that match public prefix will be made public, otherwise they are made private")
+    {
+        std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "c_header_importer" / "public_prefix";
+        std::filesystem::create_directories(root_directory_path);
+
+        std::string const header_content = R"(
+struct PRE_Vector2i
+{
+    int x;
+    int y;
+};
+
+struct MyVector2i
+{
+    int x;
+    int y;
+};
+)";
+
+        std::filesystem::path const header_file_path = root_directory_path / "vector2i.h";
+        h::common::write_to_file(header_file_path, header_content);
+
+        std::array<std::pmr::string, 1> const public_prefixes
+        {
+            "PRE_",
+        };
+        h::c::Options const options
+        {
+            .public_prefixes = public_prefixes,
+        };
+        h::Module const header_module = h::c::import_header("c.vector2i", header_file_path, options);
+
+        REQUIRE(header_module.export_declarations.struct_declarations.size() == 1);
+        {
+            h::Struct_declaration const& declaration = header_module.export_declarations.struct_declarations[0];
+            CHECK(declaration.name == "PRE_Vector2i");
+        }
+
+        REQUIRE(header_module.internal_declarations.struct_declarations.size() == 1);
+        {
+            h::Struct_declaration const& declaration = header_module.internal_declarations.struct_declarations[0];
+            CHECK(declaration.name == "MyVector2i");
+        }
+    }
+
+    TEST_CASE("If a declaration name matches a remove prefix, then the prefix is removed")
+    {
+        std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "c_header_importer" / "remove_prefix";
+        std::filesystem::create_directories(root_directory_path);
+
+        std::string const header_content = R"(
+struct PRE_Vector2i
+{
+    int x;
+    int y;
+};
+
+struct MyNestedVector
+{
+    PRE_Vector2i a;
+    PRE_Vector2i b;
+};
+)";
+
+        std::filesystem::path const header_file_path = root_directory_path / "vector2i.h";
+        h::common::write_to_file(header_file_path, header_content);
+
+        std::array<std::pmr::string, 1> const remove_prefixes
+        {
+            "PRE_",
+        };
+        h::c::Options const options
+        {
+            .remove_prefixes = remove_prefixes,
+        };
+        h::Module const header_module = h::c::import_header("c.vector2i", header_file_path, options);
+
+        REQUIRE(header_module.export_declarations.struct_declarations.size() == 2);
+        
+        {
+            h::Struct_declaration const& declaration = header_module.export_declarations.struct_declarations[0];
+            CHECK(declaration.name == "Vector2i");
+            CHECK(*declaration.unique_name == "PRE_Vector2i");
+        }
+
+        {
+            h::Struct_declaration const& declaration = header_module.export_declarations.struct_declarations[1];
+            CHECK(declaration.name == "MyNestedVector");
+            CHECK(*declaration.unique_name == "MyNestedVector");
+
+            CHECK(declaration.member_types[0] == create_custom_type_reference("c.vector2i", "Vector2i"));
+            CHECK(declaration.member_types[1] == create_custom_type_reference("c.vector2i", "Vector2i"));
+        }
+    }
+
+
     TEST_CASE("Include debug information of function declarations")
     {
         std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "c_header_importer" / "debug_information_functions";

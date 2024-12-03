@@ -309,6 +309,23 @@ namespace h::builder
         return output;
     }
 
+    h::compiler::C_header_options const* get_c_header_options(
+        h::compiler::Library_info const& library_info,
+        h::compiler::C_header const& c_header
+    )
+    {
+        if (c_header.options_key.has_value())
+        {
+            auto const location = library_info.c_header_options.find(*c_header.options_key);
+            if (location != library_info.c_header_options.end())
+            {
+                return &location->second;
+            }
+        }
+
+        return nullptr;
+    }
+
     static void build_artifact_auxiliary(
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path>& module_name_to_file_path_map,
         std::pmr::vector<std::pmr::string>& libraries,
@@ -354,11 +371,12 @@ namespace h::builder
 
                 std::filesystem::path const header_module_filename = header_path.value().filename().replace_extension("hl");
                 std::filesystem::path const output_header_module_path = output_directory_path / header_module_filename;
+                h::compiler::C_header_options const* const c_header_options = get_c_header_options(library_info, c_header);
 
                 h::c::Options const options
                 {
                     .target_triple = std::nullopt,
-                    .include_directories = library_info.c_header_search_paths,
+                    .include_directories = c_header_options != nullptr ? c_header_options->search_paths : std::pmr::vector<std::filesystem::path>{},
                 };
 
                 h::c::import_header_and_write_to_file(header_module_name, header_path.value(), output_header_module_path, options);

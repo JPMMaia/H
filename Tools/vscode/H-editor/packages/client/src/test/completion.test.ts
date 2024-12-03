@@ -355,6 +355,24 @@ suite("Should do completion", () => {
 			]
 		});
 	});
+
+	test("Completes a module alias which uses prefix transformations 0", async () => {
+		const document_uri = get_document_uri('projects/with_prefix_use/main.hltxt');
+		await test_completion(document_uri, new vscode.Position(6, 12), {
+			items: [
+				{ label: "add", kind: vscode.CompletionItemKind.Function },
+			]
+		});
+	});
+
+	test("Completes a module alias which uses prefix transformations 1", async () => {
+		const document_uri = get_document_uri('projects/with_prefix_use/completion_0.hltxt');
+		await test_completion(document_uri, new vscode.Position(6, 19), {
+			items: [
+				{ label: "Complex", kind: vscode.CompletionItemKind.Struct },
+			]
+		});
+	});
 });
 
 async function test_completion(

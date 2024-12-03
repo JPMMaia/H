@@ -1823,10 +1823,21 @@ namespace h::c
         return unit;
     }
 
-    bool is_private_declaration(std::string_view const declaration_name)
+    bool is_public_declaration(std::string_view const declaration_name, std::span<std::pmr::string const> const public_prefixes)
     {
-        if (declaration_name.size() > 0 && declaration_name[0] == '_')
+        if (public_prefixes.empty())
+        {
+            if (declaration_name.size() > 0 && declaration_name[0] == '_')
+                return false;
+
             return true;
+        }
+
+        for (std::string_view const public_prefix : public_prefixes)
+        {
+            if (declaration_name.starts_with(public_prefix))
+                return true;
+        }
 
         return false;
     }
@@ -1834,56 +1845,174 @@ namespace h::c
     void group_declarations_by_visibility(
         C_declarations const& declarations,
         h::Module_declarations& export_declarations,
-        h::Module_declarations& internal_declarations
+        h::Module_declarations& internal_declarations,
+        std::span<std::pmr::string const> const public_prefixes
     )
     {
         for (h::Alias_type_declaration const& declaration : declarations.alias_type_declarations)
         {
-            if (is_private_declaration(declaration.name))
-                internal_declarations.alias_type_declarations.push_back(declaration);
-            else
+            if (is_public_declaration(*declaration.unique_name, public_prefixes))
                 export_declarations.alias_type_declarations.push_back(declaration);
+            else
+                internal_declarations.alias_type_declarations.push_back(declaration);
         }
 
         for (h::Enum_declaration const& declaration : declarations.enum_declarations)
         {
-            if (is_private_declaration(declaration.name))
-                internal_declarations.enum_declarations.push_back(declaration);
-            else
+            if (is_public_declaration(*declaration.unique_name, public_prefixes))
                 export_declarations.enum_declarations.push_back(declaration);
+            else
+                internal_declarations.enum_declarations.push_back(declaration);
         }
 
         for (h::Global_variable_declaration const& declaration : declarations.global_variable_declarations)
         {
-            if (is_private_declaration(declaration.name))
-                internal_declarations.global_variable_declarations.push_back(declaration);
-            else
+            if (is_public_declaration(*declaration.unique_name, public_prefixes))
                 export_declarations.global_variable_declarations.push_back(declaration);
+            else
+                internal_declarations.global_variable_declarations.push_back(declaration);
         }
 
         for (h::Struct_declaration const& declaration : declarations.struct_declarations)
         {
-            if (is_private_declaration(declaration.name))
-                internal_declarations.struct_declarations.push_back(declaration);
-            else
+            if (is_public_declaration(*declaration.unique_name, public_prefixes))
                 export_declarations.struct_declarations.push_back(declaration);
+            else
+                internal_declarations.struct_declarations.push_back(declaration);
         }
 
         for (h::Union_declaration const& declaration : declarations.union_declarations)
         {
-            if (is_private_declaration(declaration.name))
-                internal_declarations.union_declarations.push_back(declaration);
-            else
+            if (is_public_declaration(*declaration.unique_name, public_prefixes))
                 export_declarations.union_declarations.push_back(declaration);
+            else
+                internal_declarations.union_declarations.push_back(declaration);
         }
 
         for (h::Function_declaration const& declaration : declarations.function_declarations)
         {
-            if (is_private_declaration(declaration.name))
-                internal_declarations.function_declarations.push_back(declaration);
-            else
+            if (is_public_declaration(*declaration.unique_name, public_prefixes))
                 export_declarations.function_declarations.push_back(declaration);
+            else
+                internal_declarations.function_declarations.push_back(declaration);
         }
+    }
+
+    template <typename Function_t>
+        bool visit_type_references(
+            C_declarations const& declarations,
+            Function_t predicate
+        )
+    {
+        for (Alias_type_declaration const& declaration : declarations.alias_type_declarations)
+        {
+            auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> bool
+            {
+                return predicate(declaration.name, type_reference);
+            };
+
+            if (h::visit_type_references(declaration, predicate_with_name))
+                return true;
+        }
+
+        for (Global_variable_declaration const& declaration : declarations.global_variable_declarations)
+        {
+            auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> bool
+            {
+                return predicate(declaration.name, type_reference);
+            };
+
+            if (h::visit_type_references(declaration, predicate_with_name))
+                return true;
+        }
+
+        for (Struct_declaration const& declaration : declarations.struct_declarations)
+        {
+            auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> bool
+            {
+                return predicate(declaration.name, type_reference);
+            };
+
+            if (h::visit_type_references(declaration, predicate_with_name))
+                return true;
+        }
+
+        for (Union_declaration const& declaration : declarations.union_declarations)
+        {
+            auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> bool
+            {
+                return predicate(declaration.name, type_reference);
+            };
+
+            if (h::visit_type_references(declaration, predicate_with_name))
+                return true;
+        }
+
+        for (Function_declaration const& declaration : declarations.function_declarations)
+        {
+            auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> bool
+            {
+                return predicate(declaration.name, type_reference);
+            };
+
+            if (h::visit_type_references(declaration, predicate_with_name))
+                return true;
+        }
+
+        return false;
+    }
+
+    template <typename Declaration_type>
+    void transform_name(
+        Declaration_type& declaration,
+        std::span<std::pmr::string const> const remove_prefixes
+    )
+    {
+        for (std::string_view const remove_prefix : remove_prefixes)
+        {
+            if (declaration.name.starts_with(remove_prefix))
+                declaration.name.erase(0, remove_prefix.size());
+        }
+    }
+
+    void transform_names(
+        C_declarations& declarations,
+        std::span<std::pmr::string const> const remove_prefixes
+    )
+    {
+        if (remove_prefixes.empty())
+            return;
+
+        for (h::Alias_type_declaration& declaration : declarations.alias_type_declarations)
+            transform_name(declaration, remove_prefixes);
+    
+        for (h::Enum_declaration& declaration : declarations.enum_declarations)
+            transform_name(declaration, remove_prefixes);
+
+        for (h::Global_variable_declaration& declaration : declarations.global_variable_declarations)
+            transform_name(declaration, remove_prefixes);
+
+        for (h::Struct_declaration& declaration : declarations.struct_declarations)
+            transform_name(declaration, remove_prefixes);
+
+        for (h::Union_declaration& declaration : declarations.union_declarations)
+            transform_name(declaration, remove_prefixes);
+
+        for (h::Function_declaration& declaration : declarations.function_declarations)
+            transform_name(declaration, remove_prefixes);
+
+        auto const process_type_reference = [&](std::string_view const declaration_name, h::Type_reference const& type_reference) -> bool
+        {
+            h::Type_reference* const reference = const_cast<h::Type_reference*>(&type_reference);
+            if (std::holds_alternative<h::Custom_type_reference>(reference->data))
+            {
+                h::Custom_type_reference& custom_type_reference = std::get<h::Custom_type_reference>(reference->data);
+                transform_name(custom_type_reference, remove_prefixes);
+            }
+            return false;
+        };
+
+        visit_type_references(declarations, process_type_reference);
     }
 
     bool ignore_macro(std::string_view const name)
@@ -2071,6 +2200,7 @@ namespace h::c
 
 
         C_declarations declarations_with_fixed_width_integers = convert_fixed_width_integers_typedefs_to_integer_types(declarations);
+        transform_names(declarations_with_fixed_width_integers, options.remove_prefixes);
 
         h::Declaration_database declaration_database = h::create_declaration_database();
         h::add_declarations(
@@ -2083,7 +2213,7 @@ namespace h::c
             declarations_with_fixed_width_integers.union_declarations,
             declarations_with_fixed_width_integers.function_declarations
         );
-
+        
         h::Module header_module
         {
             .language_version = {
@@ -2099,7 +2229,7 @@ namespace h::c
             .source_file_path = header_path
         };
 
-        group_declarations_by_visibility(declarations_with_fixed_width_integers, header_module.export_declarations, header_module.internal_declarations);
+        group_declarations_by_visibility(declarations_with_fixed_width_integers, header_module.export_declarations, header_module.internal_declarations, options.public_prefixes);
 
         h::fix_custom_type_references(header_module);
         add_struct_member_default_values(header_module, header_module.export_declarations, declaration_database);
