@@ -948,6 +948,16 @@ export function create_numbers(): IR.Module {
         ["my_float16", IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float16), "1.0")],
         ["my_float32", IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float32), "1.0")],
         ["my_float64", IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.Float64), "1.0")],
+        ["my_c_char", IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.C_char), "1")],
+        ["my_c_short", IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.C_short), "1")],
+        ["my_c_int", IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.C_int), "1")],
+        ["my_c_long", IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.C_long), "1")],
+        ["my_c_longlong", IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.C_longlong), "1")],
+        ["my_c_uchar", IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.C_uchar), "1")],
+        ["my_c_ushort", IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.C_ushort), "1")],
+        ["my_c_uint", IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.C_uint), "1")],
+        ["my_c_ulong", IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.C_ulong), "1")],
+        ["my_c_ulonglong", IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.C_ulonglong), "1")],
     ];
 
     const statements: IR.Statement[] = [];
