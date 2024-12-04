@@ -1195,7 +1195,7 @@ async function validate_binary_expression(
         }
     }
 
-    if (!deep_equal(left_expression_type, right_expression_type)) {
+    if (!deep_equal(left_expression_type, right_expression_type) && !are_compatible_pointer_types(left_expression_type.type, right_expression_type.type)) {
         diagnostics.push({
             location: get_parser_node_position_source_location(uri, cache, descendant_binary_expression),
             source: Source.Parse_tree_validation,
