@@ -2489,6 +2489,12 @@ function run(value: Int32) -> ()
     var a = value + 1;
     var b = value + 1.0f32;
     var c = true + 1.0f32;
+
+    var d = &a;
+    var e = &a;
+    var t1 = e == d;
+    var t2 = e == null;
+    var t3 = d == a;
 }
 `;
 
@@ -2502,6 +2508,13 @@ function run(value: Int32) -> ()
             },
             {
                 location: create_diagnostic_location(7, 13, 7, 26),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Left and right hand side types do not match.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(13, 14, 13, 20),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
                 message: "Left and right hand side types do not match.",
