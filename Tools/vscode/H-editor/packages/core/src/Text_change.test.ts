@@ -2093,6 +2093,35 @@ function return_union() -> (my_union: My_union)
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
+    it("Handles variadic function declarations", () => {
+
+        const document_state = Document.create_empty_state("", language_description.production_rules);
+
+        const program = `
+module Variadic;
+
+export function my_function(first: Int32, ...) -> ()
+{
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_variadic_function_declarations();
+        assert.deepEqual(new_document_state.valid.module, expected_module);
+    });
+
     it("Handles comments in the module declaration", () => {
 
         const document_state = Document.create_empty_state("", language_description.production_rules);
