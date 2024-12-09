@@ -174,6 +174,7 @@ export function create_test_grammar_9_description(): string[] {
         "Function_input_parameters -> Function_parameter , $0_or_more",
         "Function_output_parameters -> Function_parameter $0_or_more",
         "Function_parameter -> Function_parameter_name : Function_parameter_type",
+        "Function_parameter -> ...",
         "Function_parameter_name -> identifier",
         "Function_parameter_type -> Type",
         "Function_definition -> Block",

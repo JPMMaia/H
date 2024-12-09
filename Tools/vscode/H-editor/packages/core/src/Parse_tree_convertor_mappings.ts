@@ -107,6 +107,7 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Enum_value", choose_production_rule_enum_value],
             ["Global_variable_mutability", choose_production_rule_global_variable_mutability],
             ["Global_variable_type", choose_production_rule_global_variable_type],
+            ["Function_parameter", choose_production_rule_function_parameter],
             ["Statement", choose_production_rule_statement],
             ["Expression_assignment_symbol", choose_production_rule_expression_assignment_symbol],
             ["Expression_binary_addition_symbol", choose_production_rule_expression_binary_symbol],
@@ -780,6 +781,37 @@ function choose_production_rule_global_variable_type(
     const global_variable_declaration = global_variable_declaration_state.state.value.value as Core_intermediate_representation.Global_variable_declaration;
 
     const index = global_variable_declaration.type !== undefined ? 1 : 0;
+
+    return {
+        next_state: {
+            index: 0,
+            value: top.state.value
+        },
+        next_production_rule_index: production_rule_indices[index]
+    };
+}
+
+function choose_production_rule_function_parameter(
+    module: Core_intermediate_representation.Module,
+    production_rules: Grammar.Production_rule[],
+    production_rule_indices: number[],
+    label: string,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    mappings: Parse_tree_convertor.Parse_tree_mappings,
+    key_to_production_rule_indices: Map<string, number[]>
+): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
+    const top = stack[stack.length - 1];
+
+    const top_state = stack[stack.length - 1];
+    const function_parameter_index = top_state.current_child_index / 2;
+    const is_input_parameters = top_state.node.word.value === "Function_input_parameters";
+
+    const declaration = stack[stack.length - 2].state.value as Core_intermediate_representation.Declaration;
+    const function_value = declaration.value as Core_intermediate_representation.Function;
+
+    const is_variadic_argument = is_input_parameters && function_parameter_index >= function_value.declaration.input_parameter_names.length;
+
+    const index = is_variadic_argument ? 1 : 0;
 
     return {
         next_state: {
@@ -2293,6 +2325,11 @@ function node_to_function_declaration(node: Parser_node.Node, key_to_production_
     const source_location = function_declaration_node.source_location !== undefined ? function_declaration_node.source_location : { line: 0, column: 0 };
 
     const input_parameter_nodes = find_nodes_inside_parent(function_declaration_node, "Function_input_parameters", "Function_parameter", key_to_production_rule_indices);
+    const is_variadic = input_parameter_nodes.length > 0 && input_parameter_nodes[input_parameter_nodes.length - 1].children[0].word.value === "...";
+    if (is_variadic) {
+        input_parameter_nodes.splice(input_parameter_nodes.length - 1, 1);
+    }
+
     const input_parameter_names = input_parameter_nodes.map(node => find_node_value(node, "Function_parameter_name", key_to_production_rule_indices));
     const input_parameter_types = input_parameter_nodes.map(node => find_node(node, "Function_parameter_type", key_to_production_rule_indices) as Parser_node.Node).map(node => node_to_type_reference(node.children[0], key_to_production_rule_indices)[0]);
     const input_parameter_source_positions = input_parameter_nodes.map(node => node.source_location !== undefined ? node.source_location : source_location);
@@ -2310,7 +2347,7 @@ function node_to_function_declaration(node: Parser_node.Node, key_to_production_
         type: {
             input_parameter_types: input_parameter_types,
             output_parameter_types: output_parameter_types,
-            is_variadic: false // TODO
+            is_variadic: is_variadic,
         },
         input_parameter_names: input_parameter_names,
         output_parameter_names: output_parameter_names,

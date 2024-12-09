@@ -337,6 +337,14 @@ function get_production_rule_array_rhs_length(
         const array_rhs_length = has_separator ? split.length * 2 - 1 : split.length;
         return array_rhs_length;
     }
+    else if (production_rule.lhs === "Function_input_parameters") {
+        const declaration = stack[stack.length - 1].state.value as Core_intermediate_representation.Declaration;
+        const function_value = declaration.value as Core_intermediate_representation.Function;
+        const array_length = function_value.declaration.input_parameter_names.length + (function_value.declaration.type.is_variadic ? 1 : 0);
+        const has_separator = array_length >= 2;
+        const array_rhs_length = has_separator ? array_length * 2 - 1 : array_length;
+        return array_rhs_length;
+    }
 
     const array_position_with_placeholders = mappings.vector_map.get(production_rule.lhs);
     if (array_position_with_placeholders === undefined) {
@@ -430,6 +438,21 @@ function choose_production_rule_index(
             );
             return result;
         }
+    }
+
+    if (label === "Function_input_parameters") {
+        const declaration = stack[stack.length - 1].state.value as Core_intermediate_representation.Declaration;
+        const function_value = declaration.value as Core_intermediate_representation.Function;
+
+        const length = function_value.declaration.input_parameter_names.length + (function_value.declaration.type.is_variadic ? 1 : 0);
+        const index = length > 1 ? 2 : length;
+        return {
+            next_state: {
+                index: 0,
+                value: function_value.declaration.input_parameter_names,
+            },
+            next_production_rule_index: next_production_rule_indices[index]
+        };
     }
 
     {

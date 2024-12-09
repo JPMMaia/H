@@ -4217,6 +4217,38 @@ export function create_using_unions(): IR.Module {
     };
 }
 
+export function create_variadic_function_declarations(): IR.Module {
+    const int32_type = create_integer_type(32, true);
+    return {
+        name: "Variadic",
+        imports: [],
+        declarations: [
+            {
+                name: "my_function",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "my_function",
+                        type: {
+                            input_parameter_types: [int32_type],
+                            output_parameter_types: [],
+                            is_variadic: true,
+                        },
+                        input_parameter_names: ["first"],
+                        output_parameter_names: [],
+                        linkage: IR.Linkage.External
+                    },
+                    definition: {
+                        name: "my_function",
+                        statements: []
+                    }
+                },
+            },
+        ]
+    };
+}
+
 export function create_comments_in_module_declaration(): IR.Module {
     return {
         name: "Comments_in_module_declaration",
