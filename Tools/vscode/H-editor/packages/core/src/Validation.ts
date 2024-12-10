@@ -1427,14 +1427,29 @@ async function validate_call_expression(
 
     const call_expression = expression.data.value as Core.Call_expression;
     if (call_expression.arguments.length !== function_declaration.input_parameter_names.length) {
-        diagnostics.push({
-            location: get_parser_node_position_source_location(uri, cache, descendant_call_expression),
-            source: Source.Parse_tree_validation,
-            severity: Diagnostic_severity.Error,
-            message: `Function '${function_declaration.name}' expects ${function_declaration.input_parameter_names.length} arguments, but ${call_expression.arguments.length} were provided.`,
-            related_information: [],
-        });
-        return diagnostics;
+
+        if (function_declaration.type.is_variadic) {
+            if (call_expression.arguments.length < function_declaration.input_parameter_names.length) {
+                diagnostics.push({
+                    location: get_parser_node_position_source_location(uri, cache, descendant_call_expression),
+                    source: Source.Parse_tree_validation,
+                    severity: Diagnostic_severity.Error,
+                    message: `Function '${function_declaration.name}' expects at least ${function_declaration.input_parameter_names.length} arguments, but ${call_expression.arguments.length} were provided.`,
+                    related_information: [],
+                });
+                return diagnostics;
+            }
+        }
+        else {
+            diagnostics.push({
+                location: get_parser_node_position_source_location(uri, cache, descendant_call_expression),
+                source: Source.Parse_tree_validation,
+                severity: Diagnostic_severity.Error,
+                message: `Function '${function_declaration.name}' expects ${function_declaration.input_parameter_names.length} arguments, but ${call_expression.arguments.length} were provided.`,
+                related_information: [],
+            });
+            return diagnostics;
+        }
     }
 
     const scope_declaration = Parse_tree_analysis.create_declaration_from_function_value(module_function_value.function_value);

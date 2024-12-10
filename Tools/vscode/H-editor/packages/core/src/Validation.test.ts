@@ -1864,6 +1864,34 @@ function run() -> ()
         await test_validate_module(input, [], expected_diagnostics);
     });
 
+    it("Validates that variadic function call has the correct number of arguments", async () => {
+        const input = `module Test;
+
+function foo_0(first: Int32, second: Int32, ...) -> ()
+{
+}
+
+function run() -> ()
+{
+    foo_0(0, 1);
+    foo_0(0, 1, 2);
+    foo_0(0);
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(11, 5, 11, 13),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Function 'foo_0' expects at least 2 arguments, but 1 were provided.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
     it("Validates that function call has the correct argument types", async () => {
         const input = `module Test;
 
