@@ -2045,6 +2045,23 @@ export function node_to_type_reference(node: Parser_node.Node, key_to_production
             }
         ];
     }
+    else if (child.word.value === "Constant_array_type") {
+        const type_node = find_node(child, "Type", key_to_production_rule_indices) as Parser_node.Node;
+        const element_type = node_to_type_reference(type_node, key_to_production_rule_indices);
+        const length_node = find_node_value(child, "Constant_array_length", key_to_production_rule_indices);
+        const constant_array_type: Core_intermediate_representation.Constant_array_type = {
+            value_type: element_type,
+            size: Number(length_node)
+        };
+        return [
+            {
+                data: {
+                    type: Core_intermediate_representation.Type_reference_enum.Constant_array_type,
+                    value: constant_array_type
+                }
+            }
+        ];
+    }
 
     const message = `Parse_tree_convertor_mapping.node_to_type_reference(): unhandled node '${child.word.value}'`;
     onThrowError(message);
@@ -2433,6 +2450,15 @@ function node_to_expression_without_source_location(node: Parser_node.Node, key_
                 }
             };
         }
+        case "Expression_access_array": {
+            const expression = node_to_expression_access_array(node, key_to_production_rule_indices);
+            return {
+                data: {
+                    type: Core_intermediate_representation.Expression_enum.Access_array_expression,
+                    value: expression
+                }
+            };
+        }
         case "Expression_assignment": {
             const expression = node_to_expression_assignment(node, key_to_production_rule_indices);
             return {
@@ -2519,6 +2545,15 @@ function node_to_expression_without_source_location(node: Parser_node.Node, key_
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Continue_expression,
+                    value: expression
+                }
+            };
+        }
+        case "Expression_create_array": {
+            const expression = node_to_expression_create_array(node, key_to_production_rule_indices);
+            return {
+                data: {
+                    type: Core_intermediate_representation.Expression_enum.Constant_array_expression,
                     value: expression
                 }
             };
@@ -2673,6 +2708,22 @@ export function node_to_expression_access(node: Parser_node.Node, key_to_product
     };
 
     return access_expression;
+}
+
+export function node_to_expression_access_array(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Access_array_expression {
+
+    const generic_expression_node = node.children[0];
+    const generic_expression = node_to_expression(generic_expression_node, key_to_production_rule_indices);
+
+    const index_expression_node = node.children[2];
+    const index_expression = node_to_expression(index_expression_node, key_to_production_rule_indices);
+
+    const access_array_expression: Core_intermediate_representation.Access_array_expression = {
+        expression: generic_expression,
+        index: index_expression
+    };
+
+    return access_array_expression;
 }
 
 function set_expression_access_type(expression: Core_intermediate_representation.Expression, access_type: Core_intermediate_representation.Access_type): void {
@@ -3034,6 +3085,19 @@ function node_to_expression_continue(node: Parser_node.Node, key_to_production_r
     };
 
     return continue_expression;
+}
+
+function node_to_expression_create_array(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Constant_array_expression {
+
+    const expression_nodes = find_nodes_inside_parent(node, "Expression_create_array_elements", "Generic_expression_or_instantiate", key_to_production_rule_indices);
+    const expressions = expression_nodes.map(node => node_to_expression(node, key_to_production_rule_indices));
+    const statements = expressions.map(expression => { return { expression: expression }; });
+
+    const create_array_expression: Core_intermediate_representation.Constant_array_expression = {
+        array_data: statements,
+    };
+
+    return create_array_expression;
 }
 
 function node_to_expression_for_loop(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.For_loop_expression {

@@ -749,8 +749,29 @@ export async function get_expression_type(
         }
         case Core.Expression_enum.Constant_array_expression: {
             const value = expression.data.value as Core.Constant_array_expression;
+            if (value.array_data.length === 0) {
+                const array_type: Core.Constant_array_type = {
+                    value_type: [],
+                    size: value.array_data.length
+                };
+                return {
+                    type: [{ data: { type: Core.Type_reference_enum.Constant_array_type, value: array_type } }],
+                    is_value: true
+                };
+            }
+
+            const element_type = await get_expression_type(language_description, core_module, scope_declaration, root, scope_node_position, value.array_data[0].expression, get_core_module);
+            if (element_type === undefined || !element_type.is_value) {
+                return undefined;
+            }
+
+            const array_type: Core.Constant_array_type = {
+                value_type: element_type.type,
+                size: value.array_data.length
+            };
+
             return {
-                type: [value.type],
+                type: [{ data: { type: Core.Type_reference_enum.Constant_array_type, value: array_type } }],
                 is_value: true
             };
         }

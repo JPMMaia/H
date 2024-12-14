@@ -1442,6 +1442,79 @@ export function create_assignment_expressions(): IR.Module {
     };
 }
 
+export function create_constant_array_expressions(): IR.Module {
+
+    const int32_type = create_integer_type(32, true);
+
+    const constant_array_0_type = create_constant_array_type([int32_type], 0);
+    const constant_array_1_type = create_constant_array_type([int32_type], 4);
+
+    const expressions: IR.Expression[] = [
+        IR.create_variable_declaration_with_type_expression("a", false, constant_array_0_type, create_statement(IR.create_constant_array_expression([]))),
+        IR.create_variable_declaration_with_type_expression("b", false, constant_array_1_type, create_statement(
+            IR.create_constant_array_expression([
+                create_statement(IR.create_constant_expression(int32_type, "0")),
+                create_statement(IR.create_constant_expression(int32_type, "1")),
+                create_statement(IR.create_constant_expression(int32_type, "2")),
+                create_statement(IR.create_constant_expression(int32_type, "3")),
+            ]))
+        ),
+        IR.create_assignment_expression(
+            IR.create_access_array_expression(IR.create_variable_expression("a", IR.Access_type.Read), IR.create_constant_expression(int32_type, "0")),
+            IR.create_constant_expression(int32_type, "0"),
+            undefined
+        ),
+        IR.create_assignment_expression(
+            IR.create_access_array_expression(IR.create_variable_expression("a", IR.Access_type.Read), IR.create_constant_expression(int32_type, "1")),
+            IR.create_constant_expression(int32_type, "1"),
+            undefined
+        ),
+        IR.create_variable_declaration_expression("c", false,
+            IR.create_access_array_expression(IR.create_variable_expression("b", IR.Access_type.Read), IR.create_constant_expression(int32_type, "3")),
+        ),
+    ];
+
+    const statements: IR.Statement[] = [];
+
+    for (const binary_expression of expressions) {
+        const statement: IR.Statement = {
+            expression: binary_expression
+        };
+        statements.push(statement);
+    }
+
+    return {
+        name: "Constant_array_expressions",
+        imports: [],
+        declarations: [
+            {
+                name: "foo",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "foo",
+                        type: {
+                            input_parameter_types: [],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: [],
+                        output_parameter_names: [],
+                        linkage: IR.Linkage.External
+                    },
+                    definition: {
+                        name: "foo",
+                        statements: [
+                            ...statements
+                        ]
+                    }
+                }
+            }
+        ]
+    };
+}
+
 export function create_unary_expressions(): IR.Module {
 
     const unary_expressions: [string, IR.Expression][] = [
@@ -5077,6 +5150,18 @@ export function create_call_of_function_of_imported_module(): IR.Module {
                 }
             }
         ]
+    };
+}
+
+function create_constant_array_type(value_type: IR.Type_reference[], size: number): IR.Type_reference {
+    return {
+        data: {
+            type: IR.Type_reference_enum.Constant_array_type,
+            value: {
+                value_type: value_type,
+                size: size
+            }
+        }
     };
 }
 

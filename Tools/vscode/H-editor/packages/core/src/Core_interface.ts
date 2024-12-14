@@ -99,6 +99,7 @@ export enum Type_reference_enum {
 
 export enum Expression_enum {
     Access_expression = "Access_expression",
+    Access_array_expression = "Access_array_expression",
     Assignment_expression = "Assignment_expression",
     Binary_expression = "Binary_expression",
     Block_expression = "Block_expression",
@@ -259,6 +260,11 @@ export interface Access_expression {
     access_type: Access_type;
 }
 
+export interface Access_array_expression {
+    expression: Expression_index;
+    index: Expression_index;
+}
+
 export interface Assignment_expression {
     left_hand_side: Expression_index;
     right_hand_side: Expression_index;
@@ -300,7 +306,6 @@ export interface Constant_expression {
 }
 
 export interface Constant_array_expression {
-    type: Type_reference;
     array_data: Vector<Statement>;
 }
 
@@ -391,7 +396,7 @@ export interface While_loop_expression {
 }
 
 export interface Expression {
-    data: Variant<Expression_enum, Access_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Comment_expression | Constant_expression | Constant_array_expression | Continue_expression | For_loop_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
+    data: Variant<Expression_enum, Access_expression | Access_array_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Comment_expression | Constant_expression | Constant_array_expression | Continue_expression | For_loop_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
     source_position?: Source_position;
 }
 
