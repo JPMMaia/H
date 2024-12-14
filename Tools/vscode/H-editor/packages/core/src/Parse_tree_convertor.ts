@@ -921,6 +921,12 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
             visit_expressions(value.expression, predicate);
             break;
         }
+        case Core_intermediate_representation.Expression_enum.Access_array_expression: {
+            const value = expression.data.value as Core_intermediate_representation.Access_array_expression;
+            visit_expressions(value.expression, predicate);
+            visit_expressions(value.index, predicate);
+            break;
+        }
         case Core_intermediate_representation.Expression_enum.Assignment_expression: {
             const value = expression.data.value as Core_intermediate_representation.Assignment_expression;
             visit_expressions(value.left_hand_side, predicate);
@@ -951,6 +957,13 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
         case Core_intermediate_representation.Expression_enum.Cast_expression: {
             const value = expression.data.value as Core_intermediate_representation.Cast_expression;
             visit_expressions(value.source, predicate);
+            break;
+        }
+        case Core_intermediate_representation.Expression_enum.Constant_array_expression: {
+            const value = expression.data.value as Core_intermediate_representation.Constant_array_expression;
+            for (const statement of value.array_data) {
+                visit_expressions(statement.expression, predicate);
+            }
             break;
         }
         case Core_intermediate_representation.Expression_enum.For_loop_expression: {

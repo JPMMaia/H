@@ -1160,6 +1160,42 @@ export function foo(
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
+    it("Handles constant array expressions", () => {
+
+        const document_state = Document.create_empty_state("", language_description.production_rules);
+
+        const program = `
+module Constant_array_expressions;
+
+export function foo() -> ()
+{
+    var a: Constant_array<Int32, 0> = [];
+    var b: Constant_array<Int32, 4> = [0, 1, 2, 3];
+
+    a[0] = 0;
+    a[1] = 1;
+
+    var c = b[3];
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_constant_array_expressions();
+        assert.deepEqual(new_document_state.valid.module, expected_module);
+    });
+
     it("Handles unary expressions", () => {
 
         const document_state = Document.create_empty_state("", language_description.production_rules);

@@ -312,14 +312,9 @@ function run() -> ()
     });
 
     it("Finds expression type of constant array expression", async () => {
-        const expression = Core.create_constant_array_expression(
-            create_integer_type(32, true),
-            [
-            ]
-        );
-        const expected_expression_type = create_integer_type(32, true);
+        const expression = Core.create_constant_array_expression([]);
         const is_value = true;
-        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, { type: [expected_expression_type], is_value: is_value });
+        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, { type: [], is_value: is_value });
     });
 
     it("Finds expression type of constant expression", async () => {
