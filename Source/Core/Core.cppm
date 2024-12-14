@@ -289,6 +289,14 @@ namespace h
         friend auto operator<=>(Access_expression const&, Access_expression const&) = default;
     };
 
+    export struct Access_array_expression
+    {
+        Expression_index expression;
+        Expression_index index;
+
+        friend auto operator<=>(Access_array_expression const&, Access_array_expression const&) = default;
+    };
+
     export struct Assignment_expression
     {
         Expression_index left_hand_side;
@@ -361,7 +369,6 @@ namespace h
 
     export struct Constant_array_expression
     {
-        Type_reference type;
         std::pmr::vector<Statement> array_data;
 
         friend auto operator<=>(Constant_array_expression const&, Constant_array_expression const&) = default;
@@ -525,6 +532,7 @@ namespace h
     {
         using Data_type = std::variant <
             Access_expression,
+            Access_array_expression,
             Assignment_expression,
             Binary_expression,
             Block_expression,
