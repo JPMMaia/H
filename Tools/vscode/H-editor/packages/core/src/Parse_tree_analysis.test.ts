@@ -313,8 +313,9 @@ function run() -> ()
 
     it("Finds expression type of constant array expression", async () => {
         const expression = Core.create_constant_array_expression([]);
+        const expected_expression_type = create_constant_array_type([], 0);
         const is_value = true;
-        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, { type: [], is_value: is_value });
+        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 1, 1, 0, 1, 1, 0], expression, { type: [expected_expression_type], is_value: is_value });
     });
 
     it("Finds expression type of constant expression", async () => {
@@ -479,6 +480,18 @@ function create_boolean_type(): Core.Type_reference {
         data: {
             type: Core.Type_reference_enum.Fundamental_type,
             value: Core.Fundamental_type.Bool
+        }
+    };
+}
+
+function create_constant_array_type(value_type: Core.Type_reference[], size: number): Core.Type_reference {
+    return {
+        data: {
+            type: Core.Type_reference_enum.Constant_array_type,
+            value: {
+                value_type: value_type,
+                size: size
+            }
         }
     };
 }

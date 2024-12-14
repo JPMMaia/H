@@ -40,6 +40,7 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Type_name", map_type_name_to_word],
             ["Module_type_module_name", map_module_type_module_name_to_word],
             ["Module_type_type_name", map_module_type_type_name_to_word],
+            ["Constant_array_length", map_constant_array_length_to_word],
             ["Expression_access_member_name", map_expression_access_member_name_to_word],
             ["Expression_break_loop_count", map_expression_break_loop_count_to_word],
             ["Expression_comment", map_comment_to_word],
@@ -74,6 +75,7 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Statements", [["declarations", "$order_index", "value", "definition", "statements"]]],
             ["Expression_block_statements", [["$top.state.value", "data", "value", "statements"]]],
             ["Expression_call_arguments", [["$top.state.value", "data", "value", "arguments"]]],
+            ["Expression_create_array_elements", [["$top.state.value", "data", "value", "array_data"]]],
             ["Expression_instantiate_members", [["$top.state.value", "data", "value", "members"]]],
             ["Expression_for_loop_statements", [["$top.state.value", "data", "value", "then_statements"]]],
             ["Expression_if_statements", [["$top.state.value", "data", "value", "series", "$if_series_index", "then_statements"]]],
@@ -275,6 +277,20 @@ function map_module_type_type_name_to_word(
     const type_reference_array = top.state.value as Core_intermediate_representation.Type_reference[];
     const custom_type_reference = type_reference_array[0].data.value as Core_intermediate_representation.Custom_type_reference;
     return { value: custom_type_reference.name, type: Grammar.Word_type.Alphanumeric };
+}
+
+function map_constant_array_length_to_word(
+    module: Core_intermediate_representation.Module,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    production_rules: Grammar.Production_rule[],
+    key_to_production_rule_indices: Map<string, number[]>,
+    terminal: string,
+    mappings: Parse_tree_convertor.Parse_tree_mappings
+): Grammar.Word {
+    const top = stack[stack.length - 1];
+    const type_reference_array = top.state.value as Core_intermediate_representation.Type_reference[];
+    const constant_array_type = type_reference_array[0].data.value as Core_intermediate_representation.Constant_array_type;
+    return { value: constant_array_type.size.toString(), type: Grammar.Word_type.Number };
 }
 
 function map_expression_access_member_name_to_word(
@@ -625,6 +641,11 @@ function choose_production_rule_type(
             const pointer_type = type_reference_array[0].data.value as Core_intermediate_representation.Pointer_type;
             return pointer_type.element_type;
         }
+        else if (top.node.word.value === "Constant_array_type") {
+            const type_reference_array = top.state.value as Core_intermediate_representation.Type_reference[];
+            const constant_array_type = type_reference_array[0].data.value as Core_intermediate_representation.Constant_array_type;
+            return constant_array_type.value_type;
+        }
 
         const message = `Parse_tree_convertor_mappings.choose_production_rule_type(): unhandled '${top.node.word.value}'`;
         onThrowError(message);
@@ -662,6 +683,17 @@ function choose_production_rule_type(
         }
         case Core_intermediate_representation.Type_reference_enum.Pointer_type: {
             const rhs_to_find = "Pointer_type";
+            const index = production_rule_indices.findIndex(index => contains(production_rules[index].rhs, rhs_to_find));
+            return {
+                next_state: {
+                    index: 0,
+                    value: type_reference_array
+                },
+                next_production_rule_index: production_rule_indices[index]
+            };
+        }
+        case Core_intermediate_representation.Type_reference_enum.Constant_array_type: {
+            const rhs_to_find = "Constant_array_type";
             const index = production_rule_indices.findIndex(index => contains(production_rules[index].rhs, rhs_to_find));
             return {
                 next_state: {
@@ -1487,6 +1519,14 @@ function get_generic_expression(
                 label: map_expression_type_to_production_rule_label(next_expression)
             };
         }
+        case Core_intermediate_representation.Expression_enum.Access_array_expression: {
+            const access_array_expression = expression.data.value as Core_intermediate_representation.Access_array_expression;
+            const next_expression = current_child_index === 0 ? access_array_expression.expression : access_array_expression.index;
+            return {
+                expression: next_expression,
+                label: map_expression_type_to_production_rule_label(next_expression)
+            };
+        }
         case Core_intermediate_representation.Expression_enum.Assignment_expression: {
             const assignment_expression = expression.data.value as Core_intermediate_representation.Assignment_expression;
             const next_expression = current_child_index === 0 ? assignment_expression.left_hand_side : assignment_expression.right_hand_side;
@@ -1536,6 +1576,15 @@ function get_generic_expression(
             return {
                 expression: next_expression,
                 label: map_expression_type_to_production_rule_label(next_expression)
+            };
+        }
+        case Core_intermediate_representation.Expression_enum.Constant_array_expression: {
+            const constant_array_expression = expression.data.value as Core_intermediate_representation.Constant_array_expression;
+            const argument_index = current_child_index / 2;
+            const next_expression = constant_array_expression.array_data[argument_index].expression;
+            return {
+                expression: next_expression,
+                label: map_expression_type_to_production_rule_label(next_expression),
             };
         }
         case Core_intermediate_representation.Expression_enum.If_expression: {
@@ -1750,6 +1799,8 @@ function map_expression_type_to_production_rule_label(expression: Core_intermedi
     switch (expression.data.type) {
         case Core_intermediate_representation.Expression_enum.Access_expression:
             return "Expression_access";
+        case Core_intermediate_representation.Expression_enum.Access_array_expression:
+            return "Expression_access_array";
         case Core_intermediate_representation.Expression_enum.Assignment_expression:
             return "Expression_assignment";
         case Core_intermediate_representation.Expression_enum.Binary_expression: {
@@ -1799,7 +1850,7 @@ function map_expression_type_to_production_rule_label(expression: Core_intermedi
         case Core_intermediate_representation.Expression_enum.Constant_expression:
             return "Expression_constant";
         case Core_intermediate_representation.Expression_enum.Constant_array_expression:
-            return "Expression_constant_array";
+            return "Expression_create_array";
         case Core_intermediate_representation.Expression_enum.Continue_expression:
             return "Expression_continue";
         case Core_intermediate_representation.Expression_enum.For_loop_expression:
