@@ -376,7 +376,7 @@ namespace h::builder
                 h::c::Options const options
                 {
                     .target_triple = std::nullopt,
-                    .include_directories = c_header_options != nullptr ? c_header_options->search_paths : std::pmr::vector<std::filesystem::path>{},
+                    .include_directories = c_header_options != nullptr ? c_header_options->search_paths : std::span<std::filesystem::path const>{},
                 };
 
                 h::c::import_header_and_write_to_file(header_module_name, header_path.value(), output_header_module_path, options);
