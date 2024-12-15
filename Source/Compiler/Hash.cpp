@@ -221,7 +221,6 @@ namespace h::compiler
         else if (std::holds_alternative<h::Constant_array_expression>(expression.data))
         {
             h::Constant_array_expression const& data = std::get<h::Constant_array_expression>(expression.data);
-            update_hash(state, data.type, current_core_module);
 
             for (h::Statement const& element_statement : data.array_data)
             {

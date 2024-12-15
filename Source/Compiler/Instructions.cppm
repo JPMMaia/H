@@ -45,4 +45,12 @@ namespace h::compiler
         unsigned const size_in_bits,
         llvm::Align const alignment = {}
     );
+
+    export llvm::Value* create_memset_to_0_call(
+        llvm::LLVMContext& llvm_context,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::Module& llvm_module,
+        llvm::Value* const destination_pointer,
+        std::uint64_t const type_alloc_size_in_bytes
+    );
 }

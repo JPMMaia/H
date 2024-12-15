@@ -30,13 +30,12 @@ namespace h
         };
     }
 
-    h::Expression create_constant_array_expression(Type_reference type, std::pmr::vector<h::Statement> array_data)
+    h::Expression create_constant_array_expression(std::pmr::vector<h::Statement> array_data)
     {
         return h::Expression
         {
             .data = h::Constant_array_expression
             {
-                .type = std::move(type),
                 .array_data = std::move(array_data)
             }
         };

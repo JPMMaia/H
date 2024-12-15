@@ -87,6 +87,11 @@ namespace h::compiler
             }
         }
 
+        if (alias_type_declaration.name == "jmp_buf")
+        {
+            int i = 0;
+        }
+
         clang::QualType const underlying_type = *create_type(
             clang_ast_context,
             alias_type_declaration.type,
@@ -1389,6 +1394,12 @@ namespace h::compiler
             h::Builtin_type_reference const& builtin_type = std::get<h::Builtin_type_reference>(type_reference.data);
             if (builtin_type.value == "__builtin_va_list")
                 return clang_ast_context.getBuiltinVaListType();
+        }
+        else if (std::holds_alternative<h::Constant_array_type>(type_reference.data))
+        {
+            h::Constant_array_type const& constant_array_type = std::get<h::Constant_array_type>(type_reference.data);
+            int i = 0;
+            // TODO
         }
         else if (std::holds_alternative<h::Fundamental_type>(type_reference.data))
         {

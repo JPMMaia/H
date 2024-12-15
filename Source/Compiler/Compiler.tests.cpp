@@ -821,6 +821,20 @@ while_loop_after:                                 ; preds = %while_loop_conditio
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
+    TEST_CASE("Compile Constant Arrays")
+  {
+    char const* const input_file = "constant_array_expressions.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
   TEST_CASE("Compile Debug Information C Headers")
   {
     char const* const input_file = "debug_information_c_headers.hl";

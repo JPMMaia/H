@@ -844,7 +844,9 @@ namespace h::compiler
         else if (std::holds_alternative<Constant_array_type>(type_reference.data))
         {
             Constant_array_type const& data = std::get<Constant_array_type>(type_reference.data);
-            throw std::runtime_error{ "Not implemented." };
+            llvm::Type* const llvm_element_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, current_module, data.value_type, type_database);
+            llvm::ArrayType* const llvm_array_type = llvm::ArrayType::get(llvm_element_type, data.size);
+            return llvm_array_type;
         }
         else if (std::holds_alternative<Custom_type_reference>(type_reference.data))
         {

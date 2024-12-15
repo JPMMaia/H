@@ -1531,6 +1531,98 @@ namespace h::compiler
         throw std::runtime_error{ "Constant expression not handled!" };
     }
 
+    Value_and_type create_constant_array_expression_value(
+        Constant_array_expression const& expression,
+        Statement const& statement,
+        Expression_parameters const& parameters
+    )
+    {
+        llvm::LLVMContext& llvm_context = parameters.llvm_context;
+        llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
+        llvm::DataLayout const& llvm_data_layout = parameters.llvm_data_layout;
+        Module const core_module = parameters.core_module;
+        Type_database const& type_database = parameters.type_database;
+
+        std::pmr::vector<Value_and_type> array_data_values;
+        array_data_values.resize(expression.array_data.size());
+        for (std::size_t index = 0; index < expression.array_data.size(); ++index)
+        {
+            array_data_values[index] = create_loaded_statement_value(
+                expression.array_data[0],
+                parameters
+            );
+        }
+
+        if (!array_data_values.empty() && !array_data_values[0].type.has_value())
+            throw std::runtime_error{"Could not deduce element type of initializer list."};
+
+        for (std::size_t index = 1; index < array_data_values.size(); ++index)
+        {
+            if (array_data_values[0].type != array_data_values[index].type)
+                throw std::runtime_error{"Type mismatch between elements of the initializer list."};
+        }
+
+        if (parameters.expression_type.has_value())
+        {
+            if (!std::holds_alternative<Constant_array_type>(parameters.expression_type->data))
+                throw std::runtime_error{"Cannot assign initializer list to type."};
+
+            Constant_array_type const& requested_array_type = std::get<Constant_array_type>(parameters.expression_type->data);
+            if (requested_array_type.size != expression.array_data.size())
+                throw std::runtime_error{std::format("Expected initializer list with size {} but got {} elements.", requested_array_type.size, expression.array_data.size())};
+
+            if (array_data_values.size() > 0)
+            {
+                if (*array_data_values[0].type != requested_array_type.value_type[0])
+                    throw std::runtime_error{"Cannot assign initializer list to array due to type mismatch."};
+            }
+        }
+
+        if (expression.array_data.empty())
+        {
+            if (parameters.expression_type.has_value())
+            {
+                return Value_and_type
+                {
+                    .name = "",
+                    .value = nullptr,
+                    .type = parameters.expression_type,
+                };
+            }
+
+            return Value_and_type
+            {
+                .name = "",
+                .value = nullptr,
+                .type = create_constant_array_type_reference({create_integer_type_type_reference(32, true)}, 0),
+            };
+        }
+
+        Type_reference const& element_type = *array_data_values[0].type;
+        llvm::Type* const llvm_element_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, element_type, type_database);
+        std::uint64_t const array_length = expression.array_data.size();
+
+        llvm::ArrayType* const array_type = llvm::ArrayType::get(llvm_element_type, array_length);
+        llvm::ConstantInt* const  array_length_constant = llvm::ConstantInt::get(llvm::Type::getInt64Ty(llvm_context), array_length);
+        llvm::Value* array_alloca = llvm_builder.CreateAlloca(array_type, array_length_constant, "array");
+
+        for (std::uint64_t index = 0; index < array_length; ++index)
+        {
+            llvm::Value* const index_value = llvm_builder.getInt32(index);
+            llvm::Value* const element_pointer = llvm_builder.CreateGEP(array_type, array_alloca, {llvm_builder.getInt32(0), index_value}, "array_element_pointer");
+
+            llvm::Value* const value = array_data_values[index].value;
+            llvm_builder.CreateStore(value, element_pointer);
+        }
+
+        return Value_and_type
+        {
+            .name = "",
+            .value = array_alloca,
+            .type = create_constant_array_type_reference({element_type}, array_length),
+        };
+    }
+
     Value_and_type create_continue_expression_value(
         Continue_expression const& continue_expression,
         llvm::IRBuilder<>& llvm_builder,
@@ -2726,6 +2818,11 @@ namespace h::compiler
         {
             Constant_expression const& data = std::get<Constant_expression>(expression.data);
             return create_constant_expression_value(data, new_parameters.llvm_context, new_parameters.llvm_data_layout, new_parameters.llvm_module, new_parameters.core_module, new_parameters.type_database);
+        }
+        else if (std::holds_alternative<Constant_array_expression>(expression.data))
+        {
+            Constant_array_expression const& data = std::get<Constant_array_expression>(expression.data);
+            return create_constant_array_expression_value(data, statement, new_parameters);
         }
         else if (std::holds_alternative<Continue_expression>(expression.data))
         {
