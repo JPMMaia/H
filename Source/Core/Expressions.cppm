@@ -23,7 +23,7 @@ namespace h
 
     export h::Expression create_constant_expression(Type_reference type_reference, std::string_view const data);
 
-    export h::Expression create_constant_array_expression(Type_reference type, std::pmr::vector<h::Statement> array_data);
+    export h::Expression create_constant_array_expression(std::pmr::vector<h::Statement> array_data);
 
     export std::pmr::vector<h::Expression> create_enum_value_expressions(std::string_view const enum_name, std::string_view const member_name);
 

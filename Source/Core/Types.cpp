@@ -34,6 +34,19 @@ namespace h
     }
 
 
+    Type_reference create_constant_array_type_reference(std::pmr::vector<Type_reference> value_type, std::uint64_t size)
+    {
+        return Type_reference
+        {
+            .data = Constant_array_type
+            {
+                .value_type = std::move(value_type),
+                .size = size,
+            }
+        }; 
+    }
+
+
     Type_reference create_custom_type_reference(std::string_view const module_name, std::string_view const name)
     {
         return Type_reference

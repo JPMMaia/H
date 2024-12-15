@@ -256,11 +256,6 @@ namespace h
                 Constant_expression const& data = std::get<Constant_expression>(expression.data);
                 return predicate(data.type);
             }
-            else if (std::holds_alternative<Constant_array_expression>(expression.data))
-            {
-                Constant_array_expression const& data = std::get<Constant_array_expression>(expression.data);
-                return predicate(data.type);
-            }
             else if (std::holds_alternative<Variable_declaration_with_type_expression>(expression.data))
             {
                 Variable_declaration_with_type_expression const& data = std::get<Variable_declaration_with_type_expression>(expression.data);

@@ -23,6 +23,7 @@ convert_hltxt_to_hl(
         "${CMAKE_CURRENT_LIST_DIR}/txt/c_interoperability_function_with_pointer.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/c_interoperability_function_with_small_struct.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/comment_expressions.hltxt"
+        "${CMAKE_CURRENT_LIST_DIR}/txt/constant_array_expressions.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/debug_information_all.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/debug_information_c_headers.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/debug_information_for_loop.hltxt"
