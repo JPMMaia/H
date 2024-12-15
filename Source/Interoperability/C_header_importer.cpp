@@ -1561,7 +1561,6 @@ namespace h::c
             return h::create_statement(
                 {
                     h::create_constant_array_expression(
-                        constant_array_type.value_type[0],
                         std::move(array_data)
                     )
                 }

@@ -87,4 +87,21 @@ namespace h::compiler
         
         return call;
     }
+
+    llvm::Value* create_memset_to_0_call(
+        llvm::LLVMContext& llvm_context,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::Module& llvm_module,
+        llvm::Value* const destination_pointer,
+        std::uint64_t const type_alloc_size_in_bytes
+    )
+    {
+        llvm::Value* const raw_pointer = llvm_builder.CreateBitCast(destination_pointer, llvm::PointerType::get(llvm::Type::getInt8Ty(llvm_context), 0));
+        llvm::Value* const size_in_bytes_value = llvm::ConstantInt::get(llvm_builder.getInt64Ty(), type_alloc_size_in_bytes);
+
+        llvm::Value* const zero_value = llvm_builder.getInt8(0);
+        llvm::Value* const is_volatile = llvm_builder.getInt1(false);
+        llvm::Function* const memset_function = llvm::Intrinsic::getDeclaration(&llvm_module, llvm::Intrinsic::memset);
+        return llvm_builder.CreateCall(memset_function, {raw_pointer, zero_value, size_in_bytes_value, is_volatile});
+    }
 }
