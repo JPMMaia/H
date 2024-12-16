@@ -1398,8 +1398,22 @@ namespace h::compiler
         else if (std::holds_alternative<h::Constant_array_type>(type_reference.data))
         {
             h::Constant_array_type const& constant_array_type = std::get<h::Constant_array_type>(type_reference.data);
-            int i = 0;
-            // TODO
+
+            if (constant_array_type.value_type.empty())
+                throw std::runtime_error{"Cannot create constant array type if value_type is not specified."};
+
+            std::optional<clang::QualType> const element_type = create_type(
+                clang_ast_context,
+                constant_array_type.value_type[0],
+                declaration_database,
+                clang_declaration_database
+            );
+            if (!element_type.has_value())
+                throw std::runtime_error{"Cannot create constant array type. Failed to create element type."};
+
+            llvm::APInt const array_size_value(64, constant_array_type.size, false);
+
+            return clang_ast_context.getConstantArrayType(*element_type, array_size_value, nullptr, clang::ArraySizeModifier::Normal, 0);
         }
         else if (std::holds_alternative<h::Fundamental_type>(type_reference.data))
         {

@@ -830,6 +830,55 @@ while_loop_after:                                 ; preds = %while_loop_conditio
     };
 
     char const* const expected_llvm_ir = R"(
+%struct.Constant_array_expressions_My_struct = type { [4 x i32] }
+
+define void @Constant_array_expressions_foo() {
+entry:
+  %a = alloca [0 x i32], align 4
+  %b = alloca [0 x i32], align 4
+  %array = alloca [4 x i32], i64 4, align 4
+  %array_element_pointer = getelementptr [4 x i32], ptr %array, i32 0, i32 0
+  store i32 0, ptr %array_element_pointer, align 4
+  %array_element_pointer1 = getelementptr [4 x i32], ptr %array, i32 0, i32 1
+  store i32 1, ptr %array_element_pointer1, align 4
+  %array_element_pointer2 = getelementptr [4 x i32], ptr %array, i32 0, i32 2
+  store i32 2, ptr %array_element_pointer2, align 4
+  %array_element_pointer3 = getelementptr [4 x i32], ptr %array, i32 0, i32 3
+  store i32 3, ptr %array_element_pointer3, align 4
+  %0 = load [4 x i32], ptr %array, align 4
+  %c = alloca [4 x i32], align 4
+  store [4 x i32] %0, ptr %c, align 4
+  %array_element_pointer4 = getelementptr [4 x i32], ptr %c, i32 0, i32 0
+  store i32 0, ptr %array_element_pointer4, align 4
+  %array_element_pointer5 = getelementptr [4 x i32], ptr %c, i32 0, i32 1
+  store i32 1, ptr %array_element_pointer5, align 4
+  %array_element_pointer6 = getelementptr [4 x i32], ptr %c, i32 0, i32 3
+  %1 = load i32, ptr %array_element_pointer6, align 4
+  %d = alloca i32, align 4
+  store i32 %1, ptr %d, align 4
+  %array7 = alloca [4 x i32], i64 4, align 4
+  %array_element_pointer8 = getelementptr [4 x i32], ptr %array7, i32 0, i32 0
+  store i32 0, ptr %array_element_pointer8, align 4
+  %array_element_pointer9 = getelementptr [4 x i32], ptr %array7, i32 0, i32 1
+  store i32 2, ptr %array_element_pointer9, align 4
+  %array_element_pointer10 = getelementptr [4 x i32], ptr %array7, i32 0, i32 2
+  store i32 4, ptr %array_element_pointer10, align 4
+  %array_element_pointer11 = getelementptr [4 x i32], ptr %array7, i32 0, i32 3
+  store i32 6, ptr %array_element_pointer11, align 4
+  %2 = load [4 x i32], ptr %array7, align 4
+  %3 = insertvalue %struct.Constant_array_expressions_My_struct undef, [4 x i32] %2, 0
+  %temporary_struct_instance = alloca %struct.Constant_array_expressions_My_struct, align 4
+  store %struct.Constant_array_expressions_My_struct %3, ptr %temporary_struct_instance, align 4
+  %4 = load %struct.Constant_array_expressions_My_struct, ptr %temporary_struct_instance, align 4
+  %instance = alloca %struct.Constant_array_expressions_My_struct, align 4
+  store %struct.Constant_array_expressions_My_struct %4, ptr %instance, align 4
+  %5 = getelementptr inbounds %struct.Constant_array_expressions_My_struct, ptr %instance, i32 0, i32 0
+  %array_element_pointer12 = getelementptr [4 x i32], ptr %5, i32 0, i32 0
+  %6 = load i32, ptr %array_element_pointer12, align 4
+  %e = alloca i32, align 4
+  store i32 %6, ptr %e, align 4
+  ret void
+}
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);

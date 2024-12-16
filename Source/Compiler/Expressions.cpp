@@ -138,6 +138,17 @@ namespace h::compiler
         );
     }
 
+    bool can_store(std::optional<Type_reference> const& type)
+    {
+        if (type.has_value() && std::holds_alternative<Constant_array_type>(type->data))
+        {
+            Constant_array_type const& constant_array_type = std::get<Constant_array_type>(type->data);
+            return constant_array_type.size > 0;
+        }
+
+        return true;
+    }
+
     bool ends_with_terminator_statement(std::span<Statement const> const statements)
     {
         if (statements.empty())
@@ -576,6 +587,45 @@ namespace h::compiler
         }
 
         throw std::runtime_error{ "Could not process access expression!" };
+    }
+
+    Value_and_type create_access_array_expression_value(
+        Access_array_expression const& expression,
+        Statement const& statement,
+        Expression_parameters const& parameters
+    )
+    {
+        llvm::LLVMContext& llvm_context = parameters.llvm_context;
+        llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
+        llvm::DataLayout const& llvm_data_layout = parameters.llvm_data_layout;
+        Module const core_module = parameters.core_module;
+        Type_database const& type_database = parameters.type_database;
+
+        Value_and_type const left_hand_side_expression_value = create_expression_value(expression.expression.expression_index, statement, parameters);
+        if (!left_hand_side_expression_value.type.has_value())
+            throw std::runtime_error{"Could not deduce type of left hand side."};
+
+        if (!std::holds_alternative<Constant_array_type>(left_hand_side_expression_value.type->data))
+            throw std::runtime_error{"Cannot access array of non-array type."};
+
+        Constant_array_type const& constant_array_type = std::get<Constant_array_type>(left_hand_side_expression_value.type->data);
+        if (constant_array_type.value_type.empty() || constant_array_type.size == 0)
+            throw std::runtime_error{"Cannot access empty array."};
+
+        llvm::Type* const array_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, *left_hand_side_expression_value.type, type_database);
+        llvm::Value* const array_pointer = left_hand_side_expression_value.value;
+
+        Value_and_type const index_value = create_loaded_expression_value(expression.index.expression_index, statement, parameters);
+        llvm::Value* const index_llvm_value = index_value.value;
+        
+        llvm::Value* const element_pointer = llvm_builder.CreateGEP(array_llvm_type, array_pointer, {llvm_builder.getInt32(0), index_llvm_value}, "array_element_pointer");
+        
+        return Value_and_type
+        {
+            .name = "",
+            .value = element_pointer,
+            .type = constant_array_type.value_type[0]
+        };
     }
 
     Value_and_type create_binary_operation_instruction(
@@ -1548,7 +1598,7 @@ namespace h::compiler
         for (std::size_t index = 0; index < expression.array_data.size(); ++index)
         {
             array_data_values[index] = create_loaded_statement_value(
-                expression.array_data[0],
+                expression.array_data[index],
                 parameters
             );
         }
@@ -1580,12 +1630,16 @@ namespace h::compiler
 
         if (expression.array_data.empty())
         {
+            llvm::Type* const llvm_int32_type = llvm::Type::getInt32Ty(llvm_context);
+            llvm::ArrayType* const llvm_array_type = llvm::ArrayType::get(llvm_int32_type, 0);
+            llvm::Value* const llvm_undef_array = llvm::UndefValue::get(llvm_array_type);
+
             if (parameters.expression_type.has_value())
             {
                 return Value_and_type
                 {
                     .name = "",
-                    .value = nullptr,
+                    .value = llvm_undef_array,
                     .type = parameters.expression_type,
                 };
             }
@@ -1593,7 +1647,7 @@ namespace h::compiler
             return Value_and_type
             {
                 .name = "",
-                .value = nullptr,
+                .value = llvm_undef_array,
                 .type = create_constant_array_type_reference({create_integer_type_type_reference(32, true)}, 0),
             };
         }
@@ -2537,7 +2591,8 @@ namespace h::compiler
         if (parameters.debug_info != nullptr)
             create_local_variable_debug_description(*parameters.debug_info, parameters, expression.name, alloca, *right_hand_side.type);
 
-        create_store_instruction(llvm_builder, llvm_data_layout, right_hand_side.value, alloca);
+        if (can_store(right_hand_side.type))
+            create_store_instruction(llvm_builder, llvm_data_layout, right_hand_side.value, alloca);
 
         return Value_and_type
         {
@@ -2577,7 +2632,8 @@ namespace h::compiler
         if (parameters.debug_info != nullptr)
             create_local_variable_debug_description(*parameters.debug_info, parameters, expression.name, alloca, core_type);
 
-        create_store_instruction(llvm_builder, llvm_data_layout, right_hand_side.value, alloca);
+        if (can_store(core_type))
+            create_store_instruction(llvm_builder, llvm_data_layout, right_hand_side.value, alloca);
 
         return Value_and_type
         {
@@ -2783,6 +2839,11 @@ namespace h::compiler
         {
             Access_expression const& data = std::get<Access_expression>(expression.data);
             return create_access_expression_value(data, statement, new_parameters);
+        }
+        else if (std::holds_alternative<Access_array_expression>(expression.data))
+        {
+            Access_array_expression const& data = std::get<Access_array_expression>(expression.data);
+            return create_access_array_expression_value(data, statement, new_parameters);
         }
         else if (std::holds_alternative<Assignment_expression>(expression.data))
         {
