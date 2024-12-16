@@ -39,6 +39,7 @@ import h.compiler.types;
 import h.core;
 import h.core.declarations;
 import h.core.string_hash;
+import h.core.types;
 
 namespace h::compiler
 {
@@ -58,38 +59,46 @@ namespace h::compiler
         // TODO should we use unique_name?
         clang::IdentifierInfo* const alias_name = &clang_ast_context.Idents.get(alias_type_declaration.name.data());
 
-        if (!alias_type_declaration.type.empty() && std::holds_alternative<h::Custom_type_reference>(alias_type_declaration.type[0].data))
+        if (!alias_type_declaration.type.empty())
         {
-            h::Custom_type_reference const custom_type_reference = std::get<h::Custom_type_reference>(alias_type_declaration.type[0].data);
-            std::optional<h::Declaration> const declaration = h::find_declaration(
-                declaration_database,
-                custom_type_reference.module_reference.name,
-                custom_type_reference.name
-            );
+            auto const add_underlying_alias = [&](h::Type_reference const& type_reference) -> bool {
 
-            if (declaration.has_value())
-            {
-                if (std::holds_alternative<h::Alias_type_declaration const*>(declaration->data))
+                if (std::holds_alternative<h::Custom_type_reference>(type_reference.data))
                 {
-                    h::Alias_type_declaration const* underlying_alias_type_declaration = std::get<Alias_type_declaration const*>(declaration->data);
+                    h::Custom_type_reference const custom_type_reference = std::get<h::Custom_type_reference>(type_reference.data);
+                    std::optional<h::Declaration> const declaration = h::find_declaration(
+                        declaration_database,
+                        custom_type_reference.module_reference.name,
+                        custom_type_reference.name
+                    );
 
-                    if (underlying_alias_type_declaration != nullptr)
+                    if (declaration.has_value())
                     {
-                        add_clang_alias_type_declaration(
-                            clang_alias_type_declarations,
-                            clang_ast_context,
-                            *underlying_alias_type_declaration,
-                            declaration_database,
-                            clang_declaration_database
-                        );
+                        if (std::holds_alternative<h::Alias_type_declaration const*>(declaration->data))
+                        {
+                            h::Alias_type_declaration const* underlying_alias_type_declaration = std::get<Alias_type_declaration const*>(declaration->data);
+
+                            if (underlying_alias_type_declaration != nullptr)
+                            {
+                                add_clang_alias_type_declaration(
+                                    clang_alias_type_declarations,
+                                    clang_ast_context,
+                                    *underlying_alias_type_declaration,
+                                    declaration_database,
+                                    clang_declaration_database
+                                );
+                            }
+                        }
                     }
                 }
-            }
-        }
 
-        if (alias_type_declaration.name == "jmp_buf")
-        {
-            int i = 0;
+                return false;
+            };
+
+            h::visit_type_references(
+                alias_type_declaration.type[0],
+                add_underlying_alias
+            );
         }
 
         clang::QualType const underlying_type = *create_type(
