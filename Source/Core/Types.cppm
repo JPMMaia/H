@@ -79,7 +79,11 @@ namespace h
         if (done)
             return true;
 
-        if (std::holds_alternative<Constant_array_type>(type_reference.data))
+        if (std::holds_alternative<Builtin_type_reference>(type_reference.data))
+        {
+            return false;
+        }
+        else if (std::holds_alternative<Constant_array_type>(type_reference.data))
         {
             Constant_array_type const& data = std::get<Constant_array_type>(type_reference.data);
             for (Type_reference const& nested_type_reference : data.value_type)
@@ -87,6 +91,16 @@ namespace h
                 if (visit_type_references(nested_type_reference, predicate))
                     return true;
             }
+
+            return false;
+        }
+        else if (std::holds_alternative<Custom_type_reference>(type_reference.data))
+        {
+            return false;
+        }
+        else if (std::holds_alternative<Fundamental_type>(type_reference.data))
+        {
+            return false;
         }
         else if (std::holds_alternative<Function_type>(type_reference.data))
         {
@@ -101,6 +115,16 @@ namespace h
                 if (visit_type_references(nested_type_reference, predicate))
                     return true;
             }
+
+            return false;
+        }
+        else if (std::holds_alternative<Integer_type>(type_reference.data))
+        {
+            return false;
+        }
+        else if (std::holds_alternative<Null_pointer_type>(type_reference.data))
+        {
+            return false;
         }
         else if (std::holds_alternative<Pointer_type>(type_reference.data))
         {
@@ -110,9 +134,13 @@ namespace h
                 if (visit_type_references(nested_type_reference, predicate))
                     return true;
             }
-        }
 
-        return false;
+            return false;
+        }
+        else
+        {
+            throw std::runtime_error{"visit_type_references: Did not handle type!"};
+        }
     }
 
     export template <typename Function_t>
