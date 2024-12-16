@@ -1,5 +1,10 @@
 module Constant_array_expressions;
 
+struct My_struct
+{
+    a: Constant_array<Int32, 4> = [0, 2, 4, 6];
+}
+
 export function foo() -> ()
 {
     var a = [];
@@ -10,4 +15,7 @@ export function foo() -> ()
     c[1] = 1;
 
     var d = c[3];
+
+    var instance: My_struct = {};
+    var e = instance.a[0];
 }
