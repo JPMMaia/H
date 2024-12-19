@@ -2622,7 +2622,7 @@ function is_numeric_type(
         case Core.Type_reference_enum.Builtin_type_reference:
         case Core.Type_reference_enum.Constant_array_type:
         case Core.Type_reference_enum.Custom_type_reference:
-        case Core.Type_reference_enum.Function_type:
+        case Core.Type_reference_enum.Function_pointer_type:
         case Core.Type_reference_enum.Null_pointer_type:
         case Core.Type_reference_enum.Pointer_type: {
             return false;

@@ -2365,6 +2365,14 @@ describe("Parse_tree_convertor.parse_tree_to_module", () => {
         assert.deepEqual(actual_module.declarations, expected_module.declarations);
     });
 
+    it("Handles function pointer types", () => {
+        const grammar_description = Grammar_examples.create_test_grammar_9_description();
+        const expected_module = Module_examples.create_function_pointer_types();
+        const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
+
+        assert.deepEqual(actual_module, expected_module);
+    });
+
     it("Handles unary expressions", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
         const expected_module = Module_examples.create_unary_expressions();

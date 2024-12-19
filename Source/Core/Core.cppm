@@ -83,6 +83,15 @@ namespace h
         friend auto operator<=>(Function_type const& lhs, Function_type const& rhs) = default;
     };
 
+    export struct Function_pointer_type
+    {
+        Function_type type;
+        std::pmr::vector<std::pmr::string> input_parameter_names;
+        std::pmr::vector<std::pmr::string> output_parameter_names;
+
+        friend auto operator<=>(Function_pointer_type const& lhs, Function_pointer_type const& rhs) = default;
+    };
+
     export struct Null_pointer_type
     {
         friend auto operator<=>(Null_pointer_type const& lhs, Null_pointer_type const& rhs) = default;
@@ -126,7 +135,7 @@ namespace h
             Constant_array_type,
             Custom_type_reference,
             Fundamental_type,
-            Function_type,
+            Function_pointer_type,
             Integer_type,
             Null_pointer_type,
             Pointer_type

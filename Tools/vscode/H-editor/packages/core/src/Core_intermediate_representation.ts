@@ -318,7 +318,7 @@ export enum Type_reference_enum {
     Constant_array_type = "Constant_array_type",
     Custom_type_reference = "Custom_type_reference",
     Fundamental_type = "Fundamental_type",
-    Function_type = "Function_type",
+    Function_pointer_type = "Function_pointer_type",
     Integer_type = "Integer_type",
     Null_pointer_type = "Null_pointer_type",
     Pointer_type = "Pointer_type",
@@ -457,6 +457,34 @@ function intermediate_to_core_function_type(intermediate_value: Function_type): 
     };
 }
 
+export interface Function_pointer_type {
+    type: Function_type;
+    input_parameter_names: string[];
+    output_parameter_names: string[];
+}
+
+function core_to_intermediate_function_pointer_type(core_value: Core.Function_pointer_type): Function_pointer_type {
+    return {
+        type: core_to_intermediate_function_type(core_value.type),
+        input_parameter_names: core_value.input_parameter_names.elements,
+        output_parameter_names: core_value.output_parameter_names.elements,
+    };
+}
+
+function intermediate_to_core_function_pointer_type(intermediate_value: Function_pointer_type): Core.Function_pointer_type {
+    return {
+        type: intermediate_to_core_function_type(intermediate_value.type),
+        input_parameter_names: {
+            size: intermediate_value.input_parameter_names.length,
+            elements: intermediate_value.input_parameter_names,
+        },
+        output_parameter_names: {
+            size: intermediate_value.output_parameter_names.length,
+            elements: intermediate_value.output_parameter_names,
+        },
+    };
+}
+
 export interface Null_pointer_type {
 }
 
@@ -550,7 +578,7 @@ function intermediate_to_core_custom_type_reference(intermediate_value: Custom_t
 }
 
 export interface Type_reference {
-    data: Variant<Type_reference_enum, Builtin_type_reference | Constant_array_type | Custom_type_reference | Fundamental_type | Function_type | Integer_type | Null_pointer_type | Pointer_type>;
+    data: Variant<Type_reference_enum, Builtin_type_reference | Constant_array_type | Custom_type_reference | Fundamental_type | Function_pointer_type | Integer_type | Null_pointer_type | Pointer_type>;
 }
 
 function core_to_intermediate_type_reference(core_value: Core.Type_reference): Type_reference {
@@ -581,10 +609,10 @@ function core_to_intermediate_type_reference(core_value: Core.Type_reference): T
                         value: core_value.data.value as Fundamental_type
                     };
                 }
-                case Core.Type_reference_enum.Function_type: {
+                case Core.Type_reference_enum.Function_pointer_type: {
                     return {
                         type: core_value.data.type,
-                        value: core_to_intermediate_function_type(core_value.data.value as Core.Function_type)
+                        value: core_to_intermediate_function_pointer_type(core_value.data.value as Core.Function_pointer_type)
                     };
                 }
                 case Core.Type_reference_enum.Integer_type: {
@@ -644,11 +672,11 @@ function intermediate_to_core_type_reference(intermediate_value: Type_reference)
                 }
             };
         }
-        case Type_reference_enum.Function_type: {
+        case Type_reference_enum.Function_pointer_type: {
             return {
                 data: {
                     type: intermediate_value.data.type,
-                    value: intermediate_to_core_function_type(intermediate_value.data.value as Function_type)
+                    value: intermediate_to_core_function_pointer_type(intermediate_value.data.value as Function_pointer_type)
                 }
             };
         }

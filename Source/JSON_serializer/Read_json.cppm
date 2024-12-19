@@ -458,6 +458,7 @@ namespace h::json
     export std::optional<Stack_state> get_next_state_integer_type(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_builtin_type_reference(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_function_type(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_function_pointer_type(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_null_pointer_type(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_pointer_type(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_module_reference(Stack_state* state, std::string_view const key);
@@ -695,6 +696,74 @@ namespace h::json
         return {};
     }
 
+    export std::optional<Stack_state> get_next_state_function_pointer_type(Stack_state* state, std::string_view const key)
+    {
+        h::Function_pointer_type* parent = static_cast<h::Function_pointer_type*>(state->pointer);
+
+        if (key == "type")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->type,
+                .type = "Function_type",
+                .get_next_state = get_next_state_function_type,
+            };
+        }
+
+        if (key == "input_parameter_names")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<std::pmr::string>* parent = static_cast<std::pmr::vector<std::pmr::string>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<std::pmr::string>* parent = static_cast<std::pmr::vector<std::pmr::string>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->input_parameter_names,
+                .type = "std::pmr::vector<std::pmr::string>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = nullptr
+            };
+        }
+
+        if (key == "output_parameter_names")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<std::pmr::string>* parent = static_cast<std::pmr::vector<std::pmr::string>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<std::pmr::string>* parent = static_cast<std::pmr::vector<std::pmr::string>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->output_parameter_names,
+                .type = "std::pmr::vector<std::pmr::string>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = nullptr
+            };
+        }
+
+        return {};
+    }
+
     export std::optional<Stack_state> get_next_state_null_pointer_type(Stack_state* state, std::string_view const key)
     {
         h::Null_pointer_type* parent = static_cast<h::Null_pointer_type*>(state->pointer);
@@ -843,7 +912,7 @@ namespace h::json
         {
             auto const set_variant_type = [](Stack_state* state, std::string_view const type) -> void
             {
-                using Variant_type = std::variant<h::Builtin_type_reference, h::Constant_array_type, h::Custom_type_reference, h::Fundamental_type, h::Function_type, h::Integer_type, h::Null_pointer_type, h::Pointer_type>;
+                using Variant_type = std::variant<h::Builtin_type_reference, h::Constant_array_type, h::Custom_type_reference, h::Fundamental_type, h::Function_pointer_type, h::Integer_type, h::Null_pointer_type, h::Pointer_type>;
                 Variant_type* pointer = static_cast<Variant_type*>(state->pointer);
 
                 if (type == "Builtin_type_reference")
@@ -870,10 +939,10 @@ namespace h::json
                     state->type = "Fundamental_type";
                     return;
                 }
-                if (type == "Function_type")
+                if (type == "Function_pointer_type")
                 {
-                    *pointer = Function_type{};
-                    state->type = "Function_type";
+                    *pointer = Function_pointer_type{};
+                    state->type = "Function_pointer_type";
                     return;
                 }
                 if (type == "Integer_type")
@@ -932,9 +1001,9 @@ namespace h::json
                             return nullptr;
                         }
 
-                        if (state->type == "Function_type")
+                        if (state->type == "Function_pointer_type")
                         {
-                            return get_next_state_function_type;
+                            return get_next_state_function_pointer_type;
                         }
 
                         if (state->type == "Integer_type")
@@ -970,7 +1039,7 @@ namespace h::json
             return Stack_state
             {
                 .pointer = &parent->data,
-                .type = "std::variant<Builtin_type_reference,Constant_array_type,Custom_type_reference,Fundamental_type,Function_type,Integer_type,Null_pointer_type,Pointer_type>",
+                .type = "std::variant<Builtin_type_reference,Constant_array_type,Custom_type_reference,Fundamental_type,Function_pointer_type,Integer_type,Null_pointer_type,Pointer_type>",
                 .get_next_state = get_next_state,
                 .set_variant_type = set_variant_type,
             };
@@ -3726,6 +3795,16 @@ namespace h::json
                 .pointer = output,
                 .type = "Function_type",
                 .get_next_state = get_next_state_function_type
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Function_pointer_type>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Function_pointer_type",
+                .get_next_state = get_next_state_function_pointer_type
             };
         }
 

@@ -316,6 +316,12 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Function_pointer_type const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Null_pointer_type const& input
         );
 
@@ -824,6 +830,22 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Function_pointer_type const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("type");
+        write_object(writer, output.type);
+        writer.Key("input_parameter_names");
+        write_object(writer, output.input_parameter_names);
+        writer.Key("output_parameter_names");
+        write_object(writer, output.output_parameter_names);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Null_pointer_type const& output
         )
     {
@@ -930,12 +952,12 @@ namespace h::json
                 writer.String(enum_value_string.data(), enum_value_string.size());
             }
         }
-        else if (std::holds_alternative<Function_type>(output.data))
+        else if (std::holds_alternative<Function_pointer_type>(output.data))
         {
             writer.Key("type");
-            writer.String("Function_type");
+            writer.String("Function_pointer_type");
             writer.Key("value");
-            Function_type const& value = std::get<Function_type>(output.data);
+            Function_pointer_type const& value = std::get<Function_pointer_type>(output.data);
             write_object(writer, value);
         }
         else if (std::holds_alternative<Integer_type>(output.data))
