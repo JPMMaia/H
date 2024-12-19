@@ -589,14 +589,7 @@ export async function get_expression_type(
                         if (declaration.type === Core.Declaration_type.Function) {
                             const function_value = declaration.value as Core.Function;
                             return {
-                                type: [
-                                    {
-                                        data: {
-                                            type: Core.Type_reference_enum.Function_type,
-                                            value: function_value.declaration.type
-                                        }
-                                    }
-                                ],
+                                type: [Type_utilities.create_function_pointer_type_from_declaration(function_value.declaration)],
                                 is_value: true
                             };
                         }
@@ -678,8 +671,8 @@ export async function get_expression_type(
                                     type: [
                                         {
                                             data: {
-                                                type: Core.Type_reference_enum.Function_type,
-                                                value: function_value.declaration.type
+                                                type: Core.Type_reference_enum.Function_pointer_type,
+                                                value: Type_utilities.create_function_pointer_type_from_declaration(function_value.declaration)
                                             }
                                         }
                                     ],
@@ -729,11 +722,11 @@ export async function get_expression_type(
                         };
                     }
                 }
-                else if (left_hand_side_type.type[0].data.type === Core.Type_reference_enum.Function_type) {
-                    const function_type = left_hand_side_type.type[0].data.value as Core.Function_type;
+                else if (left_hand_side_type.type[0].data.type === Core.Type_reference_enum.Function_pointer_type) {
+                    const function_pointer_type = left_hand_side_type.type[0].data.value as Core.Function_pointer_type;
                     // TODO handle multiple return values
                     return {
-                        type: function_type.output_parameter_types,
+                        type: function_pointer_type.type.output_parameter_types,
                         is_value: true
                     };
                 }

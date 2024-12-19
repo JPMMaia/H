@@ -146,15 +146,20 @@ export function get_type_name(
                 const value = type_reference_value.data.value as Core_intermediate_representation.Fundamental_type;
                 return value.toString();
             }
-        case Core_intermediate_representation.Type_reference_enum.Function_type:
+        case Core_intermediate_representation.Type_reference_enum.Function_pointer_type:
             {
-                const value = type_reference_value.data.value as Core_intermediate_representation.Function_type;
-                const parameterNames = value.input_parameter_types.map(value => get_type_name([value]), core_module);
-                const parameterNamesPlusVariadic = value.is_variadic ? parameterNames.concat("...") : parameterNames;
-                const parametersString = "(" + parameterNamesPlusVariadic.join(", ") + ")";
-                const returnTypeNames = value.output_parameter_types.map(value => get_type_name([value]), core_module);
-                const returnTypesString = "(" + returnTypeNames.join(", ") + ")";
-                return `${parametersString} -> ${returnTypesString}`;
+                const value = type_reference_value.data.value as Core_intermediate_representation.Function_pointer_type;
+
+                const input_parameter_type_names = value.type.input_parameter_types.map(value => get_type_name([value]), core_module);
+                const input_parameters = input_parameter_type_names.map((typeName, index) => `${value.input_parameter_names[index]}: ${typeName}`);
+                const input_parameters_plus_variadic = value.type.is_variadic ? input_parameters.concat("...") : input_parameters;
+                const input_parameters_string = "(" + input_parameters_plus_variadic.join(", ") + ")";
+
+                const output_parameter_type_names = value.type.output_parameter_types.map(value => get_type_name([value]), core_module);
+                const output_parameters = output_parameter_type_names.map((typeName, index) => `${value.output_parameter_names[index]}: ${typeName}`);
+                const output_parameters_string = "(" + output_parameters.join(", ") + ")";
+
+                return `${input_parameters_string} -> ${output_parameters_string}`;
             }
         case Core_intermediate_representation.Type_reference_enum.Integer_type:
             {
@@ -204,6 +209,48 @@ export function create_null_type(): Core_intermediate_representation.Type_refere
         data: {
             type: Core_intermediate_representation.Type_reference_enum.Null_pointer_type,
             value: {}
+        }
+    };
+}
+
+export function create_function_type(
+    input_parameter_types: Core_intermediate_representation.Type_reference[],
+    output_parameter_types: Core_intermediate_representation.Type_reference[],
+    is_variadic: boolean,
+): Core_intermediate_representation.Function_type {
+    return {
+        input_parameter_types: input_parameter_types,
+        output_parameter_types: output_parameter_types,
+        is_variadic: is_variadic,
+    };
+}
+
+export function create_function_pointer_type(type: Core_intermediate_representation.Function_type, input_parameter_names: string[], output_parameter_names: string[]): Core_intermediate_representation.Type_reference {
+    return {
+        data: {
+            type: Core_intermediate_representation.Type_reference_enum.Function_pointer_type,
+            value: {
+                type: type,
+                input_parameter_names: input_parameter_names,
+                output_parameter_names: output_parameter_names,
+            }
+        }
+    };
+}
+
+export function create_function_pointer_type_from_declaration(declaration: Core_intermediate_representation.Function_declaration): Core_intermediate_representation.Type_reference {
+    return {
+        data: {
+            type: Core_intermediate_representation.Type_reference_enum.Function_pointer_type,
+            value: {
+                type: create_function_type(
+                    [...declaration.type.input_parameter_types],
+                    [...declaration.type.output_parameter_types],
+                    declaration.type.is_variadic
+                ),
+                input_parameter_names: [...declaration.input_parameter_names],
+                output_parameter_names: [...declaration.output_parameter_names],
+            }
         }
     };
 }

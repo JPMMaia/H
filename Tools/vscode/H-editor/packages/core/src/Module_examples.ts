@@ -1515,6 +1515,144 @@ export function create_constant_array_expressions(): IR.Module {
     };
 }
 
+export function create_function_pointer_types(): IR.Module {
+
+    const int32_type = create_integer_type(32, true);
+
+    const struct_declaration: IR.Declaration = {
+        name: "My_struct",
+        type: IR.Declaration_type.Struct,
+        is_export: false,
+        value: {
+            name: "My_struct",
+            member_names: [
+                "a", "b"
+            ],
+            member_types: [
+                create_function_pointer_type(
+                    create_function_type(
+                        [int32_type, int32_type],
+                        [int32_type],
+                        false
+                    ),
+                    ["lhs", "rhs"],
+                    ["result"],
+                ),
+                create_function_pointer_type(
+                    create_function_type(
+                        [int32_type],
+                        [],
+                        true
+                    ),
+                    ["first"],
+                    [],
+                ),
+            ],
+            member_default_values: [
+                create_statement(
+                    IR.create_null_pointer_expression()
+                ),
+                create_statement(
+                    IR.create_null_pointer_expression()
+                ),
+            ],
+            is_packed: false,
+            is_literal: false,
+            member_comments: []
+        }
+    };
+
+    const add_function: IR.Declaration = {
+        name: "add",
+        type: IR.Declaration_type.Function,
+        is_export: false,
+        value: {
+            declaration: {
+                name: "add",
+                type: {
+                    input_parameter_types: [int32_type, int32_type],
+                    output_parameter_types: [int32_type],
+                    is_variadic: false,
+                },
+                input_parameter_names: ["lhs", "rhs"],
+                output_parameter_names: ["result"],
+                linkage: IR.Linkage.Private
+            },
+            definition: {
+                name: "add",
+                statements: [
+                    create_statement(
+                        IR.create_return_expression(
+                            IR.create_binary_expression(
+                                IR.create_variable_expression("lhs", IR.Access_type.Read),
+                                IR.create_variable_expression("rhs", IR.Access_type.Read),
+                                IR.Binary_operation.Add
+                            )
+                        )
+                    )
+                ]
+            }
+        }
+    };
+
+    const run_function: IR.Declaration = {
+        name: "run",
+        type: IR.Declaration_type.Function,
+        is_export: true,
+        value: {
+            declaration: {
+                name: "run",
+                type: {
+                    input_parameter_types: [],
+                    output_parameter_types: [],
+                    is_variadic: false,
+                },
+                input_parameter_names: [],
+                output_parameter_names: [],
+                linkage: IR.Linkage.External
+            },
+            definition: {
+                name: "run",
+                statements: [
+                    create_statement(
+                        IR.create_variable_declaration_expression(
+                            "a", false, IR.create_variable_expression("add", IR.Access_type.Read)
+                        )
+                    ),
+                    create_statement(
+                        IR.create_variable_declaration_with_type_expression(
+                            "b", false, create_custom_type_reference("Function_pointer_types", "My_struct"),
+                            create_statement(
+                                IR.create_instantiate_expression(
+                                    IR.Instantiate_expression_type.Default,
+                                    [
+                                        {
+                                            member_name: "a",
+                                            value: create_statement(
+                                                IR.create_variable_expression("add", IR.Access_type.Read)
+                                            )
+                                        }
+                                    ]
+                                ),
+                            )
+                        )
+                    )
+                ]
+            }
+        }
+    };
+
+    return {
+        name: "Function_pointer_types",
+        imports: [],
+        declarations: [
+            struct_declaration,
+            add_function,
+            run_function
+        ]
+    };
+}
+
 export function create_unary_expressions(): IR.Module {
 
     const unary_expressions: [string, IR.Expression][] = [
@@ -5196,6 +5334,31 @@ function create_fundamental_type(fundamental_type: IR.Fundamental_type): IR.Type
         data: {
             type: IR.Type_reference_enum.Fundamental_type,
             value: fundamental_type
+        }
+    };
+}
+
+function create_function_type(
+    input_parameter_types: IR.Type_reference[],
+    output_parameter_types: IR.Type_reference[],
+    is_variadic: boolean,
+): IR.Function_type {
+    return {
+        input_parameter_types: input_parameter_types,
+        output_parameter_types: output_parameter_types,
+        is_variadic: is_variadic,
+    };
+}
+
+function create_function_pointer_type(type: IR.Function_type, input_parameter_names: string[], output_parameter_names: string[]): IR.Type_reference {
+    return {
+        data: {
+            type: IR.Type_reference_enum.Function_pointer_type,
+            value: {
+                type: type,
+                input_parameter_names: input_parameter_names,
+                output_parameter_names: output_parameter_names,
+            }
         }
     };
 }

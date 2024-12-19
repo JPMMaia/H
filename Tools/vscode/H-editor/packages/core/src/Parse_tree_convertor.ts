@@ -345,6 +345,17 @@ function get_production_rule_array_rhs_length(
         const array_rhs_length = has_separator ? array_length * 2 - 1 : array_length;
         return array_rhs_length;
     }
+    else if (production_rule.lhs === "Function_pointer_type_input_parameters" || production_rule.lhs === "Function_pointer_type_output_parameters") {
+        const type_reference = stack[stack.length - 1].state.value as Core_intermediate_representation.Type_reference[];
+        const function_pointer_type = type_reference[0].data.value as Core_intermediate_representation.Function_pointer_type;
+
+        const is_input_parameters = production_rule.lhs === "Function_pointer_type_input_parameters";
+        const parameter_types = is_input_parameters ? function_pointer_type.type.input_parameter_types : function_pointer_type.type.output_parameter_types;
+        const array_length = parameter_types.length + (is_input_parameters && function_pointer_type.type.is_variadic ? 1 : 0);
+        const has_separator = array_length >= 2;
+        const array_rhs_length = has_separator ? array_length * 2 - 1 : array_length;
+        return array_rhs_length;
+    }
 
     const array_position_with_placeholders = mappings.vector_map.get(production_rule.lhs);
     if (array_position_with_placeholders === undefined) {
@@ -454,6 +465,22 @@ function choose_production_rule_index(
             next_production_rule_index: next_production_rule_indices[index]
         };
     }
+    else if (label === "Function_pointer_type_input_parameters" || label === "Function_pointer_type_output_parameters") {
+        const type_reference = stack[stack.length - 1].state.value as Core_intermediate_representation.Type_reference[];
+        const function_pointer_type = type_reference[0].data.value as Core_intermediate_representation.Function_pointer_type;
+
+        const is_input_parameters = label === "Function_pointer_type_input_parameters";
+        const parameter_types = is_input_parameters ? function_pointer_type.type.input_parameter_types : function_pointer_type.type.output_parameter_types;
+        const length = parameter_types.length + (function_pointer_type.type.is_variadic ? 1 : 0);
+        const index = length > 1 ? 2 : length;
+        return {
+            next_state: {
+                index: 0,
+                value: parameter_types,
+            },
+            next_production_rule_index: next_production_rule_indices[index]
+        };
+    }
 
     {
         const array_position_with_placeholders = mappings.vector_map.get(label);
@@ -540,6 +567,24 @@ export function map_terminal_to_word(
 
     if (terminal !== "identifier" && terminal !== "number") {
         return { value: terminal, type: Scanner.get_word_type(terminal), source_location: { line: 0, column: 0 } };
+    }
+
+    if (label === "Function_parameter_name" || label === "Function_parameter_type") {
+        const state = stack[stack.length - 4];
+        if (state.node.word.value === "Function_pointer_type") {
+            const function_pointer_type = state.state.value[0].data.value as Core_intermediate_representation.Function_pointer_type;
+
+            const parameters_array_state = stack[stack.length - 3];
+            const is_input_parameters = parameters_array_state.node.word.value === "Function_pointer_type_input_parameters";
+            const parameter_names = is_input_parameters ? function_pointer_type.input_parameter_names : function_pointer_type.output_parameter_names;
+            const parameter_index = (parameters_array_state.current_child_index - 1) / 2;
+
+            const parameter_name = parameter_names[parameter_index];
+
+            return {
+                value: parameter_name, type: Grammar.Word_type.Alphanumeric, source_location: { line: 0, column: 0 }
+            };
+        }
     }
 
     const position_with_placeholders = mappings.value_map.get(label);
@@ -1094,12 +1139,12 @@ export function visit_types(type: Core_intermediate_representation.Type_referenc
             }
             break;
         }
-        case Core_intermediate_representation.Type_reference_enum.Function_type: {
-            const value = type.data.value as Core_intermediate_representation.Function_type;
-            for (const type of value.input_parameter_types) {
+        case Core_intermediate_representation.Type_reference_enum.Function_pointer_type: {
+            const value = type.data.value as Core_intermediate_representation.Function_pointer_type;
+            for (const type of value.type.input_parameter_types) {
                 visit_types(type, visitor);
             }
-            for (const type of value.output_parameter_types) {
+            for (const type of value.type.output_parameter_types) {
                 visit_types(type, visitor);
             }
             break;

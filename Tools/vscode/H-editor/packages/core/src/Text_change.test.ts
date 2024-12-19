@@ -1196,6 +1196,50 @@ export function foo() -> ()
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
+    it("Handles function pointer types", () => {
+
+        const document_state = Document.create_empty_state("", language_description.production_rules);
+
+        const program = `
+module Function_pointer_types;
+
+struct My_struct
+{
+    a: function<(lhs: Int32, rhs: Int32) -> (result: Int32)> = null;
+    b: function<(first: Int32, ...) -> ()> = null;
+}
+
+function add(lhs: Int32, rhs: Int32) -> (result: Int32)
+{
+    return lhs + rhs;
+}
+
+export function run() -> ()
+{
+    var a = add;
+    var b: My_struct = {
+        a: add
+    };
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_function_pointer_types();
+        assert.deepEqual(new_document_state.valid.module, expected_module);
+    });
+
     it("Handles unary expressions", () => {
 
         const document_state = Document.create_empty_state("", language_description.production_rules);
