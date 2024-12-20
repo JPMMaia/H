@@ -102,7 +102,8 @@ namespace h::compiler
         Clang_module_data& clang_module_data,
         h::Module const& core_module,
         h::Function_type const& function_type,
-        llvm::Function& llvm_function,
+        llvm::FunctionType& llvm_function_type,
+        llvm::Value& llvm_function_callee,
         std::span<llvm::Value* const> const arguments,
         Declaration_database const& declaration_database,
         Type_database const& type_database

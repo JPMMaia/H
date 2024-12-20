@@ -121,11 +121,20 @@ namespace h
     }
 
 
-    Type_reference create_function_type_type_reference(Function_type const& function_type)
+    Type_reference create_function_type_type_reference(
+        Function_type const& function_type,
+        std::pmr::vector<std::pmr::string> input_parameter_names,
+        std::pmr::vector<std::pmr::string> output_parameter_names
+    )
     {
         return Type_reference
         {
-            .data = function_type
+            .data = h::Function_pointer_type
+            {
+                .type = function_type,
+                .input_parameter_names = std::move(input_parameter_names),
+                .output_parameter_names = std::move(output_parameter_names),
+            }
         };
     }
 
@@ -143,10 +152,10 @@ namespace h
 
     std::optional<Type_reference> get_function_output_type_reference(Type_reference const& type, Module const& core_module)
     {
-        if (std::holds_alternative<Function_type>(type.data))
+        if (std::holds_alternative<Function_pointer_type>(type.data))
         {
-            Function_type const& function_type = std::get<Function_type>(type.data);
-            return get_function_output_type_reference(function_type, core_module);
+            Function_pointer_type const& function_pointer_type = std::get<Function_pointer_type>(type.data);
+            return get_function_output_type_reference(function_pointer_type.type, core_module);
         }
 
         throw std::runtime_error{ "Type is not a function type!" };

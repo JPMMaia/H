@@ -431,7 +431,7 @@ namespace h::compiler
                 else if (std::holds_alternative<Function_declaration const*>(declaration.data))
                 {
                     Function_declaration const& function_declaration = *std::get<Function_declaration const*>(declaration.data);
-                    Type_reference function_type = create_function_type_type_reference(function_declaration.type);
+                    Type_reference function_type = create_function_type_type_reference(function_declaration.type, function_declaration.input_parameter_names, function_declaration.output_parameter_names);
 
                     llvm::Function* const llvm_function = get_llvm_function(
                         external_module,
@@ -1240,27 +1240,33 @@ namespace h::compiler
 
         Value_and_type const left_hand_side = create_expression_value(expression.expression.expression_index, statement, parameters);
 
-        if (!llvm::Function::classof(left_hand_side.value))
-            throw std::runtime_error{ std::format("Left hand side of call expression is not a function!") };
-
-        llvm::Function* const llvm_function = static_cast<llvm::Function*>(left_hand_side.value);
-
         std::pmr::vector<llvm::Value*> llvm_arguments{ temporaries_allocator };
         llvm_arguments.resize(expression.arguments.size());
 
-        Function_type const& function_type = std::get<Function_type>(left_hand_side.type.value().data);
+        if (!std::holds_alternative<Function_pointer_type>(left_hand_side.type.value().data))
+            throw std::runtime_error{ std::format("Left hand side of call expression is not a function!") };
+
+        llvm::Type* const llvm_function_parent_type = type_reference_to_llvm_type(parameters.llvm_context, parameters.llvm_data_layout, parameters.core_module, left_hand_side.type.value(), parameters.type_database);
+        if (!llvm_function_parent_type->isFunctionTy())
+            throw std::runtime_error{ std::format("Left hand side of call expression is not a function!") };
+
+        llvm::FunctionType* const llvm_function_type = static_cast<llvm::FunctionType*>(llvm_function_parent_type);
+
+        Function_pointer_type const& function_pointer_type = std::get<Function_pointer_type>(left_hand_side.type.value().data);
 
         for (unsigned i = 0; i < expression.arguments.size(); ++i)
         {
             std::uint64_t const expression_index = expression.arguments[i].expression_index;
 
             Expression_parameters new_parameters = parameters;
-            new_parameters.expression_type = i < function_type.input_parameter_types.size() ? function_type.input_parameter_types[i] : std::optional<Type_reference>{};
+            new_parameters.expression_type = i < function_pointer_type.type.input_parameter_types.size() ? function_pointer_type.type.input_parameter_types[i] : std::optional<Type_reference>{};
             //Value_and_type const temporary = create_loaded_expression_value(expression_index, statement, new_parameters);
             Value_and_type const temporary = create_expression_value(expression_index, statement, new_parameters);
 
             llvm_arguments[i] = temporary.value;
-        }
+        }        
+
+        llvm::Value* const function_callee = left_hand_side.value;
 
         if (parameters.debug_info != nullptr)
             set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
@@ -1272,14 +1278,15 @@ namespace h::compiler
             parameters.llvm_module,
             parameters.clang_module_data,
             parameters.core_module,
-            function_type,
-            *llvm_function,
+            function_pointer_type.type,
+            *llvm_function_type,
+            *function_callee,
             llvm_arguments,
             parameters.declaration_database,
             parameters.type_database
         );
 
-        std::optional<Type_reference> function_output_type_reference = get_function_output_type_reference(function_type, parameters.core_module);
+        std::optional<Type_reference> function_output_type_reference = get_function_output_type_reference(function_pointer_type.type, parameters.core_module);
 
         return
         {
@@ -2167,18 +2174,33 @@ namespace h::compiler
 
         h::Type_reference const& element_type = *parameters.expression_type;
         llvm::Type* const element_llvm_type = type_reference_to_llvm_type(parameters.llvm_context, parameters.llvm_data_layout, parameters.core_module, element_type, parameters.type_database);
-        if (!element_llvm_type->isPointerTy())
-            throw std::runtime_error{ "Cannot assign null pointer to non-pointer type!" };
 
-        llvm::PointerType* const pointer_llvm_type = static_cast<llvm::PointerType*>(element_llvm_type);
-        llvm::Constant* const null_pointer_value = llvm::ConstantPointerNull::get(pointer_llvm_type);
-
-        return
+        if (element_llvm_type->isPointerTy())
         {
-            .name = "",
-            .value = null_pointer_value,
-            .type = element_type
-        };
+            llvm::PointerType* const pointer_llvm_type = static_cast<llvm::PointerType*>(element_llvm_type);
+            llvm::Constant* const null_pointer_value = llvm::ConstantPointerNull::get(pointer_llvm_type);
+
+            return
+            {
+                .name = "",
+                .value = null_pointer_value,
+                .type = element_type
+            };
+        }
+        else if (element_llvm_type->isFunctionTy())
+        {
+            llvm::PointerType* const pointer_llvm_type = llvm::PointerType::get(element_llvm_type, 0);
+            llvm::Constant* const null_pointer_value = llvm::ConstantPointerNull::get(pointer_llvm_type);
+
+            return
+            {
+                .name = "",
+                .value = null_pointer_value,
+                .type = element_type
+            };
+        }
+
+        throw std::runtime_error{ "Cannot assign null pointer to non-pointer type!" };
     }
 
     Value_and_type create_parenthesis_expression_value(
@@ -2680,8 +2702,9 @@ namespace h::compiler
             if (llvm_function != nullptr)
             {
                 std::optional<Function_declaration const*> const function_declaration = find_function_declaration(parameters.core_module, variable_name);
+                Function_declaration const* function_declaration_value = function_declaration.value();
 
-                Type_reference type = create_function_type_type_reference(function_declaration.value()->type);
+                Type_reference type = create_function_type_type_reference(function_declaration_value->type, function_declaration_value->input_parameter_names, function_declaration_value->output_parameter_names);
 
                 return Value_and_type
                 {
@@ -2984,7 +3007,7 @@ namespace h::compiler
         if (value.value != nullptr && value.type.has_value() && value.value->getType()->isPointerTy())
         {
             llvm::Type* const llvm_type = type_reference_to_llvm_type(parameters.llvm_context, parameters.llvm_data_layout, parameters.core_module, value.type.value(), parameters.type_database);
-            if (llvm_type == value.value->getType())
+            if (llvm_type == value.value->getType() || llvm_type->isFunctionTy())
             {
                 return value;
             }

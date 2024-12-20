@@ -254,6 +254,41 @@ namespace h::c
         return h_function_type;
     }
 
+    h::Function_pointer_type create_function_pointer_type(C_declarations const& declarations, CXCursor const cursor, CXType const function_type)
+    {
+        h::Function_type h_function_type = create_function_type(declarations, cursor, function_type);
+
+        int const number_of_arguments = clang_getNumArgTypes(function_type);
+
+        std::pmr::vector<std::pmr::string> input_parameter_names;
+        input_parameter_names.reserve(number_of_arguments);
+
+        for (int argument_index = 0; argument_index < number_of_arguments; ++argument_index)
+        {
+            CXCursor const argumentCursor = clang_Cursor_getArgument(cursor, argument_index);
+            String const argument_spelling = clang_getCursorSpelling(cursor);
+            std::string_view const argument_name = argument_spelling.string_view();
+            std::pmr::string name = !argument_name.empty() ? std::pmr::string{ argument_name } : std::pmr::string{ std::format("parameter_{}", argument_index) };
+
+            input_parameter_names.push_back(std::move(name));
+        }
+
+        CXType const result_type = clang_getResultType(function_type);
+        std::optional<h::Type_reference> result_type_reference = create_type_reference(declarations, cursor, result_type);
+        std::pmr::vector<std::pmr::string> output_parameter_names;
+        if (result_type_reference.has_value())
+            output_parameter_names.emplace_back("result");
+
+        h::Function_pointer_type h_function_pointer_type
+        {
+            .type = std::move(h_function_type),
+            .input_parameter_names = std::move(input_parameter_names),
+            .output_parameter_names = std::move(output_parameter_names),
+        };
+
+        return h_function_pointer_type;
+    }
+
     std::string_view remove_type(std::string_view const string)
     {
         if (string.starts_with("enum "))
@@ -418,10 +453,10 @@ namespace h::c
         }
         case CXType_FunctionProto:
         {
-            h::Function_type function_type = create_function_type(declarations, cursor, type);
+            h::Function_pointer_type function_pointer_type = create_function_pointer_type(declarations, cursor, type);
             return h::Type_reference
             {
-                .data = function_type
+                .data = std::move(function_pointer_type)
             };
         }
         case CXType_Record:
@@ -1396,11 +1431,11 @@ namespace h::c
                 );
             }
         }
-        else if (std::holds_alternative<h::Function_type>(type.data))
+        else if (std::holds_alternative<h::Function_pointer_type>(type.data))
         {
-            h::Function_type& data = std::get<h::Function_type>(type.data);
+            h::Function_pointer_type& data = std::get<h::Function_pointer_type>(type.data);
 
-            for (h::Type_reference& reference : data.input_parameter_types)
+            for (h::Type_reference& reference : data.type.input_parameter_types)
             {
                 convert_typedef_to_integer_type_if_necessary(
                     reference,
@@ -1410,7 +1445,7 @@ namespace h::c
                 );
             }
 
-            for (h::Type_reference& reference : data.output_parameter_types)
+            for (h::Type_reference& reference : data.type.output_parameter_types)
             {
                 convert_typedef_to_integer_type_if_necessary(
                     reference,
@@ -1695,9 +1730,9 @@ namespace h::c
             }
             }
         }
-        else if (std::holds_alternative<h::Function_type>(value_type.data))
+        else if (std::holds_alternative<h::Function_pointer_type>(value_type.data))
         {
-            h::Function_type const& function_type = std::get<h::Function_type>(value_type.data);
+            h::Function_pointer_type const& function_type = std::get<h::Function_pointer_type>(value_type.data);
             return h::create_statement(
                 {
                     h::create_null_pointer_expression()

@@ -33,6 +33,12 @@ namespace h::compiler
 
     void update_hash(
         XXH64_state_t* const state,
+        h::Function_pointer_type const& function_pointer_type,
+        h::Module const& current_core_module
+    );
+
+    void update_hash(
+        XXH64_state_t* const state,
         h::Type_reference const& type_reference,
         h::Module const& current_core_module
     );
