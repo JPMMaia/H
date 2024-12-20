@@ -1,0 +1,23 @@
+module Function_pointers;
+
+struct My_struct
+{
+    a: function<(lhs: Int32, rhs: Int32) -> (result: Int32)> = null;
+    b: function<(first: Int32, ...) -> ()> = null;
+}
+
+function add(lhs: Int32, rhs: Int32) -> (result: Int32)
+{
+    return lhs + rhs;
+}
+
+export function run() -> ()
+{
+    var a = add;
+    var r0 = a(1, 2);
+
+    var b: My_struct = {
+        a: add
+    };
+    var r1 = b.a(3, 4);
+}

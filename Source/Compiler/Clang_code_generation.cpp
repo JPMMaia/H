@@ -878,7 +878,8 @@ namespace h::compiler
         Clang_module_data& clang_module_data,
         h::Module const& core_module,
         h::Function_type const& function_type,
-        llvm::Function& llvm_function,
+        llvm::FunctionType& llvm_function_type,
+        llvm::Value& llvm_function_callee,
         std::span<llvm::Value* const> const arguments,
         Declaration_database const& declaration_database,
         Type_database const& type_database
@@ -888,7 +889,7 @@ namespace h::compiler
 
         Transformed_arguments const transformed_arguments = transform_arguments(llvm_context, llvm_builder, llvm_data_layout, llvm_module, core_module, function_type, function_info, arguments, type_database);
 
-        llvm::CallInst* call_instruction = llvm_builder.CreateCall(&llvm_function, transformed_arguments.values);
+        llvm::CallInst* call_instruction = llvm_builder.CreateCall(&llvm_function_type, &llvm_function_callee, transformed_arguments.values);
 
         for (std::size_t argument_index = 0; argument_index <transformed_arguments.attributes.size(); ++argument_index)
         {
@@ -1493,6 +1494,19 @@ namespace h::compiler
                     return clang_ast_context.LongDoubleTy;
                 }
             }
+        }
+        else if (std::holds_alternative<h::Function_pointer_type>(type_reference.data))
+        {
+            h::Function_pointer_type const& function_pointer_type = std::get<h::Function_pointer_type>(type_reference.data);
+
+            clang::QualType const function_proto_type = create_clang_function_proto_type(
+                clang_ast_context,
+                function_pointer_type.type,
+                declaration_database,
+                clang_declaration_database
+            );
+
+            return clang_ast_context.getPointerType(function_proto_type);
         }
         else if (std::holds_alternative<h::Integer_type>(type_reference.data))
         {

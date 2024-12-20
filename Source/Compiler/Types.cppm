@@ -137,4 +137,15 @@ namespace h::compiler
         std::string_view const module_name,
         std::string_view const struct_name
     );
+
+    export llvm::FunctionType* create_llvm_function_type(
+        llvm::LLVMContext& llvm_context,
+        llvm::DataLayout const& llvm_data_layout,
+        Module const& core_module,
+        std::span<Type_reference const> const input_parameter_types,
+        std::span<Type_reference const> const output_parameter_types,
+        bool const is_var_arg,
+        Type_database const& type_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
 }

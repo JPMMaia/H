@@ -25,7 +25,7 @@ namespace h
     Type_reference fix_custom_type_reference(Type_reference type, Module const& core_module);
     export void fix_custom_type_references(Module& core_module);
 
-    export Type_reference create_function_type_type_reference(Function_type const& function_type);
+    export Type_reference create_function_type_type_reference(Function_type const& function_type, std::pmr::vector<std::pmr::string> input_parameter_names, std::pmr::vector<std::pmr::string> output_parameter_names);
     export std::optional<Type_reference> get_function_output_type_reference(Function_type const& function_type, Module const& core_module);
     export std::optional<Type_reference> get_function_output_type_reference(Type_reference const& type, Module const& core_module);
 
@@ -102,15 +102,15 @@ namespace h
         {
             return false;
         }
-        else if (std::holds_alternative<Function_type>(type_reference.data))
+        else if (std::holds_alternative<Function_pointer_type>(type_reference.data))
         {
-            Function_type const& data = std::get<Function_type>(type_reference.data);
-            for (Type_reference const& nested_type_reference : data.input_parameter_types)
+            Function_pointer_type const& data = std::get<Function_pointer_type>(type_reference.data);
+            for (Type_reference const& nested_type_reference : data.type.input_parameter_types)
             {
                 if (visit_type_references(nested_type_reference, predicate))
                     return true;
             }
-            for (Type_reference const& nested_type_reference : data.output_parameter_types)
+            for (Type_reference const& nested_type_reference : data.type.output_parameter_types)
             {
                 if (visit_type_references(nested_type_reference, predicate))
                     return true;

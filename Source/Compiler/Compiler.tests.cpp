@@ -1599,6 +1599,52 @@ declare i32 @printf(ptr, ...)
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
+  TEST_CASE("Compile Function Pointers")
+  {
+    char const* const input_file = "function_pointers.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+%struct.Function_pointers_My_struct = type { ptr, ptr }
+
+define void @Function_pointers_run() {
+entry:
+  %a = alloca ptr, align 8
+  store ptr @Function_pointers_add, ptr %a, align 8
+  %0 = call i32 %a(i32 1, i32 2)
+  %r0 = alloca i32, align 4
+  store i32 %0, ptr %r0, align 4
+  %temporary_struct_instance = alloca %struct.Function_pointers_My_struct, align 8
+  store %struct.Function_pointers_My_struct { ptr @Function_pointers_add, ptr null }, ptr %temporary_struct_instance, align 8
+  %1 = load %struct.Function_pointers_My_struct, ptr %temporary_struct_instance, align 8
+  %b = alloca %struct.Function_pointers_My_struct, align 8
+  store %struct.Function_pointers_My_struct %1, ptr %b, align 8
+  %2 = getelementptr inbounds %struct.Function_pointers_My_struct, ptr %b, i32 0, i32 0
+  %3 = call i32 %2(i32 3, i32 4)
+  %r1 = alloca i32, align 4
+  store i32 %3, ptr %r1, align 4
+  ret void
+}
+
+define private i32 @Function_pointers_add(i32 %"arguments[0].lhs", i32 %"arguments[1].rhs") {
+entry:
+  %lhs = alloca i32, align 4
+  store i32 %"arguments[0].lhs", ptr %lhs, align 4
+  %rhs = alloca i32, align 4
+  store i32 %"arguments[1].rhs", ptr %rhs, align 4
+  %0 = load i32, ptr %lhs, align 4
+  %1 = load i32, ptr %rhs, align 4
+  %2 = add i32 %0, %1
+  ret i32 %2
+}
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
   TEST_CASE("Compile hello world!")
   {
     char const* const input_file = "hello_world.hl";

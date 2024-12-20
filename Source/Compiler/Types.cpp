@@ -866,10 +866,22 @@ namespace h::compiler
             Fundamental_type const data = std::get<Fundamental_type>(type_reference.data);
             return fundamental_type_to_llvm_type(llvm_context, llvm_data_layout, data, type_database.builtin);
         }
-        else if (std::holds_alternative<Function_type>(type_reference.data))
+        else if (std::holds_alternative<Function_pointer_type>(type_reference.data))
         {
-            Function_type const& data = std::get<Function_type>(type_reference.data);
-            throw std::runtime_error{ "Not implemented." };
+            Function_pointer_type const& data = std::get<Function_pointer_type>(type_reference.data);
+
+            llvm::FunctionType* const llvm_function_type = create_llvm_function_type(
+                llvm_context,
+                llvm_data_layout,
+                current_module,
+                data.type.input_parameter_types,
+                data.type.output_parameter_types,
+                data.type.is_variadic,
+                type_database,
+                {}
+            );
+
+            return llvm_function_type;
         }
         else if (std::holds_alternative<Integer_type>(type_reference.data))
         {
@@ -952,9 +964,9 @@ namespace h::compiler
             Fundamental_type const data = std::get<Fundamental_type>(type_reference.data);
             return fundamental_type_to_llvm_debug_type(llvm_debug_builder, data, debug_type_database.builtin);
         }
-        else if (std::holds_alternative<Function_type>(type_reference.data))
+        else if (std::holds_alternative<Function_pointer_type>(type_reference.data))
         {
-            Function_type const& data = std::get<Function_type>(type_reference.data);
+            Function_pointer_type const& data = std::get<Function_pointer_type>(type_reference.data);
             throw std::runtime_error{ "Not implemented." };
         }
         else if (std::holds_alternative<Integer_type>(type_reference.data))
@@ -1059,5 +1071,33 @@ namespace h::compiler
             .alignment = struct_alignment,
             .members = std::move(members)
         };
+    }
+
+    llvm::FunctionType* create_llvm_function_type(
+        llvm::LLVMContext& llvm_context,
+        llvm::DataLayout const& llvm_data_layout,
+        Module const& core_module,
+        std::span<Type_reference const> const input_parameter_types,
+        std::span<Type_reference const> const output_parameter_types,
+        bool const is_var_arg,
+        Type_database const& type_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::vector<llvm::Type*> const llvm_input_parameter_types = type_references_to_llvm_types(llvm_context, llvm_data_layout, core_module, input_parameter_types, type_database, temporaries_allocator);
+        std::pmr::vector<llvm::Type*> const llvm_output_parameter_types = type_references_to_llvm_types(llvm_context, llvm_data_layout, core_module, output_parameter_types, type_database, temporaries_allocator);
+
+        llvm::Type* llvm_return_type = [&]() -> llvm::Type*
+        {
+            if (llvm_output_parameter_types.size() == 0)
+                return llvm::Type::getVoidTy(llvm_context);
+
+            if (llvm_output_parameter_types.size() == 1)
+                return llvm_output_parameter_types.front();
+
+            return llvm::StructType::create(llvm_output_parameter_types);
+        }();
+
+        return llvm::FunctionType::get(llvm_return_type, llvm_input_parameter_types, is_var_arg);
     }
 }
