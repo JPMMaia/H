@@ -563,6 +563,27 @@ namespace h::compiler
         return clang::CodeGen::convertFreeFunctionType(clang_module_data.code_generator->CGM(), clang_function_declaration);
     }
 
+    llvm::FunctionType* convert_to_llvm_function_type(
+        Clang_module_data& clang_module_data,
+        Declaration_database const& declaration_database,
+        h::Function_type const& function_type
+    )
+    {
+        clang::QualType const clang_function_type = create_clang_function_proto_type(
+            clang_module_data.ast_context,
+            function_type,
+            declaration_database,
+            clang_module_data.declaration_database
+        );
+
+        llvm::Type* const llvm_type = clang::CodeGen::convertTypeForMemory(clang_module_data.code_generator->CGM(), clang_function_type);
+
+        if (!llvm::FunctionType::classof(llvm_type))
+            throw std::runtime_error{"Could not convert function type to platform ABI function type!"};
+
+        return static_cast<llvm::FunctionType*>(llvm_type);
+    }
+
     void set_llvm_function_argument_names(
         Clang_module_data& clang_module_data,
         h::Module const& core_module,
