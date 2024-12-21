@@ -46,6 +46,12 @@ namespace h::compiler
         std::string_view const function_name
     );
 
+    export llvm::FunctionType* convert_to_llvm_function_type(
+        Clang_module_data& clang_module_data,
+        Declaration_database const& declaration_database,
+        h::Function_type const& function_type
+    );
+
     export void set_llvm_function_argument_names(
         Clang_module_data& clang_module_data,
         h::Module const& core_module,

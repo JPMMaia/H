@@ -1243,16 +1243,16 @@ namespace h::compiler
         std::pmr::vector<llvm::Value*> llvm_arguments{ temporaries_allocator };
         llvm_arguments.resize(expression.arguments.size());
 
-        if (!std::holds_alternative<Function_pointer_type>(left_hand_side.type.value().data))
+        if (!left_hand_side.type.has_value() || !std::holds_alternative<Function_pointer_type>(left_hand_side.type.value().data))
             throw std::runtime_error{ std::format("Left hand side of call expression is not a function!") };
-
-        llvm::Type* const llvm_function_parent_type = type_reference_to_llvm_type(parameters.llvm_context, parameters.llvm_data_layout, parameters.core_module, left_hand_side.type.value(), parameters.type_database);
-        if (!llvm_function_parent_type->isFunctionTy())
-            throw std::runtime_error{ std::format("Left hand side of call expression is not a function!") };
-
-        llvm::FunctionType* const llvm_function_type = static_cast<llvm::FunctionType*>(llvm_function_parent_type);
 
         Function_pointer_type const& function_pointer_type = std::get<Function_pointer_type>(left_hand_side.type.value().data);
+
+        llvm::FunctionType* const llvm_function_type = convert_to_llvm_function_type(
+            parameters.clang_module_data,
+            parameters.declaration_database,
+            function_pointer_type.type
+        );
 
         for (unsigned i = 0; i < expression.arguments.size(); ++i)
         {
