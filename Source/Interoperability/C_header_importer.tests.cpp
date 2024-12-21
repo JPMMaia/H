@@ -450,8 +450,8 @@ namespace h::c
                     {
                         .data = h::Constant_array_expression
                         {
-                            .type = float32_type,
-                            .array_data = {
+                            .array_data =
+                            {
                                 h::create_statement({h::create_constant_expression(float32_type, "0.0")}),
                                 h::create_statement({h::create_constant_expression(float32_type, "0.0")}),
                                 h::create_statement({h::create_constant_expression(float32_type, "0.0")}),
