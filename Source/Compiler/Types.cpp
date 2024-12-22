@@ -484,7 +484,8 @@ namespace h::compiler
             );
 
             //llvm_debug_builder.replaceTemporary(llvm::TempDIType(llvm_forward_declaration_debug_type), llvm_struct_debug_type);
-            llvm_forward_declaration_debug_type->replaceAllUsesWith(llvm_struct_debug_type);
+            if (llvm_forward_declaration_debug_type->isReplaceable())
+                llvm_forward_declaration_debug_type->replaceAllUsesWith(llvm_struct_debug_type);
             llvm_debug_type_map[struct_declaration.name] = llvm_struct_debug_type;
         }
     }
@@ -609,7 +610,8 @@ namespace h::compiler
             );
 
             //llvm_debug_builder.replaceTemporary(llvm::TempDIType(llvm_forward_declaration_debug_type), llvm_union_debug_type);
-            llvm_forward_declaration_debug_type->replaceAllUsesWith(llvm_union_debug_type);
+            if (llvm_forward_declaration_debug_type->isReplaceable())
+                llvm_forward_declaration_debug_type->replaceAllUsesWith(llvm_union_debug_type);
             llvm_debug_type_map[union_declaration.name] = llvm_union_debug_type;
         }
     }
