@@ -697,6 +697,29 @@ namespace h::compiler
         set_union_debug_definitions(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_debug_files, llvm_data_layout, core_module, core_module.internal_declarations.union_declarations, debug_type_database, llvm_type_map, llvm_debug_type_map);
     }
 
+    llvm::DIType* constant_array_type_to_llvm_debug_type(
+        llvm::DIBuilder& llvm_debug_builder,
+        llvm::DataLayout const& llvm_data_layout,
+        Module const& core_module,
+        Constant_array_type const& type,
+        Debug_type_database const& debug_type_database
+    )
+    {
+        llvm::DIType* const element_type = 
+            !type.value_type.empty() ?
+            type_reference_to_llvm_debug_type(llvm_debug_builder, llvm_data_layout, core_module, type.value_type[0], debug_type_database) :
+            llvm_debug_builder.createUnspecifiedParameter();
+
+        llvm::DICompositeType* const array_type = llvm_debug_builder.createArrayType(
+            type.size,
+            0,
+            element_type,
+            {}
+        );
+
+        return array_type;
+    }
+
     llvm::Type* fundamental_type_to_llvm_type(
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
@@ -995,7 +1018,7 @@ namespace h::compiler
         else if (std::holds_alternative<Constant_array_type>(type_reference.data))
         {
             Constant_array_type const& data = std::get<Constant_array_type>(type_reference.data);
-            throw std::runtime_error{ "Not implemented." };
+            return constant_array_type_to_llvm_debug_type(llvm_debug_builder, llvm_data_layout, current_module, data, debug_type_database);
         }
         else if (std::holds_alternative<Custom_type_reference>(type_reference.data))
         {
