@@ -377,6 +377,8 @@ namespace h::builder
                 {
                     .target_triple = std::nullopt,
                     .include_directories = c_header_options != nullptr ? c_header_options->search_paths : std::span<std::filesystem::path const>{},
+                    .public_prefixes = c_header_options != nullptr ? c_header_options->public_prefixes : std::span<std::pmr::string const>{},
+                    .remove_prefixes = c_header_options != nullptr ? c_header_options->remove_prefixes : std::span<std::pmr::string const>{},
                 };
 
                 h::c::import_header_and_write_to_file(header_module_name, header_path.value(), output_header_module_path, options);
