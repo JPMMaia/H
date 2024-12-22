@@ -783,6 +783,8 @@ namespace h::compiler
             return llvm_debug_builder.createBasicType("C_longlong", 64, llvm::dwarf::DW_ATE_signed);
         case Fundamental_type::C_ulonglong:
             return llvm_debug_builder.createBasicType("C_ulonglong", 64, llvm::dwarf::DW_ATE_unsigned);
+        case Fundamental_type::C_longdouble:
+            return llvm_debug_builder.createBasicType("C_longdouble", 128, llvm::dwarf::DW_ATE_float);
         default:
             throw std::runtime_error{ "Not implemented." };
         }
