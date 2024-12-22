@@ -790,7 +790,7 @@ namespace h::compiler
         llvm::DIBuilder& llvm_debug_builder,
         llvm::DataLayout const& llvm_data_layout,
         Module const& core_module,
-        Function_pointer_type const type,
+        Function_pointer_type const& type,
         Debug_type_database const& debug_type_database
     )
     {
