@@ -786,6 +786,48 @@ namespace h::compiler
         }
     }
 
+    llvm::DIType* function_pointer_type_to_llvm_debug_type(
+        llvm::DIBuilder& llvm_debug_builder,
+        llvm::DataLayout const& llvm_data_layout,
+        Module const& core_module,
+        Function_pointer_type const type,
+        Debug_type_database const& debug_type_database
+    )
+    {
+        std::pmr::vector<llvm::Metadata*> parameter_types;
+        parameter_types.reserve(1+type.type.input_parameter_types.size());
+
+        // TODO handle multiple return types
+        assert(type.type.output_parameter_types.size() <= 1);
+
+        llvm::DIType* const return_type = 
+            !type.type.output_parameter_types.empty() ?
+            type_reference_to_llvm_debug_type(llvm_debug_builder, llvm_data_layout, core_module, type.type.output_parameter_types[0], debug_type_database) :
+            llvm_debug_builder.createUnspecifiedParameter();
+        parameter_types.push_back(return_type);
+
+        for (std::size_t index = 0; index < type.type.input_parameter_types.size(); ++index)
+        {
+            llvm::DIType* const input_parameter_type = 
+                type_reference_to_llvm_debug_type(llvm_debug_builder, llvm_data_layout, core_module, type.type.input_parameter_types[index], debug_type_database);
+            parameter_types.push_back(input_parameter_type);
+        }
+
+        llvm::DISubroutineType* const subroutine_type = llvm_debug_builder.createSubroutineType(
+            llvm_debug_builder.getOrCreateTypeArray(parameter_types)
+        );
+
+        llvm::DIDerivedType* const function_pointer_type = llvm_debug_builder.createPointerType(
+            subroutine_type,
+            64,
+            0,
+            std::nullopt,
+            llvm::StringRef("function pointer")
+        );
+
+        return function_pointer_type;
+    }
+
     llvm::Type* integer_type_to_llvm_type(
         llvm::LLVMContext& llvm_context,
         Integer_type const type
@@ -956,7 +998,12 @@ namespace h::compiler
             Custom_type_reference const& data = std::get<Custom_type_reference>(type_reference.data);
             std::string_view const module_name = find_module_name(current_module, data.module_reference);
             LLVM_debug_type_map const& llvm_debug_type_map = debug_type_database.name_to_llvm_debug_type.at(module_name.data());
-            llvm::DIType* const llvm_debug_type = llvm_debug_type_map.at(data.name);
+
+            auto const location = llvm_debug_type_map.find(data.name);
+            if (location == llvm_debug_type_map.end())
+                return llvm_debug_builder.createUnspecifiedType("__hl_opaque_type");
+
+            llvm::DIType* const llvm_debug_type = location->second;
             return llvm_debug_type;
         }
         else if (std::holds_alternative<Fundamental_type>(type_reference.data))
@@ -967,7 +1014,7 @@ namespace h::compiler
         else if (std::holds_alternative<Function_pointer_type>(type_reference.data))
         {
             Function_pointer_type const& data = std::get<Function_pointer_type>(type_reference.data);
-            throw std::runtime_error{ "Not implemented." };
+            return function_pointer_type_to_llvm_debug_type(llvm_debug_builder, llvm_data_layout, current_module, data, debug_type_database);
         }
         else if (std::holds_alternative<Integer_type>(type_reference.data))
         {
