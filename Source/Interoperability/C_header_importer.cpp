@@ -263,15 +263,29 @@ namespace h::c
         std::pmr::vector<std::pmr::string> input_parameter_names;
         input_parameter_names.reserve(number_of_arguments);
 
-        for (int argument_index = 0; argument_index < number_of_arguments; ++argument_index)
+        auto const visitor = [](CXCursor current_cursor, CXCursor parent, CXClientData client_data) -> CXChildVisitResult
         {
-            CXCursor const argumentCursor = clang_Cursor_getArgument(cursor, argument_index);
-            String const argument_spelling = clang_getCursorSpelling(cursor);
-            std::string_view const argument_name = argument_spelling.string_view();
-            std::pmr::string name = !argument_name.empty() ? std::pmr::string{ argument_name } : std::pmr::string{ std::format("parameter_{}", argument_index) };
+            std::pmr::vector<std::pmr::string>* const input_parameter_names = reinterpret_cast<std::pmr::vector<std::pmr::string>*>(client_data);
 
-            input_parameter_names.push_back(std::move(name));
-        }
+            CXCursorKind const cursor_kind = clang_getCursorKind(current_cursor);
+
+            if (cursor_kind == CXCursor_ParmDecl)
+            {
+                String const input_parameter_spelling = clang_getCursorSpelling(current_cursor);
+                std::string_view const input_parameter_name = input_parameter_spelling.string_view();
+                std::pmr::string name = !input_parameter_name.empty() ? std::pmr::string{ input_parameter_name } : std::pmr::string{ std::format("parameter_{}", input_parameter_names->size()) };
+
+                input_parameter_names->push_back(std::move(name));
+            }
+
+            return CXChildVisit_Continue;
+        };
+
+        clang_visitChildren(
+            cursor,
+            visitor,
+            &input_parameter_names
+        );
 
         CXType const result_type = clang_getResultType(function_type);
         std::optional<h::Type_reference> result_type_reference = create_type_reference(declarations, cursor, result_type);

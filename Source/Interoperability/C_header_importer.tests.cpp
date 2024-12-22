@@ -1108,6 +1108,45 @@ struct MyNestedVector
         }
     }
 
+    TEST_CASE("Imports function pointer types")
+    {
+        std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "c_header_importer" / "function_pointer_type";
+        std::filesystem::create_directories(root_directory_path);
+
+        std::string const header_content = R"(
+typedef int(function_pointer_type*)(int a, int b);
+)";
+
+        std::filesystem::path const header_file_path = root_directory_path / "function_pointer_type.h";
+        h::common::write_to_file(header_file_path, header_content);
+
+        h::Module const header_module = h::c::import_header("c.function_pointer_type", header_file_path, {});
+
+        {
+            h::Alias_type_declaration const& declaration = header_module.export_declarations.alias_type_declarations[0];
+            CHECK(declaration.name == "function_pointer_type");
+
+            REQUIRE(declaration.type.size() == 1);
+
+            h::Type_reference const c_int_type = h::create_fundamental_type_type_reference(h::Fundamental_type::C_int);
+
+            h::Function_type const expected_function_type
+            {
+                .input_parameter_types = {c_int_type, c_int_type},
+                .output_parameter_types = {c_int_type},
+                .is_variadic = false,
+            };
+            
+            h::Type_reference const expected_function_pointer_type = h::create_function_type_type_reference(
+                expected_function_type,
+                {"a", "b"},
+                {"result"}
+            );
+
+            CHECK(declaration.type[0] == expected_function_pointer_type);
+        }
+    }
+
 
     TEST_CASE("Include debug information of function declarations")
     {
