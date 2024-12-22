@@ -368,7 +368,10 @@ namespace h::compiler
         };
 
         for (std::pair<std::pmr::string, Module> const& module : core_module_dependencies)
+        {
             add_enum_constants(enum_value_constants, module.second.export_declarations.enum_declarations, expression_parameters);
+            add_enum_constants(enum_value_constants, module.second.internal_declarations.enum_declarations, expression_parameters);
+        }
 
         add_enum_constants(enum_value_constants, core_module.export_declarations.enum_declarations, expression_parameters);
         add_enum_constants(enum_value_constants, core_module.internal_declarations.enum_declarations, expression_parameters);
