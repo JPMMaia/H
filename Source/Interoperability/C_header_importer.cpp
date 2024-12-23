@@ -960,8 +960,12 @@ namespace h::c
         bool const is_anonymous = clang_Cursor_isAnonymousRecordDecl(cursor);
         if (is_anonymous || is_unnamed_type(cursor))
         {
+            std::pmr::string module_name_prefix = declarations.module_name;
+            std::replace(module_name_prefix.begin(), module_name_prefix.end(), '.', '_');
+
             std::uint32_t const anonymous_id = declarations.unnamed_count;
-            return std::pmr::string{ std::format("_Anonymous_{}", anonymous_id) };
+
+            return std::pmr::string{ std::format("_{}_Anonymous_{}", module_name_prefix, anonymous_id) };
         }
 
         String const cursor_spelling = { clang_getCursorSpelling(cursor) };
@@ -1094,6 +1098,7 @@ namespace h::c
             }
             else if (cursor_kind == CXCursor_StructDecl && is_unnamed_or_anonymous_type(current_cursor))
             {
+                data->declarations->unnamed_count += 1;
                 h::Struct_declaration nested_struct_declaration = create_struct_declaration(*data->declarations, current_cursor);
 
                 if (clang_Cursor_isAnonymousRecordDecl(current_cursor))
@@ -1112,10 +1117,10 @@ namespace h::c
                 data->struct_declaration->member_types.push_back({ .data = std::move(reference) });
 
                 data->declarations->struct_declarations.push_back(std::move(nested_struct_declaration));
-                data->declarations->unnamed_count += 1;
             }
             else if (cursor_kind == CXCursor_UnionDecl && is_unnamed_or_anonymous_type(current_cursor))
             {
+                data->declarations->unnamed_count += 1;
                 h::Union_declaration nested_union_declaration = create_union_declaration(*data->declarations, current_cursor);
 
                 if (clang_Cursor_isAnonymousRecordDecl(current_cursor))
@@ -1134,7 +1139,6 @@ namespace h::c
                 data->struct_declaration->member_types.push_back({ .data = std::move(reference) });
     
                 data->declarations->union_declarations.push_back(std::move(nested_union_declaration));
-                data->declarations->unnamed_count += 1;
             }
 
             return CXChildVisit_Continue;
@@ -1233,6 +1237,7 @@ namespace h::c
             }
             else if (cursor_kind == CXCursor_StructDecl && is_unnamed_or_anonymous_type(current_cursor))
             {
+                data->declarations->unnamed_count += 1;
                 h::Struct_declaration nested_struct_declaration = create_struct_declaration(*data->declarations, current_cursor);
 
                 if (clang_Cursor_isAnonymousRecordDecl(current_cursor))
@@ -1251,10 +1256,10 @@ namespace h::c
                 data->union_declaration->member_types.push_back({ .data = std::move(reference) });
 
                 data->declarations->struct_declarations.push_back(std::move(nested_struct_declaration));
-                data->declarations->unnamed_count += 1;
             }
             else if (cursor_kind == CXCursor_UnionDecl && is_unnamed_or_anonymous_type(current_cursor))
             {
+                data->declarations->unnamed_count += 1;
                 h::Union_declaration nested_union_declaration = create_union_declaration(*data->declarations, current_cursor);
 
                 if (clang_Cursor_isAnonymousRecordDecl(current_cursor))
@@ -1273,7 +1278,6 @@ namespace h::c
                 data->union_declaration->member_types.push_back({ .data = std::move(reference) });
 
                 data->declarations->union_declarations.push_back(std::move(nested_union_declaration));
-                data->declarations->unnamed_count += 1;
             }
 
             return CXChildVisit_Continue;
@@ -2226,6 +2230,7 @@ namespace h::c
         };
 
         C_declarations declarations;
+        declarations.module_name = header_name;
 
         CXCursor cursor = clang_getTranslationUnitCursor(unit);
 
