@@ -45,6 +45,7 @@ convert_hltxt_to_hl(
         "${CMAKE_CURRENT_LIST_DIR}/txt/multiple_modules_a.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/multiple_modules_b.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/multiple_modules_c.hltxt"
+        "${CMAKE_CURRENT_LIST_DIR}/txt/null_pointers.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/numbers.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/numeric_casts.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/pointers.hltxt"

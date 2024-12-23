@@ -301,6 +301,22 @@ namespace h
         return !is_signed_integer(type);
     }
 
+    Type_reference create_null_pointer_type_type_reference()
+    {
+        Null_pointer_type pointer_type
+        {
+        };
+
+        return Type_reference
+        {
+            .data = std::move(pointer_type)
+        };
+    }
+
+    bool is_null_pointer_type(Type_reference const& type)
+    {
+        return std::holds_alternative<Null_pointer_type>(type.data);
+    }
 
     Type_reference create_pointer_type_type_reference(std::pmr::vector<Type_reference> element_type, bool const is_mutable)
     {
@@ -332,7 +348,7 @@ namespace h
 
     bool is_pointer(Type_reference const& type)
     {
-        return std::holds_alternative<Pointer_type>(type.data);
+        return std::holds_alternative<Pointer_type>(type.data) || std::holds_alternative<Null_pointer_type>(type.data);
     }
 
     bool is_non_void_pointer(Type_reference const& type)
