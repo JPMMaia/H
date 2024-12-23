@@ -78,7 +78,7 @@ macro(Import_c_header)
    endforeach()
 
    add_custom_target(
-      C_standard_library
+      C_standard_library ALL
          DEPENDS ${dependencies}
          SOURCES ${dependencies} ${ARGUMENT_HEADERS}
    )
