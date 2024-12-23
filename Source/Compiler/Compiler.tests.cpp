@@ -3121,6 +3121,78 @@ attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, test_options);
   }
+
+  TEST_CASE("C Interoperability - Call function that returns c bool x86_64-pc-linux-gnu")
+  {
+    char const* const expected_llvm_ir = R"(
+define private i1 @c_interoperability_initialize(i1 noundef zeroext %"arguments[0].first", i1 noundef zeroext %"arguments[1].second") {
+entry:
+  %0 = zext i1 %"arguments[0].first" to i8
+  %first = alloca i8, align 1
+  store i8 %0, ptr %first, align 1
+  %1 = zext i1 %"arguments[1].second" to i8
+  %second = alloca i8, align 1
+  store i8 %1, ptr %second, align 1
+  ret i1 true
+}
+
+define private void @c_interoperability_run(i1 noundef zeroext %"arguments[0].parameter") {
+entry:
+  %0 = zext i1 %"arguments[0].parameter" to i8
+  %parameter = alloca i8, align 1
+  store i8 %0, ptr %parameter, align 1
+  %first = alloca i1, align 1
+  store i1 true, ptr %first, align 1
+  %1 = load i8, ptr %first, align 1
+  %2 = trunc i8 %1 to i1
+  %3 = load i8, ptr %parameter, align 1
+  %4 = trunc i8 %3 to i1
+  %5 = call i1 @c_interoperability_initialize(i1 noundef zeroext %2, i1 noundef zeroext %4)
+  %6 = zext i1 %5 to i8
+  %result = alloca i8, align 1
+  store i8 %6, ptr %result, align 1
+  ret void
+}
+)";
+
+    test_c_interoperability_common("c_interoperability_call_function_that_returns_bool.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+  }
+
+  TEST_CASE("C Interoperability - Call function that returns c bool x86_64-pc-windows-msvc")
+  {
+    char const* const expected_llvm_ir = R"(
+define private i1 @c_interoperability_initialize(i1 noundef zeroext %"arguments[0].first", i1 noundef zeroext %"arguments[1].second") {
+entry:
+  %0 = zext i1 %"arguments[0].first" to i8
+  %first = alloca i8, align 1
+  store i8 %0, ptr %first, align 1
+  %1 = zext i1 %"arguments[1].second" to i8
+  %second = alloca i8, align 1
+  store i8 %1, ptr %second, align 1
+  ret i1 true
+}
+
+define private void @c_interoperability_run(i1 noundef zeroext %"arguments[0].parameter") {
+entry:
+  %0 = zext i1 %"arguments[0].parameter" to i8
+  %parameter = alloca i8, align 1
+  store i8 %0, ptr %parameter, align 1
+  %first = alloca i1, align 1
+  store i1 true, ptr %first, align 1
+  %1 = load i8, ptr %first, align 1
+  %2 = trunc i8 %1 to i1
+  %3 = load i8, ptr %parameter, align 1
+  %4 = trunc i8 %3 to i1
+  %5 = call i1 @c_interoperability_initialize(i1 noundef zeroext %2, i1 noundef zeroext %4)
+  %6 = zext i1 %5 to i8
+  %result = alloca i8, align 1
+  store i8 %6, ptr %result, align 1
+  ret void
+}
+)";
+
+    test_c_interoperability_common("c_interoperability_call_function_that_returns_bool.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+  }
   
   TEST_CASE("C Interoperability - function_return_big_struct x86_64-pc-linux-gnu")
   {
@@ -3226,10 +3298,11 @@ define private void @c_interoperability_run() {
 entry:
   %0 = call i32 @c_interoperability_foo()
   %1 = alloca %struct.c_interoperability_My_struct, align 1
-  store i32 %0, ptr %1, align 1
-  %2 = load %struct.c_interoperability_My_struct, ptr %1, align 1
+  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %1, i32 0, i32 0
+  store i32 %0, ptr %2, align 1
+  %3 = load %struct.c_interoperability_My_struct, ptr %1, align 1
   %instance = alloca %struct.c_interoperability_My_struct, align 1
-  store %struct.c_interoperability_My_struct %2, ptr %instance, align 1
+  store %struct.c_interoperability_My_struct %3, ptr %instance, align 1
   ret void
 }
 )";
@@ -3480,10 +3553,11 @@ entry:
     char const* const expected_llvm_ir = R"(
 %struct.c_interoperability_My_struct = type { [4 x i8] }
 
-define private void @c_interoperability_foo(i32 %"arguments[0].instance") {
+define private void @c_interoperability_foo(i32 noundef %"arguments[0].instance") {
 entry:
-  %instance = alloca %struct.c_interoperability_My_struct, align 1
-  store i32 %"arguments[0].instance", ptr %instance, align 1
+  %0 = alloca %struct.c_interoperability_My_struct, align 1
+  %1 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 0
+  store i32 %"arguments[0].instance", ptr %1, align 1
   ret void
 }
 
@@ -3496,7 +3570,7 @@ entry:
   store %struct.c_interoperability_My_struct %0, ptr %instance, align 1
   %1 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 0
   %2 = load i32, ptr %1, align 1
-  call void @c_interoperability_foo(i32 %2)
+  call void @c_interoperability_foo(i32 noundef %2)
   ret void
 }
 )";
@@ -3507,7 +3581,7 @@ entry:
   TEST_CASE("C Interoperability - function_with_int_arguments x86_64-pc-linux-gnu")
   {
     char const* const expected_llvm_ir = R"(
-define private void @c_interoperability_foo(i32 %"arguments[0].a", i32 %"arguments[1].b") {
+define private void @c_interoperability_foo(i32 noundef %"arguments[0].a", i32 noundef %"arguments[1].b") {
 entry:
   %a = alloca i32, align 4
   store i32 %"arguments[0].a", ptr %a, align 4
@@ -3518,7 +3592,7 @@ entry:
 
 define private void @c_interoperability_run() {
 entry:
-  call void @c_interoperability_foo(i32 0, i32 0)
+  call void @c_interoperability_foo(i32 noundef 0, i32 noundef 0)
   ret void
 }
 )";
@@ -3529,7 +3603,7 @@ entry:
   TEST_CASE("C Interoperability - function_with_int_arguments x86_64-pc-windows-msvc")
   {
     char const* const expected_llvm_ir = R"(
-define private void @c_interoperability_foo(i32 %"arguments[0].a", i32 %"arguments[1].b") {
+define private void @c_interoperability_foo(i32 noundef %"arguments[0].a", i32 noundef %"arguments[1].b") {
 entry:
   %a = alloca i32, align 4
   store i32 %"arguments[0].a", ptr %a, align 4
@@ -3540,7 +3614,7 @@ entry:
 
 define private void @c_interoperability_run() {
 entry:
-  call void @c_interoperability_foo(i32 0, i32 0)
+  call void @c_interoperability_foo(i32 noundef 0, i32 noundef 0)
   ret void
 }
 )";
@@ -3551,7 +3625,7 @@ entry:
   TEST_CASE("C Interoperability - function_with_pointer x86_64-pc-linux-gnu")
   {
     char const* const expected_llvm_ir = R"(
-define private void @c_interoperability_foo(ptr %"arguments[0].value") {
+define private void @c_interoperability_foo(ptr noundef %"arguments[0].value") {
 entry:
   %value = alloca ptr, align 8
   store ptr %"arguments[0].value", ptr %value, align 8
@@ -3560,7 +3634,7 @@ entry:
 
 define private void @c_interoperability_run() {
 entry:
-  call void @c_interoperability_foo(ptr null)
+  call void @c_interoperability_foo(ptr noundef null)
   ret void
 }
 )";
@@ -3571,7 +3645,7 @@ entry:
   TEST_CASE("C Interoperability - function_with_pointer x86_64-pc-windows-msvc")
   {
     char const* const expected_llvm_ir = R"(
-define private void @c_interoperability_foo(ptr %"arguments[0].value") {
+define private void @c_interoperability_foo(ptr noundef %"arguments[0].value") {
 entry:
   %value = alloca ptr, align 8
   store ptr %"arguments[0].value", ptr %value, align 8
@@ -3580,7 +3654,7 @@ entry:
 
 define private void @c_interoperability_run() {
 entry:
-  call void @c_interoperability_foo(ptr null)
+  call void @c_interoperability_foo(ptr noundef null)
   ret void
 }
 )";

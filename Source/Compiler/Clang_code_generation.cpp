@@ -608,9 +608,9 @@ namespace h::compiler
 
             switch (kind)
             {
-                case clang::CodeGen::ABIArgInfo::Direct: {
+                case clang::CodeGen::ABIArgInfo::Direct:
+                case clang::CodeGen::ABIArgInfo::Extend: {
                     llvm::Type* const new_type = argument_info.info.getCoerceToType();
-
 
                     if (new_type->isStructTy())
                     {
@@ -634,14 +634,24 @@ namespace h::compiler
         
                         llvm::Argument* const argument = llvm_function.getArg(new_argument_index);
                         argument->setName(argument_name.c_str());
+                        argument->addAttr(llvm::Attribute::NoUndef);
+
+                        if (argument_info.info.isExtend())
+                        {
+                            if (argument_info.info.isSignExt())
+                            {
+                                argument->addAttr(llvm::Attribute::SExt);
+                            }
+                            else
+                            {
+                                argument->addAttr(llvm::Attribute::ZExt);
+                            }
+                        }
 
                         new_argument_index += 1;
                     }
 
                     break;
-                }
-                case clang::CodeGen::ABIArgInfo::Extend: {
-                    throw std::runtime_error{ "Clang_code_generation.set_llvm_function_argument_names(): Extend not implemented!" };
                 }
                 case clang::CodeGen::ABIArgInfo::Indirect: {
                     std::string const argument_name = std::format("arguments[{}].{}", argument_info_index, name);
@@ -694,6 +704,7 @@ namespace h::compiler
             switch (kind)
             {
                 case clang::CodeGen::ABIArgInfo::Direct:
+                case clang::CodeGen::ABIArgInfo::Extend:
                 case clang::CodeGen::ABIArgInfo::Ignore: {
                     break;
                 }
@@ -728,7 +739,8 @@ namespace h::compiler
 
             switch (kind)
             {
-                case clang::CodeGen::ABIArgInfo::Direct: {
+                case clang::CodeGen::ABIArgInfo::Direct:
+                case clang::CodeGen::ABIArgInfo::Extend: {
                     llvm::Type* const new_type = argument_info.info.getCoerceToType();
 
                     if (new_type->isStructTy())
@@ -772,17 +784,28 @@ namespace h::compiler
                             original_argument,
                             original_argument_llvm_type,
                             new_type,
+                            std::nullopt,
+                            argument_info.info,
                             Convertion_type::From_original_to_abi
                         );
 
+                        std::pmr::vector<llvm::Attribute> attributes;
+                        attributes.reserve(2);
+                        attributes.push_back(llvm::Attribute::get(llvm_context, llvm::Attribute::NoUndef));
+                        
+                        if (argument_info.info.isExtend())
+                        {
+                            if (argument_info.info.isSignExt())
+                                attributes.push_back(llvm::Attribute::get(llvm_context, llvm::Attribute::SExt));
+                            else
+                                attributes.push_back(llvm::Attribute::get(llvm_context, llvm::Attribute::ZExt));
+                        }
+
                         transformed_arguments.values.push_back(transformed_argument);
-                        transformed_arguments.attributes.push_back({});
+                        transformed_arguments.attributes.push_back(std::move(attributes));
                     }
 
                     break;
-                }
-                case clang::CodeGen::ABIArgInfo::Extend: {
-                    throw std::runtime_error{ "Clang_code_generation.transform_arguments(): Extend not implemented!" };
                 }
                 case clang::CodeGen::ABIArgInfo::Indirect: {
 
@@ -1027,24 +1050,11 @@ namespace h::compiler
 
             switch (kind)
             {
-                case clang::CodeGen::ABIArgInfo::Direct: {
+                case clang::CodeGen::ABIArgInfo::Direct:
+                case clang::CodeGen::ABIArgInfo::Extend: {
 
                     llvm::Type* const restored_argument_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, restored_argument_type, type_database);
                     llvm::Align const restored_argument_alignment = llvm_data_layout.getABITypeAlign(restored_argument_llvm_type);
-
-                    llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, restored_argument_llvm_type, restored_argument_name.data());
-                    restored_arguments.push_back(Value_and_type{.name = restored_argument_name, .value = alloca_instruction, .type = restored_argument_type});
-
-                    set_function_input_parameter_debug_information(
-                        llvm_context,
-                        llvm_data_layout,
-                        core_module,
-                        function_declaration,
-                        restored_argument_index,
-                        llvm_block,
-                        *alloca_instruction,
-                        debug_info
-                    );
 
                     llvm::Type* const function_argument_type = argument_info.info.getCoerceToType();
 
@@ -1053,6 +1063,19 @@ namespace h::compiler
                         llvm::StructType* const function_argument_struct_type = static_cast<llvm::StructType*>(function_argument_type);
                         llvm::ArrayRef<llvm::Type*> const function_argument_elements = function_argument_struct_type->elements();
 
+                        llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, restored_argument_llvm_type, restored_argument_name.data());
+                        restored_arguments.push_back(Value_and_type{.name = restored_argument_name, .value = alloca_instruction, .type = restored_argument_type});
+
+                        set_function_input_parameter_debug_information(
+                            llvm_context,
+                            llvm_data_layout,
+                            core_module,
+                            function_declaration,
+                            restored_argument_index,
+                            llvm_block,
+                            *alloca_instruction,
+                            debug_info
+                        );
 
                         for (unsigned function_argument_element_index = 0; function_argument_element_index < function_argument_elements.size(); ++function_argument_element_index)
                         {
@@ -1072,14 +1095,35 @@ namespace h::compiler
                     else
                     {
                         llvm::Value* const function_argument = llvm_function.getArg(function_argument_index);
-                        llvm_builder.CreateAlignedStore(function_argument, alloca_instruction, restored_argument_alignment);
+
+                        llvm::Value* const converted_value = read_from_type(
+                            llvm_context,
+                            llvm_builder,
+                            llvm_data_layout,
+                            function_argument,
+                            function_argument_type,
+                            restored_argument_llvm_type,
+                            restored_argument_name,
+                            argument_info.info,
+                            Convertion_type::From_abi_to_original
+                        );
+                        restored_arguments.push_back(Value_and_type{.name = restored_argument_name, .value = converted_value, .type = restored_argument_type});
+
+                        set_function_input_parameter_debug_information(
+                            llvm_context,
+                            llvm_data_layout,
+                            core_module,
+                            function_declaration,
+                            restored_argument_index,
+                            llvm_block,
+                            *converted_value,
+                            debug_info
+                        );
+
                         function_argument_index += 1;
                     }
 
                     break;
-                }
-                case clang::CodeGen::ABIArgInfo::Extend: {
-                    throw std::runtime_error{ "Clang_code_generation.generate_function_arguments(): Extend not implemented!" };
                 }
                 case clang::CodeGen::ABIArgInfo::Indirect: {
 
@@ -1154,7 +1198,8 @@ namespace h::compiler
 
         switch (kind)
         {
-            case clang::CodeGen::ABIArgInfo::Direct: {
+            case clang::CodeGen::ABIArgInfo::Direct:
+            case clang::CodeGen::ABIArgInfo::Extend: {
 
                 h::Type_reference const& original_return_type = function_type.output_parameter_types[0];
                 llvm::Type* const original_return_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, original_return_type, type_database);
@@ -1168,6 +1213,8 @@ namespace h::compiler
                     value_to_return.value,
                     original_return_llvm_type,
                     new_return_llvm_type,
+                    std::nullopt,
+                    return_info,
                     Convertion_type::From_original_to_abi
                 );
                 
@@ -1234,6 +1281,7 @@ namespace h::compiler
         llvm::Value* const source_llvm_value,
         llvm::Type* const source_llvm_type,
         llvm::Type* const destination_llvm_type,
+        clang::CodeGen::ABIArgInfo const& abi_argument_info,
         Convertion_type const convertion_type
     )
     {
@@ -1263,15 +1311,44 @@ namespace h::compiler
         }
         else if (!source_llvm_type->isStructTy() && destination_llvm_type->isStructTy())
         {
-            llvm::AllocaInst* const destination = create_alloca_instruction(llvm_builder, llvm_data_layout, destination_llvm_type);
-            llvm_builder.CreateAlignedStore(source_llvm_value, destination, llvm_data_layout.getABITypeAlign(destination_llvm_type));
-            return destination;
+            if (convertion_type == Convertion_type::From_original_to_abi)
+            {
+                llvm::AllocaInst* const destination = create_alloca_instruction(llvm_builder, llvm_data_layout, destination_llvm_type);
+                llvm_builder.CreateAlignedStore(source_llvm_value, destination, llvm_data_layout.getABITypeAlign(destination_llvm_type));
+                return destination;
+            }
+            else
+            {
+                llvm::AllocaInst* const destination = create_alloca_instruction(llvm_builder, llvm_data_layout, destination_llvm_type);
+                llvm::Value* const pointer_to_destination = llvm_builder.CreateInBoundsGEP(destination_llvm_type, destination, {get_constant(llvm_context, 0), get_constant(llvm_context, 0)});
+                llvm_builder.CreateAlignedStore(source_llvm_value, pointer_to_destination, llvm_data_layout.getABITypeAlign(destination_llvm_type));
+                return destination;
+            }
         }
         else if (source_llvm_type->isStructTy() && !destination_llvm_type->isStructTy())
         {
             llvm::Value* const pointer_to_source = llvm_builder.CreateInBoundsGEP(source_llvm_type, source_llvm_value, {get_constant(llvm_context, 0), get_constant(llvm_context, 0)});
             llvm::LoadInst* const destination_value = llvm_builder.CreateAlignedLoad(destination_llvm_type, pointer_to_source, llvm_data_layout.getABITypeAlign(source_llvm_type));
             return destination_value;
+        }
+        else if (source_llvm_type->isIntegerTy() && destination_llvm_type->isIntegerTy())
+        {
+            if (abi_argument_info.isExtend())
+            {
+                llvm::Value* const loaded_value =
+                    llvm::AllocaInst::classof(source_llvm_value) ?
+                    llvm_builder.CreateAlignedLoad(source_llvm_type, source_llvm_value, llvm_data_layout.getABITypeAlign(source_llvm_type)) :
+                    source_llvm_value;
+
+                if (abi_argument_info.isSignExt())
+                {
+                    return llvm_builder.CreateSExtOrTrunc(loaded_value, destination_llvm_type);
+                }
+                else
+                {
+                    return llvm_builder.CreateZExtOrTrunc(loaded_value, destination_llvm_type);
+                }
+            }
         }
 
         throw std::runtime_error{ "read_from_different_type not implemented yet!" };
@@ -1284,6 +1361,8 @@ namespace h::compiler
         llvm::Value* const source_llvm_value,
         llvm::Type* const source_llvm_type,
         llvm::Type* const destination_llvm_type,
+        std::optional<std::string_view> const alloca_name,
+        clang::CodeGen::ABIArgInfo const& abi_argument_info,
         Convertion_type const convertion_type
     )
     {   
@@ -1296,19 +1375,40 @@ namespace h::compiler
             }
             else
             {
-                return source_llvm_value;
+                if (alloca_name.has_value())
+                {
+                    llvm::AllocaInst* const destination = create_alloca_instruction(llvm_builder, llvm_data_layout, destination_llvm_type, alloca_name->data());
+                    llvm_builder.CreateAlignedStore(source_llvm_value, destination, llvm_data_layout.getABITypeAlign(destination_llvm_type));
+                    return destination;
+                }
+                else
+                {
+                    return source_llvm_value;
+                }
             }
         }
 
-        return read_from_different_type(
+        llvm::Value* converted_value = read_from_different_type(
             llvm_context,
             llvm_builder,
             llvm_data_layout,
             source_llvm_value,
             source_llvm_type,
             destination_llvm_type,
+            abi_argument_info,
             convertion_type
         );
+
+        if (alloca_name.has_value() && !llvm::AllocaInst::classof(converted_value))
+        {
+            llvm::AllocaInst* const destination = create_alloca_instruction(llvm_builder, llvm_data_layout, destination_llvm_type, alloca_name->data());
+            llvm_builder.CreateAlignedStore(converted_value, destination, llvm_data_layout.getABITypeAlign(destination_llvm_type));
+            return destination;
+        }
+        else
+        {
+            return converted_value;
+        }
     }
 
     llvm::Value* read_function_return_instruction(
@@ -1332,7 +1432,8 @@ namespace h::compiler
 
         switch (kind)
         {
-            case clang::CodeGen::ABIArgInfo::Direct: {
+            case clang::CodeGen::ABIArgInfo::Direct:
+            case clang::CodeGen::ABIArgInfo::Extend: {
 
                 h::Type_reference const& original_return_type = function_type.output_parameter_types[0];
                 llvm::Type* const original_return_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, original_return_type, type_database);
@@ -1346,6 +1447,8 @@ namespace h::compiler
                     call_instruction,
                     new_return_llvm_type,
                     original_return_llvm_type,
+                    std::nullopt,
+                    return_info,
                     Convertion_type::From_abi_to_original
                 );
             }
