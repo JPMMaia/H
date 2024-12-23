@@ -10,6 +10,7 @@ convert_hltxt_to_hl(
         "${CMAKE_CURRENT_LIST_DIR}/txt/block_expressions.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/booleans.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/break_expressions.hltxt"
+        "${CMAKE_CURRENT_LIST_DIR}/txt/c_interoperability_call_function_that_returns_bool.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/c_interoperability_call_function_with_struct.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/c_interoperability_define_function_with_struct.hltxt"
         "${CMAKE_CURRENT_LIST_DIR}/txt/c_interoperability_function_return_big_struct.hltxt"
