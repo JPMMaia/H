@@ -1871,6 +1871,40 @@ entry:
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
+  TEST_CASE("Compile Null Pointers")
+  {
+    char const* const input_file = "null_pointers.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+define i32 @Null_pointers_pointers(ptr noundef %"arguments[0].parameter") {
+entry:
+  %parameter = alloca ptr, align 8
+  store ptr %"arguments[0].parameter", ptr %parameter, align 8
+  %0 = icmp eq ptr %parameter, null
+  br i1 %0, label %if_s0_then, label %if_s1_after
+
+if_s0_then:                                       ; preds = %entry
+  ret i32 -1
+
+if_s1_after:                                      ; preds = %entry
+  %1 = icmp ne ptr %parameter, null
+  br i1 %1, label %if_s0_then1, label %if_s1_after2
+
+if_s0_then1:                                      ; preds = %if_s1_after
+  ret i32 1
+
+if_s1_after2:                                     ; preds = %if_s1_after
+  ret i32 0
+}
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
   TEST_CASE("Compile Numbers")
   {
     char const* const input_file = "numbers.hl";

@@ -40,6 +40,9 @@ namespace h
     export bool is_signed_integer(Type_reference const& type);
     export bool is_unsigned_integer(Type_reference const& type);
 
+    export Type_reference create_null_pointer_type_type_reference();
+    export bool is_null_pointer_type(Type_reference const& type);
+
     export Type_reference create_pointer_type_type_reference(std::pmr::vector<Type_reference> element_type, bool const is_mutable);
     export std::optional<Type_reference> remove_pointer(Type_reference const& type);
     export bool is_pointer(Type_reference const& type);

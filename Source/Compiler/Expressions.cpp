@@ -706,6 +706,17 @@ namespace h::compiler
         };
     }
 
+    bool are_types_compatible(
+        Type_reference const& first,
+        Type_reference const& second
+    )
+    {
+        if ((is_pointer(first) && is_null_pointer_type(second)) || (is_null_pointer_type(first) && is_pointer(second)))
+            return true;
+
+        return first == second;
+    }
+
     Value_and_type create_binary_operation_instruction(
         llvm::IRBuilder<>& llvm_builder,
         Value_and_type const& left_hand_side,
@@ -716,7 +727,7 @@ namespace h::compiler
         if (!left_hand_side.type.has_value() || !right_hand_side.type.has_value())
             throw std::runtime_error{ "Left or right side type is null!" };
 
-        if (left_hand_side.type.value() != right_hand_side.type.value())
+        if (!are_types_compatible(*left_hand_side.type, *right_hand_side.type))
             throw std::runtime_error{ "Left and right side types do not match!" };
 
         Type_reference const& type = left_hand_side.type.value();
@@ -853,7 +864,7 @@ namespace h::compiler
             break;
         }
         case Binary_operation::Equal: {
-            if (is_bool(type) || is_integer(type) || is_enum_type(type, left_hand_side.value))
+            if (is_bool(type) || is_integer(type) || is_enum_type(type, left_hand_side.value) || is_pointer(type))
             {
                 return Value_and_type
                 {
@@ -874,7 +885,7 @@ namespace h::compiler
             break;
         }
         case Binary_operation::Not_equal: {
-            if (is_bool(type) || is_integer(type) || is_enum_type(type, left_hand_side.value))
+            if (is_bool(type) || is_integer(type) || is_enum_type(type, left_hand_side.value) || is_pointer(type))
             {
                 return Value_and_type
                 {
@@ -2169,38 +2180,15 @@ namespace h::compiler
         Expression_parameters const& parameters
     )
     {
-        if (!parameters.expression_type.has_value())
-            throw std::runtime_error{ "Could not create null pointer expression because cannot infer the pointer type!" };
-
-        h::Type_reference const& element_type = *parameters.expression_type;
-        llvm::Type* const element_llvm_type = type_reference_to_llvm_type(parameters.llvm_context, parameters.llvm_data_layout, parameters.core_module, element_type, parameters.type_database);
-
-        if (element_llvm_type->isPointerTy())
+        llvm::PointerType* const pointer_llvm_type = llvm::PointerType::get(parameters.llvm_context, 0);
+        llvm::Constant* const null_pointer_value = llvm::ConstantPointerNull::get(pointer_llvm_type);
+        
+        return
         {
-            llvm::PointerType* const pointer_llvm_type = static_cast<llvm::PointerType*>(element_llvm_type);
-            llvm::Constant* const null_pointer_value = llvm::ConstantPointerNull::get(pointer_llvm_type);
-
-            return
-            {
-                .name = "",
-                .value = null_pointer_value,
-                .type = element_type
-            };
-        }
-        else if (element_llvm_type->isFunctionTy())
-        {
-            llvm::PointerType* const pointer_llvm_type = llvm::PointerType::get(element_llvm_type, 0);
-            llvm::Constant* const null_pointer_value = llvm::ConstantPointerNull::get(pointer_llvm_type);
-
-            return
-            {
-                .name = "",
-                .value = null_pointer_value,
-                .type = element_type
-            };
-        }
-
-        throw std::runtime_error{ "Cannot assign null pointer to non-pointer type!" };
+            .name = "",
+            .value = null_pointer_value,
+            .type = create_null_pointer_type_type_reference(),
+        };
     }
 
     Value_and_type create_parenthesis_expression_value(
@@ -3006,6 +2994,9 @@ namespace h::compiler
 
         if (value.value != nullptr && value.type.has_value() && value.value->getType()->isPointerTy())
         {
+            if (std::holds_alternative<Null_pointer_type>(value.type->data))
+                return value;
+
             llvm::Type* const llvm_type = type_reference_to_llvm_type(parameters.llvm_context, parameters.llvm_data_layout, parameters.core_module, value.type.value(), parameters.type_database);
             if (llvm_type == value.value->getType() || llvm_type->isFunctionTy())
             {
