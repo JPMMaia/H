@@ -484,8 +484,7 @@ namespace h::compiler
             );
 
             //llvm_debug_builder.replaceTemporary(llvm::TempDIType(llvm_forward_declaration_debug_type), llvm_struct_debug_type);
-            if (llvm_forward_declaration_debug_type->isReplaceable())
-                llvm_forward_declaration_debug_type->replaceAllUsesWith(llvm_struct_debug_type);
+            llvm_forward_declaration_debug_type->replaceAllUsesWith(llvm_struct_debug_type);
             llvm_debug_type_map[struct_declaration.name] = llvm_struct_debug_type;
         }
     }
@@ -552,6 +551,11 @@ namespace h::compiler
     {
         for (Union_declaration const& union_declaration : union_declarations)
         {
+            if (union_declaration.name == "_SDL3_SDL_Anonymous_0")
+            {
+                int i = 0;
+            }
+
             std::pmr::vector<llvm::DIType*> const llvm_member_debug_types = type_references_to_llvm_debug_types(
                 llvm_debug_builder,
                 llvm_data_layout,
@@ -610,8 +614,7 @@ namespace h::compiler
             );
 
             //llvm_debug_builder.replaceTemporary(llvm::TempDIType(llvm_forward_declaration_debug_type), llvm_union_debug_type);
-            if (llvm_forward_declaration_debug_type->isReplaceable())
-                llvm_forward_declaration_debug_type->replaceAllUsesWith(llvm_union_debug_type);
+            llvm_forward_declaration_debug_type->replaceAllUsesWith(llvm_union_debug_type);
             llvm_debug_type_map[union_declaration.name] = llvm_union_debug_type;
         }
     }

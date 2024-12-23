@@ -23,6 +23,7 @@ namespace h::c
 
     export struct C_declarations
     {
+        std::pmr::string module_name;
         std::pmr::vector<h::Alias_type_declaration> alias_type_declarations;
         std::pmr::vector<h::Enum_declaration> enum_declarations;
         std::pmr::vector<h::Global_variable_declaration> global_variable_declarations;
