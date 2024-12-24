@@ -523,7 +523,7 @@ namespace h::compiler
             {
                 Library_info const& library_info = std::get<Library_info>(*artifact.info);
 
-                std::optional<External_library_info> const external_library = get_external_library(library_info.external_libraries, unprotected_data.target, true);
+                std::optional<External_library_info> const external_library = get_external_library(library_info.external_libraries, unprotected_data.target, unprotected_data.compilation_options.debug, true);
                 if (external_library.has_value())
                 {
                     link_static_library(*unprotected_data.jit_data, external_library->name.c_str());

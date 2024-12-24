@@ -106,13 +106,21 @@ namespace h::compiler
 
     export struct External_library_info
     {
+        std::pmr::string key;
         std::pmr::string name;
+        bool is_debug;
         bool is_dynamic;
     };
 
     export std::optional<External_library_info> get_external_library(
         std::pmr::unordered_map<std::pmr::string, std::pmr::string> const& external_libraries,
         Target const& target,
+        bool prefer_debug,
         bool prefer_dynamic
+    );
+
+    export std::optional<std::string_view> get_external_library_dll(
+        std::pmr::unordered_map<std::pmr::string, std::pmr::string> const& external_libraries,
+        std::string_view const key
     );
 }
