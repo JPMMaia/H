@@ -705,37 +705,58 @@ namespace h::compiler
     std::optional<External_library_info> get_external_library(
         std::pmr::unordered_map<std::pmr::string, std::pmr::string> const& external_libraries,
         Target const& target,
+        bool const prefer_debug,
         bool const prefer_dynamic
     )
     {
+        std::array<bool, 2> const debug_priority
         {
-            std::string const first_target_library = std::format("{}-{}-release", target.operating_system, prefer_dynamic ? "dynamic" : "static");
-
-            auto const location = external_libraries.find(first_target_library.c_str());
-            if (location != external_libraries.end())
-            {
-                return External_library_info
-                {
-                    .name = location->second,
-                    .is_dynamic = prefer_dynamic
-                };
-            }
-        }
-
+            prefer_debug,
+            !prefer_debug
+        };
+        
+        std::array<bool, 2> const dynamic_priority
         {
-            std::string const second_target_library = std::format("{}-{}-release", target.operating_system, prefer_dynamic ? "static" : "dynamic");
+            prefer_dynamic,
+            !prefer_dynamic,
+        };
 
-            auto const location = external_libraries.find(second_target_library.c_str());
-            if (location != external_libraries.end())
+        for (std::size_t debug_index = 0; debug_index < debug_priority.size(); ++debug_index)
+        {
+            for (std::size_t dynamic_index = 0; dynamic_index < dynamic_priority.size(); ++dynamic_index)
             {
-                return External_library_info
+                bool const is_debug = debug_priority[debug_index];
+                bool const is_dynamic = dynamic_priority[dynamic_index];
+                std::string const target_library = std::format("{}-{}-{}", target.operating_system, is_dynamic ? "dynamic" : "static", is_debug ? "debug" : "release");
+
+                auto const location = external_libraries.find(target_library.c_str());
+                if (location != external_libraries.end())
                 {
-                    .name = location->second,
-                    .is_dynamic = !prefer_dynamic
-                };
+                    return External_library_info
+                    {
+                        .key = std::pmr::string{target_library},
+                        .name = location->second,
+                        .is_debug = is_debug,
+                        .is_dynamic = is_dynamic,
+                    };
+                }
             }
         }
 
         return std::nullopt;
+    }
+
+    std::optional<std::string_view> get_external_library_dll(
+        std::pmr::unordered_map<std::pmr::string, std::pmr::string> const& external_libraries,
+        std::string_view const key
+    )
+    {
+        std::string const target_library = std::format("{}-dll", key);
+
+        auto const location = external_libraries.find(target_library.c_str());
+        if (location == external_libraries.end())
+            return std::nullopt;
+        
+        return location->second;
     }
 }

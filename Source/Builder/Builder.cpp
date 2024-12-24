@@ -329,6 +329,7 @@ namespace h::builder
     static void build_artifact_auxiliary(
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path>& module_name_to_file_path_map,
         std::pmr::vector<std::pmr::string>& libraries,
+        std::pmr::vector<std::pmr::string>& dll_names,
         h::compiler::Target const& target,
         h::parser::Parser const& parser,
         std::filesystem::path const& configuration_file_path,
@@ -353,7 +354,7 @@ namespace h::builder
 
             std::filesystem::path const dependency_configuration_file_path = dependency_location.value();
 
-            build_artifact_auxiliary(module_name_to_file_path_map, libraries, target, parser, dependency_configuration_file_path, build_directory_path, header_search_paths, repositories, compilation_options);
+            build_artifact_auxiliary(module_name_to_file_path_map, libraries, dll_names, target, parser, dependency_configuration_file_path, build_directory_path, header_search_paths, repositories, compilation_options);
         }
 
         if (artifact.info.has_value() && std::holds_alternative<h::compiler::Library_info>(*artifact.info))
@@ -386,10 +387,16 @@ namespace h::builder
                 module_name_to_file_path_map.insert(std::make_pair(std::pmr::string{ header_module_name }, output_header_module_path));
             }
 
-            std::optional<h::compiler::External_library_info> const external_library = h::compiler::get_external_library(library_info.external_libraries, target, true);
+            std::optional<h::compiler::External_library_info> const external_library = h::compiler::get_external_library(library_info.external_libraries, target, compilation_options.debug, true);
             if (external_library.has_value())
             {
                 libraries.push_back(external_library.value().name);
+
+                std::optional<std::string_view> const dll_name = h::compiler::get_external_library_dll(library_info.external_libraries, external_library.value().key);
+                if (dll_name.has_value())
+                {
+                    dll_names.push_back(std::pmr::string{dll_name.value()});
+                }
             }
         }
 
@@ -423,7 +430,30 @@ namespace h::builder
     {
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> module_name_to_file_path_map;
         std::pmr::vector<std::pmr::string> libraries;
-        build_artifact_auxiliary(module_name_to_file_path_map, libraries, target, parser, configuration_file_path, build_directory_path, header_search_paths, repositories, compilation_options);
+        std::pmr::vector<std::pmr::string> dll_names;
+        build_artifact_auxiliary(module_name_to_file_path_map, libraries, dll_names, target, parser, configuration_file_path, build_directory_path, header_search_paths, repositories, compilation_options);
+
+        // Copy dlls:
+        for (std::pmr::string const& dll_name : dll_names)
+        {
+            // TODO search for dll
+            std::filesystem::path const dll_path = dll_name;
+            if (!std::filesystem::exists(dll_path))
+            {
+                std::fprintf(stderr, "Copy dll: could not find dll '%s'.", dll_name.c_str());
+                continue;
+            }
+
+            std::filesystem::path const destination_path = build_directory_path / "bin" / dll_path.filename();
+
+            std::string const source_string = dll_path.generic_string();
+            std::string const destination_string = destination_path.generic_string();
+
+            std::filesystem::copy_options const copy_options = std::filesystem::copy_options::update_existing;
+            bool const success = std::filesystem::copy_file(dll_path, destination_path, copy_options);
+            if (success)
+                std::printf("Copy dll: copied '%s' to '%s'.", source_string.c_str(), destination_string.c_str());
+        }
     }
 
     void print_struct_layout(
