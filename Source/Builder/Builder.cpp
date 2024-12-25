@@ -150,33 +150,6 @@ namespace h::builder
         return std::nullopt;
     }
 
-    static std::optional<std::pmr::string> get_external_library(nlohmann::json const& json, h::compiler::Target const& target)
-    {
-        nlohmann::json const external_library_json = json.at("external_library");
-
-        bool const prefer_dynamic = true;
-
-        {
-            std::string const first_target_library = std::format("{}-{}-release", target.operating_system, prefer_dynamic ? "dynamic" : "static");
-
-            if (external_library_json.contains(first_target_library))
-            {
-                return external_library_json.at(first_target_library);
-            }
-        }
-
-        {
-            std::string const second_target_library = std::format("{}-{}-release", target.operating_system, prefer_dynamic ? "static" : "dynamic");
-
-            if (external_library_json.contains(second_target_library))
-            {
-                return external_library_json.at(second_target_library);
-            }
-        }
-
-        return std::nullopt;
-    }
-
     static std::regex create_regex(std::string_view const regular_expression)
     {
         std::pmr::string modified_regular_expression{ regular_expression.begin(), regular_expression.begin() + regular_expression.size() };
