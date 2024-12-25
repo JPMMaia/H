@@ -16,6 +16,11 @@
   "main": "./dist/client.js",
   "activationEvents": [],
   "contributes": {
+    "breakpoints": [
+      {
+        "language": "hlang"
+      }
+    ],
     "configuration": {
       "type": "object",
       "title": "Configuration",
