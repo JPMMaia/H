@@ -113,12 +113,11 @@ namespace h::builder
             h::compiler::LLVM_data llvm_data = h::compiler::initialize_llvm({});
             h::compiler::LLVM_module_data llvm_module_data = h::compiler::create_llvm_module(llvm_data, core_module.value(), module_name_to_file_path_map, compilation_options);
 
-            // TODO For link time optimization (LTO) we need to output bitcode instead of objects
-            //std::filesystem::path const output_assembly_file = build_directory_path / std::format("{}.ll", core_module.value().name);
-            //h::compiler::write_bitcode_to_file(llvm_data, *llvm_module_data.module, output_assembly_file);*/
+            std::filesystem::path const output_assembly_file = build_directory_path / std::format("{}.bc", core_module.value().name);
+            h::compiler::write_bitcode_to_file(llvm_data, *llvm_module_data.module, output_assembly_file);
 
-            std::filesystem::path const output_assembly_file = build_directory_path / std::format("{}.o", core_module.value().name);
-            h::compiler::write_object_file(llvm_data, *llvm_module_data.module, output_assembly_file);
+            //std::filesystem::path const output_assembly_file = build_directory_path / std::format("{}.o", core_module.value().name);
+            //h::compiler::write_object_file(llvm_data, *llvm_module_data.module, output_assembly_file);
 
             object_file_paths.push_back(output_assembly_file);
         }
