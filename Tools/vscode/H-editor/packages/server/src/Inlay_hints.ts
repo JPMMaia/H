@@ -294,19 +294,19 @@ export async function create_label_parts_for_type_recursively(
             );
             return;
         }
-        case Core.Type_reference_enum.Function_type: {
-            const value = type.data.value as Core.Function_type;
+        case Core.Type_reference_enum.Function_pointer_type: {
+            const value = type.data.value as Core.Function_pointer_type;
             const input_parameter_parts: vscode.InlayHintLabelPart[] = [];
-            for (const type of value.input_parameter_types) {
+            for (const type of value.type.input_parameter_types) {
                 await create_label_parts_for_type_recursively(type, current_core_module, input_parameter_parts, get_core_module);
             }
-            if (value.is_variadic) {
+            if (value.type.is_variadic) {
                 input_parameter_parts.push({ value: "..." });
             }
             add_comma_label_parts(input_parameter_parts);
 
             const output_parameter_parts: vscode.InlayHintLabelPart[] = [];
-            for (const type of value.output_parameter_types) {
+            for (const type of value.type.output_parameter_types) {
                 await create_label_parts_for_type_recursively(type, current_core_module, output_parameter_parts, get_core_module);
             }
             add_comma_label_parts(output_parameter_parts);
