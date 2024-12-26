@@ -19,6 +19,8 @@ module;
 
 module h.c_header_converter;
 
+import h.c_header_hash;
+
 import h.core;
 import h.core.declarations;
 import h.core.expressions;
@@ -2165,13 +2167,11 @@ namespace h::c
     h::Module import_header(
         std::string_view const header_name,
         std::filesystem::path const& header_path,
-        Options const& options
+        Options const& options,
+        CXIndex const index,
+        CXTranslationUnit const unit
     )
     {
-        CXIndex index = clang_createIndex(0, 0);
-
-        CXTranslationUnit unit = create_translation_unit(index, header_path, options);
-
         auto const visitor = [](CXCursor current_cursor, CXCursor parent, CXClientData client_data) -> CXChildVisitResult
         {
             C_declarations* const declarations = reinterpret_cast<C_declarations*>(client_data);
@@ -2248,10 +2248,6 @@ namespace h::c
             declarations
         );
 
-        clang_disposeTranslationUnit(unit);
-        clang_disposeIndex(index);
-
-
         C_declarations declarations_with_fixed_width_integers = convert_fixed_width_integers_typedefs_to_integer_types(declarations);
         transform_names(declarations_with_fixed_width_integers, options.remove_prefixes);
 
@@ -2294,11 +2290,56 @@ namespace h::c
         return header_module;
     }
 
+    h::Module import_header(
+        std::string_view const header_name,
+        std::filesystem::path const& header_path,
+        Options const& options
+    )
+    {
+        CXIndex index = clang_createIndex(0, 0);
+        CXTranslationUnit unit = create_translation_unit(index, header_path, options);
+
+        h::Module header_module = import_header(header_name, header_path, options, index, unit);
+
+        clang_disposeTranslationUnit(unit);
+        clang_disposeIndex(index);
+
+        return header_module;
+    }
+
     void import_header_and_write_to_file(std::string_view const header_name, std::filesystem::path const& header_path, std::filesystem::path const& output_path, Options const& options)
     {
-        h::Module const header_module = import_header(header_name, header_path, options);
+        CXIndex index = clang_createIndex(0, 0);
+        CXTranslationUnit unit = create_translation_unit(index, header_path, options);
 
+        if (options.cached_header_hash.has_value())
+        {
+            std::optional<std::uint64_t> current_header_hash = calculate_header_file_hash(header_path, unit);
+            if (current_header_hash.has_value())
+            {
+                if (current_header_hash.value() == options.cached_header_hash.value())
+                    return;
+            }
+        }
+
+        h::Module const header_module = import_header(header_name, header_path, options, index, unit);
         h::json::write<h::Module>(output_path, header_module);
+
+        clang_disposeTranslationUnit(unit);
+        clang_disposeIndex(index);
+    }
+
+    std::optional<std::uint64_t> calculate_header_file_hash(std::filesystem::path const& header_path, Options const& options)
+    {
+        CXIndex index = clang_createIndex(0, 0);
+        CXTranslationUnit unit = create_translation_unit(index, header_path, options);
+
+        std::optional<std::uint64_t> const hash = calculate_header_file_hash(header_path, unit);
+        
+        clang_disposeTranslationUnit(unit);
+        clang_disposeIndex(index);
+
+        return hash;
     }
 
     h::Struct_layout calculate_struct_layout(
