@@ -328,7 +328,7 @@ namespace h::compiler
         }
 
         clang::FunctionProtoType::ExtProtoInfo extra_info = {};
-        extra_info.Variadic = false;
+        extra_info.Variadic = function_type.is_variadic;
 
         clang::QualType const function_proto_type = clang_ast_context.getFunctionType(
             return_type,
