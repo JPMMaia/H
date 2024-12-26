@@ -2016,24 +2016,10 @@ namespace h::compiler
                 struct_instance_value = llvm_builder.CreateInsertValue(struct_instance_value, member_value.value, { static_cast<unsigned>(member_index) });
             }
 
-            llvm::AllocaInst* alloca_instruction = create_alloca_instruction(
-                llvm_builder,
-                llvm_data_layout,
-                llvm_struct_type,
-                "temporary_struct_instance"
-            );
-
-            create_store_instruction(
-                llvm_builder,
-                llvm_data_layout,
-                struct_instance_value,
-                alloca_instruction
-            );
-
             return Value_and_type
             {
                 .name = "",
-                .value = alloca_instruction,
+                .value = struct_instance_value,
                 .type = struct_type_reference
             };
         }
@@ -2061,24 +2047,10 @@ namespace h::compiler
                 struct_instance_value = llvm_builder.CreateInsertValue(struct_instance_value, member_value.value, { static_cast<unsigned>(member_index) });
             }
 
-            llvm::AllocaInst* alloca_instruction = create_alloca_instruction(
-                llvm_builder,
-                llvm_data_layout,
-                llvm_struct_type,
-                "temporary_struct_instance"
-            );
-
-            create_store_instruction(
-                llvm_builder,
-                llvm_data_layout,
-                struct_instance_value,
-                alloca_instruction
-            );
-
             return Value_and_type
             {
                 .name = "",
-                .value = alloca_instruction,
+                .value = struct_instance_value,
                 .type = struct_type_reference
             };
         }
