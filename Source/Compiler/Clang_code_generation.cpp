@@ -1274,6 +1274,21 @@ namespace h::compiler
         return llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm_context), value);
     }
 
+    llvm::Value* create_alloca_and_store_if_not_pointer(
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Value* const llvm_value,
+        llvm::Type* const llvm_type
+    )
+    {
+        if (llvm_value->getType()->isPointerTy())
+            return llvm_value;
+
+        llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_type);
+        llvm_builder.CreateAlignedStore(llvm_value, alloca_instruction, llvm_data_layout.getABITypeAlign(llvm_type));
+        return alloca_instruction;
+    }
+
     llvm::Value* read_from_different_type(
         llvm::LLVMContext& llvm_context,
         llvm::IRBuilder<>& llvm_builder,
@@ -1289,7 +1304,8 @@ namespace h::compiler
         {
             if (convertion_type == Convertion_type::From_original_to_abi)
             {
-                llvm::Value* const load_instruction = llvm_builder.CreateAlignedLoad(destination_llvm_type, source_llvm_value, llvm_data_layout.getABITypeAlign(source_llvm_type));
+                llvm::Value* const source_llvm_pointer_value = create_alloca_and_store_if_not_pointer(llvm_builder, llvm_data_layout, source_llvm_value, source_llvm_type);
+                llvm::Value* const load_instruction = llvm_builder.CreateAlignedLoad(destination_llvm_type, source_llvm_pointer_value, llvm_data_layout.getABITypeAlign(source_llvm_type));
                 return load_instruction;
             }
             else
@@ -1327,7 +1343,9 @@ namespace h::compiler
         }
         else if (source_llvm_type->isStructTy() && !destination_llvm_type->isStructTy())
         {
-            llvm::Value* const pointer_to_source = llvm_builder.CreateInBoundsGEP(source_llvm_type, source_llvm_value, {get_constant(llvm_context, 0), get_constant(llvm_context, 0)});
+            llvm::Value* const source_llvm_pointer_value = create_alloca_and_store_if_not_pointer(llvm_builder, llvm_data_layout, source_llvm_value, source_llvm_type);
+
+            llvm::Value* const pointer_to_source = llvm_builder.CreateInBoundsGEP(source_llvm_type, source_llvm_pointer_value, {get_constant(llvm_context, 0), get_constant(llvm_context, 0)});
             llvm::LoadInst* const destination_value = llvm_builder.CreateAlignedLoad(destination_llvm_type, pointer_to_source, llvm_data_layout.getABITypeAlign(source_llvm_type));
             return destination_value;
         }
