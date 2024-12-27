@@ -249,7 +249,7 @@ namespace h
     export struct Variable_expression
     {
         std::pmr::string name;
-        Access_type access_type;
+        Access_type access_type = Access_type::Read;
 
         friend auto operator<=>(Variable_expression const&, Variable_expression const&) = default;
     };
