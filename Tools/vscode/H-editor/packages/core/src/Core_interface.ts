@@ -457,6 +457,7 @@ export interface Module_definitions {
 export interface Module {
     language_version: Language_version;
     name: string;
+    content_hash?: number;
     dependencies: Module_dependencies;
     export_declarations: Module_declarations;
     internal_declarations: Module_declarations;

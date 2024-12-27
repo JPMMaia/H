@@ -1925,6 +1925,7 @@ namespace h::json
         write_object(writer, output.language_version);
         writer.Key("name");
         writer.String(output.name.data(), output.name.size());
+        write_optional(writer, "content_hash", output.content_hash);
         writer.Key("dependencies");
         write_object(writer, output.dependencies);
         writer.Key("export_declarations");

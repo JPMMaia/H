@@ -653,6 +653,7 @@ namespace h
     {
         Language_version language_version;
         std::pmr::string name;
+        std::optional<std::uint64_t> content_hash;
         Module_dependencies dependencies;
         Module_declarations export_declarations;
         Module_declarations internal_declarations;

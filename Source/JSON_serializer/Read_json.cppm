@@ -3676,6 +3676,17 @@ namespace h::json
             };
         }
 
+        if (key == "content_hash")
+        {
+            parent->content_hash = std::uint64_t{};
+            return Stack_state
+            {
+                .pointer = &parent->content_hash.value(),
+                .type = "std::uint64_t",
+                .get_next_state = nullptr,
+            };
+        }
+
         if (key == "dependencies")
         {
 
