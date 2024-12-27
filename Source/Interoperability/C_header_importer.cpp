@@ -2312,17 +2312,24 @@ namespace h::c
         CXIndex index = clang_createIndex(0, 0);
         CXTranslationUnit unit = create_translation_unit(index, header_path, options);
 
-        if (options.cached_header_hash.has_value())
+        std::optional<std::uint64_t> current_header_hash = calculate_header_file_hash(header_path, unit);
+        
+        if (current_header_hash.has_value() && std::filesystem::exists(output_path))
         {
-            std::optional<std::uint64_t> current_header_hash = calculate_header_file_hash(header_path, unit);
-            if (current_header_hash.has_value())
+            std::optional<h::json::Header> const core_header = h::json::read_header(output_path);
+            if (core_header.has_value())
             {
-                if (current_header_hash.value() == options.cached_header_hash.value())
-                    return;
+                std::optional<std::uint64_t> const cached_header_hash = core_header->content_hash;
+                if (cached_header_hash.has_value())
+                {
+                    if (current_header_hash.value() == cached_header_hash.value())
+                        return;
+                }
             }
         }
 
-        h::Module const header_module = import_header(header_name, header_path, options, index, unit);
+        h::Module header_module = import_header(header_name, header_path, options, index, unit);
+        header_module.content_hash = current_header_hash;
         h::json::write<h::Module>(output_path, header_module);
 
         clang_disposeTranslationUnit(unit);

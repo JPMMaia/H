@@ -960,6 +960,7 @@ namespace h
         {
             .language_version = language_version,
             .name = "module_name",
+            .content_hash = 12089789297091071925,
             .dependencies = std::move(dependencies),
             .export_declarations = std::move(export_declarations),
             .internal_declarations = Module_declarations{},
@@ -977,6 +978,7 @@ namespace h
                 "patch": 3
             },
             "name": "module_name",
+            "content_hash": 12089789297091071925,
             "dependencies": {
                 "alias_imports": {
                     "size": 1,

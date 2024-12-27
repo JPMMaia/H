@@ -91,11 +91,11 @@ namespace h::builder
         // Read module names:
         for (std::filesystem::path const& parsed_file_path : parsed_source_file_paths)
         {
-            std::optional<std::pmr::string> const module_name = h::json::read_module_name(parsed_file_path);
-            if (!module_name.has_value())
-                h::common::print_message_and_exit(std::format("Failed to read module name of {}", parsed_file_path.generic_string()));
+            std::optional<h::json::Header> const header = h::json::read_header(parsed_file_path);
+            if (!header.has_value())
+                h::common::print_message_and_exit(std::format("Failed to read header of {}", parsed_file_path.generic_string()));
 
-            module_name_to_file_path_map.insert(std::make_pair(module_name.value(), parsed_file_path));
+            module_name_to_file_path_map.insert(std::make_pair(header->module_name, parsed_file_path));
         }
 
         std::pmr::vector<std::filesystem::path> object_file_paths;

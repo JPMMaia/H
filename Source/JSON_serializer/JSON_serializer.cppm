@@ -25,7 +25,7 @@ export module h.json_serializer;
 import h.core;
 import h.json_serializer.read_handler;
 import h.json_serializer.read_json;
-import h.json_serializer.read_module_name_handler;
+import h.json_serializer.read_header_handler;
 import h.json_serializer.write_json;
 
 namespace h::json
@@ -104,7 +104,13 @@ namespace h::json
         return h::json::read<Module>(reader, input_stream);
     }
 
-    export std::optional<std::pmr::string> read_module_name(
+    export struct Header
+    {
+        std::pmr::string module_name;
+        std::optional<std::uint64_t> content_hash;
+    };
+
+    export std::optional<Header> read_header(
         std::filesystem::path const& file_path
     )
     {
@@ -118,7 +124,7 @@ namespace h::json
         char read_buffer[1024];
         rapidjson::FileReadStream input_stream{ file, read_buffer, sizeof(read_buffer) };
 
-        h::json::Read_module_name_handler handler;
+        h::json::Read_header_handler handler;
 
         constexpr unsigned int parse_flags =
             rapidjson::kParseStopWhenDoneFlag |
@@ -140,7 +146,11 @@ namespace h::json
             }
         }
 
-        return handler.module_name;
+        return Header
+        {
+            .module_name = std::move(handler.module_name),
+            .content_hash = handler.content_hash,
+        };
     }
 
     export std::optional<Module> read_module_export_declarations(

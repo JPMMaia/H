@@ -46,8 +46,7 @@ namespace h::c
         std::optional<std::string_view> target_triple;
         std::span<std::filesystem::path const> include_directories;
         std::span<std::pmr::string const> public_prefixes;
-        std::span<std::pmr::string const> remove_prefixes; 
-        std::optional<std::uint64_t> cached_header_hash;
+        std::span<std::pmr::string const> remove_prefixes;
     };
 
     export h::Module import_header(std::string_view const header_name, std::filesystem::path const& header_path, Options const& options);
