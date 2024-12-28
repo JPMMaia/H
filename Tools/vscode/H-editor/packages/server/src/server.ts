@@ -205,7 +205,11 @@ function get_extension_settings(scope_uri: string): Thenable<Extension_settings>
 	return result;
 }
 
-connection.onDefinition(async (parameters: vscode_node.DefinitionParams): Promise<vscode_node.Location[]> => {
+connection.onDefinition(async (parameters: vscode_node.DefinitionParams, cancellation_token: vscode_node.CancellationToken): Promise<vscode_node.Location[]> => {
+	if (cancellation_token.isCancellationRequested) {
+		return [];
+	}
+
 	const start_time = performance.now();
 
 	const workspace_folder_uri = await get_workspace_folder_uri_for_document(parameters.textDocument.uri);
@@ -217,7 +221,16 @@ connection.onDefinition(async (parameters: vscode_node.DefinitionParams): Promis
 	return result;
 });
 
-connection.languages.diagnostics.on(async (parameters): Promise<vscode_node.DocumentDiagnosticReport> => {
+connection.languages.diagnostics.on(async (parameters, cancellation_token: vscode_node.CancellationToken): Promise<vscode_node.DocumentDiagnosticReport> => {
+	if (cancellation_token.isCancellationRequested) {
+		return {
+			kind: vscode_node.DocumentDiagnosticReportKind.Full,
+			items: []
+		};
+	}
+
+	// TODO if content or diagnostics did not change, then return unchanged
+
 	const start_time = performance.now();
 
 	const document_state = server_data.document_states.get(parameters.textDocument.uri);
@@ -392,7 +405,11 @@ connection.onDidChangeWatchedFiles(_change => {
 });
 
 connection.onCodeAction(
-	async (parameters: vscode_node.CodeActionParams): Promise<vscode_node.CodeAction[]> => {
+	async (parameters: vscode_node.CodeActionParams, cancellation_token: vscode_node.CancellationToken): Promise<vscode_node.CodeAction[]> => {
+		if (cancellation_token.isCancellationRequested) {
+			return [];
+		}
+
 		const start_time = performance.now();
 
 		const workspace_folder_uri = await get_workspace_folder_uri_for_document(parameters.textDocument.uri);
@@ -406,7 +423,11 @@ connection.onCodeAction(
 );
 
 connection.onCodeLens(
-	async (parameters: vscode_node.CodeLensParams): Promise<vscode_node.CodeLens[]> => {
+	async (parameters: vscode_node.CodeLensParams, cancellation_token: vscode_node.CancellationToken): Promise<vscode_node.CodeLens[]> => {
+		if (cancellation_token.isCancellationRequested) {
+			return [];
+		}
+
 		const start_time = performance.now();
 
 		const workspace_folder_uri = await get_workspace_folder_uri_for_document(parameters.textDocument.uri);
@@ -424,7 +445,11 @@ connection.onCodeLens(
 );
 
 connection.onCodeLensResolve(
-	async (code_lens: vscode_node.CodeLens): Promise<vscode_node.CodeLens> => {
+	async (code_lens: vscode_node.CodeLens, cancellation_token: vscode_node.CancellationToken): Promise<vscode_node.CodeLens> => {
+		if (cancellation_token.isCancellationRequested) {
+			return code_lens;
+		}
+
 		const start_time = performance.now();
 
 		const result = Code_lens.resolve(code_lens);
@@ -437,7 +462,11 @@ connection.onCodeLensResolve(
 );
 
 connection.onCompletion(
-	async (text_document_position: vscode_node.TextDocumentPositionParams): Promise<vscode_node.CompletionItem[]> => {
+	async (text_document_position: vscode_node.TextDocumentPositionParams, cancellation_token: vscode_node.CancellationToken): Promise<vscode_node.CompletionItem[]> => {
+		if (cancellation_token.isCancellationRequested) {
+			return [];
+		}
+
 		const start_time = performance.now();
 
 		const workspace_folder_uri = await get_workspace_folder_uri_for_document(text_document_position.textDocument.uri);
@@ -457,7 +486,11 @@ connection.onCompletionResolve(
 );
 
 connection.onHover(
-	async (parameters: vscode_node.HoverParams): Promise<vscode_node.Hover | undefined> => {
+	async (parameters: vscode_node.HoverParams, cancellation_token: vscode_node.CancellationToken): Promise<vscode_node.Hover | undefined> => {
+		if (cancellation_token.isCancellationRequested) {
+			return undefined;
+		}
+
 		const start_time = performance.now();
 
 		const workspace_folder_uri = await get_workspace_folder_uri_for_document(parameters.textDocument.uri);
@@ -471,7 +504,11 @@ connection.onHover(
 );
 
 connection.languages.inlayHint.on(
-	async (parameters: vscode_node.InlayHintParams): Promise<vscode_node.InlayHint[]> => {
+	async (parameters: vscode_node.InlayHintParams, cancellation_token: vscode_node.CancellationToken): Promise<vscode_node.InlayHint[]> => {
+		if (cancellation_token.isCancellationRequested) {
+			return [];
+		}
+
 		const start_time = performance.now();
 
 		const workspace_folder_uri = await get_workspace_folder_uri_for_document(parameters.textDocument.uri);
@@ -485,7 +522,11 @@ connection.languages.inlayHint.on(
 );
 
 connection.languages.semanticTokens.on(
-	async (parameters: vscode_node.SemanticTokensParams): Promise<vscode_node.SemanticTokens> => {
+	async (parameters: vscode_node.SemanticTokensParams, cancellation_token: vscode_node.CancellationToken): Promise<vscode_node.SemanticTokens> => {
+		if (cancellation_token.isCancellationRequested) {
+			return { data: [] };
+		}
+
 		const start_time = performance.now();
 
 		const document_state = server_data.document_states.get(parameters.textDocument.uri);
@@ -525,7 +566,11 @@ connection.languages.semanticTokens.on(
 );
 
 connection.languages.semanticTokens.onRange(
-	async (parameters: vscode_node.SemanticTokensRangeParams): Promise<vscode_node.SemanticTokens> => {
+	async (parameters: vscode_node.SemanticTokensRangeParams, cancellation_token: vscode_node.CancellationToken): Promise<vscode_node.SemanticTokens> => {
+		if (cancellation_token.isCancellationRequested) {
+			return { data: [] };
+		}
+
 		const start_time = performance.now();
 
 		const document_state = server_data.document_states.get(parameters.textDocument.uri);
@@ -543,7 +588,11 @@ connection.languages.semanticTokens.onRange(
 );
 
 connection.onSignatureHelp(
-	async (parameters: vscode_node.SignatureHelpParams): Promise<vscode_node.SignatureHelp | null> => {
+	async (parameters: vscode_node.SignatureHelpParams, cancellation_token: vscode_node.CancellationToken): Promise<vscode_node.SignatureHelp | null> => {
+		if (cancellation_token.isCancellationRequested) {
+			return null;
+		}
+
 		const start_time = performance.now();
 
 		const workspace_folder_uri = await get_workspace_folder_uri_for_document(parameters.textDocument.uri);
