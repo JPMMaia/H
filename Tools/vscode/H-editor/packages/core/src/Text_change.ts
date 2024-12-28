@@ -38,8 +38,33 @@ export function update(
     language_description: Language.Description,
     state: Document.State,
     text_changes: Text_change[],
-    text_after_changes: string
+    text_after_changes: string,
+    use_incremental: boolean = false
 ): Document.State {
+
+    if (!use_incremental) {
+        const result = full_parse_with_source_locations(language_description, state.document_file_path, text_after_changes);
+
+        if (result.diagnostics.length === 0) {
+            state.valid = {
+                module: result.module,
+                parse_tree: result.parse_tree,
+                parse_tree_text_position_cache: Parse_tree_text_position_cache.create_empty_cache(),
+                text: text_after_changes
+            };
+            state.with_errors = undefined;
+        }
+        else {
+            state.with_errors = {
+                module: result.module,
+                parse_tree: result.parse_tree,
+                parse_tree_text_position_cache: Parse_tree_text_position_cache.create_empty_cache(),
+                text: text_after_changes
+            };
+        }
+
+        return state;
+    }
 
     const text_change = aggregate_text_changes(state.valid.text, [...state.pending_text_changes, ...text_changes]);
     state.pending_text_changes = [text_change];

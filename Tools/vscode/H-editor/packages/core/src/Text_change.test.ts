@@ -70,7 +70,8 @@ describe("Text_change.update", () => {
             language_description,
             document_state,
             text_changes,
-            text_after_changes
+            text_after_changes,
+            true
         );
     });
 
@@ -94,7 +95,8 @@ describe("Text_change.update", () => {
             language_description,
             document_state,
             text_changes,
-            text_after_changes
+            text_after_changes,
+            true
         );
 
         assert.equal(document_state.valid.module.name, "Foo");
@@ -127,7 +129,8 @@ describe("Text_change.update", () => {
             language_description,
             document_state,
             text_changes,
-            text_after_changes
+            text_after_changes,
+            true
         );
 
         assert.equal(document_state.valid.module.name, "Bar");
@@ -154,7 +157,8 @@ describe("Text_change.update", () => {
                 language_description,
                 document_state,
                 text_changes,
-                text_after_changes
+                text_after_changes,
+                true
             );
 
             assert.equal(document_state.valid.module.name, "Foo");
@@ -177,7 +181,8 @@ describe("Text_change.update", () => {
                 language_description,
                 document_state,
                 text_changes,
-                text_after_changes
+                text_after_changes,
+                true
             );
 
             assert.equal(document_state.valid.module.name, "Bar");
@@ -205,7 +210,8 @@ describe("Text_change.update", () => {
                 language_description,
                 document_state,
                 text_changes,
-                text_after_changes
+                text_after_changes,
+                true
             );
         }
 
@@ -226,7 +232,8 @@ describe("Text_change.update", () => {
                 language_description,
                 document_state,
                 text_changes,
-                text_after_changes
+                text_after_changes,
+                true
             );
 
             assert.equal(document_state.valid.module.name, "Foo");
@@ -254,7 +261,8 @@ describe("Text_change.update", () => {
                 language_description,
                 document_state,
                 text_changes,
-                text_after_changes
+                text_after_changes,
+                true
             );
 
             assert.equal(document_state.valid.module.name, "Foo");
@@ -277,7 +285,8 @@ describe("Text_change.update", () => {
                 language_description,
                 document_state,
                 text_changes,
-                text_after_changes
+                text_after_changes,
+                true
             );
 
             assert.equal(document_state.pending_text_changes.length, 0);
@@ -318,7 +327,8 @@ describe("Text_change.update", () => {
                 language_description,
                 document_state,
                 text_changes,
-                text_after_changes
+                text_after_changes,
+                true
             );
 
             assert.equal(document_state.valid.module.name, "Foo");
@@ -356,7 +366,8 @@ describe("Text_change.update", () => {
                 language_description,
                 document_state,
                 text_changes,
-                text_after_changes
+                text_after_changes,
+                true
             );
 
             assert.equal(document_state.pending_text_changes.length, 0);
@@ -386,7 +397,8 @@ describe("Text_change.update", () => {
                 language_description,
                 document_state,
                 text_changes,
-                text_after_changes
+                text_after_changes,
+                true
             );
 
             assert.equal(document_state.valid.module.name, "Foo");
@@ -424,7 +436,8 @@ describe("Text_change.update", () => {
                 language_description,
                 document_state,
                 text_changes,
-                text_after_changes
+                text_after_changes,
+                true
             );
 
             assert.equal(document_state.pending_text_changes.length, 0);
@@ -460,7 +473,8 @@ describe("Text_change.update", () => {
                 language_description,
                 document_state,
                 text_changes,
-                text_after_changes
+                text_after_changes,
+                true
             );
 
             assert.equal(document_state.pending_text_changes.length, 0);
@@ -501,7 +515,8 @@ describe("Text_change.update", () => {
                 language_description,
                 document_state,
                 text_changes,
-                text_after_changes
+                text_after_changes,
+                true
             );
 
             assert.equal(document_state.valid.module.name, "Foo");
@@ -539,7 +554,8 @@ describe("Text_change.update", () => {
                 language_description,
                 document_state,
                 text_changes,
-                text_after_changes
+                text_after_changes,
+                true
             );
 
             assert.equal(document_state.pending_text_changes.length, 0);
@@ -576,12 +592,7 @@ describe("Text_change.update", () => {
 
             const text_after_changes = "module Foo;\n\nexport function My_function() -> () {}\n";
 
-            Text_change.update(
-                language_description,
-                document_state,
-                text_changes,
-                text_after_changes
-            );
+            Text_change.update(language_description, document_state, text_changes, text_after_changes, true);
 
             assert.equal(document_state.valid.module.name, "Foo");
 
@@ -617,13 +628,14 @@ describe("Text_change.update", () => {
                 }
             ];
 
-            const text_after_changes = "module Foo;\n\nexport function My_function() -> (first: Float16) {}\n";
+            const text_after_changes = "module Foo;\n\nexport function My_function(first: Float16) -> () {}\n";
 
             Text_change.update(
                 language_description,
                 document_state,
                 text_changes,
-                text_after_changes
+                text_after_changes,
+                true
             );
 
             assert.equal(document_state.valid.module.name, "Foo");
@@ -676,7 +688,7 @@ export function hello() -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, hello_world_program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, hello_world_program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         assert.equal(new_document_state.valid.module.name, "Hello_world");
@@ -786,7 +798,7 @@ export function hello() -> ()
             },
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, hello_world_program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, hello_world_program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const text_changes_2: Text_change.Text_change[] = [
@@ -811,7 +823,7 @@ export function hello() -> ()
 }
 `;
 
-        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, hello_world_program_2);
+        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, hello_world_program_2, true);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
     });
 
@@ -841,7 +853,7 @@ export function main() -> (result: Int32)
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_variables();
@@ -897,7 +909,7 @@ export function main() -> (result: Int32)
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_numbers();
@@ -954,7 +966,7 @@ export function main() -> (result: Int32)
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_numeric_casts();
@@ -985,7 +997,7 @@ export function foo() -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_booleans();
@@ -1041,7 +1053,7 @@ export function foo(
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_binary_expressions();
@@ -1091,7 +1103,7 @@ export function foo(
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_binary_expressions_operator_precedence();
@@ -1153,7 +1165,7 @@ export function foo(
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_assignment_expressions();
@@ -1189,7 +1201,7 @@ export function foo() -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_constant_array_expressions();
@@ -1233,7 +1245,7 @@ export function run() -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_function_pointer_types();
@@ -1274,7 +1286,7 @@ export function foo(
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_unary_expressions();
@@ -1323,7 +1335,7 @@ export function run(
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_pointer_types();
@@ -1359,7 +1371,7 @@ export function run_blocks() -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_block_expressions();
@@ -1414,7 +1426,7 @@ export function run_for_loops() -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_for_loop_expressions();
@@ -1491,7 +1503,7 @@ export function run_ifs(value: Int32) -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_if_expressions(false);
@@ -1521,7 +1533,7 @@ function run() -> (result: Int32)
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const program_2 = `
@@ -1543,7 +1555,7 @@ function run() -> (result: Int32)
             }
         ];
 
-        const new_document_state_2 = Text_change.update(language_description, document_state, text_changes_2, program_2);
+        const new_document_state_2 = Text_change.update(language_description, document_state, text_changes_2, program_2, true);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 0);
 
@@ -1603,7 +1615,7 @@ export function run_switch(value: Int32) -> (result: Int32)
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_switch_expressions();
@@ -1636,7 +1648,7 @@ export function run_ternary_conditions(first_boolean: Bool, second_boolean: Bool
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_ternary_condition_expressions();
@@ -1699,7 +1711,7 @@ export function run_while_loops(size: Int32) -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_while_loop_expressions();
@@ -1729,7 +1741,7 @@ function run() -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 0);
 
@@ -1811,7 +1823,7 @@ export function run_breaks(size: Int32) -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         console.log(new_document_state.valid.text);
@@ -1844,7 +1856,7 @@ export function use_alias(size: My_int) -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_using_alias();
@@ -1898,7 +1910,7 @@ export function use_enums(enum_argument: My_enum) -> (result: Int32)
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_using_enums();
@@ -1956,7 +1968,7 @@ export function use_enums(enum_argument: My_enum_flag) -> (result: Int32)
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_using_enum_flags();
@@ -1989,7 +2001,7 @@ export function use_global_variables(parameter: Float32) -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_using_global_variables();
@@ -2073,7 +2085,7 @@ function return_struct() -> (my_struct: My_struct)
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_using_structs();
@@ -2166,7 +2178,7 @@ function return_union() -> (my_union: My_union)
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_using_unions();
@@ -2195,7 +2207,7 @@ export function my_function(first: Int32, ...) -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_variadic_function_declarations();
@@ -2222,7 +2234,7 @@ module Comments_in_module_declaration;
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_comments_in_module_declaration();
@@ -2251,7 +2263,7 @@ using My_int = Int32;
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_comments_in_alias();
@@ -2287,7 +2299,7 @@ enum My_enum
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_comments_in_enums();
@@ -2324,7 +2336,7 @@ export function use_comments() -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_comments_in_functions(false);
@@ -2353,7 +2365,7 @@ export var My_global_variable = 1.0f32;
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_comments_in_global_variables();
@@ -2390,7 +2402,7 @@ struct My_struct
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_comments_in_structs();
@@ -2427,7 +2439,7 @@ union My_union
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_comments_in_unions();
@@ -2467,7 +2479,7 @@ function use_newlines() -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_newlines_after_statements(false);
@@ -2497,7 +2509,7 @@ function run() -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 1);
         assert.equal(new_document_state.diagnostics.length, 1);
 
@@ -2513,7 +2525,7 @@ function run() -> ()
 
         const program_2 = Text_change.apply_text_changes(program, text_changes_2);
 
-        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2);
+        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2, true);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 0);
 
@@ -2541,7 +2553,7 @@ import
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 1);
         assert.equal(new_document_state.diagnostics.length, 1);
 
@@ -2557,7 +2569,7 @@ import
 
         const program_2 = Text_change.apply_text_changes(program, text_changes_2);
 
-        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2);
+        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2, true);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 0);
 
@@ -2589,7 +2601,7 @@ export function run() -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 1);
         assert.equal(new_document_state.diagnostics.length, 1);
 
@@ -2605,7 +2617,7 @@ export function run() -> ()
 
         const program_2 = Text_change.apply_text_changes(program, text_changes_2);
 
-        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2);
+        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2, true);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 0);
 
@@ -2637,7 +2649,7 @@ export function run() -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 0);
 
@@ -2673,7 +2685,7 @@ function run(value:
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 1);
         assert.equal(new_document_state.diagnostics.length, 1);
 
@@ -2689,7 +2701,7 @@ function run(value:
 
         const program_2 = Text_change.apply_text_changes(program, text_changes_2);
 
-        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2);
+        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2, true);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 0);
     });
@@ -2720,7 +2732,7 @@ function run() -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 0);
 
@@ -2762,7 +2774,7 @@ function run() -> (result: Int32)
             }
         ];
 
-        const new_document_state_0 = Text_change.update(language_description, document_state, text_changes_0, program_0);
+        const new_document_state_0 = Text_change.update(language_description, document_state, text_changes_0, program_0, true);
         assert.equal(new_document_state_0.pending_text_changes.length, 0);
         assert.equal(new_document_state_0.diagnostics.length, 0);
         validate_document_state(language_description, new_document_state_0);
@@ -2778,7 +2790,7 @@ function run() -> (result: Int32)
         ];
         const program_1 = Text_change.apply_text_changes(program_0, text_changes_1);
 
-        const new_document_state_1 = Text_change.update(language_description, new_document_state_0, text_changes_1, program_1);
+        const new_document_state_1 = Text_change.update(language_description, new_document_state_0, text_changes_1, program_1, true);
         assert.equal(new_document_state_1.pending_text_changes.length, 0);
         assert.equal(new_document_state_1.diagnostics.length, 0);
         validate_document_state(language_description, new_document_state_1);
@@ -2808,7 +2820,7 @@ function run() -> (result: Int32)
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 0);
 
@@ -2824,7 +2836,7 @@ function run() -> (result: Int32)
 
         const program_2 = Text_change.apply_text_changes(program, text_changes_2);
 
-        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2);
+        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2, true);
         assert.equal(new_document_state_2.pending_text_changes.length, 1);
         assert.equal(new_document_state_2.diagnostics.length, 1);
 
@@ -2840,7 +2852,7 @@ function run() -> (result: Int32)
 
         const program_3 = Text_change.apply_text_changes(program_2, text_changes_3);
 
-        const new_document_state_3 = Text_change.update(language_description, new_document_state_2, text_changes_3, program_3);
+        const new_document_state_3 = Text_change.update(language_description, new_document_state_2, text_changes_3, program_3, true);
         assert.equal(new_document_state_3.pending_text_changes.length, 0);
         assert.equal(new_document_state_3.diagnostics.length, 0);
     });
@@ -2911,7 +2923,7 @@ function run(a: Node) -> (b: Node)
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 0);
 
@@ -2929,7 +2941,7 @@ function run(a: Node) -> (b: Node)
 
         const program_2 = Text_change.apply_text_changes(program, text_changes_2);
 
-        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2);
+        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2, true);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 0);
 
@@ -3003,7 +3015,7 @@ function run(a: alias_0.My_struct) -> (b: alias_0.My_struct)
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program);
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 0);
 
@@ -3023,7 +3035,7 @@ function run(a: alias_0.My_struct) -> (b: alias_0.My_struct)
 
         const program_2 = Text_change.apply_text_changes(program, text_changes_2);
 
-        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2);
+        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2, true);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 0);
 
@@ -3371,7 +3383,7 @@ function simulate_typing(
 
         const new_program = Text_change.apply_text_changes(current_program, text_changes);
 
-        const new_document_state = Text_change.update(language_description, current_document_state, text_changes, new_program);
+        const new_document_state = Text_change.update(language_description, current_document_state, text_changes, new_program, true);
 
         current_program = new_program;
         current_document_state = new_document_state;
@@ -3410,7 +3422,7 @@ function simulate_erasing(
 
         const new_program = Text_change.apply_text_changes(current_program, text_changes);
 
-        const new_document_state = Text_change.update(language_description, current_document_state, text_changes, new_program);
+        const new_document_state = Text_change.update(language_description, current_document_state, text_changes, new_program, true);
 
         current_program = new_program;
         current_document_state = new_document_state;
