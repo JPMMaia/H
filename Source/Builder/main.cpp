@@ -118,6 +118,19 @@ std::optional<std::string_view> get_target_triple(argparse::ArgumentParser const
     return (!target_triple.empty() && target_triple != "default") ? std::optional<std::string_view>{target_triple} : std::nullopt;
 }
 
+void print_arguments(int const argc, char const* const* argv)
+{
+    for (int index = 0; index < argc; ++index)
+    {
+        std::fputc('"', stdout);
+        std::fputs(argv[index], stdout);
+        std::fputc('"', stdout);
+        std::fputc(' ', stdout);
+    }
+    
+    std::fputc('\n', stdout);
+}
+
 int main(int const argc, char const* const* argv)
 {
     argparse::ArgumentParser program("hlang");
@@ -194,6 +207,8 @@ int main(int const argc, char const* const* argv)
         std::cerr << program;
         std::exit(1);
     }
+
+    print_arguments(argc, argv);
 
     if (program.is_subcommand_used("build-executable"))
     {
