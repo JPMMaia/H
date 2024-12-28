@@ -3,13 +3,13 @@ add_library(H::C_header_importer ALIAS H_C_header_importer)
 
 target_compile_features(H_C_header_importer PUBLIC cxx_std_23)
 
-target_link_libraries(H_C_header_importer PUBLIC H::Core H::JSON_serializer)
+target_link_libraries(H_C_header_importer PUBLIC H::Common H::Core H::JSON_serializer)
 
 ## LLVM ##
 
 find_package(Clang CONFIG REQUIRED)
 target_include_directories(H_C_header_importer PRIVATE ${CLANG_INCLUDE_DIRS})
-target_link_libraries(H_C_header_importer PRIVATE libclang)
+target_link_libraries(H_C_header_importer PRIVATE libclang clangTooling)
 
 ## End LLVM ##
 
