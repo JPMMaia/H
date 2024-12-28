@@ -22,6 +22,8 @@ const connection = vscode_node.createConnection(vscode_node.ProposedFeatures.all
 
 const server_data = Server_data.create_server_data();
 
+let g_workspace_folders: vscode_node.WorkspaceFolder[] = [];
+
 let has_configuration_capability = false;
 let has_workspace_folder_capability = false;
 let has_diagnostic_related_information_capability = false;
@@ -146,6 +148,8 @@ async function create_projects_data(): Promise<void> {
 	if (has_workspace_folder_capability) {
 		const workspace_folders = await connection.workspace.getWorkspaceFolders();
 		if (workspace_folders !== null) {
+			g_workspace_folders = workspace_folders;
+
 			for (const workspace_folder of workspace_folders) {
 				const workspace_folder_uri = vscode_uri.URI.parse(workspace_folder.uri);
 				const workspace_folder_fs_path = workspace_folder_uri.fsPath;
@@ -555,10 +559,7 @@ connection.onSignatureHelp(
 connection.listen();
 
 async function get_workspace_folder_uri_for_document(document_uri: string): Promise<string | undefined> {
-	const workspace_folders = await connection.workspace.getWorkspaceFolders();
-	if (!workspace_folders) {
-		return undefined;
-	}
+	const workspace_folders = g_workspace_folders;
 
 	for (const folder of workspace_folders) {
 		if (document_uri.startsWith(folder.uri)) {
