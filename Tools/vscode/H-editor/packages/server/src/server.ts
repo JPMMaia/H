@@ -212,7 +212,7 @@ connection.onDefinition(async (parameters: vscode_node.DefinitionParams): Promis
 	const result = Definition.find_definition_link(parameters, server_data, workspace_folder_uri);
 
 	const end_time = performance.now();
-	console.log(`onDefinition() took ${end_time - start_time} milliseconds`);
+	console.log(`onDefinition() took ${(end_time - start_time).toFixed(2)} milliseconds`);
 
 	return result;
 });
@@ -275,7 +275,7 @@ connection.languages.diagnostics.on(async (parameters): Promise<vscode_node.Docu
 	});
 
 	const end_time = performance.now();
-	console.log(`diagnostics() took ${end_time - start_time} milliseconds`);
+	console.log(`diagnostics() took ${(end_time - start_time).toFixed(2)} milliseconds`);
 
 	return {
 		kind: vscode_node.DocumentDiagnosticReportKind.Full,
@@ -318,7 +318,7 @@ connection.onDidOpenTextDocument((parameters) => {
 	}
 
 	const end_time = performance.now();
-	console.log(`onDidOpenTextDocument() took ${end_time - start_time} milliseconds`);
+	console.log(`onDidOpenTextDocument() took ${(end_time - start_time).toFixed(2)} milliseconds`);
 });
 
 connection.onDidChangeTextDocument((parameters) => {
@@ -371,7 +371,7 @@ connection.onDidChangeTextDocument((parameters) => {
 	}
 
 	const end_time = performance.now();
-	console.log(`onDidChangeTextDocument() took ${end_time - start_time} milliseconds`);
+	console.log(`onDidChangeTextDocument() took ${(end_time - start_time).toFixed(2)} milliseconds`);
 });
 
 connection.onDidCloseTextDocument((parameters) => {
@@ -383,7 +383,7 @@ connection.onDidCloseTextDocument((parameters) => {
 	server_data.core_modules_with_source_locations.delete(parameters.textDocument.uri);
 
 	const end_time = performance.now();
-	console.log(`onDidCloseTextDocument() took ${end_time - start_time} milliseconds`);
+	console.log(`onDidCloseTextDocument() took ${(end_time - start_time).toFixed(2)} milliseconds`);
 });
 
 connection.onDidChangeWatchedFiles(_change => {
@@ -399,7 +399,7 @@ connection.onCodeAction(
 		const result = Code_actions.get_code_actions(parameters, server_data, workspace_folder_uri);
 
 		const end_time = performance.now();
-		console.log(`onCodeAction() took ${end_time - start_time} milliseconds`);
+		console.log(`onCodeAction() took ${(end_time - start_time).toFixed(2)} milliseconds`);
 
 		return result;
 	}
@@ -417,7 +417,7 @@ connection.onCodeLens(
 		const result = Code_lens.create(parameters, server_data, workspace_folder_uri);
 
 		const end_time = performance.now();
-		console.log(`onCodeLens() took ${end_time - start_time} milliseconds`);
+		console.log(`onCodeLens() took ${(end_time - start_time).toFixed(2)} milliseconds`);
 
 		return result;
 	}
@@ -430,7 +430,7 @@ connection.onCodeLensResolve(
 		const result = Code_lens.resolve(code_lens);
 
 		const end_time = performance.now();
-		console.log(`onCodeLensResolve() took ${end_time - start_time} milliseconds`);
+		console.log(`onCodeLensResolve() took ${(end_time - start_time).toFixed(2)} milliseconds`);
 
 		return result;
 	}
@@ -444,7 +444,7 @@ connection.onCompletion(
 		const result = Completion.on_completion(text_document_position, server_data, workspace_folder_uri);
 
 		const end_time = performance.now();
-		console.log(`onCompletion() took ${end_time - start_time} milliseconds`);
+		console.log(`onCompletion() took ${(end_time - start_time).toFixed(2)} milliseconds`);
 
 		return result;
 	}
@@ -464,7 +464,7 @@ connection.onHover(
 		const result = Hover.get_hover(parameters, server_data, workspace_folder_uri);
 
 		const end_time = performance.now();
-		console.log(`onHover() took ${end_time - start_time} milliseconds`);
+		console.log(`onHover() took ${(end_time - start_time).toFixed(2)} milliseconds`);
 
 		return result;
 	}
@@ -478,7 +478,7 @@ connection.languages.inlayHint.on(
 		const result = Inlay_hints.create(parameters, server_data, workspace_folder_uri);
 
 		const end_time = performance.now();
-		console.log(`inlayHint() took ${end_time - start_time} milliseconds`);
+		console.log(`inlayHint() took ${(end_time - start_time).toFixed(2)} milliseconds`);
 
 		return result;
 	}
@@ -518,7 +518,7 @@ connection.languages.semanticTokens.on(
 		const result = Semantic_tokens_provider.provider(range_parameters, document_state);
 
 		const end_time = performance.now();
-		console.log(`semanticTokens() took ${end_time - start_time} milliseconds`);
+		console.log(`semanticTokens() took ${(end_time - start_time).toFixed(2)} milliseconds`);
 
 		return result;
 	}
@@ -536,7 +536,7 @@ connection.languages.semanticTokens.onRange(
 		const result = Semantic_tokens_provider.provider(parameters, document_state);
 
 		const end_time = performance.now();
-		console.log(`semanticTokens() took ${end_time - start_time} milliseconds`);
+		console.log(`semanticTokens() took ${(end_time - start_time).toFixed(2)} milliseconds`);
 
 		return result;
 	}
@@ -550,7 +550,7 @@ connection.onSignatureHelp(
 		const result = Signature_help.create(parameters, server_data, workspace_folder_uri);
 
 		const end_time = performance.now();
-		console.log(`onSignatureHelp() took ${end_time - start_time} milliseconds`);
+		console.log(`onSignatureHelp() took ${(end_time - start_time).toFixed(2)} milliseconds`);
 
 		return result;
 	}
