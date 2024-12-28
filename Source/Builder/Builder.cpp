@@ -75,6 +75,8 @@ namespace h::builder
         h::compiler::Linker_options const& linker_options
     )
     {
+        std::chrono::high_resolution_clock::time_point const start_time_point = std::chrono::high_resolution_clock::now();
+
         create_directory_if_it_does_not_exist(build_directory_path);
         create_directory_if_it_does_not_exist(output_path.parent_path());
 
@@ -126,8 +128,11 @@ namespace h::builder
         std::filesystem::path const output_executable_path = target.operating_system == "windows" ? std::format("{}.exe", output_path.generic_string()) : output_path;
         if (h::compiler::link(object_file_paths, libraries, output_executable_path, linker_options))
         {
+            std::chrono::high_resolution_clock::time_point const end_time_point = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> const duration = end_time_point - start_time_point;
+
             std::uintmax_t const executable_size = std::filesystem::file_size(output_executable_path);
-            std::puts(std::format("Created {} ({} bytes)", output_executable_path.generic_string(), executable_size).c_str());
+            std::puts(std::format("Created {} ({} bytes) in {}.", output_executable_path.generic_string(), executable_size, duration).c_str());
         }
     }
 
