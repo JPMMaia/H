@@ -347,7 +347,7 @@ namespace h::builder
                 if (!header_path.has_value())
                     h::common::print_message_and_exit(std::format("Could not find header {}. Please provide its location using --header-search-path.", header_filename));
 
-                std::filesystem::path const header_module_filename = header_path.value().filename().replace_extension("hl");
+                std::filesystem::path const header_module_filename = std::format("{}.hl", header_module_name);
                 std::filesystem::path const output_header_module_path = output_directory_path / header_module_filename;
                 h::compiler::C_header_options const* const c_header_options = get_c_header_options(library_info, c_header);
 
