@@ -49,18 +49,20 @@ export function update(
             state.valid = {
                 module: result.module,
                 parse_tree: result.parse_tree,
-                parse_tree_text_position_cache: Parse_tree_text_position_cache.create_empty_cache(),
+                parse_tree_text_position_cache: result.position_cache,
                 text: text_after_changes
             };
+            state.diagnostics = [];
             state.with_errors = undefined;
         }
         else {
             state.with_errors = {
-                module: result.module,
-                parse_tree: result.parse_tree,
-                parse_tree_text_position_cache: Parse_tree_text_position_cache.create_empty_cache(),
+                module: result.module !== undefined ? result.module : (state.valid.module !== undefined ? JSON.parse(JSON.stringify(state.valid.module)) : undefined),
+                parse_tree: result.parse_tree !== undefined ? result.parse_tree : (state.valid.parse_tree !== undefined ? JSON.parse(JSON.stringify(state.valid.parse_tree)) : undefined),
+                parse_tree_text_position_cache: result.parse_tree !== undefined ? result.position_cache : state.valid.parse_tree_text_position_cache,
                 text: text_after_changes
             };
+            state.diagnostics = result.diagnostics;
         }
 
         return state;
@@ -229,7 +231,7 @@ export function full_parse_with_source_locations(
     language_description: Language.Description,
     document_file_path: string,
     input_text: string
-): { module: Core.Module | undefined, parse_tree: Parser_node.Node | undefined, diagnostics: Validation.Diagnostic[] } {
+): { module: Core.Module | undefined, parse_tree: Parser_node.Node | undefined, diagnostics: Validation.Diagnostic[], position_cache: Parse_tree_text_position_cache.Cache } {
     const scanned_words = Scanner.scan(input_text, 0, input_text.length, { line: 1, column: 1 });
 
     const parse_tree_result = Parser.parse_incrementally(
@@ -245,16 +247,26 @@ export function full_parse_with_source_locations(
     );
 
     if (parse_tree_result.status !== Parser.Parse_status.Accept) {
-        return { module: undefined, parse_tree: undefined, diagnostics: parse_tree_result.diagnostics };
+        return { module: undefined, parse_tree: undefined, diagnostics: parse_tree_result.diagnostics, position_cache: undefined };
     }
 
     const parse_tree = (parse_tree_result.changes[0].value as Parser.Modify_change).new_node;
     Parse_tree_text_iterator.add_source_locations_to_parse_tree_nodes(parse_tree, input_text);
 
+    const position_cache = Parse_tree_text_position_cache.create_empty_cache();
+    Parse_tree_text_position_cache.update_cache(position_cache, parse_tree_result.changes, { range: { start: 0, end: 0 }, text: input_text }, input_text);
+
+    {
+        const diagnostics = validate_parse_changes(document_file_path, parse_tree_result.changes, position_cache);
+        if (diagnostics.length > 0) {
+            return { module: undefined, parse_tree: parse_tree, diagnostics: diagnostics, position_cache: position_cache };
+        }
+    }
+
     const module = Parse_tree_convertor.parse_tree_to_module(parse_tree, language_description.production_rules, language_description.mappings, language_description.key_to_production_rule_indices);
     module.source_file_path = document_file_path.replace(/\\/g, "/");
 
-    return { module: module, parse_tree: parse_tree, diagnostics: parse_tree_result.diagnostics };
+    return { module: module, parse_tree: parse_tree, diagnostics: parse_tree_result.diagnostics, position_cache: position_cache };
 }
 
 export async function get_all_diagnostics(
