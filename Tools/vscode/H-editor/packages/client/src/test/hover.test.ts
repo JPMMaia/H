@@ -115,6 +115,13 @@ suite("Should get hover of functions", () => {
             new vscode.Hover([create_add_function_markdown_string()], to_range(17, 17, 17, 20))
         ]);
     });
+
+    test("Gets imported function hover at expression call", async () => {
+        const document_uri = get_document_uri("projects/project_0/main.hltxt");
+        await test_hover(document_uri, new vscode.Position(16, 21), [
+            new vscode.Hover([create_complex_add_function_markdown_string()], to_range(16, 20, 16, 23))
+        ]);
+    });
 });
 
 function create_add_function_markdown_string(): vscode.MarkdownString {
@@ -128,6 +135,18 @@ function create_add_function_markdown_string(): vscode.MarkdownString {
             '',
             'Add two 32-bit integers.',
             'It returns the result of adding lhs and rhs.',
+        ].join('\n')
+    );
+}
+
+function create_complex_add_function_markdown_string(): vscode.MarkdownString {
+    return new vscode.MarkdownString(
+        [
+            '```hlang',
+            'module c.complex',
+            'function add(lhs: complex.Complex, rhs: complex.Complex) -> (result: complex.Complex)',
+            '```',
+            ''
         ].join('\n')
     );
 }

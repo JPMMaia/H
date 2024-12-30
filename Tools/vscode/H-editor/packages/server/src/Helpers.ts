@@ -82,11 +82,12 @@ export function get_tooltip_of_module(
 }
 
 export function get_tooltip_of_declaration(
+    current_module: Core.Module,
     core_module: Core.Module,
     declaration: Core.Declaration
 ): vscode.MarkupContent {
 
-    const declaration_label = create_declaration_label(core_module, declaration);
+    const declaration_label = create_declaration_label(current_module, core_module, declaration);
 
     const lines = [
         '```hlang',
@@ -727,13 +728,14 @@ export function get_struct_member_source_location(
 }
 
 export function create_declaration_label(
+    current_module: Core.Module,
     core_module: Core.Module,
     declaration: Core.Declaration
 ): string {
     switch (declaration.type) {
         case Core.Declaration_type.Function: {
             const function_value = declaration.value as Core.Function;
-            return create_function_label(core_module, function_value.declaration);
+            return create_function_label(current_module, core_module, function_value.declaration);
         }
         case Core.Declaration_type.Global_variable: {
             const global_variable = declaration.value as Core.Global_variable_declaration;
@@ -753,22 +755,24 @@ export function create_declaration_label(
 }
 
 export function create_function_label(
+    current_module: Core.Module,
     core_module: Core.Module,
     function_declaration: Core.Function_declaration
 ): string {
-    const input_parameters_string = format_function_parameters(core_module, function_declaration.input_parameter_names, function_declaration.type.input_parameter_types);
-    const output_parameters_string = format_function_parameters(core_module, function_declaration.output_parameter_names, function_declaration.type.output_parameter_types);
+    const input_parameters_string = format_function_parameters(current_module, core_module, function_declaration.input_parameter_names, function_declaration.type.input_parameter_types);
+    const output_parameters_string = format_function_parameters(current_module, core_module, function_declaration.output_parameter_names, function_declaration.type.output_parameter_types);
     return `function ${sanitize_input(function_declaration.name)}(${input_parameters_string}) -> (${output_parameters_string})`;
 }
 
 function format_function_parameters(
+    current_module: Core.Module,
     core_module: Core.Module,
     names: string[],
     types: Core.Type_reference[]
 ): string {
     return names.map(
         (value, index) => {
-            const type_name = sanitize_input(Type_utilities.get_type_name([types[index]], core_module));
+            const type_name = sanitize_input(Type_utilities.get_type_name([types[index]], current_module));
             return `${sanitize_input(value)}: ${type_name}`;
         }
     ).join(", ");

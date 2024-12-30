@@ -58,7 +58,7 @@ export async function create(
                 server_data.language_description, core_module, root, before_cursor_iterator.node_position, get_core_module
             );
             if (expression_call_info !== undefined) {
-                return get_function_signature_help(core_module, expression_call_info.function_value.declaration, expression_call_info.input_parameter_index);
+                return get_function_signature_help(core_module, core_module, expression_call_info.function_value.declaration, expression_call_info.input_parameter_index);
             }
         }
         else if (ancestor.node.word.value === "Expression_instantiate") {
@@ -73,6 +73,7 @@ export async function create(
 }
 
 function get_function_signature_help(
+    current_module: Core.Module,
     core_module: Core.Module,
     function_declaration: Core.Function_declaration,
     input_parameter_index: number
@@ -80,7 +81,7 @@ function get_function_signature_help(
 
     const function_comment = Comments.parse_function_comment(function_declaration);
 
-    const function_label = Helpers.create_function_label(core_module, function_declaration);
+    const function_label = Helpers.create_function_label(current_module, core_module, function_declaration);
 
     const signature_information: vscode.SignatureInformation = {
         label: function_label,
