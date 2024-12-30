@@ -82,20 +82,20 @@ function create_debounce_promise<T>(
 ): Promise<T> {
 
 	let timeout: NodeJS.Timeout | undefined = undefined;
-	let reject_promise: (reason?: any) => void = null;
+	let reject_promise: (value: T | PromiseLike<T>) => void = null;
 
 	const cancel = () => {
 		if (timeout !== undefined) {
 			clearTimeout(timeout);
 		}
 		if (reject_promise !== null) {
-			reject_promise();
+			reject_promise(undefined);
 		}
 	};
 	g_cancel_debounces.push(cancel);
 
 	const promise = new Promise<T>((resolve, reject) => {
-		reject_promise = reject;
+		reject_promise = resolve;
 		timeout = setTimeout(() => {
 			resolve(predicate());
 
