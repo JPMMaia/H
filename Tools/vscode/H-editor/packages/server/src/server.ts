@@ -608,6 +608,11 @@ connection.onSignatureHelp(
 connection.listen();
 
 async function get_workspace_folder_uri_for_document(document_uri: string): Promise<string | undefined> {
+
+	if (g_workspace_folders.length === 0) {
+		await create_projects_data();
+	}
+
 	const workspace_folders = g_workspace_folders;
 
 	for (const folder of workspace_folders) {
