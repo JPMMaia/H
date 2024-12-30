@@ -208,10 +208,10 @@ int main(int const argc, char const* const* argv)
         std::exit(1);
     }
 
-    print_arguments(argc, argv);
-
     if (program.is_subcommand_used("build-executable"))
     {
+        print_arguments(argc, argv);
+
         argparse::ArgumentParser const& subprogram = program.at<argparse::ArgumentParser>("build-executable");
 
         std::pmr::vector<std::filesystem::path> const file_paths = convert_to_path(program.get<std::vector<std::string>>("files"));
@@ -243,6 +243,8 @@ int main(int const argc, char const* const* argv)
     }
     else if (program.is_subcommand_used("build-artifact"))
     {
+        print_arguments(argc, argv);
+
         argparse::ArgumentParser const& subprogram = program.at<argparse::ArgumentParser>("build-artifact");
 
         std::filesystem::path const artifact_file_path = subprogram.get<std::string>("--artifact-file");
@@ -265,6 +267,8 @@ int main(int const argc, char const* const* argv)
     }
     else if (program.is_subcommand_used("run-with-jit"))
     {
+        print_arguments(argc, argv);
+
         argparse::ArgumentParser const& subprogram = program.at<argparse::ArgumentParser>("run-with-jit");
 
         std::filesystem::path const artifact_file_path = subprogram.get<std::string>("--artifact-file");
@@ -295,6 +299,8 @@ int main(int const argc, char const* const* argv)
     }
     else if (program.is_subcommand_used("import-c-header"))
     {
+        print_arguments(argc, argv);
+
         argparse::ArgumentParser const& subprogram = program.at<argparse::ArgumentParser>("import-c-header");
 
         std::string const module_name = subprogram.get<std::string>("module_name");
