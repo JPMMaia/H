@@ -894,6 +894,8 @@ export function main() -> (result: Int32)
     var my_c_uint = 1cui;
     var my_c_ulong = 1cul;
     var my_c_ulonglong = 1cull;
+    
+    var my_c_bool = 1cb;
 
     return 0;
 }

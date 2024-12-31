@@ -376,6 +376,9 @@ export function constant_expression_to_word(
                 case Core_intermediate_representation.Fundamental_type.C_ulonglong: {
                     return { value: `${constant_expression.data}cull`, type: Grammar.Word_type.Number };
                 }
+                case Core_intermediate_representation.Fundamental_type.C_bool: {
+                    return { value: `${constant_expression.data}cb`, type: Grammar.Word_type.Number };
+                }
                 default: {
                     return { value: constant_expression.data, type: Scanner.get_word_type(constant_expression.data) };
                 }
@@ -3140,6 +3143,8 @@ function node_to_expression_constant(node: Parser_node.Node): Core_intermediate_
                             return Core_intermediate_representation.Fundamental_type.C_ulong;
                         case "cull":
                             return Core_intermediate_representation.Fundamental_type.C_ulonglong;
+                        case "cb":
+                            return Core_intermediate_representation.Fundamental_type.C_bool;
                         default: {
                             const message = `${suffix} is not a C supported type.`;
                             onThrowError(message);

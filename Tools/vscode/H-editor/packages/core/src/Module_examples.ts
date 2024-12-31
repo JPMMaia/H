@@ -958,6 +958,7 @@ export function create_numbers(): IR.Module {
         ["my_c_uint", IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.C_uint), "1")],
         ["my_c_ulong", IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.C_ulong), "1")],
         ["my_c_ulonglong", IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.C_ulonglong), "1")],
+        ["my_c_bool", IR.create_constant_expression(create_fundamental_type(IR.Fundamental_type.C_bool), "1")],
     ];
 
     const statements: IR.Statement[] = [];
