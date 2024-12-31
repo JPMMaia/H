@@ -2065,6 +2065,9 @@ function run(value: Int32) -> (result: Int32)
     else if 1 {
         return 3;
     }
+    else if 1cb {
+        return 4;
+    }
 }
 `;
 

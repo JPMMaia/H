@@ -409,6 +409,22 @@ function is_import_alias_duplicate(
     return count > 1;
 }
 
+function is_boolean_type(
+    type_reference: Core.Type_reference[]
+): boolean {
+    if (type_reference.length !== 1) {
+        return false;
+    }
+
+    const data = type_reference[0].data;
+    if (data.type !== Core.Type_reference_enum.Fundamental_type) {
+        return false;
+    }
+
+    const fundamental_type = data.value as Core.Fundamental_type;
+    return fundamental_type === Core.Fundamental_type.Bool || fundamental_type === Core.Fundamental_type.C_bool;
+}
+
 async function validate_type(
     uri: string,
     language_description: Language.Description,
@@ -1219,7 +1235,7 @@ async function validate_binary_expression(
         }
     }
     else if (is_logical_binary_operation(operation)) {
-        if (!deep_equal(left_expression_type.type, [Parse_tree_analysis.create_boolean_type()])) {
+        if (!is_boolean_type(left_expression_type.type)) {
             diagnostics.push({
                 location: get_parser_node_position_source_location(uri, cache, descendant_binary_expression),
                 source: Source.Parse_tree_validation,
@@ -1661,6 +1677,7 @@ function validate_constant_expression(
                     case "cui":
                     case "cul":
                     case "cull":
+                    case "cb":
                         return [];
                     default:
                         break;
@@ -1864,8 +1881,6 @@ async function validate_if_expression(
     const condition_expession = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant_condition.node);
     const condition_expression_type = await Parse_tree_analysis.get_expression_type(language_description, core_module, scope_declaration, root, descendant_condition.position, condition_expession, get_core_module);
 
-    const expected_type = [Parse_tree_analysis.create_boolean_type()];
-
     if (condition_expression_type === undefined || !condition_expression_type.is_value) {
         diagnostics.push(
             {
@@ -1878,7 +1893,7 @@ async function validate_if_expression(
         );
         return diagnostics;
     }
-    else if (!deep_equal(condition_expression_type.type, expected_type)) {
+    else if (!is_boolean_type(condition_expression_type.type)) {
         const condition_expression_type_string = Type_utilities.get_type_name(condition_expression_type.type, core_module);
 
         diagnostics.push(
@@ -2373,7 +2388,7 @@ async function validate_ternary_condition_expression(
 
     {
         const expected_type = [Parse_tree_analysis.create_boolean_type()];
-        diagnostics.push(...await validate_expression_type_is(uri, language_description, core_module, scope_declaration, root, descendant_condition, expected_type, cache, get_core_module));
+        diagnostics.push(...await validate_expression_type_is(uri, language_description, core_module, scope_declaration, root, descendant_condition, expected_type, is_boolean_type, cache, get_core_module));
     }
 
     {
@@ -2449,8 +2464,7 @@ async function validate_unary_expression(
         }
     }
     else if (is_logical_unary_operation(unary_expression.operation)) {
-        const boolean_type = Parse_tree_analysis.create_boolean_type();
-        if (!deep_equal(expression_type.type, [boolean_type])) {
+        if (!is_boolean_type(expression_type.type)) {
             const symbol = map_unary_operation_to_symbol(unary_expression.operation);
             diagnostics.push(
                 {
@@ -2935,7 +2949,7 @@ async function validate_while_loop_expression(
     const scope_declaration = Parse_tree_analysis.create_declaration_from_function_value(function_value);
     const boolean_type = Parse_tree_analysis.create_boolean_type();
     diagnostics.push(
-        ...await validate_expression_type_is(uri, language_description, core_module, scope_declaration, root, descendant_condition, [boolean_type], cache, get_core_module)
+        ...await validate_expression_type_is(uri, language_description, core_module, scope_declaration, root, descendant_condition, [boolean_type], is_boolean_type, cache, get_core_module)
     );
 
     return diagnostics;
@@ -2949,13 +2963,14 @@ async function validate_expression_type_is(
     root: Parser_node.Node,
     descendant: { node: Parser_node.Node, position: number[] },
     expected_type: Core.Type_reference[],
+    predicate: (expression_type: Core.Type_reference[]) => boolean,
     cache: Parse_tree_text_position_cache.Cache,
     get_core_module: (module_name: string) => Promise<Core.Module | undefined>
 ): Promise<Diagnostic[]> {
     const expression = Parse_tree_analysis.get_expression_from_node(language_description, core_module, descendant.node);
     const expression_type = await Parse_tree_analysis.get_expression_type(language_description, core_module, scope_declaration, root, descendant.position, expression, get_core_module);
 
-    if (expression_type === undefined || !deep_equal(expression_type.type, expected_type)) {
+    if (expression_type === undefined || !predicate(expression_type.type)) {
         const expression_type_string = expression_type !== undefined ? Type_utilities.get_type_name(expression_type.type, core_module) : "<undefined>";
         const expected_type_string = Type_utilities.get_type_name(expected_type, core_module);
         if (expression_type_string !== expected_type_string) {
