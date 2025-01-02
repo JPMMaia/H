@@ -1052,6 +1052,62 @@ float my_global_1 = 0.0f;
         }
     }
 
+    TEST_CASE("Function comments are imported")
+    {
+        std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "c_header_importer" / "function comments";
+        std::filesystem::create_directories(root_directory_path);
+
+        std::string const header_content = R"(
+/**
+ * Adds the two given values and returns
+ * the result.
+ *
+ * \param first the first parameter.
+ * \param second the second parameter.
+ * \return the result of adding the first
+ * and second parameters.
+ *
+ * Another line.
+ *
+ * Another comment.
+ */
+int add(int first, int second)
+{
+    return first + second;
+}
+)";
+
+        std::filesystem::path const header_file_path = root_directory_path / "My_data.h";
+        h::common::write_to_file(header_file_path, header_content);
+
+        h::Module const header_module = h::c::import_header("c.comments", header_file_path, {});
+
+        CHECK(header_module.source_file_path == header_file_path);
+
+        {
+            h::Function_declaration const& declaration = header_module.export_declarations.function_declarations[0];
+            CHECK(declaration.name == "add");
+            CHECK(declaration.name == declaration.unique_name.value());
+            
+            CHECK(declaration.comment.has_value());
+            if (declaration.comment.has_value())
+            {
+                std::pmr::string const expected_comment = R"(Adds the two given values and returns the result.
+
+Another line.
+
+Another comment.
+
+@input_parameter first: the first parameter.
+@input_parameter second: the second parameter.
+@output_parameter result: the result of adding the first and second parameters.
+)";
+
+                CHECK(*declaration.comment == expected_comment);
+            }
+        }
+    }
+
     TEST_CASE("Declarations that match public prefix will be made public, otherwise they are made private")
     {
         std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "c_header_importer" / "public_prefix";
