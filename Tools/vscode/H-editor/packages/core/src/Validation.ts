@@ -1247,12 +1247,12 @@ async function validate_binary_expression(
         }
     }
     else if (is_comparison_binary_operation(operation)) {
-        if (!is_comparable_type(left_expression_type.type)) {
+        if (!await is_comparable_type(left_expression_type.type, get_core_module)) {
             diagnostics.push({
                 location: get_parser_node_position_source_location(uri, cache, descendant_binary_expression),
                 source: Source.Parse_tree_validation,
                 severity: Diagnostic_severity.Error,
-                message: `Binary operation '${operation_string}' can only be applied to comparable types.`,
+                message: `Binary operation '${operation_string}' cannot be applied to types '${Type_utilities.get_type_name(left_expression_type.type)}' and '${Type_utilities.get_type_name(right_expression_type.type)}'.`,
                 related_information: [],
             });
             return diagnostics;
@@ -2568,14 +2568,27 @@ function map_unary_operation_to_symbol(
     }
 }
 
-function is_comparable_type(
-    type_reference: Core.Type_reference[]
-): boolean {
+async function is_comparable_type(
+    type_reference: Core.Type_reference[],
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<boolean> {
     if (type_reference.length === 0) {
         return false;
     }
 
     switch (type_reference[0].data.type) {
+        case Core.Type_reference_enum.Custom_type_reference: {
+            const custom_type_reference = type_reference[0].data.value as Core.Custom_type_reference;
+            const module_declaration = await Parse_tree_analysis.get_custom_type_reference_declaration(custom_type_reference, get_core_module);
+            if (module_declaration !== undefined) {
+                const underlying_declaration = await Parse_tree_analysis.get_underlying_type_declaration(module_declaration.core_module, module_declaration.declaration, get_core_module);
+                if (underlying_declaration.declaration.type === Core.Declaration_type.Alias) {
+                    const alias_type_declaration = underlying_declaration.declaration.value as Core.Alias_type_declaration;
+                    return is_comparable_type(alias_type_declaration.type, get_core_module);
+                }
+            }
+            return false;
+        }
         case Core.Type_reference_enum.Fundamental_type: {
             const fundamental_type = type_reference[0].data.value as Core.Fundamental_type;
             switch (fundamental_type) {

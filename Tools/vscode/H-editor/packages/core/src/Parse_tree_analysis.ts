@@ -1059,7 +1059,7 @@ export async function get_underlying_type_declaration(
     while (current_declaration.type === Core.Declaration_type.Alias) {
         const alias_type_declaration = current_declaration.value as Core.Alias_type_declaration;
         if (alias_type_declaration.type.length === 0 || alias_type_declaration.type[0].data.type !== Core.Type_reference_enum.Custom_type_reference) {
-            return undefined;
+            return { core_module: core_module, declaration: declaration };
         }
 
         const custom_type_reference = alias_type_declaration.type[0].data.value as Core.Custom_type_reference;

@@ -2580,7 +2580,7 @@ function run(value: Int32) -> ()
         await test_validate_module(input, [], expected_diagnostics);
     });
 
-    it("Validates that in comparison operations both types must be comparable", async () => {
+    it("Validates that in comparison operations both types must be comparable 0", async () => {
         const input = `module Test;
 
 struct My_struct
@@ -2603,9 +2603,26 @@ function run(value: Int32) -> ()
                 location: create_diagnostic_location(14, 13, 14, 36),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "Binary operation '<' can only be applied to comparable types.",
+                message: "Binary operation '<' cannot be applied to types 'Test.My_struct' and 'Test.My_struct'.",
                 related_information: [],
             },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Validates that in comparison operations both types must be comparable 1", async () => {
+        const input = `module Test;
+
+using My_uint = Uint32;
+
+function run(first: My_uint, second: My_uint) -> ()
+{
+    var a = first < second;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
         ];
 
         await test_validate_module(input, [], expected_diagnostics);
