@@ -51,6 +51,7 @@ namespace h::compiler
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> module_name_to_module_file_path;
         std::pmr::unordered_multimap<std::pmr::string, std::pmr::string> module_name_to_reverse_dependencies;
         std::pmr::unordered_map<std::pmr::string, Symbol_name_to_hash> module_name_to_symbol_hashes;
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> module_name_to_artifact_path;
         llvm::DenseMap<llvm::orc::SymbolStringPtr, std::pmr::string> symbol_to_module_name_map;
     };
 

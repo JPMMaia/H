@@ -175,11 +175,58 @@ namespace h::compiler
         return std::nullopt;
     }
 
+    std::optional<Artifact> find_module_artifact(
+        std::pmr::string const& module_name,
+        JIT_runner_protected_data& protected_data
+    )
+    {
+        std::shared_lock<std::shared_mutex> lock{ protected_data.mutex };
+
+        auto const artifact_file_path_location = protected_data.module_name_to_artifact_path.find(module_name);
+        if (artifact_file_path_location == protected_data.module_name_to_artifact_path.end())
+            return std::nullopt;
+
+        auto const artifact_location = protected_data.artifacts.find(artifact_file_path_location->second);
+        if (artifact_location == protected_data.artifacts.end())
+            return std::nullopt;
+
+        return artifact_location->second;
+    }
+
     struct Parsed_module_info
     {
         std::filesystem::path parsed_file_path;
         bool is_c_header;
     };
+
+    h::c::Options create_c_header_options_from_artifact(
+        std::string_view const module_name,
+        std::optional<Artifact> const& artifact
+    )
+    {
+        if (!artifact.has_value())
+            return {};
+
+        C_header_options const* const c_header_options = find_c_header_options(*artifact, module_name);
+        if (c_header_options == nullptr)
+        {
+            return
+            {
+                .target_triple = std::nullopt,
+                .include_directories = {},
+                .public_prefixes = {},
+                .remove_prefixes = {},
+            };
+        }
+
+        return
+        {
+            .target_triple = std::nullopt,
+            .include_directories = c_header_options->search_paths,
+            .public_prefixes = c_header_options->public_prefixes,
+            .remove_prefixes = c_header_options->remove_prefixes,
+        };
+    }
 
     std::optional<Parsed_module_info> find_module_and_parse(
         std::string_view const module_name,
@@ -214,7 +261,13 @@ namespace h::compiler
         }
         else if (module_source_file_path->extension() == ".h")
         {
-            h::c::import_header_and_write_to_file(module_name, *module_source_file_path, parsed_file_path, {});
+            std::optional<Artifact> const artifact = find_module_artifact(
+                std::pmr::string{ module_name },
+                protected_data
+            );
+
+            h::c::Options const options = create_c_header_options_from_artifact(module_name, artifact);
+            h::c::import_header_and_write_to_file(module_name, *module_source_file_path, parsed_file_path, options);
 
             return Parsed_module_info
             {
@@ -508,6 +561,7 @@ namespace h::compiler
                         std::unique_lock<std::shared_mutex> lock{ protected_data.mutex };
                         protected_data.module_name_to_source_file_path.insert(std::make_pair(*module_name, source_file_path));
                         protected_data.module_name_to_module_file_path.insert(std::make_pair(*module_name, parsed_file_path));
+                        protected_data.module_name_to_artifact_path.insert(std::make_pair(*module_name, artifact_configuration_file_path));
                     }
                 }
 
@@ -527,6 +581,14 @@ namespace h::compiler
                 if (external_library.has_value())
                 {
                     link_static_library(*unprotected_data.jit_data, external_library->name.c_str());
+                }
+
+                {
+                    std::unique_lock<std::shared_mutex> lock{ protected_data.mutex };
+                    for (C_header const& c_header : library_info.c_headers)
+                    {
+                        protected_data.module_name_to_artifact_path.insert(std::make_pair(c_header.module_name, artifact_configuration_file_path));
+                    }
                 }
             }
         }
