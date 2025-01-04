@@ -2758,6 +2758,11 @@ if_s3_after:                                      ; preds = %if_s2_then, %if_s1_
   %37 = load %union.Unions_My_union, ptr %35, align 4
   %instance_8 = alloca %union.Unions_My_union, align 4
   store %union.Unions_My_union %37, ptr %instance_8, align 4
+  %38 = alloca %union.Unions_My_union, align 4
+  call void @llvm.memset.p0.i64(ptr align 4 %38, i8 0, i64 4, i1 false)
+  %39 = load %union.Unions_My_union, ptr %38, align 4
+  %instance_9 = alloca %union.Unions_My_union, align 4
+  store %union.Unions_My_union %39, ptr %instance_9, align 4
   ret void
 }
 
@@ -2777,6 +2782,11 @@ entry:
   %2 = load i32, ptr %1, align 4
   ret i32 %2
 }
+
+; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: write)
+declare void @llvm.memset.p0.i64(ptr nocapture writeonly, i8, i64, i1 immarg) #0
+
+attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: write) }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);

@@ -2081,8 +2081,27 @@ namespace h::compiler
         if (expression.type != Instantiate_expression_type::Default)
             throw std::runtime_error{ "Unions only support default Instantiate_expression_type!" };
 
-        if (expression.members.size() != 1)
-            throw std::runtime_error{ "Instantiating a union requires specifying one and only one member!" };
+        if (expression.members.size() > 1)
+            throw std::runtime_error{ "Instantiating a union requires specifying either zero or one member!" };
+
+        if (expression.members.empty())
+        {
+            if (parameters.debug_info != nullptr)
+                set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
+
+            llvm::AllocaInst* const union_instance = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_union_type);
+
+            std::uint64_t const alloc_size_in_bytes = llvm_data_layout.getTypeAllocSize(llvm_union_type);
+            llvm::Align const alignment = llvm_data_layout.getABITypeAlign(llvm_union_type);
+            create_memset_to_0_call(llvm_builder, union_instance, alloc_size_in_bytes, alignment);
+
+            return Value_and_type
+            {
+                .name = "",
+                .value = union_instance,
+                .type = union_type_reference
+            };
+        }
 
         Instantiate_member_value_pair const& member_value_pair = expression.members[0];
 

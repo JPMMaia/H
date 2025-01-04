@@ -57,6 +57,8 @@ export function use_unions(my_union: My_union, my_union_tag: My_union_tag) -> ()
 
     pass_union({ a: 4});
     var instance_8 = return_union();
+
+    var instance_9: My_union = {};
 }
 
 function pass_union(my_union: My_union) -> ()

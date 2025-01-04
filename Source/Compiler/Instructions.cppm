@@ -47,10 +47,9 @@ namespace h::compiler
     );
 
     export llvm::Value* create_memset_to_0_call(
-        llvm::LLVMContext& llvm_context,
         llvm::IRBuilder<>& llvm_builder,
-        llvm::Module& llvm_module,
         llvm::Value* const destination_pointer,
-        std::uint64_t const type_alloc_size_in_bytes
+        std::uint64_t const type_alloc_size_in_bytes,
+        llvm::MaybeAlign const alignment
     );
 }
