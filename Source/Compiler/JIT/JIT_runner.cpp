@@ -581,6 +581,12 @@ namespace h::compiler
                 if (external_library.has_value())
                 {
                     link_static_library(*unprotected_data.jit_data, external_library->name.c_str());
+
+                    std::optional<std::string_view> const external_library_dll = get_external_library_dll(library_info.external_libraries, external_library->key);
+                    if (external_library_dll.has_value())
+                    {
+                        load_platform_dynamic_library(*unprotected_data.jit_data, external_library_dll->data());
+                    }
                 }
 
                 {
