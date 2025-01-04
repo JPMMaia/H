@@ -1411,7 +1411,14 @@ namespace h::compiler
 
         // If types are equal, then ignore the cast:
         if (source_llvm_type == destination_llvm_type)
-            return source;
+        {
+            return
+            {
+                .name = "",
+                .value = source.value,
+                .type = destination_type
+            };
+        }
 
         llvm::Instruction::CastOps const cast_type = get_cast_type(source.type.value(), *source_llvm_type, destination_type, *destination_llvm_type);
 

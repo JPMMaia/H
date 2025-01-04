@@ -770,6 +770,33 @@ declare i32 @printf(ptr noundef, ...)
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
+  TEST_CASE("Compile Cast Expressions")
+  {
+    char const* const input_file = "cast_expressions.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+define void @Cast_expressions_run(i32 noundef %"arguments[0].first") {
+entry:
+  %first = alloca i32, align 4
+  store i32 %"arguments[0].first", ptr %first, align 4
+  %a = alloca i32, align 4
+  store i32 1, ptr %a, align 4
+  %0 = load i32, ptr %a, align 4
+  %1 = load i32, ptr %first, align 4
+  %2 = icmp eq i32 %0, %1
+  %b = alloca i1, align 1
+  store i1 %2, ptr %b, align 1
+  ret void
+}
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
   TEST_CASE("Compile Comment Expressions")
   {
     char const* const input_file = "comment_expressions.hl";
