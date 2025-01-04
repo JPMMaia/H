@@ -1681,6 +1681,7 @@ declare i32 @puts(ptr noundef)
 @global_6 = internal constant [9 x i8] c"negative\00"
 @global_7 = internal constant [9 x i8] c"positive\00"
 @global_8 = internal constant [5 x i8] c"zero\00"
+@global_9 = internal constant [5 x i8] c"true\00"
 
 define void @If_expressions_run_ifs(i32 noundef %"arguments[0].value") {
 entry:
@@ -1748,6 +1749,17 @@ if_s3_else:                                       ; preds = %if_s1_else5
   br label %if_s4_after
 
 if_s4_after:                                      ; preds = %if_s3_else, %if_s2_then6, %if_s0_then4
+  %c_boolean = alloca i8, align 1
+  store i8 1, ptr %c_boolean, align 1
+  %12 = load i8, ptr %c_boolean, align 1
+  %13 = trunc i8 %12 to i1
+  br i1 %13, label %if_s0_then7, label %if_s1_after8
+
+if_s0_then7:                                      ; preds = %if_s4_after
+  call void @If_expressions_print_message(ptr noundef @global_9)
+  br label %if_s1_after8
+
+if_s1_after8:                                     ; preds = %if_s0_then7, %if_s4_after
   ret void
 }
 
@@ -2254,6 +2266,22 @@ ternary_condition_end21:                          ; preds = %ternary_condition_e
   %21 = phi i32 [ %19, %ternary_condition_then19 ], [ %20, %ternary_condition_else20 ]
   %f = alloca i32, align 4
   store i32 %21, ptr %f, align 4
+  %c_boolean = alloca i8, align 1
+  store i8 1, ptr %c_boolean, align 1
+  %22 = load i8, ptr %c_boolean, align 1
+  %23 = trunc i8 %22 to i1
+  br i1 %23, label %ternary_condition_then22, label %ternary_condition_else23
+
+ternary_condition_then22:                         ; preds = %ternary_condition_end21
+  br label %ternary_condition_end24
+
+ternary_condition_else23:                         ; preds = %ternary_condition_end21
+  br label %ternary_condition_end24
+
+ternary_condition_end24:                          ; preds = %ternary_condition_else23, %ternary_condition_then22
+  %24 = phi i32 [ 1, %ternary_condition_then22 ], [ 0, %ternary_condition_else23 ]
+  %g = alloca i32, align 4
+  store i32 %24, ptr %g, align 4
   ret void
 }
 )";
@@ -2867,7 +2895,9 @@ while_loop_then3:                                 ; preds = %while_loop_conditio
   br i1 %11, label %if_s0_then, label %if_s1_after
 
 while_loop_after4:                                ; preds = %if_s0_then5, %while_loop_condition2
-  ret void
+  %c_boolean = alloca i8, align 1
+  store i8 1, ptr %c_boolean, align 1
+  br label %while_loop_condition7
 
 if_s0_then:                                       ; preds = %while_loop_then3
   br label %while_loop_condition2
@@ -2887,6 +2917,18 @@ if_s1_after6:                                     ; preds = %if_s1_after
   %16 = add i32 %15, 1
   store i32 %16, ptr %index1, align 4
   br label %while_loop_condition2
+
+while_loop_condition7:                            ; preds = %while_loop_then8, %while_loop_after4
+  %17 = load i8, ptr %c_boolean, align 1
+  %18 = trunc i8 %17 to i1
+  br i1 %18, label %while_loop_then8, label %while_loop_after9
+
+while_loop_then8:                                 ; preds = %while_loop_condition7
+  store i8 0, ptr %c_boolean, align 1
+  br label %while_loop_condition7
+
+while_loop_after9:                                ; preds = %while_loop_condition7
+  ret void
 }
 
 define private void @While_loop_expressions_print_integer(i32 noundef %"arguments[0].value") {

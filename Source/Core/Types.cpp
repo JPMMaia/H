@@ -33,6 +33,17 @@ namespace h
         return false;
     }
 
+    bool is_c_bool(Type_reference const& type)
+    {
+        if (std::holds_alternative<Fundamental_type>(type.data))
+        {
+            Fundamental_type const data = std::get<Fundamental_type>(type.data);
+            return data == Fundamental_type::C_bool;
+        }
+
+        return false;
+    }
+
 
     Type_reference create_constant_array_type_reference(std::pmr::vector<Type_reference> value_type, std::uint64_t size)
     {

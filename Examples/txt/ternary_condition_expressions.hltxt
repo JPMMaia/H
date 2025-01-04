@@ -11,4 +11,7 @@ export function run_ternary_conditions(first_boolean: Bool, second_boolean: Bool
     var first = 0;
     var second = 1;
     var f = first_boolean ? first : second;
+
+    var c_boolean = 1cb;
+    var g = c_boolean ? 1 : 0;
 }

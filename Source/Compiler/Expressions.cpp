@@ -138,6 +138,18 @@ namespace h::compiler
         );
     }
 
+    static llvm::Value* convert_to_boolean(
+        llvm::LLVMContext& llvm_context,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::Value* const llvm_value,
+        std::optional<Type_reference> const& type
+    )
+    {
+        return (type.has_value() && is_c_bool(*type)) ?
+            llvm_builder.CreateTrunc(llvm_value, llvm::Type::getInt1Ty(llvm_context)) :
+            llvm_value;
+    }
+
     bool can_store(std::optional<Type_reference> const& type)
     {
         if (type.has_value() && std::holds_alternative<Constant_array_type>(type->data))
@@ -1933,7 +1945,8 @@ namespace h::compiler
                 llvm::BasicBlock* const then_block = blocks[block_index];
                 llvm::BasicBlock* const else_block = blocks[block_index + 1];
 
-                llvm_builder.CreateCondBr(condition_value.value, then_block, else_block);
+                llvm::Value* const condition_converted_value = convert_to_boolean(llvm_context, llvm_builder, condition_value.value, condition_value.type);
+                llvm_builder.CreateCondBr(condition_converted_value, then_block, else_block);
 
                 llvm_builder.SetInsertPoint(then_block);
 
@@ -2366,7 +2379,8 @@ namespace h::compiler
 
         // Condition:
         Value_and_type const& condition_value = create_loaded_expression_value(expression.condition.expression_index, statement, parameters);
-        llvm_builder.CreateCondBr(condition_value.value, then_block, else_block);
+        llvm::Value* const condition_converted_value = convert_to_boolean(llvm_context, llvm_builder, condition_value.value, condition_value.type);
+        llvm_builder.CreateCondBr(condition_converted_value, then_block, else_block);
 
         // Then:
         llvm_builder.SetInsertPoint(then_block);
@@ -2793,7 +2807,8 @@ namespace h::compiler
             expression.condition,
             parameters
         );
-        llvm_builder.CreateCondBr(condition_value.value, then_block, after_block);
+        llvm::Value* const condition_converted_value = convert_to_boolean(llvm_context, llvm_builder, condition_value.value, condition_value.type);
+        llvm_builder.CreateCondBr(condition_converted_value, then_block, after_block);
 
         Expression_parameters new_parameters = parameters;
         new_parameters.blocks = all_block_infos;
