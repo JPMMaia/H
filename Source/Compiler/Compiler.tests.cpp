@@ -63,18 +63,14 @@ namespace h
     std::optional<h::Module> core_module = h::compiler::read_core_module(g_test_files_path / input_file);
     REQUIRE(core_module.has_value());
 
-    h::compiler::LLVM_options const llvm_options
-    {
-      .target_triple = test_options.target_triple,
-    };
-
-    h::compiler::LLVM_data llvm_data = h::compiler::initialize_llvm(llvm_options);
-
     h::compiler::Compilation_options const compilation_options
     {
-      .debug = test_options.debug,
+      .target_triple = test_options.target_triple,
       .is_optimized = false,
+      .debug = test_options.debug,
     };
+
+    h::compiler::LLVM_data llvm_data = h::compiler::initialize_llvm(compilation_options);
 
     h::compiler::LLVM_module_data llvm_module_data = h::compiler::create_llvm_module(llvm_data, core_module.value(), module_name_to_file_path_map, compilation_options);
     std::string const llvm_ir = h::compiler::to_string(*llvm_module_data.module);

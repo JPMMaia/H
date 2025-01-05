@@ -103,6 +103,8 @@ namespace h::builder
         std::pmr::vector<std::filesystem::path> object_file_paths;
         object_file_paths.reserve(source_file_paths.size());
 
+        h::compiler::LLVM_data llvm_data = h::compiler::initialize_llvm(compilation_options);
+
         // Compile each module:
         for (std::filesystem::path const& parsed_file_path : parsed_source_file_paths)
         {
@@ -112,7 +114,6 @@ namespace h::builder
 
             std::string_view const entry_point = linker_options.entry_point;
 
-            h::compiler::LLVM_data llvm_data = h::compiler::initialize_llvm({});
             h::compiler::LLVM_module_data llvm_module_data = h::compiler::create_llvm_module(llvm_data, core_module.value(), module_name_to_file_path_map, compilation_options);
 
             std::filesystem::path const output_assembly_file = build_directory_path / std::format("{}.bc", core_module.value().name);
@@ -443,9 +444,11 @@ namespace h::builder
         if (!core_module.has_value())
             h::common::print_message_and_exit(std::format("Failed to read module of '{}'", input_file_path.generic_string()));
 
-        h::compiler::LLVM_options const options
+        h::compiler::Compilation_options const options
         {
-            .target_triple = target_triple
+            .target_triple = target_triple,
+            .is_optimized = false,
+            .debug = true,
         };
         h::compiler::LLVM_data llvm_data = h::compiler::initialize_llvm(options);
 

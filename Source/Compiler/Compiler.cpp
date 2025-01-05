@@ -1045,7 +1045,7 @@ namespace h::compiler
     }
 
     LLVM_data initialize_llvm(
-        LLVM_options const& options
+        Compilation_options const& options
     )
     {
         // Initialize the target registry:
@@ -1308,7 +1308,7 @@ namespace h::compiler
         Compilation_options const& compilation_options
     )
     {
-        LLVM_data llvm_data = initialize_llvm({});
+        LLVM_data llvm_data = initialize_llvm(compilation_options);
         LLVM_module_data llvm_module_data = create_llvm_module(llvm_data, core_module, module_name_to_file_path_map, compilation_options);
 
         llvm_module_data.module->print(llvm::errs(), nullptr);

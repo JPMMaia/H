@@ -52,13 +52,9 @@ namespace h::compiler
 
     export struct Compilation_options
     {
-        bool debug;
-        bool is_optimized;
-    };
-
-    export struct LLVM_options
-    {
-        std::optional<std::string_view> const target_triple;
+        std::optional<std::string_view> target_triple;
+        bool is_optimized = false;
+        bool debug = true;
     };
 
     export std::optional<h::Module> read_core_module(
@@ -70,7 +66,7 @@ namespace h::compiler
     );
 
     export LLVM_data initialize_llvm(
-        LLVM_options const& options
+        Compilation_options const& compilation_options
     );
 
     export std::unique_ptr<llvm::Module> create_llvm_module(

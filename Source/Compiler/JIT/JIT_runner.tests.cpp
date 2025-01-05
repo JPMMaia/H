@@ -119,8 +119,9 @@ namespace h
         h::compiler::Target const target = h::compiler::get_default_target();
         h::compiler::Compilation_options const compilation_options =
         {
+            .target_triple = std::nullopt,
+            .is_optimized = false,
             .debug = false,
-            .is_optimized = false
         };
         std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, {}, build_directory_path, {}, target, compilation_options);
 
@@ -210,8 +211,9 @@ namespace h
         h::compiler::Target const target = h::compiler::get_default_target();
         h::compiler::Compilation_options const compilation_options =
         {
+            .target_triple = std::nullopt,
+            .is_optimized = false,
             .debug = false,
-            .is_optimized = false
         };
         std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, {}, build_directory_path, {}, target, compilation_options);
 
@@ -289,8 +291,9 @@ namespace h
         h::compiler::Target const target = h::compiler::get_default_target();
         h::compiler::Compilation_options const compilation_options =
         {
+            .target_triple = std::nullopt,
+            .is_optimized = false,
             .debug = false,
-            .is_optimized = false
         };
         std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, repositories, build_directory_path, header_search_paths, target, compilation_options);
 
@@ -349,8 +352,9 @@ namespace h
         h::compiler::Target const target = h::compiler::get_default_target();
         h::compiler::Compilation_options const compilation_options =
         {
+            .target_triple = std::nullopt,
+            .is_optimized = false,
             .debug = false,
-            .is_optimized = false
         };
         std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, {}, build_directory_path, {}, target, compilation_options);
 
@@ -471,8 +475,9 @@ namespace h
         h::compiler::Target const target = h::compiler::get_default_target();
         h::compiler::Compilation_options const compilation_options =
         {
+            .target_triple = std::nullopt,
+            .is_optimized = false,
             .debug = false,
-            .is_optimized = false
         };
         std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, {}, build_directory_path, {}, target, compilation_options);
 
@@ -547,8 +552,9 @@ namespace h
         h::compiler::Target const target = h::compiler::get_default_target();
         h::compiler::Compilation_options const compilation_options =
         {
+            .target_triple = std::nullopt,
+            .is_optimized = false,
             .debug = false,
-            .is_optimized = false
         };
         std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, {}, build_directory_path, {}, target, compilation_options);
 
@@ -630,8 +636,9 @@ namespace h
         h::compiler::Target const target = h::compiler::get_default_target();
         h::compiler::Compilation_options const compilation_options =
         {
+            .target_triple = std::nullopt,
+            .is_optimized = false,
             .debug = false,
-            .is_optimized = false
         };
         std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, {}, build_directory_path, {}, target, compilation_options);
 
@@ -726,8 +733,9 @@ namespace h
         h::compiler::Target const target = h::compiler::get_default_target();
         h::compiler::Compilation_options const compilation_options =
         {
+            .target_triple = std::nullopt,
+            .is_optimized = false,
             .debug = false,
-            .is_optimized = false
         };
         std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, {}, build_directory_path, {}, target, compilation_options);
 
@@ -829,8 +837,9 @@ namespace h
         h::compiler::Target const target = h::compiler::get_default_target();
         h::compiler::Compilation_options const compilation_options =
         {
+            .target_triple = std::nullopt,
+            .is_optimized = false,
             .debug = false,
-            .is_optimized = false
         };
         std::unique_ptr<h::compiler::JIT_runner> jit_runner = h::compiler::setup_jit_and_watch(artifact_configuration_file_path, {}, build_directory_path, {}, target, compilation_options);
 

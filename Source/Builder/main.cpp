@@ -226,8 +226,9 @@ int main(int const argc, char const* const* argv)
 
         h::compiler::Compilation_options const compilation_options =
         {
+            .target_triple = std::nullopt, // TODO
+            .is_optimized = false, // TODO
             .debug = !no_debug,
-            .is_optimized = false // TODO
         };
 
         h::compiler::Linker_options const linker_options
@@ -259,8 +260,9 @@ int main(int const argc, char const* const* argv)
 
         h::compiler::Compilation_options const compilation_options =
         {
+            .target_triple = std::nullopt, // TODO
+            .is_optimized = false, // TODO
             .debug = !no_debug,
-            .is_optimized = false // TODO
         };
 
         h::builder::build_artifact(target, parser, artifact_file_path, build_directory_path, header_search_paths, repositories, compilation_options);
@@ -282,8 +284,9 @@ int main(int const argc, char const* const* argv)
 
         h::compiler::Compilation_options const compilation_options =
         {
+            .target_triple = std::nullopt, // TODO
+            .is_optimized = false, // TODO
             .debug = !no_debug,
-            .is_optimized = false // TODO
         };
 
         std::unique_ptr<h::compiler::JIT_runner> const jit_runner = h::compiler::setup_jit_and_watch(artifact_file_path, repository_paths, build_directory_path, header_search_paths, target, compilation_options);
