@@ -32,6 +32,8 @@ namespace h::compiler
         arguments_storage.push_back(std::format("/out:{}", output.generic_string()));
         arguments_storage.push_back("/subsystem:console");
 
+        arguments_storage.push_back(std::format("/defaultlib:{}", options.debug ? "msvcrtd.lib" : "msvcrt.lib"));
+
         if (options.debug)
             arguments_storage.push_back("/debug:dwarf");
 
