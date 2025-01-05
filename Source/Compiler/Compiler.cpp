@@ -1112,12 +1112,13 @@ namespace h::compiler
             *module_analysis_manager
         );
 
-        llvm::ModulePassManager module_pass_manager = pass_builder.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O2);
+        llvm::OptimizationLevel const optimization_level = options.is_optimized ? llvm::OptimizationLevel::O2 : llvm::OptimizationLevel::O0;
+        llvm::ModulePassManager module_pass_manager = pass_builder.buildPerModuleDefaultPipeline(optimization_level);
 
         Clang_data clang_data = create_clang_data(
             *llvm_context,
             llvm::Triple{ target_triple },
-            0 // TODO set according to optimization level
+            options.is_optimized ? 2 : 0
         );
 
         return LLVM_data
@@ -1213,6 +1214,9 @@ namespace h::compiler
         add_module_types(type_database, *llvm_data.context, llvm_data.data_layout, clang_module_data, core_module);
 
         std::unique_ptr<llvm::Module> llvm_module = create_module(*llvm_data.context, llvm_data.target_triple, llvm_data.data_layout, clang_module_data, core_module, core_module_dependencies, functions_to_compile, declaration_database, type_database, compilation_options);
+        
+        optimize_llvm_module(llvm_data, *llvm_module);
+        
         return llvm_module;
     }
 
