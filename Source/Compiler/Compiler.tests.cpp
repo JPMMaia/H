@@ -89,7 +89,8 @@ namespace h
     };
 
     char const* const expected_llvm_ir = R"(
-define void @Assignment_expressions_integer_operations(i32 noundef %"arguments[0].other_signed_integer", i32 noundef %"arguments[1].other_unsigned_integer") {
+; Function Attrs: convergent
+define void @Assignment_expressions_integer_operations(i32 noundef %"arguments[0].other_signed_integer", i32 noundef %"arguments[1].other_unsigned_integer") #0 {
 entry:
   %other_signed_integer = alloca i32, align 4
   store i32 %"arguments[0].other_signed_integer", ptr %other_signed_integer, align 4
@@ -156,7 +157,8 @@ entry:
   ret void
 }
 
-define void @Assignment_expressions_float32_operations(float noundef %"arguments[0].other_float") {
+; Function Attrs: convergent
+define void @Assignment_expressions_float32_operations(float noundef %"arguments[0].other_float") #0 {
 entry:
   %other_float = alloca float, align 4
   store float %"arguments[0].other_float", ptr %other_float, align 4
@@ -185,6 +187,8 @@ entry:
   store float %14, ptr %my_float, align 4
   ret void
 }
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -199,7 +203,8 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
-define void @Binary_expressions_operator_precedence_foo(i32 noundef %"arguments[0].a", i32 noundef %"arguments[1].b", i32 noundef %"arguments[2].c") {
+; Function Attrs: convergent
+define void @Binary_expressions_operator_precedence_foo(i32 noundef %"arguments[0].a", i32 noundef %"arguments[1].b", i32 noundef %"arguments[2].c") #0 {
 entry:
   %a = alloca i32, align 4
   store i32 %"arguments[0].a", ptr %a, align 4
@@ -311,10 +316,13 @@ entry:
   ret void
 }
 
-define private i32 @Binary_expressions_operator_precedence_other_function() {
+; Function Attrs: convergent
+define private i32 @Binary_expressions_operator_precedence_other_function() #0 {
 entry:
   ret i32 1
 }
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -329,7 +337,8 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
-define void @Binary_expressions_integer_operations(i32 noundef %"arguments[0].first_signed_integer", i32 noundef %"arguments[1].second_signed_integer", i32 noundef %"arguments[2].first_unsigned_integer", i32 noundef %"arguments[3].second_unsigned_integer") {
+; Function Attrs: convergent
+define void @Binary_expressions_integer_operations(i32 noundef %"arguments[0].first_signed_integer", i32 noundef %"arguments[1].second_signed_integer", i32 noundef %"arguments[2].first_unsigned_integer", i32 noundef %"arguments[3].second_unsigned_integer") #0 {
 entry:
   %first_signed_integer = alloca i32, align 4
   store i32 %"arguments[0].first_signed_integer", ptr %first_signed_integer, align 4
@@ -457,7 +466,8 @@ entry:
   ret void
 }
 
-define void @Binary_expressions_boolean_operations(i8 noundef zeroext %"arguments[0].first_boolean", i8 noundef zeroext %"arguments[1].second_boolean") {
+; Function Attrs: convergent
+define void @Binary_expressions_boolean_operations(i8 noundef zeroext %"arguments[0].first_boolean", i8 noundef zeroext %"arguments[1].second_boolean") #0 {
 entry:
   %0 = trunc i8 %"arguments[0].first_boolean" to i1
   %first_boolean = alloca i1, align 1
@@ -488,7 +498,8 @@ entry:
   ret void
 }
 
-define void @Binary_expressions_float32_operations(float noundef %"arguments[0].first_float", float noundef %"arguments[1].second_float") {
+; Function Attrs: convergent
+define void @Binary_expressions_float32_operations(float noundef %"arguments[0].first_float", float noundef %"arguments[1].second_float") #0 {
 entry:
   %first_float = alloca float, align 4
   store float %"arguments[0].first_float", ptr %first_float, align 4
@@ -551,6 +562,8 @@ entry:
   store i1 %32, ptr %greater_than_or_equal_to, align 1
   ret void
 }
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -566,7 +579,8 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
-define void @Block_expressions_run_blocks() {
+; Function Attrs: convergent
+define void @Block_expressions_run_blocks() #0 {
 entry:
   %a = alloca i32, align 4
   store i32 0, ptr %a, align 4
@@ -578,6 +592,8 @@ entry:
   store i32 %1, ptr %b1, align 4
   ret void
 }
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -592,7 +608,8 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
-define void @Booleans_foo() {
+; Function Attrs: convergent
+define void @Booleans_foo() #0 {
 entry:
   %my_true_boolean = alloca i1, align 1
   store i1 true, ptr %my_true_boolean, align 1
@@ -600,6 +617,8 @@ entry:
   store i1 false, ptr %my_false_boolean, align 1
   ret void
 }
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -617,7 +636,8 @@ entry:
     char const* const expected_llvm_ir = R"(
 @global_0 = internal constant [3 x i8] c"%d\00"
 
-define void @Break_expressions_run_breaks(i32 noundef %"arguments[0].size") {
+; Function Attrs: convergent
+define void @Break_expressions_run_breaks(i32 noundef %"arguments[0].size") #0 {
 entry:
   %size = alloca i32, align 4
   store i32 %"arguments[0].size", ptr %size, align 4
@@ -752,7 +772,8 @@ if_s1_after18:                                    ; preds = %while_loop_then15
   br label %while_loop_condition14
 }
 
-define private void @Break_expressions_print_integer(i32 noundef %"arguments[0].value") {
+; Function Attrs: convergent
+define private void @Break_expressions_print_integer(i32 noundef %"arguments[0].value") #0 {
 entry:
   %value = alloca i32, align 4
   store i32 %"arguments[0].value", ptr %value, align 4
@@ -760,7 +781,10 @@ entry:
   ret void
 }
 
-declare i32 @printf(ptr noundef, ...)
+; Function Attrs: convergent
+declare i32 @printf(ptr noundef, ...) #0
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -775,7 +799,8 @@ declare i32 @printf(ptr noundef, ...)
     };
 
     char const* const expected_llvm_ir = R"(
-define void @Cast_expressions_run(i32 noundef %"arguments[0].first") {
+; Function Attrs: convergent
+define void @Cast_expressions_run(i32 noundef %"arguments[0].first") #0 {
 entry:
   %first = alloca i32, align 4
   store i32 %"arguments[0].first", ptr %first, align 4
@@ -788,6 +813,8 @@ entry:
   store i1 %2, ptr %b, align 1
   ret void
 }
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -802,7 +829,8 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
-define void @Comment_expressions_comment_expressions() {
+; Function Attrs: convergent
+define void @Comment_expressions_comment_expressions() #0 {
 entry:
   br i1 true, label %if_s0_then, label %if_s1_after
 
@@ -840,6 +868,8 @@ while_loop_then:                                  ; preds = %while_loop_conditio
 while_loop_after:                                 ; preds = %while_loop_condition
   ret void
 }
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -856,7 +886,8 @@ while_loop_after:                                 ; preds = %while_loop_conditio
     char const* const expected_llvm_ir = R"(
 %struct.Constant_array_expressions_My_struct = type { [4 x i32] }
 
-define void @Constant_array_expressions_foo() {
+; Function Attrs: convergent
+define void @Constant_array_expressions_foo() #0 {
 entry:
   %a = alloca [0 x i32], align 4
   %b = alloca [0 x i32], align 4
@@ -900,6 +931,8 @@ entry:
   store i32 %5, ptr %e, align 4
   ret void
 }
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -936,7 +969,8 @@ Vector2i add(Vector2i lhs, Vector2i rhs);
     std::string const expected_llvm_ir = std::format(R"(
 %struct.Vector2i = type {{ i32, i32 }}
 
-define i32 @Debug_information_run() !dbg !3 {{
+; Function Attrs: convergent
+define i32 @Debug_information_run() #0 !dbg !3 {{
 entry:
   %a = alloca %struct.Vector2i, align 4, !dbg !8
   call void @llvm.dbg.declare(metadata ptr %a, metadata !9, metadata !DIExpression()), !dbg !8
@@ -964,12 +998,14 @@ entry:
   ret i32 %12, !dbg !22
 }}
 
-declare i64 @add(i64 noundef, i64 noundef)
+; Function Attrs: convergent
+declare i64 @add(i64 noundef, i64 noundef) #0
 
 ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
-declare void @llvm.dbg.declare(metadata, metadata, metadata) #0
+declare void @llvm.dbg.declare(metadata, metadata, metadata) #1
 
-attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
+attributes #0 = {{ convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }}
+attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
 
 !llvm.module.flags = !{{!0}}
 !llvm.dbg.cu = !{{!1}}
@@ -1011,7 +1047,8 @@ attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
     };
 
     std::string const expected_llvm_ir = std::format(R"(
-define i32 @Debug_information_run() !dbg !3 {{
+; Function Attrs: convergent
+define i32 @Debug_information_run() #0 !dbg !3 {{
 entry:
   %value = alloca i32, align 4, !dbg !8
   call void @llvm.dbg.declare(metadata ptr %value, metadata !9, metadata !DIExpression()), !dbg !8
@@ -1045,9 +1082,10 @@ for_loop_after:                                   ; preds = %for_loop_condition
 }}
 
 ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
-declare void @llvm.dbg.declare(metadata, metadata, metadata) #0
+declare void @llvm.dbg.declare(metadata, metadata, metadata) #1
 
-attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
+attributes #0 = {{ convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }}
+attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
 
 !llvm.module.flags = !{{!0}}
 !llvm.dbg.cu = !{{!1}}
@@ -1082,7 +1120,8 @@ attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
     };
 
     std::string const expected_llvm_ir = std::format(R"(
-define i32 @Debug_information_run() !dbg !3 {{
+; Function Attrs: convergent
+define i32 @Debug_information_run() #0 !dbg !3 {{
 entry:
   %0 = call i32 @Debug_information_add(i32 noundef 1, i32 noundef 2), !dbg !8
   %value = alloca i32, align 4, !dbg !9
@@ -1092,7 +1131,8 @@ entry:
   ret i32 %1, !dbg !11
 }}
 
-define private i32 @Debug_information_add(i32 noundef %"arguments[0].lhs", i32 noundef %"arguments[1].rhs") !dbg !12 {{
+; Function Attrs: convergent
+define private i32 @Debug_information_add(i32 noundef %"arguments[0].lhs", i32 noundef %"arguments[1].rhs") #0 !dbg !12 {{
 entry:
   %lhs = alloca i32, align 4
   store i32 %"arguments[0].lhs", ptr %lhs, align 4
@@ -1107,9 +1147,10 @@ entry:
 }}
 
 ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
-declare void @llvm.dbg.declare(metadata, metadata, metadata) #0
+declare void @llvm.dbg.declare(metadata, metadata, metadata) #1
 
-attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
+attributes #0 = {{ convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }}
+attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
 
 !llvm.module.flags = !{{!0}}
 !llvm.dbg.cu = !{{!1}}
@@ -1151,7 +1192,8 @@ attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
     };
 
     std::string const expected_llvm_ir = std::format(R"(
-define private i32 @Debug_information_run(i32 noundef %"arguments[0].value") !dbg !3 {{
+; Function Attrs: convergent
+define private i32 @Debug_information_run(i32 noundef %"arguments[0].value") #0 !dbg !3 {{
 entry:
   %value = alloca i32, align 4
   store i32 %"arguments[0].value", ptr %value, align 4
@@ -1176,9 +1218,10 @@ if_s3_else:                                       ; preds = %if_s1_else
 }}
 
 ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
-declare void @llvm.dbg.declare(metadata, metadata, metadata) #0
+declare void @llvm.dbg.declare(metadata, metadata, metadata) #1
 
-attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
+attributes #0 = {{ convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }}
+attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
 
 !llvm.module.flags = !{{!0}}
 !llvm.dbg.cu = !{{!1}}
@@ -1217,7 +1260,8 @@ attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
     std::string const expected_llvm_ir = std::format(R"(
 %struct.Debug_information_Vector2i = type {{ i32, i32 }}
 
-define private i64 @Debug_information_instantiate() !dbg !3 {{
+; Function Attrs: convergent
+define private i64 @Debug_information_instantiate() #0 !dbg !3 {{
 entry:
   %instance = alloca %struct.Debug_information_Vector2i, align 4, !dbg !12
   call void @llvm.dbg.declare(metadata ptr %instance, metadata !13, metadata !DIExpression()), !dbg !12
@@ -1228,9 +1272,10 @@ entry:
 }}
 
 ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
-declare void @llvm.dbg.declare(metadata, metadata, metadata) #0
+declare void @llvm.dbg.declare(metadata, metadata, metadata) #1
 
-attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
+attributes #0 = {{ convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }}
+attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
 
 !llvm.module.flags = !{{!0}}
 !llvm.dbg.cu = !{{!1}}
@@ -1264,7 +1309,8 @@ attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
     };
 
     std::string const expected_llvm_ir = std::format(R"(
-define private i32 @Debug_information_run(i32 noundef %"arguments[0].value") !dbg !3 {{
+; Function Attrs: convergent
+define private i32 @Debug_information_run(i32 noundef %"arguments[0].value") #0 !dbg !3 {{
 entry:
   %value = alloca i32, align 4
   store i32 %"arguments[0].value", ptr %value, align 4
@@ -1290,9 +1336,10 @@ switch_case_default:                              ; preds = %entry
 }}
 
 ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
-declare void @llvm.dbg.declare(metadata, metadata, metadata) #0
+declare void @llvm.dbg.declare(metadata, metadata, metadata) #1
 
-attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
+attributes #0 = {{ convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }}
+attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
 
 !llvm.module.flags = !{{!0}}
 !llvm.dbg.cu = !{{!1}}
@@ -1328,7 +1375,8 @@ attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
     std::string const expected_llvm_ir = std::format(R"(
 %union.Debug_information_My_int = type {{ i32 }}
 
-define private i32 @Debug_information_instantiate() !dbg !3 {{
+; Function Attrs: convergent
+define private i32 @Debug_information_instantiate() #0 !dbg !3 {{
 entry:
   %0 = alloca %union.Debug_information_My_int, align 4, !dbg !13
   store i32 0, ptr %0, align 4, !dbg !13
@@ -1342,9 +1390,10 @@ entry:
 }}
 
 ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
-declare void @llvm.dbg.declare(metadata, metadata, metadata) #0
+declare void @llvm.dbg.declare(metadata, metadata, metadata) #1
 
-attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
+attributes #0 = {{ convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }}
+attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
 
 !llvm.module.flags = !{{!0}}
 !llvm.dbg.cu = !{{!1}}
@@ -1380,7 +1429,8 @@ attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
     };
 
     std::string const expected_llvm_ir = std::format(R"(
-define i32 @Debug_information_run() !dbg !3 {{
+; Function Attrs: convergent
+define i32 @Debug_information_run() #0 !dbg !3 {{
 entry:
   %i = alloca i32, align 4, !dbg !8
   call void @llvm.dbg.declare(metadata ptr %i, metadata !9, metadata !DIExpression()), !dbg !8
@@ -1391,9 +1441,10 @@ entry:
 }}
 
 ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
-declare void @llvm.dbg.declare(metadata, metadata, metadata) #0
+declare void @llvm.dbg.declare(metadata, metadata, metadata) #1
 
-attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
+attributes #0 = {{ convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }}
+attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
 
 !llvm.module.flags = !{{!0}}
 !llvm.dbg.cu = !{{!1}}
@@ -1424,7 +1475,8 @@ attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
     };
 
     std::string const expected_llvm_ir = std::format(R"(
-define i32 @Debug_information_run() !dbg !3 {{
+; Function Attrs: convergent
+define i32 @Debug_information_run() #0 !dbg !3 {{
 entry:
   %value = alloca i32, align 4, !dbg !8
   call void @llvm.dbg.declare(metadata ptr %value, metadata !9, metadata !DIExpression()), !dbg !8
@@ -1455,9 +1507,10 @@ while_loop_after:                                 ; preds = %while_loop_conditio
 }}
 
 ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
-declare void @llvm.dbg.declare(metadata, metadata, metadata) #0
+declare void @llvm.dbg.declare(metadata, metadata, metadata) #1
 
-attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
+attributes #0 = {{ convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }}
+attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
 
 !llvm.module.flags = !{{!0}}
 !llvm.dbg.cu = !{{!1}}
@@ -1493,11 +1546,14 @@ attributes #0 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
     {
     };
 
-    std::string const expected_llvm_ir = R"(
-define private void @Empty_return_expression_run() {
+    char const* const expected_llvm_ir = R"(
+; Function Attrs: convergent
+define private void @Empty_return_expression_run() #0 {
 entry:
   ret void
 }
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -1515,7 +1571,8 @@ entry:
     char const* const expected_llvm_ir = R"(
 @global_0 = internal constant [3 x i8] c"%d\00"
 
-define void @For_loop_expressions_run_for_loops() {
+; Function Attrs: convergent
+define void @For_loop_expressions_run_for_loops() #0 {
 entry:
   %index = alloca i32, align 4
   store i32 0, ptr %index, align 4
@@ -1604,7 +1661,8 @@ for_loop_after15:                                 ; preds = %for_loop_condition1
   ret void
 }
 
-define private void @For_loop_expressions_print_integer(i32 noundef %"arguments[0].value") {
+; Function Attrs: convergent
+define private void @For_loop_expressions_print_integer(i32 noundef %"arguments[0].value") #0 {
 entry:
   %value = alloca i32, align 4
   store i32 %"arguments[0].value", ptr %value, align 4
@@ -1612,7 +1670,10 @@ entry:
   ret void
 }
 
-declare i32 @printf(ptr noundef, ...)
+; Function Attrs: convergent
+declare i32 @printf(ptr noundef, ...) #0
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -1629,7 +1690,8 @@ declare i32 @printf(ptr noundef, ...)
     char const* const expected_llvm_ir = R"(
 %struct.Function_pointers_My_struct = type { ptr, ptr }
 
-define void @Function_pointers_run() {
+; Function Attrs: convergent
+define void @Function_pointers_run() #0 {
 entry:
   %a = alloca ptr, align 8
   store ptr @Function_pointers_add, ptr %a, align 8
@@ -1645,7 +1707,8 @@ entry:
   ret void
 }
 
-define private i32 @Function_pointers_add(i32 noundef %"arguments[0].lhs", i32 noundef %"arguments[1].rhs") {
+; Function Attrs: convergent
+define private i32 @Function_pointers_add(i32 noundef %"arguments[0].lhs", i32 noundef %"arguments[1].rhs") #0 {
 entry:
   %lhs = alloca i32, align 4
   store i32 %"arguments[0].lhs", ptr %lhs, align 4
@@ -1656,6 +1719,8 @@ entry:
   %2 = add i32 %0, %1
   ret i32 %2
 }
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -1673,13 +1738,17 @@ entry:
     char const* const expected_llvm_ir = R"(
 @global_0 = internal constant [13 x i8] c"Hello world!\00"
 
-define i32 @hello_world_main() {
+; Function Attrs: convergent
+define i32 @hello_world_main() #0 {
 entry:
   %0 = call i32 @puts(ptr noundef @global_0)
   ret i32 0
 }
 
-declare i32 @puts(ptr noundef)
+; Function Attrs: convergent
+declare i32 @puts(ptr noundef) #0
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -1706,7 +1775,8 @@ declare i32 @puts(ptr noundef)
 @global_8 = internal constant [5 x i8] c"zero\00"
 @global_9 = internal constant [5 x i8] c"true\00"
 
-define void @If_expressions_run_ifs(i32 noundef %"arguments[0].value") {
+; Function Attrs: convergent
+define void @If_expressions_run_ifs(i32 noundef %"arguments[0].value") #0 {
 entry:
   %value = alloca i32, align 4
   store i32 %"arguments[0].value", ptr %value, align 4
@@ -1786,7 +1856,8 @@ if_s1_after8:                                     ; preds = %if_s0_then7, %if_s4
   ret void
 }
 
-define private void @If_expressions_print_message(ptr noundef %"arguments[0].message") {
+; Function Attrs: convergent
+define private void @If_expressions_print_message(ptr noundef %"arguments[0].message") #0 {
 entry:
   %message = alloca ptr, align 8
   store ptr %"arguments[0].message", ptr %message, align 8
@@ -1794,7 +1865,10 @@ entry:
   ret void
 }
 
-declare i32 @printf(ptr noundef, ...)
+; Function Attrs: convergent
+declare i32 @printf(ptr noundef, ...) #0
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -1809,7 +1883,8 @@ declare i32 @printf(ptr noundef, ...)
     };
 
     char const* const expected_llvm_ir = R"(
-define private i32 @If_return_expressions_run(i32 noundef %"arguments[0].value") {
+; Function Attrs: convergent
+define private i32 @If_return_expressions_run(i32 noundef %"arguments[0].value") #0 {
 entry:
   %value = alloca i32, align 4
   store i32 %"arguments[0].value", ptr %value, align 4
@@ -1823,6 +1898,8 @@ if_s0_then:                                       ; preds = %entry
 if_s1_else:                                       ; preds = %entry
   ret i32 2
 }
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -1837,7 +1914,8 @@ if_s1_else:                                       ; preds = %entry
     };
 
     char const* const expected_llvm_ir = R"(
-define void @name_with_dots_function_name(i32 noundef %"arguments[0].a", i32 noundef %"arguments[1].b") {
+; Function Attrs: convergent
+define void @name_with_dots_function_name(i32 noundef %"arguments[0].a", i32 noundef %"arguments[1].b") #0 {
 entry:
   %a = alloca i32, align 4
   store i32 %"arguments[0].a", ptr %a, align 4
@@ -1847,10 +1925,13 @@ entry:
   ret void
 }
 
-define void @name_with_dots_other_function_name() {
+; Function Attrs: convergent
+define void @name_with_dots_other_function_name() #0 {
 entry:
   ret void
 }
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -1875,7 +1956,8 @@ entry:
 %struct.MA_Private_struct_a = type { %struct.MB_Private_struct_b }
 %struct.MB_Private_struct_b = type { %struct.MC_Private_struct_c }
 
-define void @MA_run(i32 noundef %"arguments[0].a", i32 noundef %"arguments[1].b", i32 noundef %"arguments[2].c", i32 noundef %"arguments[3].d") {
+; Function Attrs: convergent
+define void @MA_run(i32 noundef %"arguments[0].a", i32 noundef %"arguments[1].b", i32 noundef %"arguments[2].c", i32 noundef %"arguments[3].d") #0 {
 entry:
   %0 = alloca %struct.MC_Struct_c, align 4
   %1 = getelementptr inbounds %struct.MC_Struct_c, ptr %0, i32 0, i32 0
@@ -1891,6 +1973,8 @@ entry:
   store i32 %"arguments[3].d", ptr %7, align 4
   ret void
 }
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -1905,7 +1989,8 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
-define i32 @Null_pointers_pointers(ptr noundef %"arguments[0].parameter") {
+; Function Attrs: convergent
+define i32 @Null_pointers_pointers(ptr noundef %"arguments[0].parameter") #0 {
 entry:
   %parameter = alloca ptr, align 8
   store ptr %"arguments[0].parameter", ptr %parameter, align 8
@@ -1925,6 +2010,8 @@ if_s0_then1:                                      ; preds = %if_s1_after
 if_s1_after2:                                     ; preds = %if_s1_after
   ret i32 0
 }
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -1939,7 +2026,8 @@ if_s1_after2:                                     ; preds = %if_s1_after
     };
 
     char const* const expected_llvm_ir = R"(
-define i32 @Numbers_main() {
+; Function Attrs: convergent
+define i32 @Numbers_main() #0 {
 entry:
   %my_int8 = alloca i8, align 1
   store i8 1, ptr %my_int8, align 1
@@ -1965,6 +2053,8 @@ entry:
   store double 1.000000e+00, ptr %my_float64, align 8
   ret i32 0
 }
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -1979,7 +2069,8 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
-define i32 @Numeric_casts_do_casts(i32 noundef %"arguments[0].uint32_argument", i64 noundef %"arguments[1].uint64_argument", i32 noundef %"arguments[2].int32_argument", i64 noundef %"arguments[3].int64_argument", half noundef %"arguments[4].float16_argument", float noundef %"arguments[5].float32_argument", double noundef %"arguments[6].float64_argument") {
+; Function Attrs: convergent
+define i32 @Numeric_casts_do_casts(i32 noundef %"arguments[0].uint32_argument", i64 noundef %"arguments[1].uint64_argument", i32 noundef %"arguments[2].int32_argument", i64 noundef %"arguments[3].int64_argument", half noundef %"arguments[4].float16_argument", float noundef %"arguments[5].float32_argument", double noundef %"arguments[6].float64_argument") #0 {
 entry:
   %uint32_argument = alloca i32, align 4
   store i32 %"arguments[0].uint32_argument", ptr %uint32_argument, align 4
@@ -2061,6 +2152,8 @@ entry:
   store half %31, ptr %f32_to_f16, align 2
   ret i32 0
 }
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -2075,7 +2168,8 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
-define void @Pointers_pointers() {
+; Function Attrs: convergent
+define void @Pointers_pointers() #0 {
 entry:
   %a = alloca i32, align 4
   store i32 1, ptr %a, align 4
@@ -2087,6 +2181,8 @@ entry:
   store i32 %1, ptr %dereferenced_a, align 4
   ret void
 }
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -2101,7 +2197,8 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
-define i32 @Switch_expressions_run_switch(i32 noundef %"arguments[0].value") {
+; Function Attrs: convergent
+define i32 @Switch_expressions_run_switch(i32 noundef %"arguments[0].value") #0 {
 entry:
   %value = alloca i32, align 4
   store i32 %"arguments[0].value", ptr %value, align 4
@@ -2159,6 +2256,8 @@ switch_case_default4:                             ; preds = %switch_after1
 switch_case_i1_5:                                 ; preds = %switch_case_default4, %switch_after1
   ret i32 4
 }
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -2173,7 +2272,8 @@ switch_case_i1_5:                                 ; preds = %switch_case_default
     };
 
     char const* const expected_llvm_ir = R"(
-define void @Ternary_condition_expressions_run_ternary_conditions(i8 noundef zeroext %"arguments[0].first_boolean", i8 noundef zeroext %"arguments[1].second_boolean") {
+; Function Attrs: convergent
+define void @Ternary_condition_expressions_run_ternary_conditions(i8 noundef zeroext %"arguments[0].first_boolean", i8 noundef zeroext %"arguments[1].second_boolean") #0 {
 entry:
   %0 = trunc i8 %"arguments[0].first_boolean" to i1
   %first_boolean = alloca i1, align 1
@@ -2307,6 +2407,8 @@ ternary_condition_end24:                          ; preds = %ternary_condition_e
   store i32 %24, ptr %g, align 4
   ret void
 }
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -2321,7 +2423,8 @@ ternary_condition_end24:                          ; preds = %ternary_condition_e
     };
 
     char const* const expected_llvm_ir = R"(
-define void @Unary_expressions_unary_operations(i32 noundef %"arguments[0].my_integer", i8 noundef zeroext %"arguments[1].my_boolean") {
+; Function Attrs: convergent
+define void @Unary_expressions_unary_operations(i32 noundef %"arguments[0].my_integer", i8 noundef zeroext %"arguments[1].my_boolean") #0 {
 entry:
   %my_integer = alloca i32, align 4
   store i32 %"arguments[0].my_integer", ptr %my_integer, align 4
@@ -2370,6 +2473,8 @@ entry:
   store i32 %16, ptr %indirection_variable, align 4
   ret void
 }
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -2385,7 +2490,8 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
-define void @Alias_from_modules_use_alias(i32 noundef %"arguments[0].my_enum") {
+; Function Attrs: convergent
+define void @Alias_from_modules_use_alias(i32 noundef %"arguments[0].my_enum") #0 {
 entry:
   %my_enum = alloca i32, align 4
   store i32 %"arguments[0].my_enum", ptr %my_enum, align 4
@@ -2393,6 +2499,8 @@ entry:
   store i32 10, ptr %a, align 4
   ret void
 }
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -2407,7 +2515,8 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
-define void @Alias_use_alias(i64 noundef %"arguments[0].size", i32 noundef %"arguments[1].my_enum") {
+; Function Attrs: convergent
+define void @Alias_use_alias(i64 noundef %"arguments[0].size", i32 noundef %"arguments[1].my_enum") #0 {
 entry:
   %size = alloca i64, align 8
   store i64 %"arguments[0].size", ptr %size, align 8
@@ -2417,6 +2526,8 @@ entry:
   store i32 10, ptr %a, align 4
   ret void
 }
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -2431,7 +2542,8 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
-define i32 @Enum_flags_use_enums(i32 noundef %"arguments[0].enum_argument") {
+; Function Attrs: convergent
+define i32 @Enum_flags_use_enums(i32 noundef %"arguments[0].enum_argument") #0 {
 entry:
   %enum_argument = alloca i32, align 4
   store i32 %"arguments[0].enum_argument", ptr %enum_argument, align 4
@@ -2492,6 +2604,8 @@ if_s0_then7:                                      ; preds = %if_s1_after6
 if_s1_after8:                                     ; preds = %if_s1_after6
   ret i32 5
 }
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -2507,12 +2621,15 @@ if_s1_after8:                                     ; preds = %if_s1_after6
     };
 
     char const* const expected_llvm_ir = R"(
-define void @Enums_from_modules_use_enums() {
+; Function Attrs: convergent
+define void @Enums_from_modules_use_enums() #0 {
 entry:
   %my_value = alloca i32, align 4
   store i32 1, ptr %my_value, align 4
   ret void
 }
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -2527,7 +2644,8 @@ entry:
     };
 
     char const* const expected_llvm_ir = R"(
-define i32 @Enums_use_enums(i32 noundef %"arguments[0].enum_argument") {
+; Function Attrs: convergent
+define i32 @Enums_use_enums(i32 noundef %"arguments[0].enum_argument") #0 {
 entry:
   %enum_argument = alloca i32, align 4
   store i32 %"arguments[0].enum_argument", ptr %enum_argument, align 4
@@ -2564,6 +2682,8 @@ switch_case_i4_:                                  ; preds = %entry
 switch_case_i5_:                                  ; preds = %switch_case_i4_, %entry
   ret i32 1
 }
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -2596,7 +2716,8 @@ float my_global = 0.0f;
 @Global_variables_my_global_variable_0 = global float 1.000000e+00
 @my_global = global float 0.000000e+00
 
-define void @Global_variables_use_global_variables(float noundef %"arguments[0].parameter") {
+; Function Attrs: convergent
+define void @Global_variables_use_global_variables(float noundef %"arguments[0].parameter") #0 {
 entry:
   %parameter = alloca float, align 4
   store float %"arguments[0].parameter", ptr %parameter, align 4
@@ -2615,6 +2736,8 @@ entry:
   store float %4, ptr %d, align 4
   ret void
 }
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -2634,7 +2757,8 @@ entry:
 %union.Structs_My_Union = type { %struct.Structs_My_struct_2 }
 %struct.Structs_My_struct_3 = type { i32, %union.Structs_My_Union }
 
-define void @Structs_use_structs(i64 noundef %"arguments[0].my_struct") {
+; Function Attrs: convergent
+define void @Structs_use_structs(i64 noundef %"arguments[0].my_struct") #0 {
 entry:
   %0 = alloca %struct.Structs_My_struct, align 4
   %1 = getelementptr inbounds %struct.Structs_My_struct, ptr %0, i32 0, i32 0
@@ -2682,7 +2806,8 @@ entry:
   ret void
 }
 
-define private void @Structs_pass_struct(i64 noundef %"arguments[0].my_struct") {
+; Function Attrs: convergent
+define private void @Structs_pass_struct(i64 noundef %"arguments[0].my_struct") #0 {
 entry:
   %0 = alloca %struct.Structs_My_struct, align 4
   %1 = getelementptr inbounds %struct.Structs_My_struct, ptr %0, i32 0, i32 0
@@ -2690,7 +2815,8 @@ entry:
   ret void
 }
 
-define private i64 @Structs_return_struct() {
+; Function Attrs: convergent
+define private i64 @Structs_return_struct() #0 {
 entry:
   %0 = alloca %struct.Structs_My_struct, align 4
   store %struct.Structs_My_struct { i32 1, i32 2 }, ptr %0, align 4
@@ -2698,6 +2824,8 @@ entry:
   %2 = load i64, ptr %1, align 4
   ret i64 %2
 }
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -2717,7 +2845,8 @@ entry:
 %union.Unions_My_union_3 = type { i64 }
 %struct.Unions_My_struct = type { i32 }
 
-define void @Unions_use_unions(i32 noundef %"arguments[0].my_union", i32 noundef %"arguments[1].my_union_tag") {
+; Function Attrs: convergent
+define void @Unions_use_unions(i32 noundef %"arguments[0].my_union", i32 noundef %"arguments[1].my_union_tag") #0 {
 entry:
   %0 = alloca %union.Unions_My_union, align 4
   %1 = getelementptr inbounds %union.Unions_My_union, ptr %0, i32 0, i32 0
@@ -2817,7 +2946,8 @@ if_s3_after:                                      ; preds = %if_s2_then, %if_s1_
   ret void
 }
 
-define private void @Unions_pass_union(i32 noundef %"arguments[0].my_union") {
+; Function Attrs: convergent
+define private void @Unions_pass_union(i32 noundef %"arguments[0].my_union") #0 {
 entry:
   %0 = alloca %union.Unions_My_union, align 4
   %1 = getelementptr inbounds %union.Unions_My_union, ptr %0, i32 0, i32 0
@@ -2825,7 +2955,8 @@ entry:
   ret void
 }
 
-define private i32 @Unions_return_union() {
+; Function Attrs: convergent
+define private i32 @Unions_return_union() #0 {
 entry:
   %0 = alloca %union.Unions_My_union, align 4
   store float 1.000000e+01, ptr %0, align 4
@@ -2835,9 +2966,10 @@ entry:
 }
 
 ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: write)
-declare void @llvm.memset.p0.i64(ptr nocapture writeonly, i8, i64, i1 immarg) #0
+declare void @llvm.memset.p0.i64(ptr nocapture writeonly, i8, i64, i1 immarg) #1
 
-attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: write) }
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+attributes #1 = { nocallback nofree nounwind willreturn memory(argmem: write) }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -2852,7 +2984,8 @@ attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: write) }
     };
 
     char const* const expected_llvm_ir = R"(
-define i32 @Variables_main() {
+; Function Attrs: convergent
+define i32 @Variables_main() #0 {
 entry:
   %my_constant_variable = alloca i32, align 4
   store i32 1, ptr %my_constant_variable, align 4
@@ -2861,6 +2994,8 @@ entry:
   store i32 3, ptr %my_mutable_variable, align 4
   ret i32 0
 }
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -2878,7 +3013,8 @@ entry:
     char const* const expected_llvm_ir = R"(
 @global_0 = internal constant [3 x i8] c"%d\00"
 
-define void @While_loop_expressions_run_while_loops(i32 noundef %"arguments[0].size") {
+; Function Attrs: convergent
+define void @While_loop_expressions_run_while_loops(i32 noundef %"arguments[0].size") #0 {
 entry:
   %size = alloca i32, align 4
   store i32 %"arguments[0].size", ptr %size, align 4
@@ -2954,7 +3090,8 @@ while_loop_after9:                                ; preds = %while_loop_conditio
   ret void
 }
 
-define private void @While_loop_expressions_print_integer(i32 noundef %"arguments[0].value") {
+; Function Attrs: convergent
+define private void @While_loop_expressions_print_integer(i32 noundef %"arguments[0].value") #0 {
 entry:
   %value = alloca i32, align 4
   store i32 %"arguments[0].value", ptr %value, align 4
@@ -2962,7 +3099,10 @@ entry:
   ret void
 }
 
-declare i32 @printf(ptr noundef, ...)
+; Function Attrs: convergent
+declare i32 @printf(ptr noundef, ...) #0
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);

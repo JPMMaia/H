@@ -1266,6 +1266,18 @@ namespace h::compiler
         }
     }
 
+    void set_function_definition_attributes(
+        llvm::LLVMContext& llvm_context,
+        Clang_module_data& clang_module_data,
+        llvm::Function& llvm_function
+    )
+    {
+        llvm::AttrBuilder attributes_builder{llvm_context};
+        clang::CodeGen::addDefaultFunctionDefinitionAttributes(clang_module_data.code_generator->CGM(), attributes_builder);
+        
+        llvm_function.addFnAttrs(attributes_builder);
+    }
+
     llvm::ConstantInt* get_constant(
         llvm::LLVMContext& llvm_context,
         unsigned value

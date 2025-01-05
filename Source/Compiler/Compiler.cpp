@@ -149,6 +149,7 @@ namespace h::compiler
     }
 
     llvm::Function& to_function(
+        llvm::LLVMContext& llvm_context,
         Clang_module_data& clang_module_data,
         Module const& core_module,
         llvm::FunctionType& llvm_function_type,
@@ -182,6 +183,8 @@ namespace h::compiler
 
         llvm_function->setCallingConv(llvm::CallingConv::C);
 
+        set_function_definition_attributes(llvm_context, clang_module_data, *llvm_function);
+
         return *llvm_function;
     }
 
@@ -203,6 +206,7 @@ namespace h::compiler
         );
 
         llvm::Function& llvm_function = to_function(
+            llvm_context,
             clang_module_data,
             core_module,
             *llvm_function_type,
@@ -527,6 +531,8 @@ namespace h::compiler
 
         if (debug_info != nullptr)
             pop_debug_scope(*debug_info);
+
+        set_function_definition_attributes(llvm_context, clang_module_data, llvm_function);
 
         if (llvm::verifyFunction(llvm_function, &llvm::errs())) {
             llvm::errs() << "\n Function body:\n";

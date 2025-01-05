@@ -134,6 +134,12 @@ namespace h::compiler
         Value_and_type const& value_to_return
     );
 
+    export void set_function_definition_attributes(
+        llvm::LLVMContext& llvm_context,
+        Clang_module_data& clang_module_data,
+        llvm::Function& llvm_function
+    );
+
     export llvm::Type* convert_type(
         Clang_module_data const& clang_module_data,
         std::string_view const module_name,
