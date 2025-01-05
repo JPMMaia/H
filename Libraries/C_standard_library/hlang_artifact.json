@@ -10,6 +10,7 @@
             }
         ],
         "external_library": {
+            "windows-dynamic-debug": "ucrtd.lib",
             "windows-dynamic-release": "ucrt.lib"
         }
     }
