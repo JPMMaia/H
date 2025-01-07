@@ -12,6 +12,7 @@ endif ()
 
 add_subdirectory("External")
 add_subdirectory("Tools/code_generator")
+add_subdirectory("Tools/tests_result_replacer")
 add_subdirectory("Source")
 add_subdirectory("Examples")
 
