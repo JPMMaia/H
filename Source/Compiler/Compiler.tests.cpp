@@ -80,7 +80,7 @@ namespace h
     CHECK(llvm_ir_body == expected_llvm_ir);
   }
 
-  TEST_CASE("Compile Assignments")
+  TEST_CASE("Compile Assignments", "[LLVM_IR]")
   {
     char const* const input_file = "assignment_expressions.hl";
 
@@ -194,7 +194,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile Binary Expressions Precedence")
+  TEST_CASE("Compile Binary Expressions Precedence", "[LLVM_IR]")
   {
     char const* const input_file = "binary_expressions_precedence.hl";
 
@@ -328,7 +328,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile Binary Expressions")
+  TEST_CASE("Compile Binary Expressions", "[LLVM_IR]")
   {
     char const* const input_file = "binary_expressions.hl";
 
@@ -570,7 +570,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
   }
 
 
-  TEST_CASE("Compile Block Expressions")
+  TEST_CASE("Compile Block Expressions", "[LLVM_IR]")
   {
     char const* const input_file = "block_expressions.hl";
 
@@ -599,7 +599,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile Booleans")
+  TEST_CASE("Compile Booleans", "[LLVM_IR]")
   {
     char const* const input_file = "booleans.hl";
 
@@ -624,7 +624,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile Break Expressions")
+  TEST_CASE("Compile Break Expressions", "[LLVM_IR]")
   {
     char const* const input_file = "break_expressions.hl";
 
@@ -790,7 +790,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile Cast Expressions")
+  TEST_CASE("Compile Cast Expressions", "[LLVM_IR]")
   {
     char const* const input_file = "cast_expressions.hl";
 
@@ -820,7 +820,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile Comment Expressions")
+  TEST_CASE("Compile Comment Expressions", "[LLVM_IR]")
   {
     char const* const input_file = "comment_expressions.hl";
 
@@ -875,7 +875,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile Constant Arrays")
+  TEST_CASE("Compile Constant Arrays", "[LLVM_IR]")
   {
     char const* const input_file = "constant_array_expressions.hl";
 
@@ -938,7 +938,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile Debug Information C Headers")
+  TEST_CASE("Compile Debug Information C Headers", "[LLVM_IR]")
   {
     char const* const input_file = "debug_information_c_headers.hl";
 
@@ -1038,7 +1038,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
   }
 
-  TEST_CASE("Compile Debug Information For Loop")
+  TEST_CASE("Compile Debug Information For Loop", "[LLVM_IR]")
   {
     char const* const input_file = "debug_information_for_loop.hl";
 
@@ -1111,7 +1111,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
   }
 
-  TEST_CASE("Compile Debug Information Function Call")
+  TEST_CASE("Compile Debug Information Function Call", "[LLVM_IR]")
   {
     char const* const input_file = "debug_information_function_call.hl";
 
@@ -1183,7 +1183,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
   }
 
-  TEST_CASE("Compile Debug Information If")
+  TEST_CASE("Compile Debug Information If", "[LLVM_IR]")
   {
     char const* const input_file = "debug_information_if.hl";
 
@@ -1249,7 +1249,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
   }
 
-  TEST_CASE("Compile Debug Information Struct")
+  TEST_CASE("Compile Debug Information Struct", "[LLVM_IR]")
   {
     char const* const input_file = "debug_information_structs.hl";
 
@@ -1300,7 +1300,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
   }
 
-  TEST_CASE("Compile Debug Information Switch")
+  TEST_CASE("Compile Debug Information Switch", "[LLVM_IR]")
   {
     char const* const input_file = "debug_information_switch.hl";
 
@@ -1364,7 +1364,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
   }
 
-  TEST_CASE("Compile Debug Information Union")
+  TEST_CASE("Compile Debug Information Union", "[LLVM_IR]")
   {
     char const* const input_file = "debug_information_unions.hl";
 
@@ -1420,7 +1420,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
   }
 
-  TEST_CASE("Compile Debug Information Variables")
+  TEST_CASE("Compile Debug Information Variables", "[LLVM_IR]")
   {
     char const* const input_file = "debug_information_variables.hl";
 
@@ -1466,7 +1466,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
   }
 
-  TEST_CASE("Compile Debug Information While Loop")
+  TEST_CASE("Compile Debug Information While Loop", "[LLVM_IR]")
   {
     char const* const input_file = "debug_information_while_loop.hl";
 
@@ -1538,7 +1538,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
   }
 
-  TEST_CASE("Compile Empty Return Expression")
+  TEST_CASE("Compile Empty Return Expression", "[LLVM_IR]")
   {
     char const* const input_file = "empty_return_expression.hl";
 
@@ -1559,7 +1559,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile For Loop Expressions")
+  TEST_CASE("Compile For Loop Expressions", "[LLVM_IR]")
   {
     char const* const input_file = "for_loop_expressions.hl";
 
@@ -1679,7 +1679,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile Function Pointers")
+  TEST_CASE("Compile Function Pointers", "[LLVM_IR]")
   {
     char const* const input_file = "function_pointers.hl";
 
@@ -1726,7 +1726,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile hello world!")
+  TEST_CASE("Compile hello world!", "[LLVM_IR]")
   {
     char const* const input_file = "hello_world.hl";
 
@@ -1754,7 +1754,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile If Expressions")
+  TEST_CASE("Compile If Expressions", "[LLVM_IR]")
   {
     char const* const input_file = "if_expressions.hl";
 
@@ -1874,7 +1874,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile If Return Expressions")
+  TEST_CASE("Compile If Return Expressions", "[LLVM_IR]")
   {
     char const* const input_file = "if_return_expressions.hl";
 
@@ -1905,7 +1905,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile Module with Dots")
+  TEST_CASE("Compile Module with Dots", "[LLVM_IR]")
   {
     char const* const input_file = "module_with_dots.hl";
 
@@ -1938,7 +1938,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
   }
 
 
-  TEST_CASE("Compile Multiple Modules")
+  TEST_CASE("Compile Multiple Modules", "[LLVM_IR]")
   {
     char const* const input_file = "multiple_modules_a.hl";
 
@@ -1980,7 +1980,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile Null Pointers")
+  TEST_CASE("Compile Null Pointers", "[LLVM_IR]")
   {
     char const* const input_file = "null_pointers.hl";
 
@@ -2017,7 +2017,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile Numbers")
+  TEST_CASE("Compile Numbers", "[LLVM_IR]")
   {
     char const* const input_file = "numbers.hl";
 
@@ -2060,7 +2060,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile Numeric_casts")
+  TEST_CASE("Compile Numeric_casts", "[LLVM_IR]")
   {
     char const* const input_file = "numeric_casts.hl";
 
@@ -2159,7 +2159,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile Pointers")
+  TEST_CASE("Compile Pointers", "[LLVM_IR]")
   {
     char const* const input_file = "pointers.hl";
 
@@ -2188,7 +2188,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile Switch Expressions")
+  TEST_CASE("Compile Switch Expressions", "[LLVM_IR]")
   {
     char const* const input_file = "switch_expressions.hl";
 
@@ -2263,7 +2263,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile Ternary Condition Expressions")
+  TEST_CASE("Compile Ternary Condition Expressions", "[LLVM_IR]")
   {
     char const* const input_file = "ternary_condition_expressions.hl";
 
@@ -2414,7 +2414,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile Unary Expressions")
+  TEST_CASE("Compile Unary Expressions", "[LLVM_IR]")
   {
     char const* const input_file = "unary_expressions.hl";
 
@@ -2480,7 +2480,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile Using Alias From Modules")
+  TEST_CASE("Compile Using Alias From Modules", "[LLVM_IR]")
   {
     char const* const input_file = "using_alias_from_modules.hl";
 
@@ -2506,7 +2506,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile Using Alias")
+  TEST_CASE("Compile Using Alias", "[LLVM_IR]")
   {
     char const* const input_file = "using_alias.hl";
 
@@ -2533,7 +2533,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile Using Enum Flags")
+  TEST_CASE("Compile Using Enum Flags", "[LLVM_IR]")
   {
     char const* const input_file = "using_enum_flags.hl";
 
@@ -2611,7 +2611,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile Using Enums From Modules")
+  TEST_CASE("Compile Using Enums From Modules", "[LLVM_IR]")
   {
     char const* const input_file = "using_enums_from_modules.hl";
 
@@ -2635,7 +2635,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile Using Enums")
+  TEST_CASE("Compile Using Enums", "[LLVM_IR]")
   {
     char const* const input_file = "using_enums.hl";
 
@@ -2689,7 +2689,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile Using Global Variables")
+  TEST_CASE("Compile Using Global Variables", "[LLVM_IR]")
   {
     char const* const input_file = "using_global_variables.hl";
 
@@ -2743,7 +2743,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile Using Structs")
+  TEST_CASE("Compile Using Structs", "[LLVM_IR]")
   {
     char const* const input_file = "using_structs.hl";
 
@@ -2831,7 +2831,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile Using Unions")
+  TEST_CASE("Compile Using Unions", "[LLVM_IR]")
   {
     char const* const input_file = "using_unions.hl";
 
@@ -2975,7 +2975,7 @@ attributes #1 = { nocallback nofree nounwind willreturn memory(argmem: write) }
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile Variables")
+  TEST_CASE("Compile Variables", "[LLVM_IR]")
   {
     char const* const input_file = "variables.hl";
 
@@ -3001,7 +3001,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile While Loop Expressions")
+  TEST_CASE("Compile While Loop Expressions", "[LLVM_IR]")
   {
     char const* const input_file = "while_loop_expressions.hl";
 
@@ -3108,7 +3108,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Struct layout of imported C header matches 0")
+  TEST_CASE("Struct layout of imported C header matches 0", "[LLVM_IR]")
   {
     std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "struct_layout_0";
     std::filesystem::create_directories(root_directory_path);
@@ -3200,7 +3200,7 @@ void foo(My_struct argument);
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, test_options);
   }
 
-  TEST_CASE("C Interoperability - Call function with struct argument x86_64-pc-linux-gnu")
+  TEST_CASE("C Interoperability - Call function with struct argument x86_64-pc-linux-gnu", "[LLVM_IR]")
   {
     char const* const expected_llvm_ir = R"(
 %struct.My_struct = type { i32, i32, i32, i32 }
@@ -3223,7 +3223,7 @@ declare void @foo(i64, i64)
     test_c_interoperability_call_function_with_struct_argument("x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
-    TEST_CASE("C Interoperability - Call function with struct argument x86_64-pc-windows-msvc")
+    TEST_CASE("C Interoperability - Call function with struct argument x86_64-pc-windows-msvc", "[LLVM_IR]")
   {
     char const* const expected_llvm_ir = R"(
 %struct.My_struct = type { i32, i32, i32, i32 }
@@ -3269,7 +3269,7 @@ attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, test_options);
   }
 
-  TEST_CASE("C Interoperability - Definition of function with struct argument x86_64-pc-linux-gnu")
+  TEST_CASE("C Interoperability - Definition of function with struct argument x86_64-pc-linux-gnu", "[LLVM_IR]")
   {
     char const* const expected_llvm_ir = R"(
 %struct.c_interoperability_My_struct = type { i32, i32, i32, i32 }
@@ -3311,7 +3311,7 @@ entry:
     test_c_interoperability_definition_of_function_with_struct_argument("x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
-  TEST_CASE("C Interoperability - Definition of function with struct argument x86_64-pc-windows-msvc")
+  TEST_CASE("C Interoperability - Definition of function with struct argument x86_64-pc-windows-msvc", "[LLVM_IR]")
   {
     char const* const expected_llvm_ir = R"(
 %struct.c_interoperability_My_struct = type { i32, i32, i32, i32 }
@@ -3373,7 +3373,7 @@ attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, test_options);
   }
 
-  TEST_CASE("C Interoperability - Call function that returns c bool x86_64-pc-linux-gnu")
+  TEST_CASE("C Interoperability - Call function that returns c bool x86_64-pc-linux-gnu", "[LLVM_IR]")
   {
     char const* const expected_llvm_ir = R"(
 define private i1 @c_interoperability_initialize(i1 noundef zeroext %"arguments[0].first", i1 noundef zeroext %"arguments[1].second") {
@@ -3409,7 +3409,7 @@ entry:
     test_c_interoperability_common("c_interoperability_call_function_that_returns_bool.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
-  TEST_CASE("C Interoperability - Call function that returns c bool x86_64-pc-windows-msvc")
+  TEST_CASE("C Interoperability - Call function that returns c bool x86_64-pc-windows-msvc", "[LLVM_IR]")
   {
     char const* const expected_llvm_ir = R"(
 define private i1 @c_interoperability_initialize(i1 noundef zeroext %"arguments[0].first", i1 noundef zeroext %"arguments[1].second") {
@@ -3445,7 +3445,7 @@ entry:
     test_c_interoperability_common("c_interoperability_call_function_that_returns_bool.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
-  TEST_CASE("C Interoperability - function_return_big_struct x86_64-pc-linux-gnu")
+  TEST_CASE("C Interoperability - function_return_big_struct x86_64-pc-linux-gnu", "[LLVM_IR]")
   {
     char const* const expected_llvm_ir = R"(
 %struct.c_interoperability_My_struct = type { i32, i32, i32, i32, i32 }
@@ -3470,7 +3470,7 @@ entry:
     test_c_interoperability_common("c_interoperability_function_return_big_struct.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
-  TEST_CASE("C Interoperability - function_return_big_struct x86_64-pc-windows-msvc")
+  TEST_CASE("C Interoperability - function_return_big_struct x86_64-pc-windows-msvc", "[LLVM_IR]")
   {
     char const* const expected_llvm_ir = R"(
 %struct.c_interoperability_My_struct = type { i32, i32, i32, i32, i32 }
@@ -3495,7 +3495,7 @@ entry:
     test_c_interoperability_common("c_interoperability_function_return_big_struct.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
-  TEST_CASE("C Interoperability - function_return_empty_struct x86_64-pc-linux-gnu")
+  TEST_CASE("C Interoperability - function_return_empty_struct x86_64-pc-linux-gnu", "[LLVM_IR]")
   {
     char const* const expected_llvm_ir = R"(
 define private void @c_interoperability_foo() {
@@ -3513,7 +3513,7 @@ entry:
     test_c_interoperability_common("c_interoperability_function_return_empty_struct.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
-  TEST_CASE("C Interoperability - function_return_empty_struct x86_64-pc-windows-msvc")
+  TEST_CASE("C Interoperability - function_return_empty_struct x86_64-pc-windows-msvc", "[LLVM_IR]")
   {
     char const* const expected_llvm_ir = R"(
 %struct.c_interoperability_My_struct = type { [4 x i8] }
@@ -3543,7 +3543,7 @@ entry:
     test_c_interoperability_common("c_interoperability_function_return_empty_struct.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
-  TEST_CASE("C Interoperability - function_return_int x86_64-pc-linux-gnu")
+  TEST_CASE("C Interoperability - function_return_int x86_64-pc-linux-gnu", "[LLVM_IR]")
   {
     char const* const expected_llvm_ir = R"(
 define private i32 @c_interoperability_foo() {
@@ -3563,7 +3563,7 @@ entry:
     test_c_interoperability_common("c_interoperability_function_return_int.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
-  TEST_CASE("C Interoperability - function_return_int x86_64-pc-windows-msvc")
+  TEST_CASE("C Interoperability - function_return_int x86_64-pc-windows-msvc", "[LLVM_IR]")
   {
     char const* const expected_llvm_ir = R"(
 define private i32 @c_interoperability_foo() {
@@ -3583,7 +3583,7 @@ entry:
     test_c_interoperability_common("c_interoperability_function_return_int.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
-  TEST_CASE("C Interoperability - function_return_pointer x86_64-pc-linux-gnu")
+  TEST_CASE("C Interoperability - function_return_pointer x86_64-pc-linux-gnu", "[LLVM_IR]")
   {
     char const* const expected_llvm_ir = R"(
 define private ptr @c_interoperability_foo() {
@@ -3603,7 +3603,7 @@ entry:
     test_c_interoperability_common("c_interoperability_function_return_pointer.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
-  TEST_CASE("C Interoperability - function_return_pointer x86_64-pc-windows-msvc")
+  TEST_CASE("C Interoperability - function_return_pointer x86_64-pc-windows-msvc", "[LLVM_IR]")
   {
     char const* const expected_llvm_ir = R"(
 define private ptr @c_interoperability_foo() {
@@ -3623,7 +3623,7 @@ entry:
     test_c_interoperability_common("c_interoperability_function_return_pointer.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
-  TEST_CASE("C Interoperability - function_return_small_struct x86_64-pc-linux-gnu")
+  TEST_CASE("C Interoperability - function_return_small_struct x86_64-pc-linux-gnu", "[LLVM_IR]")
   {
     char const* const expected_llvm_ir = R"(
 %struct.c_interoperability_My_struct = type { i32, i32, i32, i32 }
@@ -3656,7 +3656,7 @@ entry:
     test_c_interoperability_common("c_interoperability_function_return_small_struct.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
-  TEST_CASE("C Interoperability - function_return_small_struct x86_64-pc-windows-msvc")
+  TEST_CASE("C Interoperability - function_return_small_struct x86_64-pc-windows-msvc", "[LLVM_IR]")
   {
     char const* const expected_llvm_ir = R"(
 %struct.c_interoperability_My_struct = type { i32, i32, i32, i32 }
@@ -3681,7 +3681,7 @@ entry:
     test_c_interoperability_common("c_interoperability_function_return_small_struct.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
-  TEST_CASE("C Interoperability - function_with_big_struct x86_64-pc-linux-gnu")
+  TEST_CASE("C Interoperability - function_with_big_struct x86_64-pc-linux-gnu", "[LLVM_IR]")
   {
     char const* const expected_llvm_ir = R"(
 %struct.c_interoperability_My_struct = type { i32, i32, i32, i32, i32 }
@@ -3712,7 +3712,7 @@ attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite
     test_c_interoperability_common("c_interoperability_function_with_big_struct.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
-  TEST_CASE("C Interoperability - function_with_big_struct x86_64-pc-windows-msvc")
+  TEST_CASE("C Interoperability - function_with_big_struct x86_64-pc-windows-msvc", "[LLVM_IR]")
   {
     char const* const expected_llvm_ir = R"(
 %struct.c_interoperability_My_struct = type { i32, i32, i32, i32, i32 }
@@ -3743,7 +3743,7 @@ attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite
     test_c_interoperability_common("c_interoperability_function_with_big_struct.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
-  TEST_CASE("C Interoperability - function_with_empty_struct x86_64-pc-linux-gnu")
+  TEST_CASE("C Interoperability - function_with_empty_struct x86_64-pc-linux-gnu", "[LLVM_IR]")
   {
     char const* const expected_llvm_ir = R"(
 %struct.c_interoperability_My_struct = type {}
@@ -3765,7 +3765,7 @@ entry:
     test_c_interoperability_common("c_interoperability_function_with_empty_struct.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
-  TEST_CASE("C Interoperability - function_with_empty_struct x86_64-pc-windows-msvc")
+  TEST_CASE("C Interoperability - function_with_empty_struct x86_64-pc-windows-msvc", "[LLVM_IR]")
   {
     char const* const expected_llvm_ir = R"(
 %struct.c_interoperability_My_struct = type { [4 x i8] }
@@ -3792,7 +3792,7 @@ entry:
     test_c_interoperability_common("c_interoperability_function_with_empty_struct.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
-  TEST_CASE("C Interoperability - function_with_int_arguments x86_64-pc-linux-gnu")
+  TEST_CASE("C Interoperability - function_with_int_arguments x86_64-pc-linux-gnu", "[LLVM_IR]")
   {
     char const* const expected_llvm_ir = R"(
 define private void @c_interoperability_foo(i32 noundef %"arguments[0].a", i32 noundef %"arguments[1].b") {
@@ -3814,7 +3814,7 @@ entry:
     test_c_interoperability_common("c_interoperability_function_with_int_arguments.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
-  TEST_CASE("C Interoperability - function_with_int_arguments x86_64-pc-windows-msvc")
+  TEST_CASE("C Interoperability - function_with_int_arguments x86_64-pc-windows-msvc", "[LLVM_IR]")
   {
     char const* const expected_llvm_ir = R"(
 define private void @c_interoperability_foo(i32 noundef %"arguments[0].a", i32 noundef %"arguments[1].b") {
@@ -3836,7 +3836,7 @@ entry:
     test_c_interoperability_common("c_interoperability_function_with_int_arguments.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
-  TEST_CASE("C Interoperability - function_with_pointer x86_64-pc-linux-gnu")
+  TEST_CASE("C Interoperability - function_with_pointer x86_64-pc-linux-gnu", "[LLVM_IR]")
   {
     char const* const expected_llvm_ir = R"(
 define private void @c_interoperability_foo(ptr noundef %"arguments[0].value") {
@@ -3856,7 +3856,7 @@ entry:
     test_c_interoperability_common("c_interoperability_function_with_pointer.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
-  TEST_CASE("C Interoperability - function_with_pointer x86_64-pc-windows-msvc")
+  TEST_CASE("C Interoperability - function_with_pointer x86_64-pc-windows-msvc", "[LLVM_IR]")
   {
     char const* const expected_llvm_ir = R"(
 define private void @c_interoperability_foo(ptr noundef %"arguments[0].value") {
@@ -3876,7 +3876,7 @@ entry:
     test_c_interoperability_common("c_interoperability_function_with_pointer.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
-  TEST_CASE("C Interoperability - function_with_small_struct x86_64-pc-linux-gnu")
+  TEST_CASE("C Interoperability - function_with_small_struct x86_64-pc-linux-gnu", "[LLVM_IR]")
   {
     char const* const expected_llvm_ir = R"(
 %struct.c_interoperability_My_struct = type { i32, i32, i32, i32 }
@@ -3907,7 +3907,7 @@ entry:
     test_c_interoperability_common("c_interoperability_function_with_small_struct.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
-  TEST_CASE("C Interoperability - function_with_small_struct x86_64-pc-windows-msvc")
+  TEST_CASE("C Interoperability - function_with_small_struct x86_64-pc-windows-msvc", "[LLVM_IR]")
   {
     char const* const expected_llvm_ir = R"(
 %struct.c_interoperability_My_struct = type { i32, i32, i32, i32 }
