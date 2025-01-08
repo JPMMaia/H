@@ -59,7 +59,7 @@ if(WIN32)
    install(FILES ${ZLIB_DLL_DEBUG} TYPE BIN CONFIGURATIONS Debug)
    
    find_file(ZLIB_DLL_RELEASE "zlib1.dll")
-   install(FILES ${ZLIB_DLL_RELEASE} TYPE BIN CONFIGURATIONS Release)
+   install(FILES ${ZLIB_DLL_RELEASE} TYPE BIN CONFIGURATIONS Debug Release)
 endif()
 
 find_package(Clang CONFIG REQUIRED)
