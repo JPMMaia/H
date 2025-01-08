@@ -192,6 +192,8 @@ namespace h::tools::tests_results_replacer
 
             actual.replace(begin_path_offset, end_path_offset - begin_path_offset, "{}");
 
+            std::printf("Replaced test '%s'.\n", test_result.test_name.c_str());
+
             current_offset = end_path_offset;
         }
 
@@ -207,7 +209,7 @@ namespace h::tools::tests_results_replacer
 
         for (Test_result const& test_result : test_results)
         {
-            std::string const test_case_string = std::format("TEST_CASE(\"{}\")", test_result.test_name);
+            std::string const test_case_string = std::format("TEST_CASE(\"{}\"", test_result.test_name);
             
             std::size_t const begin_test_offset = output_text.find(test_case_string);
             if (begin_test_offset == output_text.npos)
@@ -229,6 +231,8 @@ namespace h::tools::tests_results_replacer
             std::size_t const begin_offset = begin_expected_test_offset + begin_expected_text.size();
 
             output_text.replace(begin_offset, end_expected_test_offset - begin_offset, test_result.actual);
+
+            std::printf("Replaced test '%s'.\n", test_result.test_name.c_str());
         }
 
         return output_text;
