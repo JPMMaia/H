@@ -18,8 +18,10 @@ namespace h::compiler
     export llvm::AllocaInst* create_alloca_instruction(
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,
+        llvm::Function& llvm_function,
         llvm::Type* const llvm_type,
-        std::string_view const name = ""
+        std::string_view const name = "",
+        llvm::Value* const array_size = nullptr
     );
 
     export llvm::LoadInst* create_load_instruction(

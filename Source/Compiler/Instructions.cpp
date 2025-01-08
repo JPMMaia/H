@@ -9,18 +9,25 @@ namespace h::compiler
     llvm::AllocaInst* create_alloca_instruction(
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,
+        llvm::Function& llvm_function,
         llvm::Type* const llvm_type,
-        std::string_view const name
+        std::string_view const name,
+        llvm::Value* const array_size
     )
     {
         // If the value is not sized, we cannot create alloca for it.
         if (!llvm_type->isSized())
             return nullptr;
 
-        llvm::AllocaInst* const instruction = llvm_builder.CreateAlloca(llvm_type, nullptr, name.data());
+        llvm::BasicBlock* llvm_original_insert_block = llvm_builder.GetInsertBlock();
+        llvm_builder.SetInsertPointPastAllocas(&llvm_function);
+
+        llvm::AllocaInst* const instruction = llvm_builder.CreateAlloca(llvm_type, array_size, name.data());
         
         llvm::Align const type_alignment = llvm_data_layout.getABITypeAlign(llvm_type);
         instruction->setAlignment(type_alignment);
+
+        llvm_builder.SetInsertPoint(llvm_original_insert_block);
 
         return instruction;
     }

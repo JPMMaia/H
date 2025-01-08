@@ -1258,6 +1258,9 @@ namespace h::compiler
         Expression_parameters const& parameters
     )
     {
+        if (parameters.llvm_parent_function == nullptr)
+            throw std::runtime_error{"Can only create calls inside functions!"};
+
         llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
         std::pmr::polymorphic_allocator<> const& temporaries_allocator = parameters.temporaries_allocator;
 
@@ -1299,6 +1302,7 @@ namespace h::compiler
             llvm_builder,
             parameters.llvm_data_layout,
             parameters.llvm_module,
+            *parameters.llvm_parent_function,
             parameters.clang_module_data,
             parameters.core_module,
             function_pointer_type.type,
@@ -1694,8 +1698,9 @@ namespace h::compiler
         std::uint64_t const array_length = expression.array_data.size();
 
         llvm::ArrayType* const array_type = llvm::ArrayType::get(llvm_element_type, array_length);
-        llvm::ConstantInt* const  array_length_constant = llvm::ConstantInt::get(llvm::Type::getInt64Ty(llvm_context), array_length);
-        llvm::Value* array_alloca = llvm_builder.CreateAlloca(array_type, array_length_constant, "array");
+        llvm::ConstantInt* const array_length_constant = llvm::ConstantInt::get(llvm::Type::getInt64Ty(llvm_context), array_length);
+
+        llvm::AllocaInst* const array_alloca = create_alloca_instruction(llvm_builder, llvm_data_layout, *parameters.llvm_parent_function, array_type, "array", array_length_constant);
 
         for (std::uint64_t index = 0; index < array_length; ++index)
         {
@@ -1758,6 +1763,9 @@ namespace h::compiler
         Expression_parameters const& parameters
     )
     {
+        if (parameters.llvm_parent_function == nullptr)
+            throw std::runtime_error{"Can only create for loops inside functions!"};
+
         llvm::LLVMContext& llvm_context = parameters.llvm_context;
         llvm::DataLayout const& llvm_data_layout = parameters.llvm_data_layout;
         llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
@@ -1779,7 +1787,7 @@ namespace h::compiler
         // Loop variable declaration:
         Type_reference const& variable_type = range_begin_temporary.type.value();
         llvm::Type* const variable_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, variable_type, type_database);
-        llvm::AllocaInst* const variable_alloca = create_alloca_instruction(llvm_builder, llvm_data_layout, variable_llvm_type, expression.variable_name.c_str());
+        llvm::AllocaInst* const variable_alloca = create_alloca_instruction(llvm_builder, llvm_data_layout, *parameters.llvm_parent_function, variable_llvm_type, expression.variable_name.c_str());
         if (parameters.debug_info != nullptr)
             create_local_variable_debug_description(*parameters.debug_info, parameters, expression.variable_name.c_str(), variable_alloca, variable_type);
         create_store_instruction(llvm_builder, llvm_data_layout, range_begin_temporary.value, variable_alloca);
@@ -2088,6 +2096,9 @@ namespace h::compiler
         Type_reference const& union_type_reference
     )
     {
+        if (parameters.llvm_parent_function == nullptr)
+            throw std::runtime_error{"Can only create union instances inside functions!"};
+
         llvm::LLVMContext& llvm_context = parameters.llvm_context;
         llvm::DataLayout const& llvm_data_layout = parameters.llvm_data_layout;
         llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
@@ -2109,7 +2120,7 @@ namespace h::compiler
             if (parameters.debug_info != nullptr)
                 set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
 
-            llvm::AllocaInst* const union_instance = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_union_type);
+            llvm::AllocaInst* const union_instance = create_alloca_instruction(llvm_builder, llvm_data_layout, *parameters.llvm_parent_function, llvm_union_type);
 
             std::uint64_t const alloc_size_in_bytes = llvm_data_layout.getTypeAllocSize(llvm_union_type);
             llvm::Align const alignment = llvm_data_layout.getABITypeAlign(llvm_union_type);
@@ -2139,7 +2150,7 @@ namespace h::compiler
         if (parameters.debug_info != nullptr)
             set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
 
-        llvm::AllocaInst* const union_instance = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_union_type);
+        llvm::AllocaInst* const union_instance = create_alloca_instruction(llvm_builder, llvm_data_layout, *parameters.llvm_parent_function, llvm_union_type);
         llvm::Value* const bitcast_instruction = llvm_builder.CreateBitCast(union_instance, member_value.value->getType()->getPointerTo());
         create_store_instruction(llvm_builder, llvm_data_layout, member_value.value, bitcast_instruction);
 
@@ -2591,6 +2602,9 @@ namespace h::compiler
         Expression_parameters const& parameters
     )
     {
+        if (parameters.llvm_parent_function == nullptr)
+            throw std::runtime_error{"Can only create variables inside functions!"};
+
         llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
         llvm::DataLayout const& llvm_data_layout = parameters.llvm_data_layout;
 
@@ -2599,7 +2613,7 @@ namespace h::compiler
         if (parameters.debug_info != nullptr)
             set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
 
-        llvm::AllocaInst* const alloca = create_alloca_instruction(llvm_builder, llvm_data_layout, right_hand_side.value->getType(), expression.name.c_str());
+        llvm::AllocaInst* const alloca = create_alloca_instruction(llvm_builder, llvm_data_layout, *parameters.llvm_parent_function, right_hand_side.value->getType(), expression.name.c_str());
         if (alloca == nullptr)
         {
             return Value_and_type
@@ -2629,6 +2643,9 @@ namespace h::compiler
         Expression_parameters const& parameters
     )
     {
+        if (parameters.llvm_parent_function == nullptr)
+            throw std::runtime_error{"Can only create variables inside functions!"};
+
         llvm::LLVMContext& llvm_context = parameters.llvm_context;
         llvm::DataLayout const& llvm_data_layout = parameters.llvm_data_layout;
         llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
@@ -2649,7 +2666,7 @@ namespace h::compiler
         if (parameters.debug_info != nullptr)
             set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
 
-        llvm::AllocaInst* const alloca = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_type, expression.name.c_str());
+        llvm::AllocaInst* const alloca = create_alloca_instruction(llvm_builder, llvm_data_layout, *parameters.llvm_parent_function, llvm_type, expression.name.c_str());
 
         if (parameters.debug_info != nullptr)
             create_local_variable_debug_description(*parameters.debug_info, parameters, expression.name, alloca, core_type);

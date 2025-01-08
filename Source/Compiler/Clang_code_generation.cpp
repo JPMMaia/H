@@ -687,6 +687,7 @@ namespace h::compiler
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,
         llvm::Module& llvm_module,
+        llvm::Function& llvm_parent_function,
         h::Module const& core_module,
         h::Function_type const& function_type,
         clang::CodeGen::CGFunctionInfo const& function_info,
@@ -716,7 +717,7 @@ namespace h::compiler
                     llvm::Type* const original_return_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, original_return_type, type_database);
                     llvm::Align const original_return_alignment = llvm_data_layout.getABITypeAlign(original_return_llvm_type);
                     
-                    llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, original_return_llvm_type);
+                    llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_parent_function, original_return_llvm_type);
 
                     transformed_arguments.values.push_back(alloca_instruction);
                     transformed_arguments.attributes.push_back(std::pmr::vector<llvm::Attribute>{{ llvm::Attribute::get(llvm_context, llvm::Attribute::NoUndef) }});
@@ -781,6 +782,7 @@ namespace h::compiler
                             llvm_context,
                             llvm_builder,
                             llvm_data_layout,
+                            llvm_parent_function,
                             original_argument,
                             original_argument_llvm_type,
                             new_type,
@@ -814,7 +816,7 @@ namespace h::compiler
                     std::uint64_t const original_argument_size_in_bits = llvm_data_layout.getTypeAllocSize(original_argument_llvm_type);
                     llvm::Align const original_argument_alignment = llvm_data_layout.getABITypeAlign(original_argument_llvm_type);
                     
-                    llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, original_argument_llvm_type);
+                    llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_parent_function, original_argument_llvm_type);
 
                     create_memcpy_call(
                         llvm_context,
@@ -919,6 +921,7 @@ namespace h::compiler
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,
         llvm::Module& llvm_module,
+        llvm::Function& llvm_parent_function,
         Clang_module_data& clang_module_data,
         h::Module const& core_module,
         h::Function_type const& function_type,
@@ -931,7 +934,7 @@ namespace h::compiler
     {
         clang::CodeGen::CGFunctionInfo const& function_info = create_clang_function_info(clang_module_data, function_type, declaration_database);
 
-        Transformed_arguments const transformed_arguments = transform_arguments(llvm_context, llvm_builder, llvm_data_layout, llvm_module, core_module, function_type, function_info, arguments, type_database);
+        Transformed_arguments const transformed_arguments = transform_arguments(llvm_context, llvm_builder, llvm_data_layout, llvm_module, llvm_parent_function, core_module, function_type, function_info, arguments, type_database);
 
         llvm::CallInst* call_instruction = llvm_builder.CreateCall(&llvm_function_type, &llvm_function_callee, transformed_arguments.values);
 
@@ -954,6 +957,7 @@ namespace h::compiler
             llvm_context,
             llvm_builder,
             llvm_data_layout,
+            llvm_parent_function,
             core_module,
             function_type,
             function_info,
@@ -1063,7 +1067,7 @@ namespace h::compiler
                         llvm::StructType* const function_argument_struct_type = static_cast<llvm::StructType*>(function_argument_type);
                         llvm::ArrayRef<llvm::Type*> const function_argument_elements = function_argument_struct_type->elements();
 
-                        llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, restored_argument_llvm_type, restored_argument_name.data());
+                        llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_function, restored_argument_llvm_type, restored_argument_name.data());
                         restored_arguments.push_back(Value_and_type{.name = restored_argument_name, .value = alloca_instruction, .type = restored_argument_type});
 
                         set_function_input_parameter_debug_information(
@@ -1100,6 +1104,7 @@ namespace h::compiler
                             llvm_context,
                             llvm_builder,
                             llvm_data_layout,
+                            llvm_function,
                             function_argument,
                             function_argument_type,
                             restored_argument_llvm_type,
@@ -1130,7 +1135,7 @@ namespace h::compiler
                     llvm::Type* const pointer_type = llvm::PointerType::get(llvm::Type::getInt8Ty(llvm_context), 0);
                     llvm::Align const pointer_type_alignment = llvm_data_layout.getABITypeAlign(pointer_type);
 
-                    llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, pointer_type, restored_argument_name.data());
+                    llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_function, pointer_type, restored_argument_name.data());
                     restored_arguments.push_back(Value_and_type{.name = restored_argument_name, .value = alloca_instruction, .type = restored_argument_type});
 
                     set_function_input_parameter_debug_information(
@@ -1210,6 +1215,7 @@ namespace h::compiler
                     llvm_context,
                     llvm_builder,
                     llvm_data_layout,
+                    llvm_function,
                     value_to_return.value,
                     original_return_llvm_type,
                     new_return_llvm_type,
@@ -1289,6 +1295,7 @@ namespace h::compiler
     llvm::Value* create_alloca_and_store_if_not_pointer(
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,
+        llvm::Function& llvm_parent_function,
         llvm::Value* const llvm_value,
         llvm::Type* const llvm_type
     )
@@ -1296,7 +1303,7 @@ namespace h::compiler
         if (llvm_value->getType()->isPointerTy())
             return llvm_value;
 
-        llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_type);
+        llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_parent_function, llvm_type);
         llvm_builder.CreateAlignedStore(llvm_value, alloca_instruction, llvm_data_layout.getABITypeAlign(llvm_type));
         return alloca_instruction;
     }
@@ -1305,6 +1312,7 @@ namespace h::compiler
         llvm::LLVMContext& llvm_context,
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,
+        llvm::Function& llvm_parent_function,
         llvm::Value* const source_llvm_value,
         llvm::Type* const source_llvm_type,
         llvm::Type* const destination_llvm_type,
@@ -1316,13 +1324,13 @@ namespace h::compiler
         {
             if (convertion_type == Convertion_type::From_original_to_abi)
             {
-                llvm::Value* const source_llvm_pointer_value = create_alloca_and_store_if_not_pointer(llvm_builder, llvm_data_layout, source_llvm_value, source_llvm_type);
+                llvm::Value* const source_llvm_pointer_value = create_alloca_and_store_if_not_pointer(llvm_builder, llvm_data_layout, llvm_parent_function, source_llvm_value, source_llvm_type);
                 llvm::Value* const load_instruction = llvm_builder.CreateAlignedLoad(destination_llvm_type, source_llvm_pointer_value, llvm_data_layout.getABITypeAlign(source_llvm_type));
                 return load_instruction;
             }
             else
             {
-                llvm::AllocaInst* const destination = create_alloca_instruction(llvm_builder, llvm_data_layout, destination_llvm_type);
+                llvm::AllocaInst* const destination = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_parent_function, destination_llvm_type);
             
                 llvm::StructType* const source_struct_llvm_type = static_cast<llvm::StructType*>(source_llvm_type);
                 llvm::ArrayRef<llvm::Type*> const source_struct_elements = source_struct_llvm_type->elements();
@@ -1341,13 +1349,13 @@ namespace h::compiler
         {
             if (convertion_type == Convertion_type::From_original_to_abi)
             {
-                llvm::AllocaInst* const destination = create_alloca_instruction(llvm_builder, llvm_data_layout, destination_llvm_type);
+                llvm::AllocaInst* const destination = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_parent_function, destination_llvm_type);
                 llvm_builder.CreateAlignedStore(source_llvm_value, destination, llvm_data_layout.getABITypeAlign(destination_llvm_type));
                 return destination;
             }
             else
             {
-                llvm::AllocaInst* const destination = create_alloca_instruction(llvm_builder, llvm_data_layout, destination_llvm_type);
+                llvm::AllocaInst* const destination = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_parent_function, destination_llvm_type);
                 llvm::Value* const pointer_to_destination = llvm_builder.CreateInBoundsGEP(destination_llvm_type, destination, {get_constant(llvm_context, 0), get_constant(llvm_context, 0)});
                 llvm_builder.CreateAlignedStore(source_llvm_value, pointer_to_destination, llvm_data_layout.getABITypeAlign(destination_llvm_type));
                 return destination;
@@ -1355,7 +1363,7 @@ namespace h::compiler
         }
         else if (source_llvm_type->isStructTy() && !destination_llvm_type->isStructTy())
         {
-            llvm::Value* const source_llvm_pointer_value = create_alloca_and_store_if_not_pointer(llvm_builder, llvm_data_layout, source_llvm_value, source_llvm_type);
+            llvm::Value* const source_llvm_pointer_value = create_alloca_and_store_if_not_pointer(llvm_builder, llvm_data_layout, llvm_parent_function, source_llvm_value, source_llvm_type);
 
             llvm::Value* const pointer_to_source = llvm_builder.CreateInBoundsGEP(source_llvm_type, source_llvm_pointer_value, {get_constant(llvm_context, 0), get_constant(llvm_context, 0)});
             llvm::LoadInst* const destination_value = llvm_builder.CreateAlignedLoad(destination_llvm_type, pointer_to_source, llvm_data_layout.getABITypeAlign(source_llvm_type));
@@ -1388,6 +1396,7 @@ namespace h::compiler
         llvm::LLVMContext& llvm_context,
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,
+        llvm::Function& llvm_parent_function,
         llvm::Value* const source_llvm_value,
         llvm::Type* const source_llvm_type,
         llvm::Type* const destination_llvm_type,
@@ -1407,7 +1416,7 @@ namespace h::compiler
             {
                 if (alloca_name.has_value())
                 {
-                    llvm::AllocaInst* const destination = create_alloca_instruction(llvm_builder, llvm_data_layout, destination_llvm_type, alloca_name->data());
+                    llvm::AllocaInst* const destination = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_parent_function, destination_llvm_type, alloca_name->data());
                     llvm_builder.CreateAlignedStore(source_llvm_value, destination, llvm_data_layout.getABITypeAlign(destination_llvm_type));
                     return destination;
                 }
@@ -1422,6 +1431,7 @@ namespace h::compiler
             llvm_context,
             llvm_builder,
             llvm_data_layout,
+            llvm_parent_function,
             source_llvm_value,
             source_llvm_type,
             destination_llvm_type,
@@ -1431,7 +1441,7 @@ namespace h::compiler
 
         if (alloca_name.has_value() && !llvm::AllocaInst::classof(converted_value))
         {
-            llvm::AllocaInst* const destination = create_alloca_instruction(llvm_builder, llvm_data_layout, destination_llvm_type, alloca_name->data());
+            llvm::AllocaInst* const destination = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_parent_function, destination_llvm_type, alloca_name->data());
             llvm_builder.CreateAlignedStore(converted_value, destination, llvm_data_layout.getABITypeAlign(destination_llvm_type));
             return destination;
         }
@@ -1445,6 +1455,7 @@ namespace h::compiler
         llvm::LLVMContext& llvm_context,
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,
+        llvm::Function& llvm_parent_function,
         h::Module const& core_module,
         h::Function_type const& function_type,
         clang::CodeGen::CGFunctionInfo const& function_info,
@@ -1474,6 +1485,7 @@ namespace h::compiler
                     llvm_context,
                     llvm_builder,
                     llvm_data_layout,
+                    llvm_parent_function,
                     call_instruction,
                     new_return_llvm_type,
                     original_return_llvm_type,
