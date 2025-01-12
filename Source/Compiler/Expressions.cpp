@@ -94,6 +94,50 @@ namespace h::compiler
         }
     }
 
+    static std::pmr::vector<std::pmr::vector<Statement>> create_defer_block(
+        std::span<std::pmr::vector<Statement>> const current_block
+    )
+    {
+        std::pmr::vector<std::pmr::vector<Statement>> new_block;
+        new_block.resize(current_block.size() + 1);
+
+        for (std::size_t index = 0; index < current_block.size(); ++index)
+            new_block[index] = current_block[index];
+
+        return new_block;
+    }
+
+    using Blocks_to_pop_count = std::size_t;
+
+    static std::pair<Block_info const*, Blocks_to_pop_count> find_target_block(
+        std::span<Block_info const> const blocks,
+        std::size_t const break_count,
+        std::span<Block_type const> const target_block_types
+    )
+    {
+        std::uint64_t target_break_count = break_count <= 1 ? 1 : break_count;
+        std::uint64_t found_break_blocks = 0;
+
+        for (std::size_t index = 0; index < blocks.size(); ++index)
+        {
+            std::size_t const block_index = blocks.size() - index - 1;
+            Block_info const& block_info = blocks[block_index];
+
+            auto const location = std::find(target_block_types.begin(), target_block_types.end(), block_info.block_type);
+            if (location != target_block_types.end())
+            {
+                found_break_blocks += 1;
+
+                if (found_break_blocks == target_break_count)
+                {
+                    return std::make_pair(&block_info, index + 1);
+                }
+            }
+        }
+
+        throw std::runtime_error{ std::format("Could not find block to break!") };
+    }
+
     static void create_local_variable_debug_description(
         Debug_info& debug_info,
         Expression_parameters const& parameters,
@@ -1190,9 +1234,18 @@ namespace h::compiler
         if (parameters.debug_info != nullptr)
             push_debug_lexical_block_scope(*parameters.debug_info, *parameters.source_position);
 
+        std::pmr::vector<Block_info> all_block_infos{ parameters.blocks.begin(), parameters.blocks.end() };
+        all_block_infos.push_back(Block_info{ .block_type = Block_type::None });
+        std::pmr::vector<std::pmr::vector<Statement>> defer_expressions_per_block = create_defer_block(parameters.defer_expressions_per_block);
+
+        Expression_parameters block_parameters = parameters;
+        block_parameters.blocks = all_block_infos;
+        block_parameters.defer_expressions_per_block = defer_expressions_per_block;
+
         create_statement_values(
             statements,
-            parameters
+            block_parameters,
+            true
         );
 
         if (parameters.debug_info != nullptr)
@@ -1213,31 +1266,18 @@ namespace h::compiler
         Expression_parameters const& parameters
     )
     {
-        auto const find_target_block = [&]() -> llvm::BasicBlock*
+        std::array<Block_type, 3> const target_block_types
         {
-            std::uint64_t target_break_count = break_expression.loop_count <= 1 ? 1 : break_expression.loop_count;
-            std::uint64_t found_break_blocks = 0;
-
-            for (std::size_t index = 0; index < blocks.size(); ++index)
-            {
-                std::size_t const block_index = blocks.size() - index - 1;
-                Block_info const& block_info = blocks[block_index];
-
-                if (block_info.block_type == Block_type::For_loop || block_info.block_type == Block_type::Switch || block_info.block_type == Block_type::While_loop)
-                {
-                    found_break_blocks += 1;
-
-                    if (found_break_blocks == target_break_count)
-                    {
-                        return block_info.after_block;
-                    }
-                }
-            }
-
-            throw std::runtime_error{ std::format("Could not find block to break!") };
+            Block_type::For_loop,
+            Block_type::Switch,
+            Block_type::While_loop,
         };
+        std::pair<Block_info const*, Blocks_to_pop_count> const target_block_result = 
+            find_target_block(blocks, break_expression.loop_count, target_block_types);
+        llvm::BasicBlock* const target_block = target_block_result.first->after_block;
+        Blocks_to_pop_count const blocks_to_pop_count = target_block_result.second;
 
-        llvm::BasicBlock* const target_block = find_target_block();
+        create_defer_instructions_pop_blocks(parameters, blocks_to_pop_count);
 
         if (parameters.debug_info != nullptr)
             set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
@@ -1726,23 +1766,17 @@ namespace h::compiler
         Expression_parameters const& parameters
     )
     {
-        auto const find_target_block = [&]() -> llvm::BasicBlock*
+        std::array<Block_type, 2> const target_block_types
         {
-            for (std::size_t index = 0; index < block_infos.size(); ++index)
-            {
-                std::size_t const block_index = block_infos.size() - index - 1;
-                Block_info const& block_info = block_infos[block_index];
-
-                if (block_info.block_type == Block_type::For_loop || block_info.block_type == Block_type::While_loop)
-                {
-                    return block_info.repeat_block;
-                }
-            }
-
-            throw std::runtime_error{ std::format("Could not find loop block to continue!") };
+            Block_type::For_loop,
+            Block_type::While_loop,
         };
+        std::pair<Block_info const*, Blocks_to_pop_count> const target_block_result = 
+            find_target_block(block_infos, 1, target_block_types);
+        llvm::BasicBlock* const target_block = target_block_result.first->repeat_block;
+        Blocks_to_pop_count const blocks_to_pop_count = target_block_result.second;
 
-        llvm::BasicBlock* const target_block = find_target_block();
+        create_defer_instructions_pop_blocks(parameters, blocks_to_pop_count);
 
         if (parameters.debug_info != nullptr)
             set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
@@ -1835,13 +1869,17 @@ namespace h::compiler
             std::pmr::vector<Block_info> all_block_infos{ block_infos.begin(), block_infos.end() };
             all_block_infos.push_back(Block_info{ .block_type = Block_type::For_loop, .repeat_block = update_index_block, .after_block = after_block });
 
+            std::pmr::vector<std::pmr::vector<Statement>> defer_expressions_per_block = create_defer_block(parameters.defer_expressions_per_block);
+
             Expression_parameters new_parameters = parameters;
             new_parameters.local_variables = all_local_variables;
             new_parameters.blocks = all_block_infos;
+            new_parameters.defer_expressions_per_block = defer_expressions_per_block;
 
             create_statement_values(
                 expression.then_statements,
-                new_parameters
+                new_parameters,
+                true
             );
 
             if (!ends_with_terminator_statement(expression.then_statements))
@@ -1944,6 +1982,14 @@ namespace h::compiler
         {
             Condition_statement_pair const& serie = expression.series[serie_index];
 
+            std::pmr::vector<Block_info> all_block_infos{ block_infos.begin(), block_infos.end() };
+            all_block_infos.push_back(Block_info{ .block_type = Block_type::If });
+            std::pmr::vector<std::pmr::vector<Statement>> defer_expressions_per_block = create_defer_block(parameters.defer_expressions_per_block);
+
+            Expression_parameters then_block_parameters = parameters;
+            then_block_parameters.blocks = all_block_infos;
+            then_block_parameters.defer_expressions_per_block = defer_expressions_per_block;
+
             // if: current, then, end_if
             // if,else_if: current, then, else, then, end_if
             // if,else: current, then, else, end_if
@@ -1970,7 +2016,8 @@ namespace h::compiler
 
                 create_statement_values(
                     serie.then_statements,
-                    parameters
+                    then_block_parameters,
+                    true
                 );
 
                 if (!ends_with_terminator_statement(serie.then_statements))
@@ -1988,7 +2035,8 @@ namespace h::compiler
 
                 create_statement_values(
                     serie.then_statements,
-                    parameters
+                    then_block_parameters,
+                    true
                 );
 
                 if (!ends_with_terminator_statement(serie.then_statements))
@@ -2232,6 +2280,8 @@ namespace h::compiler
 
         if (!expression.expression.has_value())
         {
+            create_defer_instructions_at_return(parameters);
+
             if (parameters.debug_info != nullptr)
                 set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
 
@@ -2252,6 +2302,8 @@ namespace h::compiler
         new_parameters.expression_type = function_output_type.has_value() ? function_output_type.value() : std::optional<Type_reference>{};
         Value_and_type const temporary = create_expression_value(expression.expression->expression_index, statement, new_parameters);
 
+        create_defer_instructions_at_return(parameters);
+        
         if (parameters.debug_info != nullptr)
             set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
 
@@ -2339,9 +2391,6 @@ namespace h::compiler
         std::pmr::vector<Block_info> all_block_infos{ block_infos.begin(), block_infos.end() };
         all_block_infos.push_back({ .block_type = Block_type::Switch, .repeat_block = nullptr, .after_block = after_block });
 
-        Expression_parameters new_parameters = parameters;
-        new_parameters.blocks = all_block_infos;
-
         for (std::size_t case_index = 0; case_index < expression.cases.size(); ++case_index)
         {
             Switch_case_expression_pair const& switch_case = expression.cases[case_index];
@@ -2349,9 +2398,16 @@ namespace h::compiler
 
             llvm_builder.SetInsertPoint(case_block);
 
+            std::pmr::vector<std::pmr::vector<Statement>> defer_expressions_per_block = create_defer_block(parameters.defer_expressions_per_block);
+
+            Expression_parameters new_parameters = parameters;
+            new_parameters.blocks = all_block_infos;
+            new_parameters.defer_expressions_per_block = defer_expressions_per_block;
+
             create_statement_values(
                 switch_case.statements,
-                new_parameters
+                new_parameters,
+                true
             );
 
             if (!ends_with_terminator_statement(switch_case.statements))
@@ -2834,8 +2890,11 @@ namespace h::compiler
         llvm::Value* const condition_converted_value = convert_to_boolean(llvm_context, llvm_builder, condition_value.value, condition_value.type);
         llvm_builder.CreateCondBr(condition_converted_value, then_block, after_block);
 
-        Expression_parameters new_parameters = parameters;
-        new_parameters.blocks = all_block_infos;
+        std::pmr::vector<std::pmr::vector<Statement>> defer_expressions_per_block = create_defer_block(parameters.defer_expressions_per_block);
+
+        Expression_parameters then_block_parameters = parameters;
+        then_block_parameters.blocks = all_block_infos;
+        then_block_parameters.defer_expressions_per_block = defer_expressions_per_block;
 
         llvm_builder.SetInsertPoint(then_block);
 
@@ -2844,7 +2903,8 @@ namespace h::compiler
 
         create_statement_values(
             expression.then_statements,
-            new_parameters
+            then_block_parameters,
+            true
         );
         if (!ends_with_terminator_statement(expression.then_statements))
             llvm_builder.CreateBr(condition_block);
@@ -2930,6 +2990,15 @@ namespace h::compiler
         {
             Continue_expression const& data = std::get<Continue_expression>(expression.data);
             return create_continue_expression_value(data, new_parameters.llvm_builder, new_parameters.blocks, new_parameters);
+        }
+        else if (std::holds_alternative<Defer_expression>(expression.data))
+        {
+            if (parameters.defer_expressions_per_block.empty())
+                throw std::runtime_error{"Can only have defer expressions inside function blocks!"};
+
+            std::pmr::vector<Statement>& current_block_defer_expressions = parameters.defer_expressions_per_block.back();
+            current_block_defer_expressions.push_back(statement);
+            return {};
         }
         else if (std::holds_alternative<For_loop_expression>(expression.data))
         {
@@ -3079,7 +3148,8 @@ namespace h::compiler
 
     void create_statement_values(
         std::span<Statement const> const statements,
-        Expression_parameters const& parameters
+        Expression_parameters const& parameters,
+        bool const create_defer_expressions_at_end
     )
     {
         std::pmr::vector<Value_and_type> all_local_variables;
@@ -3099,8 +3169,75 @@ namespace h::compiler
                     new_parameters
                 );
 
-                all_local_variables.push_back(statement_value);
+                if (!statement_value.name.empty())
+                    all_local_variables.push_back(statement_value);
             }
         }
+
+        if (create_defer_expressions_at_end && !ends_with_terminator_statement(statements))
+        {
+            new_parameters.local_variables = all_local_variables;
+            create_defer_instructions_at_end_of_block(new_parameters);
+        }
+    }
+
+    void create_defer_instructions_at_end_of_block(
+        Expression_parameters const& parameters,
+        std::size_t const block_index
+    )
+    {
+        llvm::DebugLoc const previous_debug_location = parameters.llvm_builder.getCurrentDebugLocation();
+
+        std::span<Statement const> const block_defer_expressions = parameters.defer_expressions_per_block[block_index];
+
+        for (std::size_t expression_index = 0; expression_index < block_defer_expressions.size(); ++expression_index)
+        {
+            std::size_t const reverse_expression_index = block_defer_expressions.size() - 1 - expression_index;
+            Statement const& defer_expression_statement = block_defer_expressions[reverse_expression_index];
+
+            if (!defer_expression_statement.expressions.empty())
+            {
+                Expression const& first_expression = defer_expression_statement.expressions[0];
+                if (std::holds_alternative<Defer_expression>(first_expression.data))
+                {
+                    Defer_expression const defer_expression = std::get<Defer_expression>(first_expression.data);
+                    
+                    create_expression_value(
+                        defer_expression.expression_to_defer.expression_index,
+                        defer_expression_statement,
+                        parameters
+                    ); 
+                }
+            }
+        }
+
+        parameters.llvm_builder.SetCurrentDebugLocation(previous_debug_location);
+    }
+
+    void create_defer_instructions_at_end_of_block(
+        Expression_parameters const& parameters
+    )
+    {
+        if (!parameters.defer_expressions_per_block.empty())
+            create_defer_instructions_at_end_of_block(parameters, parameters.defer_expressions_per_block.size() - 1);
+    }
+
+    void create_defer_instructions_pop_blocks(
+        Expression_parameters const& parameters,
+        std::size_t const blocks_to_pop_count
+    )
+    {
+        for (std::size_t block_index = 0; block_index < blocks_to_pop_count; ++block_index)
+        {
+            std::size_t const reverse_block_index = parameters.defer_expressions_per_block.size() - 1 - block_index;
+            create_defer_instructions_at_end_of_block(parameters, reverse_block_index);
+        }
+    }
+
+    void create_defer_instructions_at_return(
+        Expression_parameters const& parameters
+    )
+    {
+        create_defer_instructions_pop_blocks(parameters, parameters.defer_expressions_per_block.size());
     }
 }

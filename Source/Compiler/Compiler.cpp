@@ -362,6 +362,7 @@ namespace h::compiler
             .type_database = type_database,
             .enum_value_constants = enum_value_constants,
             .blocks = {},
+            .defer_expressions_per_block = {},
             .function_declaration = {},
             .function_arguments = {},
             .local_variables = {},
@@ -445,6 +446,9 @@ namespace h::compiler
 
         {
             std::pmr::vector<Block_info> block_infos;
+            
+            std::pmr::vector<std::pmr::vector<Statement>> defer_expressions_per_block;
+            defer_expressions_per_block.push_back({});
 
             std::pmr::vector<Value_and_type> function_arguments = generate_function_arguments(
                 llvm_context,
@@ -482,6 +486,7 @@ namespace h::compiler
                 .type_database = type_database,
                 .enum_value_constants = enum_value_constants,
                 .blocks = block_infos,
+                .defer_expressions_per_block = defer_expressions_per_block,
                 .function_declaration = &function_declaration,
                 .function_arguments = function_arguments,
                 .local_variables = {},
@@ -491,31 +496,29 @@ namespace h::compiler
                 .temporaries_allocator = temporaries_allocator,
             };
 
-            create_statement_values(function_definition.statements, expression_parameters);
-        }
+            create_statement_values(function_definition.statements, expression_parameters, true);
 
-        auto const return_void_is_missing = [&]() -> bool
-        {
-            if (!llvm_function.getReturnType()->isVoidTy())
-                return false;
-
-            if (!function_definition.statements.empty())
+            auto const return_void_is_missing = [&]() -> bool
             {
-                Statement const& statement = function_definition.statements.back();
-                if (!statement.expressions.empty())
+                if (!llvm_function.getReturnType()->isVoidTy())
+                    return false;
+
+                if (!function_definition.statements.empty())
                 {
-                    Expression const& expression = statement.expressions[0];
-                    if (std::holds_alternative<Return_expression>(expression.data))
-                        return false;
+                    Statement const& statement = function_definition.statements.back();
+                    if (!statement.expressions.empty())
+                    {
+                        Expression const& expression = statement.expressions[0];
+                        if (std::holds_alternative<Return_expression>(expression.data))
+                            return false;
+                    }
                 }
-            }
 
-            return true;
-        };
+                return true;
+            };
 
-        if (return_void_is_missing())
-        {
-            llvm_builder.CreateRetVoid();
+            if (return_void_is_missing())
+                llvm_builder.CreateRetVoid();
         }
 
         // Delete the last block if it has no predecessors.
@@ -787,6 +790,7 @@ namespace h::compiler
                     .type_database = type_database,
                     .enum_value_constants = {},
                     .blocks = {},
+                    .defer_expressions_per_block = {},
                     .function_declaration = {},
                     .function_arguments = {},
                     .local_variables = {},

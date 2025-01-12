@@ -110,6 +110,7 @@ export enum Expression_enum {
     Constant_expression = "Constant_expression",
     Constant_array_expression = "Constant_array_expression",
     Continue_expression = "Continue_expression",
+    Defer_expression = "Defer_expression",
     For_loop_expression = "For_loop_expression",
     If_expression = "If_expression",
     Instantiate_expression = "Instantiate_expression",
@@ -318,6 +319,10 @@ export interface Constant_array_expression {
 export interface Continue_expression {
 }
 
+export interface Defer_expression {
+    expression_to_defer: Expression_index;
+}
+
 export interface For_loop_expression {
     variable_name: string;
     range_begin: Expression_index;
@@ -402,7 +407,7 @@ export interface While_loop_expression {
 }
 
 export interface Expression {
-    data: Variant<Expression_enum, Access_expression | Access_array_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Comment_expression | Constant_expression | Constant_array_expression | Continue_expression | For_loop_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
+    data: Variant<Expression_enum, Access_expression | Access_array_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Comment_expression | Constant_expression | Constant_array_expression | Continue_expression | Defer_expression | For_loop_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
     source_position?: Source_position;
 }
 

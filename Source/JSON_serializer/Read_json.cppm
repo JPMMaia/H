@@ -487,6 +487,7 @@ namespace h::json
     export std::optional<Stack_state> get_next_state_constant_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_constant_array_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_continue_expression(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_defer_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_for_loop_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_condition_statement_pair(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_if_expression(Stack_state* state, std::string_view const key);
@@ -2160,6 +2161,24 @@ namespace h::json
         return {};
     }
 
+    export std::optional<Stack_state> get_next_state_defer_expression(Stack_state* state, std::string_view const key)
+    {
+        h::Defer_expression* parent = static_cast<h::Defer_expression*>(state->pointer);
+
+        if (key == "expression_to_defer")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->expression_to_defer,
+                .type = "Expression_index",
+                .get_next_state = get_next_state_expression_index,
+            };
+        }
+
+        return {};
+    }
+
     export std::optional<Stack_state> get_next_state_for_loop_expression(Stack_state* state, std::string_view const key)
     {
         h::For_loop_expression* parent = static_cast<h::For_loop_expression*>(state->pointer);
@@ -2763,7 +2782,7 @@ namespace h::json
         {
             auto const set_variant_type = [](Stack_state* state, std::string_view const type) -> void
             {
-                using Variant_type = std::variant<h::Access_expression, h::Access_array_expression, h::Assignment_expression, h::Binary_expression, h::Block_expression, h::Break_expression, h::Call_expression, h::Cast_expression, h::Comment_expression, h::Constant_expression, h::Constant_array_expression, h::Continue_expression, h::For_loop_expression, h::If_expression, h::Instantiate_expression, h::Invalid_expression, h::Null_pointer_expression, h::Parenthesis_expression, h::Return_expression, h::Switch_expression, h::Ternary_condition_expression, h::Unary_expression, h::Variable_declaration_expression, h::Variable_declaration_with_type_expression, h::Variable_expression, h::While_loop_expression>;
+                using Variant_type = std::variant<h::Access_expression, h::Access_array_expression, h::Assignment_expression, h::Binary_expression, h::Block_expression, h::Break_expression, h::Call_expression, h::Cast_expression, h::Comment_expression, h::Constant_expression, h::Constant_array_expression, h::Continue_expression, h::Defer_expression, h::For_loop_expression, h::If_expression, h::Instantiate_expression, h::Invalid_expression, h::Null_pointer_expression, h::Parenthesis_expression, h::Return_expression, h::Switch_expression, h::Ternary_condition_expression, h::Unary_expression, h::Variable_declaration_expression, h::Variable_declaration_with_type_expression, h::Variable_expression, h::While_loop_expression>;
                 Variant_type* pointer = static_cast<Variant_type*>(state->pointer);
 
                 if (type == "Access_expression")
@@ -2836,6 +2855,12 @@ namespace h::json
                 {
                     *pointer = Continue_expression{};
                     state->type = "Continue_expression";
+                    return;
+                }
+                if (type == "Defer_expression")
+                {
+                    *pointer = Defer_expression{};
+                    state->type = "Defer_expression";
                     return;
                 }
                 if (type == "For_loop_expression")
@@ -3000,6 +3025,11 @@ namespace h::json
                             return get_next_state_continue_expression;
                         }
 
+                        if (state->type == "Defer_expression")
+                        {
+                            return get_next_state_defer_expression;
+                        }
+
                         if (state->type == "For_loop_expression")
                         {
                             return get_next_state_for_loop_expression;
@@ -3088,7 +3118,7 @@ namespace h::json
             return Stack_state
             {
                 .pointer = &parent->data,
-                .type = "std::variant<Access_expression,Access_array_expression,Assignment_expression,Binary_expression,Block_expression,Break_expression,Call_expression,Cast_expression,Comment_expression,Constant_expression,Constant_array_expression,Continue_expression,For_loop_expression,If_expression,Instantiate_expression,Invalid_expression,Null_pointer_expression,Parenthesis_expression,Return_expression,Switch_expression,Ternary_condition_expression,Unary_expression,Variable_declaration_expression,Variable_declaration_with_type_expression,Variable_expression,While_loop_expression>",
+                .type = "std::variant<Access_expression,Access_array_expression,Assignment_expression,Binary_expression,Block_expression,Break_expression,Call_expression,Cast_expression,Comment_expression,Constant_expression,Constant_array_expression,Continue_expression,Defer_expression,For_loop_expression,If_expression,Instantiate_expression,Invalid_expression,Null_pointer_expression,Parenthesis_expression,Return_expression,Switch_expression,Ternary_condition_expression,Unary_expression,Variable_declaration_expression,Variable_declaration_with_type_expression,Variable_expression,While_loop_expression>",
                 .get_next_state = get_next_state,
                 .set_variant_type = set_variant_type,
             };
@@ -4096,6 +4126,16 @@ namespace h::json
                 .pointer = output,
                 .type = "Continue_expression",
                 .get_next_state = get_next_state_continue_expression
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Defer_expression>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Defer_expression",
+                .get_next_state = get_next_state_defer_expression
             };
         }
 

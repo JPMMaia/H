@@ -917,6 +917,29 @@ namespace h::json::operators
         return output_stream;
     }
 
+    export std::istream& operator>>(std::istream& input_stream, Defer_expression& value)
+    {
+        rapidjson::Reader reader;
+        rapidjson::IStreamWrapper stream_wrapper{ input_stream };
+        std::optional<Defer_expression> const output = h::json::read<Defer_expression>(reader, stream_wrapper);
+
+        if (output)
+        {
+            value = std::move(*output);
+        }
+
+        return input_stream;
+    }
+
+    export std::ostream& operator<<(std::ostream& output_stream, Defer_expression const& value)
+    {
+        rapidjson::OStreamWrapper stream_wrapper{ output_stream };
+        rapidjson::Writer<rapidjson::OStreamWrapper> writer{ stream_wrapper };
+        h::json::write(writer, value);
+
+        return output_stream;
+    }
+
     export std::istream& operator>>(std::istream& input_stream, For_loop_expression& value)
     {
         rapidjson::Reader reader;

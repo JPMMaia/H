@@ -1383,6 +1383,105 @@ export function create_binary_expressions_operator_precedence(): IR.Module {
     };
 }
 
+export function create_defer_expressions(): IR.Module {
+
+    const int32_type = create_integer_type(32, true);
+
+    const statements: IR.Statement[] = [
+        create_statement(
+            IR.create_variable_declaration_expression("instance_0", false, IR.create_call_expression(IR.create_variable_expression("create_object", IR.Access_type.Read), []))
+        ),
+        create_statement(
+            IR.create_defer_expression(IR.create_call_expression(IR.create_variable_expression("destroy", IR.Access_type.Read), [
+                IR.create_variable_expression("instance_0", IR.Access_type.Read)
+            ]))
+        ),
+    ];
+
+    return {
+        name: "Defer_expressions",
+        imports: [],
+        declarations: [
+            {
+                name: "create_object",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "create_object",
+                        type: {
+                            input_parameter_types: [],
+                            output_parameter_types: [int32_type],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: [],
+                        output_parameter_names: ["id"],
+                        linkage: IR.Linkage.External
+                    },
+                    definition: {
+                        name: "create_object",
+                        statements: [
+                            create_statement(
+                                IR.create_return_expression(
+                                    IR.create_constant_expression(int32_type, "0")
+                                )
+                            ),
+                        ]
+                    }
+                }
+            },
+            {
+                name: "destroy_object",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "destroy_object",
+                        type: {
+                            input_parameter_types: [int32_type],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: ["id"],
+                        output_parameter_names: [],
+                        linkage: IR.Linkage.External
+                    },
+                    definition: {
+                        name: "destroy_object",
+                        statements: [
+                        ]
+                    }
+                }
+            },
+            {
+                name: "run",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "run",
+                        type: {
+                            input_parameter_types: [],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: [],
+                        output_parameter_names: [],
+                        linkage: IR.Linkage.External
+                    },
+                    definition: {
+                        name: "run",
+                        statements: [
+                            ...statements
+                        ]
+                    }
+                }
+            },
+        ]
+    };
+}
+
+
 export function create_assignment_expressions(): IR.Module {
 
     const expressions: IR.Expression[] = [

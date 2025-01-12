@@ -337,6 +337,7 @@ export enum Expression_enum {
     Constant_expression = "Constant_expression",
     Constant_array_expression = "Constant_array_expression",
     Continue_expression = "Continue_expression",
+    Defer_expression = "Defer_expression",
     For_loop_expression = "For_loop_expression",
     If_expression = "If_expression",
     Instantiate_expression = "Instantiate_expression",
@@ -1523,6 +1524,47 @@ export function create_continue_expression(): Expression {
         }
     };
 }
+export interface Defer_expression {
+    expression_to_defer: Expression;
+}
+
+function core_to_intermediate_defer_expression(core_value: Core.Defer_expression, statement: Core.Statement): Defer_expression {
+    return {
+        expression_to_defer: core_to_intermediate_expression(statement.expressions.elements[core_value.expression_to_defer.expression_index], statement),
+    };
+}
+
+function intermediate_to_core_defer_expression(intermediate_value: Defer_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
+    const core_value: Core.Expression = {
+        data: {
+            type: Core.Expression_enum.Defer_expression,
+            value: {
+                expression_to_defer: {
+                    expression_index: -1
+                },
+            }
+        }
+    };
+
+    expressions[index] = core_value;
+
+    (core_value.data.value as Core.Defer_expression).expression_to_defer.expression_index = expressions.length;
+    intermediate_to_core_expression(intermediate_value.expression_to_defer, expressions);
+}
+
+export function create_defer_expression(expression_to_defer: Expression): Expression {
+    const defer_expression: Defer_expression = {
+        expression_to_defer: expression_to_defer,
+    };
+    return {
+        data: {
+            type: Expression_enum.Defer_expression,
+            value: defer_expression
+        }
+    };
+}
 export interface For_loop_expression {
     variable_name: string;
     range_begin: Expression;
@@ -2180,7 +2222,7 @@ export function create_while_loop_expression(condition: Statement, then_statemen
     };
 }
 export interface Expression {
-    data: Variant<Expression_enum, Access_expression | Access_array_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Comment_expression | Constant_expression | Constant_array_expression | Continue_expression | For_loop_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
+    data: Variant<Expression_enum, Access_expression | Access_array_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Comment_expression | Constant_expression | Constant_array_expression | Continue_expression | Defer_expression | For_loop_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
     source_position?: Source_position;
 }
 
@@ -2258,6 +2300,12 @@ function core_to_intermediate_expression(core_value: Core.Expression, statement:
                     return {
                         type: core_value.data.type,
                         value: core_to_intermediate_continue_expression(core_value.data.value as Core.Continue_expression, statement)
+                    };
+                }
+                case Core.Expression_enum.Defer_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_defer_expression(core_value.data.value as Core.Defer_expression, statement)
                     };
                 }
                 case Core.Expression_enum.For_loop_expression: {
@@ -2400,6 +2448,10 @@ function intermediate_to_core_expression(intermediate_value: Expression, express
         }
         case Expression_enum.Continue_expression: {
             intermediate_to_core_continue_expression(intermediate_value.data.value as Continue_expression, expressions);
+            break;
+        }
+        case Expression_enum.Defer_expression: {
+            intermediate_to_core_defer_expression(intermediate_value.data.value as Defer_expression, expressions);
             break;
         }
         case Expression_enum.For_loop_expression: {

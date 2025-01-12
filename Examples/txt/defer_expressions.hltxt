@@ -1,0 +1,95 @@
+module Defer_expressions;
+
+function do_defer(value: Int32) -> ()
+{
+}
+
+function run(condition: Bool, value: Int32) -> ()
+{
+    defer do_defer(0);
+    defer do_defer(1);
+
+    if condition
+    {
+        defer do_defer(2);
+        var v2 = 2;
+        defer do_defer(v2);
+    }
+    else if value == 0
+    {
+        defer do_defer(3);
+        var v3 = 3;
+        defer do_defer(v3);
+    }
+    else
+    {
+        defer do_defer(4);
+        var v4 = 4;
+        defer do_defer(v4);
+    }
+
+    if condition
+    {
+        return;
+    }
+
+    while condition
+    {
+        defer do_defer(5);
+        var v5 = 5;
+        defer do_defer(v5);
+    }
+
+    while condition
+    {
+        defer do_defer(6);
+        var v6 = 6;
+        continue;
+    }
+
+    while condition
+    {
+        defer do_defer(7);
+        var v7 = 7;
+        break;
+    }
+
+    for index in 0 to 10
+    {
+        defer do_defer(8);
+        var v8 = 8;
+        defer do_defer(v8);
+    }
+
+    switch value
+    {
+    case 0:
+        defer do_defer(9);
+        var v9 = 9;
+        defer do_defer(v9);
+    }
+
+    {
+        defer do_defer(10);
+        var v10 = 10;
+        defer do_defer(v10);
+    }
+
+    for i in 0 to 10
+    {
+        defer do_defer(11);
+
+        if i % 2 == 0
+        {
+            defer do_defer(12);
+
+            for j in 0 to 10
+            {
+                if j % 2 == 0
+                {
+                    break 2;
+                }
+            }
+        }
+    }
+}

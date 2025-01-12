@@ -388,6 +388,13 @@ namespace h
         friend auto operator<=>(Continue_expression const&, Continue_expression const&) = default;
     };
 
+    export struct Defer_expression
+    {
+        Expression_index expression_to_defer;
+        
+        friend auto operator<=>(Defer_expression const&, Defer_expression const&) = default;
+    };
+
     export struct For_loop_expression
     {
         std::pmr::string variable_name;
@@ -552,6 +559,7 @@ namespace h
             Constant_expression,
             Constant_array_expression,
             Continue_expression,
+            Defer_expression,
             For_loop_expression,
             If_expression,
             Instantiate_expression,

@@ -1538,6 +1538,303 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
   }
 
+  TEST_CASE("Compile Defer Expressions", "[LLVM_IR]")
+  {
+    char const* const input_file = "defer_expressions.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+; Function Attrs: convergent
+define private void @Defer_expressions_do_defer(i32 noundef %"arguments[0].value") #0 {
+entry:
+  %value = alloca i32, align 4
+  store i32 %"arguments[0].value", ptr %value, align 4
+  ret void
+}
+
+; Function Attrs: convergent
+define private void @Defer_expressions_run(i8 noundef zeroext %"arguments[0].condition", i32 noundef %"arguments[1].value") #0 {
+entry:
+  %condition = alloca i1, align 1
+  %value = alloca i32, align 4
+  %v2 = alloca i32, align 4
+  %v3 = alloca i32, align 4
+  %v4 = alloca i32, align 4
+  %v5 = alloca i32, align 4
+  %v6 = alloca i32, align 4
+  %v7 = alloca i32, align 4
+  %index = alloca i32, align 4
+  %v8 = alloca i32, align 4
+  %v9 = alloca i32, align 4
+  %v10 = alloca i32, align 4
+  %i = alloca i32, align 4
+  %j = alloca i32, align 4
+  %0 = trunc i8 %"arguments[0].condition" to i1
+  store i1 %0, ptr %condition, align 1
+  store i32 %"arguments[1].value", ptr %value, align 4
+  %1 = load i1, ptr %condition, align 1
+  br i1 %1, label %if_s0_then, label %if_s1_else
+
+if_s0_then:                                       ; preds = %entry
+  store i32 2, ptr %v2, align 4
+  %2 = load i32, ptr %v2, align 4
+  call void @Defer_expressions_do_defer(i32 noundef %2)
+  call void @Defer_expressions_do_defer(i32 noundef 2)
+  br label %if_s4_after
+
+if_s1_else:                                       ; preds = %entry
+  %3 = load i32, ptr %value, align 4
+  %4 = icmp eq i32 %3, 0
+  br i1 %4, label %if_s2_then, label %if_s3_else
+
+if_s2_then:                                       ; preds = %if_s1_else
+  store i32 3, ptr %v3, align 4
+  %5 = load i32, ptr %v3, align 4
+  call void @Defer_expressions_do_defer(i32 noundef %5)
+  call void @Defer_expressions_do_defer(i32 noundef 3)
+  br label %if_s4_after
+
+if_s3_else:                                       ; preds = %if_s1_else
+  store i32 4, ptr %v4, align 4
+  %6 = load i32, ptr %v4, align 4
+  call void @Defer_expressions_do_defer(i32 noundef %6)
+  call void @Defer_expressions_do_defer(i32 noundef 4)
+  br label %if_s4_after
+
+if_s4_after:                                      ; preds = %if_s3_else, %if_s2_then, %if_s0_then
+  %7 = load i1, ptr %condition, align 1
+  br i1 %7, label %if_s0_then1, label %if_s1_after
+
+if_s0_then1:                                      ; preds = %if_s4_after
+  call void @Defer_expressions_do_defer(i32 noundef 1)
+  call void @Defer_expressions_do_defer(i32 noundef 0)
+  ret void
+
+if_s1_after:                                      ; preds = %if_s4_after
+  br label %while_loop_condition
+
+while_loop_condition:                             ; preds = %while_loop_then, %if_s1_after
+  %8 = load i1, ptr %condition, align 1
+  br i1 %8, label %while_loop_then, label %while_loop_after
+
+while_loop_then:                                  ; preds = %while_loop_condition
+  store i32 5, ptr %v5, align 4
+  %9 = load i32, ptr %v5, align 4
+  call void @Defer_expressions_do_defer(i32 noundef %9)
+  call void @Defer_expressions_do_defer(i32 noundef 5)
+  br label %while_loop_condition
+
+while_loop_after:                                 ; preds = %while_loop_condition
+  br label %while_loop_condition2
+
+while_loop_condition2:                            ; preds = %while_loop_then3, %while_loop_after
+  %10 = load i1, ptr %condition, align 1
+  br i1 %10, label %while_loop_then3, label %while_loop_after4
+
+while_loop_then3:                                 ; preds = %while_loop_condition2
+  store i32 6, ptr %v6, align 4
+  call void @Defer_expressions_do_defer(i32 noundef 6)
+  br label %while_loop_condition2
+
+while_loop_after4:                                ; preds = %while_loop_condition2
+  br label %while_loop_condition5
+
+while_loop_condition5:                            ; preds = %while_loop_after4
+  %11 = load i1, ptr %condition, align 1
+  br i1 %11, label %while_loop_then6, label %while_loop_after7
+
+while_loop_then6:                                 ; preds = %while_loop_condition5
+  store i32 7, ptr %v7, align 4
+  call void @Defer_expressions_do_defer(i32 noundef 7)
+  br label %while_loop_after7
+
+while_loop_after7:                                ; preds = %while_loop_then6, %while_loop_condition5
+  store i32 0, ptr %index, align 4
+  br label %for_loop_condition
+
+for_loop_condition:                               ; preds = %for_loop_update_index, %while_loop_after7
+  %12 = load i32, ptr %index, align 4
+  %13 = icmp slt i32 %12, 10
+  br i1 %13, label %for_loop_then, label %for_loop_after
+
+for_loop_then:                                    ; preds = %for_loop_condition
+  store i32 8, ptr %v8, align 4
+  %14 = load i32, ptr %v8, align 4
+  call void @Defer_expressions_do_defer(i32 noundef %14)
+  call void @Defer_expressions_do_defer(i32 noundef 8)
+  br label %for_loop_update_index
+
+for_loop_update_index:                            ; preds = %for_loop_then
+  %15 = load i32, ptr %index, align 4
+  %16 = add i32 %15, 1
+  store i32 %16, ptr %index, align 4
+  br label %for_loop_condition
+
+for_loop_after:                                   ; preds = %for_loop_condition
+  %17 = load i32, ptr %value, align 4
+  switch i32 %17, label %switch_after [
+    i32 0, label %switch_case_i0_
+  ]
+
+switch_after:                                     ; preds = %switch_case_i0_, %for_loop_after
+  store i32 10, ptr %v10, align 4
+  %18 = load i32, ptr %v10, align 4
+  call void @Defer_expressions_do_defer(i32 noundef %18)
+  call void @Defer_expressions_do_defer(i32 noundef 10)
+  store i32 0, ptr %i, align 4
+  br label %for_loop_condition8
+
+switch_case_i0_:                                  ; preds = %for_loop_after
+  store i32 9, ptr %v9, align 4
+  %19 = load i32, ptr %v9, align 4
+  call void @Defer_expressions_do_defer(i32 noundef %19)
+  call void @Defer_expressions_do_defer(i32 noundef 9)
+  br label %switch_after
+
+for_loop_condition8:                              ; preds = %for_loop_update_index10, %switch_after
+  %20 = load i32, ptr %i, align 4
+  %21 = icmp slt i32 %20, 10
+  br i1 %21, label %for_loop_then9, label %for_loop_after11
+
+for_loop_then9:                                   ; preds = %for_loop_condition8
+  %22 = load i32, ptr %i, align 4
+  %23 = srem i32 %22, 2
+  %24 = icmp eq i32 %23, 0
+  br i1 %24, label %if_s0_then12, label %if_s1_after13
+
+for_loop_update_index10:                          ; preds = %if_s1_after13
+  %25 = load i32, ptr %i, align 4
+  %26 = add i32 %25, 1
+  store i32 %26, ptr %i, align 4
+  br label %for_loop_condition8
+
+for_loop_after11:                                 ; preds = %if_s0_then18, %for_loop_condition8
+  call void @Defer_expressions_do_defer(i32 noundef 1)
+  call void @Defer_expressions_do_defer(i32 noundef 0)
+  ret void
+
+if_s0_then12:                                     ; preds = %for_loop_then9
+  store i32 0, ptr %j, align 4
+  br label %for_loop_condition14
+
+if_s1_after13:                                    ; preds = %for_loop_after17, %for_loop_then9
+  call void @Defer_expressions_do_defer(i32 noundef 11)
+  br label %for_loop_update_index10
+
+for_loop_condition14:                             ; preds = %for_loop_update_index16, %if_s0_then12
+  %27 = load i32, ptr %j, align 4
+  %28 = icmp slt i32 %27, 10
+  br i1 %28, label %for_loop_then15, label %for_loop_after17
+
+for_loop_then15:                                  ; preds = %for_loop_condition14
+  %29 = load i32, ptr %j, align 4
+  %30 = srem i32 %29, 2
+  %31 = icmp eq i32 %30, 0
+  br i1 %31, label %if_s0_then18, label %if_s1_after19
+
+for_loop_update_index16:                          ; preds = %if_s1_after19
+  %32 = load i32, ptr %j, align 4
+  %33 = add i32 %32, 1
+  store i32 %33, ptr %j, align 4
+  br label %for_loop_condition14
+
+for_loop_after17:                                 ; preds = %for_loop_condition14
+  call void @Defer_expressions_do_defer(i32 noundef 12)
+  br label %if_s1_after13
+
+if_s0_then18:                                     ; preds = %for_loop_then15
+  call void @Defer_expressions_do_defer(i32 noundef 12)
+  call void @Defer_expressions_do_defer(i32 noundef 11)
+  br label %for_loop_after11
+
+if_s1_after19:                                    ; preds = %for_loop_then15
+  br label %for_loop_update_index16
+}
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
+  TEST_CASE("Compile Defer Expressions with Debug Information", "[LLVM_IR]")
+  {
+    char const* const input_file = "defer_expressions_with_debug_information.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+; Function Attrs: convergent
+define private void @Defer_expressions_with_debug_information_do_defer(i32 noundef %"arguments[0].value") #0 !dbg !3 {
+entry:
+  %value = alloca i32, align 4
+  store i32 %"arguments[0].value", ptr %value, align 4
+  call void @llvm.dbg.declare(metadata ptr %value, metadata !8, metadata !DIExpression()), !dbg !9
+  ret void, !dbg !10
+}
+
+; Function Attrs: convergent
+define private void @Defer_expressions_with_debug_information_run(i8 noundef zeroext %"arguments[0].condition", i32 noundef %"arguments[1].value") #0 !dbg !11 {
+entry:
+  %condition = alloca i1, align 1
+  %value = alloca i32, align 4
+  %value1 = alloca i32, align 4, !dbg !18
+  %0 = trunc i8 %"arguments[0].condition" to i1
+  store i1 %0, ptr %condition, align 1
+  call void @llvm.dbg.declare(metadata ptr %condition, metadata !16, metadata !DIExpression()), !dbg !19
+  store i32 %"arguments[1].value", ptr %value, align 4
+  call void @llvm.dbg.declare(metadata ptr %value, metadata !17, metadata !DIExpression()), !dbg !20
+  call void @llvm.dbg.declare(metadata ptr %value1, metadata !21, metadata !DIExpression()), !dbg !18
+  store i32 0, ptr %value1, align 4, !dbg !18
+  call void @Defer_expressions_with_debug_information_do_defer(i32 noundef 1), !dbg !22
+  call void @Defer_expressions_with_debug_information_do_defer(i32 noundef 0), !dbg !23
+  ret void, !dbg !24
+}
+
+; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
+declare void @llvm.dbg.declare(metadata, metadata, metadata) #1
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+attributes #1 = { nocallback nofree nosync nounwind speculatable willreturn memory(none) }
+
+!llvm.module.flags = !{!0}
+!llvm.dbg.cu = !{!1}
+
+!0 = !{i32 2, !"Debug Info Version", i32 3}
+!1 = distinct !DICompileUnit(language: DW_LANG_C, file: !2, producer: "Hlang Compiler", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+!2 = !DIFile(filename: "defer_expressions_with_debug_information.hltxt", directory: "C:/Users/JPMMa/Desktop/source/H/Examples/txt")
+!3 = distinct !DISubprogram(name: "do_defer", linkageName: "Defer_expressions_with_debug_information_do_defer", scope: null, file: !2, line: 3, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !1, retainedNodes: !7)
+!4 = !DISubroutineType(types: !5)
+!5 = !{null, !6}
+!6 = !DIBasicType(name: "Int32", size: 32, encoding: DW_ATE_signed)
+!7 = !{!8}
+!8 = !DILocalVariable(name: "value", arg: 1, scope: !3, file: !2, line: 3, type: !6)
+!9 = !DILocation(line: 3, column: 19, scope: !3)
+!10 = !DILocation(line: 4, column: 1, scope: !3)
+!11 = distinct !DISubprogram(name: "run", linkageName: "Defer_expressions_with_debug_information_run", scope: null, file: !2, line: 7, type: !12, scopeLine: 8, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !1, retainedNodes: !15)
+!12 = !DISubroutineType(types: !13)
+!13 = !{null, !14, !6}
+!14 = !DIBasicType(name: "Bool", size: 1, encoding: DW_ATE_boolean)
+!15 = !{!16, !17}
+!16 = !DILocalVariable(name: "condition", arg: 1, scope: !11, file: !2, line: 7, type: !14)
+!17 = !DILocalVariable(name: "value", arg: 2, scope: !11, file: !2, line: 7, type: !6)
+!18 = !DILocation(line: 10, column: 5, scope: !11)
+!19 = !DILocation(line: 7, column: 14, scope: !11)
+!20 = !DILocation(line: 7, column: 31, scope: !11)
+!21 = !DILocalVariable(name: "value", scope: !11, file: !2, line: 10, type: !6)
+!22 = !DILocation(line: 11, column: 11, scope: !11)
+!23 = !DILocation(line: 9, column: 11, scope: !11)
+!24 = !DILocation(line: 12, column: 5, scope: !11)
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
+  }
+
   TEST_CASE("Compile Empty Return Expression", "[LLVM_IR]")
   {
     char const* const input_file = "empty_return_expression.hl";

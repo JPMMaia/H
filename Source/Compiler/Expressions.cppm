@@ -26,7 +26,9 @@ namespace h::compiler
 {
     export enum class Block_type
     {
+        None,
         For_loop,
+        If,
         Switch,
         While_loop
     };
@@ -59,6 +61,7 @@ namespace h::compiler
         Type_database const& type_database;
         Enum_value_constants const& enum_value_constants;
         std::span<Block_info const> blocks;
+        std::span<std::pmr::vector<Statement>> defer_expressions_per_block;
         std::optional<Function_declaration const*> function_declaration;
         std::span<Value_and_type const> function_arguments;
         std::span<Value_and_type const> local_variables;
@@ -103,6 +106,20 @@ namespace h::compiler
 
     export void create_statement_values(
         std::span<Statement const> statements,
+        Expression_parameters const& parameters,
+        bool const execute_defer_expressions_at_end
+    );
+
+    export void create_defer_instructions_at_end_of_block(
+        Expression_parameters const& parameters
+    );
+
+    export void create_defer_instructions_pop_blocks(
+        Expression_parameters const& parameters,
+        std::size_t const blocks_to_pop_count
+    );
+
+    export void create_defer_instructions_at_return(
         Expression_parameters const& parameters
     );
 }

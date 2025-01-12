@@ -1635,6 +1635,14 @@ function get_generic_expression(
                 label: map_expression_type_to_production_rule_label(next_expression),
             };
         }
+        case Core_intermediate_representation.Expression_enum.Defer_expression: {
+            const defer_expression = expression.data.value as Core_intermediate_representation.Defer_expression;
+            const next_expression = defer_expression.expression_to_defer;
+            return {
+                expression: next_expression,
+                label: map_expression_type_to_production_rule_label(next_expression)
+            };
+        }
         case Core_intermediate_representation.Expression_enum.If_expression: {
             const if_expression = expression.data.value as Core_intermediate_representation.If_expression;
 
@@ -1901,6 +1909,8 @@ function map_expression_type_to_production_rule_label(expression: Core_intermedi
             return "Expression_create_array";
         case Core_intermediate_representation.Expression_enum.Continue_expression:
             return "Expression_continue";
+        case Core_intermediate_representation.Expression_enum.Defer_expression:
+            return "Expression_defer";
         case Core_intermediate_representation.Expression_enum.For_loop_expression:
             return "Expression_for_loop";
         case Core_intermediate_representation.Expression_enum.If_expression:
@@ -2637,6 +2647,15 @@ function node_to_expression_without_source_location(node: Parser_node.Node, key_
                 }
             };
         }
+        case "Expression_defer": {
+            const expression = node_to_expression_defer(node, key_to_production_rule_indices);
+            return {
+                data: {
+                    type: Core_intermediate_representation.Expression_enum.Defer_expression,
+                    value: expression
+                }
+            };
+        }
         case "Expression_call": {
             const expression = node_to_expression_call(node, key_to_production_rule_indices);
             return {
@@ -2995,6 +3014,18 @@ function node_to_expression_break(node: Parser_node.Node, key_to_production_rule
     };
 
     return break_expression;
+}
+
+function node_to_expression_defer(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Defer_expression {
+
+    const expression_to_defer_node = node.children[1];
+    const expression_to_defer = node_to_expression(expression_to_defer_node, key_to_production_rule_indices);
+
+    const defer_expression: Core_intermediate_representation.Defer_expression = {
+        expression_to_defer: expression_to_defer
+    };
+
+    return defer_expression;
 }
 
 function node_to_expression_call(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Call_expression {

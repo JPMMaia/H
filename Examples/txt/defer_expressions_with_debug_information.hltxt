@@ -1,0 +1,13 @@
+module Defer_expressions_with_debug_information;
+
+function do_defer(value: Int32) -> ()
+{
+}
+
+function run(condition: Bool, value: Int32) -> ()
+{
+    defer do_defer(0);
+    var value = 0;
+    defer do_defer(1);
+    return;
+}
