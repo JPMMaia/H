@@ -76,6 +76,7 @@
     "watch:client": "webpack --mode development --config ./packages/client/webpack.config.js --watch",
     "watch:client_test": "tsc -b -w ./packages/client/src/test",
     "watch:server": "webpack --mode development --config ./packages/server/webpack.config.js --watch",
+    "watch:parser": "tsc -b -w ./packages/parser",
     "test:extension": "sh ./scripts/e2e.sh",
     "test:scripts": "mocha --require ts-node/register",
     "clean": "rimraf out",
