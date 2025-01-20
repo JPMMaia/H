@@ -51,6 +51,7 @@ import h.compiler.clang_data;
 import h.compiler.common;
 import h.compiler.debug_info;
 import h.compiler.expressions;
+import h.compiler.instructions;
 import h.compiler.types;
 import h.json_serializer;
 
@@ -398,6 +399,7 @@ namespace h::compiler
         Type_database const& type_database,
         Enum_value_constants const& enum_value_constants,
         Debug_info* debug_info,
+        Compilation_options const& compilation_options,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
@@ -492,9 +494,25 @@ namespace h::compiler
                 .local_variables = {},
                 .expression_type = std::nullopt,
                 .debug_info = debug_info,
+                .contract_options = compilation_options.contract_options,
                 .source_position = std::nullopt,
                 .temporaries_allocator = temporaries_allocator,
             };
+
+            bool const enable_function_contracts = compilation_options.contract_options != Contract_options::Disabled;
+
+            if (enable_function_contracts)
+            {
+                create_function_preconditions(
+                    llvm_context,
+                    llvm_module,
+                    llvm_function,
+                    llvm_builder,
+                    core_module,
+                    function_declaration,
+                    expression_parameters
+                );
+            }
 
             create_statement_values(function_definition.statements, expression_parameters, true);
 
@@ -518,7 +536,18 @@ namespace h::compiler
             };
 
             if (return_void_is_missing())
+            {
+                create_function_postconditions(
+                    llvm_context,
+                    llvm_module,
+                    llvm_function,
+                    llvm_builder,
+                    core_module,
+                    function_declaration,
+                    expression_parameters
+                );
                 llvm_builder.CreateRetVoid();
+            }
         }
 
         // Delete the last block if it has no predecessors.
@@ -556,6 +585,7 @@ namespace h::compiler
         Type_database const& type_database,
         Enum_value_constants const& enum_value_constants,
         Debug_info* const debug_info,
+        Compilation_options const& compilation_options,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
@@ -598,6 +628,7 @@ namespace h::compiler
                 type_database,
                 enum_value_constants,
                 debug_info,
+                compilation_options,
                 temporaries_allocator
             );
         }
@@ -1018,6 +1049,7 @@ namespace h::compiler
             type_database,
             enum_value_constants,
             debug_info.get(),
+            compilation_options,
             {}
         );
 

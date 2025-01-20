@@ -717,7 +717,9 @@ export function hello() -> ()
                         },
                         input_parameter_names: [],
                         output_parameter_names: [],
-                        linkage: Core_intermediate_representation.Linkage.External
+                        linkage: Core_intermediate_representation.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "hello",
@@ -1757,6 +1759,40 @@ export function run_while_loops(size: Int32) -> ()
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_while_loop_expressions();
+        assert.deepEqual(new_document_state.valid.module, expected_module);
+    });
+
+    it("Handles function contracts", () => {
+
+        const document_state = Document.create_empty_state("", language_description.production_rules);
+
+        const program = `
+module Contracts;
+
+export function run(x: Int32) -> (result: Int32)
+    precondition "x >= 0" { x >= 0 }
+    precondition "x <= 8" { x <= 8 }
+    postcondition "result >= 0" { result >= 0 }
+    postcondition "result <= 64" { result <= 64 }
+{
+    return x*x;
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_function_contracts();
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 

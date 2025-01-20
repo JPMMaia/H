@@ -7,9 +7,89 @@ import * as Document from "./Document";
 import * as Language from "./Language";
 import * as Module_examples from "./Module_examples";
 import * as Storage_cache from "./Storage_cache";
+import * as Parser_node from "./Parser_node";
 import * as Parse_tree_analysis from "./Parse_tree_analysis";
 import * as Parse_tree_convertor from "./Parse_tree_convertor";
 import * as Text_change from "./Text_change";
+
+describe("Parse_tree_analysis.find_variable_info", () => {
+
+    let language_description: any;
+
+    before(() => {
+        const cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
+        language_description = Language.create_default_description(cache, "out/tests/graphviz.gv");
+    });
+
+    it("Finds variable info of output parameter from post condition", async () => {
+        const core_module = Module_examples.create_function_contracts();
+        const function_value = core_module.declarations[0].value as Core.Function;
+
+        const expected_variable_info: Parse_tree_analysis.Variable_info = {
+            type: Parse_tree_analysis.Variable_info_type.Function_output_variable,
+            value: {
+                function_value: function_value,
+                output_index: 0,
+            }
+        };
+
+        const root = Parse_tree_convertor.module_to_parse_tree(core_module, language_description.production_rules, language_description.mappings);
+
+        const descendant_precondition = Parser_node.find_descendant_position_if({ node: root, position: [] }, (node => node.word.value === "Function_postcondition"));
+        assert.notEqual(descendant_precondition, undefined);
+        if (descendant_precondition === undefined)
+            return;
+
+        const descendant_result = Parser_node.find_descendant_position_if(descendant_precondition, (node => node.word.value === "result"));
+        assert.notEqual(descendant_result, undefined);
+        if (descendant_result === undefined)
+            return;
+
+        test_find_variable_info(core_module, function_value, root, descendant_result.position, descendant_result.node.word.value, expected_variable_info);
+    });
+
+    it("Finds variable info of global variable", async () => {
+        const core_module = Module_examples.create_using_global_variables();
+        const function_value = core_module.declarations[2].value as Core.Function;
+
+        const expected_variable_info: Parse_tree_analysis.Variable_info = {
+            type: Parse_tree_analysis.Variable_info_type.Declaration,
+            value: {
+                core_module: core_module,
+                declaration: core_module.declarations[0],
+            }
+        };
+
+        const root = Parse_tree_convertor.module_to_parse_tree(core_module, language_description.production_rules, language_description.mappings);
+
+        const descendant_function = Parser_node.find_descendant_position_if({ node: root, position: [] }, (node => node.word.value === "Function"));
+        assert.notEqual(descendant_function, undefined);
+        if (descendant_function === undefined)
+            return;
+
+        const descendant_variable = Parser_node.find_descendant_position_if(descendant_function, (node => node.word.value === "my_global_variable_0"));
+        assert.notEqual(descendant_variable, undefined);
+        if (descendant_variable === undefined)
+            return;
+
+        test_find_variable_info(core_module, function_value, root, descendant_variable.position, descendant_variable.node.word.value, expected_variable_info);
+    });
+
+});
+
+function test_find_variable_info(
+    core_module: Core.Module,
+    function_value: Core.Function,
+    root: Parser_node.Node,
+    variable_node_position: number[],
+    variable_name: string,
+    expected_variable_info: Parse_tree_analysis.Variable_info | undefined
+): void {
+
+    const actual_variable_info = Parse_tree_analysis.find_variable_info(core_module, function_value, root, variable_node_position, variable_name);
+
+    assert.deepEqual(actual_variable_info, expected_variable_info);
+}
 
 describe("Parse_tree_analysis.find_variable_type", () => {
 
@@ -23,6 +103,11 @@ describe("Parse_tree_analysis.find_variable_type", () => {
     it("Finds variable type of input parameter", async () => {
         const expected_variable_type = create_integer_type(32, true);
         await test_find_variable_type(language_description, Module_examples.create_add_function(), 0, [1, 0, 1, 1, 0, 1, 0, 0, 0], "lhs", expected_variable_type);
+    });
+
+    it("Finds variable type of output parameter inside postcondition", async () => {
+        const expected_variable_type = create_integer_type(32, true);
+        await test_find_variable_type(language_description, Module_examples.create_function_contracts(), 0, [1, 0, 1, 0, 10, 1, 0, 3, 0, 0, 0, 0], "result", expected_variable_type);
     });
 
     it("Finds variable type of variable declared with explicit type", async () => {

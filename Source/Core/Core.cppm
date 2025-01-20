@@ -582,6 +582,14 @@ namespace h
         friend auto operator<=>(Expression const&, Expression const&) = default;
     };
 
+    export struct Function_condition
+    {
+        std::pmr::string description;
+        Statement condition;
+
+        friend auto operator<=>(Function_condition const&, Function_condition const&) = default;
+    };
+
     export enum class Linkage
     {
         External,
@@ -596,6 +604,8 @@ namespace h
         std::pmr::vector<std::pmr::string> input_parameter_names;
         std::pmr::vector<std::pmr::string> output_parameter_names;
         Linkage linkage;
+        std::pmr::vector<Function_condition> preconditions;
+        std::pmr::vector<Function_condition> postconditions;
         std::optional<std::pmr::string> comment;
         std::optional<Source_location> source_location;
         std::optional<std::pmr::vector<Source_position>> input_parameter_source_positions;

@@ -551,11 +551,6 @@ namespace h::compiler
     {
         for (Union_declaration const& union_declaration : union_declarations)
         {
-            if (union_declaration.name == "_SDL3_SDL_Anonymous_0")
-            {
-                int i = 0;
-            }
-
             std::pmr::vector<llvm::DIType*> const llvm_member_debug_types = type_references_to_llvm_debug_types(
                 llvm_debug_builder,
                 llvm_data_layout,

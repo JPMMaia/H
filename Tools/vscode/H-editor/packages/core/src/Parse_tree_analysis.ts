@@ -96,6 +96,11 @@ export interface Function_input_variable_info {
     input_index: number;
 }
 
+export interface Function_output_variable_info {
+    function_value: Core.Function;
+    output_index: number;
+}
+
 export interface Variable_declaration_info {
     statement: Core.Statement;
     statement_node_position: number[];
@@ -120,13 +125,23 @@ export enum Variable_info_type {
     Import_alias,
     Declaration,
     Function_input_variable,
+    Function_output_variable,
     Variable_declaration,
     For_loop_variable
 }
 
 export interface Variable_info {
     type: Variable_info_type;
-    value: Function_input_variable_info | Variable_declaration_info | For_loop_variable_info | Declaration_variable_info | Import_alias_variable_info;
+    value: Function_input_variable_info | Function_output_variable_info | Variable_declaration_info | For_loop_variable_info | Declaration_variable_info | Import_alias_variable_info;
+}
+
+function is_inside_function_post_condition(
+    root: Parser_node.Node,
+    scope_node_position: number[]
+): boolean {
+
+    const ancestor = Parser_node.get_ancestor_with_name(root, scope_node_position, "Function_postcondition");
+    return ancestor != undefined;
 }
 
 export function find_variable_info(
@@ -154,68 +169,79 @@ export function find_variable_info(
         }
     }
 
-    const statements = Parser_node.get_ancestor_with_name(root, scope_node_position, "Statements");
-    if (statements === undefined) {
-        return undefined;
+    if (is_inside_function_post_condition(root, scope_node_position)) {
+        const index = function_value.declaration.output_parameter_names.findIndex(name => name === variable_name);
+        if (index !== -1) {
+            return {
+                type: Variable_info_type.Function_output_variable,
+                value: {
+                    function_value: function_value,
+                    output_index: index
+                }
+            };
+        }
     }
 
-    let current_statements_block: Core.Statement[] | undefined = function_value.definition.statements;
-    let current_statements_block_node = statements.node;
-    let current_statements_block_position = statements.position;
-    let current_statement_index = scope_node_position[current_statements_block_position.length];
+    const statements = Parser_node.get_ancestor_with_name(root, scope_node_position, "Statements");
+    if (statements !== undefined) {
+        let current_statements_block: Core.Statement[] | undefined = function_value.definition.statements;
+        let current_statements_block_node = statements.node;
+        let current_statements_block_position = statements.position;
+        let current_statement_index = scope_node_position[current_statements_block_position.length];
 
-    while (current_statements_block !== undefined && current_statement_index < current_statements_block.length) {
-        for (let index = 0; index < current_statement_index; ++index) {
-            const core_statement = current_statements_block[index];
-            const core_statement_node_position = [...current_statements_block_position, index];
+        while (current_statements_block !== undefined && current_statement_index < current_statements_block.length) {
+            for (let index = 0; index < current_statement_index; ++index) {
+                const core_statement = current_statements_block[index];
+                const core_statement_node_position = [...current_statements_block_position, index];
 
-            if (core_statement.expression.data.type === Core.Expression_enum.Variable_declaration_expression) {
-                const expression = core_statement.expression.data.value as Core.Variable_declaration_expression;
-                if (expression.name === variable_name) {
-                    return {
-                        type: Variable_info_type.Variable_declaration,
-                        value: {
-                            statement: core_statement,
-                            statement_node_position: core_statement_node_position
-                        }
-                    };
+                if (core_statement.expression.data.type === Core.Expression_enum.Variable_declaration_expression) {
+                    const expression = core_statement.expression.data.value as Core.Variable_declaration_expression;
+                    if (expression.name === variable_name) {
+                        return {
+                            type: Variable_info_type.Variable_declaration,
+                            value: {
+                                statement: core_statement,
+                                statement_node_position: core_statement_node_position
+                            }
+                        };
+                    }
+                }
+                else if (core_statement.expression.data.type === Core.Expression_enum.Variable_declaration_with_type_expression) {
+                    const expression = core_statement.expression.data.value as Core.Variable_declaration_with_type_expression;
+                    if (expression.name === variable_name) {
+                        return {
+                            type: Variable_info_type.Variable_declaration,
+                            value: {
+                                statement: core_statement,
+                                statement_node_position: core_statement_node_position
+                            }
+                        };
+                    }
+                }
+                else if (core_statement.expression.data.type === Core.Expression_enum.For_loop_expression) {
+                    const expression = core_statement.expression.data.value as Core.For_loop_expression;
+                    if (expression.variable_name === variable_name) {
+                        return {
+                            type: Variable_info_type.For_loop_variable,
+                            value: {
+                                statement: core_statement,
+                                statement_node_position: core_statement_node_position
+                            }
+                        };
+                    }
                 }
             }
-            else if (core_statement.expression.data.type === Core.Expression_enum.Variable_declaration_with_type_expression) {
-                const expression = core_statement.expression.data.value as Core.Variable_declaration_with_type_expression;
-                if (expression.name === variable_name) {
-                    return {
-                        type: Variable_info_type.Variable_declaration,
-                        value: {
-                            statement: core_statement,
-                            statement_node_position: core_statement_node_position
-                        }
-                    };
-                }
+
+            const core_statement = current_statements_block[current_statement_index];
+            const result = go_to_next_block_with_expression(core_statement, root, scope_node_position, current_statements_block_node, current_statements_block_position);
+            if (result === undefined) {
+                break;
             }
-            else if (core_statement.expression.data.type === Core.Expression_enum.For_loop_expression) {
-                const expression = core_statement.expression.data.value as Core.For_loop_expression;
-                if (expression.variable_name === variable_name) {
-                    return {
-                        type: Variable_info_type.For_loop_variable,
-                        value: {
-                            statement: core_statement,
-                            statement_node_position: core_statement_node_position
-                        }
-                    };
-                }
-            }
+            current_statements_block_node = result.node;
+            current_statements_block_position = result.position;
+            current_statements_block = result.statements;
+            current_statement_index = scope_node_position[current_statements_block_position.length];
         }
-
-        const core_statement = current_statements_block[current_statement_index];
-        const result = go_to_next_block_with_expression(core_statement, root, scope_node_position, current_statements_block_node, current_statements_block_position);
-        if (result === undefined) {
-            break;
-        }
-        current_statements_block_node = result.node;
-        current_statements_block_position = result.position;
-        current_statements_block = result.statements;
-        current_statement_index = scope_node_position[current_statements_block_position.length];
     }
 
     {
@@ -373,7 +399,15 @@ export async function find_variable_type(
         const index = function_value.declaration.input_parameter_names.findIndex(name => name === variable_name);
         if (index !== -1) {
             const type = function_value.declaration.type.input_parameter_types[index];
-            matches.push(type);
+            return type;
+        }
+    }
+
+    if (is_inside_function_post_condition(root, scope_node_position)) {
+        const index = function_value.declaration.output_parameter_names.findIndex(name => name === variable_name);
+        if (index !== -1) {
+            const type = function_value.declaration.type.output_parameter_types[index];
+            return type;
         }
     }
 

@@ -787,6 +787,150 @@ enum My_enum
     });
 });
 
+describe("Validation of function contracts", () => {
+
+    // - Expressions must evaluate to a boolean
+    // - Preconditions can only reference function inputs
+    // - Postconditions can reference both function inputs and outputs
+    // - Expressions can also reference global constants, enum values and call functions (with no side effects, can be required in the future)
+
+    it("Validates that precondition and postcondition must evaluate to a boolean", async () => {
+        const input = `module Test;
+
+function add(first: Int32, second: Int32) -> (result: Int32)
+    precondition "first > 0 && second > 0" { first > 0 && second > 0 }
+    precondition "first" { first }
+    postcondition "result > 0" { result > 0 }
+    postcondition "result" { result }
+{
+    return first + second;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(5, 28, 5, 33),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Expression type 'Int32' does not match expected type 'Bool'.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(7, 30, 7, 36),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Expression type 'Int32' does not match expected type 'Bool'.",
+                related_information: [],
+            }
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Validates that precondition can only reference function inputs, global constants, enum values and call functions", async () => {
+        const input = `module Test;
+
+var g_my_constant = 0;
+mutable g_my_mutable = 0;
+
+enum My_enum
+{
+    First = 0,
+}
+
+function check_precondition(value: Int32) -> (result: Bool)
+{
+    return value > 0;
+}
+
+function add(first: Int32, second: Int32) -> (result: Int32)
+    precondition "validate with function" { check_precondition(first) }
+    precondition "validate with global constant" { first + g_my_constant > 0 }
+    precondition "validate with global non-constant" { first + g_my_mutable > 0 }
+    precondition "validate with enum value" { first > (My_enum.First as Int32) }
+    precondition "validate with function output" { result > 0 }
+    precondition "validate with unknown variable" { beep > 0 }
+{
+    return first + second;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(19, 64, 19, 76),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot use mutable global variable in function preconditions and postconditions. Consider making the global constant.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(21, 52, 21, 58),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Variable 'result' does not exist.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(22, 53, 22, 57),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Variable 'beep' does not exist.",
+                related_information: [],
+            }
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Validates that postcondition can only reference function inputs, function outputs, global constants, enum values and call functions", async () => {
+        const input = `module Test;
+
+var g_my_constant = 0;
+mutable g_my_mutable = 0;
+
+enum My_enum
+{
+    First = 0,
+}
+
+function check_postcondition(value: Int32) -> (result: Bool)
+{
+    return value > 0;
+}
+
+function add(first: Int32, second: Int32) -> (result: Int32)
+    postcondition "validate with function" { check_postcondition(result) }
+    postcondition "validate with global constant" { result + g_my_constant > 0 }
+    postcondition "validate with global non-constant" { result + g_my_mutable > 0 }
+    postcondition "validate with enum value" { result > (My_enum.First as Int32) }
+    postcondition "validate with function input" { first + second == result }
+    postcondition "validate with unknown variable" { beep > 0 }
+{
+    return first + second;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(19, 66, 19, 78),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot use mutable global variable in function preconditions and postconditions. Consider making the global constant.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(22, 54, 22, 58),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Variable 'beep' does not exist.",
+                related_information: [],
+            }
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+});
+
 describe("Validation of integer types", () => {
 
     // - Number of bits cannot be larger than 64

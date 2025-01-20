@@ -41,6 +41,8 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Module_type_module_name", map_module_type_module_name_to_word],
             ["Module_type_type_name", map_module_type_type_name_to_word],
             ["Constant_array_length", map_constant_array_length_to_word],
+            ["Function_precondition_name", map_function_precondition_to_word],
+            ["Function_postcondition_name", map_function_postcondition_to_word],
             ["Expression_access_member_name", map_expression_access_member_name_to_word],
             ["Expression_break_loop_count", map_expression_break_loop_count_to_word],
             ["Expression_comment", map_comment_to_word],
@@ -64,6 +66,8 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
                 ["declarations", "$declaration_index", "value", "declaration", "output_parameter_names"],
                 ["declarations", "$declaration_index", "value", "declaration", "type", "output_parameter_types"],
             ]],
+            ["Function_preconditions", [["declarations", "$declaration_index", "value", "declaration", "preconditions"]]],
+            ["Function_postconditions", [["declarations", "$declaration_index", "value", "declaration", "postconditions"]]],
             ["Struct_members", [
                 ["declarations", "$declaration_index", "value", "member_names"],
                 ["declarations", "$declaration_index", "value", "member_types"]
@@ -291,6 +295,36 @@ function map_constant_array_length_to_word(
     const type_reference_array = top.state.value as Core_intermediate_representation.Type_reference[];
     const constant_array_type = type_reference_array[0].data.value as Core_intermediate_representation.Constant_array_type;
     return { value: constant_array_type.size.toString(), type: Grammar.Word_type.Number };
+}
+
+function map_function_precondition_to_word(
+    module: Core_intermediate_representation.Module,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    production_rules: Grammar.Production_rule[],
+    key_to_production_rule_indices: Map<string, number[]>,
+    terminal: string,
+    mappings: Parse_tree_convertor.Parse_tree_mappings
+): Grammar.Word {
+    const stack_element = stack[stack.length - 3];
+    const preconditions_array = stack_element.state.value as Core_intermediate_representation.Function_condition[];
+    const precondition_index = stack_element.current_child_index - 1;
+    const precondition = preconditions_array[precondition_index];
+    return { value: `"${precondition.description}"`, type: Grammar.Word_type.String };
+}
+
+function map_function_postcondition_to_word(
+    module: Core_intermediate_representation.Module,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    production_rules: Grammar.Production_rule[],
+    key_to_production_rule_indices: Map<string, number[]>,
+    terminal: string,
+    mappings: Parse_tree_convertor.Parse_tree_mappings
+): Grammar.Word {
+    const stack_element = stack[stack.length - 3];
+    const postconditions_array = stack_element.state.value as Core_intermediate_representation.Function_condition[];
+    const postcondition_index = stack_element.current_child_index - 1;
+    const postcondition = postconditions_array[postcondition_index];
+    return { value: `"${postcondition.description}"`, type: Grammar.Word_type.String };
 }
 
 function map_expression_access_member_name_to_word(
@@ -1835,6 +1869,23 @@ function choose_production_rule_generic_expression(
             next_production_rule_index: next_production_rule_index !== undefined ? next_production_rule_index : production_rule_indices[production_rule_indices.length - 1]
         };
     }
+    else if (top.node.word.value === "Function_precondition" || top.node.word.value === "Function_postcondition") {
+        const vector_state = stack[stack.length - 2];
+        const conditions = vector_state.state.value as Core_intermediate_representation.Function_condition[];
+        const condition_index = vector_state.current_child_index - 1;
+        const condition = conditions[condition_index];
+
+        const expression_label = map_expression_type_to_production_rule_label(condition.condition.expression);
+
+        const next_production_rule_index = production_rule_indices.find(index => production_rules[index].rhs[0] === expression_label);
+        return {
+            next_state: {
+                index: 0,
+                value: condition.condition.expression
+            },
+            next_production_rule_index: next_production_rule_index !== undefined ? next_production_rule_index : production_rule_indices[production_rule_indices.length - 1]
+        };
+    }
     else {
         const expression = top.state.value as Core_intermediate_representation.Expression;
         const next = get_generic_expression(stack, production_rules, expression);
@@ -2475,6 +2526,18 @@ function find_node_child_index(node: Parser_node.Node, key: string, key_to_produ
     return node.children.findIndex(child => production_rule_indices.find(index => index === child.production_rule_index) !== undefined);
 }
 
+function node_to_function_condition(node: Parser_node.Node, is_precondition: boolean, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Function_condition {
+    const description = find_node_value(node, is_precondition ? "Function_precondition_name" : "Function_postcondition_name", key_to_production_rule_indices);
+
+    const condition_node = find_node(node, "Generic_expression", key_to_production_rule_indices);
+    const condition = node_to_expression(condition_node, key_to_production_rule_indices);
+
+    return {
+        description: description.substring(1, description.length - 1),
+        condition: { expression: condition }
+    };
+}
+
 function node_to_function_declaration(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Function_declaration {
 
     const comments_node = node.children[0];
@@ -2502,6 +2565,14 @@ function node_to_function_declaration(node: Parser_node.Node, key_to_production_
     const export_value = find_node_value(function_declaration_node, "Export", key_to_production_rule_indices);
     const linkage = export_value.length > 0 ? Core_intermediate_representation.Linkage.External : Core_intermediate_representation.Linkage.Private;
 
+    const function_option_node = find_node(function_declaration_node, "Function_options", key_to_production_rule_indices);
+
+    const precondition_nodes = find_nodes_inside_parent(function_option_node, "Function_preconditions", "Function_precondition", key_to_production_rule_indices);
+    const preconditions = precondition_nodes.map(node => node_to_function_condition(node, true, key_to_production_rule_indices));
+
+    const postcondition_nodes = find_nodes_inside_parent(function_option_node, "Function_postconditions", "Function_postcondition", key_to_production_rule_indices);
+    const postconditions = postcondition_nodes.map(node => node_to_function_condition(node, false, key_to_production_rule_indices));
+
     const output: Core_intermediate_representation.Function_declaration = {
         name: name,
         type: {
@@ -2511,7 +2582,9 @@ function node_to_function_declaration(node: Parser_node.Node, key_to_production_
         },
         input_parameter_names: input_parameter_names,
         output_parameter_names: output_parameter_names,
-        linkage: linkage
+        linkage: linkage,
+        preconditions: preconditions,
+        postconditions: postconditions,
     };
 
     const comments = extract_comments_from_node(comments_node);

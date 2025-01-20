@@ -1435,7 +1435,9 @@ describe("Parse_tree_convertor.create_module_changes", () => {
                 },
                 input_parameter_names: [],
                 output_parameter_names: [],
-                linkage: Core_intermediate_representation.Linkage.Private
+                linkage: Core_intermediate_representation.Linkage.Private,
+                preconditions: [],
+                postconditions: [],
             };
 
             assert.deepEqual(function_declaration, expected_function_declaration);
@@ -2440,6 +2442,14 @@ describe("Parse_tree_convertor.parse_tree_to_module", () => {
     it("Handles while loop expressions", () => {
         const grammar_description = Grammar_examples.create_test_grammar_9_description();
         const expected_module = Module_examples.create_while_loop_expressions();
+        const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
+
+        assert.deepEqual(actual_module.declarations, expected_module.declarations);
+    });
+
+    it("Handles function contracts", () => {
+        const grammar_description = Grammar_examples.create_test_grammar_9_description();
+        const expected_module = Module_examples.create_function_contracts();
         const actual_module = test_parse_tree_to_module(grammar_description, expected_module);
 
         assert.deepEqual(actual_module.declarations, expected_module.declarations);

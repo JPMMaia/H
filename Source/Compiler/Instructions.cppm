@@ -54,4 +54,31 @@ namespace h::compiler
         std::uint64_t const type_alloc_size_in_bytes,
         llvm::MaybeAlign const alignment
     );
+
+    export llvm::Value* convert_to_boolean(
+        llvm::LLVMContext& llvm_context,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::Value* const llvm_value,
+        std::optional<h::Type_reference> const& type
+    );
+
+    export llvm::Value* create_null_terminated_string_value(
+        llvm::LLVMContext& llvm_context,
+        llvm::Module& llvm_module,
+        llvm::IRBuilder<>& llvm_builder,
+        std::string_view const null_terminated_string
+    );
+
+    export llvm::Value* create_log_error_instruction(
+        llvm::LLVMContext& llvm_context,
+        llvm::Module& llvm_module,
+        llvm::IRBuilder<>& llvm_builder,
+        std::string_view const message
+    );
+
+    export llvm::Value* create_abort_instruction(
+        llvm::LLVMContext& llvm_context,
+        llvm::Module& llvm_module,
+        llvm::IRBuilder<>& llvm_builder
+    );
 }

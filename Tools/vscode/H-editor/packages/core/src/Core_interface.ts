@@ -411,6 +411,11 @@ export interface Expression {
     source_position?: Source_position;
 }
 
+export interface Function_condition {
+    description: string;
+    condition: Statement;
+}
+
 export interface Function_declaration {
     name: string;
     unique_name?: string;
@@ -418,6 +423,8 @@ export interface Function_declaration {
     input_parameter_names: Vector<string>;
     output_parameter_names: Vector<string>;
     linkage: Linkage;
+    preconditions: Vector<Function_condition>;
+    postconditions: Vector<Function_condition>;
     comment?: string;
     source_location?: Source_location;
     input_parameter_source_positions?: Vector<Source_position>;

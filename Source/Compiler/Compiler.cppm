@@ -20,6 +20,7 @@ export module h.compiler;
 
 import h.core;
 import h.compiler.clang_data;
+import h.compiler.expressions;
 import h.compiler.types;
 
 namespace h::compiler
@@ -55,6 +56,7 @@ namespace h::compiler
         std::optional<std::string_view> target_triple;
         bool is_optimized = false;
         bool debug = true;
+        Contract_options contract_options = Contract_options::Log_error_and_abort;
     };
 
     export std::optional<h::Module> read_core_module(

@@ -505,6 +505,7 @@ namespace h::json
     export std::optional<Stack_state> get_next_state_variable_declaration_with_type_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_while_loop_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_expression(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_function_condition(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_function_declaration(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_function_definition(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_language_version(Stack_state* state, std::string_view const key);
@@ -3138,6 +3139,35 @@ namespace h::json
         return {};
     }
 
+    export std::optional<Stack_state> get_next_state_function_condition(Stack_state* state, std::string_view const key)
+    {
+        h::Function_condition* parent = static_cast<h::Function_condition*>(state->pointer);
+
+        if (key == "description")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->description,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "condition")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->condition,
+                .type = "Statement",
+                .get_next_state = get_next_state_statement,
+            };
+        }
+
+        return {};
+    }
+
     export std::optional<Stack_state> get_next_state_function_declaration(Stack_state* state, std::string_view const key)
     {
         h::Function_declaration* parent = static_cast<h::Function_declaration*>(state->pointer);
@@ -3233,6 +3263,56 @@ namespace h::json
                 .pointer = &parent->linkage,
                 .type = "Linkage",
                 .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "preconditions")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Function_condition>* parent = static_cast<std::pmr::vector<Function_condition>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Function_condition>* parent = static_cast<std::pmr::vector<Function_condition>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->preconditions,
+                .type = "std::pmr::vector<Function_condition>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_function_condition
+            };
+        }
+
+        if (key == "postconditions")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Function_condition>* parent = static_cast<std::pmr::vector<Function_condition>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Function_condition>* parent = static_cast<std::pmr::vector<Function_condition>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->postconditions,
+                .type = "std::pmr::vector<Function_condition>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_function_condition
             };
         }
 
@@ -4306,6 +4386,16 @@ namespace h::json
                 .pointer = output,
                 .type = "Expression",
                 .get_next_state = get_next_state_expression
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Function_condition>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Function_condition",
+                .get_next_state = get_next_state_function_condition
             };
         }
 

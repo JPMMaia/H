@@ -47,6 +47,12 @@ namespace h::compiler
         std::pmr::unordered_map<std::pmr::string, Enum_constants> map;
     };
 
+    export enum class Contract_options
+    {
+        Disabled,
+        Log_error_and_abort,
+    };
+
     export struct Expression_parameters
     {
         llvm::LLVMContext& llvm_context;
@@ -67,6 +73,7 @@ namespace h::compiler
         std::span<Value_and_type const> local_variables;
         std::optional<Type_reference> expression_type;
         Debug_info* debug_info;
+        Contract_options contract_options; 
         std::optional<Source_position> source_position;
         std::pmr::polymorphic_allocator<> const& temporaries_allocator;
     };
@@ -121,5 +128,25 @@ namespace h::compiler
 
     export void create_defer_instructions_at_return(
         Expression_parameters const& parameters
+    );
+
+    export void create_function_preconditions(
+        llvm::LLVMContext& llvm_context,
+        llvm::Module& llvm_module,
+        llvm::Function& llvm_function,
+        llvm::IRBuilder<>& llvm_builder,
+        h::Module const& core_module,
+        h::Function_declaration const& function_declaration,
+        Expression_parameters const& expression_parameters
+    );
+
+    export void create_function_postconditions(
+        llvm::LLVMContext& llvm_context,
+        llvm::Module& llvm_module,
+        llvm::Function& llvm_function,
+        llvm::IRBuilder<>& llvm_builder,
+        h::Module const& core_module,
+        h::Function_declaration const& function_declaration,
+        Expression_parameters const& expression_parameters
     );
 }

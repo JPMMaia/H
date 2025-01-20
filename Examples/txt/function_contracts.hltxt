@@ -1,0 +1,15 @@
+module Function_contracts;
+
+export function run(x: Int32) -> (result: Int32)
+    precondition "x >= 0" { x >= 0 }
+    precondition "x <= 8" { x <= 8 }
+    postcondition "result >= 0" { result >= 0 }
+    postcondition "result <= 64" { result <= 64 }
+{
+    if x == 8
+    {
+        return 64;
+    }
+
+    return x*x;
+}

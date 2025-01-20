@@ -21,6 +21,7 @@ import h.common;
 import h.compiler;
 import h.compiler.clang_data;
 import h.compiler.common;
+import h.compiler.expressions;
 import h.compiler.types;
 import h.json_serializer;
 import h.json_serializer.operators;
@@ -51,6 +52,7 @@ namespace h
   {
     bool debug = false;
     std::string_view target_triple = "x86_64-pc-linux-gnu";
+    h::compiler::Contract_options contract_options = h::compiler::Contract_options::Log_error_and_abort;
   };
 
   void test_create_llvm_module(
@@ -68,6 +70,7 @@ namespace h
       .target_triple = test_options.target_triple,
       .is_optimized = false,
       .debug = test_options.debug,
+      .contract_options = test_options.contract_options,
     };
 
     h::compiler::LLVM_data llvm_data = h::compiler::initialize_llvm(compilation_options);
@@ -3403,6 +3406,139 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
+  TEST_CASE("Compile Function Contracts", "[LLVM_IR]")
+  {
+    char const* const input_file = "function_contracts.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+@function_contract_error_string = private unnamed_addr constant [67 x i8] c"In function 'Function_contracts.run' precondition 'x >= 0' failed!\00"
+@function_contract_error_string.1 = private unnamed_addr constant [67 x i8] c"In function 'Function_contracts.run' precondition 'x <= 8' failed!\00"
+@function_contract_error_string.2 = private unnamed_addr constant [73 x i8] c"In function 'Function_contracts.run' postcondition 'result >= 0' failed!\00"
+@function_contract_error_string.3 = private unnamed_addr constant [74 x i8] c"In function 'Function_contracts.run' postcondition 'result <= 64' failed!\00"
+@function_contract_error_string.4 = private unnamed_addr constant [73 x i8] c"In function 'Function_contracts.run' postcondition 'result >= 0' failed!\00"
+@function_contract_error_string.5 = private unnamed_addr constant [74 x i8] c"In function 'Function_contracts.run' postcondition 'result <= 64' failed!\00"
+
+; Function Attrs: convergent
+define i32 @Function_contracts_run(i32 noundef %"arguments[0].x") #0 {
+entry:
+  %x = alloca i32, align 4
+  store i32 %"arguments[0].x", ptr %x, align 4
+  %0 = load i32, ptr %x, align 4
+  %1 = icmp sge i32 %0, 0
+  br i1 %1, label %condition_success, label %condition_fail
+
+condition_success:                                ; preds = %entry
+  %2 = load i32, ptr %x, align 4
+  %3 = icmp sle i32 %2, 8
+  br i1 %3, label %condition_success1, label %condition_fail2
+
+condition_fail:                                   ; preds = %entry
+  %4 = call i32 @puts(ptr @function_contract_error_string)
+  call void @abort()
+  unreachable
+
+condition_success1:                               ; preds = %condition_success
+  %5 = load i32, ptr %x, align 4
+  %6 = icmp eq i32 %5, 8
+  br i1 %6, label %if_s0_then, label %if_s1_after
+
+condition_fail2:                                  ; preds = %condition_success
+  %7 = call i32 @puts(ptr @function_contract_error_string.1)
+  call void @abort()
+  unreachable
+
+if_s0_then:                                       ; preds = %condition_success1
+  br i1 true, label %condition_success3, label %condition_fail4
+
+if_s1_after:                                      ; preds = %condition_success1
+  %8 = load i32, ptr %x, align 4
+  %9 = load i32, ptr %x, align 4
+  %10 = mul i32 %8, %9
+  %11 = icmp sge i32 %10, 0
+  br i1 %11, label %condition_success7, label %condition_fail8
+
+condition_success3:                               ; preds = %if_s0_then
+  br i1 true, label %condition_success5, label %condition_fail6
+
+condition_fail4:                                  ; preds = %if_s0_then
+  %12 = call i32 @puts(ptr @function_contract_error_string.2)
+  call void @abort()
+  unreachable
+
+condition_success5:                               ; preds = %condition_success3
+  ret i32 64
+
+condition_fail6:                                  ; preds = %condition_success3
+  %13 = call i32 @puts(ptr @function_contract_error_string.3)
+  call void @abort()
+  unreachable
+
+condition_success7:                               ; preds = %if_s1_after
+  %14 = icmp sle i32 %10, 64
+  br i1 %14, label %condition_success9, label %condition_fail10
+
+condition_fail8:                                  ; preds = %if_s1_after
+  %15 = call i32 @puts(ptr @function_contract_error_string.4)
+  call void @abort()
+  unreachable
+
+condition_success9:                               ; preds = %condition_success7
+  ret i32 %10
+
+condition_fail10:                                 ; preds = %condition_success7
+  %16 = call i32 @puts(ptr @function_contract_error_string.5)
+  call void @abort()
+  unreachable
+}
+
+declare i32 @puts(ptr)
+
+declare void @abort()
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
+    TEST_CASE("Compile Function Contracts with disable contracts", "[LLVM_IR]")
+  {
+    char const* const input_file = "function_contracts.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+; Function Attrs: convergent
+define i32 @Function_contracts_run(i32 noundef %"arguments[0].x") #0 {
+entry:
+  %x = alloca i32, align 4
+  store i32 %"arguments[0].x", ptr %x, align 4
+  %0 = load i32, ptr %x, align 4
+  %1 = icmp eq i32 %0, 8
+  br i1 %1, label %if_s0_then, label %if_s1_after
+
+if_s0_then:                                       ; preds = %entry
+  ret i32 64
+
+if_s1_after:                                      ; preds = %entry
+  %2 = load i32, ptr %x, align 4
+  %3 = load i32, ptr %x, align 4
+  %4 = mul i32 %2, %3
+  ret i32 %4
+}
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, {.contract_options = h::compiler::Contract_options::Disabled});
   }
 
   TEST_CASE("Struct layout of imported C header matches 0", "[LLVM_IR]")

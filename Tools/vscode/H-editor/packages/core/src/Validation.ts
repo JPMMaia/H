@@ -269,6 +269,10 @@ async function validate_current_parser_node_with_module(
         case "Union": {
             return validate_union(uri, core_module, new_value, cache);
         }
+        case "Function_precondition":
+        case "Function_postcondition": {
+            return await validate_function_condition(uri, language_description, core_module, root, new_value, cache, get_core_module);
+        }
         case "Expression_access": {
             return validate_access_expression(uri, language_description, core_module, root, new_value, cache, get_core_module);
         }
@@ -810,6 +814,61 @@ function validate_union(
     const descendant_union_values = Parser_node.find_descendants_if(descendant_union, descendant => descendant.word.value === "Union_member");
 
     diagnostics.push(...validate_member_names_are_different(uri, union_name, descendant_union_values, "Union_member_name", cache));
+
+    return diagnostics;
+}
+
+async function validate_function_condition(
+    uri: string,
+    language_description: Language.Description,
+    core_module: Core.Module,
+    root: Parser_node.Node,
+    descendant_function_condition: { node: Parser_node.Node, position: number[] },
+    cache: Parse_tree_text_position_cache.Cache,
+    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+): Promise<Diagnostic[]> {
+
+    const diagnostics: Diagnostic[] = [];
+
+    const descendant_expression = Parser_node.find_descendant_position_if(descendant_function_condition, descendant => descendant.word.value === "Generic_expression");
+    if (descendant_expression === undefined) {
+        return diagnostics;
+    }
+
+    const function_value = Parse_tree_analysis.get_function_value_that_contains_node_position(core_module, root, descendant_expression.position);
+    if (function_value === undefined) {
+        return diagnostics;
+    }
+
+    const scope_declaration = Parse_tree_analysis.create_declaration_from_function_value(function_value);
+
+    {
+        const expected_type = [Parse_tree_analysis.create_boolean_type()];
+        diagnostics.push(...await validate_expression_type_is(uri, language_description, core_module, scope_declaration, root, descendant_expression, expected_type, is_boolean_type, cache, get_core_module));
+    }
+
+    {
+        const descendant_variable_expressions = Parser_node.find_descendants_if(descendant_function_condition, descendant => descendant.word.value === "Expression_variable");
+        for (const descendant_variable_expression of descendant_variable_expressions) {
+            const variable_name = descendant_variable_expression.node.children[0].children[0].word.value;
+            const variable_info = Parse_tree_analysis.find_variable_info(core_module, function_value, root, descendant_variable_expression.position, variable_name);
+            if (variable_info !== undefined && variable_info.type === Parse_tree_analysis.Variable_info_type.Declaration) {
+                const declaration_info = variable_info.value as Parse_tree_analysis.Declaration_variable_info;
+                if (declaration_info.declaration.type === Core.Declaration_type.Global_variable) {
+                    const global_variable_declaration = declaration_info.declaration.value as Core.Global_variable_declaration;
+                    if (global_variable_declaration.is_mutable) {
+                        diagnostics.push({
+                            location: get_parser_node_position_source_location(uri, cache, descendant_variable_expression),
+                            source: Source.Parse_tree_validation,
+                            severity: Diagnostic_severity.Error,
+                            message: `Cannot use mutable global variable in function preconditions and postconditions. Consider making the global constant.`,
+                            related_information: [],
+                        });
+                    }
+                }
+            }
+        }
+    }
 
     return diagnostics;
 }
@@ -1468,7 +1527,15 @@ async function validate_call_expression(
         }
     }
 
-    const scope_declaration = Parse_tree_analysis.create_declaration_from_function_value(module_function_value.function_value);
+    const scope_function_value = Parse_tree_analysis.get_function_value_that_contains_node_position(core_module, root, descendant_call_expression.position);
+    if (scope_function_value === undefined) {
+        return diagnostics;
+    }
+
+    const scope_declaration = Parse_tree_analysis.create_declaration_from_function_value(scope_function_value);
+    if (scope_declaration === undefined) {
+        return diagnostics;
+    }
 
     const descedant_call_arguments = Parser_node.find_descendant_position_if(descendant_call_expression, node => node.word.value === "Expression_call_arguments");
     if (descedant_call_arguments === undefined) {

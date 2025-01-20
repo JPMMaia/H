@@ -598,6 +598,12 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Function_condition const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Function_declaration const& input
         );
 
@@ -1822,6 +1828,20 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Function_condition const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("description");
+        writer.String(output.description.data(), output.description.size());
+        writer.Key("condition");
+        write_object(writer, output.condition);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Function_declaration const& output
         )
     {
@@ -1840,6 +1860,10 @@ namespace h::json
             std::string_view const enum_value_string = write_enum(output.linkage);
             writer.String(enum_value_string.data(), enum_value_string.size());
         }
+        writer.Key("preconditions");
+        write_object(writer, output.preconditions);
+        writer.Key("postconditions");
+        write_object(writer, output.postconditions);
         write_optional(writer, "comment", output.comment);
         write_optional_object(writer, "source_location", output.source_location);
         write_optional(writer, "input_parameter_source_positions", output.input_parameter_source_positions);

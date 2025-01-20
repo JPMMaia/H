@@ -84,7 +84,9 @@ export function create_0(): IR.Module {
                         },
                         input_parameter_names: ["lhs", "rhs"],
                         output_parameter_names: ["result"],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "My_function_0",
@@ -121,7 +123,9 @@ export function create_0(): IR.Module {
                         },
                         input_parameter_names: ["lhs", "rhs"],
                         output_parameter_names: ["result"],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "My_function_1",
@@ -158,7 +162,9 @@ export function create_0(): IR.Module {
                         },
                         input_parameter_names: ["lhs", "rhs"],
                         output_parameter_names: ["result"],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "My_function_2",
@@ -190,7 +196,9 @@ export function create_0(): IR.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "Empty_function",
@@ -303,7 +311,9 @@ export function create_0(): IR.Module {
                         },
                         input_parameter_names: ["lhs", "rhs"],
                         output_parameter_names: ["result"],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "My_function_4",
@@ -589,7 +599,9 @@ export function create_function_example(): IR.Module {
                         },
                         input_parameter_names: ["lhs", "rhs"],
                         output_parameter_names: ["result"],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "My_function",
@@ -637,6 +649,8 @@ export function create_function_calling_module_function_example(): IR.Module {
                         input_parameter_names: [],
                         output_parameter_names: [],
                         linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "My_function",
@@ -709,7 +723,9 @@ export function create_hello_world(): IR.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: ["result"],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "main",
@@ -803,7 +819,9 @@ export function create_variables(): IR.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: ["result"],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "main",
@@ -1007,7 +1025,9 @@ export function create_numbers(): IR.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: ["result"],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "main",
@@ -1130,7 +1150,9 @@ export function create_numeric_casts(): IR.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: ["result"],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "main",
@@ -1213,7 +1235,9 @@ export function create_booleans(): IR.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "foo",
@@ -1288,7 +1312,9 @@ export function create_binary_expressions(): IR.Module {
                         },
                         input_parameter_names: ["first_integer", "second_integer", "first_boolean", "second_boolean"],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "foo",
@@ -1369,7 +1395,9 @@ export function create_binary_expressions_operator_precedence(): IR.Module {
                         },
                         input_parameter_names: ["a", "b", "c"],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "foo",
@@ -1416,7 +1444,9 @@ export function create_defer_expressions(): IR.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: ["id"],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "create_object",
@@ -1444,7 +1474,9 @@ export function create_defer_expressions(): IR.Module {
                         },
                         input_parameter_names: ["id"],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "destroy_object",
@@ -1467,7 +1499,9 @@ export function create_defer_expressions(): IR.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "run",
@@ -1528,7 +1562,9 @@ export function create_assignment_expressions(): IR.Module {
                         },
                         input_parameter_names: ["other_integer"],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "foo",
@@ -1601,7 +1637,9 @@ export function create_constant_array_expressions(): IR.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "foo",
@@ -1676,7 +1714,9 @@ export function create_function_pointer_types(): IR.Module {
                 },
                 input_parameter_names: ["lhs", "rhs"],
                 output_parameter_names: ["result"],
-                linkage: IR.Linkage.Private
+                linkage: IR.Linkage.Private,
+                preconditions: [],
+                postconditions: [],
             },
             definition: {
                 name: "add",
@@ -1709,7 +1749,9 @@ export function create_function_pointer_types(): IR.Module {
                 },
                 input_parameter_names: [],
                 output_parameter_names: [],
-                linkage: IR.Linkage.External
+                linkage: IR.Linkage.External,
+                preconditions: [],
+                postconditions: [],
             },
             definition: {
                 name: "run",
@@ -1803,7 +1845,9 @@ export function create_unary_expressions(): IR.Module {
                         },
                         input_parameter_names: ["my_integer", "my_boolean"],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "foo",
@@ -1893,7 +1937,9 @@ export function create_pointer_types(): IR.Module {
                 },
                 input_parameter_names: input_parameters.map(pair => pair[0]),
                 output_parameter_names: [],
-                linkage: IR.Linkage.External
+                linkage: IR.Linkage.External,
+                preconditions: [],
+                postconditions: [],
             },
             definition: {
                 name: "run",
@@ -1948,6 +1994,8 @@ export function create_block_expressions(): IR.Module {
                         input_parameter_names: [],
                         output_parameter_names: [],
                         linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "run_blocks",
@@ -2073,7 +2121,9 @@ export function create_for_loop_expressions(): IR.Module {
                         },
                         input_parameter_names: ["value"],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.Private
+                        linkage: IR.Linkage.Private,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "print_integer",
@@ -2105,7 +2155,9 @@ export function create_for_loop_expressions(): IR.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "run_for_loops",
@@ -2368,7 +2420,9 @@ export function create_if_expressions(add_source_locations: boolean): IR.Module 
                         },
                         input_parameter_names: ["message"],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.Private
+                        linkage: IR.Linkage.Private,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "print_message",
@@ -2401,7 +2455,9 @@ export function create_if_expressions(add_source_locations: boolean): IR.Module 
                         },
                         input_parameter_names: ["value"],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "run_ifs",
@@ -2544,7 +2600,9 @@ export function create_switch_expressions(): IR.Module {
                         },
                         input_parameter_names: ["value"],
                         output_parameter_names: ["result"],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "run_switch",
@@ -2649,7 +2707,9 @@ export function create_ternary_condition_expressions(): IR.Module {
                         },
                         input_parameter_names: ["first_boolean", "second_boolean"],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "run_ternary_conditions",
@@ -2818,7 +2878,9 @@ export function create_while_loop_expressions(): IR.Module {
                         },
                         input_parameter_names: ["value"],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.Private
+                        linkage: IR.Linkage.Private,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "print_integer",
@@ -2850,10 +2912,102 @@ export function create_while_loop_expressions(): IR.Module {
                         },
                         input_parameter_names: ["size"],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "run_while_loops",
+                        statements: statements
+                    }
+                }
+            }
+        ]
+    };
+}
+
+export function create_function_contracts(): IR.Module {
+
+    const int32_type = create_integer_type(32, true);
+
+    const statements: IR.Statement[] = [
+        create_statement(
+            IR.create_return_expression(
+                IR.create_binary_expression(
+                    IR.create_variable_expression("x", IR.Access_type.Read),
+                    IR.create_variable_expression("x", IR.Access_type.Read),
+                    IR.Binary_operation.Multiply
+                )
+            )
+        )
+    ];
+
+    return {
+        name: "Contracts",
+        imports: [],
+        declarations: [
+            {
+                name: "run",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "run",
+                        type: {
+                            input_parameter_types: [int32_type],
+                            output_parameter_types: [int32_type],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: ["x"],
+                        output_parameter_names: ["result"],
+                        linkage: IR.Linkage.External,
+                        preconditions: [
+                            {
+                                description: "x >= 0",
+                                condition: create_statement(
+                                    IR.create_binary_expression(
+                                        IR.create_variable_expression("x", IR.Access_type.Read),
+                                        IR.create_constant_expression(int32_type, "0"),
+                                        IR.Binary_operation.Greater_than_or_equal_to
+                                    )
+                                )
+                            },
+                            {
+                                description: "x <= 8",
+                                condition: create_statement(
+                                    IR.create_binary_expression(
+                                        IR.create_variable_expression("x", IR.Access_type.Read),
+                                        IR.create_constant_expression(int32_type, "8"),
+                                        IR.Binary_operation.Less_than_or_equal_to
+                                    )
+                                )
+                            }
+                        ],
+                        postconditions: [
+                            {
+                                description: "result >= 0",
+                                condition: create_statement(
+                                    IR.create_binary_expression(
+                                        IR.create_variable_expression("result", IR.Access_type.Read),
+                                        IR.create_constant_expression(int32_type, "0"),
+                                        IR.Binary_operation.Greater_than_or_equal_to
+                                    )
+                                )
+                            },
+                            {
+                                description: "result <= 64",
+                                condition: create_statement(
+                                    IR.create_binary_expression(
+                                        IR.create_variable_expression("result", IR.Access_type.Read),
+                                        IR.create_constant_expression(int32_type, "64"),
+                                        IR.Binary_operation.Less_than_or_equal_to
+                                    )
+                                )
+                            }
+                        ],
+                    },
+                    definition: {
+                        name: "run",
                         statements: statements
                     }
                 }
@@ -2888,7 +3042,9 @@ export function create_function_with_empty_return_expression(): IR.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.Private
+                        linkage: IR.Linkage.Private,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "run",
@@ -2941,7 +3097,9 @@ export function create_import_module_with_empty_function(): IR.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "run",
@@ -2983,7 +3141,9 @@ export function create_function_with_int32_return_expression(): IR.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: ["result"],
-                        linkage: IR.Linkage.Private
+                        linkage: IR.Linkage.Private,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "run",
@@ -3229,7 +3389,9 @@ export function create_break_expressions(): IR.Module {
                         },
                         input_parameter_names: ["value"],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.Private
+                        linkage: IR.Linkage.Private,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "print_integer",
@@ -3261,7 +3423,9 @@ export function create_break_expressions(): IR.Module {
                         },
                         input_parameter_names: ["size"],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "run_breaks",
@@ -3302,7 +3466,9 @@ export function create_using_alias(): IR.Module {
                         },
                         input_parameter_names: ["size"],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "use_alias",
@@ -3368,7 +3534,9 @@ export function create_using_enums(): IR.Module {
                         },
                         input_parameter_names: ["enum_argument"],
                         output_parameter_names: ["result"],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "use_enums",
@@ -3513,7 +3681,9 @@ export function create_using_enum_flags(): IR.Module {
                         },
                         input_parameter_names: ["enum_argument"],
                         output_parameter_names: ["result"],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "use_enums",
@@ -3729,7 +3899,9 @@ export function create_using_global_variables(): IR.Module {
                         },
                         input_parameter_names: ["parameter"],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "use_global_variables",
@@ -3852,7 +4024,9 @@ export function create_using_structs(): IR.Module {
                         },
                         input_parameter_names: ["my_struct"],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "use_structs",
@@ -4030,7 +4204,9 @@ export function create_using_structs(): IR.Module {
                         },
                         input_parameter_names: ["my_struct"],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.Private
+                        linkage: IR.Linkage.Private,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "pass_struct",
@@ -4052,7 +4228,9 @@ export function create_using_structs(): IR.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: ["my_struct"],
-                        linkage: IR.Linkage.Private
+                        linkage: IR.Linkage.Private,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "return_struct",
@@ -4190,7 +4368,9 @@ export function create_using_unions(): IR.Module {
                         },
                         input_parameter_names: ["my_union", "my_union_tag"],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "use_unions",
@@ -4478,7 +4658,9 @@ export function create_using_unions(): IR.Module {
                         },
                         input_parameter_names: ["my_union"],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.Private
+                        linkage: IR.Linkage.Private,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "pass_union",
@@ -4500,7 +4682,9 @@ export function create_using_unions(): IR.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: ["my_union"],
-                        linkage: IR.Linkage.Private
+                        linkage: IR.Linkage.Private,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "return_union",
@@ -4548,7 +4732,9 @@ export function create_variadic_function_declarations(): IR.Module {
                         },
                         input_parameter_names: ["first"],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "my_function",
@@ -4652,6 +4838,8 @@ export function create_comments_in_functions(add_source_locations: boolean): IR.
                         input_parameter_names: [],
                         output_parameter_names: [],
                         linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                         comment: "Function comment\nNo arguments"
                     },
                     definition: {
@@ -4828,7 +5016,9 @@ export function create_newlines_after_statements(add_source_locations: boolean):
                         },
                         input_parameter_names: [],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.Private
+                        linkage: IR.Linkage.Private,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "use_newlines",
@@ -4913,7 +5103,9 @@ export function create_add_function(): IR.Module {
                         },
                         input_parameter_names: ["lhs", "rhs"],
                         output_parameter_names: ["result"],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "add",
@@ -4955,7 +5147,9 @@ export function create_invalid_assignment_to_itself_function(): IR.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "run",
@@ -4995,7 +5189,9 @@ export function create_function_with_variable_declaration(): IR.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "run",
@@ -5042,7 +5238,9 @@ export function create_function_with_variable_declaration_with_type(): IR.Module
                         },
                         input_parameter_names: [],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "run",
@@ -5126,7 +5324,9 @@ export function create_variable_declaration_inside_while_loop(): IR.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "run",
@@ -5192,7 +5392,9 @@ export function create_variable_declaration_inside_if_expression(): IR.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "run",
@@ -5259,7 +5461,9 @@ export function create_variable_declaration_inside_switch_case(): IR.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "run",
@@ -5319,7 +5523,9 @@ export function create_access_struct_of_imported_module(): IR.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "run",
@@ -5379,7 +5585,9 @@ export function create_call_of_function_of_imported_module(): IR.Module {
                         },
                         input_parameter_names: [],
                         output_parameter_names: [],
-                        linkage: IR.Linkage.External
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
                     },
                     definition: {
                         name: "run",

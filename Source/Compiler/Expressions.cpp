@@ -182,18 +182,6 @@ namespace h::compiler
         );
     }
 
-    static llvm::Value* convert_to_boolean(
-        llvm::LLVMContext& llvm_context,
-        llvm::IRBuilder<>& llvm_builder,
-        llvm::Value* const llvm_value,
-        std::optional<Type_reference> const& type
-    )
-    {
-        return (type.has_value() && is_c_bool(*type)) ?
-            llvm_builder.CreateTrunc(llvm_value, llvm::Type::getInt1Ty(llvm_context)) :
-            llvm_value;
-    }
-
     bool can_store(std::optional<Type_reference> const& type)
     {
         if (type.has_value() && std::holds_alternative<Constant_array_type>(type->data))
@@ -2303,6 +2291,36 @@ namespace h::compiler
         Value_and_type const temporary = create_expression_value(expression.expression->expression_index, statement, new_parameters);
 
         create_defer_instructions_at_return(parameters);
+
+        if (parameters.contract_options != Contract_options::Disabled && parameters.function_declaration.has_value())
+        {
+            std::pmr::vector<Value_and_type> return_values;
+            return_values.reserve(1);
+
+            h::Function_declaration const& function_declaration = *parameters.function_declaration.value();
+            if (!function_declaration.output_parameter_names.empty())
+            {
+                if (function_declaration.output_parameter_names.size() > 1)
+                    throw std::runtime_error{"Postconditions do not support multiple return types yet! Not implemented!"};
+
+                Value_and_type return_value = temporary;
+                return_value.name = function_declaration.output_parameter_names[0];
+                return_values.push_back(std::move(return_value));
+            }
+
+            Expression_parameters postcondition_parameters = parameters;
+            postcondition_parameters.local_variables = return_values;
+
+            create_function_postconditions(
+                parameters.llvm_context,
+                parameters.llvm_module,
+                *parameters.llvm_parent_function,
+                parameters.llvm_builder,
+                parameters.core_module,
+                *parameters.function_declaration.value(),
+                postcondition_parameters
+            );
+        }
         
         if (parameters.debug_info != nullptr)
             set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
@@ -3239,5 +3257,116 @@ namespace h::compiler
     )
     {
         create_defer_instructions_pop_blocks(parameters, parameters.defer_expressions_per_block.size());
+    }
+
+    enum class Condition_type
+    {
+        Precondition,
+        Postcondition,
+    };
+
+    std::string_view condition_type_to_string(Condition_type const type)
+    {
+        switch (type)
+        {
+        case Condition_type::Precondition: {
+            return "precondition";
+        }
+        case Condition_type::Postcondition: {
+            return "postcondition";
+        }
+        default: {
+            return "condition";
+        }
+        }
+    }
+
+    void create_check_condition_instructions(
+        llvm::LLVMContext& llvm_context,
+        llvm::Module& llvm_module,
+        llvm::Function& llvm_function,
+        llvm::IRBuilder<>& llvm_builder,
+        h::Module const& core_module,
+        h::Function_declaration const& function_declaration,
+        h::Function_condition const& function_condition,
+        Condition_type const condition_type,
+        Expression_parameters const& expression_parameters
+    )
+    {
+        Value_and_type const condition_value = create_statement_value(
+            function_condition.condition,
+            expression_parameters
+        );
+
+        bool const is_boolean_expression = condition_value.type.has_value() && (is_bool(*condition_value.type) || is_c_bool(*condition_value.type));
+        if (!is_boolean_expression)
+            throw std::runtime_error{std::format("In function '{}', condition '{}', expression does not evaluate to a boolean value.", function_declaration.name, function_condition.description)};
+        
+        llvm::BasicBlock* const success_block = llvm::BasicBlock::Create(llvm_context, "condition_success", &llvm_function);
+        llvm::BasicBlock* const fail_block = llvm::BasicBlock::Create(llvm_context, "condition_fail", &llvm_function);
+
+        llvm::Value* const condition_converted_value = convert_to_boolean(llvm_context, llvm_builder, condition_value.value, condition_value.type);
+        llvm_builder.CreateCondBr(condition_converted_value, success_block, fail_block);
+
+        llvm_builder.SetInsertPoint(fail_block);
+
+        std::string const error_message = std::format("In function '{}.{}' {} '{}' failed!", core_module.name, function_declaration.name, condition_type_to_string(condition_type), function_condition.description);
+        create_log_error_instruction(llvm_context, llvm_module, llvm_builder, error_message.c_str());
+        create_abort_instruction(llvm_context, llvm_module, llvm_builder);
+        llvm_builder.CreateUnreachable();
+
+        llvm_builder.SetInsertPoint(success_block);
+    }
+
+    void create_function_preconditions(
+        llvm::LLVMContext& llvm_context,
+        llvm::Module& llvm_module,
+        llvm::Function& llvm_function,
+        llvm::IRBuilder<>& llvm_builder,
+        h::Module const& core_module,
+        h::Function_declaration const& function_declaration,
+        Expression_parameters const& expression_parameters
+    )
+    {
+        for (Function_condition const& precondition : function_declaration.preconditions)
+        {
+            create_check_condition_instructions(
+                llvm_context,
+                llvm_module,
+                llvm_function,
+                llvm_builder,
+                core_module,
+                function_declaration,
+                precondition,
+                Condition_type::Precondition,
+                expression_parameters
+            );
+        }
+    }
+
+    void create_function_postconditions(
+        llvm::LLVMContext& llvm_context,
+        llvm::Module& llvm_module,
+        llvm::Function& llvm_function,
+        llvm::IRBuilder<>& llvm_builder,
+        h::Module const& core_module,
+        h::Function_declaration const& function_declaration,
+        Expression_parameters const& expression_parameters
+    )
+    {
+        for (Function_condition const& postcondition : function_declaration.postconditions)
+        {
+            create_check_condition_instructions(
+                llvm_context,
+                llvm_module,
+                llvm_function,
+                llvm_builder,
+                core_module,
+                function_declaration,
+                postcondition,
+                Condition_type::Postcondition,
+                expression_parameters
+            );
+        }
     }
 }

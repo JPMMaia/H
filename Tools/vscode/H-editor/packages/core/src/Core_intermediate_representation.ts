@@ -2517,6 +2517,25 @@ function intermediate_to_core_expression(intermediate_value: Expression, express
     }
 }
 
+export interface Function_condition {
+    description: string;
+    condition: Statement;
+}
+
+function core_to_intermediate_function_condition(core_value: Core.Function_condition): Function_condition {
+    return {
+        description: core_value.description,
+        condition: core_to_intermediate_statement(core_value.condition),
+    };
+}
+
+function intermediate_to_core_function_condition(intermediate_value: Function_condition): Core.Function_condition {
+    return {
+        description: intermediate_value.description,
+        condition: intermediate_to_core_statement(intermediate_value.condition),
+    };
+}
+
 export interface Function_declaration {
     name: string;
     unique_name?: string;
@@ -2524,6 +2543,8 @@ export interface Function_declaration {
     input_parameter_names: string[];
     output_parameter_names: string[];
     linkage: Linkage;
+    preconditions: Function_condition[];
+    postconditions: Function_condition[];
     comment?: string;
     source_location?: Source_location;
     input_parameter_source_positions?: Source_position[];
@@ -2538,6 +2559,8 @@ function core_to_intermediate_function_declaration(core_value: Core.Function_dec
         input_parameter_names: core_value.input_parameter_names.elements,
         output_parameter_names: core_value.output_parameter_names.elements,
         linkage: core_value.linkage,
+        preconditions: core_value.preconditions.elements.map(value => core_to_intermediate_function_condition(value)),
+        postconditions: core_value.postconditions.elements.map(value => core_to_intermediate_function_condition(value)),
         comment: core_value.comment,
         source_location: core_value.source_location !== undefined ? core_to_intermediate_source_location(core_value.source_location) : undefined,
         input_parameter_source_positions: core_value.input_parameter_source_positions !== undefined ? core_value.input_parameter_source_positions.elements.map(value => core_to_intermediate_source_position(value)) : undefined,
@@ -2559,6 +2582,14 @@ function intermediate_to_core_function_declaration(intermediate_value: Function_
             elements: intermediate_value.output_parameter_names,
         },
         linkage: intermediate_value.linkage,
+        preconditions: {
+            size: intermediate_value.preconditions.length,
+            elements: intermediate_value.preconditions.map(value => intermediate_to_core_function_condition(value)),
+        },
+        postconditions: {
+            size: intermediate_value.postconditions.length,
+            elements: intermediate_value.postconditions.map(value => intermediate_to_core_function_condition(value)),
+        },
         comment: intermediate_value.comment,
         source_location: intermediate_value.source_location !== undefined ? intermediate_to_core_source_location(intermediate_value.source_location) : undefined,
         input_parameter_source_positions: intermediate_value.input_parameter_source_positions !== undefined ? { size: intermediate_value.input_parameter_source_positions.length, elements : intermediate_value.input_parameter_source_positions } : undefined,
