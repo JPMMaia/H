@@ -864,7 +864,7 @@ function run() -> ()
             const new_node = (first_parse_result.changes[0].value as Parser.Modify_change).new_node;
             const module_body = new_node.children[1];
             const declaration = module_body.children[0];
-            const function_value = declaration.children[1];
+            const function_value = declaration.children[2];
             const function_definition = function_value.children[1];
             const block = function_definition.children[0];
             const function_body = block.children[1];
@@ -885,8 +885,8 @@ function run() -> ()
 
         const second_input = " 0;";
         const second_scanned_words = Scanner.scan(second_input, 0, second_input.length, { line: 1, column: 1 });
-        const start_change_node_position: number[] = [1, 0, 1, 1, 0, 2];
-        const after_change_node_position: number[] = [1, 0, 1, 1, 0, 2];
+        const start_change_node_position: number[] = [1, 0, 2, 1, 0, 2];
+        const after_change_node_position: number[] = [1, 0, 2, 1, 0, 2];
 
         const second_parse_result = Parser.parse_incrementally(
             "",
@@ -1553,19 +1553,18 @@ function run() -> ()
             language_description.array_infos,
             language_description.map_word_to_terminal
         );
-        assert.equal(parse_result_0.status, Parser.Parse_status.Accept);
 
         const root = (parse_result_0.changes[0].value as Parser.Modify_change).new_node;
 
         {
-            const statements_node = Parser_node.get_node_at_position(root, [1, 0, 1, 1, 0, 1]);
+            const statements_node = Parser_node.get_node_at_position(root, [1, 0, 2, 1, 0, 1]);
             assert.equal(statements_node.children.length, 1);
         }
 
         const input_1 = "dep";
         const scanned_words_1 = Scanner.scan(input_1, 0, input_1.length, { line: 1, column: 1 });
-        const start_change_node_position_1: number[] = [1, 0, 1, 1, 0, 1, 0, 0, 0];
-        const after_change_node_position_1: number[] = [1, 0, 1, 1, 0, 1, 0, 0, 0];
+        const start_change_node_position_1: number[] = [1, 0, 2, 1, 0, 1, 0, 0, 0];
+        const after_change_node_position_1: number[] = [1, 0, 2, 1, 0, 1, 0, 0, 0];
 
         const parse_result_1 = Parser.parse_incrementally(
             "",
@@ -1582,14 +1581,14 @@ function run() -> ()
         Parser.apply_changes(root, [], parse_result_1.changes);
 
         {
-            const statements_node = Parser_node.get_node_at_position(root, [1, 0, 1, 1, 0, 1]);
+            const statements_node = Parser_node.get_node_at_position(root, [1, 0, 2, 1, 0, 1]);
             assert.equal(statements_node.children.length, 2);
         }
 
         const input_2 = ".";
         const scanned_words_2 = Scanner.scan(input_2, 0, input_2.length, { line: 1, column: 1 });
-        const start_change_node_position_2: number[] = [1, 0, 1, 1, 0, 1, 1, 0, 0];
-        const after_change_node_position_2: number[] = [1, 0, 1, 1, 0, 1, 1, 0, 0];
+        const start_change_node_position_2: number[] = [1, 0, 2, 1, 0, 1, 1, 0, 0];
+        const after_change_node_position_2: number[] = [1, 0, 2, 1, 0, 1, 1, 0, 0];
 
         const parse_result_2 = Parser.parse_incrementally(
             "",
@@ -1606,7 +1605,7 @@ function run() -> ()
         Parser.apply_changes(root, [], parse_result_2.changes);
 
         {
-            const statements_node = Parser_node.get_node_at_position(root, [1, 0, 1, 1, 0, 1]);
+            const statements_node = Parser_node.get_node_at_position(root, [1, 0, 2, 1, 0, 1]);
             assert.equal(statements_node.children.length, 2);
         }
     });

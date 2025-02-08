@@ -2039,12 +2039,12 @@ function create_module_changes_declaration(
 ): Module_change.Position_change_pair[] {
     const new_declaration = node_to_declaration(data.node, data.key_to_production_rule_indices);
 
-    const node = data.node.children[1];
+    const node = data.node.children[2];
     const modify_index = data.node_position[data.node_position.length - 1];
 
     const new_change = create_new_module_change(
         new_declaration,
-        `${data.node.children[1].word.value}_name`,
+        `${node.word.value}_name`,
         "declarations",
         (name: string) => data.module.declarations.findIndex(value => value.name === name),
         modify_index,
@@ -2060,9 +2060,9 @@ function node_to_declaration(
     key_to_production_rule_indices: Map<string, number[]>
 ): Core_intermediate_representation.Declaration {
 
-    const underlying_declaration_node = node.children[1];
+    const underlying_declaration_node = node.children[2];
 
-    const is_export = is_export_node(underlying_declaration_node, key_to_production_rule_indices);
+    const is_export = is_export_node(node, key_to_production_rule_indices);
 
     switch (underlying_declaration_node.word.value) {
         case "Alias": {
@@ -2265,7 +2265,7 @@ export function node_to_type_reference(node: Parser_node.Node, key_to_production
 function node_to_alias_type_declaration(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Alias_type_declaration {
 
     const comments_node = node.children[0];
-    const alias_node = node.children[1];
+    const alias_node = node.children[2];
 
     const name = find_node_value(alias_node, "Alias_name", key_to_production_rule_indices);
 
@@ -2293,7 +2293,7 @@ function node_to_alias_type_declaration(node: Parser_node.Node, key_to_productio
 function node_to_enum_declaration(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Enum_declaration {
 
     const comments_node = node.children[0];
-    const enum_node = node.children[1];
+    const enum_node = node.children[2];
 
     const name = find_node_value(enum_node, "Enum_name", key_to_production_rule_indices);
 
@@ -2347,7 +2347,7 @@ function node_to_enum_declaration(node: Parser_node.Node, key_to_production_rule
 function node_to_global_variable_declaration(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Global_variable_declaration {
 
     const comments_node = node.children[0];
-    const global_variable_node = node.children[1];
+    const global_variable_node = node.children[2];
 
     const name = find_node_value(global_variable_node, "Global_variable_name", key_to_production_rule_indices);
 
@@ -2386,7 +2386,7 @@ function node_to_global_variable_declaration(node: Parser_node.Node, key_to_prod
 function node_to_struct_declaration(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Struct_declaration {
 
     const comments_node = node.children[0];
-    const struct_node = node.children[1];
+    const struct_node = node.children[2];
 
     const name = find_node_value(struct_node, "Struct_name", key_to_production_rule_indices);
     const source_location = struct_node.source_location !== undefined ? struct_node.source_location : { line: 0, column: 0 };
@@ -2450,7 +2450,7 @@ function node_to_struct_declaration(node: Parser_node.Node, key_to_production_ru
 function node_to_union_declaration(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Union_declaration {
 
     const comments_node = node.children[0];
-    const union_node = node.children[1];
+    const union_node = node.children[2];
 
     const name = find_node_value(union_node, "Union_name", key_to_production_rule_indices);
     const source_location = union_node.source_location !== undefined ? union_node.source_location : { line: 0, column: 0 };
@@ -2541,7 +2541,8 @@ function node_to_function_condition(node: Parser_node.Node, is_precondition: boo
 function node_to_function_declaration(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Function_declaration {
 
     const comments_node = node.children[0];
-    const function_node = node.children[1];
+    const export_node = node.children[1];
+    const function_node = node.children[2];
     const function_declaration_node = function_node.children[0];
 
     const name = find_node_value(function_declaration_node, "Function_name", key_to_production_rule_indices);
@@ -2562,8 +2563,7 @@ function node_to_function_declaration(node: Parser_node.Node, key_to_production_
     const output_parameter_types = output_parameter_nodes.map(node => find_node(node, "Function_parameter_type", key_to_production_rule_indices) as Parser_node.Node).map(node => node_to_type_reference(node.children[0], key_to_production_rule_indices)[0]);
     const output_parameter_source_positions = output_parameter_nodes.map(node => node.source_location !== undefined ? node.source_location : source_location);
 
-    const export_value = find_node_value(function_declaration_node, "Export", key_to_production_rule_indices);
-    const linkage = export_value.length > 0 ? Core_intermediate_representation.Linkage.External : Core_intermediate_representation.Linkage.Private;
+    const linkage = export_node.children.length > 0 ? Core_intermediate_representation.Linkage.External : Core_intermediate_representation.Linkage.Private;
 
     const function_option_node = find_node(function_declaration_node, "Function_options", key_to_production_rule_indices);
 
@@ -2604,7 +2604,7 @@ function node_to_function_declaration(node: Parser_node.Node, key_to_production_
 
 function node_to_function_definition(node: Parser_node.Node, function_name: string, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Function_definition {
 
-    const function_node = node.children[1];
+    const function_node = node.children[2];
     const function_definition_node = function_node.children[1];
 
     const output: Core_intermediate_representation.Function_definition = {
