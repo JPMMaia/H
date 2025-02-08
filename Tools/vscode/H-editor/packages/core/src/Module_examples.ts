@@ -1,4 +1,5 @@
 import * as IR from "./Core_intermediate_representation";
+import * as Type_utilities from "./Type_utilities";
 
 export function create_empty(): IR.Module {
     return {
@@ -4740,6 +4741,178 @@ export function create_variadic_function_declarations(): IR.Module {
                         name: "my_function",
                         statements: []
                     }
+                },
+            },
+        ]
+    };
+}
+
+export function create_type_constructor(): IR.Module {
+    const uint64_type = create_integer_type(64, false);
+    return {
+        name: "Type_constructor",
+        imports: [],
+        declarations: [
+            {
+                name: "Dynamic_array",
+                type: IR.Declaration_type.Type_constructor,
+                is_export: true,
+                value: {
+                    name: "Dynamic_array",
+                    parameters: [
+                        {
+                            name: "element_type",
+                            type: Type_utilities.create_builtin_type_reference("Type"),
+                        }
+                    ],
+                    statements: [
+                        create_statement(
+                            IR.create_return_expression(
+                                IR.create_struct_expression(
+                                    {
+                                        name: "",
+                                        member_types: [
+                                            Type_utilities.create_pointer_type(
+                                                [Type_utilities.create_parameter_type("element_type")],
+                                                false
+                                            ),
+                                            uint64_type,
+                                        ],
+                                        member_names: [
+                                            "data",
+                                            "length",
+                                        ],
+                                        member_default_values: [
+                                            create_statement(
+                                                IR.create_null_pointer_expression()
+                                            ),
+                                            create_statement(
+                                                IR.create_constant_expression(uint64_type, "0")
+                                            ),
+                                        ],
+                                        is_packed: false,
+                                        is_literal: false,
+                                        member_comments: [],
+                                    }
+                                )
+                            )
+                        )
+                    ],
+                },
+            },
+        ]
+    };
+}
+
+export function create_function_constructor(): IR.Module {
+    const uint64_type = create_integer_type(64, false);
+    return {
+        name: "Function_constructor",
+        imports: [],
+        declarations: [
+            {
+                name: "to_string",
+                type: IR.Declaration_type.Function_constructor,
+                is_export: true,
+                value: {
+                    name: "to_string",
+                    parameters: [
+                        {
+                            name: "value_type",
+                            type: Type_utilities.create_builtin_type_reference("Type"),
+                        }
+                    ],
+                    statements: [
+                        create_statement(
+                            IR.create_return_expression(
+                                IR.create_function_expression(
+                                    {
+                                        name: "",
+                                        type: {
+                                            input_parameter_types: [
+                                                Type_utilities.create_parameter_type("value_type"),
+                                            ],
+                                            output_parameter_types: [
+                                                Type_utilities.create_string_type(),
+                                            ],
+                                            is_variadic: false,
+                                        },
+                                        input_parameter_names: [
+                                            "value"
+                                        ],
+                                        output_parameter_names: [
+                                            "result"
+                                        ],
+                                        linkage: IR.Linkage.External,
+                                        preconditions: [],
+                                        postconditions: [],
+                                    },
+                                    {
+                                        name: "",
+                                        statements: [
+                                            create_statement(
+                                                IR.create_compile_time_expression(
+                                                    IR.create_if_expression(
+                                                        [
+                                                            {
+                                                                condition: create_statement(
+                                                                    IR.create_call_expression(
+                                                                        IR.create_variable_expression("@is_enum", IR.Access_type.Read),
+                                                                        [
+                                                                            IR.create_variable_expression("value_type", IR.Access_type.Read),
+                                                                        ]
+                                                                    )
+                                                                ),
+                                                                then_statements: [
+                                                                    create_statement(
+                                                                        IR.create_variable_declaration_expression(
+                                                                            "enum_value_name",
+                                                                            false,
+                                                                            IR.create_call_expression(
+                                                                                IR.create_variable_expression("@get_enum_value_name", IR.Access_type.Read),
+                                                                                [
+                                                                                    IR.create_variable_expression("value", IR.Access_type.Read)
+                                                                                ]
+                                                                            )
+                                                                        )
+                                                                    ),
+                                                                    create_statement(
+                                                                        IR.create_return_expression(
+                                                                            IR.create_variable_expression("enum_value_name", IR.Access_type.Read)
+                                                                        )
+                                                                    )
+                                                                ],
+                                                            },
+                                                            {
+                                                                condition: create_statement(
+                                                                    IR.create_call_expression(
+                                                                        IR.create_variable_expression("@is_integer", IR.Access_type.Read),
+                                                                        [
+                                                                            IR.create_variable_expression("value_type", IR.Access_type.Read),
+                                                                        ]
+                                                                    )
+                                                                ),
+                                                                then_statements: [
+                                                                    create_statement(
+                                                                        IR.create_return_expression(
+                                                                            IR.create_constant_expression(
+                                                                                Type_utilities.create_string_type(),
+                                                                                "0"
+                                                                            )
+                                                                        )
+                                                                    )
+                                                                ],
+                                                            }
+                                                        ]
+                                                    )
+                                                )
+                                            )
+                                        ]
+                                    }
+                                )
+                            )
+                        )
+                    ],
                 },
             },
         ]

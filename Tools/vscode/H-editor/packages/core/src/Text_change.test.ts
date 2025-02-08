@@ -2292,6 +2292,81 @@ export function my_function(first: Int32, ...) -> ()
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
+    it("Handles type constructors", () => {
+
+        const document_state = Document.create_empty_state("", language_description.production_rules);
+
+        const program = `
+module Type_constructor;
+
+export type_constructor Dynamic_array(element_type: Type)
+{
+    return struct
+    {
+        data: *element_type = null;
+        length: Uint64 = 0;    
+    };
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_type_constructor();
+        assert.deepEqual(new_document_state.valid.module, expected_module);
+    });
+
+    it("Handles function constructors", () => {
+
+        const document_state = Document.create_empty_state("", language_description.production_rules);
+
+        const program = `
+module Function_constructor;
+
+export function_constructor to_string(value_type: Type)
+{
+    return function (value: value_type) -> (result: String)
+    {
+        comptime if @is_enum(value_type)
+        {
+            var enum_value_name = @get_enum_value_name(value);
+            return enum_value_name;
+        }
+        else if @is_integer(value_type)
+        {
+            return "0";
+        }
+    };
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_function_constructor();
+        assert.deepEqual(new_document_state.valid.module, expected_module);
+    });
+
     it("Handles comments in the module declaration", () => {
 
         const document_state = Document.create_empty_state("", language_description.production_rules);

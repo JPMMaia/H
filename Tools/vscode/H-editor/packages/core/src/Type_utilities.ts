@@ -76,6 +76,43 @@ function create_type_reference(
     };
 }
 
+export function create_builtin_type_reference(name: string): Core_intermediate_representation.Type_reference {
+    return create_type_reference(
+        Core_intermediate_representation.Type_reference_enum.Builtin_type_reference,
+        { value: name }
+    );
+}
+
+export function create_parameter_type(name: string): Core_intermediate_representation.Type_reference {
+    return {
+        data: {
+            type: Core_intermediate_representation.Type_reference_enum.Parameter_type,
+            value: {
+                name: name
+            }
+        }
+    };
+}
+
+export function create_pointer_type(element_type: Core_intermediate_representation.Type_reference[], is_mutable: boolean): Core_intermediate_representation.Type_reference {
+    return {
+        data: {
+            type: Core_intermediate_representation.Type_reference_enum.Pointer_type,
+            value: {
+                element_type: element_type,
+                is_mutable: is_mutable
+            }
+        }
+    };
+}
+
+export function create_string_type(): Core_intermediate_representation.Type_reference {
+    return create_type_reference(
+        Core_intermediate_representation.Type_reference_enum.Fundamental_type,
+        Core_intermediate_representation.Fundamental_type.String
+    );
+}
+
 export function parse_type_name(name: string): Core_intermediate_representation.Type_reference[] {
 
     if (is_integer_type(name)) {

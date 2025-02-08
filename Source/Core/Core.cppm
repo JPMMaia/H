@@ -32,6 +32,7 @@ namespace h
         friend auto operator<=>(Source_position const& lhs, Source_position const& rhs) = default;
     };
 
+    struct Function_declaration;
     struct Type_reference;
 
     export enum class Fundamental_type
@@ -128,6 +129,13 @@ namespace h
         friend auto operator<=>(Custom_type_reference const&, Custom_type_reference const&) = default;
     };
 
+    export struct Parameter_type
+    {
+        std::pmr::string name;
+
+        friend auto operator<=>(Parameter_type const&, Parameter_type const&) = default;
+    };
+
     export struct Type_reference
     {
         using Data_type = std::variant<
@@ -138,6 +146,7 @@ namespace h
             Function_pointer_type,
             Integer_type,
             Null_pointer_type,
+            Parameter_type,
             Pointer_type
         >;
 
@@ -237,6 +246,47 @@ namespace h
         std::optional<std::pmr::vector<Source_position>> member_source_positions;
 
         friend auto operator<=>(Union_declaration const&, Union_declaration const&) = default;
+    };
+
+    export struct Function_condition
+    {
+        std::pmr::string description;
+        Statement condition;
+
+        friend auto operator<=>(Function_condition const&, Function_condition const&) = default;
+    };
+
+    export enum class Linkage
+    {
+        External,
+        Private
+    };
+
+    export struct Function_declaration
+    {
+        std::pmr::string name;
+        std::optional<std::pmr::string> unique_name;
+        Function_type type;
+        std::pmr::vector<std::pmr::string> input_parameter_names;
+        std::pmr::vector<std::pmr::string> output_parameter_names;
+        Linkage linkage;
+        std::pmr::vector<Function_condition> preconditions;
+        std::pmr::vector<Function_condition> postconditions;
+        std::optional<std::pmr::string> comment;
+        std::optional<Source_location> source_location;
+        std::optional<std::pmr::vector<Source_position>> input_parameter_source_positions;
+        std::optional<std::pmr::vector<Source_position>> output_parameter_source_positions;
+
+        friend auto operator<=>(Function_declaration const&, Function_declaration const&) = default;
+    };
+
+    export struct Function_definition
+    {
+        std::pmr::string name;
+        std::pmr::vector<Statement> statements;
+        std::optional<Source_location> source_location;
+
+        friend auto operator<=>(Function_definition const&, Function_definition const&) = default;
     };
 
     export enum Access_type
@@ -368,6 +418,13 @@ namespace h
         friend auto operator<=>(Comment_expression const&, Comment_expression const&) = default;
     };
 
+    export struct Compile_time_expression
+    {
+        Expression_index expression;
+
+        friend auto operator<=>(Compile_time_expression const&, Compile_time_expression const&) = default;
+    };
+
     export struct Constant_expression
     {
         Type_reference type;
@@ -405,6 +462,14 @@ namespace h
         std::pmr::vector<Statement> then_statements;
 
         friend auto operator<=>(For_loop_expression const&, For_loop_expression const&) = default;
+    };
+
+    export struct Function_expression
+    {
+        Function_declaration declaration;
+        Function_definition definition;
+
+        friend auto operator<=>(Function_expression const&, Function_expression const&) = default;
     };
 
     export struct Condition_statement_pair
@@ -469,6 +534,13 @@ namespace h
         std::optional<Expression_index> expression;
 
         friend auto operator<=>(Return_expression const&, Return_expression const&) = default;
+    };
+
+    export struct Struct_expression
+    {
+        Struct_declaration declaration;
+
+        friend auto operator<=>(Struct_expression const&, Struct_expression const&) = default;
     };
 
     export struct Switch_case_expression_pair
@@ -556,17 +628,20 @@ namespace h
             Call_expression,
             Cast_expression,
             Comment_expression,
+            Compile_time_expression,
             Constant_expression,
             Constant_array_expression,
             Continue_expression,
             Defer_expression,
             For_loop_expression,
+            Function_expression,
             If_expression,
             Instantiate_expression,
             Invalid_expression,
             Null_pointer_expression,
             Parenthesis_expression,
             Return_expression,
+            Struct_expression,
             Switch_expression,
             Ternary_condition_expression,
             Unary_expression,
@@ -582,45 +657,38 @@ namespace h
         friend auto operator<=>(Expression const&, Expression const&) = default;
     };
 
-    export struct Function_condition
-    {
-        std::pmr::string description;
-        Statement condition;
-
-        friend auto operator<=>(Function_condition const&, Function_condition const&) = default;
-    };
-
-    export enum class Linkage
-    {
-        External,
-        Private
-    };
-
-    export struct Function_declaration
+    export struct Type_constructor_parameter
     {
         std::pmr::string name;
-        std::optional<std::pmr::string> unique_name;
-        Function_type type;
-        std::pmr::vector<std::pmr::string> input_parameter_names;
-        std::pmr::vector<std::pmr::string> output_parameter_names;
-        Linkage linkage;
-        std::pmr::vector<Function_condition> preconditions;
-        std::pmr::vector<Function_condition> postconditions;
-        std::optional<std::pmr::string> comment;
-        std::optional<Source_location> source_location;
-        std::optional<std::pmr::vector<Source_position>> input_parameter_source_positions;
-        std::optional<std::pmr::vector<Source_position>> output_parameter_source_positions;
+        Type_reference type;
 
-        friend auto operator<=>(Function_declaration const&, Function_declaration const&) = default;
+        friend auto operator<=>(Type_constructor_parameter const&, Type_constructor_parameter const&) = default;
     };
 
-    export struct Function_definition
+    export struct Type_constructor
     {
         std::pmr::string name;
+        std::pmr::vector<Type_constructor_parameter> parameters;
         std::pmr::vector<Statement> statements;
-        std::optional<Source_location> source_location;
 
-        friend auto operator<=>(Function_definition const&, Function_definition const&) = default;
+        friend auto operator<=>(Type_constructor const&, Type_constructor const&) = default;
+    };
+
+    export struct Function_constructor_parameter
+    {
+        std::pmr::string name;
+        Type_reference type;
+
+        friend auto operator<=>(Function_constructor_parameter const&, Function_constructor_parameter const&) = default;
+    };
+
+    export struct Function_constructor
+    {
+        std::pmr::string name;
+        std::pmr::vector<Function_constructor_parameter> parameters;
+        std::pmr::vector<Statement> statements;
+
+        friend auto operator<=>(Function_constructor const&, Function_constructor const&) = default;
     };
 
     export struct Language_version
@@ -656,6 +724,8 @@ namespace h
         std::pmr::vector<Struct_declaration> struct_declarations;
         std::pmr::vector<Union_declaration> union_declarations;
         std::pmr::vector<Function_declaration> function_declarations;
+        std::pmr::vector<Function_constructor> function_constructors;
+        std::pmr::vector<Type_constructor> type_constructors;
 
         friend auto operator<=>(Module_declarations const&, Module_declarations const&) = default;
     };
