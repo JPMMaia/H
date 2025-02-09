@@ -145,15 +145,22 @@ export async function parse_source_file_and_write_to_disk_if_needed(
         const source_file_stat = fs.statSync(source_file_path);
 
         if (parsed_file_stat.mtime > source_file_stat.mtime) {
-            const core_module = Project.read_parsed_file(parsed_file_path);
-            if (core_module === undefined) {
-                return undefined;
+            try {
+                console.log(`Try to read already parsed file: ${parsed_file_path}`);
+
+                const core_module = Project.read_parsed_file(parsed_file_path);
+                if (core_module !== undefined) {
+                    return { core_module: core_module, parsed_file_path: parsed_file_path };
+                }
+            }
+            catch (error) {
             }
 
-            return { core_module: core_module, parsed_file_path: parsed_file_path };
+            console.log(`Failed to read already parsed file: ${parsed_file_path}`);
         }
     }
 
+    console.log(`Parse source file: ${source_file_path}`);
     const core_module = await Project.parse_source_file_and_write_to_disk(
         module_name,
         source_file_path,
@@ -163,6 +170,7 @@ export async function parse_source_file_and_write_to_disk_if_needed(
         project.hlang_executable
     );
     if (core_module === undefined) {
+        console.log("Failed to parse source file: ${source_file_path}");
         return undefined;
     }
 
