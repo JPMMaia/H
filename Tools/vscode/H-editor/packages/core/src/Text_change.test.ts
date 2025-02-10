@@ -2307,6 +2307,11 @@ export type_constructor Dynamic_array(element_type: Type)
         length: Uint64 = 0;    
     };
 }
+
+function run() -> ()
+{
+    var instance: Dynamic_array<Int32> = {};
+}
 `;
 
         const text_changes: Text_change.Text_change[] = [
@@ -2333,20 +2338,18 @@ export type_constructor Dynamic_array(element_type: Type)
         const program = `
 module Function_constructor;
 
-export function_constructor to_string(value_type: Type)
+export function_constructor add(value_type: Type)
 {
-    return function (value: value_type) -> (result: String)
+    return function (first: value_type, second: value_type) -> (result: value_type)
     {
-        comptime if @is_enum(value_type)
-        {
-            var enum_value_name = @get_enum_value_name(value);
-            return enum_value_name;
-        }
-        else if @is_integer(value_type)
-        {
-            return "0";
-        }
+        return first + second;
     };
+}
+
+function run() -> ()
+{
+    var a = add<Int32>(1, 2);
+    var b = add<Float32>(3.0f32, 4.0f32);
 }
 `;
 
@@ -2363,7 +2366,7 @@ export function_constructor to_string(value_type: Type)
         const new_document_state = Text_change.update(language_description, document_state, text_changes, program, true);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
-        const expected_module = Module_examples.create_function_constructor();
+        const expected_module = Module_examples.create_function_constructor_0();
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 

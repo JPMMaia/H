@@ -33,6 +33,7 @@ namespace h
     };
 
     struct Function_declaration;
+    struct Statement;
     struct Type_reference;
 
     export enum class Fundamental_type
@@ -129,6 +130,14 @@ namespace h
         friend auto operator<=>(Custom_type_reference const&, Custom_type_reference const&) = default;
     };
 
+    export struct Type_instance
+    {
+        Custom_type_reference type_constructor;
+        std::pmr::vector<Statement> arguments;
+
+        friend auto operator<=>(Type_instance const&, Type_instance const&) = default;
+    };
+
     export struct Parameter_type
     {
         std::pmr::string name;
@@ -147,7 +156,8 @@ namespace h
             Integer_type,
             Null_pointer_type,
             Parameter_type,
-            Pointer_type
+            Pointer_type,
+            Type_instance
         >;
 
         Data_type data;
@@ -472,6 +482,14 @@ namespace h
         friend auto operator<=>(Function_expression const&, Function_expression const&) = default;
     };
 
+    export struct Function_instance_expression
+    {
+        Expression_index left_hand_side;
+        std::pmr::vector<Expression_index> arguments;
+
+        friend auto operator<=>(Function_instance_expression const&, Function_instance_expression const&) = default;
+    };
+
     export struct Condition_statement_pair
     {
         std::optional<Statement> condition;
@@ -568,6 +586,13 @@ namespace h
         friend auto operator<=>(Ternary_condition_expression const&, Ternary_condition_expression const&) = default;
     };
 
+    export struct Type_expression
+    {
+        Type_reference type;
+
+        friend auto operator<=>(Type_expression const&, Type_expression const&) = default;
+    };
+
     export enum class Unary_operation
     {
         Not,
@@ -635,6 +660,7 @@ namespace h
             Defer_expression,
             For_loop_expression,
             Function_expression,
+            Function_instance_expression,
             If_expression,
             Instantiate_expression,
             Invalid_expression,
@@ -644,6 +670,7 @@ namespace h
             Struct_expression,
             Switch_expression,
             Ternary_condition_expression,
+            Type_expression,
             Unary_expression,
             Variable_declaration_expression,
             Variable_declaration_with_type_expression,

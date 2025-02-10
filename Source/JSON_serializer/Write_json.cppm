@@ -352,6 +352,12 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Type_instance const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Parameter_type const& input
         );
 
@@ -538,6 +544,12 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Function_instance_expression const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Condition_statement_pair const& input
         );
 
@@ -605,6 +617,12 @@ namespace h::json
         void write_object(
             Writer_type& writer,
             Ternary_condition_expression const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Type_expression const& input
         );
 
     export template<typename Writer_type>
@@ -970,6 +988,20 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Type_instance const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("type_constructor");
+        write_object(writer, output.type_constructor);
+        writer.Key("arguments");
+        write_object(writer, output.arguments);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Parameter_type const& output
         )
     {
@@ -1062,6 +1094,14 @@ namespace h::json
             writer.String("Pointer_type");
             writer.Key("value");
             Pointer_type const& value = std::get<Pointer_type>(output.data);
+            write_object(writer, value);
+        }
+        else if (std::holds_alternative<Type_instance>(output.data))
+        {
+            writer.Key("type");
+            writer.String("Type_instance");
+            writer.Key("value");
+            Type_instance const& value = std::get<Type_instance>(output.data);
             write_object(writer, value);
         }
         writer.EndObject();
@@ -1541,6 +1581,20 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Function_instance_expression const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("left_hand_side");
+        write_object(writer, output.left_hand_side);
+        writer.Key("arguments");
+        write_object(writer, output.arguments);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Condition_statement_pair const& output
         )
     {
@@ -1692,6 +1746,18 @@ namespace h::json
         write_object(writer, output.then_statement);
         writer.Key("else_statement");
         write_object(writer, output.else_statement);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Type_expression const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("type");
+        write_object(writer, output.type);
         writer.EndObject();
     }
 
@@ -1898,6 +1964,14 @@ namespace h::json
             Function_expression const& value = std::get<Function_expression>(output.data);
             write_object(writer, value);
         }
+        else if (std::holds_alternative<Function_instance_expression>(output.data))
+        {
+            writer.Key("type");
+            writer.String("Function_instance_expression");
+            writer.Key("value");
+            Function_instance_expression const& value = std::get<Function_instance_expression>(output.data);
+            write_object(writer, value);
+        }
         else if (std::holds_alternative<If_expression>(output.data))
         {
             writer.Key("type");
@@ -1968,6 +2042,14 @@ namespace h::json
             writer.String("Ternary_condition_expression");
             writer.Key("value");
             Ternary_condition_expression const& value = std::get<Ternary_condition_expression>(output.data);
+            write_object(writer, value);
+        }
+        else if (std::holds_alternative<Type_expression>(output.data))
+        {
+            writer.Key("type");
+            writer.String("Type_expression");
+            writer.Key("value");
+            Type_expression const& value = std::get<Type_expression>(output.data);
             write_object(writer, value);
         }
         else if (std::holds_alternative<Unary_expression>(output.data))

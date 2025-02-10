@@ -96,6 +96,7 @@ export enum Type_reference_enum {
     Null_pointer_type = "Null_pointer_type",
     Parameter_type = "Parameter_type",
     Pointer_type = "Pointer_type",
+    Type_instance = "Type_instance",
 }
 
 export enum Expression_enum {
@@ -115,6 +116,7 @@ export enum Expression_enum {
     Defer_expression = "Defer_expression",
     For_loop_expression = "For_loop_expression",
     Function_expression = "Function_expression",
+    Function_instance_expression = "Function_instance_expression",
     If_expression = "If_expression",
     Instantiate_expression = "Instantiate_expression",
     Invalid_expression = "Invalid_expression",
@@ -124,6 +126,7 @@ export enum Expression_enum {
     Struct_expression = "Struct_expression",
     Switch_expression = "Switch_expression",
     Ternary_condition_expression = "Ternary_condition_expression",
+    Type_expression = "Type_expression",
     Unary_expression = "Unary_expression",
     Variable_declaration_expression = "Variable_declaration_expression",
     Variable_declaration_with_type_expression = "Variable_declaration_with_type_expression",
@@ -185,12 +188,17 @@ export interface Custom_type_reference {
     name: string;
 }
 
+export interface Type_instance {
+    type_constructor: Custom_type_reference;
+    arguments: Vector<Statement>;
+}
+
 export interface Parameter_type {
     name: string;
 }
 
 export interface Type_reference {
-    data: Variant<Type_reference_enum, Builtin_type_reference | Constant_array_type | Custom_type_reference | Fundamental_type | Function_pointer_type | Integer_type | Null_pointer_type | Parameter_type | Pointer_type>;
+    data: Variant<Type_reference_enum, Builtin_type_reference | Constant_array_type | Custom_type_reference | Fundamental_type | Function_pointer_type | Integer_type | Null_pointer_type | Parameter_type | Pointer_type | Type_instance>;
 }
 
 export interface Indexed_comment {
@@ -375,6 +383,11 @@ export interface Function_expression {
     definition: Function_definition;
 }
 
+export interface Function_instance_expression {
+    left_hand_side: Expression_index;
+    arguments: Vector<Expression_index>;
+}
+
 export interface Condition_statement_pair {
     condition?: Statement;
     then_statements: Vector<Statement>;
@@ -430,6 +443,10 @@ export interface Ternary_condition_expression {
     else_statement: Statement;
 }
 
+export interface Type_expression {
+    type: Type_reference;
+}
+
 export interface Unary_expression {
     expression: Expression_index;
     operation: Unary_operation;
@@ -454,7 +471,7 @@ export interface While_loop_expression {
 }
 
 export interface Expression {
-    data: Variant<Expression_enum, Access_expression | Access_array_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Comment_expression | Compile_time_expression | Constant_expression | Constant_array_expression | Continue_expression | Defer_expression | For_loop_expression | Function_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Struct_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
+    data: Variant<Expression_enum, Access_expression | Access_array_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Comment_expression | Compile_time_expression | Constant_expression | Constant_array_expression | Continue_expression | Defer_expression | For_loop_expression | Function_expression | Function_instance_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Struct_expression | Switch_expression | Ternary_condition_expression | Type_expression | Unary_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
     source_position?: Source_position;
 }
 

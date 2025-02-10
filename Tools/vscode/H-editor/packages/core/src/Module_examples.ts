@@ -4800,12 +4800,51 @@ export function create_type_constructor(): IR.Module {
                     ],
                 },
             },
+            {
+                name: "run",
+                type: IR.Declaration_type.Function,
+                is_export: false,
+                value: {
+                    declaration: {
+                        name: "run",
+                        type: {
+                            input_parameter_types: [],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: [],
+                        output_parameter_names: [],
+                        linkage: IR.Linkage.Private,
+                        preconditions: [],
+                        postconditions: []
+                    },
+                    definition: {
+                        name: "run",
+                        statements: [
+                            create_statement(
+                                IR.create_variable_declaration_with_type_expression(
+                                    "instance",
+                                    false,
+                                    Type_utilities.create_type_instance("Type_constructor", "Dynamic_array", [
+                                        create_statement(IR.create_type_expression(create_integer_type(32, true)))
+                                    ]),
+                                    create_statement(
+                                        IR.create_instantiate_expression(
+                                            IR.Instantiate_expression_type.Default,
+                                            []
+                                        )
+                                    )
+                                )
+                            )
+                        ]
+                    }
+                }
+            }
         ]
     };
 }
 
-export function create_function_constructor(): IR.Module {
-    const uint64_type = create_integer_type(64, false);
+export function create_function_constructor_0(): IR.Module {
     return {
         name: "Function_constructor",
         imports: [],
@@ -4913,6 +4952,135 @@ export function create_function_constructor(): IR.Module {
                             )
                         )
                     ],
+                },
+            },
+        ]
+    };
+}
+
+export function create_function_constructor_1(): IR.Module {
+    const int32_type = create_integer_type(32, true);
+    const float32_type = create_fundamental_type(IR.Fundamental_type.Float32);
+    return {
+        name: "Function_constructor",
+        imports: [],
+        declarations: [
+            {
+                name: "add",
+                type: IR.Declaration_type.Function_constructor,
+                is_export: true,
+                value: {
+                    name: "add",
+                    parameters: [
+                        {
+                            name: "value_type",
+                            type: Type_utilities.create_builtin_type_reference("Type"),
+                        }
+                    ],
+                    statements: [
+                        create_statement(
+                            IR.create_return_expression(
+                                IR.create_function_expression(
+                                    {
+                                        name: "",
+                                        type: {
+                                            input_parameter_types: [
+                                                Type_utilities.create_parameter_type("value_type"),
+                                                Type_utilities.create_parameter_type("value_type")
+                                            ],
+                                            output_parameter_types: [
+                                                Type_utilities.create_parameter_type("value_type")
+                                            ],
+                                            is_variadic: false,
+                                        },
+                                        input_parameter_names: [
+                                            "first",
+                                            "second"
+                                        ],
+                                        output_parameter_names: [
+                                            "result"
+                                        ],
+                                        linkage: IR.Linkage.External,
+                                        preconditions: [],
+                                        postconditions: [],
+                                    },
+                                    {
+                                        name: "",
+                                        statements: [
+                                            create_statement(
+                                                IR.create_binary_expression(
+                                                    IR.create_variable_expression("first", IR.Access_type.Read),
+                                                    IR.create_variable_expression("second", IR.Access_type.Read),
+                                                    IR.Binary_operation.Add
+                                                )
+                                            )
+                                        ]
+                                    }
+                                )
+                            )
+                        )
+                    ],
+                },
+            },
+            {
+                name: "run",
+                type: IR.Declaration_type.Function,
+                is_export: false,
+                value: {
+                    declaration: {
+                        name: "run",
+                        type: {
+                            input_parameter_types: [],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: [],
+                        output_parameter_names: [],
+                        linkage: IR.Linkage.Private,
+                        preconditions: [],
+                        postconditions: [],
+                    },
+                    definition: {
+                        name: "run",
+                        statements: [
+                            create_statement(
+                                IR.create_variable_declaration_expression(
+                                    "a",
+                                    false,
+                                    IR.create_call_expression(
+                                        IR.create_function_instance_expression(
+                                            IR.create_variable_expression("add", IR.Access_type.Read),
+                                            [
+                                                IR.create_type_expression(int32_type)
+                                            ]
+                                        ),
+                                        [
+                                            IR.create_constant_expression(int32_type, "1"),
+                                            IR.create_constant_expression(int32_type, "2"),
+                                        ]
+                                    )
+                                )
+                            ),
+                            create_statement(
+                                IR.create_variable_declaration_expression(
+                                    "b",
+                                    false,
+                                    IR.create_call_expression(
+                                        IR.create_function_instance_expression(
+                                            IR.create_variable_expression("add", IR.Access_type.Read),
+                                            [
+                                                IR.create_type_expression(float32_type)
+                                            ]
+                                        ),
+                                        [
+                                            IR.create_constant_expression(float32_type, "3.0"),
+                                            IR.create_constant_expression(float32_type, "4.0"),
+                                        ]
+                                    )
+                                )
+                            ),
+                        ]
+                    }
                 },
             },
         ]

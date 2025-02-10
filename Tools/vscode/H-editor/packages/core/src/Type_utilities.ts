@@ -66,7 +66,7 @@ export function is_pointer_type(name: string): boolean {
 
 function create_type_reference(
     type: Core_intermediate_representation.Type_reference_enum,
-    value: Core_intermediate_representation.Builtin_type_reference | Core_intermediate_representation.Constant_array_type | Core_intermediate_representation.Custom_type_reference | Core_intermediate_representation.Fundamental_type | Core_intermediate_representation.Function_type | Core_intermediate_representation.Integer_type | Core_intermediate_representation.Pointer_type
+    value: Core_intermediate_representation.Builtin_type_reference | Core_intermediate_representation.Constant_array_type | Core_intermediate_representation.Custom_type_reference | Core_intermediate_representation.Fundamental_type | Core_intermediate_representation.Function_type | Core_intermediate_representation.Integer_type | Core_intermediate_representation.Pointer_type | Core_intermediate_representation.Type_instance
 ): Core_intermediate_representation.Type_reference {
     return {
         data: {
@@ -80,6 +80,21 @@ export function create_builtin_type_reference(name: string): Core_intermediate_r
     return create_type_reference(
         Core_intermediate_representation.Type_reference_enum.Builtin_type_reference,
         { value: name }
+    );
+}
+
+export function create_type_instance(module_name: string, name: string, type_arguments: Core_intermediate_representation.Statement[]): Core_intermediate_representation.Type_reference {
+    return create_type_reference(
+        Core_intermediate_representation.Type_reference_enum.Type_instance,
+        {
+            type_constructor: {
+                module_reference: {
+                    name: module_name
+                },
+                name: name
+            },
+            arguments: type_arguments
+        }
     );
 }
 
