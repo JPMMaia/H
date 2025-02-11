@@ -540,6 +540,18 @@ function validate_declaration(
     if (descendant_declaration_name === undefined) {
         return diagnostics;
     }
+    if (descendant_declaration_name.node.children.length === 0 || descendant_declaration_name.node.children[0].word.value === "") {
+        const terminal_node = Parser_node.get_next_terminal_node(descendant_declaration.node, descendant_declaration.node, []);
+        diagnostics.push({
+            location: get_parser_node_position_source_location(uri, cache, { node: terminal_node.node, position: [...descendant_declaration.position, ...terminal_node.position] }),
+            source: Source.Parse_tree_validation,
+            severity: Diagnostic_severity.Error,
+            message: `Declaration name cannot be empty.`,
+            related_information: [],
+        });
+        return diagnostics;
+    }
+
     const declaration_name = descendant_declaration_name.node.children[0].word.value;
 
     if (is_builtin_type_name(declaration_name) || Language.is_keyword(language_description, declaration_name)) {
@@ -773,7 +785,7 @@ async function validate_struct(
     const diagnostics: Diagnostic[] = [];
 
     const descendant_struct_name = Parser_node.find_descendant_position_if(descendant_struct, descendant => descendant.word.value === "Struct_name");
-    if (descendant_struct_name === undefined) {
+    if (descendant_struct_name === undefined || descendant_struct_name.node.children.length === 0 || descendant_struct_name.node.children[0].word.value === "") {
         return diagnostics;
     }
     const struct_name = descendant_struct_name.node.children[0].word.value;
@@ -802,7 +814,7 @@ function validate_union(
     const diagnostics: Diagnostic[] = [];
 
     const descendant_union_name = Parser_node.find_descendant_position_if(descendant_union, descendant => descendant.word.value === "Union_name");
-    if (descendant_union_name === undefined) {
+    if (descendant_union_name === undefined || descendant_union_name.node.children.length === 0 || descendant_union_name.node.children[0].word.value === "") {
         return diagnostics;
     }
     const union_name = descendant_union_name.node.children[0].word.value;
@@ -2300,7 +2312,6 @@ async function validate_return_expression(
                 related_information: [],
             }
         );
-        return diagnostics;
     }
 
     return diagnostics;

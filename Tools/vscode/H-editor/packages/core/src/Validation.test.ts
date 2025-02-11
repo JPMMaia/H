@@ -1098,6 +1098,7 @@ describe("Validation of declarations", () => {
 
     // - Must have different names
     // - Names must not collide with existing types
+    // - Name must not be empty
 
     it("Validates that a declaration name is not a duplicate", async () => {
         const input = `module Test;
@@ -1165,6 +1166,52 @@ using true = Float32;
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
                 message: "Invalid declaration name 'true' which is a reserved keyword.",
+                related_information: [],
+            }
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+
+    it("Validates that declaration name is not empty", async () => {
+        const input = `module Test;
+
+struct
+{
+    a: Int32 = 0;
+}
+
+union
+{
+    a: Int32;
+}
+
+function () -> ()
+{
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(3, 1, 3, 7),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Declaration name cannot be empty.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(8, 1, 8, 6),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Declaration name cannot be empty.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(13, 1, 13, 9),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Declaration name cannot be empty.",
                 related_information: [],
             }
         ];
