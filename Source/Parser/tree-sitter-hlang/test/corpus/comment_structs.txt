@@ -1,0 +1,19 @@
+=========================
+Comment structs
+=========================
+
+module Comment_structs;
+
+// Struct comment
+// Another line
+struct My_struct
+{
+    // This is a int
+    a: Int32 = 0;
+    b: Int32 = 0;
+    // Another int
+    // Another line
+    c: Int32 = 0;
+}
+
+---

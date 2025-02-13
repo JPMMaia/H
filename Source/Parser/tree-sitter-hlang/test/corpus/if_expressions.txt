@@ -1,0 +1,59 @@
+=========================
+If expressions
+=========================
+
+module If_expressions;
+
+import C.stdio as stdio;
+
+function print_message(message: *C_char) -> ()
+{
+    stdio.printf("%s\\n"c, message);
+}
+
+export function run_ifs(value: Int32) -> ()
+{
+    if value == 0
+    {
+        print_message("zero"c);
+    }
+
+    if value == 0
+    {
+        print_message("zero"c);
+    }
+    else if value == 1
+    {
+        print_message("one"c);
+    }
+
+    if value < 0
+    {
+        print_message("negative"c);
+    }
+    else
+    {
+        print_message("non-negative"c);
+    }
+
+    if value < 0
+    {
+        print_message("negative"c);
+    }
+    else if value > 0
+    {
+        print_message("positive"c);
+    }
+    else
+    {
+        print_message("zero"c);
+    }
+
+    if value < 0
+    {
+        print_message("message_0"c);
+        print_message("message_1"c);
+    }
+}
+
+---

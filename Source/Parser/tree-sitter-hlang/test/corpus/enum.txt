@@ -1,0 +1,36 @@
+=========================
+Enums
+=========================
+
+module Enums;
+
+export enum My_enum
+{
+    Value_0 = 0,
+    Value_1,
+    Value_2,
+    
+    Value_10 = 10,
+    Value_11,
+}
+
+export function use_enums(enum_argument: My_enum) -> (result: Int32)
+{
+    var my_value = My_enum.Value_1;
+
+    switch enum_argument
+    {
+        case My_enum.Value_0:
+        case My_enum.Value_1:
+        case My_enum.Value_2:
+            return 0;
+
+        case My_enum.Value_10:
+        case My_enum.Value_11:
+            return 1;
+    }
+
+    return 2;
+}
+
+---

@@ -1,0 +1,14 @@
+=========================
+Hello world
+=========================
+
+module Hello_world;
+
+import C.stdio as stdio;
+
+export function hello() -> ()
+{
+    stdio.puts("Hello world!");
+}
+
+---

@@ -1,0 +1,19 @@
+=========================
+Comment functions
+=========================
+
+module Comment_functions;
+
+// Function comment
+// No arguments
+export function use_comments() -> ()
+{
+    // This is a comment
+    var i = 0;
+
+    // This is another comment
+    // And yet another
+    var x = 0;
+}
+
+---

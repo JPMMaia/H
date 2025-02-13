@@ -1,0 +1,461 @@
+[
+  {
+    "type": "Boolean",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "Builtin_type",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": false,
+      "types": [
+        {
+          "type": "Integer_type",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "Declaration",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "Comment",
+          "named": true
+        },
+        {
+          "type": "Struct",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "Expression_constant",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "Boolean",
+          "named": true
+        },
+        {
+          "type": "Number",
+          "named": true
+        },
+        {
+          "type": "String",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "Expression_instantiate",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "Generic_expression",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "Expression_constant",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "Generic_expression_or_instantiate",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "Expression_instantiate",
+          "named": true
+        },
+        {
+          "type": "Generic_expression",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "Identifier_with_dots",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "Identifier",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "Import",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "Import_alias",
+          "named": true
+        },
+        {
+          "type": "Import_name",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "Import_alias",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "Identifier",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "Import_name",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "Identifier_with_dots",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "Module",
+    "named": true,
+    "root": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "Declaration",
+          "named": true
+        },
+        {
+          "type": "Module_head",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "Module_declaration",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "Comment",
+          "named": true
+        },
+        {
+          "type": "Module_name",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "Module_head",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "Import",
+          "named": true
+        },
+        {
+          "type": "Module_declaration",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "Module_name",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "Identifier_with_dots",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "Struct",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "Struct_member",
+          "named": true
+        },
+        {
+          "type": "Struct_name",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "Struct_member",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "Comment",
+          "named": true
+        },
+        {
+          "type": "Generic_expression_or_instantiate",
+          "named": true
+        },
+        {
+          "type": "Struct_member_name",
+          "named": true
+        },
+        {
+          "type": "Struct_member_type",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "Struct_member_name",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "Identifier",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "Struct_member_type",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "Type",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "Struct_name",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "Identifier",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "Type",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "Builtin_type",
+          "named": true
+        },
+        {
+          "type": "Type_name",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "Type_name",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "Identifier",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": ".",
+    "named": false
+  },
+  {
+    "type": ":",
+    "named": false
+  },
+  {
+    "type": ";",
+    "named": false
+  },
+  {
+    "type": "=",
+    "named": false
+  },
+  {
+    "type": "Bool",
+    "named": false
+  },
+  {
+    "type": "Comment",
+    "named": true
+  },
+  {
+    "type": "Float16",
+    "named": false
+  },
+  {
+    "type": "Float32",
+    "named": false
+  },
+  {
+    "type": "Float64",
+    "named": false
+  },
+  {
+    "type": "Identifier",
+    "named": true
+  },
+  {
+    "type": "Integer_type",
+    "named": true
+  },
+  {
+    "type": "Number",
+    "named": true
+  },
+  {
+    "type": "String",
+    "named": false
+  },
+  {
+    "type": "String",
+    "named": true
+  },
+  {
+    "type": "as",
+    "named": false
+  },
+  {
+    "type": "export",
+    "named": false
+  },
+  {
+    "type": "false",
+    "named": false
+  },
+  {
+    "type": "import",
+    "named": false
+  },
+  {
+    "type": "module",
+    "named": false
+  },
+  {
+    "type": "struct",
+    "named": false
+  },
+  {
+    "type": "true",
+    "named": false
+  },
+  {
+    "type": "{",
+    "named": false
+  },
+  {
+    "type": "{}",
+    "named": false
+  },
+  {
+    "type": "}",
+    "named": false
+  }
+]

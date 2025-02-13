@@ -1,0 +1,40 @@
+=========================
+Numbers
+=========================
+
+module Numbers;
+
+export function main() -> (result: Int32)
+{
+    var my_int8 = 1i8;
+    var my_int16 = 1i16;
+    var my_int32 = 1i32;
+    var my_int64 = 1i64;
+
+    var my_uint8 = 1u8;
+    var my_uint16 = 1u16;
+    var my_uint32 = 1u32;
+    var my_uint64 = 1u64;
+
+    var my_float16 = 1.0f16;
+    var my_float32 = 1.0f32;
+    var my_float64 = 1.0f64;
+
+    var my_c_char = 1cc;
+    var my_c_short = 1cs;
+    var my_c_int = 1ci;
+    var my_c_long = 1cl;
+    var my_c_longlong = 1cll;
+
+    var my_c_uchar = 1cuc;
+    var my_c_ushort = 1cus;
+    var my_c_uint = 1cui;
+    var my_c_ulong = 1cul;
+    var my_c_ulonglong = 1cull;
+    
+    var my_c_bool = 1cb;
+
+    return 0;
+}
+
+---

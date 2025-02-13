@@ -1,0 +1,18 @@
+=========================
+Comment enums
+=========================
+
+module Comment_enums;
+
+// Enum comment
+// Another line
+enum My_enum
+{
+    // This is A
+    A = 1,
+    B = 2,
+    // This is C
+    C = 3,
+}
+
+---

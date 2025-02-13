@@ -1,0 +1,45 @@
+=========================
+While loop expressions
+=========================
+
+module While_loop_expressions;
+
+import C.stdio as stdio;
+
+function print_integer(value: Int32) -> ()
+{
+    stdio.printf("%d"c, value);
+}
+
+export function run_while_loops(size: Int32) -> ()
+{
+    {
+        mutable index = 0;
+        while index < size
+        {
+            print_integer(index);
+            index += 1;
+        }
+    }
+
+    {
+        mutable index = 0;
+        while index < size
+        {
+            if index % 2 == 0
+            {
+                continue;
+            }
+
+            if index > 5
+            {
+                break;
+            }
+            
+            print_integer(index);
+            index += 1;
+        }
+    }
+}
+
+---

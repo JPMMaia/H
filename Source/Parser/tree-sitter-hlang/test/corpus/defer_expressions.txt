@@ -1,0 +1,22 @@
+=========================
+Defer expressions
+=========================
+
+module Defer_expressions;
+
+export function create_object() -> (id: Int32)
+{
+    return 0;
+}
+
+export function destroy_object(id: Int32) -> ()
+{
+}
+
+export function run() -> ()
+{
+    var instance_0 = create_object();
+    defer destroy(instance_0);
+}
+
+---

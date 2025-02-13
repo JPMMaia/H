@@ -1,0 +1,11 @@
+=========================
+Variadic functions
+=========================
+
+module Variadic;
+
+export function my_function(first: Int32, ...) -> ()
+{
+}
+
+---

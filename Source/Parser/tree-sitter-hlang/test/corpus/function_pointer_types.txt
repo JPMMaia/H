@@ -1,0 +1,26 @@
+=========================
+Function pointer types
+=========================
+
+module Function_pointer_types;
+
+struct My_struct
+{
+    a: function<(lhs: Int32, rhs: Int32) -> (result: Int32)> = null;
+    b: function<(first: Int32, ...) -> ()> = null;
+}
+
+function add(lhs: Int32, rhs: Int32) -> (result: Int32)
+{
+    return lhs + rhs;
+}
+
+export function run() -> ()
+{
+    var a = add;
+    var b: My_struct = {
+        a: add
+    };
+}
+
+---

@@ -1,0 +1,13 @@
+=========================
+Alias
+=========================
+
+module Alias;
+
+using My_int = Int64;
+
+export function use_alias(size: My_int) -> ()
+{
+}
+
+---

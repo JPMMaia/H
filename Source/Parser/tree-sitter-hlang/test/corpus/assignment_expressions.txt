@@ -1,0 +1,28 @@
+=========================
+Assignment expressions
+=========================
+
+module Assignment_expressions;
+
+export function foo(
+    other_integer: Int32
+) -> ()
+{
+    mutable my_integer = 1;
+
+    my_integer = 2;
+    
+    my_integer += other_integer;
+    my_integer -= other_integer;
+    my_integer *= other_integer;
+    my_integer /= other_integer;
+    my_integer %= other_integer;
+    
+    my_integer &= other_integer;
+    my_integer |= other_integer;
+    my_integer ^= other_integer;
+    my_integer <<= other_integer;
+    my_integer >>= other_integer;
+}
+
+---

@@ -1,0 +1,13 @@
+=========================
+Booleans
+=========================
+
+module Booleans;
+
+export function foo() -> ()
+{
+    var my_true_boolean = true;
+    var my_false_boolean = false;
+}
+
+---

@@ -1,0 +1,64 @@
+=========================
+Variable declaration expressions
+=========================
+
+module Variables;
+
+export function main() -> (result: Int32)
+{
+    var my_constant_variable = 1;
+    mutable my_mutable_variable = 2;
+    my_mutable_variable = 3;
+    return 0;
+}
+
+---
+
+(Module
+  (Module_head
+    (Module_declaration
+      (Module_name
+        (Identifier_with_dots
+          (Identifier)))))
+  (Declaration
+    (Function
+      (Function_name
+        (Identifier))
+      (Function_parameters
+        (Parameter
+          (Parameter_name
+            (Identifier))
+          (Parameter_type
+            (Type
+              (Builtin_type
+                (Integer_type))))))
+      (Function_body
+        (Variable_declaration
+          (Variable_name
+            (Identifier))
+          (Variable_type
+            (Type
+              (Builtin_type
+                (Integer_type))))
+          (Variable_value
+            (Expression_constant
+              (Number))))
+        (Variable_declaration
+          (Variable_name
+            (Identifier))
+          (Variable_type
+            (Type
+              (Builtin_type
+                (Integer_type))))
+          (Variable_value
+            (Expression_constant
+              (Number))))
+        (Assignment
+          (Variable_name
+            (Identifier))
+          (Variable_value
+            (Expression_constant
+              (Number))))
+        (Return
+          (Expression_constant
+            (Number)))))))

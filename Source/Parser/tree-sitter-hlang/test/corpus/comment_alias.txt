@@ -1,0 +1,11 @@
+=========================
+Comment alias
+=========================
+
+module Comment_alias;
+
+// Alias comment
+// Another line
+using My_int = Int32;
+
+---
