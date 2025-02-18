@@ -1,6 +1,7 @@
 set(VSCODE_EXTENSION_SOURCE_PATH "${CMAKE_SOURCE_DIR}/Tools/vscode/H-editor")
 set(PARSER_SOURCE_PATH "${CMAKE_SOURCE_DIR}/Tools/vscode/H-editor/packages")
 
+set(PARSER_JAVASCRIPT_DIRECTORY_LOCATION "${VSCODE_EXTENSION_SOURCE_PATH}/dist")
 set(PARSER_JAVASCRIPT_LOCATION "${VSCODE_EXTENSION_SOURCE_PATH}/dist/parser.js")
 
 find_program(NPM_EXECUTABLE npm REQUIRED)
@@ -51,9 +52,14 @@ target_compile_features(H_parser PRIVATE cxx_std_23)
 
 target_link_libraries(H_parser PUBLIC H::Common)
 
+find_package(unofficial-tree-sitter CONFIG REQUIRED)
+target_link_libraries(H_parser PRIVATE unofficial::tree-sitter::tree-sitter)
+
 target_sources(H_parser PRIVATE
    "Parser.cppm"
    "Parser.cpp"
+   "Tree_sitter_parser.cppm"
+   "Tree_sitter_parser.cpp"
 )
 
 
@@ -76,3 +82,15 @@ target_sources(H_parser_executable PRIVATE
 install(TARGETS H_parser_executable)
 
 copy_parser_javascript_to_folder(H_parser_executable)
+
+
+add_custom_command(
+    OUTPUT "${PARSER_JAVASCRIPT_DIRECTORY_LOCATION}/tree-sitter-hlang.wasm"
+    COMMAND "tree-sitter" "build" "--wasm" "--output" "${PARSER_JAVASCRIPT_DIRECTORY_LOCATION}/tree-sitter-hlang.wasm" "${CMAKE_CURRENT_LIST_DIR}/tree-sitter-hlang"
+    DEPENDS
+        "${CMAKE_CURRENT_LIST_DIR}/tree-sitter-hlang/grammar.js"
+    VERBATIM
+    COMMENT "Build tree-sitter-hlang.wasm"
+)
+
+add_custom_target(Tree_sitter_hlang_wasm DEPENDS "${PARSER_JAVASCRIPT_DIRECTORY_LOCATION}/tree-sitter-hlang.wasm" ALL)
