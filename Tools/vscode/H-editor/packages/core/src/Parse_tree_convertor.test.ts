@@ -1350,8 +1350,7 @@ function create_module_changes(
         language_description.production_rules,
         parse_result.parse_tree,
         simplified_changes,
-        mappings,
-        language_description.key_to_production_rule_indices
+        mappings
     );
 
     return module_changes;
@@ -2211,7 +2210,6 @@ function assert_declarations(actual_declarations: Core_intermediate_representati
 function test_parse_tree_to_module(grammar_description: string[], expected_module: Core_intermediate_representation.Module): Core_intermediate_representation.Module {
     const production_rules = Grammar.create_production_rules(grammar_description);
 
-    const key_to_production_rule_indices = Parse_tree_convertor.create_key_to_production_rule_indices_map(production_rules);
     const mappings = Parse_tree_convertor_mappings.create_mapping();
     const parse_tree = Parse_tree_convertor.module_to_parse_tree(expected_module, production_rules, mappings);
 
@@ -2220,7 +2218,7 @@ function test_parse_tree_to_module(grammar_description: string[], expected_modul
         console.log(generated_text);
     }
 
-    const actual_module = Parse_tree_convertor.parse_tree_to_module(parse_tree, production_rules, mappings, key_to_production_rule_indices);
+    const actual_module = Parse_tree_convertor.parse_tree_to_module(parse_tree, mappings);
 
     return actual_module;
 }

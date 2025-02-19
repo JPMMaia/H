@@ -14,7 +14,6 @@ export type Map_terminal_to_word_handler = (
     module: Core_intermediate_representation.Module,
     stack: Module_to_parse_tree_stack_element[],
     production_rules: Grammar.Production_rule[],
-    key_to_production_rule_indices: Map<string, number[]>,
     terminal: string,
     mappings: Parse_tree_mappings
 ) => Grammar.Word;
@@ -25,15 +24,14 @@ export type Choose_production_rule_handler = (
     production_rule_indices: number[],
     label: string,
     stack: Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
+    mappings: Parse_tree_mappings
 ) => { next_state: State, next_production_rule_index: number };
 
 export type Create_module_changes_handler_data = {
     module: Core_intermediate_representation.Module,
     node: Parser_node.Node,
     node_position: number[],
-    modify_change: boolean, key_to_production_rule_indices: Map<string, number[]>
+    modify_change: boolean
 };
 
 export type Create_module_changes_handler = (
@@ -41,8 +39,7 @@ export type Create_module_changes_handler = (
 ) => Module_change.Position_change_pair[];
 
 export type Node_to_core_object_handler = (
-    node: Parser_node.Node,
-    key_to_production_rule_indices: Map<string, number[]>
+    node: Parser_node.Node
 ) => any;
 
 export type Extract_comments_from_node_handler = (
@@ -261,7 +258,7 @@ export function module_to_parse_tree(
 
         if (is_terminal) {
 
-            const word = map_terminal_to_word(module, stack, production_rules, key_to_production_rule_indices, label, mappings);
+            const word = map_terminal_to_word(module, stack, production_rules, label, mappings);
 
             const child_node: Node = {
                 word: word,
@@ -279,7 +276,7 @@ export function module_to_parse_tree(
         }
         else {
 
-            const { next_state, next_production_rule_index } = choose_production_rule_index(module, production_rules, next_production_rule_indices, label, stack, mappings, key_to_production_rule_indices);
+            const { next_state, next_production_rule_index } = choose_production_rule_index(module, production_rules, next_production_rule_indices, label, stack, mappings);
             const next_production_rule = production_rules[next_production_rule_index];
             if (next_production_rule === undefined) {
                 const message = `Parse_tree_convertor.module_to_parse_tree(): choose_production_rule_index for label '${label}' returned an undefined production rule!`;
@@ -288,7 +285,7 @@ export function module_to_parse_tree(
             }
 
             const is_next_production_rule_array = (next_production_rule.flags & (Grammar.Production_rule_flags.Is_array | Grammar.Production_rule_flags.Is_array_set)) !== 0;
-            const rhs_length = is_next_production_rule_array ? get_production_rule_array_rhs_length(module, production_rules, next_production_rule, stack, mappings, key_to_production_rule_indices) : next_production_rule.rhs.length;
+            const rhs_length = is_next_production_rule_array ? get_production_rule_array_rhs_length(module, production_rules, next_production_rule, stack, mappings) : next_production_rule.rhs.length;
 
             const child_stack_element: Module_to_parse_tree_stack_element =
             {
@@ -327,11 +324,10 @@ function get_production_rule_array_rhs_length(
     production_rule: Grammar.Production_rule,
     stack: Module_to_parse_tree_stack_element[],
     mappings: Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
 ): number {
 
     if (production_rule.lhs === "Identifier_with_dots") {
-        const word = map_terminal_to_word(module, stack, production_rules, key_to_production_rule_indices, "identifier", mappings);
+        const word = map_terminal_to_word(module, stack, production_rules, "identifier", mappings);
         const split = word.value.split(".");
         const has_separator = production_rule.rhs.length === 3;
         const array_rhs_length = has_separator ? split.length * 2 - 1 : split.length;
@@ -423,7 +419,6 @@ function choose_production_rule_index(
     label: string,
     stack: Module_to_parse_tree_stack_element[],
     mappings: Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
 ): { next_state: State, next_production_rule_index: number } {
 
     const top = stack[stack.length - 1];
@@ -444,8 +439,7 @@ function choose_production_rule_index(
                 next_production_rule_indices,
                 label,
                 stack,
-                mappings,
-                key_to_production_rule_indices
+                mappings
             );
             return result;
         }
@@ -546,7 +540,6 @@ export function map_terminal_to_word(
     module: Core_intermediate_representation.Module,
     stack: Module_to_parse_tree_stack_element[],
     production_rules: Grammar.Production_rule[],
-    key_to_production_rule_indices: Map<string, number[]>,
     terminal: string,
     mappings: Parse_tree_mappings
 ): Scanner.Scanned_word {
@@ -556,7 +549,7 @@ export function map_terminal_to_word(
     {
         const map = mappings.terminal_to_word_map.get(label);
         if (map !== undefined) {
-            const word = map(module, stack, production_rules, key_to_production_rule_indices, terminal, mappings);
+            const word = map(module, stack, production_rules, terminal, mappings);
             return {
                 value: word.value,
                 type: word.type,
@@ -644,16 +637,14 @@ function create_add_change(
     root: Parser_node.Node,
     add_change: Parser.Add_change,
     parent_node: Parser_node.Node,
-    production_rules: Grammar.Production_rule[],
-    mappings: Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
+    mappings: Parse_tree_mappings
 ): { position: any[], change: Module_change.Change }[] {
 
     const new_changes: { position: any[], change: Module_change.Change }[] = [];
 
     for (const new_node of add_change.new_nodes) {
         const new_node_position = [...add_change.parent_position, add_change.index];
-        const changes = parse_tree_to_core_object(module, root, new_node, new_node_position, production_rules, mappings, key_to_production_rule_indices, false);
+        const changes = parse_tree_to_core_object(module, root, new_node, new_node_position, mappings, false);
         new_changes.push(...changes);
     }
 
@@ -664,7 +655,6 @@ function create_remove_change(
     module: Core_intermediate_representation.Module,
     remove_change: Parser.Remove_change,
     parent_node: Parser_node.Node,
-    key_to_production_rule_indices: Map<string, number[]>
 ): { position: any[], change: Module_change.Change }[] {
 
     const new_changes: { position: any[], change: Module_change.Change }[] = [];
@@ -753,7 +743,6 @@ function create_modify_change(
     module: Core_intermediate_representation.Module,
     production_rules: Grammar.Production_rule[],
     mappings: Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
 ): { position: any[], change: Module_change.Change }[] {
 
     const production_rule = production_rules[node.production_rule_index as number];
@@ -763,7 +752,7 @@ function create_modify_change(
         const index = modify_change.position[modify_change.position.length - 1];
         const new_node = modify_change.new_node;
 
-        const new_value = node_to_core_object(new_node, key_to_production_rule_indices, mappings);
+        const new_value = node_to_core_object(new_node, mappings);
 
         const vector_name = new_node.word.value === "Import" ? "imports" : "declarations";
 
@@ -777,7 +766,7 @@ function create_modify_change(
     const key_node_clone = JSON.parse(JSON.stringify(key_ancestor.node)) as Parser_node.Node;
     const new_node = apply_parse_tree_change(key_node_clone, key_ancestor.position, any_change);
 
-    const changes = parse_tree_to_core_object(module, root, new_node, key_ancestor.position, production_rules, mappings, key_to_production_rule_indices, true);
+    const changes = parse_tree_to_core_object(module, root, new_node, key_ancestor.position, mappings, true);
 
     return changes;
 }
@@ -788,7 +777,6 @@ export function create_module_changes(
     parse_tree: Node,
     parse_tree_changes: Parser.Change[],
     mappings: Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
 ): { position: any[], change: Module_change.Change }[] {
 
     const changes: { position: any[], change: Module_change.Change }[] = [];
@@ -804,16 +792,16 @@ export function create_module_changes(
 
         if (is_key && parse_tree_change.type === Parser.Change_type.Add) {
             const add_change = parse_tree_change.value as Parser.Add_change;
-            const new_changes = create_add_change(module, parse_tree, add_change, parent_node, production_rules, mappings, key_to_production_rule_indices);
+            const new_changes = create_add_change(module, parse_tree, add_change, parent_node, mappings);
             changes.push(...new_changes);
         }
         else if (is_key && parse_tree_change.type === Parser.Change_type.Remove) {
             const remove_change = parse_tree_change.value as Parser.Remove_change;
-            const new_changes = create_remove_change(module, remove_change, parent_node, key_to_production_rule_indices);
+            const new_changes = create_remove_change(module, remove_change, parent_node);
             changes.push(...new_changes);
         }
         else {
-            const new_changes = create_modify_change(parse_tree_change, parse_tree, parent_node, parent_position, module, production_rules, mappings, key_to_production_rule_indices);
+            const new_changes = create_modify_change(parse_tree_change, parse_tree, parent_node, parent_position, module, production_rules, mappings);
             changes.push(...new_changes);
         }
     }
@@ -852,9 +840,7 @@ export function create_key_to_production_rule_indices_map(production_rules: Gram
 
 export function parse_tree_to_module(
     root: Node,
-    production_rules: Grammar.Production_rule[],
     mappings: Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
 ): Core_intermediate_representation.Module {
 
     const module: Core_intermediate_representation.Module = {
@@ -863,7 +849,7 @@ export function parse_tree_to_module(
         declarations: []
     };
 
-    const new_changes = parse_tree_to_core_object(module, root, root, [], production_rules, mappings, key_to_production_rule_indices, false);
+    const new_changes = parse_tree_to_core_object(module, root, root, [], mappings, false);
     apply_module_changes(module, new_changes);
 
     {
@@ -899,9 +885,7 @@ function parse_tree_to_core_object(
     root: Parser_node.Node,
     initial_node: Parser_node.Node,
     initial_node_position: number[],
-    production_rules: Grammar.Production_rule[],
     mappings: Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>,
     modify_change: boolean
 ): { position: any[], change: Module_change.Change }[] {
 
@@ -928,8 +912,7 @@ function parse_tree_to_core_object(
                     module: module,
                     node: node,
                     node_position: node_position,
-                    modify_change: modify_change,
-                    key_to_production_rule_indices: key_to_production_rule_indices
+                    modify_change: modify_change
                 });
 
                 new_changes.push(...changes);
@@ -949,11 +932,10 @@ function parse_tree_to_core_object(
 
 function node_to_core_object(
     node: Parser_node.Node,
-    key_to_production_rule_indices: Map<string, number[]>,
     mappings: Parse_tree_mappings
 ): any {
     const map = mappings.node_to_core_object_map.get(node.word.value) as Node_to_core_object_handler;
-    return map(node, key_to_production_rule_indices);
+    return map(node);
 }
 
 function visit_expressions(expression: Core_intermediate_representation.Expression, predicate: (expression: Core_intermediate_representation.Expression) => void) {

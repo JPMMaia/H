@@ -122,7 +122,7 @@ export function update(
                 const modify_change = parse_result.changes[0].value as Parser.Modify_change;
                 const new_parse_tree = modify_change.new_node;
 
-                const new_module = Parse_tree_convertor.parse_tree_to_module(new_parse_tree, language_description.production_rules, language_description.mappings, language_description.key_to_production_rule_indices);
+                const new_module = Parse_tree_convertor.parse_tree_to_module(new_parse_tree, language_description.mappings);
                 if (state.document_file_path.length > 0) {
                     new_module.source_file_path = state.document_file_path;
                 }
@@ -155,8 +155,7 @@ export function update(
                     language_description.production_rules,
                     state.valid.parse_tree,
                     simplified_changes,
-                    language_description.mappings,
-                    language_description.key_to_production_rule_indices
+                    language_description.mappings
                 );
 
                 if (state.diagnostics.length === 0) {
@@ -202,7 +201,7 @@ export function update(
                 }
 
                 if (expected_parse_tree !== undefined) {
-                    const expected_module = Parse_tree_convertor.parse_tree_to_module(expected_parse_tree, language_description.production_rules, language_description.mappings, language_description.key_to_production_rule_indices);
+                    const expected_module = Parse_tree_convertor.parse_tree_to_module(expected_parse_tree, language_description.mappings);
 
                     const expected_module_string = expected_module.toString();
                     const actual_module_string = state.valid.module.toString();
@@ -263,7 +262,7 @@ export function full_parse_with_source_locations(
         }
     }
 
-    const module = Parse_tree_convertor.parse_tree_to_module(parse_tree, language_description.production_rules, language_description.mappings, language_description.key_to_production_rule_indices);
+    const module = Parse_tree_convertor.parse_tree_to_module(parse_tree, language_description.mappings);
     module.source_file_path = document_file_path.replace(/\\/g, "/");
 
     return { module: module, parse_tree: parse_tree, diagnostics: parse_tree_result.diagnostics, position_cache: position_cache };

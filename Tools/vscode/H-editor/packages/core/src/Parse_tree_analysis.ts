@@ -973,7 +973,7 @@ export function get_type_reference_from_node(
     core_module: Core.Module,
     node: Parser_node.Node
 ): Core.Type_reference[] {
-    const type_reference = Parse_tree_convertor_mappings.node_to_type_reference(node, language_description.key_to_production_rule_indices);
+    const type_reference = Parse_tree_convertor_mappings.node_to_type_reference(node);
 
     for (const type of type_reference) {
         fix_custom_type_reference(core_module, type);
@@ -987,7 +987,7 @@ export function get_expression_from_node(
     core_module: Core.Module,
     node: Parser_node.Node
 ): Core.Expression {
-    const expression = Parse_tree_convertor_mappings.node_to_expression(node, language_description.key_to_production_rule_indices);
+    const expression = Parse_tree_convertor_mappings.node_to_expression(node);
 
     const visitor = (type: Core.Type_reference) => {
         fix_custom_type_reference(core_module, type);

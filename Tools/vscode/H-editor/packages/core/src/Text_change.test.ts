@@ -37,7 +37,7 @@ function validate_document_state(
     const expected_parse_tree = (parse_tree_result.changes[0].value as Parser.Modify_change).new_node;
     assert.deepEqual(document_state.valid.parse_tree, expected_parse_tree);
 
-    const expected_module = Parse_tree_convertor.parse_tree_to_module(expected_parse_tree, language_description.production_rules, language_description.mappings, language_description.key_to_production_rule_indices);
+    const expected_module = Parse_tree_convertor.parse_tree_to_module(expected_parse_tree, language_description.mappings);
     assert.deepEqual(document_state.valid.module, expected_module);
 }
 

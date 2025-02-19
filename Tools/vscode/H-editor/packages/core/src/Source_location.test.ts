@@ -33,7 +33,7 @@ function run_test(language_description: Language.Description, input_text: string
     const parse_tree = (parse_tree_result.changes[0].value as Parser.Modify_change).new_node;
     Parse_tree_text_iterator.add_source_locations_to_parse_tree_nodes(parse_tree, input_text);
 
-    const module = Parse_tree_convertor.parse_tree_to_module(parse_tree, language_description.production_rules, language_description.mappings, language_description.key_to_production_rule_indices);
+    const module = Parse_tree_convertor.parse_tree_to_module(parse_tree, language_description.mappings);
     return module;
 }
 
