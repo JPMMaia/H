@@ -3,6 +3,7 @@ import * as Grammar from "./Grammar";
 import * as Parse_tree_convertor from "./Parse_tree_convertor";
 import * as Parse_tree_convertor_mappings from "./Parse_tree_convertor_mappings";
 import * as Storage_cache from "./Storage_cache";
+import * as Tree_sitter_parser from "./Tree_sitter_parser";
 
 export interface Description {
     production_rules: Grammar.Production_rule[];
@@ -13,6 +14,7 @@ export interface Description {
     key_to_production_rule_indices: Map<string, number[]>;
     mappings: Parse_tree_convertor.Parse_tree_mappings;
     terminals: Set<string>;
+    parser: Tree_sitter_parser.Parser;
 }
 
 function create_parsing_tables(
@@ -82,12 +84,12 @@ export function is_keyword(language_description: Description, label: string): bo
     }
 }
 
-export function create_description(
+export async function create_description(
     grammar_description: string[],
     map_word_to_terminal: (word: Grammar.Word) => string[],
     cache?: Storage_cache.Storage_cache,
     graphviz_output_path?: string
-): Description {
+): Promise<Description> {
     const production_rules = Grammar.create_production_rules(grammar_description);
     const non_terminals = Grammar.get_non_terminals(production_rules);
     const terminals = Grammar.get_terminals(production_rules, non_terminals);
@@ -98,6 +100,8 @@ export function create_description(
 
     const terminals_set = new Set<string>(terminals);
 
+    const parser = await Tree_sitter_parser.create_parser();
+
     return {
         production_rules: production_rules,
         actions_table: parsing_tables.action_table,
@@ -106,14 +110,15 @@ export function create_description(
         map_word_to_terminal,
         key_to_production_rule_indices,
         mappings,
-        terminals: terminals_set
+        terminals: terminals_set,
+        parser: parser,
     };
 }
 
-export function create_default_description(
+export async function create_default_description(
     cache?: Storage_cache.Storage_cache,
     graphviz_output_path?: string
-): Description {
+): Promise<Description> {
 
     const grammar_description = Default_grammar.create_description();
     const production_rules = Grammar.create_production_rules(grammar_description);
@@ -157,6 +162,8 @@ export function create_default_description(
         return possible_terminals;
     };
 
+    const parser = await Tree_sitter_parser.create_parser();
+
     return {
         production_rules: production_rules,
         actions_table: parsing_tables.action_table,
@@ -165,7 +172,8 @@ export function create_default_description(
         map_word_to_terminal,
         key_to_production_rule_indices,
         mappings,
-        terminals: new Set<string>(terminals)
+        terminals: new Set<string>(terminals),
+        parser: parser,
     };
 }
 

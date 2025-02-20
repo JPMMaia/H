@@ -736,10 +736,10 @@ describe("Parser.parse_incrementally", () => {
         }
     });
 
-    it("Parses 'module module_name;' and subsequent change", () => {
+    it("Parses 'module module_name;' and subsequent change", async () => {
 
         const cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
-        const language_description = Language.create_default_description(cache);
+        const language_description = await Language.create_default_description(cache);
 
         const first_input = "module module_name;";
         const first_scanned_words = Scanner.scan(first_input, 0, first_input.length, { line: 1, column: 1 });
@@ -830,10 +830,10 @@ describe("Parser.parse_incrementally", () => {
         }
     });
 
-    it("Parses text with errors and subsequent change", () => {
+    it("Parses text with errors and subsequent change", async () => {
 
         const cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
-        const language_description = Language.create_default_description(cache);
+        const language_description = await Language.create_default_description(cache);
 
         const program_with_errors = `
 module Empty_return_expression;
@@ -1524,10 +1524,10 @@ describe("Parser.parse_incrementally array without separator", () => {
         }
     });
 
-    it("Parses and recovers from error", () => {
+    it("Parses and recovers from error", async () => {
 
         const cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
-        const language_description = Language.create_default_description(cache, "out/tests/graphviz.gv");
+        const language_description = await Language.create_default_description(cache, "out/tests/graphviz.gv");
 
         const program = `
 module Recover_from_error;

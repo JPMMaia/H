@@ -2060,7 +2060,7 @@ function create_module_changes_declaration(
 ): Module_change.Position_change_pair[] {
     const new_declaration = node_to_declaration(data.node);
 
-    const node = data.node.children[2];
+    const node = data.node.children[data.node.children.length - 1];
     const modify_index = data.node_position[data.node_position.length - 1];
 
     const new_change = create_new_module_change(
@@ -2080,9 +2080,9 @@ function node_to_declaration(
     node: Parser_node.Node
 ): Core_intermediate_representation.Declaration {
 
-    const underlying_declaration_node = node.children[2];
+    const underlying_declaration_node = node.children[node.children.length - 1];
 
-    const is_export = is_export_node(node);
+    const is_export = is_export_declaration(node);
 
     switch (underlying_declaration_node.word.value) {
         case "Alias": {
@@ -2284,8 +2284,8 @@ export function node_to_type_reference(node: Parser_node.Node): Core_intermediat
 
 function node_to_alias_type_declaration(node: Parser_node.Node): Core_intermediate_representation.Alias_type_declaration {
 
-    const comments_node = node.children[0];
-    const alias_node = node.children[2];
+    const comments_node = get_comments_node(node);
+    const alias_node = node.children[node.children.length - 1];
 
     const name = find_node_value(alias_node, "Alias_name");
 
@@ -2312,8 +2312,8 @@ function node_to_alias_type_declaration(node: Parser_node.Node): Core_intermedia
 
 function node_to_enum_declaration(node: Parser_node.Node): Core_intermediate_representation.Enum_declaration {
 
-    const comments_node = node.children[0];
-    const enum_node = node.children[2];
+    const comments_node = get_comments_node(node);
+    const enum_node = node.children[node.children.length - 1];
 
     const name = find_node_value(enum_node, "Enum_name");
 
@@ -2334,7 +2334,7 @@ function node_to_enum_declaration(node: Parser_node.Node): Core_intermediate_rep
             value: expression !== undefined ? { expression: expression } : undefined
         };
 
-        const enum_value_comments = extract_comments_from_node(value_node.children[0]);
+        const enum_value_comments = extract_comments_from_node(get_comments_node(value_node));
         if (enum_value_comments !== undefined) {
             enum_value.comment = enum_value_comments;
         }
@@ -2366,8 +2366,8 @@ function node_to_enum_declaration(node: Parser_node.Node): Core_intermediate_rep
 
 function node_to_global_variable_declaration(node: Parser_node.Node): Core_intermediate_representation.Global_variable_declaration {
 
-    const comments_node = node.children[0];
-    const global_variable_node = node.children[2];
+    const comments_node = get_comments_node(node);
+    const global_variable_node = node.children[node.children.length - 1];
 
     const name = find_node_value(global_variable_node, "Global_variable_name");
 
@@ -2375,7 +2375,7 @@ function node_to_global_variable_declaration(node: Parser_node.Node): Core_inter
     const is_mutable = mutable_node_value !== "var";
 
     const variable_type_node = find_node(global_variable_node, "Global_variable_type") as Parser_node.Node;
-    const variable_type = variable_type_node.children.length > 0 ? node_to_type_reference(variable_type_node.children[1]) : undefined;
+    const variable_type = variable_type_node !== undefined && variable_type_node.children.length > 0 ? node_to_type_reference(variable_type_node.children[1]) : undefined;
 
     const variable_value_node = find_node(global_variable_node, "Generic_expression_or_instantiate") as Parser_node.Node;
     const variable_value_expression = node_to_expression(variable_value_node);
@@ -2405,8 +2405,8 @@ function node_to_global_variable_declaration(node: Parser_node.Node): Core_inter
 
 function node_to_struct_declaration(node: Parser_node.Node): Core_intermediate_representation.Struct_declaration {
 
-    const comments_node = node.children[0];
-    const struct_node = node.children[2];
+    const comments_node = get_comments_node(node);
+    const struct_node = node.children[node.children.length - 1];
 
     const name = find_node_value(struct_node, "Struct_name");
     const source_location = struct_node.source_location !== undefined ? struct_node.source_location : { line: 0, column: 0 };
@@ -2431,7 +2431,7 @@ function node_to_struct_declaration(node: Parser_node.Node): Core_intermediate_r
         const member_default_value_node = find_node(member_node, "Generic_expression_or_instantiate") as Parser_node.Node;
         const member_default_value_expression = node_to_expression(member_default_value_node);
 
-        const member_comment = extract_comments_from_node(member_node.children[0]);;
+        const member_comment = extract_comments_from_node(get_comments_node(member_node));
 
         member_names.push(member_name);
         member_types.push(member_type[0]);
@@ -2469,8 +2469,8 @@ function node_to_struct_declaration(node: Parser_node.Node): Core_intermediate_r
 
 function node_to_union_declaration(node: Parser_node.Node): Core_intermediate_representation.Union_declaration {
 
-    const comments_node = node.children[0];
-    const union_node = node.children[2];
+    const comments_node = get_comments_node(node);
+    const union_node = node.children[node.children.length - 1];
 
     const name = find_node_value(union_node, "Union_name");
     const source_location = union_node.source_location !== undefined ? union_node.source_location : { line: 0, column: 0 };
@@ -2491,7 +2491,7 @@ function node_to_union_declaration(node: Parser_node.Node): Core_intermediate_re
         const member_type_node = find_node(member_node, "Union_member_type") as Parser_node.Node;
         const member_type = node_to_type_reference(member_type_node.children[0]);
 
-        const member_comment = extract_comments_from_node(member_node.children[0]);;
+        const member_comment = extract_comments_from_node(get_comments_node(member_node));;
 
         member_names.push(member_name);
         member_types.push(member_type[0]);
@@ -2523,9 +2523,12 @@ function node_to_union_declaration(node: Parser_node.Node): Core_intermediate_re
     return output;
 }
 
-function is_export_node(node: Parser_node.Node): boolean {
-    const export_value = find_node_value(node, "Export");
-    return export_value.length > 0;
+function is_export_declaration(node: Parser_node.Node): boolean {
+    return node.children.find(child => child.word.value === "export") != undefined;
+}
+
+function get_comments_node(node: Parser_node.Node): Parser_node.Node | undefined {
+    return node.children.find(child => child.word.value.startsWith("//"));
 }
 
 function node_to_import_module_with_alias(
@@ -2558,9 +2561,8 @@ function node_to_function_condition(node: Parser_node.Node, is_precondition: boo
 
 function node_to_function_declaration(node: Parser_node.Node): Core_intermediate_representation.Function_declaration {
 
-    const comments_node = node.children[0];
-    const export_node = node.children[1];
-    const function_node = node.children[2];
+    const comments_node = get_comments_node(node);
+    const function_node = node.children[node.children.length - 1];
     const function_declaration_node = function_node.children[0];
 
     const name = find_node_value(function_declaration_node, "Function_name");
@@ -2581,14 +2583,12 @@ function node_to_function_declaration(node: Parser_node.Node): Core_intermediate
     const output_parameter_types = output_parameter_nodes.map(node => find_node(node, "Function_parameter_type") as Parser_node.Node).map(node => node_to_type_reference(node.children[0])[0]);
     const output_parameter_source_positions = output_parameter_nodes.map(node => node.source_location !== undefined ? node.source_location : source_location);
 
-    const linkage = export_node.children.length > 0 ? Core_intermediate_representation.Linkage.External : Core_intermediate_representation.Linkage.Private;
+    const linkage = is_export_declaration(node) ? Core_intermediate_representation.Linkage.External : Core_intermediate_representation.Linkage.Private;
 
-    const function_option_node = find_node(function_declaration_node, "Function_options");
-
-    const precondition_nodes = find_nodes_inside_parent(function_option_node, "Function_preconditions", "Function_precondition");
+    const precondition_nodes = function_declaration_node.children.filter(child => child.word.value === "Function_precondition");
     const preconditions = precondition_nodes.map(node => node_to_function_condition(node, true));
 
-    const postcondition_nodes = find_nodes_inside_parent(function_option_node, "Function_postconditions", "Function_postcondition");
+    const postcondition_nodes = function_declaration_node.children.filter(child => child.word.value === "Function_postcondition");
     const postconditions = postcondition_nodes.map(node => node_to_function_condition(node, false));
 
     const output: Core_intermediate_representation.Function_declaration = {
@@ -2622,7 +2622,7 @@ function node_to_function_declaration(node: Parser_node.Node): Core_intermediate
 
 function node_to_function_definition(node: Parser_node.Node, function_name: string): Core_intermediate_representation.Function_definition {
 
-    const function_node = node.children[2];
+    const function_node = node.children[node.children.length - 1];
     const function_definition_node = function_node.children[1];
 
     const output: Core_intermediate_representation.Function_definition = {
@@ -2632,11 +2632,9 @@ function node_to_function_definition(node: Parser_node.Node, function_name: stri
 
     const block_node = find_node(function_definition_node, "Block");
     if (block_node !== undefined) {
-        const statements_node = find_node(block_node, "Statements");
-        if (statements_node !== undefined) {
-            const statements = statements_node.children.map(node => node_to_statement(node));
-            output.statements = statements;
-        }
+        const statement_nodes = block_node.children.slice(1, block_node.children.length - 1);
+        const statements = statement_nodes.map(node => node_to_statement(node));
+        output.statements = statements;
     }
 
     if (function_definition_node.source_location !== undefined) {
@@ -2702,16 +2700,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node): Cor
                 }
             };
         }
-        case "Expression_binary_addition":
-        case "Expression_binary_bitwise_and":
-        case "Expression_binary_bitwise_xor":
-        case "Expression_binary_bitwise_or":
-        case "Expression_binary_bitwise_shift":
-        case "Expression_binary_logical_and":
-        case "Expression_binary_logical_or":
-        case "Expression_binary_multiplication":
-        case "Expression_binary_relational":
-        case "Expression_binary_relational_equal": {
+        case "Expression_binary": {
             const expression = node_to_expression_binary(node);
             return {
                 data: {
@@ -2874,17 +2863,8 @@ function node_to_expression_without_source_location(node: Parser_node.Node): Cor
                 }
             };
         }
-        case "Expression_unary_0": {
-            const expression = node_to_expression_unary_0(node);
-            return {
-                data: {
-                    type: Core_intermediate_representation.Expression_enum.Unary_expression,
-                    value: expression
-                }
-            };
-        }
-        case "Expression_unary_1": {
-            const expression = node_to_expression_unary_1(node);
+        case "Expression_unary": {
+            const expression = node_to_expression_unary(node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Unary_expression,
@@ -3041,8 +3021,7 @@ function node_to_expression_binary(node: Parser_node.Node): Core_intermediate_re
 
     const left_hand_side_expression = node_to_expression(left_hand_side_node);
 
-    const operation_node_child = operation_node.children[0];
-    const operation = map_production_rule_label_to_binary_operation(operation_node_child.word.value);
+    const operation = map_production_rule_label_to_binary_operation(operation_node.word.value);
 
     const right_hand_side_expression = node_to_expression(right_hand_side_node);
 
@@ -3140,7 +3119,7 @@ function node_to_expression_cast(node: Parser_node.Node): Core_intermediate_repr
     const source_node = node.children[0];
     const source_expression = node_to_expression(source_node);
 
-    const destination_type_node = find_node(node, "Expression_cast_destination_type");
+    const destination_type_node = find_node(node, "Expression_type");
     const destination_type = node_to_type_reference(destination_type_node.children[0]);
     if (destination_type.length === 0) {
         const message = `Cannot cast to 'void' type.`;
@@ -3169,7 +3148,7 @@ function node_to_expression_comment(node: Parser_node.Node): Core_intermediate_r
 }
 
 function node_to_expression_constant(node: Parser_node.Node): Core_intermediate_representation.Constant_expression {
-    const terminal_node = node.children[0];
+    const terminal_node = Parser_node.get_next_terminal_node(node, node, []).node;
 
     switch (terminal_node.word.type) {
         case Grammar.Word_type.Alphanumeric: {
@@ -3545,53 +3524,18 @@ function node_to_expression_ternary_condition(node: Parser_node.Node): Core_inte
     return ternary_condition_expression;
 }
 
-function node_to_expression_unary_0(node: Parser_node.Node): Core_intermediate_representation.Unary_expression {
-
-    const generic_expression_node = node.children[0];
-    const generic_expression = node_to_expression(generic_expression_node);
-
-    const symbol = find_node_value(node, "Expression_unary_0_symbol");
-
-    const get_operation = (): Core_intermediate_representation.Unary_operation => {
-        switch (symbol) {
-            case "++": return Core_intermediate_representation.Unary_operation.Post_increment;
-            case "--": return Core_intermediate_representation.Unary_operation.Post_decrement;
-            default: {
-                const message = `Parse_tree_convertor_mappings.node_to_expression_unary_0(): Did not expect '${symbol}' as Expression_unary_after_symbol`;
-                onThrowError(message);
-                throw Error(message);
-            }
-        }
-    };
-
-    const operation = get_operation();
-
-    if (operation === Core_intermediate_representation.Unary_operation.Post_increment || operation === Core_intermediate_representation.Unary_operation.Post_decrement) {
-        set_expression_access_type(generic_expression, Core_intermediate_representation.Access_type.Read_write);
-    }
-
-    const unary_expression: Core_intermediate_representation.Unary_expression = {
-        expression: generic_expression,
-        operation: operation
-    };
-
-    return unary_expression;
-}
-
-function node_to_expression_unary_1(node: Parser_node.Node): Core_intermediate_representation.Unary_expression {
+function node_to_expression_unary(node: Parser_node.Node): Core_intermediate_representation.Unary_expression {
 
     const generic_expression_node = node.children[1];
     const generic_expression = node_to_expression(generic_expression_node);
 
-    const symbol = find_node_value(node, "Expression_unary_1_symbol");
+    const symbol = node.children[0].children[0].word.value;
 
     const get_operation = (): Core_intermediate_representation.Unary_operation => {
         switch (symbol) {
             case "!": return Core_intermediate_representation.Unary_operation.Not;
             case "~": return Core_intermediate_representation.Unary_operation.Bitwise_not;
             case "-": return Core_intermediate_representation.Unary_operation.Minus;
-            case "++": return Core_intermediate_representation.Unary_operation.Pre_increment;
-            case "--": return Core_intermediate_representation.Unary_operation.Pre_decrement;
             case "&": return Core_intermediate_representation.Unary_operation.Address_of;
             case "*": return Core_intermediate_representation.Unary_operation.Indirection;
             default: {
@@ -3909,14 +3853,19 @@ function remove_comments_formatting(comments: string): string {
     const unformatted_comments: string[] = [];
 
     for (const comment of array) {
-        const start_index = comment.charAt(2) === " " ? 3 : 2;
+        const start_comment_index = comment.search("//");
+        const start_index = comment.charAt(start_comment_index + 2) === " " ? start_comment_index + 3 : start_comment_index + 2;
         unformatted_comments.push(comment.substring(start_index, comment.length));
     }
 
     return unformatted_comments.join("\n");
 }
 
-function extract_comments_from_node(node: Parser_node.Node): string | undefined {
+function extract_comments_from_node(node: Parser_node.Node | undefined): string | undefined {
+
+    if (node === undefined) {
+        return undefined;
+    }
 
     if (node.word.value === "Comment_or_empty" || node.word.value === "Expression_comment") {
         if (node.children.length > 0) {
@@ -3926,10 +3875,10 @@ function extract_comments_from_node(node: Parser_node.Node): string | undefined 
         }
     }
     else if (node.word.value === "Module") {
-        return extract_comments_from_node(node.children[0].children[0].children[0]);
+        return extract_comments_from_node(get_comments_node(node.children[0].children[0]));
     }
 
-    return undefined;
+    return remove_comments_formatting(node.word.value);
 }
 
 function get_node_source_location(

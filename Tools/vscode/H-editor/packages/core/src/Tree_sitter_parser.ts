@@ -9,6 +9,10 @@ import * as fs from "fs";
 import * as web_tree_sitter from "web-tree-sitter";
 import { onThrowError } from "./errors";
 
+export type Parser = web_tree_sitter.Parser;
+export type Tree = web_tree_sitter.Tree;
+export type Node = web_tree_sitter.Node;
+
 function find_wasm_file_path(): string {
 
     const working_directory = process.cwd();
@@ -29,7 +33,7 @@ function find_wasm_file_path(): string {
     throw new Error(message);
 }
 
-export async function create_parser(): Promise<web_tree_sitter.Parser> {
+export async function create_parser(): Promise<Parser> {
     await web_tree_sitter.Parser.init();
     const parser = new web_tree_sitter.Parser();
 
@@ -42,12 +46,12 @@ export async function create_parser(): Promise<web_tree_sitter.Parser> {
     return parser;
 }
 
-export function parse(parser: web_tree_sitter.Parser, text: string): web_tree_sitter.Tree {
+export function parse(parser: Parser, text: string): Tree {
     const tree = parser.parse(text);
     return tree;
 }
 
-function get_scanned_word(node: web_tree_sitter.Node): Scanner.Scanned_word {
+function get_scanned_word(node: Node): Scanner.Scanned_word {
 
     const source_location = {
         line: node.startPosition.row + 1,
@@ -71,21 +75,21 @@ function get_scanned_word(node: web_tree_sitter.Node): Scanner.Scanned_word {
     };
 }
 
-export function to_parser_node(node: web_tree_sitter.Node): Parser_node.Node {
+export function to_parser_node(node: Node, add_source_location = true): Parser_node.Node {
 
-    const children = node.children.map(child => to_parser_node(child));
+    const children = node.children.map(child => to_parser_node(child, add_source_location));
 
     const scanned_word = get_scanned_word(node);
 
     return {
         word: scanned_word,
         state: node.parseState,
-        production_rule_index: -1,
+        production_rule_index: scanned_word.type === Grammar.Word_type.Symbol ? node.grammarId : undefined,
         children: children,
-        source_location: {
+        source_location: add_source_location ? {
             line: scanned_word.source_location.line,
             column: scanned_word.source_location.column,
-        }
+        } : undefined
     };
 }
 

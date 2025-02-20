@@ -1360,9 +1360,9 @@ describe("Parse_tree_convertor.create_module_changes", () => {
 
     let language_description: any;
 
-    before(() => {
+    before(async () => {
         const cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
-        language_description = Language.create_default_description(cache, "out/tests/graphviz.gv");
+        language_description = await Language.create_default_description(cache, "out/tests/graphviz.gv");
     });
 
     it("Sets name of module", () => {

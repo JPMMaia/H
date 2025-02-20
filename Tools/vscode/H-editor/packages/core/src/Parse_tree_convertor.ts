@@ -8,7 +8,7 @@ import * as Parser_node from "./Parser_node";
 import * as Scanner from "./Scanner";
 import { get_node_at_position, Node } from "./Parser_node";
 
-const g_debug = false;
+const g_debug = true;
 
 export type Map_terminal_to_word_handler = (
     module: Core_intermediate_representation.Module,

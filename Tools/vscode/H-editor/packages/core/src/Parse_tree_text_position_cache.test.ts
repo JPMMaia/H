@@ -143,9 +143,9 @@ function test_get_node_text_position(
     assert.deepEqual(actual_text_position, expected_text_position);
 }
 
-describe("Parse_tree_text_position_cache.get_node_text_position", () => {
+describe("Parse_tree_text_position_cache.get_node_text_position", async () => {
     const storage_cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
-    const language = Language.create_default_description(storage_cache);
+    const language = await Language.create_default_description(storage_cache);
 
     const text = `// A comment
 // describing the module.

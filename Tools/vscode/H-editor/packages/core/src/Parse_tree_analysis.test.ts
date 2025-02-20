@@ -16,9 +16,9 @@ describe("Parse_tree_analysis.find_variable_info", () => {
 
     let language_description: any;
 
-    before(() => {
+    before(async () => {
         const cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
-        language_description = Language.create_default_description(cache, "out/tests/graphviz.gv");
+        language_description = await Language.create_default_description(cache, "out/tests/graphviz.gv");
     });
 
     it("Finds variable info of output parameter from post condition", async () => {
@@ -95,9 +95,9 @@ describe("Parse_tree_analysis.find_variable_type", () => {
 
     let language_description: any;
 
-    before(() => {
+    before(async () => {
         const cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
-        language_description = Language.create_default_description(cache, "out/tests/graphviz.gv");
+        language_description = await Language.create_default_description(cache, "out/tests/graphviz.gv");
     });
 
     it("Finds variable type of input parameter", async () => {
@@ -179,9 +179,9 @@ describe("Parse_tree_analysis.get_expression_type", () => {
 
     let language_description: any;
 
-    before(() => {
+    before(async () => {
         const cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
-        language_description = Language.create_default_description(cache, "out/tests/graphviz.gv");
+        language_description = await Language.create_default_description(cache, "out/tests/graphviz.gv");
     });
 
     it("Finds expression type of access expression of enum of imported module", async () => {

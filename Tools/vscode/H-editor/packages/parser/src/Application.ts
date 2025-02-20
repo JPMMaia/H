@@ -22,12 +22,16 @@ if (command === "read") {
     const core_module = JSON.parse(input_json) as Core.Module;
     const module = Core_intermediate_representation.create_intermediate_representation(core_module);
 
-    const language_description = Language.create_default_description(cache);
-    const parse_tree = Parse_tree_convertor.module_to_parse_tree(module, language_description.production_rules, language_description.mappings);
+    Language.create_default_description(cache).then(
+        (language_description: Language.Description) => {
+            const parse_tree = Parse_tree_convertor.module_to_parse_tree(module, language_description.production_rules, language_description.mappings);
 
-    const output_text = parse_tree !== undefined ? Text_formatter.to_string(parse_tree, undefined, []) : "";
+            const output_text = parse_tree !== undefined ? Text_formatter.to_string(parse_tree, undefined, []) : "";
 
-    process.stdout.write(output_text);
+            process.stdout.write(output_text);
+        }
+    );
+
 }
 else if (command === "write") {
 
@@ -35,21 +39,23 @@ else if (command === "write") {
     const input_file = input_file_argument_index !== -1 ? process.argv[input_file_argument_index + 1] : undefined;
     const input_text = input_file !== undefined ? fs.readFileSync(input_file, "utf8") : process.stdin.read() as string;
 
-    const language_description = Language.create_default_description(cache);
+    Language.create_default_description(cache).then(
+        (language_description: Language.Description) => {
+            const parse_result = Text_change.full_parse_with_source_locations(language_description, input_file !== undefined ? input_file : "", input_text);
+            if (parse_result.module === undefined) {
+                const messages = Validation.to_string(parse_result.diagnostics).join("\n");
+                console.log(messages);
+                process.exit(-1);
+            }
 
-    const parse_result = Text_change.full_parse_with_source_locations(language_description, input_file !== undefined ? input_file : "", input_text);
-    if (parse_result.module === undefined) {
-        const messages = Validation.to_string(parse_result.diagnostics).join("\n");
-        console.log(messages);
-        process.exit(-1);
-    }
+            const core_module = Core_intermediate_representation.create_core_module(parse_result.module, Language_version.language_version);
 
-    const core_module = Core_intermediate_representation.create_core_module(parse_result.module, Language_version.language_version);
+            const output_json = JSON.stringify(core_module);
+            const output_file = process.argv[3];
 
-    const output_json = JSON.stringify(core_module);
-    const output_file = process.argv[3];
-
-    fs.writeFileSync(output_file, output_json);
+            fs.writeFileSync(output_file, output_json);
+        }
+    );
 }
 
 process.exit();

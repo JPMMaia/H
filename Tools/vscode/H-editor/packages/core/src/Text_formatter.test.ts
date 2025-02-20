@@ -125,7 +125,7 @@ describe("Text_formatter.to_string", () => {
         assert.equal(actual_text, expected_text);
     });
 
-    it("Formats instantiate expressions correctly", () => {
+    it("Formats instantiate expressions correctly", async () => {
         const input_text = `module Format;
 
 struct Complex
@@ -155,11 +155,11 @@ function run() -> ()
     };
 }`;
 
-        const actual_text = parse_text_and_format(input_text);
+        const actual_text = await parse_text_and_format(input_text);
         assert.equal(actual_text, expected_text);
     });
 
-    it("Formats instantiate expressions nested with other instantiate expressions", () => {
+    it("Formats instantiate expressions nested with other instantiate expressions", async () => {
         const input_text = `module Format;
 
 struct Complex
@@ -204,11 +204,11 @@ function run() -> ()
     };
 }`;
 
-        const actual_text = parse_text_and_format(input_text);
+        const actual_text = await parse_text_and_format(input_text);
         assert.equal(actual_text, expected_text);
     });
 
-    it("Formats empty functions correctly", () => {
+    it("Formats empty functions correctly", async () => {
         const input_text = `module Format;
 
 function empty() -> () {}`;
@@ -219,14 +219,14 @@ function empty() -> ()
 {
 }`;
 
-        const actual_text = parse_text_and_format(input_text);
+        const actual_text = await parse_text_and_format(input_text);
         assert.equal(actual_text, expected_text);
     });
 });
 
-function parse_text_and_format(input_text: string): string {
+async function parse_text_and_format(input_text: string): Promise<string> {
     const cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
-    const language_description: Language.Description = Language.create_default_description(cache, "out/tests/graphviz.gv");
+    const language_description: Language.Description = await Language.create_default_description(cache, "out/tests/graphviz.gv");
 
     const document_state = Document.create_empty_state("", language_description.production_rules);
 

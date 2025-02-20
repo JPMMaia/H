@@ -19,9 +19,9 @@ export interface Server_data {
     initialize_promise: Promise<void> | undefined;
 }
 
-export function create_server_data(): Server_data {
+export async function create_server_data(): Promise<Server_data> {
     const storage_cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
-    const language_description = Language.create_default_description(storage_cache, "out/tests/graphviz.gv");
+    const language_description = await Language.create_default_description(storage_cache, "out/tests/graphviz.gv");
     const documents = new Map<string, TextDocument>();
     const document_states = new Map<string, Document.State>();
     const core_modules_with_source_locations = new Map<string, Core.Module>();

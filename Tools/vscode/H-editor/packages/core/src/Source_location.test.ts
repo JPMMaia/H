@@ -41,9 +41,9 @@ describe("Addition of Source_location", () => {
 
     let language_description: any;
 
-    before(() => {
+    before(async () => {
         const cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
-        language_description = Language.create_default_description(cache, "out/tests/graphviz.gv");
+        language_description = await Language.create_default_description(cache, "out/tests/graphviz.gv");
     });
 
     it("Adds source location to alias", () => {

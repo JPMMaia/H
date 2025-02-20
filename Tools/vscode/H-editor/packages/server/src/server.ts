@@ -20,7 +20,7 @@ import * as Validation from "../../core/src/Validation";
 
 const connection = vscode_node.createConnection(vscode_node.ProposedFeatures.all);
 
-const server_data = Server_data.create_server_data();
+let server_data: Server_data.Server_data;
 
 let g_workspace_folders: vscode_node.WorkspaceFolder[] = [];
 
@@ -111,6 +111,7 @@ connection.onInitialize(async (params: vscode_node.InitializeParams) => {
 		};
 	}
 
+	server_data = await Server_data.create_server_data();
 	server_data.initialize_promise = new Promise((resolve) => {
 		let timer: NodeJS.Timeout | undefined = undefined;
 

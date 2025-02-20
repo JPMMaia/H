@@ -1802,10 +1802,6 @@ export function create_unary_expressions(): IR.Module {
         ["not_variable", IR.create_unary_expression(IR.create_variable_expression("my_boolean", IR.Access_type.Read), IR.Unary_operation.Not)],
         ["bitwise_not_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer", IR.Access_type.Read), IR.Unary_operation.Bitwise_not)],
         ["minus_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer", IR.Access_type.Read), IR.Unary_operation.Minus)],
-        ["pre_increment_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer", IR.Access_type.Read_write), IR.Unary_operation.Pre_increment)],
-        ["post_increment_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer", IR.Access_type.Read_write), IR.Unary_operation.Post_increment)],
-        ["pre_decrement_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer", IR.Access_type.Read_write), IR.Unary_operation.Pre_decrement)],
-        ["post_decrement_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer", IR.Access_type.Read_write), IR.Unary_operation.Post_decrement)],
         ["address_of_variable", IR.create_unary_expression(IR.create_variable_expression("my_integer", IR.Access_type.Read), IR.Unary_operation.Address_of)],
         ["indirection_variable", IR.create_unary_expression(IR.create_variable_expression("address_of_variable", IR.Access_type.Read), IR.Unary_operation.Indirection)]
     ];
@@ -5199,8 +5195,12 @@ export function create_comments_in_functions(add_source_locations: boolean): IR.
                                 add_source_locations ? { line: 8, column: 5 } : undefined
                             ),
                             create_statement(
-                                IR.create_comment_expression("This is another comment\nAnd yet another"),
+                                IR.create_comment_expression("This is another comment"),
                                 add_source_locations ? { line: 10, column: 5 } : undefined
+                            ),
+                            create_statement(
+                                IR.create_comment_expression("And yet another"),
+                                add_source_locations ? { line: 11, column: 5 } : undefined
                             ),
                             create_statement(
                                 IR.create_variable_declaration_expression(

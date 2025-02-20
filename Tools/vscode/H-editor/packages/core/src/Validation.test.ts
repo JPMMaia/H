@@ -304,7 +304,7 @@ async function test_validate_module(
 ): Promise<void> {
 
     const cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
-    const language_description = Language.create_default_description(cache, "out/tests/graphviz.gv");
+    const language_description = await Language.create_default_description(cache, "out/tests/graphviz.gv");
 
     const uri = create_dummy_uri();
 
