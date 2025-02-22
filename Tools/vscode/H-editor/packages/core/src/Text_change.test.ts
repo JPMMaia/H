@@ -5,9 +5,6 @@ import * as Core_intermediate_representation from "./Core_intermediate_represent
 import * as Document from "./Document";
 import * as Language from "./Language";
 import * as Module_examples from "./Module_examples";
-import * as Parse_tree_convertor from "./Parse_tree_convertor";
-import * as Parser from "./Parser";
-import * as Scanner from "./Scanner";
 import * as Storage_cache from "./Storage_cache";
 import * as Text_change from "./Text_change";
 import * as Type_utilities from "./Type_utilities";
@@ -16,28 +13,17 @@ function validate_document_state(
     language_description: Language.Description,
     document_state: Document.State
 ): void {
-    const input_text = Text_change.apply_text_changes(document_state.valid.text, document_state.pending_text_changes);
 
-    const scanned_words = Scanner.scan(input_text, 0, input_text.length, { line: 1, column: 1 });
+    assert.equal(document_state.with_errors, undefined);
+    assert.equal(document_state.pending_text_changes.length, 0);
 
-    const parse_tree_result = Parser.parse_incrementally(
-        document_state.document_file_path,
-        undefined,
-        undefined,
-        scanned_words,
-        undefined,
-        language_description.actions_table,
-        language_description.go_to_table,
-        language_description.array_infos,
-        language_description.map_word_to_terminal
-    );
+    const input_text = document_state.valid.text;
+    const result = Text_change.full_parse_with_source_locations(language_description, document_state.document_file_path, input_text, false);
 
-    assert.equal(parse_tree_result.status, Parser.Parse_status.Accept);
-
-    const expected_parse_tree = (parse_tree_result.changes[0].value as Parser.Modify_change).new_node;
+    const expected_parse_tree = result.parse_tree;
     assert.deepEqual(document_state.valid.parse_tree, expected_parse_tree);
 
-    const expected_module = Parse_tree_convertor.parse_tree_to_module(expected_parse_tree, language_description.mappings);
+    const expected_module = result.module;
     assert.deepEqual(document_state.valid.module, expected_module);
 }
 
@@ -158,7 +144,7 @@ describe("Text_change.update", () => {
                 document_state,
                 text_changes,
                 text_after_changes,
-                true
+                false
             );
 
             assert.equal(document_state.valid.module.name, "Foo");
@@ -182,7 +168,7 @@ describe("Text_change.update", () => {
                 document_state,
                 text_changes,
                 text_after_changes,
-                true
+                false
             );
 
             assert.equal(document_state.valid.module.name, "Bar");
@@ -211,7 +197,7 @@ describe("Text_change.update", () => {
                 document_state,
                 text_changes,
                 text_after_changes,
-                true
+                false
             );
         }
 
@@ -233,7 +219,7 @@ describe("Text_change.update", () => {
                 document_state,
                 text_changes,
                 text_after_changes,
-                true
+                false
             );
 
             assert.equal(document_state.valid.module.name, "Foo");
@@ -262,7 +248,7 @@ describe("Text_change.update", () => {
                 document_state,
                 text_changes,
                 text_after_changes,
-                true
+                false
             );
 
             assert.equal(document_state.valid.module.name, "Foo");
@@ -286,7 +272,7 @@ describe("Text_change.update", () => {
                 document_state,
                 text_changes,
                 text_after_changes,
-                true
+                false
             );
 
             assert.equal(document_state.pending_text_changes.length, 0);
@@ -328,7 +314,7 @@ describe("Text_change.update", () => {
                 document_state,
                 text_changes,
                 text_after_changes,
-                true
+                false
             );
 
             assert.equal(document_state.valid.module.name, "Foo");
@@ -367,7 +353,7 @@ describe("Text_change.update", () => {
                 document_state,
                 text_changes,
                 text_after_changes,
-                true
+                false
             );
 
             assert.equal(document_state.pending_text_changes.length, 0);
@@ -398,7 +384,7 @@ describe("Text_change.update", () => {
                 document_state,
                 text_changes,
                 text_after_changes,
-                true
+                false
             );
 
             assert.equal(document_state.valid.module.name, "Foo");
@@ -437,7 +423,7 @@ describe("Text_change.update", () => {
                 document_state,
                 text_changes,
                 text_after_changes,
-                true
+                false
             );
 
             assert.equal(document_state.pending_text_changes.length, 0);
@@ -474,7 +460,7 @@ describe("Text_change.update", () => {
                 document_state,
                 text_changes,
                 text_after_changes,
-                true
+                false
             );
 
             assert.equal(document_state.pending_text_changes.length, 0);
@@ -516,7 +502,7 @@ describe("Text_change.update", () => {
                 document_state,
                 text_changes,
                 text_after_changes,
-                true
+                false
             );
 
             assert.equal(document_state.valid.module.name, "Foo");
@@ -555,7 +541,7 @@ describe("Text_change.update", () => {
                 document_state,
                 text_changes,
                 text_after_changes,
-                true
+                false
             );
 
             assert.equal(document_state.pending_text_changes.length, 0);
@@ -592,7 +578,7 @@ describe("Text_change.update", () => {
 
             const text_after_changes = "module Foo;\n\nexport function My_function() -> () {}\n";
 
-            Text_change.update(language_description, document_state, text_changes, text_after_changes, true);
+            Text_change.update(language_description, document_state, text_changes, text_after_changes, false);
 
             assert.equal(document_state.valid.module.name, "Foo");
 
@@ -635,7 +621,7 @@ describe("Text_change.update", () => {
                 document_state,
                 text_changes,
                 text_after_changes,
-                true
+                false
             );
 
             assert.equal(document_state.valid.module.name, "Foo");
@@ -1550,7 +1536,7 @@ export function run_ifs(value: Int32) -> ()
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles handles modifying return void to return with value", () => {
+    it("Handles modifying return void to return with value", () => {
 
         const document_state = Document.create_empty_state("", language_description.production_rules);
 
@@ -1595,7 +1581,7 @@ function run() -> (result: Int32)
             }
         ];
 
-        const new_document_state_2 = Text_change.update(language_description, document_state, text_changes_2, program_2, true);
+        const new_document_state_2 = Text_change.update(language_description, document_state, text_changes_2, program_2, false);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 0);
 
@@ -2662,7 +2648,7 @@ function run() -> ()
         ];
 
         const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
-        assert.equal(new_document_state.pending_text_changes.length, 1);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 1);
 
         const text_changes_2: Text_change.Text_change[] = [
@@ -2677,7 +2663,7 @@ function run() -> ()
 
         const program_2 = Text_change.apply_text_changes(program, text_changes_2);
 
-        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2, true);
+        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2, false);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 0);
 
@@ -2706,7 +2692,7 @@ import
         ];
 
         const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
-        assert.equal(new_document_state.pending_text_changes.length, 1);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 1);
 
         const text_changes_2: Text_change.Text_change[] = [
@@ -2721,7 +2707,7 @@ import
 
         const program_2 = Text_change.apply_text_changes(program, text_changes_2);
 
-        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2, true);
+        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2, false);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 0);
 
@@ -2754,7 +2740,7 @@ export function run() -> ()
         ];
 
         const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
-        assert.equal(new_document_state.pending_text_changes.length, 1);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 1);
 
         const text_changes_2: Text_change.Text_change[] = [
@@ -2769,7 +2755,7 @@ export function run() -> ()
 
         const program_2 = Text_change.apply_text_changes(program, text_changes_2);
 
-        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2, true);
+        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2, false);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 0);
 
@@ -2806,7 +2792,7 @@ export function run() -> ()
         assert.equal(new_document_state.diagnostics.length, 0);
 
         const new_document_state_2 = simulate_typing(language_description, new_document_state, 39, "import ");
-        assert.equal(new_document_state_2.pending_text_changes.length, 1);
+        assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 1);
 
         const new_document_state_3 = simulate_typing(language_description, new_document_state_2, 46, "some_module as some_module_alias;");
@@ -2838,7 +2824,7 @@ function run(value:
         ];
 
         const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
-        assert.equal(new_document_state.pending_text_changes.length, 1);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 1);
 
         const text_changes_2: Text_change.Text_change[] = [
@@ -2853,7 +2839,7 @@ function run(value:
 
         const program_2 = Text_change.apply_text_changes(program, text_changes_2);
 
-        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2, true);
+        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2, false);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 0);
     });
@@ -2889,7 +2875,7 @@ function run() -> ()
         assert.equal(new_document_state.diagnostics.length, 0);
 
         const new_document_state_2 = simulate_typing(language_description, new_document_state, 83, "dep.");
-        assert.equal(new_document_state_2.pending_text_changes.length, 1);
+        assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 1);
 
         const new_document_state_3 = simulate_erasing(language_description, new_document_state_2, 83, 87);
@@ -2897,7 +2883,7 @@ function run() -> ()
         assert.equal(new_document_state_3.diagnostics.length, 0);
 
         const new_document_state_4 = simulate_typing(language_description, new_document_state_3, 83, "dep.");
-        assert.equal(new_document_state_4.pending_text_changes.length, 1);
+        assert.equal(new_document_state_4.pending_text_changes.length, 0);
         assert.equal(new_document_state_4.diagnostics.length, 1);
     });
 
@@ -2926,7 +2912,7 @@ function run() -> (result: Int32)
             }
         ];
 
-        const new_document_state_0 = Text_change.update(language_description, document_state, text_changes_0, program_0, true);
+        const new_document_state_0 = Text_change.update(language_description, document_state, text_changes_0, program_0, false);
         assert.equal(new_document_state_0.pending_text_changes.length, 0);
         assert.equal(new_document_state_0.diagnostics.length, 0);
         validate_document_state(language_description, new_document_state_0);
@@ -2942,7 +2928,7 @@ function run() -> (result: Int32)
         ];
         const program_1 = Text_change.apply_text_changes(program_0, text_changes_1);
 
-        const new_document_state_1 = Text_change.update(language_description, new_document_state_0, text_changes_1, program_1, true);
+        const new_document_state_1 = Text_change.update(language_description, new_document_state_0, text_changes_1, program_1, false);
         assert.equal(new_document_state_1.pending_text_changes.length, 0);
         assert.equal(new_document_state_1.diagnostics.length, 0);
         validate_document_state(language_description, new_document_state_1);
@@ -2988,9 +2974,9 @@ function run() -> (result: Int32)
 
         const program_2 = Text_change.apply_text_changes(program, text_changes_2);
 
-        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2, true);
-        assert.equal(new_document_state_2.pending_text_changes.length, 1);
-        assert.equal(new_document_state_2.diagnostics.length, 1);
+        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2, false);
+        assert.equal(new_document_state_2.pending_text_changes.length, 0);
+        assert.equal(new_document_state_2.diagnostics.length, 0);
 
         const text_changes_3: Text_change.Text_change[] = [
             {
@@ -3004,7 +2990,7 @@ function run() -> (result: Int32)
 
         const program_3 = Text_change.apply_text_changes(program_2, text_changes_3);
 
-        const new_document_state_3 = Text_change.update(language_description, new_document_state_2, text_changes_3, program_3, true);
+        const new_document_state_3 = Text_change.update(language_description, new_document_state_2, text_changes_3, program_3, false);
         assert.equal(new_document_state_3.pending_text_changes.length, 0);
         assert.equal(new_document_state_3.diagnostics.length, 0);
     });
@@ -3093,7 +3079,7 @@ function run(a: Node) -> (b: Node)
 
         const program_2 = Text_change.apply_text_changes(program, text_changes_2);
 
-        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2, true);
+        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2, false);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 0);
 
@@ -3187,7 +3173,7 @@ function run(a: alias_0.My_struct) -> (b: alias_0.My_struct)
 
         const program_2 = Text_change.apply_text_changes(program, text_changes_2);
 
-        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2, true);
+        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2, false);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 0);
 
@@ -3519,7 +3505,11 @@ function simulate_typing(
         end: start_range
     };
 
-    let current_program = Text_change.apply_text_changes(document_state.valid.text, document_state.pending_text_changes);
+    let current_program =
+        document_state.with_errors !== undefined ?
+            document_state.with_errors.text :
+            Text_change.apply_text_changes(document_state.valid.text, document_state.pending_text_changes);
+
     let current_document_state = document_state;
 
     for (let index = 0; index < text.length; ++index) {
@@ -3535,7 +3525,7 @@ function simulate_typing(
 
         const new_program = Text_change.apply_text_changes(current_program, text_changes);
 
-        const new_document_state = Text_change.update(language_description, current_document_state, text_changes, new_program, true);
+        const new_document_state = Text_change.update(language_description, current_document_state, text_changes, new_program, false);
 
         current_program = new_program;
         current_document_state = new_document_state;
@@ -3558,7 +3548,11 @@ function simulate_erasing(
         end: end_range
     };
 
-    let current_program = Text_change.apply_text_changes(document_state.valid.text, document_state.pending_text_changes);
+    let current_program =
+        document_state.with_errors !== undefined ?
+            document_state.with_errors.text :
+            Text_change.apply_text_changes(document_state.valid.text, document_state.pending_text_changes);
+
     let current_document_state = document_state;
 
     const characters_to_erase_count = end_range - start_range;
@@ -3574,7 +3568,7 @@ function simulate_erasing(
 
         const new_program = Text_change.apply_text_changes(current_program, text_changes);
 
-        const new_document_state = Text_change.update(language_description, current_document_state, text_changes, new_program, true);
+        const new_document_state = Text_change.update(language_description, current_document_state, text_changes, new_program, false);
 
         current_program = new_program;
         current_document_state = new_document_state;

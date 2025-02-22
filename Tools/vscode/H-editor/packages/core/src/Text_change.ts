@@ -245,6 +245,13 @@ export function full_parse_with_source_locations(
     const position_cache = Parse_tree_text_position_cache.create_empty_cache();
     Parse_tree_text_position_cache.update_cache(position_cache, changes, { range: { start: 0, end: 0 }, text: input_text }, input_text);
 
+    if (tree.rootNode.hasError) {
+        const diagnostics = Validation.validate_syntax_errors(document_file_path, tree.language, tree.rootNode);
+        if (diagnostics.length > 0) {
+            return { module: undefined, parse_tree: core_tree, diagnostics: diagnostics, position_cache: position_cache };
+        }
+    }
+
     {
         const diagnostics = validate_parse_changes(document_file_path, changes, position_cache);
         if (diagnostics.length > 0) {

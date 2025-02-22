@@ -5,6 +5,7 @@ import * as Parse_tree_analysis from "./Parse_tree_analysis";
 import * as Parse_tree_text_position_cache from "./Parse_tree_text_position_cache";
 import * as Parser_node from "./Parser_node";
 import * as Scanner from "./Scanner";
+import * as Tree_sitter from "web-tree-sitter";
 import * as Type_utilities from "./Type_utilities";
 
 const g_debug = false;
@@ -96,6 +97,54 @@ export function validate_scanned_input(
             );
         }
     }
+
+    return diagnostics;
+}
+
+export function validate_syntax_errors(
+    uri: string,
+    language: Tree_sitter.Language,
+    node: Tree_sitter.Node
+): Diagnostic[] {
+
+    if (!node.hasError) {
+        return [];
+    }
+
+    const diagnostics: Diagnostic[] = [];
+
+    const process_node = (current_node: Tree_sitter.Node) => {
+
+        if (current_node.isError || current_node.isMissing) {
+            diagnostics.push(
+                {
+                    location: {
+                        uri: uri,
+                        range: {
+                            start: {
+                                line: current_node.startPosition.row,
+                                column: current_node.startPosition.column,
+                            },
+                            end: {
+                                line: current_node.endPosition.row,
+                                column: current_node.endPosition.column,
+                            },
+                        },
+                    },
+                    source: Source.Parser,
+                    severity: Diagnostic_severity.Error,
+                    message: current_node.isError ? `Did not expected expression.` : `Missing expression '${current_node.grammarType}'.`,
+                    related_information: [],
+                }
+            );
+        }
+
+        for (const child of current_node.children) {
+            process_node(child);
+        }
+    };
+
+    process_node(node);
 
     return diagnostics;
 }

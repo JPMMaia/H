@@ -2718,7 +2718,8 @@ function node_to_expression_without_source_location(node: Parser_node.Node): Cor
                 }
             };
         }
-        case "Expression_break": {
+        case "Expression_break":
+        case "break": {
             const expression = node_to_expression_break(node);
             return {
                 data: {
@@ -2772,7 +2773,8 @@ function node_to_expression_without_source_location(node: Parser_node.Node): Cor
                 }
             };
         }
-        case "Expression_continue": {
+        case "Expression_continue":
+        case "continue": {
             const expression = node_to_expression_continue(node);
             return {
                 data: {
@@ -2818,7 +2820,8 @@ function node_to_expression_without_source_location(node: Parser_node.Node): Cor
                 }
             };
         }
-        case "Expression_null_pointer": {
+        case "Expression_null_pointer":
+        case "null": {
             const expression = node_to_expression_null_pointer(node);
             return {
                 data: {
@@ -3065,8 +3068,8 @@ function map_production_rule_label_to_binary_operation(label: string): Core_inte
 
 function node_to_expression_block(node: Parser_node.Node): Core_intermediate_representation.Block_expression {
 
-    const statements_node = node.children[1];
-    const statements = statements_node.children.map(node => node_to_statement(node));
+    const statements_node = node.children.slice(1, node.children.length - 1);
+    const statements = statements_node.map(node => node_to_statement(node));
 
     const block_expression: Core_intermediate_representation.Block_expression = {
         statements: statements
@@ -3325,7 +3328,7 @@ function node_to_expression_continue(node: Parser_node.Node): Core_intermediate_
 
 function node_to_expression_create_array(node: Parser_node.Node): Core_intermediate_representation.Constant_array_expression {
 
-    const expression_nodes = find_nodes_inside_parent(node, "Expression_create_array_elements", "Generic_expression_or_instantiate");
+    const expression_nodes = node.children.slice(1, node.children.length - 1).filter(node => node.word.value !== ",");
     const expressions = expression_nodes.map(node => node_to_expression(node));
     const statements = expressions.map(expression => { return { expression: expression }; });
 
@@ -3351,14 +3354,14 @@ function node_to_expression_for_loop(node: Parser_node.Node): Core_intermediate_
     const range_end_expression = node_to_expression(range_end_number_node);
 
     const step_by_node = find_node(head_node, "Expression_for_loop_step") as Parser_node.Node;
-    const step_by_number_node = step_by_node.children.length > 0 ? step_by_node.children[1].children[0] : undefined;
+    const step_by_number_node = step_by_node !== undefined && step_by_node.children.length > 0 ? step_by_node.children[1].children[0] : undefined;
     const step_by_expression = step_by_number_node !== undefined ? node_to_expression(step_by_number_node) : undefined;
 
-    const reverse_node = find_node(head_node, "Expression_for_loop_reverse") as Parser_node.Node;
-    const is_reverse = reverse_node.children.length > 0;
+    const reverse_node = find_node(head_node, "reverse");
+    const is_reverse = reverse_node !== undefined;
 
     const statements_node = find_node(node, "Expression_for_loop_statements") as Parser_node.Node;
-    const statements = statements_node.children.map(node => node_to_statement(node));
+    const statements = statements_node.children.slice(1, statements_node.children.length - 1).map(node => node_to_statement(node));
 
     const for_loop_expression: Core_intermediate_representation.For_loop_expression = {
         variable_name: variable_node,
@@ -3382,29 +3385,26 @@ function node_to_expression_if(node: Parser_node.Node): Core_intermediate_repres
         const condition_expression = condition_node !== undefined ? node_to_expression(condition_node) : undefined;
 
         const statements_node = find_node(current_node, "Expression_if_statements") as Parser_node.Node;
-        const statements = statements_node.children.map(node => node_to_statement(node));
+        const statements = statements_node.children.slice(1, statements_node.children.length - 1).map(node => node_to_statement(node));
 
         const serie: Core_intermediate_representation.Condition_statement_pair = {
             condition: condition_expression !== undefined ? { expression: condition_expression } : undefined,
             then_statements: statements
         };
 
-        const open_block_node = current_node.children.find(child => child.word.value === "{") as Parser_node.Node;
+        const open_block_node = statements_node.children[0];
         if (open_block_node.source_location !== undefined) {
             serie.block_source_position = open_block_node.source_location;
         }
 
         series.push(serie);
 
-        current_node = current_node.children[current_node.children.length - 1];
-        if (current_node.children.length === 0) {
+        current_node = find_node(current_node, "Expression_if_else");
+        if (current_node === undefined) {
             break;
         }
 
-        const child = current_node.children[current_node.children.length - 1];
-        if (child.word.value === "Expression_if") {
-            current_node = child;
-        }
+        current_node = current_node.children[current_node.children.length - 1];
     }
 
     const if_expression: Core_intermediate_representation.If_expression = {
@@ -3416,8 +3416,8 @@ function node_to_expression_if(node: Parser_node.Node): Core_intermediate_repres
 
 function node_to_expression_instantiate(node: Parser_node.Node): Core_intermediate_representation.Instantiate_expression {
 
-    const type_node_value = find_node_value(node, "Expression_instantiate_expression_type");
-    const type = type_node_value === "explicit" ? Core_intermediate_representation.Instantiate_expression_type.Explicit : Core_intermediate_representation.Instantiate_expression_type.Default;
+    const type_node = node.children.find(child => child.word.value === "explicit");
+    const type = type_node !== undefined ? Core_intermediate_representation.Instantiate_expression_type.Explicit : Core_intermediate_representation.Instantiate_expression_type.Default;
 
     const member_nodes = find_nodes_inside_parent(node, "Expression_instantiate_members", "Expression_instantiate_member");
     const members: Core_intermediate_representation.Instantiate_member_value_pair[] = member_nodes.map(
@@ -3480,7 +3480,7 @@ function node_to_expression_switch_case(node: Parser_node.Node): Core_intermedia
 
     const case_value = !is_default_case ? node_to_expression(node.children[1].children[0]) : undefined;
 
-    const statement_nodes = find_nodes_inside_parent(node, "Expression_switch_case_statements", "Statement");
+    const statement_nodes = node.children.filter(child => child.word.value === "Statement");
     const statements = statement_nodes.map((statement_node: Parser_node.Node) => node_to_statement(statement_node));
 
     return {
@@ -3616,7 +3616,7 @@ function node_to_expression_while_loop(node: Parser_node.Node): Core_intermediat
     const condition_expression = node_to_expression(condition_node);
 
     const then_statements_node = find_node(node, "Expression_while_loop_statements") as Parser_node.Node;
-    const then_statements = then_statements_node.children.map(node => node_to_statement(node));
+    const then_statements = then_statements_node.children.slice(1, then_statements_node.children.length - 1).map(node => node_to_statement(node));
 
     const while_loop_expression: Core_intermediate_representation.While_loop_expression = {
         condition: { expression: condition_expression },
@@ -3626,7 +3626,7 @@ function node_to_expression_while_loop(node: Parser_node.Node): Core_intermediat
 }
 
 function get_terminal_value(node: Parser_node.Node): string {
-    if (node.production_rule_index === undefined && node.children.length === 0) {
+    if (node.children.length === 0) {
         return node.word.value;
     }
 
