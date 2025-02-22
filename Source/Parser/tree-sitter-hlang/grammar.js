@@ -146,6 +146,7 @@ module.exports = grammar({
       prec.left(3, seq($.Generic_expression, "|", $.Generic_expression)),
       prec.left(4, seq($.Generic_expression, "^", $.Generic_expression)),
       prec.left(5, seq($.Generic_expression, "&", $.Generic_expression)),
+      prec.left(5, seq($.Generic_expression, "has", $.Generic_expression)),
       prec.left(6, seq($.Generic_expression, "==", $.Generic_expression)),
       prec.left(6, seq($.Generic_expression, "!=", $.Generic_expression)),
       prec.left(7, seq($.Generic_expression, "<", $.Generic_expression)),

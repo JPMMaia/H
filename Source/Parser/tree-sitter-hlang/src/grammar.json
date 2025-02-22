@@ -1680,6 +1680,27 @@
         },
         {
           "type": "PREC_LEFT",
+          "value": 5,
+          "content": {
+            "type": "SEQ",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "Generic_expression"
+              },
+              {
+                "type": "STRING",
+                "value": "has"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "Generic_expression"
+              }
+            ]
+          }
+        },
+        {
+          "type": "PREC_LEFT",
           "value": 6,
           "content": {
             "type": "SEQ",

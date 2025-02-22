@@ -2466,6 +2466,10 @@
     "named": false
   },
   {
+    "type": "has",
+    "named": false
+  },
+  {
     "type": "if",
     "named": false
   },
