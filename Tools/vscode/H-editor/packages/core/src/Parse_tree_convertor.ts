@@ -8,7 +8,7 @@ import * as Parser_node from "./Parser_node";
 import * as Scanner from "./Scanner";
 import { get_node_at_position, Node } from "./Parser_node";
 
-const g_debug = true;
+const g_debug = false;
 
 export type Map_terminal_to_word_handler = (
     module: Core_intermediate_representation.Module,
@@ -269,7 +269,13 @@ export function module_to_parse_tree(
 
             const source_location = mappings.get_node_source_location(child_node, stack, production_rules);
             if (source_location !== undefined) {
-                child_node.source_location = source_location;
+                child_node.source_range = {
+                    start: source_location,
+                    end: {
+                        line: source_location.line,
+                        column: source_location.column + word.value.length
+                    }
+                };
             }
 
             parent_node.children.push(child_node);
@@ -301,11 +307,6 @@ export function module_to_parse_tree(
                 current_child_index: 0,
                 is_array_production_rule: is_next_production_rule_array
             };
-
-            const source_location = mappings.get_node_source_location(child_stack_element.node, stack, production_rules);
-            if (source_location !== undefined) {
-                child_stack_element.node.source_location = source_location;
-            }
 
             stack.push(child_stack_element);
 

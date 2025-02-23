@@ -182,17 +182,17 @@ export function find_variable_info(
         }
     }
 
-    const statements = Parser_node.get_ancestor_with_name(root, scope_node_position, "Statements");
-    if (statements !== undefined) {
+    const function_definition_ancestor = Parser_node.get_ancestor_with_name(root, scope_node_position, "Function_definition");
+    if (function_definition_ancestor !== undefined) {
         let current_statements_block: Core.Statement[] | undefined = function_value.definition.statements;
-        let current_statements_block_node = statements.node;
-        let current_statements_block_position = statements.position;
-        let current_statement_index = scope_node_position[current_statements_block_position.length];
+        let current_statements_block_node = function_definition_ancestor.node.children[0];
+        let current_statements_block_position = [...function_definition_ancestor.position, 0];
+        let current_statement_index = scope_node_position[current_statements_block_position.length] - 1;
 
         while (current_statements_block !== undefined && current_statement_index < current_statements_block.length) {
             for (let index = 0; index < current_statement_index; ++index) {
                 const core_statement = current_statements_block[index];
-                const core_statement_node_position = [...current_statements_block_position, index];
+                const core_statement_node_position = [...current_statements_block_position, index + 1];
 
                 if (core_statement.expression.data.type === Core.Expression_enum.Variable_declaration_expression) {
                     const expression = core_statement.expression.data.value as Core.Variable_declaration_expression;
@@ -240,7 +240,7 @@ export function find_variable_info(
             current_statements_block_node = result.node;
             current_statements_block_position = result.position;
             current_statements_block = result.statements;
-            current_statement_index = scope_node_position[current_statements_block_position.length];
+            current_statement_index = scope_node_position[current_statements_block_position.length] - 1;
         }
     }
 
@@ -296,10 +296,9 @@ export function find_variable_name_node_from_variable_info(
             if (ancestor_function_declaration !== undefined) {
                 const descendant_function_parameters_parent = Parser_node.find_descendant_position_if(ancestor_function_declaration, node => node.word.value === "Function_input_parameters");
                 if (descendant_function_parameters_parent !== undefined) {
-                    const descendant_function_parameters = Parser_node.get_children(descendant_function_parameters_parent);
-                    for (const descendant_function_parameter of descendant_function_parameters) {
-                        return Parser_node.find_descendant_position_if(descendant_function_parameter, node => node.word.value === "Function_parameter_name");
-                    }
+                    const descendant_function_parameter = Parser_node.get_child(descendant_function_parameters_parent, 1 + value.input_index);
+                    const descendant_function_parameter_name = Parser_node.find_descendant_position_if(descendant_function_parameter, node => node.word.value === "Function_parameter_name");
+                    return descendant_function_parameter_name;
                 }
             }
         }
@@ -332,27 +331,24 @@ export function find_declaration_name_node(
     root: Parser_node.Node,
     declaration_name: string
 ): { node: Parser_node.Node, position: number[] } | undefined {
-    const descendant_module_body = Parser_node.find_descendant_position_if({ node: root, position: [] }, node => node.word.value === "Module_body");
-    if (descendant_module_body !== undefined) {
-        const descendant_declarations = Parser_node.get_children(descendant_module_body);
-        for (const descendant_declaration of descendant_declarations) {
-            const descendant_declaration_name = Parser_node.find_descendant_position_if(descendant_declaration, node => {
-                switch (node.word.value) {
-                    case "Alias_name":
-                    case "Enum_name":
-                    case "Function_name":
-                    case "Struct_name":
-                    case "Union_name":
-                        return true;
-                    default: return false;
-                }
-            });
+    const descendant_declarations = Parser_node.find_descendants_if({ node: root, position: [] }, node => node.word.value === "Declaration");
+    for (const descendant_declaration of descendant_declarations) {
+        const descendant_declaration_name = Parser_node.find_descendant_position_if(descendant_declaration, node => {
+            switch (node.word.value) {
+                case "Alias_name":
+                case "Enum_name":
+                case "Function_name":
+                case "Struct_name":
+                case "Union_name":
+                    return true;
+                default: return false;
+            }
+        });
 
-            if (descendant_declaration_name !== undefined) {
-                const this_declaration_name = descendant_declaration_name.node.children[0].word.value;
-                if (this_declaration_name === declaration_name) {
-                    return descendant_declaration_name;
-                }
+        if (descendant_declaration_name !== undefined) {
+            const this_declaration_name = descendant_declaration_name.node.children[0].word.value;
+            if (this_declaration_name === declaration_name) {
+                return descendant_declaration_name;
             }
         }
     }
@@ -411,20 +407,20 @@ export async function find_variable_type(
         }
     }
 
-    const statements = Parser_node.get_ancestor_with_name(root, scope_node_position, "Statements");
-    if (statements === undefined) {
+    const function_definition_ancestor = Parser_node.get_ancestor_with_name(root, scope_node_position, "Function_definition");
+    if (function_definition_ancestor === undefined) {
         return undefined;
     }
 
     let current_statements_block: Core.Statement[] | undefined = function_value.definition.statements;
-    let current_statements_block_node = statements.node;
-    let current_statements_block_position = statements.position;
-    let current_statement_index = scope_node_position[current_statements_block_position.length];
+    let current_statements_block_node = function_definition_ancestor.node.children[0];
+    let current_statements_block_position = [...function_definition_ancestor.position, 0];
+    let current_statement_index = scope_node_position[current_statements_block_position.length] - 1;
 
     while (current_statements_block !== undefined && current_statement_index >= 0 && current_statement_index < current_statements_block.length) {
         for (let index = 0; index <= current_statement_index; ++index) {
             const core_statement = current_statements_block[index];
-            const next_scope_node_position = [...current_statements_block_position, index - 1];
+            const next_scope_node_position = [...current_statements_block_position, index];
 
             if (core_statement.expression.data.type === Core.Expression_enum.Variable_declaration_expression) {
                 const expression = core_statement.expression.data.value as Core.Variable_declaration_expression;
@@ -462,7 +458,7 @@ export async function find_variable_type(
         current_statements_block_node = result.node;
         current_statements_block_position = result.position;
         current_statements_block = result.statements;
-        current_statement_index = scope_node_position[current_statements_block_position.length];
+        current_statement_index = scope_node_position[current_statements_block_position.length] - 1;
     }
 
     return matches.length > 0 ? matches[matches.length - 1] : undefined;
@@ -1374,7 +1370,7 @@ export async function find_instantiate_custom_type_reference_from_node(
     if (ancestor_struct_member !== undefined) {
         const struct_declaration = get_struct_declaration_that_contains_node_position(core_module, root, node_position);
         if (struct_declaration !== undefined) {
-            const member_index = ancestor_struct_member.position[ancestor_struct_member.position.length - 1];
+            const member_index = ancestor_struct_member.position[ancestor_struct_member.position.length - 1] - 1;
             const member_type = struct_declaration.member_types[member_index];
             if (member_type !== undefined) {
                 if (member_type.data.type === Core.Type_reference_enum.Custom_type_reference) {

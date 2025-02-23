@@ -561,18 +561,18 @@ function apply_module_change_simplications(root: Node, parse_tree_changes: Chang
             }
 
             {
-                const root_imports = find_descendant_position_if({ node: root, position: [] }, node => node.word.value === "Imports") as { node: Node, position: number[] };
-                const new_imports_node = get_node_at_position(new_node, root_imports.position);
+                const module_head = find_descendant_position_if({ node: root, position: [] }, node => node.word.value === "Module_head") as { node: Node, position: number[] };
+                const new_module_head_node = get_node_at_position(new_node, module_head.position);
 
-                const patch_changes = apply_patch(root_imports.node.children, new_imports_node.children, root_imports.position);
+                const patch_changes = apply_patch(module_head.node.children, new_module_head_node.children, module_head.position);
                 new_changes.push(...patch_changes);
             }
 
             {
-                const root_declarations = find_descendant_position_if({ node: root, position: [] }, node => node.word.value === "Module_body") as { node: Node, position: number[] };
-                const new_declarations_node = get_node_at_position(new_node, root_declarations.position);
+                const root_declaration_nodes = root.children.filter(node => node.word.value === "Declaration");
+                const new_declaration_nodes = new_node.children.filter(node => node.word.value === "Declaration");
 
-                const patch_changes = apply_patch(root_declarations.node.children, new_declarations_node.children, root_declarations.position);
+                const patch_changes = apply_patch(root_declaration_nodes, new_declaration_nodes, [1]);
                 new_changes.push(...patch_changes);
             }
 

@@ -2302,9 +2302,9 @@ function node_to_alias_type_declaration(node: Parser_node.Node): Core_intermedia
         output.comment = comments;
     }
 
-    if (alias_node.source_location !== undefined) {
+    if (alias_node.source_range !== undefined) {
         const name_node = find_node(alias_node, "Alias_name") as Parser_node.Node;
-        output.source_location = name_node.source_location;
+        output.source_location = name_node.source_range.start;
     }
 
     return output;
@@ -2339,8 +2339,8 @@ function node_to_enum_declaration(node: Parser_node.Node): Core_intermediate_rep
             enum_value.comment = enum_value_comments;
         }
 
-        if (value_name_node.source_location !== undefined) {
-            enum_value.source_location = value_name_node.source_location;
+        if (value_name_node.source_range !== undefined) {
+            enum_value.source_location = value_name_node.source_range.start;
         }
 
         values.push(enum_value);
@@ -2356,9 +2356,9 @@ function node_to_enum_declaration(node: Parser_node.Node): Core_intermediate_rep
         output.comment = comments;
     }
 
-    if (enum_node.source_location !== undefined) {
+    if (enum_node.source_range !== undefined) {
         const name_node = find_node(enum_node, "Enum_name") as Parser_node.Node;
-        output.source_location = name_node.source_location;
+        output.source_location = name_node.source_range.start;
     }
 
     return output;
@@ -2374,8 +2374,8 @@ function node_to_global_variable_declaration(node: Parser_node.Node): Core_inter
     const mutable_node_value = find_node_value(node, "Global_variable_mutability");
     const is_mutable = mutable_node_value !== "var";
 
-    const variable_type_node = find_node(global_variable_node, "Global_variable_type") as Parser_node.Node;
-    const variable_type = variable_type_node !== undefined && variable_type_node.children.length > 0 ? node_to_type_reference(variable_type_node.children[1]) : undefined;
+    const variable_type_node = find_node(global_variable_node, "Type") as Parser_node.Node;
+    const variable_type = variable_type_node !== undefined && variable_type_node.children.length > 0 ? node_to_type_reference(variable_type_node) : undefined;
 
     const variable_value_node = find_node(global_variable_node, "Generic_expression_or_instantiate") as Parser_node.Node;
     const variable_value_expression = node_to_expression(variable_value_node);
@@ -2395,9 +2395,9 @@ function node_to_global_variable_declaration(node: Parser_node.Node): Core_inter
         output.comment = comments;
     }
 
-    if (global_variable_node.source_location !== undefined) {
+    if (global_variable_node.source_range !== undefined) {
         const name_node = find_node(global_variable_node, "Global_variable_name") as Parser_node.Node;
-        output.source_location = name_node.source_location;
+        output.source_location = name_node.source_range.start;
     }
 
     return output;
@@ -2409,7 +2409,7 @@ function node_to_struct_declaration(node: Parser_node.Node): Core_intermediate_r
     const struct_node = node.children[node.children.length - 1];
 
     const name = find_node_value(struct_node, "Struct_name");
-    const source_location = struct_node.source_location !== undefined ? struct_node.source_location : { line: 0, column: 0 };
+    const source_location = struct_node.source_range !== undefined ? struct_node.source_range.start : { line: 0, column: 0 };
 
     const member_nodes = find_nodes_inside_parent(struct_node, "Struct_members", "Struct_member");
 
@@ -2440,7 +2440,7 @@ function node_to_struct_declaration(node: Parser_node.Node): Core_intermediate_r
             member_comments.push({ index: index, comment: member_comment });
         }
 
-        member_source_positions.push(member_name_node.source_location !== undefined ? member_name_node.source_location : source_location);
+        member_source_positions.push(member_name_node.source_range !== undefined ? member_name_node.source_range.start : source_location);
     }
 
     const output: Core_intermediate_representation.Struct_declaration = {
@@ -2458,9 +2458,9 @@ function node_to_struct_declaration(node: Parser_node.Node): Core_intermediate_r
         output.comment = comments;
     }
 
-    if (struct_node.source_location !== undefined) {
+    if (struct_node.source_range !== undefined) {
         const name_node = find_node(struct_node, "Struct_name") as Parser_node.Node;
-        output.source_location = name_node.source_location;
+        output.source_location = name_node.source_range.start;
         output.member_source_positions = member_source_positions;
     }
 
@@ -2473,7 +2473,7 @@ function node_to_union_declaration(node: Parser_node.Node): Core_intermediate_re
     const union_node = node.children[node.children.length - 1];
 
     const name = find_node_value(union_node, "Union_name");
-    const source_location = union_node.source_location !== undefined ? union_node.source_location : { line: 0, column: 0 };
+    const source_location = union_node.source_range !== undefined ? union_node.source_range.start : { line: 0, column: 0 };
 
     const member_nodes = find_nodes_inside_parent(union_node, "Union_members", "Union_member");
 
@@ -2499,7 +2499,7 @@ function node_to_union_declaration(node: Parser_node.Node): Core_intermediate_re
             member_comments.push({ index: index, comment: member_comment });
         }
 
-        member_source_positions.push(member_name_node.source_location !== undefined ? member_name_node.source_location : source_location);
+        member_source_positions.push(member_name_node.source_range !== undefined ? member_name_node.source_range.start : source_location);
     }
 
     const output: Core_intermediate_representation.Union_declaration = {
@@ -2514,9 +2514,9 @@ function node_to_union_declaration(node: Parser_node.Node): Core_intermediate_re
         output.comment = comments;
     }
 
-    if (union_node.source_location !== undefined) {
+    if (union_node.source_range !== undefined) {
         const name_node = find_node(union_node, "Union_name") as Parser_node.Node;
-        output.source_location = name_node.source_location;
+        output.source_location = name_node.source_range.start;
         output.member_source_positions = member_source_positions;
     }
 
@@ -2566,7 +2566,7 @@ function node_to_function_declaration(node: Parser_node.Node): Core_intermediate
     const function_declaration_node = function_node.children[0];
 
     const name = find_node_value(function_declaration_node, "Function_name");
-    const source_location = function_declaration_node.source_location !== undefined ? function_declaration_node.source_location : { line: 0, column: 0 };
+    const source_location = function_declaration_node.source_range !== undefined ? function_declaration_node.source_range.start : { line: 0, column: 0 };
 
     const input_parameter_nodes = find_nodes_inside_parent(function_declaration_node, "Function_input_parameters", "Function_parameter");
     const is_variadic = input_parameter_nodes.length > 0 && input_parameter_nodes[input_parameter_nodes.length - 1].children[0].word.value === "...";
@@ -2576,12 +2576,12 @@ function node_to_function_declaration(node: Parser_node.Node): Core_intermediate
 
     const input_parameter_names = input_parameter_nodes.map(node => find_node_value(node, "Function_parameter_name"));
     const input_parameter_types = input_parameter_nodes.map(node => find_node(node, "Function_parameter_type") as Parser_node.Node).map(node => node_to_type_reference(node.children[0])[0]);
-    const input_parameter_source_positions = input_parameter_nodes.map(node => node.source_location !== undefined ? node.source_location : source_location);
+    const input_parameter_source_positions = input_parameter_nodes.map(node => node.source_range !== undefined ? node.source_range.start : source_location);
 
     const output_parameter_nodes = find_nodes_inside_parent(function_declaration_node, "Function_output_parameters", "Function_parameter");
     const output_parameter_names = output_parameter_nodes.map(node => find_node_value(node, "Function_parameter_name"));
     const output_parameter_types = output_parameter_nodes.map(node => find_node(node, "Function_parameter_type") as Parser_node.Node).map(node => node_to_type_reference(node.children[0])[0]);
-    const output_parameter_source_positions = output_parameter_nodes.map(node => node.source_location !== undefined ? node.source_location : source_location);
+    const output_parameter_source_positions = output_parameter_nodes.map(node => node.source_range !== undefined ? node.source_range.start : source_location);
 
     const linkage = is_export_declaration(node) ? Core_intermediate_representation.Linkage.External : Core_intermediate_representation.Linkage.Private;
 
@@ -2610,9 +2610,9 @@ function node_to_function_declaration(node: Parser_node.Node): Core_intermediate
         output.comment = comments;
     }
 
-    if (function_declaration_node.source_location !== undefined) {
+    if (function_declaration_node.source_range !== undefined) {
         const name_node = find_node(function_declaration_node, "Function_name") as Parser_node.Node;
-        output.source_location = name_node.source_location;
+        output.source_location = name_node.source_range.start;
         output.input_parameter_source_positions = input_parameter_source_positions;
         output.output_parameter_source_positions = output_parameter_source_positions;
     }
@@ -2637,8 +2637,8 @@ function node_to_function_definition(node: Parser_node.Node, function_name: stri
         output.statements = statements;
     }
 
-    if (function_definition_node.source_location !== undefined) {
-        output.source_location = (block_node !== undefined && block_node.source_location !== undefined) ? block_node.source_location : function_definition_node.source_location;
+    if (function_definition_node.source_range !== undefined) {
+        output.source_location = (block_node !== undefined && block_node.source_range !== undefined) ? block_node.source_range.start : function_definition_node.source_range.start;
     }
 
     return output;
@@ -2659,8 +2659,8 @@ function node_to_statement(node: Parser_node.Node): Core_intermediate_representa
 export function node_to_expression(node: Parser_node.Node): Core_intermediate_representation.Expression {
     const expression = node_to_expression_without_source_location(node);
 
-    if (node.source_location !== undefined) {
-        expression.source_position = node.source_location;
+    if (node.source_range !== undefined) {
+        expression.source_position = node.source_range.start;
     }
 
     return expression;
@@ -3393,8 +3393,8 @@ function node_to_expression_if(node: Parser_node.Node): Core_intermediate_repres
         };
 
         const open_block_node = statements_node.children[0];
-        if (open_block_node.source_location !== undefined) {
-            serie.block_source_position = open_block_node.source_location;
+        if (open_block_node.source_range !== undefined) {
+            serie.block_source_position = open_block_node.source_range.start;
         }
 
         series.push(serie);

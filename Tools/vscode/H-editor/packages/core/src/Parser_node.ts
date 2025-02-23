@@ -6,12 +6,17 @@ export interface Source_location {
     column: number;
 }
 
+export interface Source_range {
+    start: Source_location;
+    end: Source_location;
+}
+
 export interface Node {
     word: Scanner.Scanned_word;
     state: number;
     production_rule_index: number | undefined;
     children: Node[];
-    source_location?: Source_location;
+    source_range?: Source_range;
 }
 
 export function create_empty_node(): Node {

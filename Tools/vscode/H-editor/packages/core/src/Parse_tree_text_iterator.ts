@@ -308,27 +308,6 @@ function is_first_child_with_text(
     return result !== undefined ? result.node === target_node : false;
 }
 
-export function add_source_locations_to_parse_tree_nodes(
-    root: Parser_node.Node,
-    text: string
-): void {
-    for (let iterator = begin(root, text); iterator.node !== undefined; iterator = next(iterator)) {
-        iterator.node.source_location = { line: iterator.line, column: iterator.column };
-
-        for (let node_position_index = iterator.node_position.length - 1; node_position_index >= 0; --node_position_index) {
-            const ancestor_node_position = iterator.node_position.slice(0, node_position_index);
-            const ancestor_node = Parser_node.get_node_at_position(root, ancestor_node_position);
-
-            if (is_first_child_with_text(root, ancestor_node, ancestor_node_position, iterator.node)) {
-                ancestor_node.source_location = { line: iterator.line, column: iterator.column };
-            }
-            else {
-                break;
-            }
-        }
-    }
-}
-
 export function get_node_source_location(
     root: Parser_node.Node,
     text: string,

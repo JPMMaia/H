@@ -8,33 +8,11 @@ import * as Parse_tree_text_iterator from "./Parse_tree_text_iterator";
 import * as Parser from "./Parser";
 import * as Scanner from "./Scanner";
 import * as Storage_cache from "./Storage_cache";
+import * as Text_change from "./Text_change";
 
 function run_test(language_description: Language.Description, input_text: string): Core_intermediate_representation.Module {
-    const scanned_words = Scanner.scan(input_text, 0, input_text.length, { line: 1, column: 1 });
-
-    const parse_tree_result = Parser.parse_incrementally(
-        "",
-        undefined,
-        undefined,
-        scanned_words,
-        undefined,
-        language_description.actions_table,
-        language_description.go_to_table,
-        language_description.array_infos,
-        language_description.map_word_to_terminal
-    );
-
-    if (parse_tree_result.status !== Parser.Parse_status.Accept) {
-        const messages = parse_tree_result.diagnostics.map(value => value.message).join("\n");
-        console.log(`Failed to parse:\n${messages}`);
-        process.exit(-1);
-    }
-
-    const parse_tree = (parse_tree_result.changes[0].value as Parser.Modify_change).new_node;
-    Parse_tree_text_iterator.add_source_locations_to_parse_tree_nodes(parse_tree, input_text);
-
-    const module = Parse_tree_convertor.parse_tree_to_module(parse_tree, language_description.mappings);
-    return module;
+    const result = Text_change.full_parse_with_source_locations(language_description, "", input_text, true);
+    return result.module;
 }
 
 describe("Addition of Source_location", () => {

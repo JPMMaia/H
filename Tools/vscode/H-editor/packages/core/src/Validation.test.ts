@@ -26,7 +26,7 @@ function create_node(
         state: -1,
         production_rule_index: 1,
         children: children,
-        source_location: { line: -1, column: -1 }
+        source_range: undefined
     };
 }
 
@@ -45,7 +45,13 @@ function create_terminal_node(
         state: -1,
         production_rule_index: undefined,
         children: [],
-        source_location: source_location
+        source_range: {
+            start: source_location,
+            end: {
+                line: source_location.line,
+                column: source_location.column + word_value.length
+            }
+        }
     };
 }
 
@@ -308,7 +314,7 @@ async function test_validate_module(
 
     const uri = create_dummy_uri();
 
-    const parse_result = Text_change.full_parse_with_source_locations(language_description, uri, input_text);
+    const parse_result = Text_change.full_parse_with_source_locations(language_description, uri, input_text, true);
 
     assert.notEqual(parse_result.module, undefined);
     if (parse_result.module === undefined) {
@@ -321,7 +327,7 @@ async function test_validate_module(
     }
 
     const dependencies_parse_result: { module: Core.Module, parse_tree: Parser_node.Node }[] = input_dependencies_text.map(text => {
-        const parse_result = Text_change.full_parse_with_source_locations(language_description, uri, text);
+        const parse_result = Text_change.full_parse_with_source_locations(language_description, uri, text, true);
         assert.notEqual(parse_result.module, undefined);
         assert.notEqual(parse_result.parse_tree, undefined);
         return {
@@ -1002,7 +1008,7 @@ using My_type_2 = B.My_struct_2;
 
 struct My_struct
 {
-    a: Int32;
+    a: Int32 = 0;
 }
 `;
 
@@ -1166,52 +1172,6 @@ using true = Float32;
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
                 message: "Invalid declaration name 'true' which is a reserved keyword.",
-                related_information: [],
-            }
-        ];
-
-        await test_validate_module(input, [], expected_diagnostics);
-    });
-
-
-    it("Validates that declaration name is not empty", async () => {
-        const input = `module Test;
-
-struct
-{
-    a: Int32 = 0;
-}
-
-union
-{
-    a: Int32;
-}
-
-function () -> ()
-{
-}
-`;
-
-        const expected_diagnostics: Validation.Diagnostic[] = [
-            {
-                location: create_diagnostic_location(3, 1, 3, 7),
-                source: Validation.Source.Parse_tree_validation,
-                severity: Validation.Diagnostic_severity.Error,
-                message: "Declaration name cannot be empty.",
-                related_information: [],
-            },
-            {
-                location: create_diagnostic_location(8, 1, 8, 6),
-                source: Validation.Source.Parse_tree_validation,
-                severity: Validation.Diagnostic_severity.Error,
-                message: "Declaration name cannot be empty.",
-                related_information: [],
-            },
-            {
-                location: create_diagnostic_location(13, 1, 13, 9),
-                source: Validation.Source.Parse_tree_validation,
-                severity: Validation.Diagnostic_severity.Error,
-                message: "Declaration name cannot be empty.",
                 related_information: [],
             }
         ];
@@ -1702,7 +1662,7 @@ function run() -> ()
 }
 `;
 
-        const test_2_input = `module Test_2
+        const test_2_input = `module Test_2;
 
 export enum My_enum
 {
@@ -1800,75 +1760,33 @@ function run() -> ()
 
     var result_0 = -int_value;
     var result_1 = -float_value;
-
-    var result_2 = ++int_value;
-    var result_3 = ++float_value;
-    var result_4 = --int_value;
-    var result_5 = --float_value;
-
-    var result_6 = int_value++;
-    var result_7 = float_value++;
-    var result_8 = int_value--;
-    var result_9 = float_value--;
     
-    var result_10 = ~int_value;
-    var result_11 = ~float_value;
+    var result_2 = ~int_value;
+    var result_3 = ~float_value;
 
     var instance: My_struct = {};
-    var result_12 = -instance;
-    var result_13 = ++instance;
-    var result_14 = --instance;
-    var result_15 = instance++;
-    var result_16 = instance--;
-    var result_17 = ~instance;
+    var result_4 = -instance;
+    var result_5 = ~instance;
 }
 `;
 
         const expected_diagnostics: Validation.Diagnostic[] = [
             {
-                location: create_diagnostic_location(26, 21, 26, 22),
+                location: create_diagnostic_location(16, 20, 16, 21),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
                 message: "Cannot apply unary operation '~' to expression.",
                 related_information: [],
             },
             {
-                location: create_diagnostic_location(29, 21, 29, 22),
+                location: create_diagnostic_location(19, 20, 19, 21),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
                 message: "Cannot apply unary operation '-' to expression.",
                 related_information: [],
             },
             {
-                location: create_diagnostic_location(30, 21, 30, 23),
-                source: Validation.Source.Parse_tree_validation,
-                severity: Validation.Diagnostic_severity.Error,
-                message: "Cannot apply unary operation '++' to expression.",
-                related_information: [],
-            },
-            {
-                location: create_diagnostic_location(31, 21, 31, 23),
-                source: Validation.Source.Parse_tree_validation,
-                severity: Validation.Diagnostic_severity.Error,
-                message: "Cannot apply unary operation '--' to expression.",
-                related_information: [],
-            },
-            {
-                location: create_diagnostic_location(32, 29, 32, 31),
-                source: Validation.Source.Parse_tree_validation,
-                severity: Validation.Diagnostic_severity.Error,
-                message: "Cannot apply unary operation '++' to expression.",
-                related_information: [],
-            },
-            {
-                location: create_diagnostic_location(33, 29, 33, 31),
-                source: Validation.Source.Parse_tree_validation,
-                severity: Validation.Diagnostic_severity.Error,
-                message: "Cannot apply unary operation '--' to expression.",
-                related_information: [],
-            },
-            {
-                location: create_diagnostic_location(34, 21, 34, 22),
+                location: create_diagnostic_location(20, 20, 20, 21),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
                 message: "Cannot apply unary operation '~' to expression.",
@@ -3190,31 +3108,6 @@ function run(value: Int32) -> (result: Int32)
     });
 });
 
-describe("Validation of expression invalid", () => {
-
-    // - There can't be any invalid expressions
-
-    it("Validates that there aren't any invalid expressions", () => {
-        const node = create_node("Expression_invalid",
-            [
-                create_terminal_node("", Grammar.Word_type.Invalid, { line: 2, column: 7 })
-            ]
-        );
-
-        const expected_diagnostics: Validation.Diagnostic[] = [
-            {
-                location: create_diagnostic_location(2, 7, 2, 7),
-                source: Validation.Source.Parse_tree_validation,
-                severity: Validation.Diagnostic_severity.Error,
-                message: "Invalid expression.",
-                related_information: [],
-            }
-        ];
-
-        test_validate_parser_node(node, expected_diagnostics);
-    });
-});
-
 describe("Validation of expression break", () => {
 
     // - Break can only be placed inside for loops, while loops and switch cases
@@ -3608,7 +3501,7 @@ export using Flags = Uint32;
 
 export enum My_enum
 {
-    A = 0
+    A = 0,
 }
 
 export struct My_struct

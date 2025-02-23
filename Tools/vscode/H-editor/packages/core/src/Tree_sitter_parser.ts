@@ -86,9 +86,15 @@ export function to_parser_node(node: Node, add_source_location = true): Parser_n
         state: node.parseState,
         production_rule_index: scanned_word.type === Grammar.Word_type.Symbol ? node.grammarId : undefined,
         children: children,
-        source_location: add_source_location ? {
-            line: scanned_word.source_location.line,
-            column: scanned_word.source_location.column,
+        source_range: add_source_location ? {
+            start: {
+                line: node.startPosition.row + 1,
+                column: node.startPosition.column + 1,
+            },
+            end: {
+                line: node.endPosition.row + 1,
+                column: node.endPosition.column + 1,
+            }
         } : undefined
     };
 }

@@ -26,7 +26,7 @@ if (command === "read") {
         (language_description: Language.Description) => {
             const parse_tree = Parse_tree_convertor.module_to_parse_tree(module, language_description.production_rules, language_description.mappings);
 
-            const output_text = parse_tree !== undefined ? Text_formatter.to_string(parse_tree, undefined, []) : "";
+            const output_text = parse_tree !== undefined ? Text_formatter.to_unformatted_text(parse_tree) : "";
 
             process.stdout.write(output_text);
         }
