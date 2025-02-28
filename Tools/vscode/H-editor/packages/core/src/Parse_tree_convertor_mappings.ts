@@ -3414,7 +3414,7 @@ function node_to_expression_if(node: Parser_node.Node): Core_intermediate_repres
     return if_expression;
 }
 
-function node_to_expression_instantiate(node: Parser_node.Node): Core_intermediate_representation.Instantiate_expression {
+export function node_to_expression_instantiate(node: Parser_node.Node): Core_intermediate_representation.Instantiate_expression {
 
     const type_node = node.children.find(child => child.word.value === "explicit");
     const type = type_node !== undefined ? Core_intermediate_representation.Instantiate_expression_type.Explicit : Core_intermediate_representation.Instantiate_expression_type.Default;

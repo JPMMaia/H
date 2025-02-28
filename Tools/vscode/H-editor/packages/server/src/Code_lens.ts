@@ -44,7 +44,7 @@ export async function create(
 
     const code_lens: vscode.CodeLens[] = [];
 
-    let iterator = Parse_tree_text_iterator.go_to_next_node_position(start_node_iterator, [1, 0, 2]);
+    let iterator = Parse_tree_text_iterator.go_to_next_node_position(start_node_iterator, [1]);
 
     while (iterator.node !== undefined) {
         const struct_ancestor = Parser_node.get_ancestor_with_name(iterator.root, iterator.node_position, "Struct");

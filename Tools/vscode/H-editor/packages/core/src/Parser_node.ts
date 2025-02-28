@@ -138,13 +138,13 @@ export function is_same_position(first: number[], second: number[]): boolean {
 }
 
 export function is_terminal_node(node: Node): boolean {
-    return node.children.length === 0 && node.production_rule_index === undefined;
+    return node.children.length === 0;
 }
 
 export function get_next_terminal_node(root: Node, current_node: Node, current_node_position: number[]): { node: Node, position: number[] } | undefined {
 
     const is_terminal_node = (node: Node, position: number[]): boolean => {
-        return node.children.length === 0 && node.production_rule_index === undefined;
+        return node.children.length === 0;
     };
 
     return get_next_node_with_condition(root, current_node, current_node_position, is_terminal_node);
@@ -152,7 +152,7 @@ export function get_next_terminal_node(root: Node, current_node: Node, current_n
 
 export function get_next_sibling_terminal_node(root: Node, current_node: Node, current_node_position: number[]): { node: Node, position: number[] } | undefined {
     const is_terminal_node = (node: Node, position: number[]): boolean => {
-        return node.children.length === 0 && node.production_rule_index === undefined;
+        return node.children.length === 0;
     };
 
     return get_next_node_with_condition(root, current_node, current_node_position, is_terminal_node, Iterate_direction.Up);
@@ -344,7 +344,7 @@ export function iterate_forward_with_repetition(root: Node, current_node: Node, 
         };
     }
     else if (direction === Iterate_direction.Down && current_node.children.length === 0) {
-        if (current_node.production_rule_index !== undefined) {
+        if (current_node.children.length > 0) {
             return {
                 next_node: current_node,
                 next_position: current_position,
@@ -496,7 +496,7 @@ export function join_all_child_node_values(node: Node): string {
 
     while (stack.length > 0) {
         const current_node = stack.pop() as Node;
-        if (current_node.children.length === 0 && current_node.production_rule_index === undefined) {
+        if (current_node.children.length === 0) {
             values.push(current_node.word.value);
         }
 

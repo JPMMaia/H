@@ -4,10 +4,10 @@ import * as Parse_tree_convertor from "./Parse_tree_convertor";
 import * as Parse_tree_convertor_mappings from "./Parse_tree_convertor_mappings";
 import * as Parser_node from "./Parser_node";
 import * as Scanner from "./Scanner";
+import { onThrowError } from "./errors";
 
 import * as fs from "fs";
 import * as web_tree_sitter from "web-tree-sitter";
-import { onThrowError } from "./errors";
 
 export type Parser = web_tree_sitter.Parser;
 export type Tree = web_tree_sitter.Tree;
@@ -19,6 +19,7 @@ function find_wasm_file_path(): string {
     const candidate_directories = [
         `${working_directory}`,
         `${working_directory}/dist`,
+        `${__dirname}/dist`,
     ];
 
     for (const directory of candidate_directories) {

@@ -1344,11 +1344,19 @@ export async function find_instantiate_custom_type_reference_from_node(
             const declaration = await get_custom_type_reference_declaration(custom_type_reference, get_core_module);
             if (declaration !== undefined && declaration.declaration.type === Core.Declaration_type.Struct) {
                 const struct_declaration = declaration.declaration.value as Core.Struct_declaration;
-                const parameter_index = get_cursor_parameter_index_at_expression(ancestor_expression_instantiate.position, node_position);
-                if (parameter_index !== -1) {
-                    const type = struct_declaration.member_types[parameter_index];
-                    if (type.data.type === Core.Type_reference_enum.Custom_type_reference) {
-                        return type.data.value as Core.Custom_type_reference;
+
+                const instantiate_member_index = node_position[node_position.length - 3];
+                const instantiate_member_name_position = [0, instantiate_member_index, 0, 0];
+                if (Parser_node.is_valid_position(ancestor_expression_instantiate.node, instantiate_member_name_position)) {
+                    const instantiate_member_name_node = Parser_node.get_node_at_position(ancestor_expression_instantiate.node, instantiate_member_name_position);
+                    const instantiate_member_name = instantiate_member_name_node.word.value;
+
+                    const struct_member_index = struct_declaration.member_names.findIndex(name => name === instantiate_member_name);
+                    if (struct_member_index !== -1) {
+                        const type = struct_declaration.member_types[struct_member_index];
+                        if (type.data.type === Core.Type_reference_enum.Custom_type_reference) {
+                            return type.data.value as Core.Custom_type_reference;
+                        }
                     }
                 }
             }
@@ -1967,6 +1975,19 @@ export function format_text(
     state: Document.State,
     text_change: Text_change_2
 ): Text_change_2 | undefined {
+
+    // TODO parse text as is
+
+    // 1. Get current indentation
+    // 2. (optional) if inside {} or (), check if there are any newlines. If there is, use newlines, otherwise use spaces
+    // 3. Newline approach:
+    //    a) always add newline after ';'
+    //    a) if inside {} use newlines and indentation after every ';' and ','
+    //    b) if inside () use spaces after ','
+    //    a) if { is followed by }, then don't add newline, otherwise add
+    //    c) add space after 'if', 'for', 'switch' and 'while'
+    //    d) add spaces between identifiers
+    //    e) add spaces before and after '->'
 
     const parse_tree = state.diagnostics.length === 0 ? state.valid.parse_tree : state.with_errors?.parse_tree;
     if (parse_tree === undefined) {

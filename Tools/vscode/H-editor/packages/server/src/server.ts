@@ -324,7 +324,7 @@ connection.onDidOpenTextDocument((parameters) => {
 	server_data.document_states.set(parameters.textDocument.uri, document_state);
 
 	try {
-		const new_document_state = Text_change.update(server_data.language_description, document_state, text_changes, parameters.textDocument.text);
+		const new_document_state = Text_change.update(server_data.language_description, document_state, text_changes, parameters.textDocument.text, false, true);
 		server_data.document_states.set(parameters.textDocument.uri, new_document_state);
 	}
 	catch (error: any) {
@@ -377,7 +377,7 @@ connection.onDidChangeTextDocument((parameters) => {
 	const text_after_changes = document.getText();
 
 	try {
-		const new_document_state = Text_change.update(server_data.language_description, document_state, text_changes, text_after_changes);
+		const new_document_state = Text_change.update(server_data.language_description, document_state, text_changes, text_after_changes, false, true);
 		server_data.document_states.set(parameters.textDocument.uri, new_document_state);
 	}
 	catch (error: any) {

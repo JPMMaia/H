@@ -421,7 +421,7 @@ async function get_expression_access_items(
         return [];
     }
 
-    const expression_access = Parse_tree_convertor_mappings.node_to_expression_access(ancestor.node, server_data.language_description.key_to_production_rule_indices);
+    const expression_access = Parse_tree_convertor_mappings.node_to_expression_access(ancestor.node);
     const expression: Core.Expression = {
         data: {
             type: Core.Expression_enum.Access_expression,

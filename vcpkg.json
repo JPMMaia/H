@@ -7,6 +7,7 @@
         "docopt",
         "nlohmann-json",
         "rapidjson",
+        "tree-sitter",
         "xxhash",
         {
             "name": "llvm",

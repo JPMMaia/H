@@ -260,6 +260,7 @@ export function full_parse_with_source_locations(
     }
 
     const core_module = Tree_sitter_parser.to_core_module(core_tree);
+    core_module.source_file_path = document_file_path;
 
     return {
         module: core_module,

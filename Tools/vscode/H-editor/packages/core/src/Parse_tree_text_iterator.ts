@@ -19,7 +19,7 @@ export interface Character_position {
 }
 
 function is_terminal_node_with_text(node: Parser_node.Node, position: number[]): boolean {
-    return node.children.length === 0 && node.production_rule_index === undefined && node.word.value.length > 0;
+    return node.children.length === 0 && node.word.value.length > 0;
 }
 
 export function begin(root: Parser_node.Node, text: string): Iterator {

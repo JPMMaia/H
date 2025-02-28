@@ -9,7 +9,10 @@
     ],
     "outDir": "./out",
     "rootDir": ".",
-    "sourceMap": true
+    "sourceMap": true,
+    "types": [
+      "@types/emscripten"
+    ]
   },
   "include": [
     "packages/core/src/**/*.ts",
