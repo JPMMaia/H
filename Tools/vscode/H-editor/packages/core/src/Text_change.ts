@@ -53,6 +53,7 @@ export function update(
                 module: result.module,
                 parse_tree: result.parse_tree,
                 parse_tree_text_position_cache: result.position_cache,
+                tree_sitter_tree: result.tree_sitter_tree,
                 text: text_after_changes
             };
             state.diagnostics = [];
@@ -63,6 +64,7 @@ export function update(
                 module: result.module !== undefined ? result.module : (state.valid.module !== undefined ? JSON.parse(JSON.stringify(state.valid.module)) : undefined),
                 parse_tree: result.parse_tree !== undefined ? result.parse_tree : (state.valid.parse_tree !== undefined ? JSON.parse(JSON.stringify(state.valid.parse_tree)) : undefined),
                 parse_tree_text_position_cache: result.parse_tree !== undefined ? result.position_cache : state.valid.parse_tree_text_position_cache,
+                tree_sitter_tree: result.tree_sitter_tree,
                 text: text_after_changes
             };
             state.diagnostics = result.diagnostics;
@@ -146,6 +148,7 @@ export function update(
                         module: new_module,
                         parse_tree: new_parse_tree,
                         parse_tree_text_position_cache: new_cache,
+                        tree_sitter_tree: undefined,
                         text: text_after_changes
                     };
                 }
@@ -183,6 +186,7 @@ export function update(
                         module: module_with_errors,
                         parse_tree: parse_tree_with_errors,
                         parse_tree_text_position_cache: new_cache,
+                        tree_sitter_tree: undefined,
                         text: text_after_changes
                     };
                 }
@@ -234,7 +238,7 @@ export function full_parse_with_source_locations(
     document_file_path: string,
     input_text: string,
     add_source_location = true
-): { module: Core.Module | undefined, parse_tree: Parser_node.Node | undefined, diagnostics: Validation.Diagnostic[], position_cache: Parse_tree_text_position_cache.Cache } {
+): { module: Core.Module | undefined, parse_tree: Parser_node.Node | undefined, tree_sitter_tree: Tree_sitter_parser.Tree, diagnostics: Validation.Diagnostic[], position_cache: Parse_tree_text_position_cache.Cache } {
 
     const parser = language_description.parser;
 
@@ -245,18 +249,14 @@ export function full_parse_with_source_locations(
     const position_cache = Parse_tree_text_position_cache.create_empty_cache();
     Parse_tree_text_position_cache.update_cache(position_cache, changes, { range: { start: 0, end: 0 }, text: input_text }, input_text);
 
+    const diagnostics: Validation.Diagnostic[] = [];
+
     if (tree.rootNode.hasError) {
-        const diagnostics = Validation.validate_syntax_errors(document_file_path, tree.language, tree.rootNode);
-        if (diagnostics.length > 0) {
-            return { module: undefined, parse_tree: core_tree, diagnostics: diagnostics, position_cache: position_cache };
-        }
+        diagnostics.push(...Validation.validate_syntax_errors(document_file_path, tree.language, tree.rootNode));
     }
 
     {
-        const diagnostics = validate_parse_changes(document_file_path, changes, position_cache);
-        if (diagnostics.length > 0) {
-            return { module: undefined, parse_tree: core_tree, diagnostics: diagnostics, position_cache: position_cache };
-        }
+        diagnostics.push(...validate_parse_changes(document_file_path, changes, position_cache));
     }
 
     const core_module = Tree_sitter_parser.to_core_module(core_tree);
@@ -265,7 +265,8 @@ export function full_parse_with_source_locations(
     return {
         module: core_module,
         parse_tree: core_tree,
-        diagnostics: [], // TODO
+        tree_sitter_tree: tree,
+        diagnostics: diagnostics,
         position_cache: Parse_tree_text_position_cache.create_empty_cache()
     };
 }

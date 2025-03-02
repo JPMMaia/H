@@ -19,9 +19,11 @@ suite("Should do completion", () => {
 				{ label: "enum", kind: vscode.CompletionItemKind.Keyword },
 				{ label: "export", kind: vscode.CompletionItemKind.Keyword },
 				{ label: "function", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "function_constructor", kind: vscode.CompletionItemKind.Keyword },
 				{ label: "import", kind: vscode.CompletionItemKind.Keyword },
 				{ label: "mutable", kind: vscode.CompletionItemKind.Keyword },
 				{ label: "struct", kind: vscode.CompletionItemKind.Keyword },
+				{ label: "type_constructor", kind: vscode.CompletionItemKind.Keyword },
 				{ label: "union", kind: vscode.CompletionItemKind.Keyword },
 				{ label: "using", kind: vscode.CompletionItemKind.Keyword },
 				{ label: "var", kind: vscode.CompletionItemKind.Keyword },
@@ -37,9 +39,11 @@ suite("Should do completion", () => {
 				{ label: "add_implementation", kind: vscode.CompletionItemKind.Function },
 				{ label: "explicit", kind: vscode.CompletionItemKind.Keyword },
 				{ label: "false", kind: vscode.CompletionItemKind.Value },
+				{ label: "function", kind: vscode.CompletionItemKind.Keyword },
 				{ label: "lhs", kind: vscode.CompletionItemKind.Variable },
 				{ label: "null", kind: vscode.CompletionItemKind.Value },
 				{ label: "rhs", kind: vscode.CompletionItemKind.Variable },
+				{ label: "struct", kind: vscode.CompletionItemKind.Keyword },
 				{ label: "true", kind: vscode.CompletionItemKind.Value },
 			]
 		});

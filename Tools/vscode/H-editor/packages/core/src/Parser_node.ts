@@ -308,6 +308,23 @@ export function get_leftmost_descendant(node: Node, position: number[]): { node:
     };
 }
 
+export function get_previous_sibling(root: Node, position: number[]): { node: Node, position: number[] } | undefined {
+    if (position.length === 0) {
+        return undefined;
+    }
+
+    const child_index = position[position.length - 1];
+    if (child_index === 0) {
+        return undefined;
+    }
+
+    const parent_position = get_parent_position(position);
+    const previous_sibling_position = [...parent_position, child_index - 1];
+
+    const previous_sibling = get_node_at_position(root, previous_sibling_position);
+    return { node: previous_sibling, position: previous_sibling_position };
+}
+
 export enum Iterate_direction {
     Down,
     Up

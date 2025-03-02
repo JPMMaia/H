@@ -10,6 +10,7 @@ import * as Parser from "./Parser";
 import * as Parser_node from "./Parser_node";
 import * as Scanner from "./Scanner";
 import * as Text_formatter from "./Text_formatter";
+import * as Tree_sitter_parser from "./Tree_sitter_parser";
 import * as Validation from "./Validation";
 
 export interface Text_range {
@@ -26,6 +27,7 @@ export interface Module_state {
     module: Core_intermediate_representation.Module;
     parse_tree: Parser_node.Node | undefined;
     parse_tree_text_position_cache: Parse_tree_text_position_cache.Cache;
+    tree_sitter_tree: Tree_sitter_parser.Tree | undefined;
     text: string;
 }
 
@@ -68,6 +70,7 @@ export function create_empty_state(document_file_path: string, production_rules:
             module: module,
             parse_tree: parse_tree,
             parse_tree_text_position_cache: parse_tree_text_position_cache,
+            tree_sitter_tree: undefined,
             text: text,
         },
         with_errors: undefined,

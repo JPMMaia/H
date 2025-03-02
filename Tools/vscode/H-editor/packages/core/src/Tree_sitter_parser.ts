@@ -13,6 +13,8 @@ export type Parser = web_tree_sitter.Parser;
 export type Tree = web_tree_sitter.Tree;
 export type Node = web_tree_sitter.Node;
 
+const g_debug = false;
+
 function find_wasm_file_path(): string {
 
     const working_directory = process.cwd();
@@ -103,4 +105,160 @@ export function to_parser_node(node: Node, add_source_location = true): Parser_n
 export function to_core_module(root: Parser_node.Node): Core.Module {
     const mappings = Parse_tree_convertor_mappings.create_mapping();
     return Parse_tree_convertor.parse_tree_to_module(root, mappings);
+}
+
+export function get_lookaheads(tree: Tree, source_location: { line: number, column: number }): string[] {
+    const cursor = tree.walk();
+
+    if (contains_source_location(cursor.startPosition, cursor.endPosition, source_location)) {
+        return get_lookaheads_of_iterator(cursor, source_location);
+    }
+
+    return [];
+}
+
+function get_lookaheads_of_iterator(cursor: web_tree_sitter.TreeCursor, source_location: { line: number, column: number }): string[] {
+
+    //cursor = cursor.copy();
+
+    const goal_position: { row: number, column: number } = {
+        row: source_location.line,
+        column: source_location.column
+    };
+
+    /*let target_node = cursor.currentNode;
+    while (cursor.gotoFirstChildForPosition(goal_position)) {
+        target_node = cursor.currentNode;
+    }*/
+
+    const went_to_first_child = cursor.gotoFirstChild();
+    if (went_to_first_child) {
+
+        if (g_debug) {
+            console.log(cursor.currentNode.grammarType);
+        }
+
+        if (contains_source_location(cursor.startPosition, cursor.endPosition, source_location)) {
+            return get_lookaheads_of_iterator(cursor, source_location);
+        }
+
+        let went_to_next_sibling = cursor.gotoNextSibling();
+        while (went_to_next_sibling) {
+
+            if (g_debug) {
+                console.log(cursor.currentNode.grammarType);
+            }
+
+            if (contains_source_location(cursor.startPosition, cursor.endPosition, source_location)) {
+                return get_lookaheads_of_iterator(cursor, source_location);
+            }
+
+            went_to_next_sibling = cursor.gotoNextSibling();
+        }
+    }
+
+    const target_leaf_node = cursor.currentNode;
+    const target_parent_node = target_leaf_node.parent;
+    const next_leaf_or_missing_node = get_next_leaf_or_missing_node(target_leaf_node);
+
+    const lookaheads: string[] = [];
+
+    if (target_leaf_node.nextParseState !== 0) {
+        lookaheads.push(...get_lookaheads_from_node(target_leaf_node, target_leaf_node.nextParseState));
+    }
+    else if (target_parent_node.nextParseState !== 0) {
+        lookaheads.push(...get_lookaheads_from_node(target_parent_node, target_parent_node.nextParseState));
+    }
+    else {
+        lookaheads.push("Identifier");
+    }
+
+    if (next_leaf_or_missing_node !== null && next_leaf_or_missing_node.isMissing) {
+        lookaheads.push(next_leaf_or_missing_node.grammarType);
+    }
+
+    return lookaheads;
+}
+
+function get_next_leaf_or_missing_node(node: Node): Node | null {
+
+    let current_node = node;
+
+    while (current_node.childCount > 0) {
+        current_node = current_node.children[0];
+        if (current_node.childCount === 0 || current_node.isMissing) {
+            return current_node;
+        }
+    }
+
+    const next_sibling = get_next_sibling_node(current_node);
+    if (next_sibling !== null) {
+        if (next_sibling.childCount === 0 || current_node.isMissing) {
+            return next_sibling;
+        }
+
+        return get_next_leaf_or_missing_node(next_sibling);
+    }
+
+    current_node = current_node.parent;
+    while (true) {
+        if (current_node === null) {
+            return null;
+        }
+
+        const next_sibling = get_next_sibling_node(current_node);
+        if (next_sibling !== null) {
+            if (next_sibling.childCount === 0 || next_sibling.isMissing) {
+                return next_sibling;
+            }
+
+            return get_next_leaf_or_missing_node(next_sibling);
+        }
+
+        current_node = current_node.parent;
+    }
+}
+
+function get_next_sibling_node(node: Node): Node | null {
+    if (node.parent === null) {
+        return null;
+    }
+
+    const child_id = node.id;
+    const child_index = node.parent.children.findIndex(child => child.id === child_id);
+    if (child_index !== -1 && child_index + 1 < node.parent.childCount) {
+        const next_sibling = node.parent.children[child_index + 1];
+        return next_sibling;
+    }
+
+    return null;
+}
+
+function get_lookaheads_from_node(node: Node, parse_state: number): string[] {
+    const lookaheads: string[] = [];
+
+    const lookahead_iterator = node.tree.language.lookaheadIterator(parse_state);
+    if (lookahead_iterator !== null) {
+        for (const lookahead of lookahead_iterator) {
+            lookaheads.push(lookahead);
+        }
+    }
+
+    return lookaheads;
+}
+
+function contains_source_location(start_position: web_tree_sitter.Point, end_position: web_tree_sitter.Point, source_location: { line: number, column: number }): boolean {
+
+    const converted_source_location: { line: number, column: number } = {
+        line: source_location.line - 1,
+        column: source_location.column - 1
+    };
+
+    if ((start_position.row < converted_source_location.line) || (start_position.row === converted_source_location.line && start_position.column <= converted_source_location.column)) {
+        if ((converted_source_location.line < end_position.row) || (converted_source_location.line === end_position.row && converted_source_location.column < end_position.column)) {
+            return true;
+        }
+    }
+
+    return false;
 }

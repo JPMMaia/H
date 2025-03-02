@@ -12,6 +12,7 @@ import * as Parse_tree_convertor_mappings from "../../core/src/Parse_tree_conver
 import * as Parse_tree_text_iterator from "../../core/src/Parse_tree_text_iterator";
 import * as Scan_new_changes from "../../core/src/Scan_new_changes";
 import * as Scanner from "../../core/src/Scanner";
+import * as Tree_sitter_parser from "../../core/src/Tree_sitter_parser";
 
 export async function on_completion(
     text_document_position: vscode.TextDocumentPositionParams,
@@ -53,17 +54,25 @@ export async function on_completion(
             ) :
             undefined;
 
+    if (before_cursor_node_iterator === undefined) {
+        return [
+            {
+                label: "module",
+                kind: vscode.CompletionItemKind.Keyword,
+                data: 0
+            }
+        ];
+    }
+
     const after_cursor = (before_cursor_node_iterator !== undefined && before_cursor_node_iterator.node !== undefined) ? Parser_node.get_next_terminal_node(before_cursor_node_iterator.root, before_cursor_node_iterator.node, before_cursor_node_iterator.node_position) : undefined;
     const after_cursor_node_position = after_cursor !== undefined ? after_cursor.position : [];
 
-    const allowed_labels = Parser.get_allowed_labels(
-        root,
-        after_cursor_node_position.length > 0 ? after_cursor_node_position : undefined,
-        server_data.language_description.array_infos,
-        server_data.language_description.actions_table
-    );
-
-    const can_be_identifier = is_identifier_allowed(allowed_labels);
+    const tree = document_state.with_errors !== undefined ? document_state.with_errors.tree_sitter_tree : document_state.valid.tree_sitter_tree;
+    const lookaheads = Tree_sitter_parser.get_lookaheads(tree, { line: before_cursor_node_iterator.line, column: before_cursor_node_iterator.column });
+    //const can_be_identifier = lookaheads.find(lookahead => lookahead === "Identifier") !== undefined;
+    const can_be_identifier = true;
+    const allowed_keywords = lookaheads.filter(lookahead => lookahead[0] !== lookahead[0].toUpperCase());
+    const allowed_symbols = lookaheads.filter(lookahead => lookahead[0] === lookahead[0].toUpperCase());
 
     const items: vscode.CompletionItem[] = [];
 
@@ -87,7 +96,7 @@ export async function on_completion(
                 }
             }
             else {
-                items.push(...get_keyword_and_value_items(allowed_labels, server_data));
+                items.push(...get_keyword_and_value_items(allowed_symbols, allowed_keywords));
                 items.push(...get_value_declaration_items(core_module, false));
                 items.push(...get_function_local_variable_items(core_module, before_cursor_node_iterator));
                 items.push(...get_module_import_alias_items(core_module));
@@ -98,27 +107,41 @@ export async function on_completion(
                 items.push(...get_import_module_name_items(project_data, text_document_position.textDocument.uri, core_module));
             }
         }
-        else if (is_cursor_at_module_body(allowed_labels)) {
-            items.push(...get_keyword_and_value_items(allowed_labels, server_data));
+        else if (is_cursor_at_module_body(allowed_keywords)) {
+            items.push(...get_keyword_and_value_items(allowed_symbols, allowed_keywords));
         }
     }
     else {
-        items.push(...get_keyword_and_value_items(allowed_labels, server_data));
+        items.push(...get_keyword_and_value_items(allowed_symbols, allowed_keywords));
     }
 
-    return items;
+    const final_items = remove_duplicates(items);
+    return final_items;
+}
+
+function remove_duplicates(items: vscode.CompletionItem[]): vscode.CompletionItem[] {
+    const output: vscode.CompletionItem[] = [];
+
+    for (const item of items) {
+        const found = output.find(value => value.label === item.label);
+        if (found === undefined) {
+            output.push(item);
+        }
+    }
+
+    return output;
 }
 
 function get_keyword_and_value_items(
-    allowed_labels: string[],
-    server_data: Server_data.Server_data
+    allowed_symbols: string[],
+    allowed_keywords: string[]
 ): vscode.CompletionItem[] {
 
     const items: vscode.CompletionItem[] = [];
 
-    for (const label of allowed_labels) {
-        switch (label) {
-            case "boolean":
+    for (const symbol of allowed_symbols) {
+        switch (symbol) {
+            case "Boolean":
                 items.push(
                     {
                         label: "true",
@@ -134,34 +157,28 @@ function get_keyword_and_value_items(
                     }
                 );
                 continue;
-            case "null":
+            case "Expression_null_pointer":
                 items.push(
                     {
-                        label: label,
+                        label: "null",
                         kind: vscode.CompletionItemKind.Value,
                         data: 0
                     }
                 );
                 continue;
-            case "comment":
-            case "identifier":
-            case "number":
-            case "string":
+            default:
                 continue;
         }
+    }
 
-        if (!server_data.language_description.terminals.has(label)) {
-            continue;
-        }
+    for (const keyword of allowed_keywords) {
 
-        if (!Scanner.is_alphanumeric(label)) {
-            continue;
-        }
+        const kind = keyword === "true" || keyword === "false" || keyword === "null" ? vscode.CompletionItemKind.Value : vscode.CompletionItemKind.Keyword;
 
         items.push(
             {
-                label: label,
-                kind: vscode.CompletionItemKind.Keyword,
+                label: keyword,
+                kind: kind,
                 data: 0
             }
         );
@@ -358,6 +375,36 @@ function get_module_import_alias_items(
     });
 }
 
+function get_module_alias_name(
+    root: Parser_node.Node,
+    before_cursor_node_position: number[]
+): string | undefined {
+    const parent_node_position = Parser_node.get_parent_position(before_cursor_node_position);
+    const parent_node = Parser_node.get_node_at_position(root, parent_node_position);
+    if (parent_node.word.value === "ERROR") {
+        const previous_sibling = Parser_node.get_previous_sibling(root, before_cursor_node_position);
+        if (previous_sibling !== undefined) {
+            if (previous_sibling.node.word.value === "Module_type_module_name") {
+                const module_alias_name_node = previous_sibling.node.children[0];
+                return module_alias_name_node.word.value;
+            }
+        }
+    }
+
+    const module_type_node = Parser_node.get_ancestor_with_name(root, before_cursor_node_position, "Module_type");
+    if (module_type_node !== undefined) {
+        if (module_type_node.node.children.length > 0) {
+            const module_alias_name_node = module_type_node.node.children[0];
+            if (module_alias_name_node.children.length > 0) {
+                const module_alias_name = module_alias_name_node.children[0].word.value;
+                return module_alias_name;
+            }
+        }
+    }
+
+    return undefined;
+}
+
 async function get_import_module_type_items(
     server_data: Server_data.Server_data,
     workspace_folder_uri: string,
@@ -366,21 +413,10 @@ async function get_import_module_type_items(
     before_cursor_node_position: number[]
 ): Promise<vscode.CompletionItem[]> {
 
-    const module_type_node = Parser_node.get_ancestor_with_name(root, before_cursor_node_position, "Module_type");
-    if (module_type_node === undefined) {
+    const module_alias_name = get_module_alias_name(root, before_cursor_node_position);
+    if (module_alias_name === undefined) {
         return [];
     }
-
-    if (module_type_node.node.children.length === 0) {
-        return [];
-    }
-
-    const module_alias_name_node = module_type_node.node.children[0];
-    if (module_alias_name_node.children.length === 0) {
-        return [];
-    }
-
-    const module_alias_name = module_alias_name_node.children[0].word.value;
 
     const import_alias = core_module.imports.find(value => value.alias === module_alias_name);
     if (import_alias === undefined) {
@@ -578,7 +614,7 @@ function get_union_member_completion_items(
 function is_identifier_allowed(
     allowed_labels: string[]
 ): boolean {
-    return allowed_labels.find(label => label === "identifier") !== undefined;
+    return allowed_labels.find(label => label === "Identifier") !== undefined;
 }
 
 function is_inside_statements_block(
@@ -593,15 +629,17 @@ function is_inside_statements_block(
         const parent_node = Parser_node.get_node_at_position(root, parent_position);
 
         switch (parent_node.word.value) {
-            case "Statements":
+            case "Block":
             case "Expression_block_statements":
             case "Expression_for_loop_statements":
             case "Expression_if_statements":
-            case "Expression_switch_case_statements":
+            case "Expression_switch_case":
             case "Expression_while_loop_statements":
                 return true;
             case "Function":
             case "Module_body":
+
+
                 return false;
         }
 
@@ -695,7 +733,25 @@ function is_cursor_at_type(
 
     const before_cursor_node = Parser_node.get_node_at_position(root, before_cursor_node_position);
 
-    if (before_cursor_node.word.value === ":" || before_cursor_node.word.value === "as" || before_cursor_node.word.value === "=") {
+    const parent_node_position = Parser_node.get_parent_position(before_cursor_node_position);
+    const parent_position = Parser_node.get_node_at_position(root, parent_node_position);
+    if (parent_position.word.value === "ERROR") {
+        const previous_sibling = Parser_node.get_previous_sibling(root, before_cursor_node_position);
+        if (previous_sibling !== undefined) {
+            if (previous_sibling.node.word.value === "Module_type_module_name" && before_cursor_node.word.value === ".") {
+                return true;
+            }
+            else if (previous_sibling.node.word.value === "Alias_name" && before_cursor_node.word.value === "=") {
+                return true;
+            }
+        }
+    }
+
+    if (before_cursor_node.word.value === ":" || before_cursor_node.word.value === "as") {
+        return true;
+    }
+
+    if (before_cursor_node.word.value === "=") {
         if (Parser_node.has_ancestor_with_name(root, after_cursor_node_position, ["Type"])) {
             return true;
         }
