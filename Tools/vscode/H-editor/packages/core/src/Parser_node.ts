@@ -11,6 +11,19 @@ export interface Source_range {
     end: Source_location;
 }
 
+export function create_source_range(start_line: number, start_column: number, end_line: number, end_column: number): Source_range {
+    return {
+        start: {
+            line: start_line,
+            column: start_column
+        },
+        end: {
+            line: end_line,
+            column: end_column
+        }
+    };
+}
+
 export interface Node {
     word: Scanner.Scanned_word;
     state: number;

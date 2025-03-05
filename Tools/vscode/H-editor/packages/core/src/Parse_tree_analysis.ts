@@ -12,6 +12,116 @@ import * as Scanner from "./Scanner";
 import * as Text_formatter from "./Text_formatter";
 import * as Type_utilities from "./Type_utilities";
 
+export enum Symbol_type {
+    Module_alias,
+    Type,
+    Value,
+}
+
+export interface Symbol_information {
+    symbol_type: Symbol_type;
+    type: Core.Type_reference[] | undefined;
+    source_range: Parser_node.Source_range | undefined;
+}
+
+export function create_module_alias_symbol(
+    source_range: Parser_node.Source_range | undefined
+): Symbol_information {
+    return {
+        symbol_type: Symbol_type.Module_alias,
+        type: undefined,
+        source_range: source_range
+    };
+}
+
+export function create_type_symbol(
+    type: Core.Type_reference[],
+    source_range: Parser_node.Source_range | undefined
+): Symbol_information {
+    return {
+        symbol_type: Symbol_type.Type,
+        type: type,
+        source_range: source_range
+    };
+}
+
+export function create_value_symbol(
+    type: Core.Type_reference[] | undefined,
+    source_range: Parser_node.Source_range | undefined
+): Symbol_information {
+    return {
+        symbol_type: Symbol_type.Value,
+        type: type,
+        source_range: source_range
+    };
+}
+
+export function get_symbol_information(
+    root: Parser_node.Node,
+    scope_node_position: number[] | undefined,
+    variable_name: string
+): Symbol_information | undefined {
+
+    if (scope_node_position !== undefined && scope_node_position.length >= 1) {
+        const declaration_node_position = [scope_node_position[0]];
+        const declaration_node = Parser_node.get_node_at_position(root, declaration_node_position);
+
+        const descendant_function = Parser_node.find_descendant_position_if({ node: declaration_node, position: declaration_node_position }, child => child.word.value === "Function");
+        if (descendant_function !== undefined) {
+            const function_declaration = Parser_node.find_descendant_position_if(descendant_function, child => child.word.value === "Function_declaration");
+
+            const function_input_parameters = Parser_node.find_descendant_position_if(function_declaration, child => child.word.value === "Function_input_parameters");
+            const input_parameter_symbol = get_symbol_information_in_function_parameters(function_input_parameters, variable_name);
+            if (input_parameter_symbol !== undefined) {
+                return input_parameter_symbol;
+            }
+
+            const function_output_parameters = Parser_node.find_descendant_position_if(function_declaration, child => child.word.value === "Function_output_parameters");
+            const output_parameter_symbol = get_symbol_information_in_function_parameters(function_output_parameters, variable_name);
+            if (output_parameter_symbol !== undefined) {
+                return output_parameter_symbol;
+            }
+
+            const function_definition = Parser_node.find_descendant_position_if(descendant_function, child => child.word.value === "Function_definition");
+            const block = Parser_node.get_child(function_definition, 0);
+
+
+        }
+    }
+
+    // 1. If inside a function:
+    // - Check all previous statements with the current scope
+    // - Check function input parameter names
+
+    // 2. Check for declaration names
+
+    // 3. Check for import alias names
+
+    return undefined;
+}
+
+function get_symbol_information_in_function_parameters(
+    parameters_node: { node: Parser_node.Node, position: number[] },
+    variable_name: string
+): Symbol_information | undefined {
+    const parameters = Parser_node.find_descendants_if(parameters_node, child => child.word.value === "Function_parameter");
+
+    const parameter_index = parameters.findIndex(parameter => parameter.node.children[0].children[0].word.value === variable_name);
+    if (parameter_index !== -1) {
+        const parameter = parameters[parameter_index];
+
+        const parameter_name = Parser_node.find_descendant_position_if(parameter, child => child.word.value === "Function_parameter_name");
+        const source_range = parameter_name.node.source_range;
+
+        const parameter_type = Parser_node.find_descendant_position_if(parameter, child => child.word.value === "Function_parameter_type");
+        const parameter_type_value = Parse_tree_convertor_mappings.node_to_type_reference(parameter_type.node.children[0]);
+
+        return create_value_symbol(parameter_type_value, source_range);
+    }
+
+    return undefined;
+}
+
 export function find_statement(
     core_module: Core.Module,
     root: Parser_node.Node,

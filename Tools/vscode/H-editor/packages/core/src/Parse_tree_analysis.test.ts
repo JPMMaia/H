@@ -12,6 +12,8 @@ import * as Parse_tree_analysis from "./Parse_tree_analysis";
 import * as Parse_tree_convertor from "./Parse_tree_convertor";
 import * as Text_change from "./Text_change";
 import * as Text_formatter from "./Text_formatter";
+import * as Tree_sitter_parser from "./Tree_sitter_parser";
+import * as Type_utilities from "./Type_utilities";
 
 describe("Parse_tree_analysis.find_variable_info", () => {
 
@@ -672,4 +674,179 @@ function create_core_module_from_text(
     const document_state = Document.create_empty_state("", language_description.production_rules);
     const new_document_state = Text_change.update(language_description, document_state, text_changes, text);
     return new_document_state.valid.module;
+}
+
+
+describe("Parse_tree_analysis.get_symbol_information", () => {
+
+    it("Finds symbol information of variable", async () => {
+        const input_text = `module My_module;
+
+function run() -> ()
+{
+    var value = 0;
+    // scope
+}
+`;
+
+        const expected_symbol_information = Parse_tree_analysis.create_value_symbol(
+            [Type_utilities.create_integer_type(32, true)],
+            Parser_node.create_source_range(5, 9, 5, 14)
+        );
+
+        await test_get_symbol_information(input_text, "value", expected_symbol_information);
+    });
+
+    it("Finds symbol information of enum", async () => {
+        const input_text = `module My_module;
+
+enum Precision
+{
+    Low,
+}
+`;
+
+        const expected_symbol_information = Parse_tree_analysis.create_type_symbol(
+            [Type_utilities.create_custom_type_reference("My_module", "Precision")],
+            Parser_node.create_source_range(3, 6, 3, 15)
+        );
+
+        await test_get_symbol_information(input_text, "Precision", expected_symbol_information);
+    });
+
+    it("Finds symbol information of enum instance", async () => {
+        const input_text = `module My_module;
+
+enum Precision
+{
+    Low,
+}
+
+function run() -> ()
+{
+    var value = Precision.Low;
+    // scope
+}
+`;
+
+        const expected_symbol_information = Parse_tree_analysis.create_value_symbol(
+            [Type_utilities.create_custom_type_reference("My_module", "Precision")],
+            Parser_node.create_source_range(10, 9, 10, 14)
+        );
+
+        await test_get_symbol_information(input_text, "value", expected_symbol_information);
+    });
+
+    it("Finds symbol information of struct instance", async () => {
+        const input_text = `module My_module;
+
+struct My_struct
+{
+    a: Int32 = 0;
+}
+
+function run() -> ()
+{
+    var value: My_struct = {};
+    // scope
+}
+`;
+
+        const expected_symbol_information = Parse_tree_analysis.create_value_symbol(
+            [Type_utilities.create_custom_type_reference("My_module", "My_struct")],
+            Parser_node.create_source_range(10, 9, 10, 14)
+        );
+
+        await test_get_symbol_information(input_text, "value", expected_symbol_information);
+    });
+
+    it("Finds symbol information of union instance", async () => {
+        const input_text = `module My_module;
+
+union My_union
+{
+    a: Int32;
+    b: Float32;
+}
+
+function run() -> ()
+{
+    var value: My_union = { a: 0 };
+    // scope
+}
+`;
+
+        const expected_symbol_information = Parse_tree_analysis.create_value_symbol(
+            [Type_utilities.create_custom_type_reference("My_module", "My_union")],
+            Parser_node.create_source_range(11, 9, 11, 14)
+        );
+
+        await test_get_symbol_information(input_text, "value", expected_symbol_information);
+    });
+
+    it("Finds symbol information of function input argument", async () => {
+        const input_text = `module My_module;
+
+function run(first: Int32, second: Float32) -> ()
+{
+    // scope
+}
+`;
+
+        const expected_symbol_information = Parse_tree_analysis.create_value_symbol(
+            [Type_utilities.create_fundamental_type(Core.Fundamental_type.Float32)],
+            Parser_node.create_source_range(3, 28, 3, 34)
+        );
+
+        await test_get_symbol_information(input_text, "second", expected_symbol_information);
+    });
+
+    it("Finds symbol information of for loop value", async () => {
+        const input_text = `module My_module;
+
+function run() -> ()
+{
+    for index in 0 to 10
+    {
+        // scope
+    }
+}
+`;
+
+        const expected_symbol_information = Parse_tree_analysis.create_value_symbol(
+            [Type_utilities.create_fundamental_type(Core.Fundamental_type.Float32)],
+            Parser_node.create_source_range(11, 9, 11, 14)
+        );
+
+        await test_get_symbol_information(input_text, "index", expected_symbol_information);
+    });
+
+    it("Finds symbol information of module alias", async () => {
+        const input_text = `module My_module;
+
+import c.stdio as stdio;
+`;
+
+        const expected_symbol_information = Parse_tree_analysis.create_module_alias_symbol(
+            Parser_node.create_source_range(3, 19, 3, 24)
+        );
+
+        await test_get_symbol_information(input_text, "stdio", expected_symbol_information);
+    });
+});
+
+async function test_get_symbol_information(
+    input_text: string,
+    variable_name: string,
+    expected_symbol_information: Parse_tree_analysis.Symbol_information
+): Promise<void> {
+
+    const parser = await Tree_sitter_parser.create_parser();
+    const tree = Tree_sitter_parser.parse(parser, input_text);
+    const core_tree = Tree_sitter_parser.to_parser_node(tree.rootNode, true);
+
+    const scope_descendant = Parser_node.find_descendant_position_if({ node: core_tree, position: [] }, descendant => descendant.word.value === "// scope");
+
+    const actual_symbol_information = Parse_tree_analysis.get_symbol_information(core_tree, scope_descendant !== undefined ? scope_descendant.position : undefined, variable_name);
+    assert.deepEqual(actual_symbol_information, expected_symbol_information);
 }

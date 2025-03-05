@@ -83,6 +83,41 @@ export function create_builtin_type_reference(name: string): Core_intermediate_r
     );
 }
 
+export function create_custom_type_reference(module_name: string, name: string): Core_intermediate_representation.Type_reference {
+    return {
+        data: {
+            type: Core_intermediate_representation.Type_reference_enum.Custom_type_reference,
+            value: {
+                module_reference: {
+                    name: module_name
+                },
+                name: name
+            }
+        }
+    };
+}
+
+export function create_fundamental_type(value: Core_intermediate_representation.Fundamental_type): Core_intermediate_representation.Type_reference {
+    return {
+        data: {
+            type: Core_intermediate_representation.Type_reference_enum.Fundamental_type,
+            value: value
+        }
+    };
+}
+
+export function create_integer_type(number_of_bits: number, is_signed: boolean): Core_intermediate_representation.Type_reference {
+    return {
+        data: {
+            type: Core_intermediate_representation.Type_reference_enum.Integer_type,
+            value: {
+                number_of_bits: number_of_bits,
+                is_signed: is_signed
+            }
+        }
+    };
+}
+
 export function create_type_instance(module_name: string, name: string, type_arguments: Core_intermediate_representation.Statement[]): Core_intermediate_representation.Type_reference {
     return create_type_reference(
         Core_intermediate_representation.Type_reference_enum.Type_instance,
