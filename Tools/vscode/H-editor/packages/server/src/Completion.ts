@@ -444,6 +444,42 @@ function is_cursor_at_expression_access(
     return false;
 }
 
+function get_access_expression_in_error_node(
+    root: Parser_node.Node,
+    before_cursor_node_position: number[]
+): Core.Access_expression | undefined {
+    const before_cursor_node = Parser_node.get_node_at_position(root, before_cursor_node_position);
+
+    const parent_node_position = Parser_node.get_parent_position(before_cursor_node_position);
+    const parent_node = Parser_node.get_node_at_position(root, parent_node_position);
+    if (parent_node.word.value === "ERROR") {
+        const previous_sibling = Parser_node.get_previous_sibling(root, before_cursor_node_position);
+        if (previous_sibling !== undefined) {
+            if (previous_sibling.node.word.value === "Generic_expression" && before_cursor_node.word.value === ".") {
+                const previous_expression = Parse_tree_convertor_mappings.node_to_expression(previous_sibling.node);
+                if (previous_expression.data.type === Core.Expression_enum.Variable_expression) {
+                    const variable_name_expression = previous_expression.data.value as Core.Variable_expression;
+
+                    const access_expression: Core.Access_expression = {
+                        expression: {
+                            data: {
+                                type: Core.Expression_enum.Variable_expression,
+                                value: variable_name_expression,
+                            }
+                        },
+                        member_name: "",
+                        access_type: Core.Access_type.Read,
+                    };
+
+                    return access_expression;
+                }
+            }
+        }
+    }
+
+    return undefined;
+}
+
 async function get_expression_access_items(
     server_data: Server_data.Server_data,
     workspace_folder_uri: string,
@@ -452,16 +488,11 @@ async function get_expression_access_items(
     before_cursor_node_position: number[]
 ): Promise<vscode.CompletionItem[]> {
 
-    const ancestor = Parser_node.get_ancestor_with_name(root, before_cursor_node_position, "Expression_access");
-    if (ancestor === undefined) {
-        return [];
-    }
-
-    const expression_access = Parse_tree_convertor_mappings.node_to_expression_access(ancestor.node);
+    const access_expression = get_access_expression_in_error_node(root, before_cursor_node_position);
     const expression: Core.Expression = {
         data: {
             type: Core.Expression_enum.Access_expression,
-            value: expression_access
+            value: access_expression
         }
     };
 
@@ -482,24 +513,15 @@ async function get_expression_access_items(
         }
     }
     else {
-        const components = ancestor.node.children
-            .filter((_, index) => index % 2 === 0)
-            .map(node => get_terminal_value(node));
+        if (access_expression.expression.data.type === Core.Expression_enum.Variable_expression) {
+            const first_component = (access_expression.expression.data.value as Core.Variable_expression).name;
+            const import_module = core_module.imports.find(value => value.alias === first_component);
+            if (import_module !== undefined) {
+                const imported_module = await Server_data.get_core_module(server_data, workspace_folder_uri, import_module.module_name);
+                if (imported_module === undefined) {
+                    return [];
+                }
 
-        if (components.length === 0) {
-            return [];
-        }
-
-        const first_component = components[0];
-
-        const import_module = core_module.imports.find(value => value.alias === first_component);
-        if (import_module !== undefined) {
-            const imported_module = await Server_data.get_core_module(server_data, workspace_folder_uri, import_module.module_name);
-            if (imported_module === undefined) {
-                return [];
-            }
-
-            if (components.length <= 2) {
                 return get_value_declaration_items(imported_module, true);
             }
         }
@@ -627,6 +649,16 @@ function is_inside_statements_block(
     while (current_node_position.length > 0) {
         const parent_position = Parser_node.get_parent_position(current_node_position);
         const parent_node = Parser_node.get_node_at_position(root, parent_position);
+
+        if (parent_node.word.value === "ERROR") {
+            const function_declaration_child_index = parent_node.children.findIndex(child => child.word.value === "Function_declaration");
+            if (function_declaration_child_index !== -1) {
+                const open_block_child_index = parent_node.children.findIndex(child => child.word.value === "{");
+                if (open_block_child_index !== -1) {
+                    return true;
+                }
+            }
+        }
 
         switch (parent_node.word.value) {
             case "Block":
@@ -775,12 +807,13 @@ function get_current_function(
         const parent_position = Parser_node.get_parent_position(current_node_position);
         const parent_node = Parser_node.get_node_at_position(root, parent_position);
 
-        if (parent_node.word.value === "Function") {
-            const declaration_node = parent_node.children.find(value => value.word.value === "Function_declaration") as Parser_node.Node;
-            const declaration_name_node = declaration_node.children.find(value => value.word.value === "Function_name") as Parser_node.Node;
-            const declaration_name = declaration_name_node.children[0].word.value;
-
-            return core_module.declarations.find(value => value.name === declaration_name);
+        if (parent_node.word.value === "Function" || parent_node.word.value === "ERROR") {
+            const declaration_node = parent_node.children.find(value => value.word.value === "Function_declaration");
+            if (declaration_node !== undefined) {
+                const declaration_name_node = declaration_node.children.find(value => value.word.value === "Function_name") as Parser_node.Node;
+                const declaration_name = declaration_name_node.children[0].word.value;
+                return core_module.declarations.find(value => value.name === declaration_name);
+            }
         }
 
         current_node_position = parent_position;
