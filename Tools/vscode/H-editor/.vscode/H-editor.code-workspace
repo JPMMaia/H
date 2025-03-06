@@ -1,0 +1,146 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		}
+	],
+	"launch": {
+		"version": "0.2.0",
+		"configurations": [
+			{
+				"name": "Launch Application.ts",
+				"type": "node",
+				"program": "${workspaceFolder}/packages/parser/src/Application.ts",
+				"request": "launch",
+				"skipFiles": [
+					"<node_internals>/**"
+				],
+				"sourceMaps": true,
+				"outFiles": [
+					"${workspaceFolder}/out/**/*.js"
+				],
+				"args": [
+					"write",
+					"${workspaceFolder}/../../../Examples/hl/defer_expressions.hl",
+					"--input",
+					"${workspaceFolder}/../../../Examples/txt/defer_expressions.hltxt"
+				],
+				"preLaunchTask": {
+					"type": "npm",
+					"script": "watch:parser"
+				},
+			},
+			{
+				"name": "Run Client",
+				"type": "extensionHost",
+				"request": "launch",
+				"runtimeExecutable": "${execPath}",
+				"args": [
+					"--extensionDevelopmentPath=${workspaceRoot}",
+					"--trace-warnings"
+				],
+				"outFiles": [
+					"${workspaceRoot}/out/**/*.js"
+				],
+				"sourceMaps": true,
+				"autoAttachChildProcesses": true,
+				"preLaunchTask": {
+					"type": "npm",
+					"script": "watch"
+				},
+				"env": {
+					"mode": "debug"
+				}
+			},
+			{
+				"name": "Test Language Server",
+				"type": "extensionHost",
+				"request": "launch",
+				"runtimeExecutable": "${execPath}",
+				"args": [
+					"--extensionDevelopmentPath=${workspaceRoot}",
+					"--extensionTestsPath=${workspaceRoot}/out/packages/client/src/test",
+					"${workspaceRoot}/packages/client/test_fixture",
+					"--disable-extensions"
+				],
+				"outFiles": [
+					"${workspaceRoot}/out/**/*.js"
+				],
+				"sourceMaps": true,
+				"autoAttachChildProcesses": true,
+				"preLaunchTask": {
+					"type": "npm",
+					"script": "watch"
+				},
+				"env": {
+					"mode": "debug"
+				}
+			}
+		],
+		"compounds": []
+	},
+	"tasks": {
+		"version": "2.0.0",
+		"tasks": [
+			{
+				"type": "npm",
+				"script": "watch",
+				"problemMatcher": "$tsc-watch",
+				"isBackground": true,
+				"presentation": {
+					"reveal": "never"
+				},
+				"group": {
+					"kind": "build",
+					"isDefault": true
+				}
+			},
+			{
+				"type": "npm",
+				"script": "watch:parser",
+				"problemMatcher": "$tsc-watch",
+				"isBackground": true,
+				"presentation": {
+					"reveal": "never"
+				},
+				"group": {
+					"kind": "build",
+					"isDefault": true
+				}
+			},
+			{
+				"type": "npm",
+				"script": "webpack:development",
+				"problemMatcher": "$ts-webpack",
+				"isBackground": false,
+				"presentation": {
+					"reveal": "never"
+				},
+				"group": {
+					"kind": "build",
+					"isDefault": true
+				}
+			},
+			{
+				"type": "npm",
+				"script": "webpack:production",
+				"problemMatcher": "$ts-webpack",
+				"isBackground": false,
+				"presentation": {
+					"reveal": "never"
+				},
+				"group": {
+					"kind": "build",
+					"isDefault": true
+				}
+			}
+		]
+	},
+	"settings": {
+		"typescript.tsc.autoDetect": "off",
+		"mochaExplorer.watch": [
+			"packages/**/*.test.ts"
+		],
+		"mochaExplorer.require": "ts-node/register",
+	},
+}
