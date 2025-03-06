@@ -2559,7 +2559,7 @@ function node_to_function_condition(node: Parser_node.Node, is_precondition: boo
     };
 }
 
-function node_to_function_declaration(node: Parser_node.Node): Core_intermediate_representation.Function_declaration {
+export function node_to_function_declaration(node: Parser_node.Node): Core_intermediate_representation.Function_declaration {
 
     const comments_node = get_comments_node(node);
     const function_node = node.children[node.children.length - 1];
