@@ -30,8 +30,9 @@
 *.exe
 *.out
 *.app
+*.vsix
 
-.vscode/
 build/
 build_linux/
 Examples/hl
+out/
