@@ -66,32 +66,31 @@ export function get_symbol_information(
         const declaration_node_position = [scope_node_position[0]];
         const declaration_node = Parser_node.get_node_at_position(root, declaration_node_position);
 
-        const descendant_function = Parser_node.find_descendant_position_if({ node: declaration_node, position: declaration_node_position }, child => child.word.value === "Function");
+        const descendant_function = Parser_node.get_child_if({ node: declaration_node, position: declaration_node_position }, child => child.word.value === "Function");
         if (descendant_function !== undefined) {
-            const function_declaration = Parser_node.find_descendant_position_if(descendant_function, child => child.word.value === "Function_declaration");
+            const function_declaration = Parser_node.get_child_if(descendant_function, child => child.word.value === "Function_declaration");
 
-            const function_input_parameters = Parser_node.find_descendant_position_if(function_declaration, child => child.word.value === "Function_input_parameters");
+            const function_input_parameters = Parser_node.get_child_if(function_declaration, child => child.word.value === "Function_input_parameters");
             const input_parameter_symbol = get_symbol_information_in_function_parameters(function_input_parameters, variable_name);
             if (input_parameter_symbol !== undefined) {
                 return input_parameter_symbol;
             }
 
-            const function_output_parameters = Parser_node.find_descendant_position_if(function_declaration, child => child.word.value === "Function_output_parameters");
+            const function_output_parameters = Parser_node.get_child_if(function_declaration, child => child.word.value === "Function_output_parameters");
             const output_parameter_symbol = get_symbol_information_in_function_parameters(function_output_parameters, variable_name);
             if (output_parameter_symbol !== undefined) {
                 return output_parameter_symbol;
             }
 
             const function_definition = Parser_node.find_descendant_position_if(descendant_function, child => child.word.value === "Function_definition");
+
             const block = Parser_node.get_child(function_definition, 0);
-
-
+            const statement_symbol = get_symbol_information_in_block(block, scope_node_position, variable_name);
+            if (statement_symbol !== undefined) {
+                return statement_symbol;
+            }
         }
     }
-
-    // 1. If inside a function:
-    // - Check all previous statements with the current scope
-    // - Check function input parameter names
 
     // 2. Check for declaration names
 
@@ -104,19 +103,61 @@ function get_symbol_information_in_function_parameters(
     parameters_node: { node: Parser_node.Node, position: number[] },
     variable_name: string
 ): Symbol_information | undefined {
-    const parameters = Parser_node.find_descendants_if(parameters_node, child => child.word.value === "Function_parameter");
+    const parameters = Parser_node.get_children_if(parameters_node, child => child.word.value === "Function_parameter");
 
     const parameter_index = parameters.findIndex(parameter => parameter.node.children[0].children[0].word.value === variable_name);
     if (parameter_index !== -1) {
         const parameter = parameters[parameter_index];
 
-        const parameter_name = Parser_node.find_descendant_position_if(parameter, child => child.word.value === "Function_parameter_name");
+        const parameter_name = Parser_node.get_child_if(parameter, child => child.word.value === "Function_parameter_name");
         const source_range = parameter_name.node.source_range;
 
-        const parameter_type = Parser_node.find_descendant_position_if(parameter, child => child.word.value === "Function_parameter_type");
+        const parameter_type = Parser_node.get_child_if(parameter, child => child.word.value === "Function_parameter_type");
         const parameter_type_value = Parse_tree_convertor_mappings.node_to_type_reference(parameter_type.node.children[0]);
 
         return create_value_symbol(parameter_type_value, source_range);
+    }
+
+    return undefined;
+}
+
+function get_symbol_information_in_block(
+    block: { node: Parser_node.Node, position: number[] },
+    scope_node_position: number[] | undefined,
+    variable_name: string
+): Symbol_information | undefined {
+    const end_scope_statement_index = scope_node_position[block.position.length];
+    if (end_scope_statement_index === undefined) {
+        return undefined;
+    }
+
+    const statements = Parser_node.get_children_if(block, child => child.word.value === "Statement");
+
+    for (const statement of statements) {
+        if (statement.position[block.position.length] >= end_scope_statement_index) {
+            return undefined;
+        }
+
+        const variable_declaration = Parser_node.get_child_if(statement, child => child.word.value === "Expression_variable_declaration" || child.word.value === "Expression_variable_declaration_with_type");
+        if (variable_declaration !== undefined) {
+            const descendant_variable_name = Parser_node.get_child_if(variable_declaration, child => child.word.value === "Variable_name");
+            const descendant_variable_name_value = descendant_variable_name.node.children[0].word.value;
+            if (descendant_variable_name_value === variable_name) {
+                const source_range = descendant_variable_name.node.source_range;
+
+                const declaration_type = Parser_node.get_child_if(variable_declaration, child => child.word.value === "Expression_variable_declaration_type");
+                if (declaration_type !== undefined) {
+                    const type_reference = Parse_tree_convertor_mappings.node_to_type_reference(declaration_type.node.children[0]);
+                    return create_value_symbol(type_reference, source_range);
+                }
+
+                const right_hand_side = Parser_node.get_child_if(variable_declaration, child => child.word.value === "Generic_expression_or_instantiate");
+                const right_hand_side_expression = Parse_tree_convertor_mappings.node_to_expression(right_hand_side.node);
+                // TODO get expression type
+                const type_reference = undefined;
+                return create_value_symbol(type_reference, source_range);
+            }
+        }
     }
 
     return undefined;
