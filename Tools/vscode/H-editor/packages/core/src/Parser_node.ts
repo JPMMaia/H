@@ -622,6 +622,32 @@ export function get_child(ancestor: { node: Node, position: number[] }, child_in
     };
 }
 
+export function get_children_if(ancestor: { node: Node, position: number[] }, predicate: (node: Node) => boolean): { node: Node, position: number[] }[] {
+
+    const children: { node: Node, position: number[] }[] = [];
+
+    for (let index = 0; index < ancestor.node.children.length; ++index) {
+        const child = ancestor.node.children[index];
+        if (predicate(child)) {
+            children.push({ node: child, position: [...ancestor.position, index] });
+        }
+    }
+
+    return children;
+}
+
+export function get_child_if(ancestor: { node: Node, position: number[] }, predicate: (node: Node) => boolean): { node: Node, position: number[] } | undefined {
+
+    for (let index = 0; index < ancestor.node.children.length; ++index) {
+        const child = ancestor.node.children[index];
+        if (predicate(child)) {
+            return { node: child, position: [...ancestor.position, index] };
+        }
+    }
+
+    return undefined;
+}
+
 export function has_ancestor_with_name(
     root: Node,
     node_position: number[],
