@@ -93,7 +93,7 @@
     "prebuild": "cpy dist/tree-sitter-hlang.wasm out/packages/core/src/"
   },
   "devDependencies": {
-    "@types/node": "^22.8.6",
+    "@types/node": "^22.13.9",
     "@types/object-hash": "^3.0.6",
     "@types/vscode": "^1.95.0",
     "@typescript-eslint/eslint-plugin": "^8.12.2",

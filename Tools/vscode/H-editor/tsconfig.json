@@ -11,7 +11,8 @@
     "rootDir": ".",
     "sourceMap": true,
     "types": [
-      "@types/emscripten"
+      "@types/emscripten",
+      "@types/node",
     ]
   },
   "include": [
