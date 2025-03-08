@@ -36,3 +36,4 @@ build/
 build_linux/
 Examples/hl
 out/
+CMakeUserPresets.json
