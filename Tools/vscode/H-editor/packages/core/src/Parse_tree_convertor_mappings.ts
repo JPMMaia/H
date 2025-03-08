@@ -2076,7 +2076,7 @@ function create_module_changes_declaration(
     return [new_change];
 }
 
-function node_to_declaration(
+export function node_to_declaration(
     node: Parser_node.Node
 ): Core_intermediate_representation.Declaration {
 
@@ -2182,7 +2182,9 @@ function create_new_module_change(
     }
 }
 
-export function node_to_type_reference(node: Parser_node.Node): Core_intermediate_representation.Type_reference[] {
+export function node_to_type_reference(
+    node: Parser_node.Node
+): Core_intermediate_representation.Type_reference[] {
 
     const child = node.children[0];
 
@@ -2191,7 +2193,147 @@ export function node_to_type_reference(node: Parser_node.Node): Core_intermediat
         return Type_utilities.parse_type_name(identifier);
     }
     else if (child.word.value === "Module_type") {
-        const module_name = find_node_value(child, "Module_type_module_name");
+        const module_alias_name = find_node_value(child, "Module_type_module_name");
+        const type_name = find_node_value(child, "Module_type_type_name");
+        const custom_type_reference: Core_intermediate_representation.Custom_type_reference = {
+            module_reference: {
+                name: module_alias_name
+            },
+            name: type_name
+        };
+        return [
+            {
+                data: {
+                    type: Core_intermediate_representation.Type_reference_enum.Custom_type_reference,
+                    value: custom_type_reference
+                }
+            }
+        ];
+    }
+    else if (child.word.value === "Pointer_type") {
+        const type_node = find_node(child, "Type") as Parser_node.Node;
+        const element_type = node_to_type_reference(type_node);
+        const mutable_node = child.children.find(node => node.word.value === "mutable");
+        const pointer_type: Core_intermediate_representation.Pointer_type = {
+            element_type: element_type,
+            is_mutable: mutable_node !== undefined
+        };
+        return [
+            {
+                data: {
+                    type: Core_intermediate_representation.Type_reference_enum.Pointer_type,
+                    value: pointer_type
+                }
+            }
+        ];
+    }
+    else if (child.word.value === "Constant_array_type") {
+        const type_node = find_node(child, "Type") as Parser_node.Node;
+        const element_type = node_to_type_reference(type_node);
+        const length_node = find_node_value(child, "Constant_array_length");
+        const constant_array_type: Core_intermediate_representation.Constant_array_type = {
+            value_type: element_type,
+            size: Number(length_node)
+        };
+        return [
+            {
+                data: {
+                    type: Core_intermediate_representation.Type_reference_enum.Constant_array_type,
+                    value: constant_array_type
+                }
+            }
+        ];
+    }
+    else if (child.word.value === "Function_pointer_type") {
+
+        const input_parameter_nodes = find_nodes_inside_parent(child, "Function_pointer_type_input_parameters", "Function_parameter");
+        const is_variadic = input_parameter_nodes.length > 0 && input_parameter_nodes[input_parameter_nodes.length - 1].children[0].word.value === "...";
+        if (is_variadic) {
+            input_parameter_nodes.splice(input_parameter_nodes.length - 1, 1);
+        }
+
+        const input_parameter_names = input_parameter_nodes.map(node => find_node_value(node, "Function_parameter_name"));
+        const input_parameter_types = input_parameter_nodes.map(node => find_node(node, "Function_parameter_type") as Parser_node.Node).map(node => node_to_type_reference(node.children[0])[0]);
+
+        const output_parameter_nodes = find_nodes_inside_parent(child, "Function_pointer_type_output_parameters", "Function_parameter");
+        const output_parameter_names = output_parameter_nodes.map(node => find_node_value(node, "Function_parameter_name"));
+        const output_parameter_types = output_parameter_nodes.map(node => find_node(node, "Function_parameter_type") as Parser_node.Node).map(node => node_to_type_reference(node.children[0])[0]);
+
+        const function_pointer_type: Core_intermediate_representation.Function_pointer_type = {
+            type: {
+                input_parameter_types: input_parameter_types,
+                output_parameter_types: output_parameter_types,
+                is_variadic: is_variadic,
+            },
+            input_parameter_names: input_parameter_names,
+            output_parameter_names: output_parameter_names,
+        };
+
+        return [
+            {
+                data: {
+                    type: Core_intermediate_representation.Type_reference_enum.Function_pointer_type,
+                    value: function_pointer_type
+                }
+            }
+        ];
+    }
+
+    const message = `Parse_tree_convertor_mapping.node_to_type_reference(): unhandled node '${child.word.value}'`;
+    onThrowError(message);
+    throw Error(message);
+}
+
+function import_alias_to_module_name(
+    root: Parser_node.Node,
+    import_alias_name_to_find: string
+): string {
+
+    const module_head = Parser_node.get_child_if({ node: root, position: [] }, child => child.word.value === "Module_head");
+    const imports = Parser_node.get_children_if(module_head, child => child.word.value === "Import");
+
+    for (const import_declaration of imports) {
+        const import_alias_name = Parser_node.get_child_if(import_declaration, child => child.word.value === "Import_alias");
+        if (import_alias_name !== undefined) {
+            const import_alias_name_value = import_alias_name.node.children[0].word.value;
+            if (import_alias_name_value === import_alias_name_to_find) {
+                const import_value = node_to_import_module_with_alias(import_declaration.node);
+                return import_value.module_name;
+            }
+        }
+    }
+
+    return undefined;
+}
+
+function get_module_name_from_tree(
+    root: Parser_node.Node
+): string {
+
+    const module_name = Parser_node.find_descendant_position_if({ node: root, position: [] }, child => child.word.value === "Module_name");
+    if (module_name === undefined) {
+        return "<undefined>";
+    }
+
+    const module_name_value = Parser_node.join_all_child_node_values(module_name.node);
+    return module_name_value;
+}
+
+export function node_to_type_reference_2(
+    root: Parser_node.Node,
+    node: Parser_node.Node
+): Core_intermediate_representation.Type_reference[] {
+
+    const child = node.children[0];
+
+    if (child.word.value === "Type_name") {
+        const identifier = child.children[0].word.value;
+        const module_name = get_module_name_from_tree(root);
+        return Type_utilities.parse_type_name(identifier, module_name);
+    }
+    else if (child.word.value === "Module_type") {
+        const module_alias_name = find_node_value(child, "Module_type_module_name");
+        const module_name = import_alias_to_module_name(root, module_alias_name);
         const type_name = find_node_value(child, "Module_type_type_name");
         const custom_type_reference: Core_intermediate_representation.Custom_type_reference = {
             module_reference: {
@@ -2531,7 +2673,7 @@ function get_comments_node(node: Parser_node.Node): Parser_node.Node | undefined
     return node.children.find(child => child.word.value.startsWith("//"));
 }
 
-function node_to_import_module_with_alias(
+export function node_to_import_module_with_alias(
     node: Parser_node.Node
 ): Core_intermediate_representation.Import_module_with_alias {
     const module_name = find_node_value(node, "Import_name");

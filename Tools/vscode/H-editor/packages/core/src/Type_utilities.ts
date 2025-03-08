@@ -163,7 +163,7 @@ export function create_string_type(): Core_intermediate_representation.Type_refe
     );
 }
 
-export function parse_type_name(name: string): Core_intermediate_representation.Type_reference[] {
+export function parse_type_name(name: string, module_name?: string): Core_intermediate_representation.Type_reference[] {
 
     if (is_integer_type(name)) {
         const type = parse_integer_type(name);
@@ -179,7 +179,7 @@ export function parse_type_name(name: string): Core_intermediate_representation.
     else {
         const type: Core_intermediate_representation.Custom_type_reference = {
             module_reference: {
-                name: ""
+                name: module_name
             },
             name: name
         };
