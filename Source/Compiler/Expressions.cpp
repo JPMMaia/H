@@ -9,6 +9,7 @@ module;
 #include <llvm/IR/LLVMContext.h>
 
 #include <array>
+#include <format>
 #include <functional>
 #include <memory_resource>
 #include <optional>
