@@ -137,10 +137,15 @@
 		]
 	},
 	"settings": {
-		"typescript.tsc.autoDetect": "off",
-		"mochaExplorer.watch": [
-			"packages/**/*.test.ts"
+		"editor.formatOnSave": true,
+		"mochaExplorer.files": "packages/core/src/**/*.test.ts",
+		"mochaExplorer.require": [
+			"ts-node/register"
 		],
-		"mochaExplorer.require": "ts-node/register",
+		"mochaExplorer.nodeArgv": [
+			"--loader",
+			"ts-node/esm"
+		],
+		"typescript.tsc.autoDetect": "off",
 	},
 }

@@ -1,9 +1,0 @@
-{
-    "loader": "ts-node/register",
-    "extension": [
-        "ts"
-    ],
-    "spec": [
-        "packages/core/src/**/*.test.ts"
-    ]
-}
