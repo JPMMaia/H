@@ -1092,6 +1092,30 @@ function choose_production_rule_expression_assignment_symbol(
     };
 }
 
+export function binary_operation_to_string(operation: Core_intermediate_representation.Binary_operation): string {
+    switch (operation) {
+        case Core_intermediate_representation.Binary_operation.Add: return "+";
+        case Core_intermediate_representation.Binary_operation.Subtract: return "-";
+        case Core_intermediate_representation.Binary_operation.Multiply: return "*";
+        case Core_intermediate_representation.Binary_operation.Divide: return "/";
+        case Core_intermediate_representation.Binary_operation.Modulus: return "%";
+        case Core_intermediate_representation.Binary_operation.Equal: return "==";
+        case Core_intermediate_representation.Binary_operation.Not_equal: return "!=";
+        case Core_intermediate_representation.Binary_operation.Less_than: return "<";
+        case Core_intermediate_representation.Binary_operation.Less_than_or_equal_to: return "<=";
+        case Core_intermediate_representation.Binary_operation.Greater_than: return ">";
+        case Core_intermediate_representation.Binary_operation.Greater_than_or_equal_to: return ">=";
+        case Core_intermediate_representation.Binary_operation.Logical_and: return "&&";
+        case Core_intermediate_representation.Binary_operation.Logical_or: return "||";
+        case Core_intermediate_representation.Binary_operation.Bitwise_and: return "&";
+        case Core_intermediate_representation.Binary_operation.Bitwise_or: return "|";
+        case Core_intermediate_representation.Binary_operation.Bitwise_xor: return "^";
+        case Core_intermediate_representation.Binary_operation.Bit_shift_left: return "<<";
+        case Core_intermediate_representation.Binary_operation.Bit_shift_right: return ">>";
+        case Core_intermediate_representation.Binary_operation.Has: return "has";
+    }
+};
+
 function choose_production_rule_expression_binary_symbol(
     module: Core_intermediate_representation.Module,
     production_rules: Grammar.Production_rule[],
@@ -1106,31 +1130,7 @@ function choose_production_rule_expression_binary_symbol(
     const expression = top.state.value as Core_intermediate_representation.Expression;
     const binary_expression = expression.data.value as Core_intermediate_representation.Binary_expression;
 
-    const get_rhs_label = (): string => {
-        switch (binary_expression.operation) {
-            case Core_intermediate_representation.Binary_operation.Add: return "+";
-            case Core_intermediate_representation.Binary_operation.Subtract: return "-";
-            case Core_intermediate_representation.Binary_operation.Multiply: return "*";
-            case Core_intermediate_representation.Binary_operation.Divide: return "/";
-            case Core_intermediate_representation.Binary_operation.Modulus: return "%";
-            case Core_intermediate_representation.Binary_operation.Equal: return "==";
-            case Core_intermediate_representation.Binary_operation.Not_equal: return "!=";
-            case Core_intermediate_representation.Binary_operation.Less_than: return "<";
-            case Core_intermediate_representation.Binary_operation.Less_than_or_equal_to: return "<=";
-            case Core_intermediate_representation.Binary_operation.Greater_than: return ">";
-            case Core_intermediate_representation.Binary_operation.Greater_than_or_equal_to: return ">=";
-            case Core_intermediate_representation.Binary_operation.Logical_and: return "&&";
-            case Core_intermediate_representation.Binary_operation.Logical_or: return "||";
-            case Core_intermediate_representation.Binary_operation.Bitwise_and: return "&";
-            case Core_intermediate_representation.Binary_operation.Bitwise_or: return "|";
-            case Core_intermediate_representation.Binary_operation.Bitwise_xor: return "^";
-            case Core_intermediate_representation.Binary_operation.Bit_shift_left: return "<<";
-            case Core_intermediate_representation.Binary_operation.Bit_shift_right: return ">>";
-            case Core_intermediate_representation.Binary_operation.Has: return "has";
-        }
-    };
-
-    const rhs_label = get_rhs_label();
+    const rhs_label = binary_operation_to_string(binary_expression.operation);
     const index = production_rule_indices.findIndex(index => contains(production_rules[index].rhs, rhs_label));
     return {
         next_state: {

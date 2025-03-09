@@ -38,41 +38,6 @@ export function node_to_string(
     return to_unformatted_text(value.node);
 }
 
-/*export function format_function_declaration(node: Parser_node.Node): string {
-    const input_parameters_node = node.children.find(child => child.word.value === "Function_input_parameters");
-    const input_parameters_string = format_function_parameters(input_parameters_node);
-
-    const output_parameters_node = node.children.find(child => child.word.value === "Function_output_parameters");
-    const output_parameters_string = format_function_parameters(output_parameters_node);
-
-    const function_name_node = node.children.find(child => child.word.value === "Function_name");
-    const function_name = function_name_node.children[0];
-
-    return `function ${function_name}${input_parameters_string} -> ${output_parameters_string}`;
-}*/
-
-function format_function_parameters(node: Parser_node.Node): string {
-    const parameters = node.children.slice(1, node.children.length - 1).filter(node => node.word.value !== ",");
-    const parameters_string = parameters.map(parameter => format_function_parameter(parameter)).join(", ");
-    return `(${parameters_string})`;
-}
-
-function format_function_parameter(node: Parser_node.Node): string {
-
-    if (node.children[0].word.value === "...") {
-        return "...";
-    }
-
-    const name = node.children[0].word.value;
-    const type = get_type_string(node.children[2]);
-
-    return `${name}: ${type}`;
-}
-
-function get_type_string(node: Parser_node.Node): string {
-    return "";
-}
-
 export function format_module(core_module: Core.Module): string {
 
     // TODO add comment
@@ -170,7 +135,32 @@ export function format_function_value(function_value: Core.Function): string {
 }
 
 export function format_function_declaration(function_declaration: Core.Function_declaration): string {
-    return "";
+    const input_parameters_string = format_function_parameters(function_declaration.input_parameter_names, function_declaration.type.input_parameter_types, function_declaration.type.is_variadic);
+    const output_parameters_string = format_function_parameters(function_declaration.output_parameter_names, function_declaration.type.output_parameter_types, false);
+    return `function ${function_declaration.name}${input_parameters_string} -> ${output_parameters_string}`;
+}
+
+export function format_function_parameters(names: string[], types: Core.Type_reference[], is_variadic: boolean): string {
+
+    const strings: string[] = [];
+
+    for (let index = 0; index < names.length; ++index) {
+        const name = names[index];
+        const type = types[index];
+        strings.push(format_function_parameter(name, type));
+    }
+
+    if (is_variadic) {
+        strings.push("...");
+    }
+
+    const final = `(${strings.join(", ")})`;
+    return final;
+}
+
+export function format_function_parameter(name: string, type: Core.Type_reference): string {
+    const type_string = Type_utilities.get_type_name([type]);
+    return `${name}: ${type_string}`;
 }
 
 export function format_function_definition(function_declaration: Core.Function_definition): string {
@@ -236,23 +226,46 @@ export function format_union_declaration(union_declaration: Core.Union_declarati
 }
 
 export function format_statement(statement: Core.Statement, indentation: number): string {
-    return format_expression(statement.expression, indentation);
+    const expression_string = format_expression(statement.expression, indentation);
+    return expression_string;
 }
 
 export function format_expression(expression: Core.Expression, indentation: number): string {
+    const expression_string = format_underlying_expression(expression, indentation);
+    const indentation_string = " ".repeat(indentation);
+    return `${indentation_string}${expression_string}`;
+}
+
+export function format_underlying_expression(expression: Core.Expression, indentation: number): string {
     switch (expression.data.type) {
+        case Core.Expression_enum.Binary_expression: {
+            return format_expression_binary(expression.data.value as Core.Binary_expression);
+        }
         case Core.Expression_enum.Constant_expression: {
             return format_expression_constant(expression.data.value as Core.Constant_expression);
         }
         case Core.Expression_enum.Instantiate_expression: {
             return format_expression_instantiate(expression.data.value as Core.Instantiate_expression, indentation);
         }
+        case Core.Expression_enum.Return_expression: {
+            return format_expression_return(expression.data.value as Core.Return_expression);
+        }
+        case Core.Expression_enum.Variable_expression: {
+            return format_expression_variable(expression.data.value as Core.Variable_expression);
+        }
         default: {
-            const message = "format_expression: Not implemented!"
+            const message = `format_expression: Not implemented for '${expression.data.type}'!`;
             onThrowError(message);
             throw new Error(message);
         }
     }
+}
+
+export function format_expression_binary(expression: Core.Binary_expression): string {
+    const left_hand_side = format_expression(expression.left_hand_side, 0);
+    const right_hand_side = format_expression(expression.right_hand_side, 0);
+    const symbol = Parse_tree_convertor_mappings.binary_operation_to_string(expression.operation);
+    return `${left_hand_side} ${symbol} ${right_hand_side}`;
 }
 
 export function format_expression_constant(expression: Core.Constant_expression): string {
@@ -263,7 +276,7 @@ export function format_expression_constant(expression: Core.Constant_expression)
 export function format_expression_block_of_statements(statements: Core.Statement[], outside_indentation: number): string {
     const inside_indentation = outside_indentation + 4;
     const outside_indentation_string = " ".repeat(outside_indentation);
-    const statement_strings = statements.map(statement => format_statement(statement, inside_indentation));
+    const statement_strings = statements.map(statement => format_statement(statement, inside_indentation) + ";\n");
     const statements_string = statement_strings.join();
     return `${outside_indentation_string}{\n${statements_string}}\n`;
 }
@@ -290,6 +303,15 @@ export function format_expression_instantiate(expression: Core.Instantiate_expre
     const members_string = members_strings.join(",\n");
 
     return `${type_string}{\n${members_string}\n${outside_indentation_string}}`;
+}
+
+export function format_expression_return(expression: Core.Return_expression): string {
+    const right_hand_side = format_expression(expression.expression, 0);
+    return `return ${right_hand_side}`;
+}
+
+export function format_expression_variable(expression: Core.Variable_expression): string {
+    return `${expression.name}`;
 }
 
 export function calculate_current_indentation(text: string, offset: number): number {
