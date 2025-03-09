@@ -845,8 +845,17 @@
           "name": "Function_declaration"
         },
         {
-          "type": "SYMBOL",
-          "name": "Function_definition"
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "Function_definition"
+            },
+            {
+              "type": "STRING",
+              "value": ";"
+            }
+          ]
         }
       ]
     },
