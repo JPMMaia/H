@@ -31,9 +31,8 @@ export async function on_completion(
     }
     const root = Document.get_parse_tree(document_state);
 
-    const get_core_module = Server_data.create_get_core_module(server_data, workspace_uri);
-    const core_module = await get_core_module(Document.get_module(document_state).name);
-    if (core_module === undefined) {
+    const get_parse_tree = Server_data.create_get_parse_tree(server_data, workspace_uri);
+    if (get_parse_tree === undefined) {
         return [
             {
                 label: "module",
@@ -80,31 +79,31 @@ export async function on_completion(
         if (can_be_identifier && is_cursor_at_type(before_cursor_node_iterator.root, before_cursor_node_iterator.node_position, after_cursor_node_position)) {
             if (is_cursor_at_import_module_type(before_cursor_node_iterator.root, before_cursor_node_iterator.node_position)) {
                 if (workspace_uri !== undefined) {
-                    items.push(...await get_import_module_type_items(server_data, workspace_uri, core_module, before_cursor_node_iterator.root, before_cursor_node_iterator.node_position));
+                    items.push(...await get_import_module_type_items(before_cursor_node_iterator.root, before_cursor_node_iterator.node_position, get_parse_tree));
                 }
             }
             else {
                 items.push(...get_builtin_type_items());
-                items.push(...get_module_type_items(core_module, false));
-                items.push(...get_module_import_alias_items(core_module));
+                items.push(...get_module_type_items(root, false));
+                items.push(...get_module_import_alias_items(root));
             }
         }
         else if (can_be_identifier && is_inside_statements_block(before_cursor_node_iterator.root, before_cursor_node_iterator.node_position)) {
             if (is_cursor_at_expression_access(before_cursor_node_iterator.root, before_cursor_node_iterator.node_position)) {
                 if (workspace_uri !== undefined) {
-                    items.push(...await get_expression_access_items(server_data, workspace_uri, core_module, before_cursor_node_iterator.root, before_cursor_node_iterator.node_position));
+                    items.push(...await get_expression_access_items(before_cursor_node_iterator.root, before_cursor_node_iterator.node_position, get_parse_tree));
                 }
             }
             else {
                 items.push(...get_keyword_and_value_items(allowed_symbols, allowed_keywords));
-                items.push(...get_value_declaration_items(core_module, false));
-                items.push(...get_function_local_variable_items(core_module, before_cursor_node_iterator));
-                items.push(...get_module_import_alias_items(core_module));
+                items.push(...get_value_declaration_items(root, false));
+                items.push(...await get_function_local_variable_items(root, before_cursor_node_iterator.node_position, get_parse_tree));
+                items.push(...get_module_import_alias_items(root));
             }
         }
         else if (is_cursor_at_import_module_name(before_cursor_node_iterator.root, before_cursor_node_iterator.node_position)) {
             if (project_data !== undefined) {
-                items.push(...get_import_module_name_items(project_data, text_document_position.textDocument.uri, core_module));
+                items.push(...get_import_module_name_items(project_data, text_document_position.textDocument.uri, root));
             }
         }
         else if (is_cursor_at_module_body(allowed_keywords)) {
@@ -188,94 +187,47 @@ function get_keyword_and_value_items(
 }
 
 function get_value_declaration_items(
-    core_module: Core.Module,
+    root: Parser_node.Node,
     public_only: boolean
 ): vscode.CompletionItem[] {
 
-    var items: vscode.CompletionItem[] = [];
+    const declaration_symbols = Parse_tree_analysis.get_declaration_symbols(root);
+    const type_symbols = declaration_symbols.filter(symbol => symbol.symbol_type === Parse_tree_analysis.Symbol_type.Value);
 
-    items.push(...get_function_declaration_items(core_module, public_only));
-    items.push(...get_global_variable_declaration_items(core_module, public_only));
+    const visible_type_symbols = public_only ?
+        type_symbols.filter(symbol => Parse_tree_analysis.is_export_declaration(root, symbol.node_position))
+        : type_symbols;
 
-    return items;
+    return visible_type_symbols
+        .map(
+            symbol => {
+                const declaration = Parse_tree_analysis.create_declaration_from_symbol(root, symbol);
+                const kind = declaration_type_to_completion_item_kind(declaration);
+
+                return {
+                    label: declaration.name,
+                    kind: kind,
+                    data: 0
+                };
+            }
+        );
 }
 
-function get_function_declaration_items(
-    core_module: Core.Module,
-    public_only: boolean
-): vscode.CompletionItem[] {
+async function get_function_local_variable_items(
+    root: Parser_node.Node,
+    scope_node_position: number[],
+    get_parse_tree: (module_name: string) => Promise<Parser_node.Node | undefined>
+): Promise<vscode.CompletionItem[]> {
 
-    const function_declarations = core_module.declarations.filter(value => value.type === Core.Declaration_type.Function);
+    const symbols = await Parse_tree_analysis.get_symbols_inside_function(root, scope_node_position, get_parse_tree);
 
-    const visible_function_declarations = public_only ?
-        function_declarations.filter(declaration => declaration.is_export) :
-        function_declarations;
-
-    const items = visible_function_declarations.map(
-        (declaration, index): vscode.CompletionItem => {
-            return {
-                label: declaration.name,
-                kind: vscode.CompletionItemKind.Function,
-                data: index
-            };
-        }
-    );
-
-    return items;
-}
-
-function get_function_local_variable_items(
-    core_module: Core.Module,
-    iterator: Parse_tree_text_iterator.Iterator
-): vscode.CompletionItem[] {
-
-    const declaration = get_current_function(core_module, iterator.root, iterator.node_position);
-    if (declaration === undefined) {
-        return [];
-    }
-
-    const function_value = declaration.value as Core.Function;
-
-    const input_parameter_items = function_value.declaration.input_parameter_names.map(
-        (input_parameter_name, index): vscode.CompletionItem => {
-            return {
-                label: input_parameter_name,
-                kind: vscode.CompletionItemKind.Variable,
-                data: index
-            };
-        }
-    );
-
-    const local_variable_items: vscode.CompletionItem[] = [];
-
-    // TODO
-
-    return [
-        ...input_parameter_items,
-        ...local_variable_items
-    ];
-}
-
-function get_global_variable_declaration_items(
-    core_module: Core.Module,
-    public_only: boolean
-): vscode.CompletionItem[] {
-
-    const global_variable_declarations = core_module.declarations.filter(value => value.type === Core.Declaration_type.Global_variable);
-
-    const visible_function_declarations = public_only ?
-        global_variable_declarations.filter(declaration => declaration.is_export) :
-        global_variable_declarations;
-
-    const items = visible_function_declarations.map(
-        (declaration, index): vscode.CompletionItem => {
-            return {
-                label: declaration.name,
-                kind: declaration_type_to_completion_item_kind(declaration),
-                data: index
-            };
-        }
-    );
+    const items = symbols.map((symbol): vscode.CompletionItem => {
+        return {
+            label: symbol.name,
+            kind: vscode.CompletionItemKind.Variable,
+            data: 0
+        };
+    });
 
     return items;
 }
@@ -326,19 +278,21 @@ function declaration_type_to_completion_item_kind(declaration: Core.Declaration)
 }
 
 function get_module_type_items(
-    core_module: Core.Module,
+    root: Parser_node.Node,
     public_only: boolean
 ): vscode.CompletionItem[] {
 
-    const type_declarations = core_module.declarations.filter(declaration => declaration.type !== Core.Declaration_type.Function && declaration.type !== Core.Declaration_type.Global_variable);
+    const declaration_symbols = Parse_tree_analysis.get_declaration_symbols(root);
+    const type_symbols = declaration_symbols.filter(symbol => symbol.symbol_type === Parse_tree_analysis.Symbol_type.Type);
 
-    const visible_type_declarations = public_only ?
-        type_declarations.filter(declaration => declaration.is_export)
-        : type_declarations;
+    const visible_type_symbols = public_only ?
+        type_symbols.filter(symbol => Parse_tree_analysis.is_export_declaration(root, symbol.node_position))
+        : type_symbols;
 
-    return visible_type_declarations
+    return visible_type_symbols
         .map(
-            declaration => {
+            symbol => {
+                const declaration = Parse_tree_analysis.create_declaration_from_symbol(root, symbol);
                 const kind = declaration_type_to_completion_item_kind(declaration);
 
                 return {
@@ -364,15 +318,18 @@ function is_cursor_at_import_module_type(
 }
 
 function get_module_import_alias_items(
-    core_module: Core.Module
+    root: Parser_node.Node
 ): vscode.CompletionItem[] {
-    return core_module.imports.map((value): vscode.CompletionItem => {
+    const symbols = Parse_tree_analysis.get_import_alias_symbols(root);
+    const items = symbols.map((symbol): vscode.CompletionItem => {
+        const symbol_data = symbol.data as Parse_tree_analysis.Symbol_module_alias_data;
         return {
-            label: value.alias,
+            label: symbol_data.module_alias,
             kind: vscode.CompletionItemKind.Module,
             data: 0
         };
     });
+    return items;
 }
 
 function get_module_alias_name(
@@ -406,11 +363,9 @@ function get_module_alias_name(
 }
 
 async function get_import_module_type_items(
-    server_data: Server_data.Server_data,
-    workspace_folder_uri: string,
-    core_module: Core.Module,
     root: Parser_node.Node,
-    before_cursor_node_position: number[]
+    before_cursor_node_position: number[],
+    get_parse_tree: (module_name: string) => Promise<Parser_node.Node | undefined>
 ): Promise<vscode.CompletionItem[]> {
 
     const module_alias_name = get_module_alias_name(root, before_cursor_node_position);
@@ -418,17 +373,18 @@ async function get_import_module_type_items(
         return [];
     }
 
-    const import_alias = core_module.imports.find(value => value.alias === module_alias_name);
-    if (import_alias === undefined) {
-        return [];
+    const symbol = Parse_tree_analysis.get_import_alias_symbol(root, module_alias_name);
+    if (symbol === undefined || symbol.symbol_type !== Parse_tree_analysis.Symbol_type.Module_alias) {
+        return undefined;
     }
 
-    const imported_module = await Server_data.get_core_module(server_data, workspace_folder_uri, import_alias.module_name);
-    if (imported_module === undefined) {
-        return [];
+    const symbol_data = symbol.data as Parse_tree_analysis.Symbol_module_alias_data;
+    const parse_tree = await get_parse_tree(symbol_data.module_name);
+    if (parse_tree === undefined) {
+        return undefined;
     }
 
-    return get_module_type_items(imported_module, true);
+    return get_module_type_items(parse_tree, true);
 }
 
 function is_cursor_at_expression_access(
@@ -481,11 +437,9 @@ function get_access_expression_in_error_node(
 }
 
 async function get_expression_access_items(
-    server_data: Server_data.Server_data,
-    workspace_folder_uri: string,
-    core_module: Core.Module,
     root: Parser_node.Node,
-    before_cursor_node_position: number[]
+    before_cursor_node_position: number[],
+    get_parse_tree: (module_name: string) => Promise<Parser_node.Node | undefined>
 ): Promise<vscode.CompletionItem[]> {
 
     const access_expression = get_access_expression_in_error_node(root, before_cursor_node_position);
@@ -496,7 +450,7 @@ async function get_expression_access_items(
         }
     };
 
-    const module_declaration = await find_core_declaration_of_expression_type(server_data, workspace_folder_uri, core_module, root, before_cursor_node_position, expression, true);
+    const module_declaration = await find_core_declaration_of_expression_type(root, before_cursor_node_position, expression, true, get_parse_tree);
     if (module_declaration !== undefined) {
         const declaration = module_declaration.declaration;
         if (declaration.type === Core.Declaration_type.Enum) {
@@ -515,14 +469,13 @@ async function get_expression_access_items(
     else {
         if (access_expression.expression.data.type === Core.Expression_enum.Variable_expression) {
             const first_component = (access_expression.expression.data.value as Core.Variable_expression).name;
-            const import_module = core_module.imports.find(value => value.alias === first_component);
-            if (import_module !== undefined) {
-                const imported_module = await Server_data.get_core_module(server_data, workspace_folder_uri, import_module.module_name);
-                if (imported_module === undefined) {
-                    return [];
+            const import_symbol = Parse_tree_analysis.get_import_alias_symbol(root, first_component);
+            if (import_symbol !== undefined) {
+                const symbol_data = import_symbol.data as Parse_tree_analysis.Symbol_module_alias_data;
+                const imported_root = await get_parse_tree(symbol_data.module_name);
+                if (imported_root !== undefined) {
+                    return get_value_declaration_items(imported_root, true);
                 }
-
-                return get_value_declaration_items(imported_module, true);
             }
         }
     }
@@ -531,38 +484,24 @@ async function get_expression_access_items(
 }
 
 async function find_core_declaration_of_expression_type(
-    server_data: Server_data.Server_data,
-    workspace_folder_uri: string,
-    core_module: Core.Module,
     root: Parser_node.Node,
     before_cursor_node_position: number[],
     expression: Core.Expression,
-    underlying_declaration: boolean
-): Promise<{ core_module: Core.Module, declaration: Core.Declaration } | undefined> {
-    const declaration = get_current_function(core_module, root, before_cursor_node_position);
-    if (declaration !== undefined) {
+    underlying_declaration: boolean,
+    get_parse_tree: (module_name: string) => Promise<Parser_node.Node | undefined>
+): Promise<{ root: Parser_node.Node, node_position: number[], declaration: Core.Declaration } | undefined> {
 
-        const get_core_module = (module_name: string): Promise<Core.Module | undefined> => {
+    const expression_type = await Parse_tree_analysis.get_expression_type_2(root, before_cursor_node_position, expression, get_parse_tree);
+    if (expression_type !== undefined && expression_type.type.length > 0) {
+        if (expression_type.type[0].data.type === Core.Type_reference_enum.Custom_type_reference) {
+            const custom_type_reference = expression_type.type[0].data.value as Core.Custom_type_reference;
+            const declaration_location = await Parse_tree_analysis.get_custom_type_reference_declaration_using_parse_tree(custom_type_reference, get_parse_tree);
 
-            if (core_module.name === module_name) {
-                return Promise.resolve(core_module);
+            if (declaration_location !== undefined && underlying_declaration) {
+                return await Parse_tree_analysis.get_underlying_type_declaration_from_parse_tree(declaration_location.root, declaration_location.node_position, declaration_location.declaration, get_parse_tree);
             }
-
-            return Server_data.get_core_module(server_data, workspace_folder_uri, module_name);
-        };
-
-        const expression_type = await Parse_tree_analysis.get_expression_type(server_data.language_description, core_module, declaration, root, before_cursor_node_position, expression, get_core_module);
-        if (expression_type !== undefined && expression_type.type.length > 0) {
-            if (expression_type.type[0].data.type === Core.Type_reference_enum.Custom_type_reference) {
-                const custom_type_reference = expression_type.type[0].data.value as Core.Custom_type_reference;
-                const module_declaration = await Parse_tree_analysis.get_custom_type_reference_declaration(custom_type_reference, get_core_module);
-
-                if (module_declaration !== undefined && underlying_declaration) {
-                    return await Parse_tree_analysis.get_underlying_type_declaration(module_declaration.core_module, module_declaration.declaration, get_core_module);
-                }
-                else {
-                    return module_declaration;
-                }
+            else {
+                return declaration_location;
             }
         }
     }
@@ -703,7 +642,7 @@ function is_cursor_at_module_body(
 function get_import_module_name_items(
     project_data: Project.Project_data,
     document_uri: string,
-    core_module: Core.Module
+    root: Parser_node.Node
 ): vscode.CompletionItem[] {
 
     const artifact = Project.get_artifact_of_document(project_data, document_uri);
@@ -741,12 +680,19 @@ function get_import_module_name_items(
         }
     }
 
+    const current_module_name = Parse_tree_analysis.get_module_name_from_tree(root);
+    const import_symbols = Parse_tree_analysis.get_import_alias_symbols(root);
+
     const filtered_items = items.filter(item => {
-        if (item.label === core_module.name) {
+
+        if (item.label === current_module_name) {
             return false;
         }
 
-        const repeated_import = core_module.imports.find(value => value.module_name === item.label);
+        const repeated_import = import_symbols.find(symbol => {
+            const symbol_data = symbol.data as Parse_tree_analysis.Symbol_module_alias_data;
+            return symbol_data.module_name === item.label;
+        });
         if (repeated_import !== undefined) {
             return false;
         }

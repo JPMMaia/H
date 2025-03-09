@@ -47,7 +47,7 @@ export async function find_definition_link(
 
     const ancestor_type = Parser_node.get_ancestor_with_name(root, after_cursor_node_position, "Type");
     if (ancestor_type !== undefined) {
-        const type_reference = Parse_tree_analysis.get_type_reference_from_node(server_data.language_description, core_module, ancestor_type.node);
+        const type_reference = Parse_tree_analysis.get_type_reference_from_node(core_module, ancestor_type.node);
         const get_core_module = Server_data.create_get_core_module(server_data, workspace_uri);
         const type_declaration = await Parse_tree_analysis.get_type_reference_declaration(type_reference, get_core_module);
         if (type_declaration !== undefined) {
@@ -108,10 +108,10 @@ export async function find_definition_link(
 
     if (ancestor !== undefined) {
         if (ancestor.node.word.value === "Expression_access") {
-            const expression = Parse_tree_analysis.get_expression_from_node(server_data.language_description, core_module, ancestor.node);
+            const expression = Parse_tree_analysis.get_expression_from_node(core_module, ancestor.node);
             if (expression.data.type === Core.Expression_enum.Access_expression) {
                 const access_expression = expression.data.value as Core.Access_expression;
-                const components = await Parse_tree_analysis.get_access_expression_components(server_data.language_description, core_module, access_expression, root, ancestor.node, ancestor.position, get_core_module);
+                const components = await Parse_tree_analysis.get_access_expression_components(core_module, access_expression, root, ancestor.node, ancestor.position, get_core_module);
                 if (components.length === 0) {
                     return [];
                 }
@@ -144,7 +144,7 @@ export async function find_definition_link(
             }
         }
         else if (ancestor.node.word.value === "Expression_call") {
-            const module_function = await Parse_tree_analysis.get_function_value_from_node(server_data.language_description, core_module, ancestor.node.children[0], get_core_module);
+            const module_function = await Parse_tree_analysis.get_function_value_from_node(core_module, ancestor.node.children[0], get_core_module);
             if (module_function !== undefined) {
                 const location = Helpers.location_to_vscode_location(
                     Helpers.get_function_declaration_source_location(module_function.core_module, module_function.function_value.declaration)
@@ -155,7 +155,7 @@ export async function find_definition_link(
             }
         }
         else if (ancestor.node.word.value === "Expression_instantiate") {
-            const instantiate_member_info = await Parse_tree_analysis.find_instantiate_member_from_node(server_data.language_description, core_module, root, before_cursor.node_position, false, get_core_module);
+            const instantiate_member_info = await Parse_tree_analysis.find_instantiate_member_from_node(core_module, root, before_cursor.node_position, false, get_core_module);
             if (instantiate_member_info !== undefined) {
                 const location = Helpers.location_to_vscode_location(
                     Helpers.get_declaration_member_source_location(instantiate_member_info.core_module, instantiate_member_info.declaration, instantiate_member_info.member_name)
@@ -166,7 +166,7 @@ export async function find_definition_link(
             }
         }
         else if (ancestor.node.word.value === "Expression_variable") {
-            const expression = Parse_tree_analysis.get_expression_from_node(server_data.language_description, core_module, ancestor.node);
+            const expression = Parse_tree_analysis.get_expression_from_node(core_module, ancestor.node);
             if (expression.data.type === Core.Expression_enum.Variable_expression) {
                 const variable_expression = expression.data.value as Core.Variable_expression;
 

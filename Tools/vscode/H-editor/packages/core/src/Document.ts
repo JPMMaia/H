@@ -55,7 +55,7 @@ export function get_text(state: State): string {
     return state.with_errors !== undefined ? state.with_errors.text : state.valid.text;
 }
 
-export function create_empty_state(document_file_path: string, production_rules: Grammar.Production_rule[]): State {
+export function create_empty_state(document_file_path: string): State {
 
     const module = Module_examples.create_empty();
     module.source_file_path = document_file_path;

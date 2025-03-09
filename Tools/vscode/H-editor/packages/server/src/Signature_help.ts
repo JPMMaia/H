@@ -55,14 +55,14 @@ export async function create(
     if (ancestor !== undefined) {
         if (ancestor.node.word.value === "Expression_call") {
             const expression_call_info = await Parse_tree_analysis.get_function_value_and_parameter_index_from_expression_call(
-                server_data.language_description, core_module, root, before_cursor_iterator.node_position, get_core_module
+                core_module, root, before_cursor_iterator.node_position, get_core_module
             );
             if (expression_call_info !== undefined) {
                 return get_function_signature_help(core_module, core_module, expression_call_info.function_value.declaration, expression_call_info.input_parameter_index);
             }
         }
         else if (ancestor.node.word.value === "Expression_instantiate") {
-            const signature_help = await get_struct_signature_help(server_data.language_description, core_module, before_cursor_iterator.root, before_cursor_iterator.node_position, get_core_module);
+            const signature_help = await get_struct_signature_help(core_module, before_cursor_iterator.root, before_cursor_iterator.node_position, get_core_module);
             if (signature_help !== undefined) {
                 return signature_help;
             }
@@ -123,14 +123,13 @@ function get_function_signature_help(
 }
 
 async function get_struct_signature_help(
-    language_description: Language.Description,
     core_module: Core.Module,
     root: Parser_node.Node,
     before_cursor_node_position: number[],
     get_core_module: (module_name: string) => Promise<Core.Module | undefined>
 ): Promise<vscode.SignatureHelp | undefined> {
 
-    const instantiate_member_info = await Parse_tree_analysis.find_instantiate_member_from_node(language_description, core_module, root, before_cursor_node_position, true, get_core_module);
+    const instantiate_member_info = await Parse_tree_analysis.find_instantiate_member_from_node(core_module, root, before_cursor_node_position, true, get_core_module);
     if (instantiate_member_info === undefined || instantiate_member_info.declaration.type !== Core.Declaration_type.Struct) {
         return undefined;
     }

@@ -245,7 +245,7 @@ connection.languages.diagnostics.on(async (parameters, cancellation_token: vscod
 	const workspace_folder_uri = await get_workspace_folder_uri_for_document(parameters.textDocument.uri);
 	const get_core_module = Server_data.create_get_core_module(server_data, workspace_folder_uri);
 
-	const diagnostics = await Text_change.get_all_diagnostics(server_data.language_description, document_state, get_core_module);
+	const diagnostics = await Text_change.get_all_diagnostics(document_state, get_core_module);
 
 	const items = diagnostics.map((value: Validation.Diagnostic): vscode_node.Diagnostic => {
 
@@ -309,7 +309,7 @@ connection.onDidOpenTextDocument((parameters) => {
 	server_data.documents.set(parameters.textDocument.uri, document);
 
 	const document_file_path = vscode_uri.URI.parse(parameters.textDocument.uri).fsPath.replace(/\\/g, "/");
-	const document_state = Document.create_empty_state(document_file_path, server_data.language_description.production_rules);
+	const document_state = Document.create_empty_state(document_file_path);
 
 	const text_changes: Text_change.Text_change[] = [
 		{
@@ -324,7 +324,7 @@ connection.onDidOpenTextDocument((parameters) => {
 	server_data.document_states.set(parameters.textDocument.uri, document_state);
 
 	try {
-		const new_document_state = Text_change.update(server_data.language_description, document_state, text_changes, parameters.textDocument.text, false, true);
+		const new_document_state = Text_change.update_2(server_data.parser, document_state, text_changes, parameters.textDocument.text);
 		server_data.document_states.set(parameters.textDocument.uri, new_document_state);
 	}
 	catch (error: any) {
@@ -377,7 +377,7 @@ connection.onDidChangeTextDocument((parameters) => {
 	const text_after_changes = document.getText();
 
 	try {
-		const new_document_state = Text_change.update(server_data.language_description, document_state, text_changes, text_after_changes, false, true);
+		const new_document_state = Text_change.update_2(server_data.parser, document_state, text_changes, text_after_changes);
 		server_data.document_states.set(parameters.textDocument.uri, new_document_state);
 	}
 	catch (error: any) {

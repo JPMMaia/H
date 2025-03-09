@@ -11,8 +11,11 @@ import * as Core_file from "../../core/src/Core_interface";
 import * as Grammar from "../../core/src/Grammar";
 import * as Language from "../../core/src/Language";
 import * as Language_version from "../../core/src/Language_version";
+import * as Parser_node from "../../core/src/Parser_node";
 import * as Scanner from "../../core/src/Scanner";
 import * as Text_change from "../../core/src/Text_change";
+import * as Text_formatter from "../../core/src/Text_formatter";
+import * as Tree_sitter_parser from "../../core/src/Tree_sitter_parser";
 
 export interface Project_data {
     hlang_executable: string | undefined;
@@ -390,7 +393,7 @@ export async function parse_source_file_and_write_to_disk(
     module_name: string,
     source_file_path: string,
     artifact: Build.Artifact,
-    language_description: Language.Description,
+    parser: Tree_sitter_parser.Parser,
     destination_file_path: string,
     hlang_executable: string | undefined
 ): Promise<Core.Module | undefined> {
@@ -434,7 +437,7 @@ export async function parse_source_file_and_write_to_disk(
         const text = fs.readFileSync(source_file_path, "utf-8");
 
         try {
-            const parse_result = Text_change.full_parse_with_source_locations(language_description.parser, source_file_path, text);
+            const parse_result = Text_change.full_parse_with_source_locations(parser, source_file_path, text);
             if (parse_result.module === undefined) {
                 return undefined;
             }
@@ -459,6 +462,79 @@ export async function parse_source_file_and_write_to_disk(
     return undefined;
 }
 
+export async function parse_source_file_and_write_to_disk_2(
+    module_name: string,
+    source_file_path: string,
+    artifact: Build.Artifact,
+    parser: Tree_sitter_parser.Parser,
+    intermediate_file_path: string,
+    destination_file_path: string,
+    hlang_executable: string | undefined
+): Promise<Parser_node.Node | undefined> {
+    const file_extension = path.extname(source_file_path);
+
+    if (file_extension === ".h") {
+        if (hlang_executable !== undefined) {
+            if (!Helpers.validate_input(module_name)) {
+                return undefined;
+            }
+
+            const c_header = get_c_header(artifact, module_name);
+            const c_header_options = c_header !== undefined ? get_c_header_options(artifact, c_header) : undefined;
+
+            const command_arguments: string[] = [
+                module_name,
+                Helpers.normalize_path(source_file_path),
+                Helpers.normalize_path(intermediate_file_path),
+            ];
+
+            const search_paths = c_header_options !== undefined && c_header_options.search_paths !== undefined ? c_header_options.search_paths : [];
+            const search_paths_argument = search_paths.map(path => `--header-search-path=${path}`);
+            command_arguments.push(...search_paths_argument);
+
+            const public_prefixes = c_header_options !== undefined && c_header_options.public_prefixes !== undefined ? c_header_options.public_prefixes : [];
+            const public_prefixes_argument = public_prefixes.map(path => `--header-public-prefix=${path}`);
+            command_arguments.push(...public_prefixes_argument);
+
+            const remove_prefixes = c_header_options !== undefined && c_header_options.remove_prefixes !== undefined ? c_header_options.remove_prefixes : [];
+            const remove_prefixes_argument = remove_prefixes.map(path => `--header-remove-prefix=${path}`);
+            command_arguments.push(...remove_prefixes_argument);
+
+            const success = await Helpers.execute_command(hlang_executable, "import-c-header", command_arguments);
+            if (success) {
+                const core_module = read_parsed_file(intermediate_file_path);
+                const text = Text_formatter.format_module(core_module);
+                const tree = Tree_sitter_parser.parse(parser, text);
+                const core_tree = Tree_sitter_parser.to_parser_node(tree.rootNode, true);
+                write_parse_tree_to_file(core_tree, destination_file_path);
+                return core_tree;
+            }
+        }
+    }
+    else if (file_extension === ".hltxt") {
+        const text = fs.readFileSync(source_file_path, "utf-8");
+        const tree = Tree_sitter_parser.parse(parser, text);
+        const core_tree = Tree_sitter_parser.to_parser_node(tree.rootNode, true);
+        write_parse_tree_to_file(core_tree, destination_file_path);
+        return core_tree;
+    }
+
+    return undefined;
+}
+
+function write_parse_tree_to_file(
+    core_tree: Parser_node.Node,
+    destination_file_path: string
+): void {
+    const destination_directory_path = path.dirname(destination_file_path);
+    if (!fs.existsSync(destination_directory_path)) {
+        fs.mkdirSync(destination_directory_path, { recursive: true });
+    }
+
+    const core_tree_json_data = JSON.stringify(core_tree);
+    fs.writeFileSync(destination_file_path, core_tree_json_data);
+}
+
 export function read_parsed_file(
     parsed_file_path: string
 ): Core.Module | undefined {
@@ -472,10 +548,24 @@ export function read_parsed_file(
     }
 }
 
+export function read_core_tree_file(
+    parsed_file_path: string
+): Parser_node.Node | undefined {
+    try {
+        const json_data = fs.readFileSync(parsed_file_path, "utf-8");
+        const core_tree = JSON.parse(json_data) as Parser_node.Node;
+        return core_tree;
+    }
+    catch (error: any) {
+        return undefined;
+    }
+}
+
 export function map_module_name_to_parsed_file_path(
     workspace_folder_uri: string,
     artifact: Build.Artifact | undefined,
-    module_name: string
+    module_name: string,
+    extension: string
 ): string | undefined {
 
     const workspace_folder_file_path = vscode_uri.URI.parse(workspace_folder_uri).fsPath;
@@ -487,7 +577,7 @@ export function map_module_name_to_parsed_file_path(
         fs.mkdirSync(artifact_build_path, { recursive: true });
     }
 
-    const module_file_name = `${module_name}.hl`;
+    const module_file_name = `${module_name}.${extension}`;
     const module_build_path = path.join(artifact_build_path, module_file_name);
 
     return path.normalize(module_build_path).replace(/\\/g, "/");

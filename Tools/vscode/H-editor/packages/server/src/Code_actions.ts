@@ -57,7 +57,6 @@ export async function get_code_actions(
 
                 const add_missing_members_code_action = await create_add_missing_members_to_instantiate_expression(
                     parameters.textDocument.uri,
-                    server_data.language_description,
                     document_state,
                     document.getText(),
                     core_module,
@@ -142,7 +141,6 @@ function get_start_iterator(
 
 async function create_add_missing_members_to_instantiate_expression(
     document_uri: vscode.DocumentUri,
-    language_description: Language.Description,
     document_state: Document.State,
     text: string,
     core_module: Core.Module,
@@ -153,7 +151,7 @@ async function create_add_missing_members_to_instantiate_expression(
     get_core_module: (module_name: string) => Promise<Core.Module | undefined>
 ): Promise<vscode.CodeAction | undefined> {
 
-    const module_declaration = await Parse_tree_analysis.find_instantiate_declaration_from_node(language_description, core_module, root, descendant_instantiate_expression.position, get_core_module);
+    const module_declaration = await Parse_tree_analysis.find_instantiate_declaration_from_node(core_module, root, descendant_instantiate_expression.position, get_core_module);
     if (module_declaration === undefined || module_declaration.declaration.type !== Core.Declaration_type.Struct) {
         return undefined;
     }

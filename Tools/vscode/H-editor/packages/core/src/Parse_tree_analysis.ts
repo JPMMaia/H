@@ -33,6 +33,7 @@ export interface Symbol_value_data {
 
 export interface Symbol_information {
     symbol_type: Symbol_type;
+    name: string,
     node_position: number[];
     data: Symbol_module_alias_data | Symbol_type_data | Symbol_value_data;
 }
@@ -52,6 +53,7 @@ export function create_module_alias_symbol(
 ): Symbol_information {
     return {
         symbol_type: Symbol_type.Module_alias,
+        name: module_alias,
         node_position: node_position,
         data: {
             module_name: module_name,
@@ -61,11 +63,13 @@ export function create_module_alias_symbol(
 }
 
 export function create_type_symbol(
+    name: string,
     type: Core.Type_reference[],
     node_position: number[]
 ): Symbol_information {
     return {
         symbol_type: Symbol_type.Type,
+        name: name,
         node_position: node_position,
         data: {
             type_reference: type
@@ -74,11 +78,13 @@ export function create_type_symbol(
 }
 
 export function create_value_symbol(
+    name: string,
     type: Core.Type_reference[] | undefined,
     node_position: number[]
 ): Symbol_information {
     return {
         symbol_type: Symbol_type.Value,
+        name: name,
         node_position: node_position,
         data: {
             type_reference: type
@@ -86,12 +92,44 @@ export function create_value_symbol(
     };
 }
 
-export async function get_symbol_information(
+export async function get_symbol(
     root: Parser_node.Node,
     scope_node_position: number[] | undefined,
     variable_name: string,
     get_parse_tree: (module_name: string) => Promise<Parser_node.Node | undefined>
 ): Promise<Symbol_information | undefined> {
+    const symbols = await get_symbols(root, scope_node_position, get_parse_tree);
+    return symbols.find(symbol => symbol.name === variable_name);
+}
+
+export async function get_symbols(
+    root: Parser_node.Node,
+    scope_node_position: number[] | undefined,
+    get_parse_tree: (module_name: string) => Promise<Parser_node.Node | undefined>
+): Promise<Symbol_information[]> {
+    const symbols: Symbol_information[] = [];
+    symbols.push(...await get_symbols_inside_function(root, scope_node_position, get_parse_tree));
+    symbols.push(...get_declaration_symbols(root));
+    symbols.push(...get_import_alias_symbols(root));
+    return symbols;
+}
+
+export async function get_symbol_inside_function(
+    root: Parser_node.Node,
+    scope_node_position: number[] | undefined,
+    variable_name: string,
+    get_parse_tree: (module_name: string) => Promise<Parser_node.Node | undefined>
+): Promise<Symbol_information | undefined> {
+    const symbols = await get_symbols_inside_function(root, scope_node_position, get_parse_tree);
+    return symbols.find(symbol => symbol.name === variable_name);
+}
+
+export async function get_symbols_inside_function(
+    root: Parser_node.Node,
+    scope_node_position: number[] | undefined,
+    get_parse_tree: (module_name: string) => Promise<Parser_node.Node | undefined>
+): Promise<Symbol_information[]> {
+    const symbols: Symbol_information[] = [];
 
     if (scope_node_position !== undefined && scope_node_position.length >= 1) {
         const declaration_node_position = [scope_node_position[0]];
@@ -102,73 +140,60 @@ export async function get_symbol_information(
             const function_declaration = Parser_node.get_child_if(descendant_function, child => child.word.value === "Function_declaration");
 
             const function_input_parameters = Parser_node.get_child_if(function_declaration, child => child.word.value === "Function_input_parameters");
-            const input_parameter_symbol = get_symbol_information_in_function_parameters(root, function_input_parameters, variable_name);
-            if (input_parameter_symbol !== undefined) {
-                return input_parameter_symbol;
-            }
+            const function_input_parameters_symbols = get_symbols_inside_function_parameters(root, function_input_parameters);
+            symbols.push(...function_input_parameters_symbols);
 
             const function_output_parameters = Parser_node.get_child_if(function_declaration, child => child.word.value === "Function_output_parameters");
-            const output_parameter_symbol = get_symbol_information_in_function_parameters(root, function_output_parameters, variable_name);
-            if (output_parameter_symbol !== undefined) {
-                return output_parameter_symbol;
-            }
+            const function_output_parameters_symbols = get_symbols_inside_function_parameters(root, function_output_parameters);
+            symbols.push(...function_output_parameters_symbols);
 
             const function_definition = Parser_node.find_descendant_position_if(descendant_function, child => child.word.value === "Function_definition");
 
             const block = Parser_node.get_child(function_definition, 0);
-            const statement_symbol = await get_symbol_information_in_block(root, block, scope_node_position, variable_name, get_parse_tree);
-            if (statement_symbol !== undefined) {
-                return statement_symbol;
-            }
+            const new_symbols = await get_symbols_inside_block(root, block, scope_node_position, get_parse_tree);
+            symbols.push(...new_symbols);
         }
     }
 
-    {
-        const declaration_symbol = find_declaration_symbol_information(root, variable_name);
-        if (declaration_symbol !== undefined) {
-            return declaration_symbol;
-        }
-    }
-
-    {
-        const import_alias_symbol = find_import_alias_symbol_information(root, variable_name);
-        if (import_alias_symbol !== undefined) {
-            return import_alias_symbol;
-        }
-    }
-
-    return undefined;
+    return symbols;
 }
 
-function get_symbol_information_in_function_parameters(
+export function get_symbol_inside_function_parameters(
     root: Parser_node.Node,
     parameters_node: { node: Parser_node.Node, position: number[] },
     variable_name: string
 ): Symbol_information | undefined {
+    const symbols = get_symbols_inside_function_parameters(root, parameters_node);
+    return symbols.find(symbol => symbol.name === variable_name);
+}
+
+export function get_symbols_inside_function_parameters(
+    root: Parser_node.Node,
+    parameters_node: { node: Parser_node.Node, position: number[] }
+): Symbol_information[] {
+
     const parameters = Parser_node.get_children_if(parameters_node, child => child.word.value === "Function_parameter");
 
-    const parameter_index = parameters.findIndex(parameter => parameter.node.children[0].children[0].word.value === variable_name);
-    if (parameter_index !== -1) {
-        const parameter = parameters[parameter_index];
-
+    return parameters.map(parameter => {
         const parameter_name = Parser_node.get_child_if(parameter, child => child.word.value === "Function_parameter_name");
+        const parameter_name_value = parameter_name.node.children[0].word.value;
 
         const parameter_type = Parser_node.get_child_if(parameter, child => child.word.value === "Function_parameter_type");
         const parameter_type_value = Parse_tree_convertor_mappings.node_to_type_reference_2(root, parameter_type.node.children[0]);
 
-        return create_value_symbol(parameter_type_value, parameter_name.position);
-    }
-
-    return undefined;
+        return create_value_symbol(parameter_name_value, parameter_type_value, parameter_name.position);
+    });
 }
 
-async function get_symbol_information_in_block(
+async function get_symbols_inside_block(
     root: Parser_node.Node,
     block: { node: Parser_node.Node, position: number[] },
     scope_node_position: number[] | undefined,
-    variable_name: string,
     get_parse_tree: (module_name: string) => Promise<Parser_node.Node | undefined>
-): Promise<Symbol_information | undefined> {
+): Promise<Symbol_information[]> {
+
+    const symbols: Symbol_information[] = [];
+
     const end_scope_statement_index = scope_node_position[block.position.length];
     if (end_scope_statement_index === undefined) {
         return undefined;
@@ -182,7 +207,9 @@ async function get_symbol_information_in_block(
             const child = Parser_node.get_child(statement, 0);
             if (child.node.word.value === "Expression_block") {
                 const new_block = child;
-                return get_symbol_information_in_block(root, new_block, scope_node_position, variable_name, get_parse_tree);
+                const new_symbols = await get_symbols_inside_block(root, new_block, scope_node_position, get_parse_tree);
+                symbols.push(...new_symbols);
+                return new_symbols;
             }
             else if (child.node.word.value === "Expression_if") {
                 let index = block.position.length + 2;
@@ -194,27 +221,31 @@ async function get_symbol_information_in_block(
                     }
 
                     if (candidate_node.word.value === "Expression_if_statements") {
-                        return get_symbol_information_in_block(root, { node: candidate_node, position: candidate_node_position }, scope_node_position, variable_name, get_parse_tree);
+                        const new_symbols = await get_symbols_inside_block(root, { node: candidate_node, position: candidate_node_position }, scope_node_position, get_parse_tree);
+                        symbols.push(...new_symbols);
+                        return new_symbols;
                     }
 
                     index += 1;
                 }
             }
             else if (child.node.word.value === "Expression_for_loop") {
-                const loop_variable_name = Parser_node.find_descendant_position_if(child, node => node.word.value === "Expression_for_loop_variable");
-                const loop_variable_name_value = loop_variable_name.node.children[0].word.value;
-                if (loop_variable_name_value === variable_name) {
+
+                {
+                    const loop_variable_name = Parser_node.find_descendant_position_if(child, node => node.word.value === "Expression_for_loop_variable");
                     const loop_range_begin = Parser_node.find_descendant_position_if(child, node => node.word.value === "Expression_for_loop_range_begin");
                     const loop_range_begin_expression = Parse_tree_convertor_mappings.node_to_expression(loop_range_begin.node.children[0].children[0]);
                     const loop_range_begin_expression_type = await get_expression_type_2(root, loop_variable_name.position, loop_range_begin_expression, get_parse_tree);
                     if (loop_range_begin_expression_type.is_value) {
                         const type_reference = loop_range_begin_expression_type.type;
-                        return create_value_symbol(type_reference, loop_variable_name.position);
+                        symbols.push(create_value_symbol(loop_variable_name.node.children[0].word.value, type_reference, loop_variable_name.position));
                     }
                 }
 
                 const new_block = Parser_node.find_descendant_position_if(child, node => node.word.value === "Expression_for_loop_statements");
-                return get_symbol_information_in_block(root, new_block, scope_node_position, variable_name, get_parse_tree);
+                const new_symbols = await get_symbols_inside_block(root, new_block, scope_node_position, get_parse_tree);
+                symbols.push(...new_symbols);
+                return new_symbols;
             }
             else if (child.node.word.value === "Expression_switch") {
                 let index = block.position.length + 2;
@@ -226,7 +257,9 @@ async function get_symbol_information_in_block(
                     }
 
                     if (candidate_node.word.value === "Expression_switch_case") {
-                        return get_symbol_information_in_block(root, { node: candidate_node, position: candidate_node_position }, scope_node_position, variable_name, get_parse_tree);
+                        const new_symbols = await get_symbols_inside_block(root, { node: candidate_node, position: candidate_node_position }, scope_node_position, get_parse_tree);
+                        symbols.push(...new_symbols);
+                        return new_symbols;
                     }
 
                     index += 1;
@@ -234,40 +267,39 @@ async function get_symbol_information_in_block(
             }
             else if (child.node.word.value === "Expression_while_loop") {
                 const new_block = Parser_node.find_descendant_position_if(child, node => node.word.value === "Expression_while_loop_statements");
-                return get_symbol_information_in_block(root, new_block, scope_node_position, variable_name, get_parse_tree);
+                const new_symbols = await get_symbols_inside_block(root, new_block, scope_node_position, get_parse_tree);
+                symbols.push(...new_symbols);
+                return new_symbols;
             }
         }
 
         if (statement.position[block.position.length] >= end_scope_statement_index) {
-            return undefined;
+            return symbols;
         }
 
         const variable_declaration = Parser_node.get_child_if(statement, child => child.word.value === "Expression_variable_declaration" || child.word.value === "Expression_variable_declaration_with_type");
         if (variable_declaration !== undefined) {
             const descendant_variable_name = Parser_node.get_child_if(variable_declaration, child => child.word.value === "Variable_name");
-            const descendant_variable_name_value = descendant_variable_name.node.children[0].word.value;
-            if (descendant_variable_name_value === variable_name) {
+            const variable_name_value = descendant_variable_name.node.children[0].word.value;
+            const declaration_type = Parser_node.get_child_if(variable_declaration, child => child.word.value === "Expression_variable_declaration_type");
+            if (declaration_type !== undefined) {
+                const type_reference = Parse_tree_convertor_mappings.node_to_type_reference_2(root, declaration_type.node.children[0]);
+                symbols.push(create_value_symbol(variable_name_value, type_reference, descendant_variable_name.position));
+            }
 
-                const declaration_type = Parser_node.get_child_if(variable_declaration, child => child.word.value === "Expression_variable_declaration_type");
-                if (declaration_type !== undefined) {
-                    const type_reference = Parse_tree_convertor_mappings.node_to_type_reference_2(root, declaration_type.node.children[0]);
-                    return create_value_symbol(type_reference, descendant_variable_name.position);
-                }
-
-                const right_hand_side = Parser_node.get_child_if(variable_declaration, child => child.word.value === "Generic_expression");
-                const right_hand_side_expression = Parse_tree_convertor_mappings.node_to_expression(right_hand_side.node);
-                const type_information = await get_expression_type_2(root, scope_node_position, right_hand_side_expression, get_parse_tree);
-                if (type_information.is_value) {
-                    return create_value_symbol(type_information.type, descendant_variable_name.position);
-                }
-                else {
-                    return create_type_symbol(type_information.type, descendant_variable_name.position);
-                }
+            const right_hand_side = Parser_node.get_child_if(variable_declaration, child => child.word.value === "Generic_expression");
+            const right_hand_side_expression = Parse_tree_convertor_mappings.node_to_expression(right_hand_side.node);
+            const type_information = await get_expression_type_2(root, scope_node_position, right_hand_side_expression, get_parse_tree);
+            if (type_information.is_value) {
+                symbols.push(create_value_symbol(variable_name_value, type_information.type, descendant_variable_name.position));
+            }
+            else {
+                symbols.push(create_type_symbol(variable_name_value, type_information.type, descendant_variable_name.position));
             }
         }
     }
 
-    return undefined;
+    return symbols;
 }
 
 function is_declaration_name_grammar_word(value: string): boolean {
@@ -285,35 +317,42 @@ function is_declaration_name_grammar_word(value: string): boolean {
     }
 }
 
-function find_declaration_symbol_information(
+function get_declaration_symbol(
     root: Parser_node.Node,
     declaration_name_to_find: string
 ): Symbol_information | undefined {
+    const symbols = get_declaration_symbols(root);
+    return symbols.find(symbol => symbol.name === declaration_name_to_find);
+}
+
+export function get_declaration_symbols(
+    root: Parser_node.Node
+): Symbol_information[] {
+    const symbols: Symbol_information[] = [];
+
     for (let index = 1; index < root.children.length; ++index) {
         const declaration = Parser_node.get_child({ node: root, position: [] }, index);
         const underlying_declaration = Parser_node.get_child(declaration, declaration.node.children.length - 1);
         const declaration_name = Parser_node.find_descendant_position_if(underlying_declaration, child => is_declaration_name_grammar_word(child.word.value));
-
         const declaration_name_value = declaration_name.node.children[0].word.value;
-        if (declaration_name_value === declaration_name_to_find) {
-            if (underlying_declaration.node.word.value === "Function") {
-                const function_declaration = Parser_node.get_child_if(underlying_declaration, child => child.word.value === "Function_declaration");
-                const function_declaration_value = Parse_tree_convertor_mappings.node_to_function_declaration(function_declaration.node);
-                const type_reference = Type_utilities.create_function_pointer_type_from_declaration(function_declaration_value);
-                return create_value_symbol([type_reference], declaration_name.position);
-            }
-            else {
-                const module_name_value = get_module_name_from_tree(root);
-                const type_reference = Type_utilities.create_custom_type_reference(module_name_value, declaration_name_value);
-                return create_type_symbol([type_reference], declaration_name.position);
-            }
+
+        if (underlying_declaration.node.word.value === "Function") {
+            const function_declaration = Parser_node.get_child_if(underlying_declaration, child => child.word.value === "Function_declaration");
+            const function_declaration_value = Parse_tree_convertor_mappings.node_to_function_declaration(function_declaration.node);
+            const type_reference = Type_utilities.create_function_pointer_type_from_declaration(function_declaration_value);
+            symbols.push(create_value_symbol(declaration_name_value, [type_reference], declaration_name.position));
+        }
+        else {
+            const module_name_value = get_module_name_from_tree(root);
+            const type_reference = Type_utilities.create_custom_type_reference(module_name_value, declaration_name_value);
+            symbols.push(create_type_symbol(declaration_name_value, [type_reference], declaration_name.position));
         }
     }
 
-    return undefined;
+    return symbols;
 }
 
-function find_import_alias_symbol_information(
+export function get_import_alias_symbol(
     root: Parser_node.Node,
     import_alias_name_to_find: string
 ): Symbol_information | undefined {
@@ -335,9 +374,51 @@ function find_import_alias_symbol_information(
     return undefined;
 }
 
+export function get_import_alias_symbols(
+    root: Parser_node.Node
+): Symbol_information[] {
+
+    const symbols: Symbol_information[] = [];
+
+    const module_head = Parser_node.get_child_if({ node: root, position: [] }, child => child.word.value === "Module_head");
+    const imports = Parser_node.get_children_if(module_head, child => child.word.value === "Import");
+
+    for (const import_declaration of imports) {
+        const import_alias_name = Parser_node.get_child_if(import_declaration, child => child.word.value === "Import_alias");
+        if (import_alias_name !== undefined) {
+            const import_value = Parse_tree_convertor_mappings.node_to_import_module_with_alias(import_declaration.node);
+            symbols.push(create_module_alias_symbol(import_value.module_name, import_value.alias, import_alias_name.position));
+        }
+    }
+
+    return symbols;
+}
+
+export function is_export_declaration(
+    root: Parser_node.Node,
+    node_position: number[]
+): boolean {
+    const node = Parser_node.get_node_at_position(root, node_position);
+    const export_node = Parser_node.get_child_if({ node: node, position: node_position }, child => child.word.value === "export");
+    return export_node !== undefined;
+}
+
+export function create_declaration_from_symbol(
+    root: Parser_node.Node,
+    symbol: Symbol_information
+): Core.Declaration | undefined {
+    const declaration = Parser_node.get_ancestor_with_name(root, symbol.node_position, "Declaration");
+    if (declaration === undefined) {
+        return undefined;
+    }
+
+    const declaration_value = Parse_tree_convertor_mappings.node_to_declaration(declaration.node);
+    return declaration_value;
+}
+
 export async function get_expression_type_2(
     root: Parser_node.Node,
-    scope_node_position: number[],
+    scope_node_position: number[] | undefined,
     expression: Core.Expression,
     get_parse_tree: (module_name: string) => Promise<Parser_node.Node | undefined>
 ): Promise<Expression_type_reference | undefined> {
@@ -348,7 +429,7 @@ export async function get_expression_type_2(
 
             if (value.expression.data.type === Core.Expression_enum.Variable_expression) {
                 const variable_expression = value.expression.data.value as Core.Variable_expression;
-                const left_hand_side_symbol = await get_symbol_information(root, scope_node_position, variable_expression.name, get_parse_tree);
+                const left_hand_side_symbol = await get_symbol(root, scope_node_position, variable_expression.name, get_parse_tree);
 
                 if (left_hand_side_symbol !== undefined && left_hand_side_symbol.symbol_type === Symbol_type.Module_alias) {
                     const import_module_data = left_hand_side_symbol.data as Symbol_module_alias_data;
@@ -614,7 +695,7 @@ export async function get_expression_type_2(
         case Core.Expression_enum.Variable_expression: {
             const value = expression.data.value as Core.Variable_expression;
 
-            const symbol = await get_symbol_information(root, scope_node_position, value.name, get_parse_tree);
+            const symbol = await get_symbol(root, scope_node_position, value.name, get_parse_tree);
             if (symbol !== undefined) {
                 if (symbol.symbol_type === Symbol_type.Type) {
                     const symbol_data = symbol.data as Symbol_type_data;
@@ -1015,7 +1096,6 @@ export function get_variable_name_node_from_statement(
 }
 
 export async function find_variable_type(
-    language_description: Language.Description,
     core_module: Core.Module,
     function_value: Core.Function,
     root: Parser_node.Node,
@@ -1065,7 +1145,7 @@ export async function find_variable_type(
                 const expression = core_statement.expression.data.value as Core.Variable_declaration_expression;
                 if (expression.name === variable_name) {
                     const declaration = create_declaration_from_function_value(function_value);
-                    const expression_type = await get_expression_type(language_description, core_module, declaration, root, next_scope_node_position, expression.right_hand_side, get_core_module);
+                    const expression_type = await get_expression_type(core_module, declaration, root, next_scope_node_position, expression.right_hand_side, get_core_module);
                     if (expression_type !== undefined && expression_type.is_value && expression_type.type.length > 0) {
                         matches.push(expression_type.type[0]);
                     }
@@ -1081,7 +1161,7 @@ export async function find_variable_type(
                 const expression = core_statement.expression.data.value as Core.For_loop_expression;
                 if (expression.variable_name === variable_name) {
                     const declaration = create_declaration_from_function_value(function_value);
-                    const expression_type = await get_expression_type(language_description, core_module, declaration, root, next_scope_node_position, expression.range_begin, get_core_module);
+                    const expression_type = await get_expression_type(core_module, declaration, root, next_scope_node_position, expression.range_begin, get_core_module);
                     if (expression_type !== undefined && expression_type.is_value && expression_type.type.length > 0) {
                         matches.push(expression_type.type[0]);
                     }
@@ -1229,7 +1309,6 @@ export interface Expression_type_reference {
 }
 
 export async function get_expression_type(
-    language_description: Language.Description,
     core_module: Core.Module,
     scope_declaration: Core.Declaration | undefined,
     root: Parser_node.Node,
@@ -1264,7 +1343,7 @@ export async function get_expression_type(
                         }
                         else if (declaration.type === Core.Declaration_type.Global_variable) {
                             const global_variable = declaration.value as Core.Global_variable_declaration;
-                            return get_global_variable_type(language_description, core_module, global_variable, root, get_core_module);
+                            return get_global_variable_type(core_module, global_variable, root, get_core_module);
                         }
                         else {
                             return {
@@ -1276,7 +1355,7 @@ export async function get_expression_type(
                 }
             }
 
-            const left_hand_side_type = await get_expression_type(language_description, core_module, scope_declaration, root, scope_node_position, value.expression, get_core_module);
+            const left_hand_side_type = await get_expression_type(core_module, scope_declaration, root, scope_node_position, value.expression, get_core_module);
             if (left_hand_side_type !== undefined && left_hand_side_type.type.length > 0) {
                 if (left_hand_side_type.type[0].data.type === Core.Type_reference_enum.Custom_type_reference) {
                     const custom_type_reference = left_hand_side_type.type[0].data.value as Core.Custom_type_reference;
@@ -1373,11 +1452,11 @@ export async function get_expression_type(
                     };
             }
 
-            return get_expression_type(language_description, core_module, scope_declaration, root, scope_node_position, value.left_hand_side, get_core_module);
+            return get_expression_type(core_module, scope_declaration, root, scope_node_position, value.left_hand_side, get_core_module);
         }
         case Core.Expression_enum.Call_expression: {
             const value = expression.data.value as Core.Call_expression;
-            const left_hand_side_type = await get_expression_type(language_description, core_module, scope_declaration, root, scope_node_position, value.expression, get_core_module);
+            const left_hand_side_type = await get_expression_type(core_module, scope_declaration, root, scope_node_position, value.expression, get_core_module);
             if (left_hand_side_type !== undefined && left_hand_side_type.is_value && left_hand_side_type.type.length > 0) {
                 if (left_hand_side_type.type[0].data.type === Core.Type_reference_enum.Custom_type_reference) {
                     const custom_type_reference = left_hand_side_type.type[0].data.value as Core.Custom_type_reference;
@@ -1422,7 +1501,7 @@ export async function get_expression_type(
                 };
             }
 
-            const element_type = await get_expression_type(language_description, core_module, scope_declaration, root, scope_node_position, value.array_data[0].expression, get_core_module);
+            const element_type = await get_expression_type(core_module, scope_declaration, root, scope_node_position, value.array_data[0].expression, get_core_module);
             if (element_type === undefined || !element_type.is_value) {
                 return undefined;
             }
@@ -1445,7 +1524,7 @@ export async function get_expression_type(
             };
         }
         case Core.Expression_enum.Instantiate_expression: {
-            const custom_type_reference = await find_instantiate_custom_type_reference_from_node(language_description, core_module, root, scope_node_position, get_core_module);
+            const custom_type_reference = await find_instantiate_custom_type_reference_from_node(core_module, root, scope_node_position, get_core_module);
             if (custom_type_reference === undefined) {
                 return undefined;
             }
@@ -1471,15 +1550,15 @@ export async function get_expression_type(
         }
         case Core.Expression_enum.Parenthesis_expression: {
             const value = expression.data.value as Core.Parenthesis_expression;
-            return get_expression_type(language_description, core_module, scope_declaration, root, scope_node_position, value.expression, get_core_module);
+            return get_expression_type(core_module, scope_declaration, root, scope_node_position, value.expression, get_core_module);
         }
         case Core.Expression_enum.Ternary_condition_expression: {
             const value = expression.data.value as Core.Ternary_condition_expression;
-            return get_expression_type(language_description, core_module, scope_declaration, root, scope_node_position, value.then_statement.expression, get_core_module);
+            return get_expression_type(core_module, scope_declaration, root, scope_node_position, value.then_statement.expression, get_core_module);
         }
         case Core.Expression_enum.Unary_expression: {
             const value = expression.data.value as Core.Unary_expression;
-            const expression_type = await get_expression_type(language_description, core_module, scope_declaration, root, scope_node_position, value.expression, get_core_module);
+            const expression_type = await get_expression_type(core_module, scope_declaration, root, scope_node_position, value.expression, get_core_module);
             if (expression_type !== undefined && expression_type.is_value && expression_type.type.length > 0) {
                 if (value.operation === Core.Unary_operation.Address_of) {
                     return {
@@ -1508,7 +1587,7 @@ export async function get_expression_type(
             const value = expression.data.value as Core.Variable_expression;
 
             if (scope_declaration !== undefined && scope_declaration.type === Core.Declaration_type.Function) {
-                const variable_type = await find_variable_type(language_description, core_module, scope_declaration.value as Core.Function, root, scope_node_position, value.name, get_core_module);
+                const variable_type = await find_variable_type(core_module, scope_declaration.value as Core.Function, root, scope_node_position, value.name, get_core_module);
                 if (variable_type !== undefined) {
                     return {
                         type: [variable_type],
@@ -1521,7 +1600,7 @@ export async function get_expression_type(
             if (declaration !== undefined) {
                 if (declaration.type === Core.Declaration_type.Global_variable) {
                     const global_variable = declaration.value as Core.Global_variable_declaration;
-                    return get_global_variable_type(language_description, core_module, global_variable, root, get_core_module);
+                    return get_global_variable_type(core_module, global_variable, root, get_core_module);
                 }
 
                 return {
@@ -1536,7 +1615,6 @@ export async function get_expression_type(
 }
 
 export async function get_global_variable_type(
-    language_description: Language.Description,
     core_module: Core.Module,
     global_variable: Core.Global_variable_declaration,
     root: Parser_node.Node,
@@ -1550,7 +1628,7 @@ export async function get_global_variable_type(
         };
     }
 
-    const type = await get_expression_type(language_description, core_module, undefined, root, [], global_variable.initial_value.expression, get_core_module);
+    const type = await get_expression_type(core_module, undefined, root, [], global_variable.initial_value.expression, get_core_module);
     return type;;
 }
 
@@ -1621,7 +1699,6 @@ export async function get_global_variable_from_expression(
 }
 
 export function get_type_reference_from_node(
-    language_description: Language.Description,
     core_module: Core.Module,
     node: Parser_node.Node
 ): Core.Type_reference[] {
@@ -1642,7 +1719,6 @@ export function get_type_reference_from_node_2(
 }
 
 export function get_expression_from_node(
-    language_description: Language.Description,
     core_module: Core.Module,
     node: Parser_node.Node
 ): Core.Expression {
@@ -1707,7 +1783,7 @@ function fix_custom_type_reference_2(
                 value.module_reference.name = module_name;
             }
             else {
-                const import_module_symbol = find_import_alias_symbol_information(root, value.module_reference.name);
+                const import_module_symbol = get_import_alias_symbol(root, value.module_reference.name);
                 if (import_module_symbol !== undefined) {
                     const data = import_module_symbol.data as Symbol_module_alias_data;
                     value.module_reference.name = data.module_name;
@@ -1761,7 +1837,7 @@ export function get_declaration_location_using_parse_tree(
     root: Parser_node.Node,
     declaration_name: string
 ): { root: Parser_node.Node, node_position: number[] } | undefined {
-    const symbol = find_declaration_symbol_information(root, declaration_name);
+    const symbol = get_declaration_symbol(root, declaration_name);
     if (symbol === undefined || (symbol.symbol_type !== Symbol_type.Type && symbol.symbol_type !== Symbol_type.Value)) {
         return undefined;
     }
@@ -1933,12 +2009,11 @@ export async function get_underlying_type_declaration_from_parse_tree(
 }
 
 export async function get_function_value_from_node(
-    language_description: Language.Description,
     core_module: Core.Module,
     node: Parser_node.Node,
     get_core_module: (module_name: string) => Promise<Core.Module | undefined>
 ): Promise<{ core_module: Core.Module, function_value: Core.Function } | undefined> {
-    const expression = get_expression_from_node(language_description, core_module, node);
+    const expression = get_expression_from_node(core_module, node);
     if (expression.data.type === Core.Expression_enum.Access_expression) {
         const access_expression = expression.data.value as Core.Access_expression;
         const left_hand_side_expression = access_expression.expression;
@@ -1987,7 +2062,7 @@ export async function get_function_value_from_node_2(
         const left_hand_side_expression = access_expression.expression;
         if (left_hand_side_expression.data.type === Core.Expression_enum.Variable_expression) {
             const module_alias_expression = left_hand_side_expression.data.value as Core.Variable_expression;
-            const import_symbol = find_import_alias_symbol_information(root, module_alias_expression.name);
+            const import_symbol = get_import_alias_symbol(root, module_alias_expression.name);
             if (import_symbol !== undefined) {
                 const import_symbol_data = import_symbol.data as Symbol_module_alias_data;
                 const function_value_location = await get_function_value_from_external_parse_tree(import_symbol_data.module_name, access_expression.member_name, get_parse_tree);
@@ -2172,7 +2247,6 @@ export async function get_function_value_from_external_parse_tree(
 }
 
 export async function get_function_value_and_parameter_index_from_expression_call(
-    language_description: Language.Description,
     core_module: Core.Module,
     root: Parser_node.Node,
     before_cursor_node_position: number[],
@@ -2189,7 +2263,7 @@ export async function get_function_value_and_parameter_index_from_expression_cal
 
         if (active_input_parameter_index !== -1) {
             const left_hand_side_node = ancestor_expression_call.node.children[0];
-            const module_function = await get_function_value_from_node(language_description, core_module, left_hand_side_node, get_core_module);
+            const module_function = await get_function_value_from_node(core_module, left_hand_side_node, get_core_module);
             if (module_function !== undefined) {
                 return {
                     core_module: module_function.core_module,
@@ -2321,7 +2395,6 @@ export function get_function_value_and_parameter_index_at_declaration(
 }
 
 export async function find_instantiate_custom_type_reference_from_node(
-    language_description: Language.Description,
     core_module: Core.Module,
     root: Parser_node.Node,
     node_position: number[],
@@ -2330,7 +2403,7 @@ export async function find_instantiate_custom_type_reference_from_node(
 
     const ancestor_expression_instantiate = Parser_node.get_ancestor_with_name(root, node_position, "Expression_instantiate");
     if (ancestor_expression_instantiate !== undefined) {
-        const custom_type_reference = await find_instantiate_custom_type_reference_from_node(language_description, core_module, root, ancestor_expression_instantiate.position, get_core_module);
+        const custom_type_reference = await find_instantiate_custom_type_reference_from_node(core_module, root, ancestor_expression_instantiate.position, get_core_module);
         if (custom_type_reference !== undefined) {
             const declaration = await get_custom_type_reference_declaration(custom_type_reference, get_core_module);
             if (declaration !== undefined && declaration.declaration.type === Core.Declaration_type.Struct) {
@@ -2357,7 +2430,7 @@ export async function find_instantiate_custom_type_reference_from_node(
     const ancestor_variable_declaration_with_type = Parser_node.get_ancestor_with_name(root, node_position, "Expression_variable_declaration_with_type");
     if (ancestor_variable_declaration_with_type !== undefined) {
         const declaration_type_node = ancestor_variable_declaration_with_type.node.children[3];
-        const type_reference = get_type_reference_from_node(language_description, core_module, declaration_type_node.children[0]);
+        const type_reference = get_type_reference_from_node(core_module, declaration_type_node.children[0]);
         if (type_reference.length > 0) {
             if (type_reference[0].data.type === Core.Type_reference_enum.Custom_type_reference) {
                 return type_reference[0].data.value as Core.Custom_type_reference;
@@ -2398,9 +2471,9 @@ export async function find_instantiate_custom_type_reference_from_node(
         const function_value = get_function_value_that_contains_node_position(core_module, root, node_position);
         if (function_value !== undefined) {
             const left_hand_side_node = ancestor_assignment_expression.node.children[0];
-            const left_hand_side_expression = get_expression_from_node(language_description, core_module, left_hand_side_node);
+            const left_hand_side_expression = get_expression_from_node(core_module, left_hand_side_node);
             const declaration = create_declaration_from_function_value(function_value);
-            const left_hand_side_type = await get_expression_type(language_description, core_module, declaration, root, node_position, left_hand_side_expression, get_core_module);
+            const left_hand_side_type = await get_expression_type(core_module, declaration, root, node_position, left_hand_side_expression, get_core_module);
             if (left_hand_side_type !== undefined && left_hand_side_type.is_value && left_hand_side_type.type.length > 0 && left_hand_side_type.type[0].data.type === Core.Type_reference_enum.Custom_type_reference) {
                 return left_hand_side_type.type[0].data.value as Core.Custom_type_reference;
             }
@@ -2408,7 +2481,7 @@ export async function find_instantiate_custom_type_reference_from_node(
     }
 
     const expression_call_info = await get_function_value_and_parameter_index_from_expression_call(
-        language_description, core_module, root, node_position, get_core_module
+        core_module, root, node_position, get_core_module
     );
     if (expression_call_info !== undefined) {
         const function_declaration = expression_call_info.function_value.declaration;
@@ -2519,13 +2592,12 @@ export async function find_instantiate_custom_type_reference_from_node_using_par
 }
 
 export async function find_instantiate_declaration_from_node(
-    language_description: Language.Description,
     core_module: Core.Module,
     root: Parser_node.Node,
     node_position: number[],
     get_core_module: (module_name: string) => Promise<Core.Module | undefined>
 ): Promise<{ core_module: Core.Module, declaration: Core.Declaration } | undefined> {
-    const custom_type_reference = await find_instantiate_custom_type_reference_from_node(language_description, core_module, root, node_position, get_core_module);
+    const custom_type_reference = await find_instantiate_custom_type_reference_from_node(core_module, root, node_position, get_core_module);
     if (custom_type_reference === undefined) {
         return undefined;
     }
@@ -2544,7 +2616,6 @@ export async function find_instantiate_declaration_from_node(
 }
 
 export async function find_instantiate_member_from_node(
-    language_description: Language.Description,
     core_module: Core.Module,
     root: Parser_node.Node,
     before_cursor_node_position: number[],
@@ -2559,7 +2630,7 @@ export async function find_instantiate_member_from_node(
 
     const previous_member_name = get_previous_instantiate_member_name_at_cursor(root, before_cursor_node_position, ancestor_expression_instantiate.position);
 
-    const custom_type_reference = await find_instantiate_custom_type_reference_from_node(language_description, core_module, root, ancestor_expression_instantiate.position, get_core_module);
+    const custom_type_reference = await find_instantiate_custom_type_reference_from_node(core_module, root, ancestor_expression_instantiate.position, get_core_module);
     if (custom_type_reference === undefined) {
         return undefined;
     }
@@ -2739,7 +2810,6 @@ export interface Access_expression_component {
 }
 
 export async function get_access_expression_components(
-    language_description: Language.Description,
     core_module: Core.Module,
     access_expression: Core.Access_expression,
     root: Parser_node.Node,
@@ -2754,7 +2824,7 @@ export async function get_access_expression_components(
     if (left_hand_side_expression.data.type === Core.Expression_enum.Access_expression) {
         const descendant_left_hand_side = Parser_node.find_descendant_position_if({ node: access_expression_node.children[0], position: [...access_expression_node_position, 0] }, child => child.word.value === "Expression_access");
         if (descendant_left_hand_side !== undefined) {
-            const left_hand_side_components = await get_access_expression_components(language_description, core_module, left_hand_side_expression.data.value as Core.Access_expression, root, descendant_left_hand_side.node, descendant_left_hand_side.position, get_core_module);
+            const left_hand_side_components = await get_access_expression_components(core_module, left_hand_side_expression.data.value as Core.Access_expression, root, descendant_left_hand_side.node, descendant_left_hand_side.position, get_core_module);
             components.push(...left_hand_side_components);
         }
     }
@@ -2777,7 +2847,7 @@ export async function get_access_expression_components(
                 const function_value = get_function_value_that_contains_node_position(core_module, root, access_expression_node_position);
                 if (function_value !== undefined) {
                     const declaration = create_declaration_from_function_value(function_value);
-                    const left_hand_side_type = await get_expression_type(language_description, core_module, declaration, root, access_expression_node_position, left_hand_side_expression, get_core_module);
+                    const left_hand_side_type = await get_expression_type(core_module, declaration, root, access_expression_node_position, left_hand_side_expression, get_core_module);
                     if (left_hand_side_type !== undefined && left_hand_side_type.type.length > 0) {
                         if (left_hand_side_type.type[0].data.type === Core.Type_reference_enum.Custom_type_reference) {
                             const custom_type_reference = left_hand_side_type.type[0].data.value as Core.Custom_type_reference;

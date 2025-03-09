@@ -170,7 +170,7 @@ async function test_find_variable_type(
 ): Promise<void> {
     const function_value = core_module.declarations[declaration_index].value as Core.Function;
 
-    const get_core_module_function = get_core_module !== undefined ? get_core_module : create_default_get_core_module(core_module);
+    const get_core_module_function = get_core_module !== undefined ? get_core_module : create_default_get_parse_tree(core_module);
 
     const root = Parse_tree_convertor.module_to_parse_tree(core_module, language_description.production_rules, language_description.mappings);
     const actual_variable_type = await Parse_tree_analysis.find_variable_type(language_description, core_module, function_value, root, variable_node_position, variable_name, get_core_module_function);
@@ -491,7 +491,9 @@ function run() -> ()
         const expression = Core.create_variable_expression("a", Core.Access_type.Read);
         const expected_expression_type = create_integer_type(32, true);
         const is_value = true;
-        await test_get_expression_type(language_description, Module_examples.create_function_with_variable_declaration(), 0, [1, 1, 1, 0, 2, 1, 0], expression, { type: [expected_expression_type], is_value: is_value });
+        const root = await core_module_to_parse_tree(Module_examples.create_function_with_variable_declaration());
+        const scope_node_position = find_node_position(root, "a");
+        await test_get_expression_type(root, expression, { type: [expected_expression_type], is_value: is_value }, scope_node_position);
     });
 
     it("Finds expression type of variable expression of enum", async () => {
@@ -509,6 +511,7 @@ enum Precision
 function run() -> ()
 {
     var precision = Precision.Low;
+    // scope
 }
 `;
 
@@ -519,10 +522,10 @@ function run() -> ()
             Core.Access_type.Read
         );
         const expected_expression_type = create_custom_type_reference("Test", "Precision");
-        const core_module = create_core_module_from_text(language_description, program);
 
-        await test_get_expression_type(language_description, core_module, 1, [2, 0, 1, 0, 1, 0, 1, 0], expression_0, { type: [expected_expression_type], is_value: false });
-        await test_get_expression_type(language_description, core_module, 1, [2, 0, 1, 0, 1, 0, 1, 0], expression_1, { type: [expected_expression_type], is_value: true });
+        const root = await parse(program);
+        await test_get_expression_type(root, expression_0, { type: [expected_expression_type], is_value: false }, undefined);
+        await test_get_expression_type(root, expression_1, { type: [expected_expression_type], is_value: true }, undefined);
     });
 
     it("Finds expression type of variable expression of global variable", async () => {
@@ -535,34 +538,33 @@ var global_variable = 0.0f32;
 function run() -> ()
 {
     var a = global_variable;
+    // scope
 }
 `;
 
         const expression_0 = Core.create_variable_expression("global_variable", Core.Access_type.Read);
         const expected_expression_type = create_fundamental_type(Core.Fundamental_type.Float32);
-        const core_module = create_core_module_from_text(language_description, program);
 
-        await test_get_expression_type(language_description, core_module, 1, [2, 0, 1, 0, 1, 0, 1, 0], expression_0, { type: [expected_expression_type], is_value: true });
+        const root = await parse(program);
+        await test_get_expression_type(root, expression_0, { type: [expected_expression_type], is_value: true }, undefined);
     });
 });
 
 async function test_get_expression_type(
-    language_description: Language.Description,
-    core_module: Core.Module,
-    declaration_index: number,
-    variable_node_position: number[],
+    root: Parser_node.Node,
     expression: Core.Expression,
     expected_expression_type: Parse_tree_analysis.Expression_type_reference,
-    get_core_module?: (module_name: string) => Promise<Core.Module | undefined>
+    scope_node_position: number[] | undefined,
+    get_parse_tree?: (module_name: string) => Promise<Parser_node.Node | undefined>
 ): Promise<void> {
-    const get_core_module_function = get_core_module !== undefined ? get_core_module : create_default_get_core_module(core_module);
+    const get_parse_tree_function = get_parse_tree !== undefined ? get_parse_tree : create_default_get_parse_tree(root);
 
-    const old_tree = Parse_tree_convertor.module_to_parse_tree(core_module, language_description.production_rules, language_description.mappings);
-    const text = Text_formatter.to_unformatted_text(old_tree);
-    const result = Text_change.full_parse_with_source_locations(language_description.parser, "", text, true);
-    const root = result.parse_tree;
+    if (scope_node_position === undefined) {
+        const scope_descendant = Parser_node.find_descendant_position_if({ node: root, position: [] }, descendant => descendant.word.value === "// scope");
+        scope_node_position = scope_descendant !== undefined ? scope_descendant.position : undefined;
+    }
 
-    const actual_expression_type = await Parse_tree_analysis.get_expression_type(language_description, core_module, core_module.declarations[declaration_index], root, variable_node_position, expression, get_core_module_function);
+    const actual_expression_type = await Parse_tree_analysis.get_expression_type_2(root, scope_node_position, expression, get_parse_tree_function);
 
     assert.deepEqual(actual_expression_type, expected_expression_type);
 }
@@ -648,10 +650,11 @@ function create_statement(expression: Core.Expression, source_position?: Core.So
     return statement;
 }
 
-function create_default_get_core_module(core_module: Core.Module): (module_name: string) => Promise<Core.Module | undefined> {
-    return (module_name: string): Promise<Core.Module | undefined> => {
-        if (module_name.length === 0 || module_name === core_module.name) {
-            return Promise.resolve(core_module);
+function create_default_get_parse_tree(root: Parser_node.Node): (module_name: string) => Promise<Parser_node.Node | undefined> {
+    const root_module_name = Parse_tree_analysis.get_module_name_from_tree(root);
+    return (module_name: string): Promise<Parser_node.Node | undefined> => {
+        if (module_name.length === 0 || module_name === root_module_name) {
+            return Promise.resolve(root);
         }
         return Promise.resolve(undefined);
     };
@@ -671,13 +674,13 @@ function create_core_module_from_text(
         }
     ];
 
-    const document_state = Document.create_empty_state("", language_description.production_rules);
+    const document_state = Document.create_empty_state("");
     const new_document_state = Text_change.update(language_description, document_state, text_changes, text);
     return new_document_state.valid.module;
 }
 
 
-describe("Parse_tree_analysis.get_symbol_information", () => {
+describe("Parse_tree_analysis.get_symbol", () => {
 
     it("Finds symbol information of variable", async () => {
         const input_text = `module My_module;
@@ -692,6 +695,7 @@ function run() -> ()
         const root = await parse(input_text);
 
         const expected_symbol_information = Parse_tree_analysis.create_value_symbol(
+            "value",
             [Type_utilities.create_integer_type(32, true)],
             find_node_position(root, "value")
         );
@@ -711,6 +715,7 @@ enum Precision
         const root = await parse(input_text);
 
         const expected_symbol_information = Parse_tree_analysis.create_type_symbol(
+            "Precision",
             [Type_utilities.create_custom_type_reference("My_module", "Precision")],
             find_node_position(root, "Precision")
         );
@@ -736,6 +741,7 @@ function run() -> ()
         const root = await parse(input_text);
 
         const expected_symbol_information = Parse_tree_analysis.create_value_symbol(
+            "value",
             [Type_utilities.create_custom_type_reference("My_module", "Precision")],
             find_node_position(root, "value")
         );
@@ -761,6 +767,7 @@ function run() -> ()
         const root = await parse(input_text);
 
         const expected_symbol_information = Parse_tree_analysis.create_value_symbol(
+            "value",
             [Type_utilities.create_custom_type_reference("My_module", "My_struct")],
             find_node_position(root, "value")
         );
@@ -787,6 +794,7 @@ function run() -> ()
         const root = await parse(input_text);
 
         const expected_symbol_information = Parse_tree_analysis.create_value_symbol(
+            "value",
             [Type_utilities.create_custom_type_reference("My_module", "My_union")],
             find_node_position(root, "value")
         );
@@ -806,6 +814,7 @@ function run(first: Int32, second: Float32) -> ()
         const root = await parse(input_text);
 
         const expected_symbol_information = Parse_tree_analysis.create_value_symbol(
+            "second",
             [Type_utilities.create_fundamental_type(Core.Fundamental_type.Float32)],
             find_node_position(root, "second")
         );
@@ -828,6 +837,7 @@ function run() -> ()
         const root = await parse(input_text);
 
         const expected_symbol_information = Parse_tree_analysis.create_value_symbol(
+            "index",
             [Type_utilities.create_integer_type(32, true)],
             find_node_position(root, "index")
         );
@@ -851,6 +861,7 @@ function run(index: Int32) -> ()
         const root = await parse(input_text);
 
         const expected_symbol_information = Parse_tree_analysis.create_value_symbol(
+            "value",
             [Type_utilities.create_integer_type(32, true)],
             find_node_position(root, "value")
         );
@@ -878,6 +889,7 @@ function run(index: Int32) -> ()
         const root = await parse(input_text);
 
         const expected_symbol_information = Parse_tree_analysis.create_value_symbol(
+            "value",
             [Type_utilities.create_fundamental_type(Core.Fundamental_type.Float32)],
             find_node_position(root, "value", 1)
         );
@@ -902,6 +914,7 @@ function run() -> ()
         const root = await parse(input_text);
 
         const expected_symbol_information = Parse_tree_analysis.create_value_symbol(
+            "value",
             [Type_utilities.create_integer_type(32, true)],
             find_node_position(root, "value")
         );
@@ -925,6 +938,7 @@ function run() -> ()
         const root = await parse(input_text);
 
         const expected_symbol_information = Parse_tree_analysis.create_value_symbol(
+            "value",
             [Type_utilities.create_integer_type(32, true)],
             find_node_position(root, "value")
         );
@@ -947,6 +961,7 @@ function run() -> ()
         const root = await parse(input_text);
 
         const expected_symbol_information = Parse_tree_analysis.create_value_symbol(
+            "value",
             [Type_utilities.create_integer_type(32, true)],
             find_node_position(root, "value")
         );
@@ -971,6 +986,7 @@ function run(index: Int32) -> ()
         const root = await parse(input_text);
 
         const expected_symbol_information = Parse_tree_analysis.create_value_symbol(
+            "value",
             [Type_utilities.create_integer_type(32, true)],
             find_node_position(root, "value")
         );
@@ -1001,6 +1017,16 @@ async function parse(
 ): Promise<Parser_node.Node> {
     const parser = await Tree_sitter_parser.create_parser();
     const tree = Tree_sitter_parser.parse(parser, input_text);
+    const core_tree = Tree_sitter_parser.to_parser_node(tree.rootNode, true);
+    return core_tree;
+}
+
+async function core_module_to_parse_tree(
+    core_module: Core.Module
+): Promise<Parser_node.Node> {
+    const parser = await Tree_sitter_parser.create_parser();
+    const text = Text_formatter.format_module(core_module);
+    const tree = Tree_sitter_parser.parse(parser, text);
     const core_tree = Tree_sitter_parser.to_parser_node(tree.rootNode, true);
     return core_tree;
 }
@@ -1048,6 +1074,6 @@ async function test_get_symbol_information(
 
     const scope_descendant = Parser_node.find_descendant_position_if({ node: root, position: [] }, descendant => descendant.word.value === "// scope");
 
-    const actual_symbol_information = await Parse_tree_analysis.get_symbol_information(root, scope_descendant !== undefined ? scope_descendant.position : undefined, variable_name, get_parse_tree);
+    const actual_symbol_information = await Parse_tree_analysis.get_symbol(root, scope_descendant !== undefined ? scope_descendant.position : undefined, variable_name, get_parse_tree);
     assert.deepEqual(actual_symbol_information, expected_symbol_information);
 }
