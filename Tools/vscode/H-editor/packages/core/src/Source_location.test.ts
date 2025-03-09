@@ -11,7 +11,7 @@ import * as Storage_cache from "./Storage_cache";
 import * as Text_change from "./Text_change";
 
 function run_test(language_description: Language.Description, input_text: string): Core_intermediate_representation.Module {
-    const result = Text_change.full_parse_with_source_locations(language_description, "", input_text, true);
+    const result = Text_change.full_parse_with_source_locations(language_description.parser, "", input_text, true);
     return result.module;
 }
 

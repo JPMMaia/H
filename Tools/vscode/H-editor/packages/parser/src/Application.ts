@@ -41,7 +41,7 @@ else if (command === "write") {
 
     Language.create_default_description(cache).then(
         (language_description: Language.Description) => {
-            const parse_result = Text_change.full_parse_with_source_locations(language_description, input_file !== undefined ? input_file : "", input_text);
+            const parse_result = Text_change.full_parse_with_source_locations(language_description.parser, input_file !== undefined ? input_file : "", input_text);
             if (parse_result.module === undefined) {
                 const messages = Validation.to_string(parse_result.diagnostics).join("\n");
                 console.log(messages);

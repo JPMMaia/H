@@ -559,7 +559,7 @@ async function test_get_expression_type(
 
     const old_tree = Parse_tree_convertor.module_to_parse_tree(core_module, language_description.production_rules, language_description.mappings);
     const text = Text_formatter.to_unformatted_text(old_tree);
-    const result = Text_change.full_parse_with_source_locations(language_description, "", text, true);
+    const result = Text_change.full_parse_with_source_locations(language_description.parser, "", text, true);
     const root = result.parse_tree;
 
     const actual_expression_type = await Parse_tree_analysis.get_expression_type(language_description, core_module, core_module.declarations[declaration_index], root, variable_node_position, expression, get_core_module_function);

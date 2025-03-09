@@ -66,7 +66,7 @@ function test_parse_function_comment(
     function_name: string,
     expected_comment: Comments.Function_comment
 ): void {
-    const parse_result = Text_change.full_parse_with_source_locations(language_description, "", program);
+    const parse_result = Text_change.full_parse_with_source_locations(language_description.parser, "", program);
     assert.notEqual(parse_result, undefined);
     if (parse_result === undefined) {
         return;
@@ -120,7 +120,7 @@ function test_generate_function_comment(
     function_name: string,
     expected_comment: string
 ): void {
-    const parse_result = Text_change.full_parse_with_source_locations(language_description, "", program);
+    const parse_result = Text_change.full_parse_with_source_locations(language_description.parser, "", program);
     assert.notEqual(parse_result, undefined);
     if (parse_result === undefined) {
         return;
@@ -196,7 +196,7 @@ function test_update_function_comment(
     function_name: string,
     expected_comment: string
 ): void {
-    const parse_result = Text_change.full_parse_with_source_locations(language_description, "", program);
+    const parse_result = Text_change.full_parse_with_source_locations(language_description.parser, "", program);
     assert.notEqual(parse_result, undefined);
     if (parse_result === undefined) {
         return;

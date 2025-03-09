@@ -46,7 +46,7 @@ export function update(
 ): Document.State {
 
     if (!use_incremental) {
-        const result = full_parse_with_source_locations(language_description, state.document_file_path, text_after_changes, add_source_location);
+        const result = full_parse_with_source_locations(language_description.parser, state.document_file_path, text_after_changes, add_source_location);
 
         if (result.diagnostics.length === 0) {
             state.valid = {
@@ -234,13 +234,11 @@ export function update(
 }
 
 export function full_parse_with_source_locations(
-    language_description: Language.Description,
+    parser: Tree_sitter_parser.Parser,
     document_file_path: string,
     input_text: string,
     add_source_location = true
 ): { module: Core.Module | undefined, parse_tree: Parser_node.Node | undefined, tree_sitter_tree: Tree_sitter_parser.Tree, diagnostics: Validation.Diagnostic[], position_cache: Parse_tree_text_position_cache.Cache } {
-
-    const parser = language_description.parser;
 
     const tree = Tree_sitter_parser.parse(parser, input_text);
     const core_tree = Tree_sitter_parser.to_parser_node(tree.rootNode, add_source_location);

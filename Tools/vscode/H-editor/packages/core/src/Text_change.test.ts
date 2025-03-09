@@ -18,7 +18,7 @@ function validate_document_state(
     assert.equal(document_state.pending_text_changes.length, 0);
 
     const input_text = document_state.valid.text;
-    const result = Text_change.full_parse_with_source_locations(language_description, document_state.document_file_path, input_text, false);
+    const result = Text_change.full_parse_with_source_locations(language_description.parser, document_state.document_file_path, input_text, false);
 
     const expected_parse_tree = result.parse_tree;
     assert.deepEqual(document_state.valid.parse_tree, expected_parse_tree);

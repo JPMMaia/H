@@ -434,7 +434,7 @@ export async function parse_source_file_and_write_to_disk(
         const text = fs.readFileSync(source_file_path, "utf-8");
 
         try {
-            const parse_result = Text_change.full_parse_with_source_locations(language_description, source_file_path, text);
+            const parse_result = Text_change.full_parse_with_source_locations(language_description.parser, source_file_path, text);
             if (parse_result.module === undefined) {
                 return undefined;
             }
