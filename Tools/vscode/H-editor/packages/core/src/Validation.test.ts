@@ -10,6 +10,7 @@ import * as Parser_node from "./Parser_node";
 import * as Scanner from "./Scanner";
 import * as Storage_cache from "./Storage_cache";
 import * as Text_change from "./Text_change";
+import * as Tree_sitter_parser from "./Tree_sitter_parser";
 import * as Validation from "./Validation";
 
 function create_node(
@@ -309,12 +310,11 @@ async function test_validate_module(
     expected_diagnostics: Validation.Diagnostic[]
 ): Promise<void> {
 
-    const cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
-    const language_description = await Language.create_default_description(cache, "out/tests/graphviz.gv");
+    const parser = await Tree_sitter_parser.create_parser();
 
     const uri = create_dummy_uri();
 
-    const parse_result = Text_change.full_parse_with_source_locations(language_description.parser, uri, input_text, true);
+    const parse_result = Text_change.full_parse_with_source_locations(parser, uri, input_text, true);
 
     assert.notEqual(parse_result.module, undefined);
     if (parse_result.module === undefined) {
@@ -327,7 +327,7 @@ async function test_validate_module(
     }
 
     const dependencies_parse_result: { module: Core.Module, parse_tree: Parser_node.Node }[] = input_dependencies_text.map(text => {
-        const parse_result = Text_change.full_parse_with_source_locations(language_description.parser, uri, text, true);
+        const parse_result = Text_change.full_parse_with_source_locations(parser, uri, text, true);
         assert.notEqual(parse_result.module, undefined);
         assert.notEqual(parse_result.parse_tree, undefined);
         return {
@@ -352,7 +352,6 @@ async function test_validate_module(
 
     const actual_diagnostics = await Validation.validate_module(
         uri,
-        language_description,
         input_text,
         parse_result.module,
         parse_result.parse_tree,

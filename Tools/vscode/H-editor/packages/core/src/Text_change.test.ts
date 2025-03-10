@@ -3,14 +3,13 @@ import "mocha";
 import * as assert from "assert";
 import * as Core_intermediate_representation from "./Core_intermediate_representation";
 import * as Document from "./Document";
-import * as Language from "./Language";
 import * as Module_examples from "./Module_examples";
-import * as Storage_cache from "./Storage_cache";
 import * as Text_change from "./Text_change";
+import * as Tree_sitter_parser from "./Tree_sitter_parser";
 import * as Type_utilities from "./Type_utilities";
 
 function validate_document_state(
-    language_description: Language.Description,
+    parser: Tree_sitter_parser.Parser,
     document_state: Document.State
 ): void {
 
@@ -18,7 +17,7 @@ function validate_document_state(
     assert.equal(document_state.pending_text_changes.length, 0);
 
     const input_text = document_state.valid.text;
-    const result = Text_change.full_parse_with_source_locations(language_description.parser, document_state.document_file_path, input_text, false);
+    const result = Text_change.full_parse_with_source_locations(parser, document_state.document_file_path, input_text, false);
 
     const expected_parse_tree = result.parse_tree;
     assert.deepEqual(document_state.valid.parse_tree, expected_parse_tree);
@@ -27,43 +26,13 @@ function validate_document_state(
     assert.deepEqual(document_state.valid.module, expected_module);
 }
 
-describe("Text_change.update", () => {
+describe("Text_change.update", async () => {
 
-    let language_description: any;
-
-    before(async () => {
-        const cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
-        language_description = await Language.create_default_description(cache, "out/tests/graphviz.gv");
-    });
-
-    it("Handles add first character", () => {
-
-        const document_state = Document.create_empty_state("", language_description.production_rules);
-
-        const text_changes: Text_change.Text_change[] = [
-            {
-                range: {
-                    start: 0,
-                    end: 0,
-                },
-                text: "m"
-            }
-        ];
-
-        const text_after_changes = "m";
-
-        Text_change.update(
-            language_description,
-            document_state,
-            text_changes,
-            text_after_changes,
-            true
-        );
-    });
+    const parser = await Tree_sitter_parser.create_parser();
 
     it("Handles adding module declaration", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const text_changes: Text_change.Text_change[] = [
             {
@@ -77,12 +46,11 @@ describe("Text_change.update", () => {
 
         const text_after_changes = "module Foo;";
 
-        Text_change.update(
-            language_description,
+        Text_change.update_2(
+            parser,
             document_state,
             text_changes,
-            text_after_changes,
-            true
+            text_after_changes
         );
 
         assert.equal(document_state.valid.module.name, "Foo");
@@ -90,7 +58,7 @@ describe("Text_change.update", () => {
 
     it("Handles aggregating multiple text changes", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const text_changes: Text_change.Text_change[] = [
             {
@@ -111,12 +79,11 @@ describe("Text_change.update", () => {
 
         const text_after_changes = "module Bar;";
 
-        Text_change.update(
-            language_description,
+        Text_change.update_2(
+            parser,
             document_state,
             text_changes,
-            text_after_changes,
-            true
+            text_after_changes
         );
 
         assert.equal(document_state.valid.module.name, "Bar");
@@ -124,7 +91,7 @@ describe("Text_change.update", () => {
 
     it("Handles updating module name", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         {
             const text_changes: Text_change.Text_change[] = [
@@ -139,12 +106,11 @@ describe("Text_change.update", () => {
 
             const text_after_changes = "module Foo;";
 
-            Text_change.update(
-                language_description,
+            Text_change.update_2(
+                parser,
                 document_state,
                 text_changes,
-                text_after_changes,
-                false
+                text_after_changes
             );
 
             assert.equal(document_state.valid.module.name, "Foo");
@@ -163,12 +129,11 @@ describe("Text_change.update", () => {
 
             const text_after_changes = "module Bar;";
 
-            Text_change.update(
-                language_description,
+            Text_change.update_2(
+                parser,
                 document_state,
                 text_changes,
-                text_after_changes,
-                false
+                text_after_changes
             );
 
             assert.equal(document_state.valid.module.name, "Bar");
@@ -177,7 +142,7 @@ describe("Text_change.update", () => {
 
     it("Handles compilation errors", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         {
             const text_changes: Text_change.Text_change[] = [
@@ -192,12 +157,11 @@ describe("Text_change.update", () => {
 
             const text_after_changes = "module";
 
-            Text_change.update(
-                language_description,
+            Text_change.update_2(
+                parser,
                 document_state,
                 text_changes,
-                text_after_changes,
-                false
+                text_after_changes
             );
         }
 
@@ -214,12 +178,11 @@ describe("Text_change.update", () => {
 
             const text_after_changes = "module Foo;";
 
-            Text_change.update(
-                language_description,
+            Text_change.update_2(
+                parser,
                 document_state,
                 text_changes,
-                text_after_changes,
-                false
+                text_after_changes
             );
 
             assert.equal(document_state.valid.module.name, "Foo");
@@ -228,7 +191,7 @@ describe("Text_change.update", () => {
 
     it("Handles add first declaration", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         {
             const text_changes: Text_change.Text_change[] = [
@@ -243,12 +206,11 @@ describe("Text_change.update", () => {
 
             const text_after_changes = "module Foo;";
 
-            Text_change.update(
-                language_description,
+            Text_change.update_2(
+                parser,
                 document_state,
                 text_changes,
-                text_after_changes,
-                false
+                text_after_changes
             );
 
             assert.equal(document_state.valid.module.name, "Foo");
@@ -267,12 +229,11 @@ describe("Text_change.update", () => {
 
             const text_after_changes = "module Foo;\n\nexport using My_float = Float32;\n";
 
-            Text_change.update(
-                language_description,
+            Text_change.update_2(
+                parser,
                 document_state,
                 text_changes,
-                text_after_changes,
-                false
+                text_after_changes
             );
 
             assert.equal(document_state.pending_text_changes.length, 0);
@@ -294,7 +255,7 @@ describe("Text_change.update", () => {
 
     it("Handles remove first declaration", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         {
             const text_changes: Text_change.Text_change[] = [
@@ -309,12 +270,11 @@ describe("Text_change.update", () => {
 
             const text_after_changes = "module Foo;\n\nexport using My_float = Float32;\n";
 
-            Text_change.update(
-                language_description,
+            Text_change.update_2(
+                parser,
                 document_state,
                 text_changes,
-                text_after_changes,
-                false
+                text_after_changes
             );
 
             assert.equal(document_state.valid.module.name, "Foo");
@@ -348,12 +308,11 @@ describe("Text_change.update", () => {
 
             const text_after_changes = "module Foo;\n";
 
-            Text_change.update(
-                language_description,
+            Text_change.update_2(
+                parser,
                 document_state,
                 text_changes,
-                text_after_changes,
-                false
+                text_after_changes
             );
 
             assert.equal(document_state.pending_text_changes.length, 0);
@@ -364,7 +323,7 @@ describe("Text_change.update", () => {
 
     it("Handles adding spaces", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         {
             const text_changes: Text_change.Text_change[] = [
@@ -379,12 +338,11 @@ describe("Text_change.update", () => {
 
             const text_after_changes = "module Foo;\n\nexport using My_float = Float32;\n";
 
-            Text_change.update(
-                language_description,
+            Text_change.update_2(
+                parser,
                 document_state,
                 text_changes,
-                text_after_changes,
-                false
+                text_after_changes
             );
 
             assert.equal(document_state.valid.module.name, "Foo");
@@ -418,12 +376,11 @@ describe("Text_change.update", () => {
 
             const text_after_changes = "module Foo;\n\nexport using  My_float = Float32;\n";
 
-            Text_change.update(
-                language_description,
+            Text_change.update_2(
+                parser,
                 document_state,
                 text_changes,
-                text_after_changes,
-                false
+                text_after_changes
             );
 
             assert.equal(document_state.pending_text_changes.length, 0);
@@ -455,12 +412,11 @@ describe("Text_change.update", () => {
 
             const text_after_changes = "module Foo;\n\nexport using   My_float = Float32;\n";
 
-            Text_change.update(
-                language_description,
+            Text_change.update_2(
+                parser,
                 document_state,
                 text_changes,
-                text_after_changes,
-                false
+                text_after_changes
             );
 
             assert.equal(document_state.pending_text_changes.length, 0);
@@ -482,7 +438,7 @@ describe("Text_change.update", () => {
 
     it("Handles changing alias type", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         {
             const text_changes: Text_change.Text_change[] = [
@@ -497,12 +453,11 @@ describe("Text_change.update", () => {
 
             const text_after_changes = "module Foo;\n\nexport using My_float = Float32;\n";
 
-            Text_change.update(
-                language_description,
+            Text_change.update_2(
+                parser,
                 document_state,
                 text_changes,
-                text_after_changes,
-                false
+                text_after_changes
             );
 
             assert.equal(document_state.valid.module.name, "Foo");
@@ -536,12 +491,11 @@ describe("Text_change.update", () => {
 
             const text_after_changes = "module Foo;\n\nexport using My_float = Float16;\n";
 
-            Text_change.update(
-                language_description,
+            Text_change.update_2(
+                parser,
                 document_state,
                 text_changes,
-                text_after_changes,
-                false
+                text_after_changes
             );
 
             assert.equal(document_state.pending_text_changes.length, 0);
@@ -563,7 +517,7 @@ describe("Text_change.update", () => {
 
     it("Handles adding first function parameter", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         {
             const text_changes: Text_change.Text_change[] = [
@@ -578,7 +532,7 @@ describe("Text_change.update", () => {
 
             const text_after_changes = "module Foo;\n\nexport function My_function() -> () {}\n";
 
-            Text_change.update(language_description, document_state, text_changes, text_after_changes, false);
+            Text_change.update_2(parser, document_state, text_changes, text_after_changes);
 
             assert.equal(document_state.valid.module.name, "Foo");
 
@@ -616,12 +570,11 @@ describe("Text_change.update", () => {
 
             const text_after_changes = "module Foo;\n\nexport function My_function(first: Float16) -> () {}\n";
 
-            Text_change.update(
-                language_description,
+            Text_change.update_2(
+                parser,
                 document_state,
                 text_changes,
-                text_after_changes,
-                false
+                text_after_changes
             );
 
             assert.equal(document_state.valid.module.name, "Foo");
@@ -651,7 +604,7 @@ describe("Text_change.update", () => {
 
     it("Handles hello world!", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const hello_world_program = `
 module Hello_world;
@@ -674,7 +627,7 @@ export function hello() -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, hello_world_program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, hello_world_program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         assert.equal(new_document_state.valid.module.name, "Hello_world");
@@ -763,7 +716,7 @@ export function hello() -> ()
 
     it("Handles adding return statement", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const hello_world_program = `
 module Hello_world;
@@ -786,7 +739,7 @@ export function hello() -> ()
             },
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, hello_world_program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, hello_world_program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const text_changes_2: Text_change.Text_change[] = [
@@ -811,13 +764,13 @@ export function hello() -> ()
 }
 `;
 
-        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, hello_world_program_2, false);
+        const new_document_state_2 = Text_change.update_2(parser, new_document_state, text_changes_2, hello_world_program_2);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
     });
 
     it("Handles variable declaration expressions", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Variables;
@@ -841,7 +794,7 @@ export function main() -> (result: Int32)
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_variables();
@@ -850,7 +803,7 @@ export function main() -> (result: Int32)
 
     it("Handles numbers", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Numbers;
@@ -899,7 +852,7 @@ export function main() -> (result: Int32)
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_numbers();
@@ -908,7 +861,7 @@ export function main() -> (result: Int32)
 
     it("Handles numeric casts", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Numeric_casts;
@@ -956,7 +909,7 @@ export function main() -> (result: Int32)
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_numeric_casts();
@@ -965,7 +918,7 @@ export function main() -> (result: Int32)
 
     it("Handles booleans", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Booleans;
@@ -987,7 +940,7 @@ export function foo() -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_booleans();
@@ -996,7 +949,7 @@ export function foo() -> ()
 
     it("Handles binary expressions", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Binary_expressions;
@@ -1043,7 +996,7 @@ export function foo(
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_binary_expressions();
@@ -1052,7 +1005,7 @@ export function foo(
 
     it("Handles binary expressions operator precedence", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Binary_expressions_operator_precedence;
@@ -1093,7 +1046,7 @@ export function foo(
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_binary_expressions_operator_precedence();
@@ -1118,7 +1071,7 @@ export function foo(
 
     it("Handles defer expressions", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Defer_expressions;
@@ -1149,7 +1102,7 @@ export function run() -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_defer_expressions();
@@ -1158,7 +1111,7 @@ export function run() -> ()
 
     it("Handles assignment expressions", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Assignment_expressions;
@@ -1195,7 +1148,7 @@ export function foo(
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_assignment_expressions();
@@ -1204,7 +1157,7 @@ export function foo(
 
     it("Handles constant array expressions", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Constant_array_expressions;
@@ -1231,7 +1184,7 @@ export function foo() -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_constant_array_expressions();
@@ -1240,7 +1193,7 @@ export function foo() -> ()
 
     it("Handles function pointer types", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Function_pointer_types;
@@ -1275,7 +1228,7 @@ export function run() -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_function_pointer_types();
@@ -1284,7 +1237,7 @@ export function run() -> ()
 
     it("Handles unary expressions", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Unary_expressions;
@@ -1312,7 +1265,7 @@ export function foo(
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_unary_expressions();
@@ -1321,7 +1274,7 @@ export function foo(
 
     it("Handles pointer types", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Pointer_types;
@@ -1361,7 +1314,7 @@ export function run(
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_pointer_types();
@@ -1370,7 +1323,7 @@ export function run(
 
     it("Handles block expressions", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Block_expressions;
@@ -1397,7 +1350,7 @@ export function run_blocks() -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_block_expressions();
@@ -1406,7 +1359,7 @@ export function run_blocks() -> ()
 
     it("Handles for loop expressions", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module For_loop_expressions;
@@ -1452,7 +1405,7 @@ export function run_for_loops() -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_for_loop_expressions();
@@ -1461,7 +1414,7 @@ export function run_for_loops() -> ()
 
     it("Handles if expressions", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module If_expressions;
@@ -1529,7 +1482,7 @@ export function run_ifs(value: Int32) -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_if_expressions(false);
@@ -1538,7 +1491,7 @@ export function run_ifs(value: Int32) -> ()
 
     it("Handles modifying return void to return with value", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Empty_return_expression;
@@ -1559,7 +1512,7 @@ function run() -> (result: Int32)
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const program_2 = `
@@ -1581,7 +1534,7 @@ function run() -> (result: Int32)
             }
         ];
 
-        const new_document_state_2 = Text_change.update(language_description, document_state, text_changes_2, program_2, false);
+        const new_document_state_2 = Text_change.update_2(parser, document_state, text_changes_2, program_2);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 0);
 
@@ -1592,7 +1545,7 @@ function run() -> (result: Int32)
 
     it("Handles switch expressions", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Switch_expressions;
@@ -1641,7 +1594,7 @@ export function run_switch(value: Int32) -> (result: Int32)
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_switch_expressions();
@@ -1650,7 +1603,7 @@ export function run_switch(value: Int32) -> (result: Int32)
 
     it("Handles ternary condition expressions", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Ternary_condition_expressions;
@@ -1674,7 +1627,7 @@ export function run_ternary_conditions(first_boolean: Bool, second_boolean: Bool
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_ternary_condition_expressions();
@@ -1683,7 +1636,7 @@ export function run_ternary_conditions(first_boolean: Bool, second_boolean: Bool
 
     it("Handles while loop expressions", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module While_loop_expressions;
@@ -1737,7 +1690,7 @@ export function run_while_loops(size: Int32) -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_while_loop_expressions();
@@ -1746,7 +1699,7 @@ export function run_while_loops(size: Int32) -> ()
 
     it("Handles function contracts", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Contracts;
@@ -1771,7 +1724,7 @@ export function run(x: Int32) -> (result: Int32)
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_function_contracts();
@@ -1780,7 +1733,7 @@ export function run(x: Int32) -> (result: Int32)
 
     it("Handles empty return expressions", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Empty_return_expression;
@@ -1801,7 +1754,7 @@ function run() -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 0);
 
@@ -1811,7 +1764,7 @@ function run() -> ()
 
     it("Handles break expressions", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Break_expressions;
@@ -1883,7 +1836,7 @@ export function run_breaks(size: Int32) -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         console.log(new_document_state.valid.text);
@@ -1894,7 +1847,7 @@ export function run_breaks(size: Int32) -> ()
 
     it("Handles using alias", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Alias;
@@ -1916,7 +1869,7 @@ export function use_alias(size: My_int) -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_using_alias();
@@ -1925,7 +1878,7 @@ export function use_alias(size: My_int) -> ()
 
     it("Handles using enums", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Enums;
@@ -1970,7 +1923,7 @@ export function use_enums(enum_argument: My_enum) -> (result: Int32)
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_using_enums();
@@ -1979,7 +1932,7 @@ export function use_enums(enum_argument: My_enum) -> (result: Int32)
 
     it("Handles using enum flags", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Enum_flags;
@@ -2028,7 +1981,7 @@ export function use_enums(enum_argument: My_enum_flag) -> (result: Int32)
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_using_enum_flags();
@@ -2037,7 +1990,7 @@ export function use_enums(enum_argument: My_enum_flag) -> (result: Int32)
 
     it("Handles using global variables", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Global_variables;
@@ -2061,7 +2014,7 @@ export function use_global_variables(parameter: Float32) -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_using_global_variables();
@@ -2070,7 +2023,7 @@ export function use_global_variables(parameter: Float32) -> ()
 
     it("Handles using structs", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Structs;
@@ -2145,7 +2098,7 @@ function return_struct() -> (my_struct: My_struct)
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_using_structs();
@@ -2154,7 +2107,7 @@ function return_struct() -> (my_struct: My_struct)
 
     it("Handles using unions", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Unions;
@@ -2238,7 +2191,7 @@ function return_union() -> (my_union: My_union)
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_using_unions();
@@ -2247,7 +2200,7 @@ function return_union() -> (my_union: My_union)
 
     it("Handles variadic function declarations", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Variadic;
@@ -2267,7 +2220,7 @@ export function my_function(first: Int32, ...) -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_variadic_function_declarations();
@@ -2276,7 +2229,7 @@ export function my_function(first: Int32, ...) -> ()
 
     it("Handles type constructors", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Type_constructor;
@@ -2306,7 +2259,7 @@ function run() -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_type_constructor();
@@ -2315,7 +2268,7 @@ function run() -> ()
 
     it("Handles function constructors", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Function_constructor;
@@ -2345,7 +2298,7 @@ function run() -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_function_constructor_0();
@@ -2354,7 +2307,7 @@ function run() -> ()
 
     it("Handles comments in the module declaration", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 // This is a very long
@@ -2372,7 +2325,7 @@ module Comments_in_module_declaration;
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_comments_in_module_declaration();
@@ -2381,7 +2334,7 @@ module Comments_in_module_declaration;
 
     it("Handles comments in alias", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Comments_in_alias;
@@ -2401,7 +2354,7 @@ using My_int = Int32;
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_comments_in_alias();
@@ -2410,7 +2363,7 @@ using My_int = Int32;
 
     it("Handles comments in enums", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Comments_in_enums;
@@ -2437,7 +2390,7 @@ enum My_enum
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_comments_in_enums();
@@ -2446,7 +2399,7 @@ enum My_enum
 
     it("Handles comments in functions", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Comments_in_functions;
@@ -2474,7 +2427,7 @@ export function use_comments() -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_comments_in_functions(false);
@@ -2483,7 +2436,7 @@ export function use_comments() -> ()
 
     it("Handles comments in global variables", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Comments_in_global_variables;
@@ -2503,7 +2456,7 @@ export var My_global_variable = 1.0f32;
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_comments_in_global_variables();
@@ -2512,7 +2465,7 @@ export var My_global_variable = 1.0f32;
 
     it("Handles comments in structs", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Comments_in_structs;
@@ -2540,7 +2493,7 @@ struct My_struct
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_comments_in_structs();
@@ -2549,7 +2502,7 @@ struct My_struct
 
     it("Handles comments in unions", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Comments_in_unions;
@@ -2577,7 +2530,7 @@ union My_union
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_comments_in_unions();
@@ -2586,7 +2539,7 @@ union My_union
 
     it("Handles newlines after statements", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Newlines_after_statements;
@@ -2617,7 +2570,7 @@ function use_newlines() -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
         const expected_module = Module_examples.create_newlines_after_statements(false);
@@ -2626,7 +2579,7 @@ function use_newlines() -> ()
 
     it("Recovers from errors 0", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Empty_return_expression;
@@ -2647,7 +2600,7 @@ function run() -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 1);
 
@@ -2663,7 +2616,7 @@ function run() -> ()
 
         const program_2 = Text_change.apply_text_changes(program, text_changes_2);
 
-        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2, false);
+        const new_document_state_2 = Text_change.update_2(parser, new_document_state, text_changes_2, program_2);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 0);
 
@@ -2673,7 +2626,7 @@ function run() -> ()
 
     it("Recovers from errors 1", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Complete_import;
@@ -2691,7 +2644,7 @@ import
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 1);
 
@@ -2707,7 +2660,7 @@ import
 
         const program_2 = Text_change.apply_text_changes(program, text_changes_2);
 
-        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2, false);
+        const new_document_state_2 = Text_change.update_2(parser, new_document_state, text_changes_2, program_2);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 0);
 
@@ -2717,7 +2670,7 @@ import
 
     it("Recovers from errors 2", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Complete_import_with_function;
@@ -2739,7 +2692,7 @@ export function run() -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 1);
 
@@ -2755,7 +2708,7 @@ export function run() -> ()
 
         const program_2 = Text_change.apply_text_changes(program, text_changes_2);
 
-        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2, false);
+        const new_document_state_2 = Text_change.update_2(parser, new_document_state, text_changes_2, program_2);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 0);
 
@@ -2765,7 +2718,7 @@ export function run() -> ()
 
     it("Recovers from errors 3", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Complete_import_with_function;
@@ -2787,15 +2740,15 @@ export function run() -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 0);
 
-        const new_document_state_2 = simulate_typing(language_description, new_document_state, 39, "import ");
+        const new_document_state_2 = simulate_typing(parser, new_document_state, 39, "import ");
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 1);
 
-        const new_document_state_3 = simulate_typing(language_description, new_document_state_2, 46, "some_module as some_module_alias;");
+        const new_document_state_3 = simulate_typing(parser, new_document_state_2, 46, "some_module as some_module_alias;");
         assert.equal(new_document_state_3.pending_text_changes.length, 0);
         assert.equal(new_document_state_3.diagnostics.length, 0);
 
@@ -2805,7 +2758,7 @@ export function run() -> ()
 
     it("Recovers from errors 4", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Recover_from_error;
@@ -2823,7 +2776,7 @@ function run(value:
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 1);
 
@@ -2839,14 +2792,14 @@ function run(value:
 
         const program_2 = Text_change.apply_text_changes(program, text_changes_2);
 
-        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2, false);
+        const new_document_state_2 = Text_change.update_2(parser, new_document_state, text_changes_2, program_2);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 0);
     });
 
     it("Recovers from errors 5", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Recover_from_error;
@@ -2870,26 +2823,26 @@ function run() -> ()
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 0);
 
-        const new_document_state_2 = simulate_typing(language_description, new_document_state, 83, "dep.");
+        const new_document_state_2 = simulate_typing(parser, new_document_state, 83, "dep.");
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 1);
 
-        const new_document_state_3 = simulate_erasing(language_description, new_document_state_2, 83, 87);
+        const new_document_state_3 = simulate_erasing(parser, new_document_state_2, 83, 87);
         assert.equal(new_document_state_3.pending_text_changes.length, 0);
         assert.equal(new_document_state_3.diagnostics.length, 0);
 
-        const new_document_state_4 = simulate_typing(language_description, new_document_state_3, 83, "dep.");
+        const new_document_state_4 = simulate_typing(parser, new_document_state_3, 83, "dep.");
         assert.equal(new_document_state_4.pending_text_changes.length, 0);
         assert.equal(new_document_state_4.diagnostics.length, 1);
     });
 
     it("Recovers from errors 6", async () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program_0 = `
 module Recover_from_error;
@@ -2912,10 +2865,10 @@ function run() -> (result: Int32)
             }
         ];
 
-        const new_document_state_0 = Text_change.update(language_description, document_state, text_changes_0, program_0, false);
+        const new_document_state_0 = Text_change.update_2(parser, document_state, text_changes_0, program_0);
         assert.equal(new_document_state_0.pending_text_changes.length, 0);
         assert.equal(new_document_state_0.diagnostics.length, 0);
-        validate_document_state(language_description, new_document_state_0);
+        validate_document_state(parser, new_document_state_0);
 
         const text_changes_1: Text_change.Text_change[] = [
             {
@@ -2928,15 +2881,15 @@ function run() -> (result: Int32)
         ];
         const program_1 = Text_change.apply_text_changes(program_0, text_changes_1);
 
-        const new_document_state_1 = Text_change.update(language_description, new_document_state_0, text_changes_1, program_1, false);
+        const new_document_state_1 = Text_change.update_2(parser, new_document_state_0, text_changes_1, program_1);
         assert.equal(new_document_state_1.pending_text_changes.length, 0);
         assert.equal(new_document_state_1.diagnostics.length, 0);
-        validate_document_state(language_description, new_document_state_1);
+        validate_document_state(parser, new_document_state_1);
     });
 
     it("Recovers from errors 7", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module Recover_from_error;
@@ -2958,7 +2911,7 @@ function run() -> (result: Int32)
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 0);
 
@@ -2974,7 +2927,7 @@ function run() -> (result: Int32)
 
         const program_2 = Text_change.apply_text_changes(program, text_changes_2);
 
-        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2, false);
+        const new_document_state_2 = Text_change.update_2(parser, new_document_state, text_changes_2, program_2);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 0);
 
@@ -2990,14 +2943,14 @@ function run() -> (result: Int32)
 
         const program_3 = Text_change.apply_text_changes(program_2, text_changes_3);
 
-        const new_document_state_3 = Text_change.update(language_description, new_document_state_2, text_changes_3, program_3, false);
+        const new_document_state_3 = Text_change.update_2(parser, new_document_state_2, text_changes_3, program_3);
         assert.equal(new_document_state_3.pending_text_changes.length, 0);
         assert.equal(new_document_state_3.diagnostics.length, 0);
     });
 
     it("Handles changing module name and update custom type references", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module name_0;
@@ -3061,7 +3014,7 @@ function run(a: Node) -> (b: Node)
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 0);
 
@@ -3079,7 +3032,7 @@ function run(a: Node) -> (b: Node)
 
         const program_2 = Text_change.apply_text_changes(program, text_changes_2);
 
-        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2, false);
+        const new_document_state_2 = Text_change.update_2(parser, new_document_state, text_changes_2, program_2);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 0);
 
@@ -3088,7 +3041,7 @@ function run(a: Node) -> (b: Node)
 
     it("Handles changing import module name and update custom type references", () => {
 
-        const document_state = Document.create_empty_state("", language_description.production_rules);
+        const document_state = Document.create_empty_state("");
 
         const program = `
 module my_module;
@@ -3153,7 +3106,7 @@ function run(a: alias_0.My_struct) -> (b: alias_0.My_struct)
             }
         ];
 
-        const new_document_state = Text_change.update(language_description, document_state, text_changes, program, false);
+        const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 0);
 
@@ -3173,7 +3126,7 @@ function run(a: alias_0.My_struct) -> (b: alias_0.My_struct)
 
         const program_2 = Text_change.apply_text_changes(program, text_changes_2);
 
-        const new_document_state_2 = Text_change.update(language_description, new_document_state, text_changes_2, program_2, false);
+        const new_document_state_2 = Text_change.update_2(parser, new_document_state, text_changes_2, program_2);
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
         assert.equal(new_document_state_2.diagnostics.length, 0);
 
@@ -3494,7 +3447,7 @@ describe("Text_change.aggregate_changes", () => {
 });
 
 function simulate_typing(
-    language_description: Language.Description,
+    parser: Tree_sitter_parser.Parser,
     document_state: Document.State,
     start_range: number,
     text: string
@@ -3525,7 +3478,7 @@ function simulate_typing(
 
         const new_program = Text_change.apply_text_changes(current_program, text_changes);
 
-        const new_document_state = Text_change.update(language_description, current_document_state, text_changes, new_program, false);
+        const new_document_state = Text_change.update_2(parser, current_document_state, text_changes, new_program);
 
         current_program = new_program;
         current_document_state = new_document_state;
@@ -3537,7 +3490,7 @@ function simulate_typing(
 }
 
 function simulate_erasing(
-    language_description: Language.Description,
+    parser: Tree_sitter_parser.Parser,
     document_state: Document.State,
     start_range: number,
     end_range: number
@@ -3568,7 +3521,7 @@ function simulate_erasing(
 
         const new_program = Text_change.apply_text_changes(current_program, text_changes);
 
-        const new_document_state = Text_change.update(language_description, current_document_state, text_changes, new_program, false);
+        const new_document_state = Text_change.update_2(parser, current_document_state, text_changes, new_program);
 
         current_program = new_program;
         current_document_state = new_document_state;
