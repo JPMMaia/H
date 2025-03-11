@@ -58,8 +58,6 @@ target_link_libraries(H_parser PRIVATE unofficial::tree-sitter::tree-sitter)
 target_sources(H_parser PRIVATE
    "Parser.cppm"
    "Parser.cpp"
-   "Tree_sitter_parser.cppm"
-   "Tree_sitter_parser.cpp"
 )
 
 
@@ -72,8 +70,8 @@ target_compile_features(H_parser_executable PRIVATE cxx_std_23)
 
 target_link_libraries(H_parser_executable PRIVATE H::Common H::Parser)
 
-find_package(docopt REQUIRED CONFIG)
-target_link_libraries(H_parser_executable PRIVATE docopt)
+find_package(argparse CONFIG REQUIRED)
+target_link_libraries(H_parser_executable PRIVATE argparse::argparse)
 
 target_sources(H_parser_executable PRIVATE
    "main.cpp"
