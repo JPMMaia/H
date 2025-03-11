@@ -68,10 +68,7 @@
 				],
 				"sourceMaps": true,
 				"autoAttachChildProcesses": true,
-				"preLaunchTask": {
-					"type": "npm",
-					"script": "watch"
-				},
+				"preLaunchTask": "npm watch",
 				"env": {
 					"mode": "debug"
 				}
@@ -83,8 +80,26 @@
 		"version": "2.0.0",
 		"tasks": [
 			{
-				"type": "npm",
-				"script": "watch",
+				"label": "npm watch",
+				"type": "shell",
+				"command": "npm run watch",
+				"problemMatcher": "$tsc-watch",
+				"isBackground": true,
+				"presentation": {
+					"reveal": "never"
+				},
+				"group": {
+					"kind": "build",
+					"isDefault": true
+				},
+				"options": {
+					"cwd": "${workspaceFolder}"
+				}
+			},
+			{
+				"label": "npm watch:parser",
+				"type": "shell",
+				"command": "npm run watch:parser",
 				"problemMatcher": "$tsc-watch",
 				"isBackground": true,
 				"presentation": {
@@ -96,21 +111,9 @@
 				}
 			},
 			{
-				"type": "npm",
-				"script": "watch:parser",
-				"problemMatcher": "$tsc-watch",
-				"isBackground": true,
-				"presentation": {
-					"reveal": "never"
-				},
-				"group": {
-					"kind": "build",
-					"isDefault": true
-				}
-			},
-			{
-				"type": "npm",
-				"script": "webpack:development",
+				"label": "npm webpack:development",
+				"type": "shell",
+				"command": "npm run webpack:development",
 				"problemMatcher": "$ts-webpack",
 				"isBackground": false,
 				"presentation": {
@@ -122,8 +125,9 @@
 				}
 			},
 			{
-				"type": "npm",
-				"script": "webpack:production",
+				"label": "npm webpack:production",
+				"type": "shell",
+				"command": "npm run webpack:production",
 				"problemMatcher": "$ts-webpack",
 				"isBackground": false,
 				"presentation": {
