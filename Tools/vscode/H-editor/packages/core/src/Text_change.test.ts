@@ -26,11 +26,9 @@ function validate_document_state(
     assert.deepEqual(document_state.valid.module, expected_module);
 }
 
-describe("Text_change.update", async () => {
+describe("Text_change.update", () => {
 
-    const parser = await Tree_sitter_parser.create_parser();
-
-    it("Handles adding module declaration", () => {
+    it("Handles adding module declaration", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -46,6 +44,7 @@ describe("Text_change.update", async () => {
 
         const text_after_changes = "module Foo;";
 
+        const parser = await Tree_sitter_parser.create_parser();
         Text_change.update_2(
             parser,
             document_state,
@@ -56,7 +55,7 @@ describe("Text_change.update", async () => {
         assert.equal(document_state.valid.module.name, "Foo");
     });
 
-    it("Handles aggregating multiple text changes", () => {
+    it("Handles aggregating multiple text changes", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -79,6 +78,7 @@ describe("Text_change.update", async () => {
 
         const text_after_changes = "module Bar;";
 
+        const parser = await Tree_sitter_parser.create_parser();
         Text_change.update_2(
             parser,
             document_state,
@@ -89,7 +89,7 @@ describe("Text_change.update", async () => {
         assert.equal(document_state.valid.module.name, "Bar");
     });
 
-    it("Handles updating module name", () => {
+    it("Handles updating module name", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -106,6 +106,7 @@ describe("Text_change.update", async () => {
 
             const text_after_changes = "module Foo;";
 
+            const parser = await Tree_sitter_parser.create_parser();
             Text_change.update_2(
                 parser,
                 document_state,
@@ -129,6 +130,7 @@ describe("Text_change.update", async () => {
 
             const text_after_changes = "module Bar;";
 
+            const parser = await Tree_sitter_parser.create_parser();
             Text_change.update_2(
                 parser,
                 document_state,
@@ -140,7 +142,7 @@ describe("Text_change.update", async () => {
         }
     });
 
-    it("Handles compilation errors", () => {
+    it("Handles compilation errors", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -157,6 +159,7 @@ describe("Text_change.update", async () => {
 
             const text_after_changes = "module";
 
+            const parser = await Tree_sitter_parser.create_parser();
             Text_change.update_2(
                 parser,
                 document_state,
@@ -178,6 +181,7 @@ describe("Text_change.update", async () => {
 
             const text_after_changes = "module Foo;";
 
+            const parser = await Tree_sitter_parser.create_parser();
             Text_change.update_2(
                 parser,
                 document_state,
@@ -189,7 +193,7 @@ describe("Text_change.update", async () => {
         }
     });
 
-    it("Handles add first declaration", () => {
+    it("Handles add first declaration", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -206,6 +210,7 @@ describe("Text_change.update", async () => {
 
             const text_after_changes = "module Foo;";
 
+            const parser = await Tree_sitter_parser.create_parser();
             Text_change.update_2(
                 parser,
                 document_state,
@@ -229,6 +234,7 @@ describe("Text_change.update", async () => {
 
             const text_after_changes = "module Foo;\n\nexport using My_float = Float32;\n";
 
+            const parser = await Tree_sitter_parser.create_parser();
             Text_change.update_2(
                 parser,
                 document_state,
@@ -253,7 +259,7 @@ describe("Text_change.update", async () => {
         }
     });
 
-    it("Handles remove first declaration", () => {
+    it("Handles remove first declaration", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -270,6 +276,7 @@ describe("Text_change.update", async () => {
 
             const text_after_changes = "module Foo;\n\nexport using My_float = Float32;\n";
 
+            const parser = await Tree_sitter_parser.create_parser();
             Text_change.update_2(
                 parser,
                 document_state,
@@ -308,6 +315,7 @@ describe("Text_change.update", async () => {
 
             const text_after_changes = "module Foo;\n";
 
+            const parser = await Tree_sitter_parser.create_parser();
             Text_change.update_2(
                 parser,
                 document_state,
@@ -321,7 +329,7 @@ describe("Text_change.update", async () => {
         }
     });
 
-    it("Handles adding spaces", () => {
+    it("Handles adding spaces", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -338,6 +346,7 @@ describe("Text_change.update", async () => {
 
             const text_after_changes = "module Foo;\n\nexport using My_float = Float32;\n";
 
+            const parser = await Tree_sitter_parser.create_parser();
             Text_change.update_2(
                 parser,
                 document_state,
@@ -376,6 +385,7 @@ describe("Text_change.update", async () => {
 
             const text_after_changes = "module Foo;\n\nexport using  My_float = Float32;\n";
 
+            const parser = await Tree_sitter_parser.create_parser();
             Text_change.update_2(
                 parser,
                 document_state,
@@ -412,6 +422,7 @@ describe("Text_change.update", async () => {
 
             const text_after_changes = "module Foo;\n\nexport using   My_float = Float32;\n";
 
+            const parser = await Tree_sitter_parser.create_parser();
             Text_change.update_2(
                 parser,
                 document_state,
@@ -436,7 +447,7 @@ describe("Text_change.update", async () => {
         }
     });
 
-    it("Handles changing alias type", () => {
+    it("Handles changing alias type", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -453,6 +464,7 @@ describe("Text_change.update", async () => {
 
             const text_after_changes = "module Foo;\n\nexport using My_float = Float32;\n";
 
+            const parser = await Tree_sitter_parser.create_parser();
             Text_change.update_2(
                 parser,
                 document_state,
@@ -491,6 +503,7 @@ describe("Text_change.update", async () => {
 
             const text_after_changes = "module Foo;\n\nexport using My_float = Float16;\n";
 
+            const parser = await Tree_sitter_parser.create_parser();
             Text_change.update_2(
                 parser,
                 document_state,
@@ -515,7 +528,7 @@ describe("Text_change.update", async () => {
         }
     });
 
-    it("Handles adding first function parameter", () => {
+    it("Handles adding first function parameter", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -532,6 +545,7 @@ describe("Text_change.update", async () => {
 
             const text_after_changes = "module Foo;\n\nexport function My_function() -> () {}\n";
 
+            const parser = await Tree_sitter_parser.create_parser();
             Text_change.update_2(parser, document_state, text_changes, text_after_changes);
 
             assert.equal(document_state.valid.module.name, "Foo");
@@ -570,6 +584,7 @@ describe("Text_change.update", async () => {
 
             const text_after_changes = "module Foo;\n\nexport function My_function(first: Float16) -> () {}\n";
 
+            const parser = await Tree_sitter_parser.create_parser();
             Text_change.update_2(
                 parser,
                 document_state,
@@ -602,7 +617,7 @@ describe("Text_change.update", async () => {
     });
 
 
-    it("Handles hello world!", () => {
+    it("Handles hello world!", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -627,6 +642,7 @@ export function hello() -> ()
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, hello_world_program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -714,7 +730,7 @@ export function hello() -> ()
         assert.deepEqual(new_document_state.valid.module.declarations, expected_declarations);
     });
 
-    it("Handles adding return statement", () => {
+    it("Handles adding return statement", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -739,6 +755,7 @@ export function hello() -> ()
             },
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, hello_world_program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -768,7 +785,7 @@ export function hello() -> ()
         assert.equal(new_document_state_2.pending_text_changes.length, 0);
     });
 
-    it("Handles variable declaration expressions", () => {
+    it("Handles variable declaration expressions", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -794,6 +811,7 @@ export function main() -> (result: Int32)
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -801,7 +819,7 @@ export function main() -> (result: Int32)
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles numbers", () => {
+    it("Handles numbers", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -852,6 +870,7 @@ export function main() -> (result: Int32)
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -859,7 +878,7 @@ export function main() -> (result: Int32)
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles numeric casts", () => {
+    it("Handles numeric casts", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -909,6 +928,7 @@ export function main() -> (result: Int32)
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -916,7 +936,7 @@ export function main() -> (result: Int32)
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles booleans", () => {
+    it("Handles booleans", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -940,6 +960,7 @@ export function foo() -> ()
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -947,7 +968,7 @@ export function foo() -> ()
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles binary expressions", () => {
+    it("Handles binary expressions", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -996,6 +1017,7 @@ export function foo(
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -1003,7 +1025,7 @@ export function foo(
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles binary expressions operator precedence", () => {
+    it("Handles binary expressions operator precedence", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -1046,6 +1068,7 @@ export function foo(
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -1069,7 +1092,7 @@ export function foo(
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles defer expressions", () => {
+    it("Handles defer expressions", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -1102,6 +1125,7 @@ export function run() -> ()
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -1109,7 +1133,7 @@ export function run() -> ()
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles assignment expressions", () => {
+    it("Handles assignment expressions", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -1148,6 +1172,7 @@ export function foo(
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -1155,7 +1180,7 @@ export function foo(
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles constant array expressions", () => {
+    it("Handles constant array expressions", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -1184,6 +1209,7 @@ export function foo() -> ()
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -1191,7 +1217,7 @@ export function foo() -> ()
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles function pointer types", () => {
+    it("Handles function pointer types", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -1228,6 +1254,7 @@ export function run() -> ()
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -1235,7 +1262,7 @@ export function run() -> ()
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles unary expressions", () => {
+    it("Handles unary expressions", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -1265,6 +1292,7 @@ export function foo(
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -1272,7 +1300,7 @@ export function foo(
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles pointer types", () => {
+    it("Handles pointer types", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -1314,6 +1342,7 @@ export function run(
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -1321,7 +1350,7 @@ export function run(
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles block expressions", () => {
+    it("Handles block expressions", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -1350,6 +1379,7 @@ export function run_blocks() -> ()
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -1357,7 +1387,7 @@ export function run_blocks() -> ()
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles for loop expressions", () => {
+    it("Handles for loop expressions", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -1405,6 +1435,7 @@ export function run_for_loops() -> ()
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -1412,7 +1443,7 @@ export function run_for_loops() -> ()
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles if expressions", () => {
+    it("Handles if expressions", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -1482,6 +1513,7 @@ export function run_ifs(value: Int32) -> ()
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -1489,7 +1521,7 @@ export function run_ifs(value: Int32) -> ()
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles modifying return void to return with value", () => {
+    it("Handles modifying return void to return with value", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -1512,6 +1544,7 @@ function run() -> (result: Int32)
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -1543,7 +1576,7 @@ function run() -> (result: Int32)
     });
 
 
-    it("Handles switch expressions", () => {
+    it("Handles switch expressions", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -1594,6 +1627,7 @@ export function run_switch(value: Int32) -> (result: Int32)
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -1601,7 +1635,7 @@ export function run_switch(value: Int32) -> (result: Int32)
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles ternary condition expressions", () => {
+    it("Handles ternary condition expressions", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -1627,6 +1661,7 @@ export function run_ternary_conditions(first_boolean: Bool, second_boolean: Bool
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -1634,7 +1669,7 @@ export function run_ternary_conditions(first_boolean: Bool, second_boolean: Bool
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles while loop expressions", () => {
+    it("Handles while loop expressions", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -1690,6 +1725,7 @@ export function run_while_loops(size: Int32) -> ()
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -1697,7 +1733,7 @@ export function run_while_loops(size: Int32) -> ()
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles function contracts", () => {
+    it("Handles function contracts", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -1724,6 +1760,7 @@ export function run(x: Int32) -> (result: Int32)
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -1731,7 +1768,7 @@ export function run(x: Int32) -> (result: Int32)
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles empty return expressions", () => {
+    it("Handles empty return expressions", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -1754,6 +1791,7 @@ function run() -> ()
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 0);
@@ -1762,7 +1800,7 @@ function run() -> ()
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles break expressions", () => {
+    it("Handles break expressions", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -1836,6 +1874,7 @@ export function run_breaks(size: Int32) -> ()
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -1845,7 +1884,7 @@ export function run_breaks(size: Int32) -> ()
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles using alias", () => {
+    it("Handles using alias", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -1869,6 +1908,7 @@ export function use_alias(size: My_int) -> ()
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -1876,7 +1916,7 @@ export function use_alias(size: My_int) -> ()
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles using enums", () => {
+    it("Handles using enums", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -1923,6 +1963,7 @@ export function use_enums(enum_argument: My_enum) -> (result: Int32)
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -1930,7 +1971,7 @@ export function use_enums(enum_argument: My_enum) -> (result: Int32)
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles using enum flags", () => {
+    it("Handles using enum flags", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -1981,6 +2022,7 @@ export function use_enums(enum_argument: My_enum_flag) -> (result: Int32)
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -1988,7 +2030,7 @@ export function use_enums(enum_argument: My_enum_flag) -> (result: Int32)
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles using global variables", () => {
+    it("Handles using global variables", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -2014,6 +2056,7 @@ export function use_global_variables(parameter: Float32) -> ()
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -2021,7 +2064,7 @@ export function use_global_variables(parameter: Float32) -> ()
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles using structs", () => {
+    it("Handles using structs", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -2098,6 +2141,7 @@ function return_struct() -> (my_struct: My_struct)
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -2105,7 +2149,7 @@ function return_struct() -> (my_struct: My_struct)
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles using unions", () => {
+    it("Handles using unions", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -2191,6 +2235,7 @@ function return_union() -> (my_union: My_union)
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -2198,7 +2243,7 @@ function return_union() -> (my_union: My_union)
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles variadic function declarations", () => {
+    it("Handles variadic function declarations", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -2220,6 +2265,7 @@ export function my_function(first: Int32, ...) -> ()
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -2227,7 +2273,7 @@ export function my_function(first: Int32, ...) -> ()
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles type constructors", () => {
+    it("Handles type constructors", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -2259,6 +2305,7 @@ function run() -> ()
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -2266,7 +2313,7 @@ function run() -> ()
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles function constructors", () => {
+    it("Handles function constructors", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -2298,6 +2345,7 @@ function run() -> ()
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -2305,7 +2353,7 @@ function run() -> ()
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles comments in the module declaration", () => {
+    it("Handles comments in the module declaration", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -2325,6 +2373,7 @@ module Comments_in_module_declaration;
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -2332,7 +2381,7 @@ module Comments_in_module_declaration;
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles comments in alias", () => {
+    it("Handles comments in alias", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -2354,6 +2403,7 @@ using My_int = Int32;
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -2361,7 +2411,7 @@ using My_int = Int32;
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles comments in enums", () => {
+    it("Handles comments in enums", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -2390,6 +2440,7 @@ enum My_enum
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -2397,7 +2448,7 @@ enum My_enum
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles comments in functions", () => {
+    it("Handles comments in functions", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -2427,6 +2478,7 @@ export function use_comments() -> ()
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -2434,7 +2486,7 @@ export function use_comments() -> ()
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles comments in global variables", () => {
+    it("Handles comments in global variables", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -2456,6 +2508,7 @@ export var My_global_variable = 1.0f32;
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -2463,7 +2516,7 @@ export var My_global_variable = 1.0f32;
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles comments in structs", () => {
+    it("Handles comments in structs", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -2493,6 +2546,7 @@ struct My_struct
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -2500,7 +2554,7 @@ struct My_struct
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles comments in unions", () => {
+    it("Handles comments in unions", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -2530,6 +2584,7 @@ union My_union
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -2537,7 +2592,7 @@ union My_union
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Handles newlines after statements", () => {
+    it("Handles newlines after statements", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -2570,6 +2625,7 @@ function use_newlines() -> ()
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
@@ -2577,7 +2633,7 @@ function use_newlines() -> ()
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
-    it("Recovers from errors 0", () => {
+    it("Recovers from errors 0", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -2600,6 +2656,7 @@ function run() -> ()
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 1);
@@ -2624,7 +2681,7 @@ function run() -> ()
         assert.deepEqual(new_document_state_2.valid.module, expected_module);
     });
 
-    it("Recovers from errors 1", () => {
+    it("Recovers from errors 1", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -2644,6 +2701,7 @@ import
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 1);
@@ -2668,7 +2726,7 @@ import
         assert.deepEqual(new_document_state_2.valid.module, expected_module);
     });
 
-    it("Recovers from errors 2", () => {
+    it("Recovers from errors 2", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -2692,6 +2750,7 @@ export function run() -> ()
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 1);
@@ -2716,7 +2775,7 @@ export function run() -> ()
         assert.deepEqual(new_document_state_2.valid.module, expected_module);
     });
 
-    it("Recovers from errors 3", () => {
+    it("Recovers from errors 3", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -2740,6 +2799,7 @@ export function run() -> ()
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 0);
@@ -2756,7 +2816,7 @@ export function run() -> ()
         assert.deepEqual(new_document_state_3.valid.module, expected_module);
     });
 
-    it("Recovers from errors 4", () => {
+    it("Recovers from errors 4", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -2776,6 +2836,7 @@ function run(value:
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 1);
@@ -2797,7 +2858,7 @@ function run(value:
         assert.equal(new_document_state_2.diagnostics.length, 0);
     });
 
-    it("Recovers from errors 5", () => {
+    it("Recovers from errors 5", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -2823,6 +2884,7 @@ function run() -> ()
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 0);
@@ -2865,6 +2927,7 @@ function run() -> (result: Int32)
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state_0 = Text_change.update_2(parser, document_state, text_changes_0, program_0);
         assert.equal(new_document_state_0.pending_text_changes.length, 0);
         assert.equal(new_document_state_0.diagnostics.length, 0);
@@ -2887,7 +2950,7 @@ function run() -> (result: Int32)
         validate_document_state(parser, new_document_state_1);
     });
 
-    it("Recovers from errors 7", () => {
+    it("Recovers from errors 7", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -2911,6 +2974,7 @@ function run() -> (result: Int32)
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 0);
@@ -2948,7 +3012,7 @@ function run() -> (result: Int32)
         assert.equal(new_document_state_3.diagnostics.length, 0);
     });
 
-    it("Handles changing module name and update custom type references", () => {
+    it("Handles changing module name and update custom type references", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -3014,6 +3078,7 @@ function run(a: Node) -> (b: Node)
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 0);
@@ -3039,7 +3104,7 @@ function run(a: Node) -> (b: Node)
         visit_custom_type_references(new_document_state_2.valid.module, (type: Core_intermediate_representation.Custom_type_reference) => assert.equal(type.module_reference.name, "name_1"));
     });
 
-    it("Handles changing import module name and update custom type references", () => {
+    it("Handles changing import module name and update custom type references", async () => {
 
         const document_state = Document.create_empty_state("");
 
@@ -3106,6 +3171,7 @@ function run(a: alias_0.My_struct) -> (b: alias_0.My_struct)
             }
         ];
 
+        const parser = await Tree_sitter_parser.create_parser();
         const new_document_state = Text_change.update_2(parser, document_state, text_changes, program);
         assert.equal(new_document_state.pending_text_changes.length, 0);
         assert.equal(new_document_state.diagnostics.length, 0);
@@ -3137,7 +3203,7 @@ function run(a: alias_0.My_struct) -> (b: alias_0.My_struct)
 });
 
 describe("Text_change.aggregate_changes", () => {
-    it("Handles erasing of characters 0", () => {
+    it("Handles erasing of characters 0", async () => {
         const original_text = "()";
 
         const text_changes: Text_change.Text_change[] = [
@@ -3164,7 +3230,7 @@ describe("Text_change.aggregate_changes", () => {
         assert.equal(aggregated_changes.text, "foo:");
     });
 
-    it("Handles erasing of characters 1", () => {
+    it("Handles erasing of characters 1", async () => {
         const original_text = "()";
 
         const text_changes: Text_change.Text_change[] = [
@@ -3191,7 +3257,7 @@ describe("Text_change.aggregate_changes", () => {
         assert.equal(aggregated_changes.text, "");
     });
 
-    it("Handles erasing of characters 2", () => {
+    it("Handles erasing of characters 2", async () => {
         const original_text = "()";
 
         const text_changes: Text_change.Text_change[] = [
@@ -3218,7 +3284,7 @@ describe("Text_change.aggregate_changes", () => {
         assert.equal(aggregated_changes.text, "foo: Int32");
     });
 
-    it("Handles erasing of characters 3", () => {
+    it("Handles erasing of characters 3", async () => {
         const original_text = "()23456";
 
         const text_changes: Text_change.Text_change[] = [
@@ -3245,7 +3311,7 @@ describe("Text_change.aggregate_changes", () => {
         assert.equal(aggregated_changes.text, "foo)");
     });
 
-    it("Handles first is first 0", () => {
+    it("Handles first is first 0", async () => {
         const original_text = "";
 
         const text_changes: Text_change.Text_change[] = [
@@ -3272,7 +3338,7 @@ describe("Text_change.aggregate_changes", () => {
         assert.equal(aggregated_changes.text, "a123");
     });
 
-    it("Handles first is first 1", () => {
+    it("Handles first is first 1", async () => {
         const original_text = "de";
 
         const text_changes: Text_change.Text_change[] = [
@@ -3299,7 +3365,7 @@ describe("Text_change.aggregate_changes", () => {
         assert.equal(aggregated_changes.text, "abcde123");
     });
 
-    it("Handles first is first 2", () => {
+    it("Handles first is first 2", async () => {
         const original_text = "ab";
 
         const text_changes: Text_change.Text_change[] = [
@@ -3326,7 +3392,7 @@ describe("Text_change.aggregate_changes", () => {
         assert.equal(aggregated_changes.text, "a1234c");
     });
 
-    it("Handles first is first 3", () => {
+    it("Handles first is first 3", async () => {
         const original_text = "xyzw";
 
         const text_changes: Text_change.Text_change[] = [
@@ -3353,7 +3419,7 @@ describe("Text_change.aggregate_changes", () => {
         assert.equal(aggregated_changes.text, "123");
     });
 
-    it("Handles second is first 0", () => {
+    it("Handles second is first 0", async () => {
         const original_text = " ";
 
         const text_changes: Text_change.Text_change[] = [
@@ -3380,7 +3446,7 @@ describe("Text_change.aggregate_changes", () => {
         assert.equal(aggregated_changes.text, "123c");
     });
 
-    it("Handles second is first 1", () => {
+    it("Handles second is first 1", async () => {
         const original_text = "de";
 
         const text_changes: Text_change.Text_change[] = [
@@ -3407,7 +3473,7 @@ describe("Text_change.aggregate_changes", () => {
         assert.equal(aggregated_changes.text, "123deabc");
     });
 
-    it("Handles second is first 2", () => {
+    it("Handles second is first 2", async () => {
         const original_text = "abc";
 
         const text_changes: Text_change.Text_change[] = [
@@ -3434,7 +3500,7 @@ describe("Text_change.aggregate_changes", () => {
         assert.equal(aggregated_changes.text, "def");
     });
 
-    it("Handles typing 0", () => {
+    it("Handles typing 0", async () => {
         const original_text = "";
         const text = "import ";
         const aggregated_changes = simulate_typing_aggretate_changes(original_text, { start: 0, end: 0 }, text);
