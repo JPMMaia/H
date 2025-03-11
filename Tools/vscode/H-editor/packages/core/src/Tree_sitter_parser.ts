@@ -1,6 +1,5 @@
 import * as Core from "./Core_intermediate_representation";
 import * as Grammar from "./Grammar";
-import * as Parse_tree_convertor from "./Parse_tree_convertor";
 import * as Parse_tree_convertor_mappings from "./Parse_tree_convertor_mappings";
 import * as Parser_node from "./Parser_node";
 import * as Scanner from "./Scanner";
@@ -103,8 +102,8 @@ export function to_parser_node(node: Node, add_source_location = true): Parser_n
 }
 
 export function to_core_module(root: Parser_node.Node): Core.Module {
-    const mappings = Parse_tree_convertor_mappings.create_mapping();
-    return Parse_tree_convertor.parse_tree_to_module(root, mappings);
+    const core_module = Parse_tree_convertor_mappings.node_to_module(root);
+    return core_module;
 }
 
 export function get_lookaheads(tree: Tree, source_location: { line: number, column: number }): string[] {

@@ -3767,6 +3767,26 @@ function node_to_expression_while_loop(node: Parser_node.Node): Core_intermediat
     return while_loop_expression;
 }
 
+export function node_to_module(node: Parser_node.Node): Core_intermediate_representation.Module {
+    const module_name = get_module_name_from_tree(node);
+
+    const comment = Parser_node.get_child_if({ node: node, position: [] }, child => child.word.value === "Comment");
+    const comment_value = comment !== undefined ? remove_comments_formatting(comment.node.children[0].word.value) : undefined;
+
+    const module_head_descendant = Parser_node.get_child_if({ node: node, position: [] }, child => child.word.value === "Module_head");
+    const import_descendants = module_head_descendant !== undefined ? Parser_node.get_children_if(module_head_descendant, child => child.word.value === "Import") : [];
+    const imports = import_descendants.map(descendant => node_to_import_module_with_alias(descendant.node)); // TODO
+
+    const declarations = node.children.slice(1).map(child => node_to_declaration(child));
+
+    return {
+        name: module_name,
+        imports: imports,
+        declarations: declarations,
+        comment: comment_value
+    };
+}
+
 function get_terminal_value(node: Parser_node.Node): string {
     if (node.children.length === 0) {
         return node.word.value;
