@@ -13,6 +13,7 @@
     "types": [
       "@types/emscripten",
       "@types/node",
+      "mocha"
     ]
   },
   "include": [

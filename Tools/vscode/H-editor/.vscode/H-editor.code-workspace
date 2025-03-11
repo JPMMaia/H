@@ -25,10 +25,7 @@
 					"--input",
 					"${workspaceFolder}/../../../Examples/txt/defer_expressions.hltxt"
 				],
-				"preLaunchTask": {
-					"type": "npm",
-					"script": "watch:parser"
-				},
+				"preLaunchTask": "npm watch:parser"
 			},
 			{
 				"name": "Run Client",
@@ -44,10 +41,7 @@
 				],
 				"sourceMaps": true,
 				"autoAttachChildProcesses": true,
-				"preLaunchTask": {
-					"type": "npm",
-					"script": "watch"
-				},
+				"preLaunchTask": "npm watch",
 				"env": {
 					"mode": "debug"
 				}
@@ -145,10 +139,6 @@
 		"mochaExplorer.files": "packages/core/src/**/*.test.ts",
 		"mochaExplorer.require": [
 			"ts-node/register"
-		],
-		"mochaExplorer.nodeArgv": [
-			"--loader",
-			"ts-node/esm"
 		],
 		"typescript.tsc.autoDetect": "off",
 	},
