@@ -881,6 +881,24 @@ export function apply_module_changes(
     update_import_module_usages(module);
 }
 
+export function parse_tree_to_core_module(
+    module: Core_intermediate_representation.Module,
+    changes: { position: any[], change: Module_change.Change }[]
+): void {
+
+    const previous_module_name = module.name;
+
+    const previous_import_modules = module.imports.map(value => { return { module_name: value.module_name, alias: value.alias }; });
+
+    Module_change.update_module(module, changes);
+
+    update_custom_type_references_module_name(module, previous_module_name, module.name);
+
+    update_custom_type_references_import_module_name(module, previous_import_modules);
+
+    update_import_module_usages(module);
+}
+
 function parse_tree_to_core_object(
     module: Core_intermediate_representation.Module,
     root: Parser_node.Node,
@@ -1225,7 +1243,7 @@ function visit_types_of_module(module: Core_intermediate_representation.Module, 
     visit_expressions_of_module(module, process_expression);
 }
 
-function update_import_module_usages(module: Core_intermediate_representation.Module): void {
+export function update_import_module_usages(module: Core_intermediate_representation.Module): void {
 
     for (const import_module of module.imports) {
         import_module.usages = [];
@@ -1274,7 +1292,7 @@ function update_import_module_usages(module: Core_intermediate_representation.Mo
     }
 }
 
-function update_custom_type_references_module_name(module: Core_intermediate_representation.Module, old_module_name: string, new_module_name: string): void {
+export function update_custom_type_references_module_name(module: Core_intermediate_representation.Module, old_module_name: string, new_module_name: string): void {
 
     const process_type = (type: Core_intermediate_representation.Type_reference): void => {
         if (type.data.type === Core_intermediate_representation.Type_reference_enum.Custom_type_reference) {
@@ -1288,7 +1306,7 @@ function update_custom_type_references_module_name(module: Core_intermediate_rep
     visit_types_of_module(module, process_type);
 }
 
-function update_custom_type_references_import_module_name(module: Core_intermediate_representation.Module, previous_import_modules: { module_name: string, alias: string }[]): void {
+export function update_custom_type_references_import_module_name(module: Core_intermediate_representation.Module, previous_import_modules: { module_name: string, alias: string }[]): void {
 
     const changes: { previous_module_name: string, new_module_name: string }[] = [];
 

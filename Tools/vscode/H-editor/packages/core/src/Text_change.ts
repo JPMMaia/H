@@ -40,10 +40,11 @@ export function update_2(
     parser: Tree_sitter_parser.Parser,
     state: Document.State,
     text_changes: Text_change[],
-    text_after_changes: string
+    text_after_changes: string,
+    add_source_location: boolean = true
 ): Document.State {
 
-    const result = full_parse_with_source_locations(parser, state.document_file_path, text_after_changes, true);
+    const result = full_parse_with_source_locations(parser, state.document_file_path, text_after_changes, add_source_location);
 
     if (result.diagnostics.length === 0) {
         state.valid = {
@@ -285,6 +286,13 @@ export function full_parse_with_source_locations(
 
     if (tree.rootNode.hasError) {
         diagnostics.push(...Validation.validate_syntax_errors(document_file_path, tree.language, tree.rootNode));
+        return {
+            module: undefined,
+            parse_tree: core_tree,
+            tree_sitter_tree: tree,
+            diagnostics: diagnostics,
+            position_cache: Parse_tree_text_position_cache.create_empty_cache()
+        };
     }
 
     {
@@ -292,7 +300,9 @@ export function full_parse_with_source_locations(
     }
 
     const core_module = Tree_sitter_parser.to_core_module(core_tree);
-    core_module.source_file_path = document_file_path;
+    if (document_file_path.length > 0) {
+        core_module.source_file_path = document_file_path;
+    }
 
     return {
         module: core_module,

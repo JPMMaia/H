@@ -1,5 +1,6 @@
 import * as Core from "./Core_intermediate_representation";
 import * as Grammar from "./Grammar";
+import * as Parse_tree_convertor from "./Parse_tree_convertor";
 import * as Parse_tree_convertor_mappings from "./Parse_tree_convertor_mappings";
 import * as Parser_node from "./Parser_node";
 import * as Scanner from "./Scanner";
@@ -103,6 +104,9 @@ export function to_parser_node(node: Node, add_source_location = true): Parser_n
 
 export function to_core_module(root: Parser_node.Node): Core.Module {
     const core_module = Parse_tree_convertor_mappings.node_to_module(root);
+    Parse_tree_convertor.update_custom_type_references_module_name(core_module, "", core_module.name);
+    Parse_tree_convertor.update_custom_type_references_import_module_name(core_module, []);
+    Parse_tree_convertor.update_import_module_usages(core_module);
     return core_module;
 }
 

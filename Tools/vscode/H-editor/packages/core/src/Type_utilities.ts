@@ -179,7 +179,7 @@ export function parse_type_name(name: string, module_name?: string): Core_interm
     else {
         const type: Core_intermediate_representation.Custom_type_reference = {
             module_reference: {
-                name: module_name
+                name: module_name !== undefined ? module_name : ""
             },
             name: name
         };

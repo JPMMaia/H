@@ -3779,12 +3779,17 @@ export function node_to_module(node: Parser_node.Node): Core_intermediate_repres
 
     const declarations = node.children.slice(1).map(child => node_to_declaration(child));
 
-    return {
+    const core_module: Core_intermediate_representation.Module = {
         name: module_name,
         imports: imports,
-        declarations: declarations,
-        comment: comment_value
+        declarations: declarations
     };
+
+    if (comment_value !== undefined) {
+        core_module.comment = comment_value;
+    }
+
+    return core_module;
 }
 
 function get_terminal_value(node: Parser_node.Node): string {
