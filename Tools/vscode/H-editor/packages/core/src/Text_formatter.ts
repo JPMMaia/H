@@ -226,8 +226,26 @@ export function format_union_declaration(union_declaration: Core.Union_declarati
 }
 
 export function format_statement(statement: Core.Statement, indentation: number): string {
-    const expression_string = format_expression(statement.expression, indentation);
-    return expression_string;
+    switch (statement.expression.data.type) {
+        case Core.Expression_enum.Assignment_expression:
+        case Core.Expression_enum.Break_expression:
+        case Core.Expression_enum.Call_expression:
+        case Core.Expression_enum.Compile_time_expression:
+        case Core.Expression_enum.Continue_expression:
+        case Core.Expression_enum.Defer_expression:
+        case Core.Expression_enum.Return_expression:
+        case Core.Expression_enum.Variable_declaration_expression:
+        case Core.Expression_enum.Variable_declaration_with_type_expression:
+            return format_expression(statement.expression, indentation) + ";";
+        case Core.Expression_enum.Block_expression:
+        case Core.Expression_enum.Comment_expression:
+        case Core.Expression_enum.For_loop_expression:
+        case Core.Expression_enum.If_expression:
+        case Core.Expression_enum.Switch_expression:
+        case Core.Expression_enum.While_loop_expression:
+        default:
+            return format_expression(statement.expression, indentation);
+    }
 }
 
 export function format_expression(expression: Core.Expression, indentation: number): string {
@@ -247,7 +265,7 @@ export function format_underlying_expression(expression: Core.Expression, indent
         case Core.Expression_enum.Binary_expression:
             return format_expression_binary(expression.data.value as Core.Binary_expression);
         case Core.Expression_enum.Block_expression:
-            return format_expression_block(expression.data.value as Core.Block_expression);
+            return format_expression_block(expression.data.value as Core.Block_expression, indentation);
         case Core.Expression_enum.Break_expression:
             return format_expression_break(expression.data.value as Core.Break_expression);
         case Core.Expression_enum.Call_expression:
@@ -267,13 +285,13 @@ export function format_underlying_expression(expression: Core.Expression, indent
         case Core.Expression_enum.Defer_expression:
             return format_expression_defer(expression.data.value as Core.Defer_expression);
         case Core.Expression_enum.For_loop_expression:
-            return format_expression_for_loop(expression.data.value as Core.For_loop_expression);
+            return format_expression_for_loop(expression.data.value as Core.For_loop_expression, indentation);
         case Core.Expression_enum.Function_expression:
             return format_expression_function(expression.data.value as Core.Function_expression);
         case Core.Expression_enum.Function_instance_expression:
             return format_expression_function_instance(expression.data.value as Core.Function_instance_expression);
         case Core.Expression_enum.If_expression:
-            return format_expression_if(expression.data.value as Core.If_expression);
+            return format_expression_if(expression.data.value as Core.If_expression, indentation);
         case Core.Expression_enum.Instantiate_expression:
             return format_expression_instantiate(expression.data.value as Core.Instantiate_expression, indentation);
         case Core.Expression_enum.Invalid_expression:
@@ -287,7 +305,7 @@ export function format_underlying_expression(expression: Core.Expression, indent
         case Core.Expression_enum.Struct_expression:
             return format_expression_struct(expression.data.value as Core.Struct_expression);
         case Core.Expression_enum.Switch_expression:
-            return format_expression_switch(expression.data.value as Core.Switch_expression);
+            return format_expression_switch(expression.data.value as Core.Switch_expression, indentation);
         case Core.Expression_enum.Ternary_condition_expression:
             return format_expression_ternary_condition(expression.data.value as Core.Ternary_condition_expression);
         case Core.Expression_enum.Type_expression:
@@ -301,7 +319,7 @@ export function format_underlying_expression(expression: Core.Expression, indent
         case Core.Expression_enum.Variable_expression:
             return format_expression_variable(expression.data.value as Core.Variable_expression);
         case Core.Expression_enum.While_loop_expression:
-            return format_expression_while_loop(expression.data.value as Core.While_loop_expression);
+            return format_expression_while_loop(expression.data.value as Core.While_loop_expression, indentation);
         default: {
             const message = `format_expression: Not implemented for '${expression.data.type}'!`;
             onThrowError(message);
@@ -311,15 +329,21 @@ export function format_underlying_expression(expression: Core.Expression, indent
 }
 
 export function format_expression_access(expression: Core.Access_expression): string {
-    throw Error("format_expression_access: not implemented!");
+    const left_hand_side = format_expression(expression.expression, 0);
+    return `${left_hand_side}.${expression.member_name}`;
 }
 
 export function format_expression_access_array(expression: Core.Access_array_expression): string {
-    throw Error("format_expression_access_array: not implemented!");
+    const left_hand_side = format_expression(expression.expression, 0);
+    const index = format_expression(expression.index, 0);
+    return `${left_hand_side}[${index}]`;
 }
 
 export function format_expression_assignment(expression: Core.Assignment_expression): string {
-    throw Error("format_expression_assignment: not implemented!");
+    const left_hand_side = format_expression(expression.left_hand_side, 0);
+    const right_hand_side = format_expression(expression.right_hand_side, 0);
+    const symbol = Parse_tree_convertor_mappings.assignment_binary_operation_to_string(expression.additional_operation);
+    return `${left_hand_side} ${symbol} ${right_hand_side}`;
 }
 
 export function format_expression_binary(expression: Core.Binary_expression): string {
@@ -329,28 +353,36 @@ export function format_expression_binary(expression: Core.Binary_expression): st
     return `${left_hand_side} ${symbol} ${right_hand_side}`;
 }
 
-export function format_expression_block(expression: Core.Block_expression): string {
-    throw Error("format_expression_block: not implemented!");
+export function format_expression_block(expression: Core.Block_expression, outside_indentation: number): string {
+    return format_expression_block_of_statements(expression.statements, outside_indentation);
 }
 
 export function format_expression_break(expression: Core.Break_expression): string {
-    throw Error("format_expression_break: not implemented!");
+    return (expression.loop_count > 1) ? `break ${expression.loop_count}` : "break";
 }
 
 export function format_expression_call(expression: Core.Call_expression): string {
-    throw Error("format_expression_call: not implemented!");
+    const left_hand_side = format_expression(expression.expression, 0);
+    const argument_strings = expression.arguments.map(argument => format_expression(argument, 0));
+    const arguments_string = argument_strings.join(", ");
+    return `${left_hand_side}(${arguments_string})`;
 }
 
 export function format_expression_cast(expression: Core.Cast_expression): string {
-    throw Error("format_expression_cast: not implemented!");
+    const source = format_expression(expression.source, 0);
+    const type = Type_utilities.get_type_name([expression.destination_type]);
+    return `${source} as ${type}`;
 }
 
 export function format_expression_comment(expression: Core.Comment_expression): string {
-    throw Error("format_expression_comment: not implemented!");
+    const lines = expression.comment.split("\n");
+    const comment = lines.map(line => "// ${line}").join("\n");
+    return comment;
 }
 
 export function format_expression_compile_time(expression: Core.Compile_time_expression): string {
-    throw Error("format_expression_compile_time: not implemented!");
+    const right_hand_side = format_expression(expression.expression, 0);
+    return `comptime ${right_hand_side}`;
 }
 
 export function format_expression_constant(expression: Core.Constant_expression): string {
@@ -359,31 +391,64 @@ export function format_expression_constant(expression: Core.Constant_expression)
 }
 
 export function format_expression_constant_array(expression: Core.Constant_array_expression): string {
-    throw Error("format_expression_constant_array: not implemented!");
+    const elements = expression.array_data.map(element => format_expression(element.expression, 0));
+    const array = `[${elements.join(", ")}]`;
+    return array;
 }
 
 export function format_expression_continue(expression: Core.Continue_expression): string {
-    throw Error("format_expression_continue: not implemented!");
+    return "continue";
 }
 
 export function format_expression_defer(expression: Core.Defer_expression): string {
-    throw Error("format_expression_defer: not implemented!");
+    const right_hand_side = format_expression(expression.expression_to_defer, 0);
+    return `defer ${right_hand_side}`;
 }
 
-export function format_expression_for_loop(expression: Core.For_loop_expression): string {
-    throw Error("format_expression_for_loop: not implemented!");
+export function format_expression_for_loop(expression: Core.For_loop_expression, outside_indentation: number): string {
+    const range_begin = format_expression(expression.range_begin, 0);
+    const range_end = format_expression(expression.range_end.expression, 0);
+
+    const step_by = expression.step_by !== undefined ? format_expression(expression.step_by, 0) : "";
+    const step_by_string = step_by.length > 0 ? ` step_by ${step_by}` : "";
+
+    const is_reverse = expression.range_comparison_operation === Core.Binary_operation.Greater_than;
+    const reverse_string = is_reverse ? " reverse" : "";
+
+    const for_head = `for ${expression.variable_name} in ${range_begin} to ${range_end}${step_by_string}${reverse_string}\n`;
+    const block = format_expression_block_of_statements(expression.then_statements, outside_indentation);
+    return `${for_head}${block}`;
 }
 
 export function format_expression_function(expression: Core.Function_expression): string {
-    throw Error("format_expression_function: not implemented!");
+    const declaration = format_function_declaration(expression.declaration);
+    const definition = format_function_definition(expression.definition);
+    return `${declaration}${definition}`;
 }
 
 export function format_expression_function_instance(expression: Core.Function_instance_expression): string {
-    throw Error("format_expression_function_instance: not implemented!");
+    const left_hand_side = format_expression(expression.left_hand_side, 0);
+    const argument_strings = expression.arguments.map(argument => format_expression(argument, 0));
+    const arguments_string = argument_strings.join(", ");
+    return `${left_hand_side}<${arguments_string}>`;
 }
 
-export function format_expression_if(expression: Core.If_expression): string {
-    throw Error("format_expression_if: not implemented!");
+export function format_expression_if(expression: Core.If_expression, outside_indendation: number): string {
+
+    const series = expression.series.map((serie, index) => {
+        const block = format_expression_block_of_statements(serie.then_statements, outside_indendation);
+        if (serie.condition === undefined) {
+            return `else\n${block}`;
+        }
+
+        const condition = format_expression(serie.condition.expression, 0);
+        const keyword = index > 0 ? "else if" : "if";
+
+        return `${keyword} ${condition}\n${block}`;
+    });
+
+    const series_string = series.join("\n");
+    return series_string;
 }
 
 export function format_expression_instantiate(expression: Core.Instantiate_expression, outside_indentation: number): string {
@@ -411,15 +476,16 @@ export function format_expression_instantiate(expression: Core.Instantiate_expre
 }
 
 export function format_expression_invalid(expression: Core.Invalid_expression): string {
-    throw Error("format_expression_invalid: not implemented!");
+    return expression.value;
 }
 
 export function format_expression_null_pointer(expression: Core.Null_pointer_expression): string {
-    throw Error("format_expression_null_pointer: not implemented!");
+    return "null";
 }
 
 export function format_expression_parenthesis(expression: Core.Parenthesis_expression): string {
-    throw Error("format_expression_parenthesis: not implemented!");
+    const inside = format_expression(expression.expression, 0);
+    return `(${inside})`;
 }
 
 export function format_expression_return(expression: Core.Return_expression): string {
@@ -428,46 +494,70 @@ export function format_expression_return(expression: Core.Return_expression): st
 }
 
 export function format_expression_struct(expression: Core.Struct_expression): string {
-    throw Error("format_expression_struct: not implemented!");
+    return format_struct_declaration(expression.declaration);
 }
 
-export function format_expression_switch(expression: Core.Switch_expression): string {
-    throw Error("format_expression_switch: not implemented!");
+export function format_expression_switch(expression: Core.Switch_expression, outside_indendation: number): string {
+    const series = expression.cases.map(serie => {
+
+        const block = serie.statements.map(statement => format_statement(statement, outside_indendation + 4));
+        if (serie.case_value === undefined) {
+            return `default:\n${block}`;
+        }
+
+        const case_value = format_expression(serie.case_value, 0);
+        return `case ${case_value}:\n${block}`;
+    });
+
+    const series_string = series.join("\n");
+    return series_string;
 }
 
 export function format_expression_ternary_condition(expression: Core.Ternary_condition_expression): string {
-    throw Error("format_expression_ternary_condition: not implemented!");
+    const condition = format_expression(expression.condition, 0);
+    const then_string = format_expression(expression.then_statement.expression, 0);
+    const else_string = format_expression(expression.else_statement.expression, 0);
+    return `${condition} ? ${then_string} : ${else_string}`;
 }
 
 export function format_expression_type(expression: Core.Type_expression): string {
-    throw Error("format_expression_type: not implemented!");
+    return Type_utilities.get_type_name([expression.type]);
 }
 
 export function format_expression_unary(expression: Core.Unary_expression): string {
-    throw Error("format_expression_unary: not implemented!");
+    const right_hand_side = format_expression(expression.expression, 0);
+    const symbol = Parse_tree_convertor_mappings.unary_operation_to_string(expression.operation);
+    return `${symbol}${right_hand_side}`;
 }
 
 export function format_expression_variable_declaration(expression: Core.Variable_declaration_expression): string {
-    throw Error("format_expression_variable_declaration: not implemented!");
+    const keyword = expression.is_mutable ? "mutable" : "var";
+    const right_hand_side = format_expression(expression.right_hand_side, 0);
+    return `${keyword} ${expression.name} = ${right_hand_side}`;
 }
 
 export function format_expression_variable_declaration_with_type(expression: Core.Variable_declaration_with_type_expression): string {
-    throw Error("format_expression_variable_declaration_with_type: not implemented!");
+    const keyword = expression.is_mutable ? "mutable" : "var";
+    const type = Type_utilities.get_type_name([expression.type]);
+    const right_hand_side = format_expression(expression.right_hand_side.expression, 0);
+    return `${keyword} ${expression.name}: ${type} = ${right_hand_side}`;
 }
 
 export function format_expression_variable(expression: Core.Variable_expression): string {
     return `${expression.name}`;
 }
 
-export function format_expression_while_loop(expression: Core.While_loop_expression): string {
-    throw Error("format_expression_while_loop: not implemented!");
+export function format_expression_while_loop(expression: Core.While_loop_expression, outside_indentation: number): string {
+    const condition = format_expression(expression.condition.expression, 0);
+    const block = format_expression_block_of_statements(expression.then_statements, outside_indentation);
+    return `while ${condition}\n${block}`;
 }
 
 export function format_expression_block_of_statements(statements: Core.Statement[], outside_indentation: number): string {
     const inside_indentation = outside_indentation + 4;
     const outside_indentation_string = " ".repeat(outside_indentation);
-    const statement_strings = statements.map(statement => format_statement(statement, inside_indentation) + ";\n");
-    const statements_string = statement_strings.join();
+    const statement_strings = statements.map(statement => format_statement(statement, inside_indentation) + "\n");
+    const statements_string = statement_strings.join("");
     return `${outside_indentation_string}{\n${statements_string}}\n`;
 }
 
