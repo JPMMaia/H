@@ -2506,7 +2506,7 @@ function node_to_enum_declaration(node: Parser_node.Node): Core_intermediate_rep
     return output;
 }
 
-function node_to_global_variable_declaration(node: Parser_node.Node): Core_intermediate_representation.Global_variable_declaration {
+export function node_to_global_variable_declaration(node: Parser_node.Node): Core_intermediate_representation.Global_variable_declaration {
 
     const comments_node = get_comments_node(node);
     const global_variable_node = node.children[node.children.length - 1];

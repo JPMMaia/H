@@ -109,7 +109,7 @@ export async function get_symbols(
 ): Promise<Symbol_information[]> {
     const symbols: Symbol_information[] = [];
     symbols.push(...await get_symbols_inside_function(root, scope_node_position, get_parse_tree));
-    symbols.push(...get_declaration_symbols(root));
+    symbols.push(...await get_declaration_symbols(root));
     symbols.push(...get_import_alias_symbols(root));
     return symbols;
 }
@@ -319,17 +319,17 @@ function is_declaration_name_grammar_word(value: string): boolean {
     }
 }
 
-function get_declaration_symbol(
+async function get_declaration_symbol(
     root: Parser_node.Node,
     declaration_name_to_find: string
-): Symbol_information | undefined {
-    const symbols = get_declaration_symbols(root);
+): Promise<Symbol_information | undefined> {
+    const symbols = await get_declaration_symbols(root);
     return symbols.find(symbol => symbol.name === declaration_name_to_find);
 }
 
-export function get_declaration_symbols(
+export async function get_declaration_symbols(
     root: Parser_node.Node
-): Symbol_information[] {
+): Promise<Symbol_information[]> {
     const symbols: Symbol_information[] = [];
 
     for (let index = 1; index < root.children.length; ++index) {
@@ -342,6 +342,30 @@ export function get_declaration_symbols(
             const function_declaration_value = Parse_tree_convertor_mappings.node_to_function_declaration(declaration.node);
             const type_reference = Type_utilities.create_function_pointer_type_from_declaration(function_declaration_value);
             symbols.push(create_value_symbol(declaration_name_value, [type_reference], declaration_name.position));
+        }
+        else if (underlying_declaration.node.word.value === "Global_variable") {
+            const global_variable = Parse_tree_convertor_mappings.node_to_global_variable_declaration(declaration.node);
+
+            if (global_variable.type !== undefined) {
+                symbols.push(create_value_symbol(declaration_name_value, [global_variable.type], declaration_name.position));
+            }
+            else {
+                const current_module_name = get_module_name_from_tree(root);
+                const get_parse_tree = (module_name: string): Promise<Parser_node.Node | undefined> => {
+                    if (module_name === current_module_name) {
+                        return Promise.resolve(root);
+                    }
+                    return Promise.resolve(undefined);
+                };
+
+                const type_reference = await get_expression_type_2(root, undefined, global_variable.initial_value.expression, get_parse_tree);
+                if (type_reference.is_value) {
+                    symbols.push(create_value_symbol(declaration_name_value, type_reference.type, declaration_name.position));
+                }
+                else {
+                    symbols.push(create_type_symbol(declaration_name_value, type_reference.type, declaration_name.position));
+                }
+            }
         }
         else {
             const module_name_value = get_module_name_from_tree(root);
@@ -1834,11 +1858,11 @@ export async function get_custom_type_reference_declaration(
     };
 }
 
-export function get_declaration_location_using_parse_tree(
+export async function get_declaration_location_using_parse_tree(
     root: Parser_node.Node,
     declaration_name: string
-): { root: Parser_node.Node, node_position: number[] } | undefined {
-    const symbol = get_declaration_symbol(root, declaration_name);
+): Promise<{ root: Parser_node.Node, node_position: number[] } | undefined> {
+    const symbol = await get_declaration_symbol(root, declaration_name);
     if (symbol === undefined || (symbol.symbol_type !== Symbol_type.Type && symbol.symbol_type !== Symbol_type.Value)) {
         return undefined;
     }
@@ -1877,12 +1901,12 @@ export async function get_custom_type_reference_declaration_location_using_parse
     return get_declaration_location_using_parse_tree(root, custom_type_reference.name);
 }
 
-export function get_declaration_using_parse_tree(
+export async function get_declaration_using_parse_tree(
     root: Parser_node.Node,
     declaration_name: string
-): { root: Parser_node.Node, node_position: number[], declaration: Core.Declaration } | undefined {
+): Promise<{ root: Parser_node.Node, node_position: number[], declaration: Core.Declaration } | undefined> {
 
-    const location = get_declaration_location_using_parse_tree(root, declaration_name);
+    const location = await get_declaration_location_using_parse_tree(root, declaration_name);
     if (location === undefined) {
         return undefined;
     }
@@ -2080,7 +2104,7 @@ export async function get_function_value_from_node_2(
     else if (expression.data.type === Core.Expression_enum.Variable_expression) {
         const variable_expression = expression.data.value as Core.Variable_expression;
         const function_name = variable_expression.name;
-        const function_location = get_function_value_from_parse_tree(root, function_name);
+        const function_location = await get_function_value_from_parse_tree(root, function_name);
         if (function_location !== undefined) {
             return {
                 root: root,
@@ -2122,10 +2146,10 @@ export function get_struct_declaration_that_contains_node_position(
     return declaration.value as Core.Struct_declaration;
 }
 
-export function get_struct_declaration_that_contains_node_position_2(
+export async function get_struct_declaration_that_contains_node_position_2(
     root: Parser_node.Node,
     node_position: number[]
-): Core.Struct_declaration | undefined {
+): Promise<Core.Struct_declaration | undefined> {
     const ancestor_struct = Parser_node.get_ancestor_with_name(root, node_position, "Struct");
     if (ancestor_struct === undefined) {
         return undefined;
@@ -2142,7 +2166,7 @@ export function get_struct_declaration_that_contains_node_position_2(
     }
 
     const struct_name = child.word.value;
-    const declaration_location = get_declaration_using_parse_tree(root, struct_name);
+    const declaration_location = await get_declaration_using_parse_tree(root, struct_name);
     if (declaration_location === undefined) {
         return undefined;
     }
@@ -2183,10 +2207,10 @@ export function get_function_value_that_contains_node_position(
     return declaration.value as Core.Function;
 }
 
-export function get_function_value_that_contains_node_position_2(
+export async function get_function_value_that_contains_node_position_2(
     root: Parser_node.Node,
     node_position: number[]
-): { node_position: number[], function_value: Core.Function | undefined } {
+): Promise<{ node_position: number[], function_value: Core.Function | undefined }> {
     const ancestor_function = Parser_node.get_ancestor_with_name(root, node_position, "Function");
     if (ancestor_function === undefined) {
         return undefined;
@@ -2203,14 +2227,14 @@ export function get_function_value_that_contains_node_position_2(
     }
 
     const function_name = child.word.value;
-    return get_function_value_from_parse_tree(root, function_name);
+    return await get_function_value_from_parse_tree(root, function_name);
 }
 
-export function get_function_value_from_parse_tree(
+export async function get_function_value_from_parse_tree(
     root: Parser_node.Node,
     declaration_name: string
-): { node_position: number[], function_value: Core.Function | undefined } {
-    const declaration_location = get_declaration_using_parse_tree(root, declaration_name);
+): Promise<{ node_position: number[], function_value: Core.Function | undefined }> {
+    const declaration_location = await get_declaration_using_parse_tree(root, declaration_name);
     if (declaration_location === undefined) {
         return undefined;
     }
@@ -2239,7 +2263,7 @@ export async function get_function_value_from_external_parse_tree(
         return undefined;
     }
 
-    const funcion_location = get_function_value_from_parse_tree(root, declaration_name);
+    const funcion_location = await get_function_value_from_parse_tree(root, declaration_name);
     return {
         root: root,
         node_position: funcion_location.node_position,
@@ -2540,7 +2564,7 @@ export async function find_instantiate_custom_type_reference_from_node_using_par
 
     const ancestor_struct_member = Parser_node.get_ancestor_with_name(root, node_position, "Struct_member");
     if (ancestor_struct_member !== undefined) {
-        const struct_declaration = get_struct_declaration_that_contains_node_position_2(root, node_position);
+        const struct_declaration = await get_struct_declaration_that_contains_node_position_2(root, node_position);
         if (struct_declaration !== undefined) {
             const member_index = ancestor_struct_member.position[ancestor_struct_member.position.length - 1] - 1;
             const member_type = struct_declaration.member_types[member_index];
@@ -2554,7 +2578,7 @@ export async function find_instantiate_custom_type_reference_from_node_using_par
 
     const ancestor_return_expression = Parser_node.get_ancestor_with_name(root, node_position, "Expression_return");
     if (ancestor_return_expression !== undefined) {
-        const function_value_location = get_function_value_that_contains_node_position_2(root, node_position);
+        const function_value_location = await get_function_value_that_contains_node_position_2(root, node_position);
         if (function_value_location !== undefined) {
             const function_declaration = function_value_location.function_value.declaration;
             if (function_declaration.type.output_parameter_types.length > 0) {

@@ -283,7 +283,7 @@ function run() -> ()
         const expected_expression_type = create_integer_type(32, true);
         const is_value = true;
         const root = await core_module_to_parse_tree(Module_examples.create_using_structs());
-        const scope_node_position = find_node_position(root, "a");
+        const scope_node_position = find_node_position(root, "instance_1");
         await test_get_expression_type(root, expression, { type: [expected_expression_type], is_value: is_value }, scope_node_position);
     });
 
@@ -296,7 +296,7 @@ function run() -> ()
         const expected_expression_type = create_fundamental_type(Core.Fundamental_type.Float32);
         const is_value = true;
         const root = await core_module_to_parse_tree(Module_examples.create_using_unions());
-        const scope_node_position = find_node_position(root, "a");
+        const scope_node_position = find_node_position(root, "instance_1");
         await test_get_expression_type(root, expression, { type: [expected_expression_type], is_value: is_value }, scope_node_position);
     });
 
@@ -356,7 +356,7 @@ function run() -> ()
 
         const root = await parse(program);
         const is_value = true;
-        const scope_node_position = find_node_position(root, "a");
+        const scope_node_position = find_node_position(root, "a", 1);
         await test_get_expression_type(root, expression, { type: [expected_expression_type], is_value: is_value }, scope_node_position);
     });
 
@@ -369,7 +369,7 @@ function run() -> ()
         const expected_expression_type = create_integer_type(32, true);
         const is_value = true;
         const root = await core_module_to_parse_tree(Module_examples.create_function_with_variable_declaration());
-        const scope_node_position = find_node_position(root, "a");
+        const scope_node_position = find_node_position(root, "a", 1);
         await test_get_expression_type(root, expression, { type: [expected_expression_type], is_value: is_value }, scope_node_position);
     });
 
@@ -477,7 +477,7 @@ function run() -> ()
         const expected_expression_type = create_integer_type(32, true);
         const is_value = true;
         const root = await core_module_to_parse_tree(Module_examples.create_function_with_variable_declaration());
-        const scope_node_position = find_node_position(root, "a");
+        const scope_node_position = find_node_position(root, "a", 1);
         await test_get_expression_type(root, expression, { type: [expected_expression_type], is_value: is_value }, scope_node_position);
     });
 
@@ -486,7 +486,7 @@ function run() -> ()
         const expected_expression_type = create_pointer_type([create_integer_type(32, true)], false);
         const is_value = true;
         const root = await core_module_to_parse_tree(Module_examples.create_function_with_variable_declaration());
-        const scope_node_position = find_node_position(root, "a");
+        const scope_node_position = find_node_position(root, "a", 1);
         await test_get_expression_type(root, expression, { type: [expected_expression_type], is_value: is_value }, scope_node_position);
     });
 
@@ -498,7 +498,7 @@ function run() -> ()
         const expected_expression_type = create_integer_type(32, true);
         const is_value = true;
         const root = await core_module_to_parse_tree(Module_examples.create_function_with_variable_declaration());
-        const scope_node_position = find_node_position(root, "a");
+        const scope_node_position = find_node_position(root, "a", 1);
         await test_get_expression_type(root, expression, { type: [expected_expression_type], is_value: is_value }, scope_node_position);
     });
 
@@ -507,7 +507,7 @@ function run() -> ()
         const expected_expression_type = create_integer_type(32, true);
         const is_value = true;
         const root = await core_module_to_parse_tree(Module_examples.create_function_with_variable_declaration());
-        const scope_node_position = find_node_position(root, "a");
+        const scope_node_position = find_node_position(root, "a", 1);
         await test_get_expression_type(root, expression, { type: [expected_expression_type], is_value: is_value }, scope_node_position);
     });
 
@@ -771,6 +771,23 @@ function run() -> ()
         );
 
         await test_get_symbol_information(root, "value", expected_symbol_information);
+    });
+
+    it("Finds symbol information of global variable", async () => {
+        const input_text = `module My_module;
+
+var global = 0.0f32;
+`;
+
+        const root = await parse(input_text);
+
+        const expected_symbol_information = Parse_tree_analysis.create_value_symbol(
+            "global",
+            [Type_utilities.create_fundamental_type(Core.Fundamental_type.Float32)],
+            find_node_position(root, "global")
+        );
+
+        await test_get_symbol_information(root, "global", expected_symbol_information);
     });
 
     it("Finds symbol information of struct instance", async () => {
