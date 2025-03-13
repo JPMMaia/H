@@ -10,7 +10,7 @@ import * as Tree_sitter_parser from "./Tree_sitter_parser";
 describe("Text_formatter.to_string", () => {
 
     function run_text_formatter(module: Core_intermediate_representation.Module): string {
-        return Text_formatter.format_module(module);
+        return Text_formatter.format_module(module, {});
     }
 
     it("Formats alias correctly", () => {
@@ -107,7 +107,7 @@ describe("Text_formatter.to_string", () => {
     it("Formats if statements correctly", () => {
         const module = Module_examples.create_if_expressions(true);
         const actual_text = run_text_formatter(module);
-        const expected_text = "module If_expressions;\n\nimport C.stdio as stdio;\n\nfunction print_message(message: * C_char) -> ()\n{\n    stdio.printf(\"%s\\n\"c, message);\n}\n\nexport function run_ifs(value: Int32) -> ()\n{\n    if value == 0\n    {\n        print_message(\"zero\"c);\n    }\n\n    if value == 0\n    {\n        print_message(\"zero\"c);\n    }\n    else if value == 1\n    {\n        print_message(\"one\"c);\n    }\n\n    if value < 0\n    {\n        print_message(\"negative\"c);\n    }\n    else\n    {\n        print_message(\"non-negative\"c);\n    }\n\n    if value < 0\n    {\n        print_message(\"negative\"c);\n    }\n    else if value > 0\n    {\n        print_message(\"positive\"c);\n    }\n    else\n    {\n        print_message(\"zero\"c);\n    }\n\n    if value < 0\n    {\n        print_message(\"message_0\"c);\n        print_message(\"message_1\"c);\n    }\n}\n";
+        const expected_text = "module If_expressions;\n\nimport C.stdio as stdio;\n\nfunction print_message(message: *C_char) -> ()\n{\n    stdio.printf(\"%s\\n\"c, message);\n}\n\nexport function run_ifs(value: Int32) -> ()\n{\n    if value == 0\n    {\n        print_message(\"zero\"c);\n    }\n\n    if value == 0\n    {\n        print_message(\"zero\"c);\n    }\n    else if value == 1\n    {\n        print_message(\"one\"c);\n    }\n\n    if value < 0\n    {\n        print_message(\"negative\"c);\n    }\n    else\n    {\n        print_message(\"non-negative\"c);\n    }\n\n    if value < 0\n    {\n        print_message(\"negative\"c);\n    }\n    else if value > 0\n    {\n        print_message(\"positive\"c);\n    }\n    else\n    {\n        print_message(\"zero\"c);\n    }\n\n    if value < 0\n    {\n        print_message(\"message_0\"c);\n        print_message(\"message_1\"c);\n    }\n}\n";
         assert.equal(actual_text, expected_text);
     });
 
@@ -218,5 +218,5 @@ async function parse_text_and_format(input_text: string): Promise<string> {
     const tree = Tree_sitter_parser.parse(parser, input_text);
     const core_tree = Tree_sitter_parser.to_parser_node(tree.rootNode, true);
     const core_module = Tree_sitter_parser.to_core_module(core_tree);
-    return Text_formatter.format_module(core_module);
+    return Text_formatter.format_module(core_module, {});
 }

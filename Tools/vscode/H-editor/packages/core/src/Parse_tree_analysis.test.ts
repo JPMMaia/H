@@ -1049,7 +1049,7 @@ async function core_module_to_parse_tree(
     core_module: Core.Module
 ): Promise<Parser_node.Node> {
     const parser = await Tree_sitter_parser.create_parser();
-    const text = Text_formatter.format_module(core_module);
+    const text = Text_formatter.format_module(core_module, {});
     const tree = Tree_sitter_parser.parse(parser, text);
     const core_tree = Tree_sitter_parser.to_parser_node(tree.rootNode, true);
     return core_tree;
