@@ -1,16 +1,17 @@
 {
     "compilerOptions": {
-        "target": "ES2015",
+        "target": "ES2022",
         "module": "commonJS",
         "moduleResolution": "Node",
         "resolveJsonModule": false,
         "outDir": "../../out",
         "types": [
+            "@types/emscripten",
             "mocha",
             "node"
         ],
         "lib": [
-            "ES5",
+            "ES2020",
             "dom"
         ],
         "sourceMap": true,

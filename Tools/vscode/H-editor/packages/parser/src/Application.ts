@@ -8,6 +8,7 @@ import * as Parse_tree_convertor from "../../core/src/Parse_tree_convertor";
 import * as Storage_cache from "../../core/src/Storage_cache";
 import * as Text_change from "../../core/src/Text_change";
 import * as Text_formatter from "../../core/src/Text_formatter";
+import * as Tree_sitter_parser from "../../core/src/Tree_sitter_parser";
 import * as Validation from "../../core/src/Validation";
 
 const command = process.argv[2];
@@ -29,9 +30,9 @@ if (command === "read") {
             const output_text = parse_tree !== undefined ? Text_formatter.to_unformatted_text(parse_tree) : "";
 
             process.stdout.write(output_text);
+            process.exit();
         }
-    );
-
+    ).catch(() => process.exit(-1));
 }
 else if (command === "write") {
 
@@ -39,9 +40,9 @@ else if (command === "write") {
     const input_file = input_file_argument_index !== -1 ? process.argv[input_file_argument_index + 1] : undefined;
     const input_text = input_file !== undefined ? fs.readFileSync(input_file, "utf8") : process.stdin.read() as string;
 
-    Language.create_default_description(cache).then(
-        (language_description: Language.Description) => {
-            const parse_result = Text_change.full_parse_with_source_locations(language_description.parser, input_file !== undefined ? input_file : "", input_text);
+    Tree_sitter_parser.create_parser().then(
+        (parser: Tree_sitter_parser.Parser) => {
+            const parse_result = Text_change.full_parse_with_source_locations(parser, input_file !== undefined ? input_file : "", input_text);
             if (parse_result.module === undefined) {
                 const messages = Validation.to_string(parse_result.diagnostics).join("\n");
                 console.log(messages);
@@ -54,8 +55,10 @@ else if (command === "write") {
             const output_file = process.argv[3];
 
             fs.writeFileSync(output_file, output_json);
+            process.exit();
         }
-    );
+    ).catch(() => process.exit(-1));
 }
-
-process.exit();
+else {
+    process.exit(-1);
+}
