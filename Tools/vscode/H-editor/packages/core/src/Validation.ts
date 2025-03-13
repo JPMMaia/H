@@ -644,6 +644,12 @@ function is_declaration_name_node(node: Parser_node.Node): boolean {
 
 function is_builtin_type_name(type_name: string): boolean {
 
+    switch (type_name) {
+        case "true":
+        case "false":
+            return true;
+    }
+
     const type_reference = Type_utilities.parse_type_name(type_name);
     if (type_reference.length === 0) {
         return true;
