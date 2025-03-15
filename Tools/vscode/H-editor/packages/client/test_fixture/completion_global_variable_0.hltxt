@@ -6,3 +6,4 @@ mutable my_global_variable = 0.0f32;
 export function run() -> ()
 {
     var value = 
+}

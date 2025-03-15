@@ -503,7 +503,7 @@ export async function parse_source_file_and_write_to_disk_2(
             const success = await Helpers.execute_command(hlang_executable, "import-c-header", command_arguments);
             if (success) {
                 const core_module = read_parsed_file(intermediate_file_path);
-                const text = Text_formatter.format_module(core_module);
+                const text = Text_formatter.format_module(core_module, {});
                 const tree = Tree_sitter_parser.parse(parser, text);
                 const core_tree = Tree_sitter_parser.to_parser_node(tree.rootNode, true);
                 write_parse_tree_to_file(core_tree, destination_file_path);
@@ -522,8 +522,8 @@ export async function parse_source_file_and_write_to_disk_2(
     return undefined;
 }
 
-function write_parse_tree_to_file(
-    core_tree: Parser_node.Node,
+export function write_to_file(
+    contents: string,
     destination_file_path: string
 ): void {
     const destination_directory_path = path.dirname(destination_file_path);
@@ -531,8 +531,24 @@ function write_parse_tree_to_file(
         fs.mkdirSync(destination_directory_path, { recursive: true });
     }
 
+    fs.writeFileSync(destination_file_path, contents);
+}
+
+function write_parse_tree_to_file(
+    core_tree: Parser_node.Node,
+    destination_file_path: string
+): void {
     const core_tree_json_data = JSON.stringify(core_tree);
-    fs.writeFileSync(destination_file_path, core_tree_json_data);
+    write_to_file(core_tree_json_data, destination_file_path);
+}
+
+export function write_core_module_to_file(
+    core_module: Core.Module,
+    destination_file_path: string
+): void {
+    const compiler_module = Core.create_core_module(core_module, Language_version.language_version);
+    const core_tree_json_data = JSON.stringify(compiler_module);
+    write_to_file(core_tree_json_data, destination_file_path);
 }
 
 export function read_parsed_file(

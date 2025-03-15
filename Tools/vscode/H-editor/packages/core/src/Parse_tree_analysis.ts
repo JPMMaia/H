@@ -143,15 +143,39 @@ export async function get_symbols_inside_function(
             const function_input_parameters_symbols = get_symbols_inside_function_parameters(root, function_input_parameters);
             symbols.push(...function_input_parameters_symbols);
 
-            const function_output_parameters = Parser_node.get_child_if(function_declaration, child => child.word.value === "Function_output_parameters");
-            const function_output_parameters_symbols = get_symbols_inside_function_parameters(root, function_output_parameters);
-            symbols.push(...function_output_parameters_symbols);
-
             const function_definition = Parser_node.find_descendant_position_if(descendant_function, child => child.word.value === "Function_definition");
 
             const block = Parser_node.get_child(function_definition, 0);
             const new_symbols = await get_symbols_inside_block(root, block, scope_node_position, get_parse_tree);
             symbols.push(...new_symbols);
+        }
+    }
+
+    return symbols;
+}
+
+export async function get_symbols_inside_function_postconditions(
+    root: Parser_node.Node,
+    scope_node_position: number[] | undefined,
+    get_parse_tree: (module_name: string) => Promise<Parser_node.Node | undefined>
+): Promise<Symbol_information[]> {
+    const symbols: Symbol_information[] = [];
+
+    if (scope_node_position !== undefined && scope_node_position.length >= 1) {
+        const declaration_node_position = [scope_node_position[0]];
+        const declaration_node = Parser_node.get_node_at_position(root, declaration_node_position);
+
+        const descendant_function = Parser_node.get_child_if({ node: declaration_node, position: declaration_node_position }, child => child.word.value === "Function");
+        if (descendant_function !== undefined) {
+            const function_declaration = Parser_node.get_child_if(descendant_function, child => child.word.value === "Function_declaration");
+
+            const function_input_parameters = Parser_node.get_child_if(function_declaration, child => child.word.value === "Function_input_parameters");
+            const function_input_parameters_symbols = get_symbols_inside_function_parameters(root, function_input_parameters);
+            symbols.push(...function_input_parameters_symbols);
+
+            const function_output_parameters = Parser_node.get_child_if(function_declaration, child => child.word.value === "Function_output_parameters");
+            const function_output_parameters_symbols = get_symbols_inside_function_parameters(root, function_output_parameters);
+            symbols.push(...function_output_parameters_symbols);
         }
     }
 

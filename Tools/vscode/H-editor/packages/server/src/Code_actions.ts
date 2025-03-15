@@ -198,7 +198,7 @@ async function create_add_missing_members_to_instantiate_expression(
     }
 
     const indentation = Text_formatter.calculate_current_indentation(text, instantiate_expression_source_offset);
-    const formatted_text = Text_formatter.format_expression_instantiate(instantiate_expression, indentation);
+    const formatted_text = Text_formatter.format_expression_instantiate(instantiate_expression, indentation, { core_module: core_module });
 
     const edit: vscode.TextEdit = {
         range: {

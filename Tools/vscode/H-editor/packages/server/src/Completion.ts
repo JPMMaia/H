@@ -67,10 +67,10 @@ export async function on_completion(
     const after_cursor_node_position = after_cursor !== undefined ? after_cursor.position : [];
 
     const tree = document_state.with_errors !== undefined ? document_state.with_errors.tree_sitter_tree : document_state.valid.tree_sitter_tree;
-    const lookaheads = Tree_sitter_parser.get_lookaheads(tree, { line: before_cursor_node_iterator.line, column: before_cursor_node_iterator.column });
+    const lookaheads = await Tree_sitter_parser.get_lookaheads(server_data.parser, tree, { line: before_cursor_node_iterator.line, column: before_cursor_node_iterator.column });
     //const can_be_identifier = lookaheads.find(lookahead => lookahead === "Identifier") !== undefined;
     const can_be_identifier = true;
-    const allowed_keywords = lookaheads.filter(lookahead => lookahead[0] !== lookahead[0].toUpperCase());
+    const allowed_keywords = lookaheads.filter(lookahead => lookahead[0] !== lookahead[0].toUpperCase() && lookahead !== "end");
     const allowed_symbols = lookaheads.filter(lookahead => lookahead[0] === lookahead[0].toUpperCase());
 
     const items: vscode.CompletionItem[] = [];
@@ -84,7 +84,7 @@ export async function on_completion(
             }
             else {
                 items.push(...get_builtin_type_items());
-                items.push(...get_module_type_items(root, false));
+                items.push(...await get_module_type_items(root, false));
                 items.push(...get_module_import_alias_items(root));
             }
         }
@@ -96,7 +96,7 @@ export async function on_completion(
             }
             else {
                 items.push(...get_keyword_and_value_items(allowed_symbols, allowed_keywords));
-                items.push(...get_value_declaration_items(root, false));
+                items.push(...await get_value_declaration_items(root, false));
                 items.push(...await get_function_local_variable_items(root, before_cursor_node_iterator.node_position, get_parse_tree));
                 items.push(...get_module_import_alias_items(root));
             }
@@ -186,12 +186,12 @@ function get_keyword_and_value_items(
     return items;
 }
 
-function get_value_declaration_items(
+async function get_value_declaration_items(
     root: Parser_node.Node,
     public_only: boolean
-): vscode.CompletionItem[] {
+): Promise<vscode.CompletionItem[]> {
 
-    const declaration_symbols = Parse_tree_analysis.get_declaration_symbols(root);
+    const declaration_symbols = await Parse_tree_analysis.get_declaration_symbols(root);
     const type_symbols = declaration_symbols.filter(symbol => symbol.symbol_type === Parse_tree_analysis.Symbol_type.Value);
 
     const visible_type_symbols = public_only ?
@@ -277,12 +277,12 @@ function declaration_type_to_completion_item_kind(declaration: Core.Declaration)
     }
 }
 
-function get_module_type_items(
+async function get_module_type_items(
     root: Parser_node.Node,
     public_only: boolean
-): vscode.CompletionItem[] {
+): Promise<vscode.CompletionItem[]> {
 
-    const declaration_symbols = Parse_tree_analysis.get_declaration_symbols(root);
+    const declaration_symbols = await Parse_tree_analysis.get_declaration_symbols(root);
     const type_symbols = declaration_symbols.filter(symbol => symbol.symbol_type === Parse_tree_analysis.Symbol_type.Type);
 
     const visible_type_symbols = public_only ?

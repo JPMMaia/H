@@ -8,6 +8,7 @@ import * as Core from "../../core/src/Core_intermediate_representation";
 import * as Document from "../../core/src/Document";
 import * as Parse_tree_text_iterator from "../../core/src/Parse_tree_text_iterator";
 import * as Parser_node from "../../core/src/Parser_node";
+import * as Tree_sitter_parser from "../../core/src/Tree_sitter_parser";
 
 export async function create(
     parameters: vscode.CodeLensParams,
@@ -148,12 +149,21 @@ async function get_struct_layout(
         return undefined;
     }
 
+    const artifact = Project.get_artifact_of_module(project, core_module.name);
+    const core_module_file_path = Project.map_module_name_to_parsed_file_path(workspace_uri, artifact, core_module.name, "generated.hl");
+    if (core_module_file_path === undefined) {
+        return undefined;
+    }
+
+    const new_core_module = Tree_sitter_parser.to_core_module(parse_result.core_tree);
+    Project.write_core_module_to_file(new_core_module, core_module_file_path);
+
     if (!Helpers.validate_input(struct_name)) {
         return undefined;
     }
 
     const args = [
-        parse_result.parsed_file_path,
+        core_module_file_path,
         struct_name
     ];
 

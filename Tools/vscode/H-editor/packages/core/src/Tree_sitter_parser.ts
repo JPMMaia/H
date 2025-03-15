@@ -81,17 +81,17 @@ export function to_core_module(root: Parser_node.Node): Core.Module {
     return core_module;
 }
 
-export function get_lookaheads(language: Tree_sitter_parser.Language, tree: Tree, source_location: { line: number, column: number }): string[] {
+export function get_lookaheads(parser: Parser, tree: Tree, source_location: { line: number, column: number }): string[] {
     const cursor = tree.walk();
 
     if (contains_source_location(cursor.startPosition, cursor.endPosition, source_location)) {
-        return get_lookaheads_of_iterator(language, cursor, source_location);
+        return get_lookaheads_of_iterator(parser, cursor, source_location);
     }
 
     return [];
 }
 
-function get_lookaheads_of_iterator(language: Tree_sitter_parser.Language, cursor: Tree_sitter_parser.TreeCursor, source_location: { line: number, column: number }): string[] {
+function get_lookaheads_of_iterator(parser: Parser, cursor: Tree_sitter_parser.TreeCursor, source_location: { line: number, column: number }): string[] {
 
     //cursor = cursor.copy();
 
@@ -113,7 +113,7 @@ function get_lookaheads_of_iterator(language: Tree_sitter_parser.Language, curso
         }
 
         if (contains_source_location(cursor.startPosition, cursor.endPosition, source_location)) {
-            return get_lookaheads_of_iterator(language, cursor, source_location);
+            return get_lookaheads_of_iterator(parser, cursor, source_location);
         }
 
         let went_to_next_sibling = cursor.gotoNextSibling();
@@ -124,7 +124,7 @@ function get_lookaheads_of_iterator(language: Tree_sitter_parser.Language, curso
             }
 
             if (contains_source_location(cursor.startPosition, cursor.endPosition, source_location)) {
-                return get_lookaheads_of_iterator(language, cursor, source_location);
+                return get_lookaheads_of_iterator(parser, cursor, source_location);
             }
 
             went_to_next_sibling = cursor.gotoNextSibling();
@@ -137,11 +137,11 @@ function get_lookaheads_of_iterator(language: Tree_sitter_parser.Language, curso
 
     const lookaheads: string[] = [];
 
-    if (target_leaf_node.nextParseState !== 0) {
-        lookaheads.push(...get_lookaheads_from_node(language, target_leaf_node.nextParseState));
+    if (is_valid_state(target_leaf_node.nextParseState)) {
+        lookaheads.push(...get_lookaheads_from_node(parser, target_leaf_node.nextParseState));
     }
-    else if (target_parent_node.nextParseState !== 0) {
-        lookaheads.push(...get_lookaheads_from_node(language, target_parent_node.nextParseState));
+    else if (is_valid_state(target_parent_node.nextParseState)) {
+        lookaheads.push(...get_lookaheads_from_node(parser, target_parent_node.nextParseState));
     }
     else {
         lookaheads.push("Identifier");
@@ -208,10 +208,19 @@ function get_next_sibling_node(node: Node): Node | null {
     return null;
 }
 
-function get_lookaheads_from_node(language: Tree_sitter_parser.Language, parse_state: number): string[] {
+function is_valid_state(state: number): boolean {
+    return state !== 0 && state !== 65535;
+}
+
+function get_lookaheads_from_node(parser: Parser, parse_state: number): string[] {
+
+    if (!is_valid_state(parse_state)) {
+        return [];
+    }
+
     const lookaheads: string[] = [];
 
-    const lookahead_iterator = new Tree_sitter_parser.LookaheadIterator(language, parse_state);
+    const lookahead_iterator = new Tree_sitter_parser.LookaheadIterator(parser.getLanguage(), parse_state);
     if (lookahead_iterator !== null) {
         for (const lookahead of lookahead_iterator) {
             lookaheads.push(lookahead);

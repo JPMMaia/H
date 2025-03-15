@@ -5,3 +5,4 @@ import c.complex as complex;
 struct My_struct
 {
     value: complex.
+}

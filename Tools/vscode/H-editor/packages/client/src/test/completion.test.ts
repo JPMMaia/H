@@ -45,6 +45,7 @@ suite("Should do completion", () => {
 				{ label: "rhs", kind: vscode.CompletionItemKind.Variable },
 				{ label: "struct", kind: vscode.CompletionItemKind.Keyword },
 				{ label: "true", kind: vscode.CompletionItemKind.Value },
+				{ label: "union", kind: vscode.CompletionItemKind.Keyword },
 			]
 		});
 	});

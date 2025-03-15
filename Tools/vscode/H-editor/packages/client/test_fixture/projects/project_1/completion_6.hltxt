@@ -5,3 +5,4 @@ import c.complex as complex;
 union My_struct
 {
     value: 
+}

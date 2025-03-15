@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import { TextDocument } from "vscode-languageserver-textdocument";
+import * as vscode_uri from "vscode-uri";
 
 import * as Project from "./Project";
 
@@ -11,6 +12,7 @@ import * as Parse_tree_convertor_mappings from "../../core/src/Parse_tree_conver
 import * as Parser_node from "../../core/src/Parser_node";
 import * as Storage_cache from "../../core/src/Storage_cache";
 import * as Tree_sitter_parser from "../../core/src/Tree_sitter_parser";
+
 
 export interface Server_data {
     storage_cache: Storage_cache.Storage_cache;
@@ -65,17 +67,18 @@ export async function get_parse_tree(
     server_data: Server_data,
     workspace_folder_uri: string | undefined,
     module_name: string
-): Promise<Parser_node.Node | undefined> {
+): Promise<{ root: Parser_node.Node, source_file_path: string } | undefined> {
 
     {
         const document_state_and_uri = get_document_state(server_data, module_name);
         if (document_state_and_uri !== undefined) {
             const { document_uri, document_state } = document_state_and_uri;
+            const document_file_path = document_state.document_file_path;
 
             {
                 const cached_core_tree = server_data.cached_core_trees.get(document_uri);
                 if (cached_core_tree !== undefined) {
-                    return cached_core_tree;
+                    return { root: cached_core_tree, source_file_path: document_file_path };
                 }
             }
 
@@ -84,7 +87,7 @@ export async function get_parse_tree(
             const core_tree = Tree_sitter_parser.to_parser_node(tree.rootNode, true);
             if (core_tree !== undefined) {
                 server_data.cached_core_trees.set(document_uri, core_tree);
-                return core_tree;
+                return { root: core_tree, source_file_path: document_file_path };
             }
         }
     }
@@ -122,7 +125,10 @@ export async function get_parse_tree(
         return undefined;
     }
 
-    return parse_result.core_tree;
+    return {
+        root: parse_result.core_tree,
+        source_file_path: parse_result.core_tree_file_path
+    };
 }
 
 export async function get_core_module(
@@ -130,8 +136,10 @@ export async function get_core_module(
     workspace_folder_uri: string | undefined,
     module_name: string
 ): Promise<Core.Module | undefined> {
-    const core_tree = await get_parse_tree(server_data, workspace_folder_uri, module_name);
-    return Parse_tree_convertor.parse_tree_to_module(core_tree, server_data.mappings);
+    const { root, source_file_path } = await get_parse_tree(server_data, workspace_folder_uri, module_name);
+    const core_module = Parse_tree_convertor.parse_tree_to_module(root, server_data.mappings);
+    core_module.source_file_path = source_file_path;
+    return core_module;
 }
 
 export async function parse_source_file_and_write_to_disk_if_needed(
@@ -207,6 +215,8 @@ export function create_get_parse_tree(
     workspace_folder_uri: string | undefined
 ): (module_name: string) => Promise<Parser_node.Node | undefined> {
     return (module_name: string): Promise<Parser_node.Node | undefined> => {
-        return get_parse_tree(server_data, workspace_folder_uri, module_name);
+        return get_parse_tree(server_data, workspace_folder_uri, module_name).then(
+            result => result.root
+        );
     };
 }

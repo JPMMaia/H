@@ -12,3 +12,4 @@ using Precision_t = Precision;
 export function run() -> ()
 {
     var value = Precision_t.
+}
