@@ -73,8 +73,11 @@ target_link_libraries(
    clangCodeGen
    libclang
 )
-find_program(LIBCLANG_DLL_LOCATION "libclang" REQUIRED)
-install(FILES ${LIBCLANG_DLL_LOCATION} TYPE BIN CONFIGURATIONS Debug Release)
+
+if (WIN32)
+   find_program(LIBCLANG_DLL_LOCATION "libclang.dll" REQUIRED)
+   install(FILES ${LIBCLANG_DLL_LOCATION} TYPE BIN CONFIGURATIONS Debug Release)
+endif ()
 
 ## End LLVM ##
 
