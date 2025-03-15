@@ -253,6 +253,15 @@
 				"cwd": "${workspaceFolder}/build/tmp",
 				"environment": [],
 				"console": "integratedTerminal"
+			},
+			{
+				"name": "Python build_utilities",
+				"type": "debugpy",
+				"request": "launch",
+				"program": "${workspaceFolder}/Scripts/build_utilities.py",
+				"args": [
+					"generate_examples"
+				],
 			}
 		],
 		"compounds": []

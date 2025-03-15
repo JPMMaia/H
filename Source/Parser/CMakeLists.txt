@@ -4,22 +4,6 @@ set(PARSER_SOURCE_PATH "${CMAKE_SOURCE_DIR}/Tools/vscode/H-editor/packages")
 set(PARSER_JAVASCRIPT_DIRECTORY_LOCATION "${VSCODE_EXTENSION_SOURCE_PATH}/dist")
 set(PARSER_JAVASCRIPT_LOCATION "${VSCODE_EXTENSION_SOURCE_PATH}/dist/parser.js")
 
-find_program(NPM_EXECUTABLE npm REQUIRED)
-file(GENERATE OUTPUT "CreateParser" CONTENT "${CMAKE_COMMAND} -E rm -f ${PARSER_JAVASCRIPT_LOCATION}\n${NPM_EXECUTABLE} run webpack:parser")
-
-add_custom_command(
-    OUTPUT "${PARSER_JAVASCRIPT_LOCATION}"
-    COMMAND "${NPM_EXECUTABLE}" "run" "webpack:parser"
-    WORKING_DIRECTORY "${VSCODE_EXTENSION_SOURCE_PATH}"
-    DEPENDS
-        "${VSCODE_EXTENSION_SOURCE_PATH}/packages/core/src/*.ts"
-        "${VSCODE_EXTENSION_SOURCE_PATH}/packages/parser/src/*.ts"
-    VERBATIM
-    COMMENT "Run Webpack on Parser"
-)
-
-add_custom_target(Parser DEPENDS "${PARSER_JAVASCRIPT_LOCATION}" ALL)
-
 set_property(GLOBAL PROPERTY parser_javascript_location "${PARSER_JAVASCRIPT_LOCATION}")
 
 install(
@@ -80,15 +64,3 @@ target_sources(H_parser_executable PRIVATE
 install(TARGETS H_parser_executable)
 
 copy_parser_javascript_to_folder(H_parser_executable)
-
-
-add_custom_command(
-    OUTPUT "${PARSER_JAVASCRIPT_DIRECTORY_LOCATION}/tree-sitter-hlang.wasm"
-    COMMAND "tree-sitter" "build" "--wasm" "--output" "${PARSER_JAVASCRIPT_DIRECTORY_LOCATION}/tree-sitter-hlang.wasm" "${CMAKE_CURRENT_LIST_DIR}/tree-sitter-hlang"
-    DEPENDS
-        "${CMAKE_CURRENT_LIST_DIR}/tree-sitter-hlang/grammar.js"
-    VERBATIM
-    COMMENT "Build tree-sitter-hlang.wasm"
-)
-
-add_custom_target(Tree_sitter_hlang_wasm DEPENDS "${PARSER_JAVASCRIPT_DIRECTORY_LOCATION}/tree-sitter-hlang.wasm" ALL)

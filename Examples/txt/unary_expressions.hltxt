@@ -10,10 +10,6 @@ export function unary_operations(
     var minus_variable = -my_integer;
 
     mutable my_mutable_integer = 1i32;
-    var pre_increment_variable = ++my_mutable_integer;
-    var post_increment_variable = my_mutable_integer++;
-    var pre_decrement_variable = --my_mutable_integer;
-    var post_decrement_variable = my_mutable_integer--;
     var address_of_variable = &my_mutable_integer;
     var indirection_variable = *address_of_variable;
 }
