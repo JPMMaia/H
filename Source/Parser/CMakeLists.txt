@@ -12,22 +12,6 @@ install(
     RENAME "parser.js"
 )
 
-macro(copy_parser_javascript_to_folder target)
-
-    get_property(parser_javascript_location GLOBAL PROPERTY parser_javascript_location)
-
-    set(destination_directory "$<TARGET_FILE_DIR:${target}>")
-
-    add_custom_command(
-        TARGET "${target}"
-        POST_BUILD
-        COMMAND "${CMAKE_COMMAND}" "-E" "copy_if_different" "${parser_javascript_location}" "${destination_directory}/parser.js"
-        VERBATIM
-        COMMENT "Copy ${parser_javascript_location} to ${destination_directory}/parser.js"
-    )
-
-endmacro()
-
 
 add_library(H_parser)
 add_library(H::Parser ALIAS H_parser)
@@ -62,5 +46,3 @@ target_sources(H_parser_executable PRIVATE
 )
 
 install(TARGETS H_parser_executable)
-
-copy_parser_javascript_to_folder(H_parser_executable)

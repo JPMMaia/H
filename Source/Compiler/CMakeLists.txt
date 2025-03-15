@@ -53,12 +53,14 @@ target_link_libraries(H_compiler PUBLIC ${lldCOFF})
 if(WIN32)
    find_package(ZLIB REQUIRED)
    get_target_property(ZLIB_IMPORTED_LOCATION_DEBUG ZLIB::ZLIB IMPORTED_LOCATION_DEBUG)
-   cmake_path(GET ZLIB_IMPORTED_LOCATION_DEBUG PARENT_PATH ZLIB_IMPORTED_LOCATION_DIRECTORY)
-
-   find_program(ZLIB_DLL_DEBUG "zlibd1.dll")
+   
+   cmake_path(GET ZLIB_IMPORTED_LOCATION_DEBUG PARENT_PATH ZLIB_IMPORTED_LOCATION_DEBUG_DIRECTORY)
+   cmake_path(GET ZLIB_IMPORTED_LOCATION_DEBUG_DIRECTORY PARENT_PATH ZLIB_IMPORTED_LOCATION_DEBUG_PARENT_DIRECTORY)
+   find_program(ZLIB_DLL_DEBUG "zlibd1.dll" PATHS "${ZLIB_IMPORTED_LOCATION_DEBUG_PARENT_DIRECTORY}")
    install(FILES ${ZLIB_DLL_DEBUG} TYPE BIN CONFIGURATIONS Debug)
    
-   find_file(ZLIB_DLL_RELEASE "zlib1.dll")
+   cmake_path(GET ZLIB_IMPORTED_LOCATION_DEBUG_PARENT_DIRECTORY PARENT_PATH ZLIB_IMPORTED_LOCATION_RELEASE_PARENT_DIRECTORY)
+   find_program(ZLIB_DLL_RELEASE "zlib1.dll" PATHS "${ZLIB_IMPORTED_LOCATION_RELEASE_PARENT_DIRECTORY}" REQUIRED)
    install(FILES ${ZLIB_DLL_RELEASE} TYPE BIN CONFIGURATIONS Debug Release)
 endif()
 
@@ -71,6 +73,8 @@ target_link_libraries(
    clangCodeGen
    libclang
 )
+find_program(LIBCLANG_DLL_LOCATION "libclang" REQUIRED)
+install(FILES ${LIBCLANG_DLL_LOCATION} TYPE BIN CONFIGURATIONS Debug Release)
 
 ## End LLVM ##
 
@@ -163,7 +167,6 @@ if(BUILD_TESTING)
       "JIT/JIT_runner.tests.cpp"
    )
 
-   copy_parser_javascript_to_folder(H_compiler_tests)
    add_dependencies(H_compiler_tests C_standard_library)
 
    include(Catch)

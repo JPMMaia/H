@@ -288,14 +288,13 @@
 			{
 				"label": "Install Debug Hlang",
 				"type": "shell",
-				"command": "cmake",
+				"command": "python",
 				"args": [
-					"--install",
-					"${workspaceFolder}/build",
-					"--config",
+					"${workspaceFolder}/Scripts/build_utilities.py",
+					"install_hlang",
+					"${workspaceFolder}/../Hlang_install",
+					"--configuration",
 					"debug",
-					"--prefix",
-					"${workspaceFolder}/../Hlang_install"
 				],
 				"presentation": {
 					"reveal": "always"

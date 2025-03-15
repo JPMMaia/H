@@ -78,6 +78,10 @@ def generate_examples() -> None:
     for source_file in source_files:
         destination_file = examples_directory.joinpath("hl").joinpath(source_file.stem + ".hl")
         parse_file(examples_directory, source_file, destination_file)
+
+def install_hlang(configuration: str, destination_directory: Path) -> None:
+    run_command(root_directory.as_posix(), "cmake --install build --config " + configuration + " --prefix " + destination_directory.as_posix())
+    copy_parser(destination_directory.joinpath("bin"))
         
 # Execute commands
 def main() -> None:
@@ -94,6 +98,10 @@ def main() -> None:
     
     generate_examples_command = subparsers.add_parser("generate_examples", help="Generate examples")
 
+    install_hlang_command = subparsers.add_parser("install_hlang", help="Install Hlang")
+    install_hlang_command.add_argument("destination_directory")
+    install_hlang_command.add_argument("--configuration", default="release")
+
     args = parser.parse_args()
 
     if args.command == "build_parser":
@@ -104,7 +112,8 @@ def main() -> None:
         generate_builtin()
     elif args.command == "generate_examples":
         generate_examples()
-
+    elif args.command == "install_hlang":
+        install_hlang(args.configuration, Path(args.destination_directory))
 
 if __name__ == "__main__":
     main()
