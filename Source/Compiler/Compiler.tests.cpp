@@ -1771,18 +1771,18 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     {
     };
 
-    char const* const expected_llvm_ir = R"(
+    std::string const expected_llvm_ir = std::format(R"(
 ; Function Attrs: convergent
-define private void @Defer_expressions_with_debug_information_do_defer(i32 noundef %"arguments[0].value") #0 !dbg !3 {
+define private void @Defer_expressions_with_debug_information_do_defer(i32 noundef %"arguments[0].value") #0 !dbg !3 {{
 entry:
   %value = alloca i32, align 4
   store i32 %"arguments[0].value", ptr %value, align 4
   call void @llvm.dbg.declare(metadata ptr %value, metadata !8, metadata !DIExpression()), !dbg !9
   ret void, !dbg !10
-}
+}}
 
 ; Function Attrs: convergent
-define private void @Defer_expressions_with_debug_information_run(i8 noundef zeroext %"arguments[0].condition", i32 noundef %"arguments[1].value") #0 !dbg !11 {
+define private void @Defer_expressions_with_debug_information_run(i8 noundef zeroext %"arguments[0].condition", i32 noundef %"arguments[1].value") #0 !dbg !11 {{
 entry:
   %condition = alloca i1, align 1
   %value = alloca i32, align 4
@@ -1797,33 +1797,33 @@ entry:
   call void @Defer_expressions_with_debug_information_do_defer(i32 noundef 1), !dbg !22
   call void @Defer_expressions_with_debug_information_do_defer(i32 noundef 0), !dbg !23
   ret void, !dbg !24
-}
+}}
 
 ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
 declare void @llvm.dbg.declare(metadata, metadata, metadata) #1
 
-attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
-attributes #1 = { nocallback nofree nosync nounwind speculatable willreturn memory(none) }
+attributes #0 = {{ convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }}
+attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
 
-!llvm.module.flags = !{!0}
-!llvm.dbg.cu = !{!1}
+!llvm.module.flags = !{{!0}}
+!llvm.dbg.cu = !{{!1}}
 
-!0 = !{i32 2, !"Debug Info Version", i32 3}
+!0 = !{{i32 2, !"Debug Info Version", i32 3}}
 !1 = distinct !DICompileUnit(language: DW_LANG_C, file: !2, producer: "Hlang Compiler", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
-!2 = !DIFile(filename: "defer_expressions_with_debug_information.hltxt", directory: "C:/Users/JPMMa/Desktop/source/H/Examples/txt")
+!2 = !DIFile(filename: "defer_expressions_with_debug_information.hltxt", directory: "{}")
 !3 = distinct !DISubprogram(name: "do_defer", linkageName: "Defer_expressions_with_debug_information_do_defer", scope: null, file: !2, line: 3, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !1, retainedNodes: !7)
 !4 = !DISubroutineType(types: !5)
-!5 = !{null, !6}
+!5 = !{{null, !6}}
 !6 = !DIBasicType(name: "Int32", size: 32, encoding: DW_ATE_signed)
-!7 = !{!8}
+!7 = !{{!8}}
 !8 = !DILocalVariable(name: "value", arg: 1, scope: !3, file: !2, line: 3, type: !6)
 !9 = !DILocation(line: 3, column: 19, scope: !3)
 !10 = !DILocation(line: 4, column: 1, scope: !3)
 !11 = distinct !DISubprogram(name: "run", linkageName: "Defer_expressions_with_debug_information_run", scope: null, file: !2, line: 7, type: !12, scopeLine: 8, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !1, retainedNodes: !15)
 !12 = !DISubroutineType(types: !13)
-!13 = !{null, !14, !6}
+!13 = !{{null, !14, !6}}
 !14 = !DIBasicType(name: "Bool", size: 1, encoding: DW_ATE_boolean)
-!15 = !{!16, !17}
+!15 = !{{!16, !17}}
 !16 = !DILocalVariable(name: "condition", arg: 1, scope: !11, file: !2, line: 7, type: !14)
 !17 = !DILocalVariable(name: "value", arg: 2, scope: !11, file: !2, line: 7, type: !6)
 !18 = !DILocation(line: 10, column: 5, scope: !11)
@@ -1833,7 +1833,7 @@ attributes #1 = { nocallback nofree nosync nounwind speculatable willreturn memo
 !22 = !DILocation(line: 11, column: 11, scope: !11)
 !23 = !DILocation(line: 9, column: 11, scope: !11)
 !24 = !DILocation(line: 12, column: 5, scope: !11)
-)";
+)", g_test_source_files_path.generic_string());
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
   }
@@ -2732,10 +2732,6 @@ entry:
   %bitwise_not_variable = alloca i32, align 4
   %minus_variable = alloca i32, align 4
   %my_mutable_integer = alloca i32, align 4
-  %pre_increment_variable = alloca i32, align 4
-  %post_increment_variable = alloca i32, align 4
-  %pre_decrement_variable = alloca i32, align 4
-  %post_decrement_variable = alloca i32, align 4
   %address_of_variable = alloca ptr, align 8
   %indirection_variable = alloca i32, align 4
   store i32 %"arguments[0].my_integer", ptr %my_integer, align 4
@@ -2751,26 +2747,10 @@ entry:
   %6 = sub i32 0, %5
   store i32 %6, ptr %minus_variable, align 4
   store i32 1, ptr %my_mutable_integer, align 4
-  %7 = load i32, ptr %my_mutable_integer, align 4
-  %8 = add i32 %7, 1
-  store i32 %8, ptr %my_mutable_integer, align 4
-  store i32 %8, ptr %pre_increment_variable, align 4
-  %9 = load i32, ptr %my_mutable_integer, align 4
-  %10 = add i32 %9, 1
-  store i32 %10, ptr %my_mutable_integer, align 4
-  store i32 %9, ptr %post_increment_variable, align 4
-  %11 = load i32, ptr %my_mutable_integer, align 4
-  %12 = sub i32 %11, 1
-  store i32 %12, ptr %my_mutable_integer, align 4
-  store i32 %12, ptr %pre_decrement_variable, align 4
-  %13 = load i32, ptr %my_mutable_integer, align 4
-  %14 = sub i32 %13, 1
-  store i32 %14, ptr %my_mutable_integer, align 4
-  store i32 %13, ptr %post_decrement_variable, align 4
   store ptr %my_mutable_integer, ptr %address_of_variable, align 8
-  %15 = load ptr, ptr %address_of_variable, align 8
-  %16 = load i32, ptr %15, align 4
-  store i32 %16, ptr %indirection_variable, align 4
+  %7 = load ptr, ptr %address_of_variable, align 8
+  %8 = load i32, ptr %7, align 4
+  store i32 %8, ptr %indirection_variable, align 4
   ret void
 }
 

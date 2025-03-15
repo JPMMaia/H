@@ -48,6 +48,20 @@ def build_parser() -> None:
     run_command(core_package_directory.as_posix(), "npm install " + parser_directory.joinpath("tree-sitter-hlang-0.1.0.tgz").as_posix())
     run_command(extension_directory.as_posix(), "npm run webpack:parser")
 
+def copy_parser(destination_directory: Path) -> None:
+    copy_file(parser_app_file_path, destination_directory)
+
+    dependencies = [
+        "node-gyp-build",
+        "tree-sitter",
+        "tree-sitter-hlang"
+    ]
+    
+    for dependency in dependencies:
+        source_directory = extension_directory.joinpath("node_modules").joinpath(dependency)
+        destination_dependency_directory = destination_directory.joinpath("node_modules").joinpath(dependency)
+        copy_folder(source_directory, destination_dependency_directory)
+
 def parse_file(directory: Path, source: Path, destination: Path) -> None:
     run_command(directory.as_posix(), "node " + parser_app_file_path.as_posix() + " write " + destination.as_posix() + " --input " + source.as_posix())
 
@@ -72,13 +86,20 @@ def main() -> None:
     subparsers = parser.add_subparsers(dest="command", required=True, help="Available commands")
 
     build_parser_command = subparsers.add_parser("build_parser", help="Build parser")
+    
+    copy_parser_command = subparsers.add_parser("copy_parser", help="Copy parser")
+    copy_parser_command.add_argument("destination_directory")
+
     generate_builtin_command = subparsers.add_parser("generate_builtin", help="Generate builtin")
+    
     generate_examples_command = subparsers.add_parser("generate_examples", help="Generate examples")
 
     args = parser.parse_args()
 
     if args.command == "build_parser":
         build_parser()
+    elif args.command == "copy_parser":
+        copy_parser(Path(args.destination_directory))
     elif args.command == "generate_builtin":
         generate_builtin()
     elif args.command == "generate_examples":

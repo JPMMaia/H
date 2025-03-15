@@ -360,7 +360,7 @@ namespace h
 
         {
             int(*function_pointer)() = h::compiler::get_function<int(*)()>(*jit_runner, "m0_main");
-            CHECK(function_pointer != nullptr);
+            CHECK(function_pointer == nullptr);
         }
 
         std::string_view const m0_code_without_errors = R"(
