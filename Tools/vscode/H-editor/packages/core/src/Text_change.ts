@@ -285,7 +285,7 @@ export function full_parse_with_source_locations(
     const diagnostics: Validation.Diagnostic[] = [];
 
     if (tree.rootNode.hasError) {
-        diagnostics.push(...Validation.validate_syntax_errors(document_file_path, tree.language, tree.rootNode));
+        diagnostics.push(...Validation.validate_syntax_errors(document_file_path, tree.rootNode));
         return {
             module: undefined,
             parse_tree: core_tree,

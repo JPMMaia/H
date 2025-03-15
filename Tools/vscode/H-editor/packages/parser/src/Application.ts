@@ -30,7 +30,7 @@ if (command === "read") {
             const output_text = parse_tree !== undefined ? Text_formatter.to_unformatted_text(parse_tree) : "";
 
             process.stdout.write(output_text);
-            process.exit();
+            process.exit(0);
         }
     ).catch(() => process.exit(-1));
 }
@@ -39,6 +39,8 @@ else if (command === "write") {
     const input_file_argument_index = process.argv.findIndex(argument => argument === "--input");
     const input_file = input_file_argument_index !== -1 ? process.argv[input_file_argument_index + 1] : undefined;
     const input_text = input_file !== undefined ? fs.readFileSync(input_file, "utf8") : process.stdin.read() as string;
+
+    const output_file = process.argv[3];
 
     Tree_sitter_parser.create_parser().then(
         (parser: Tree_sitter_parser.Parser) => {
@@ -52,12 +54,15 @@ else if (command === "write") {
             const core_module = Core_intermediate_representation.create_core_module(parse_result.module, Language_version.language_version);
 
             const output_json = JSON.stringify(core_module);
-            const output_file = process.argv[3];
 
             fs.writeFileSync(output_file, output_json);
-            process.exit();
+            console.log(`Created '${output_file}'`);
+            process.exit(0);
         }
-    ).catch(() => process.exit(-1));
+    ).catch((error) => {
+        console.log(`Failed to write to '${output_file}': Error ${error}`);
+        process.exit(-1);
+    });
 }
 else {
     process.exit(-1);

@@ -5,7 +5,7 @@ import * as Parse_tree_analysis from "./Parse_tree_analysis";
 import * as Parse_tree_text_position_cache from "./Parse_tree_text_position_cache";
 import * as Parser_node from "./Parser_node";
 import * as Scanner from "./Scanner";
-import * as Tree_sitter from "web-tree-sitter";
+import * as Tree_sitter from "tree-sitter";
 import * as Type_utilities from "./Type_utilities";
 
 const g_debug = false;
@@ -103,8 +103,7 @@ export function validate_scanned_input(
 
 export function validate_syntax_errors(
     uri: string,
-    language: Tree_sitter.Language,
-    node: Tree_sitter.Node
+    node: Tree_sitter.SyntaxNode
 ): Diagnostic[] {
 
     if (!node.hasError) {
@@ -113,7 +112,7 @@ export function validate_syntax_errors(
 
     const diagnostics: Diagnostic[] = [];
 
-    const process_node = (current_node: Tree_sitter.Node) => {
+    const process_node = (current_node: Tree_sitter.SyntaxNode) => {
 
         if (current_node.isError || current_node.isMissing) {
             diagnostics.push(

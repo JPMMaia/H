@@ -4,48 +4,19 @@ import * as Parse_tree_convertor from "./Parse_tree_convertor";
 import * as Parse_tree_convertor_mappings from "./Parse_tree_convertor_mappings";
 import * as Parser_node from "./Parser_node";
 import * as Scanner from "./Scanner";
-import { onThrowError } from "./errors";
 
-import * as fs from "fs";
-import * as web_tree_sitter from "web-tree-sitter";
+import * as Tree_sitter_parser from "tree-sitter";
+import * as Tree_sitter_hlang from "tree-sitter-hlang";
 
-export type Parser = web_tree_sitter.Parser;
-export type Tree = web_tree_sitter.Tree;
-export type Node = web_tree_sitter.Node;
+export type Parser = Tree_sitter_parser;
+export type Tree = Tree_sitter_parser.Tree;
+export type Node = Tree_sitter_parser.SyntaxNode;
 
 const g_debug = false;
 
-function find_wasm_file_path(): string {
-
-    const working_directory = process.cwd();
-    const candidate_directories = [
-        `${working_directory}`,
-        `${working_directory}/dist`,
-        `${__dirname}/dist`,
-    ];
-
-    for (const directory of candidate_directories) {
-        const wasm_file_path = `${directory}/tree-sitter-hlang.wasm`;
-        if (fs.existsSync(wasm_file_path)) {
-            return wasm_file_path;
-        }
-    }
-
-    const message = "Could not find language wasm file!";
-    onThrowError(message);
-    throw new Error(message);
-}
-
 export async function create_parser(): Promise<Parser> {
-    await web_tree_sitter.Parser.init();
-    const parser = new web_tree_sitter.Parser();
-
-    const wasm_file_path = find_wasm_file_path();
-    console.log(`Loading wasm language file from: ${wasm_file_path}`);
-
-    const hlang_language = await web_tree_sitter.Language.load(wasm_file_path);
-    parser.setLanguage(hlang_language);
-
+    const parser = new Tree_sitter_parser();
+    parser.setLanguage(Tree_sitter_hlang as Tree_sitter_parser.Language);
     return parser;
 }
 
@@ -110,17 +81,17 @@ export function to_core_module(root: Parser_node.Node): Core.Module {
     return core_module;
 }
 
-export function get_lookaheads(tree: Tree, source_location: { line: number, column: number }): string[] {
+export function get_lookaheads(language: Tree_sitter_parser.Language, tree: Tree, source_location: { line: number, column: number }): string[] {
     const cursor = tree.walk();
 
     if (contains_source_location(cursor.startPosition, cursor.endPosition, source_location)) {
-        return get_lookaheads_of_iterator(cursor, source_location);
+        return get_lookaheads_of_iterator(language, cursor, source_location);
     }
 
     return [];
 }
 
-function get_lookaheads_of_iterator(cursor: web_tree_sitter.TreeCursor, source_location: { line: number, column: number }): string[] {
+function get_lookaheads_of_iterator(language: Tree_sitter_parser.Language, cursor: Tree_sitter_parser.TreeCursor, source_location: { line: number, column: number }): string[] {
 
     //cursor = cursor.copy();
 
@@ -142,7 +113,7 @@ function get_lookaheads_of_iterator(cursor: web_tree_sitter.TreeCursor, source_l
         }
 
         if (contains_source_location(cursor.startPosition, cursor.endPosition, source_location)) {
-            return get_lookaheads_of_iterator(cursor, source_location);
+            return get_lookaheads_of_iterator(language, cursor, source_location);
         }
 
         let went_to_next_sibling = cursor.gotoNextSibling();
@@ -153,7 +124,7 @@ function get_lookaheads_of_iterator(cursor: web_tree_sitter.TreeCursor, source_l
             }
 
             if (contains_source_location(cursor.startPosition, cursor.endPosition, source_location)) {
-                return get_lookaheads_of_iterator(cursor, source_location);
+                return get_lookaheads_of_iterator(language, cursor, source_location);
             }
 
             went_to_next_sibling = cursor.gotoNextSibling();
@@ -167,10 +138,10 @@ function get_lookaheads_of_iterator(cursor: web_tree_sitter.TreeCursor, source_l
     const lookaheads: string[] = [];
 
     if (target_leaf_node.nextParseState !== 0) {
-        lookaheads.push(...get_lookaheads_from_node(target_leaf_node, target_leaf_node.nextParseState));
+        lookaheads.push(...get_lookaheads_from_node(language, target_leaf_node.nextParseState));
     }
     else if (target_parent_node.nextParseState !== 0) {
-        lookaheads.push(...get_lookaheads_from_node(target_parent_node, target_parent_node.nextParseState));
+        lookaheads.push(...get_lookaheads_from_node(language, target_parent_node.nextParseState));
     }
     else {
         lookaheads.push("Identifier");
@@ -237,10 +208,10 @@ function get_next_sibling_node(node: Node): Node | null {
     return null;
 }
 
-function get_lookaheads_from_node(node: Node, parse_state: number): string[] {
+function get_lookaheads_from_node(language: Tree_sitter_parser.Language, parse_state: number): string[] {
     const lookaheads: string[] = [];
 
-    const lookahead_iterator = node.tree.language.lookaheadIterator(parse_state);
+    const lookahead_iterator = new Tree_sitter_parser.LookaheadIterator(language, parse_state);
     if (lookahead_iterator !== null) {
         for (const lookahead of lookahead_iterator) {
             lookaheads.push(lookahead);
@@ -250,7 +221,7 @@ function get_lookaheads_from_node(node: Node, parse_state: number): string[] {
     return lookaheads;
 }
 
-function contains_source_location(start_position: web_tree_sitter.Point, end_position: web_tree_sitter.Point, source_location: { line: number, column: number }): boolean {
+function contains_source_location(start_position: Tree_sitter_parser.Point, end_position: Tree_sitter_parser.Point, source_location: { line: number, column: number }): boolean {
 
     const converted_source_location: { line: number, column: number } = {
         line: source_location.line - 1,
