@@ -62,7 +62,7 @@
 				],
 				"sourceMaps": true,
 				"autoAttachChildProcesses": true,
-				"preLaunchTask": "npm watch",
+				"preLaunchTask": "npm webpack:development",
 				"env": {
 					"mode": "debug"
 				}
