@@ -40,7 +40,7 @@ export async function get_hover(
     const after_cursor_node_position = after_cursor.node_position;
 
     const get_core_module = Server_data.create_get_core_module(server_data, workspace_uri);
-    const core_module = await get_core_module(Document.get_module(document_state).name);
+    const core_module = await get_core_module(Document.get_module_name(document_state));
     if (core_module === undefined) {
         return undefined;
     }

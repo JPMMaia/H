@@ -2056,9 +2056,10 @@ function create_module_changes_import(
 }
 
 function create_module_changes_declaration(
+    root: Parser_node.Node,
     data: Parse_tree_convertor.Create_module_changes_handler_data
 ): Module_change.Position_change_pair[] {
-    const new_declaration = node_to_declaration(data.node);
+    const new_declaration = node_to_declaration(root, data.node);
 
     const node = data.node.children[data.node.children.length - 1];
     const modify_index = data.node_position[data.node_position.length - 1];
@@ -2077,6 +2078,7 @@ function create_module_changes_declaration(
 }
 
 export function node_to_declaration(
+    root: Parser_node.Node,
     node: Parser_node.Node
 ): Core_intermediate_representation.Declaration {
 
@@ -2086,7 +2088,7 @@ export function node_to_declaration(
 
     switch (underlying_declaration_node.word.value) {
         case "Alias": {
-            const value = node_to_alias_type_declaration(node);
+            const value = node_to_alias_type_declaration(root, node);
             return {
                 name: value.name,
                 type: Core_intermediate_representation.Declaration_type.Alias,
@@ -2095,7 +2097,7 @@ export function node_to_declaration(
             };
         }
         case "Enum": {
-            const value = node_to_enum_declaration(node);
+            const value = node_to_enum_declaration(root, node);
             return {
                 name: value.name,
                 type: Core_intermediate_representation.Declaration_type.Enum,
@@ -2104,8 +2106,8 @@ export function node_to_declaration(
             };
         }
         case "Function": {
-            const declaration = node_to_function_declaration(node);
-            const definition = node_to_function_definition(node, declaration.name);
+            const declaration = node_to_function_declaration(root, node);
+            const definition = node_to_function_definition(root, node, declaration.name);
             const value: Core_intermediate_representation.Function = {
                 declaration: declaration,
                 definition: definition
@@ -2118,7 +2120,7 @@ export function node_to_declaration(
             };
         }
         case "Global_variable": {
-            const declaration = node_to_global_variable_declaration(node);
+            const declaration = node_to_global_variable_declaration(root, node);
             return {
                 name: declaration.name,
                 type: Core_intermediate_representation.Declaration_type.Global_variable,
@@ -2127,7 +2129,7 @@ export function node_to_declaration(
             };
         }
         case "Struct": {
-            const value = node_to_struct_declaration(node);
+            const value = node_to_struct_declaration(root, node);
             return {
                 name: value.name,
                 type: Core_intermediate_representation.Declaration_type.Struct,
@@ -2136,7 +2138,7 @@ export function node_to_declaration(
             };
         }
         case "Union": {
-            const value = node_to_union_declaration(node);
+            const value = node_to_union_declaration(root, node);
             return {
                 name: value.name,
                 type: Core_intermediate_representation.Declaration_type.Union,
@@ -2182,108 +2184,6 @@ function create_new_module_change(
     }
 }
 
-export function node_to_type_reference(
-    node: Parser_node.Node
-): Core_intermediate_representation.Type_reference[] {
-
-    const child = node.children[0];
-
-    if (child.word.value === "Type_name") {
-        const identifier = child.children[0].word.value;
-        return Type_utilities.parse_type_name(identifier);
-    }
-    else if (child.word.value === "Module_type") {
-        const module_alias_name = find_node_value(child, "Module_type_module_name");
-        const type_name = find_node_value(child, "Module_type_type_name");
-        const custom_type_reference: Core_intermediate_representation.Custom_type_reference = {
-            module_reference: {
-                name: module_alias_name
-            },
-            name: type_name
-        };
-        return [
-            {
-                data: {
-                    type: Core_intermediate_representation.Type_reference_enum.Custom_type_reference,
-                    value: custom_type_reference
-                }
-            }
-        ];
-    }
-    else if (child.word.value === "Pointer_type") {
-        const type_node = find_node(child, "Type") as Parser_node.Node;
-        const element_type = node_to_type_reference(type_node);
-        const mutable_node = child.children.find(node => node.word.value === "mutable");
-        const pointer_type: Core_intermediate_representation.Pointer_type = {
-            element_type: element_type,
-            is_mutable: mutable_node !== undefined
-        };
-        return [
-            {
-                data: {
-                    type: Core_intermediate_representation.Type_reference_enum.Pointer_type,
-                    value: pointer_type
-                }
-            }
-        ];
-    }
-    else if (child.word.value === "Constant_array_type") {
-        const type_node = find_node(child, "Type") as Parser_node.Node;
-        const element_type = node_to_type_reference(type_node);
-        const length_node = find_node_value(child, "Constant_array_length");
-        const constant_array_type: Core_intermediate_representation.Constant_array_type = {
-            value_type: element_type,
-            size: Number(length_node)
-        };
-        return [
-            {
-                data: {
-                    type: Core_intermediate_representation.Type_reference_enum.Constant_array_type,
-                    value: constant_array_type
-                }
-            }
-        ];
-    }
-    else if (child.word.value === "Function_pointer_type") {
-
-        const input_parameter_nodes = find_nodes_inside_parent(child, "Function_pointer_type_input_parameters", "Function_parameter");
-        const is_variadic = input_parameter_nodes.length > 0 && input_parameter_nodes[input_parameter_nodes.length - 1].children[0].word.value === "...";
-        if (is_variadic) {
-            input_parameter_nodes.splice(input_parameter_nodes.length - 1, 1);
-        }
-
-        const input_parameter_names = input_parameter_nodes.map(node => find_node_value(node, "Function_parameter_name"));
-        const input_parameter_types = input_parameter_nodes.map(node => find_node(node, "Function_parameter_type") as Parser_node.Node).map(node => node_to_type_reference(node.children[0])[0]);
-
-        const output_parameter_nodes = find_nodes_inside_parent(child, "Function_pointer_type_output_parameters", "Function_parameter");
-        const output_parameter_names = output_parameter_nodes.map(node => find_node_value(node, "Function_parameter_name"));
-        const output_parameter_types = output_parameter_nodes.map(node => find_node(node, "Function_parameter_type") as Parser_node.Node).map(node => node_to_type_reference(node.children[0])[0]);
-
-        const function_pointer_type: Core_intermediate_representation.Function_pointer_type = {
-            type: {
-                input_parameter_types: input_parameter_types,
-                output_parameter_types: output_parameter_types,
-                is_variadic: is_variadic,
-            },
-            input_parameter_names: input_parameter_names,
-            output_parameter_names: output_parameter_names,
-        };
-
-        return [
-            {
-                data: {
-                    type: Core_intermediate_representation.Type_reference_enum.Function_pointer_type,
-                    value: function_pointer_type
-                }
-            }
-        ];
-    }
-
-    const message = `Parse_tree_convertor_mapping.node_to_type_reference(): unhandled node '${child.word.value}'`;
-    onThrowError(message);
-    throw Error(message);
-}
-
 function import_alias_to_module_name(
     root: Parser_node.Node,
     import_alias_name_to_find: string
@@ -2319,7 +2219,7 @@ function get_module_name_from_tree(
     return module_name_value;
 }
 
-export function node_to_type_reference_2(
+export function node_to_type_reference(
     root: Parser_node.Node,
     node: Parser_node.Node
 ): Core_intermediate_representation.Type_reference[] {
@@ -2352,7 +2252,7 @@ export function node_to_type_reference_2(
     }
     else if (child.word.value === "Pointer_type") {
         const type_node = find_node(child, "Type") as Parser_node.Node;
-        const element_type = node_to_type_reference(type_node);
+        const element_type = node_to_type_reference(root, type_node);
         const mutable_node = child.children.find(node => node.word.value === "mutable");
         const pointer_type: Core_intermediate_representation.Pointer_type = {
             element_type: element_type,
@@ -2369,7 +2269,7 @@ export function node_to_type_reference_2(
     }
     else if (child.word.value === "Constant_array_type") {
         const type_node = find_node(child, "Type") as Parser_node.Node;
-        const element_type = node_to_type_reference(type_node);
+        const element_type = node_to_type_reference(root, type_node);
         const length_node = find_node_value(child, "Constant_array_length");
         const constant_array_type: Core_intermediate_representation.Constant_array_type = {
             value_type: element_type,
@@ -2393,11 +2293,11 @@ export function node_to_type_reference_2(
         }
 
         const input_parameter_names = input_parameter_nodes.map(node => find_node_value(node, "Function_parameter_name"));
-        const input_parameter_types = input_parameter_nodes.map(node => find_node(node, "Function_parameter_type") as Parser_node.Node).map(node => node_to_type_reference(node.children[0])[0]);
+        const input_parameter_types = input_parameter_nodes.map(node => find_node(node, "Function_parameter_type") as Parser_node.Node).map(node => node_to_type_reference(root, node.children[0])[0]);
 
         const output_parameter_nodes = find_nodes_inside_parent(child, "Function_pointer_type_output_parameters", "Function_parameter");
         const output_parameter_names = output_parameter_nodes.map(node => find_node_value(node, "Function_parameter_name"));
-        const output_parameter_types = output_parameter_nodes.map(node => find_node(node, "Function_parameter_type") as Parser_node.Node).map(node => node_to_type_reference(node.children[0])[0]);
+        const output_parameter_types = output_parameter_nodes.map(node => find_node(node, "Function_parameter_type") as Parser_node.Node).map(node => node_to_type_reference(root, node.children[0])[0]);
 
         const function_pointer_type: Core_intermediate_representation.Function_pointer_type = {
             type: {
@@ -2424,7 +2324,10 @@ export function node_to_type_reference_2(
     throw Error(message);
 }
 
-function node_to_alias_type_declaration(node: Parser_node.Node): Core_intermediate_representation.Alias_type_declaration {
+function node_to_alias_type_declaration(
+    root: Parser_node.Node,
+    node: Parser_node.Node
+): Core_intermediate_representation.Alias_type_declaration {
 
     const comments_node = get_comments_node(node);
     const alias_node = node.children[node.children.length - 1];
@@ -2432,7 +2335,7 @@ function node_to_alias_type_declaration(node: Parser_node.Node): Core_intermedia
     const name = find_node_value(alias_node, "Alias_name");
 
     const alias_type_node = find_node(alias_node, "Alias_type") as Parser_node.Node;
-    const type_reference = node_to_type_reference(alias_type_node.children[0]);
+    const type_reference = node_to_type_reference(root, alias_type_node.children[0]);
 
     const output: Core_intermediate_representation.Alias_type_declaration = {
         name: name,
@@ -2452,7 +2355,7 @@ function node_to_alias_type_declaration(node: Parser_node.Node): Core_intermedia
     return output;
 }
 
-function node_to_enum_declaration(node: Parser_node.Node): Core_intermediate_representation.Enum_declaration {
+function node_to_enum_declaration(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Enum_declaration {
 
     const comments_node = get_comments_node(node);
     const enum_node = node.children[node.children.length - 1];
@@ -2469,7 +2372,7 @@ function node_to_enum_declaration(node: Parser_node.Node): Core_intermediate_rep
         const value_name_node = find_node(value_node, "Enum_value_name") as Parser_node.Node;
         const value_name = value_name_node.children[0].word.value;
         const generic_expression_node = find_node(value_node, "Generic_expression");
-        const expression = generic_expression_node !== undefined ? node_to_expression(generic_expression_node) : undefined;
+        const expression = generic_expression_node !== undefined ? node_to_expression(root, generic_expression_node) : undefined;
 
         const enum_value: Core_intermediate_representation.Enum_value = {
             name: value_name,
@@ -2506,7 +2409,7 @@ function node_to_enum_declaration(node: Parser_node.Node): Core_intermediate_rep
     return output;
 }
 
-export function node_to_global_variable_declaration(node: Parser_node.Node): Core_intermediate_representation.Global_variable_declaration {
+export function node_to_global_variable_declaration(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Global_variable_declaration {
 
     const comments_node = get_comments_node(node);
     const global_variable_node = node.children[node.children.length - 1];
@@ -2517,10 +2420,10 @@ export function node_to_global_variable_declaration(node: Parser_node.Node): Cor
     const is_mutable = mutable_node_value !== "var";
 
     const variable_type_node = find_node(global_variable_node, "Type") as Parser_node.Node;
-    const variable_type = variable_type_node !== undefined && variable_type_node.children.length > 0 ? node_to_type_reference(variable_type_node) : undefined;
+    const variable_type = variable_type_node !== undefined && variable_type_node.children.length > 0 ? node_to_type_reference(root, variable_type_node) : undefined;
 
     const variable_value_node = find_node(global_variable_node, "Generic_expression_or_instantiate") as Parser_node.Node;
-    const variable_value_expression = node_to_expression(variable_value_node);
+    const variable_value_expression = node_to_expression(root, variable_value_node);
 
     const output: Core_intermediate_representation.Global_variable_declaration = {
         name: name,
@@ -2545,7 +2448,7 @@ export function node_to_global_variable_declaration(node: Parser_node.Node): Cor
     return output;
 }
 
-function node_to_struct_declaration(node: Parser_node.Node): Core_intermediate_representation.Struct_declaration {
+function node_to_struct_declaration(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Struct_declaration {
 
     const comments_node = get_comments_node(node);
     const struct_node = node.children[node.children.length - 1];
@@ -2568,10 +2471,10 @@ function node_to_struct_declaration(node: Parser_node.Node): Core_intermediate_r
         const member_name = get_terminal_value(member_name_node);
 
         const member_type_node = find_node(member_node, "Struct_member_type") as Parser_node.Node;
-        const member_type = node_to_type_reference(member_type_node.children[0]);
+        const member_type = node_to_type_reference(root, member_type_node.children[0]);
 
         const member_default_value_node = find_node(member_node, "Generic_expression_or_instantiate") as Parser_node.Node;
-        const member_default_value_expression = node_to_expression(member_default_value_node);
+        const member_default_value_expression = node_to_expression(root, member_default_value_node);
 
         const member_comment = extract_comments_from_node(get_comments_node(member_node));
 
@@ -2609,7 +2512,7 @@ function node_to_struct_declaration(node: Parser_node.Node): Core_intermediate_r
     return output;
 }
 
-function node_to_union_declaration(node: Parser_node.Node): Core_intermediate_representation.Union_declaration {
+function node_to_union_declaration(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Union_declaration {
 
     const comments_node = get_comments_node(node);
     const union_node = node.children[node.children.length - 1];
@@ -2631,7 +2534,7 @@ function node_to_union_declaration(node: Parser_node.Node): Core_intermediate_re
         const member_name = get_terminal_value(member_name_node);
 
         const member_type_node = find_node(member_node, "Union_member_type") as Parser_node.Node;
-        const member_type = node_to_type_reference(member_type_node.children[0]);
+        const member_type = node_to_type_reference(root, member_type_node.children[0]);
 
         const member_comment = extract_comments_from_node(get_comments_node(member_node));;
 
@@ -2689,11 +2592,11 @@ function find_node_child_index(node: Parser_node.Node, key: string): number {
     return node.children.findIndex(child => child.word.value === key);
 }
 
-function node_to_function_condition(node: Parser_node.Node, is_precondition: boolean): Core_intermediate_representation.Function_condition {
+function node_to_function_condition(root: Parser_node.Node, node: Parser_node.Node, is_precondition: boolean): Core_intermediate_representation.Function_condition {
     const description = find_node_value(node, is_precondition ? "Function_precondition_name" : "Function_postcondition_name");
 
     const condition_node = find_node(node, "Generic_expression");
-    const condition = node_to_expression(condition_node);
+    const condition = node_to_expression(root, condition_node);
 
     return {
         description: description.substring(1, description.length - 1),
@@ -2701,7 +2604,7 @@ function node_to_function_condition(node: Parser_node.Node, is_precondition: boo
     };
 }
 
-export function node_to_function_declaration(node: Parser_node.Node): Core_intermediate_representation.Function_declaration {
+export function node_to_function_declaration(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Function_declaration {
 
     const comments_node = get_comments_node(node);
     const function_node = node.children[node.children.length - 1];
@@ -2717,21 +2620,21 @@ export function node_to_function_declaration(node: Parser_node.Node): Core_inter
     }
 
     const input_parameter_names = input_parameter_nodes.map(node => find_node_value(node, "Function_parameter_name"));
-    const input_parameter_types = input_parameter_nodes.map(node => find_node(node, "Function_parameter_type") as Parser_node.Node).map(node => node_to_type_reference(node.children[0])[0]);
+    const input_parameter_types = input_parameter_nodes.map(node => find_node(node, "Function_parameter_type") as Parser_node.Node).map(node => node_to_type_reference(root, node.children[0])[0]);
     const input_parameter_source_positions = input_parameter_nodes.map(node => node.source_range !== undefined ? node.source_range.start : source_location);
 
     const output_parameter_nodes = find_nodes_inside_parent(function_declaration_node, "Function_output_parameters", "Function_parameter");
     const output_parameter_names = output_parameter_nodes.map(node => find_node_value(node, "Function_parameter_name"));
-    const output_parameter_types = output_parameter_nodes.map(node => find_node(node, "Function_parameter_type") as Parser_node.Node).map(node => node_to_type_reference(node.children[0])[0]);
+    const output_parameter_types = output_parameter_nodes.map(node => find_node(node, "Function_parameter_type") as Parser_node.Node).map(node => node_to_type_reference(root, node.children[0])[0]);
     const output_parameter_source_positions = output_parameter_nodes.map(node => node.source_range !== undefined ? node.source_range.start : source_location);
 
     const linkage = is_export_declaration(node) ? Core_intermediate_representation.Linkage.External : Core_intermediate_representation.Linkage.Private;
 
     const precondition_nodes = function_declaration_node.children.filter(child => child.word.value === "Function_precondition");
-    const preconditions = precondition_nodes.map(node => node_to_function_condition(node, true));
+    const preconditions = precondition_nodes.map(node => node_to_function_condition(root, node, true));
 
     const postcondition_nodes = function_declaration_node.children.filter(child => child.word.value === "Function_postcondition");
-    const postconditions = postcondition_nodes.map(node => node_to_function_condition(node, false));
+    const postconditions = postcondition_nodes.map(node => node_to_function_condition(root, node, false));
 
     const output: Core_intermediate_representation.Function_declaration = {
         name: name,
@@ -2762,7 +2665,7 @@ export function node_to_function_declaration(node: Parser_node.Node): Core_inter
     return output;
 }
 
-function node_to_function_definition(node: Parser_node.Node, function_name: string): Core_intermediate_representation.Function_definition {
+function node_to_function_definition(root: Parser_node.Node, node: Parser_node.Node, function_name: string): Core_intermediate_representation.Function_definition {
 
     const function_node = node.children[node.children.length - 1];
     const function_definition_node = function_node.children[1];
@@ -2775,7 +2678,7 @@ function node_to_function_definition(node: Parser_node.Node, function_name: stri
     const block_node = find_node(function_definition_node, "Block");
     if (block_node !== undefined) {
         const statement_nodes = block_node.children.slice(1, block_node.children.length - 1);
-        const statements = statement_nodes.map(node => node_to_statement(node));
+        const statements = statement_nodes.map(node => node_to_statement(root, node));
         output.statements = statements;
     }
 
@@ -2786,10 +2689,10 @@ function node_to_function_definition(node: Parser_node.Node, function_name: stri
     return output;
 }
 
-function node_to_statement(node: Parser_node.Node): Core_intermediate_representation.Statement {
+function node_to_statement(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Statement {
 
     const child = node.children[0];
-    const expression = node_to_expression(child);
+    const expression = node_to_expression(root, child);
 
     const output: Core_intermediate_representation.Statement = {
         expression: expression
@@ -2798,8 +2701,8 @@ function node_to_statement(node: Parser_node.Node): Core_intermediate_representa
     return output;
 }
 
-export function node_to_expression(node: Parser_node.Node): Core_intermediate_representation.Expression {
-    const expression = node_to_expression_without_source_location(node);
+export function node_to_expression(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Expression {
+    const expression = node_to_expression_without_source_location(root, node);
 
     if (node.source_range !== undefined) {
         expression.source_position = node.source_range.start;
@@ -2808,7 +2711,7 @@ export function node_to_expression(node: Parser_node.Node): Core_intermediate_re
     return expression;
 }
 
-function node_to_expression_without_source_location(node: Parser_node.Node): Core_intermediate_representation.Expression {
+function node_to_expression_without_source_location(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Expression {
 
     while (node.word.value.startsWith("Expression_level_") || node.word.value.startsWith("Generic_expression")) {
         node = node.children[0];
@@ -2816,7 +2719,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node): Cor
 
     switch (node.word.value) {
         case "Expression_access": {
-            const expression = node_to_expression_access(node);
+            const expression = node_to_expression_access(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Access_expression,
@@ -2825,7 +2728,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node): Cor
             };
         }
         case "Expression_access_array": {
-            const expression = node_to_expression_access_array(node);
+            const expression = node_to_expression_access_array(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Access_array_expression,
@@ -2834,7 +2737,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node): Cor
             };
         }
         case "Expression_assignment": {
-            const expression = node_to_expression_assignment(node);
+            const expression = node_to_expression_assignment(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Assignment_expression,
@@ -2843,7 +2746,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node): Cor
             };
         }
         case "Expression_binary": {
-            const expression = node_to_expression_binary(node);
+            const expression = node_to_expression_binary(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Binary_expression,
@@ -2852,7 +2755,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node): Cor
             };
         }
         case "Expression_block": {
-            const expression = node_to_expression_block(node);
+            const expression = node_to_expression_block(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Block_expression,
@@ -2871,7 +2774,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node): Cor
             };
         }
         case "Expression_defer": {
-            const expression = node_to_expression_defer(node);
+            const expression = node_to_expression_defer(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Defer_expression,
@@ -2880,7 +2783,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node): Cor
             };
         }
         case "Expression_call": {
-            const expression = node_to_expression_call(node);
+            const expression = node_to_expression_call(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Call_expression,
@@ -2889,7 +2792,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node): Cor
             };
         }
         case "Expression_cast": {
-            const expression = node_to_expression_cast(node);
+            const expression = node_to_expression_cast(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Cast_expression,
@@ -2926,7 +2829,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node): Cor
             };
         }
         case "Expression_create_array": {
-            const expression = node_to_expression_create_array(node);
+            const expression = node_to_expression_create_array(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Constant_array_expression,
@@ -2935,7 +2838,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node): Cor
             };
         }
         case "Expression_for_loop": {
-            const expression = node_to_expression_for_loop(node);
+            const expression = node_to_expression_for_loop(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.For_loop_expression,
@@ -2944,7 +2847,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node): Cor
             };
         }
         case "Expression_if": {
-            const expression = node_to_expression_if(node);
+            const expression = node_to_expression_if(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.If_expression,
@@ -2954,7 +2857,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node): Cor
         }
         case "Expression_instantiate":
         case "Expression_instantiate_with_type": {
-            const expression = node_to_expression_instantiate(node);
+            const expression = node_to_expression_instantiate(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Instantiate_expression,
@@ -2973,7 +2876,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node): Cor
             };
         }
         case "Expression_parenthesis": {
-            const expression = node_to_expression_parenthesis(node);
+            const expression = node_to_expression_parenthesis(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Parenthesis_expression,
@@ -2982,7 +2885,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node): Cor
             };
         }
         case "Expression_return": {
-            const expression = node_to_expression_return(node);
+            const expression = node_to_expression_return(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Return_expression,
@@ -2991,7 +2894,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node): Cor
             };
         }
         case "Expression_switch": {
-            const expression = node_to_expression_switch(node);
+            const expression = node_to_expression_switch(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Switch_expression,
@@ -3000,7 +2903,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node): Cor
             };
         }
         case "Expression_ternary_condition": {
-            const expression = node_to_expression_ternary_condition(node);
+            const expression = node_to_expression_ternary_condition(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Ternary_condition_expression,
@@ -3009,7 +2912,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node): Cor
             };
         }
         case "Expression_unary": {
-            const expression = node_to_expression_unary(node);
+            const expression = node_to_expression_unary(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Unary_expression,
@@ -3027,7 +2930,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node): Cor
             };
         }
         case "Expression_variable_declaration": {
-            const expression = node_to_expression_variable_declaration(node);
+            const expression = node_to_expression_variable_declaration(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Variable_declaration_expression,
@@ -3036,7 +2939,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node): Cor
             };
         }
         case "Expression_variable_declaration_with_type": {
-            const expression = node_to_expression_variable_declaration_with_type(node);
+            const expression = node_to_expression_variable_declaration_with_type(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Variable_declaration_with_type_expression,
@@ -3045,7 +2948,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node): Cor
             };
         }
         case "Expression_while_loop": {
-            const expression = node_to_expression_while_loop(node);
+            const expression = node_to_expression_while_loop(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.While_loop_expression,
@@ -3054,19 +2957,19 @@ function node_to_expression_without_source_location(node: Parser_node.Node): Cor
             };
         }
         default: {
-            const message = `Parse_tree_convertor_mappings.node_to_expression() did not handle '${node.word.value}'`;
+            const message = `Parse_tree_convertor_mappings.node_to_expression(root, ) did not handle '${node.word.value}'`;
             onThrowError(message);
             throw Error(message);
         }
     }
 }
 
-export function node_to_expression_access(node: Parser_node.Node): Core_intermediate_representation.Access_expression {
+export function node_to_expression_access(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Access_expression {
 
     const generic_expression_node = node.children[0];
     const variable_expression_node = node.children[2];
 
-    const generic_expression = node_to_expression(generic_expression_node);
+    const generic_expression = node_to_expression(root, generic_expression_node);
     const variable_expression = node_to_expression_variable_name(variable_expression_node.children[0]);
 
     const access_expression: Core_intermediate_representation.Access_expression = {
@@ -3078,13 +2981,13 @@ export function node_to_expression_access(node: Parser_node.Node): Core_intermed
     return access_expression;
 }
 
-export function node_to_expression_access_array(node: Parser_node.Node): Core_intermediate_representation.Access_array_expression {
+export function node_to_expression_access_array(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Access_array_expression {
 
     const generic_expression_node = node.children[0];
-    const generic_expression = node_to_expression(generic_expression_node);
+    const generic_expression = node_to_expression(root, generic_expression_node);
 
     const index_expression_node = node.children[2];
-    const index_expression = node_to_expression(index_expression_node);
+    const index_expression = node_to_expression(root, index_expression_node);
 
     const access_array_expression: Core_intermediate_representation.Access_array_expression = {
         expression: generic_expression,
@@ -3112,15 +3015,15 @@ function set_expression_access_type(expression: Core_intermediate_representation
     }
 }
 
-function node_to_expression_assignment(node: Parser_node.Node): Core_intermediate_representation.Assignment_expression {
+function node_to_expression_assignment(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Assignment_expression {
 
     const generic_expressions = [node.children[0], node.children[2]];
 
     const left_hand_side_node = generic_expressions[0];
-    const left_hand_side_expression = node_to_expression(left_hand_side_node);
+    const left_hand_side_expression = node_to_expression(root, left_hand_side_node);
 
     const right_hand_side_node = generic_expressions[1];
-    const right_hand_side_expression = node_to_expression(right_hand_side_node);
+    const right_hand_side_expression = node_to_expression(root, right_hand_side_node);
 
     const symbol = find_node_value(node, "Expression_assignment_symbol");
     const additional_operation = map_production_rule_label_to_assignment_binary_operation(symbol);
@@ -3158,17 +3061,17 @@ function map_production_rule_label_to_assignment_binary_operation(label: string)
     }
 }
 
-function node_to_expression_binary(node: Parser_node.Node): Core_intermediate_representation.Binary_expression {
+function node_to_expression_binary(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Binary_expression {
 
     const left_hand_side_node = node.children[0];
     const operation_node = node.children[1];
     const right_hand_side_node = node.children[2];
 
-    const left_hand_side_expression = node_to_expression(left_hand_side_node);
+    const left_hand_side_expression = node_to_expression(root, left_hand_side_node);
 
     const operation = map_production_rule_label_to_binary_operation(operation_node.word.value);
 
-    const right_hand_side_expression = node_to_expression(right_hand_side_node);
+    const right_hand_side_expression = node_to_expression(root, right_hand_side_node);
 
     const binary_expression: Core_intermediate_representation.Binary_expression = {
         left_hand_side: left_hand_side_expression,
@@ -3208,10 +3111,10 @@ function map_production_rule_label_to_binary_operation(label: string): Core_inte
     }
 }
 
-function node_to_expression_block(node: Parser_node.Node): Core_intermediate_representation.Block_expression {
+function node_to_expression_block(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Block_expression {
 
     const statements_node = node.children.slice(1, node.children.length - 1);
-    const statements = statements_node.map(node => node_to_statement(node));
+    const statements = statements_node.map(node => node_to_statement(root, node));
 
     const block_expression: Core_intermediate_representation.Block_expression = {
         statements: statements
@@ -3231,10 +3134,10 @@ function node_to_expression_break(node: Parser_node.Node): Core_intermediate_rep
     return break_expression;
 }
 
-function node_to_expression_defer(node: Parser_node.Node): Core_intermediate_representation.Defer_expression {
+function node_to_expression_defer(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Defer_expression {
 
     const expression_to_defer_node = node.children[1];
-    const expression_to_defer = node_to_expression(expression_to_defer_node);
+    const expression_to_defer = node_to_expression(root, expression_to_defer_node);
 
     const defer_expression: Core_intermediate_representation.Defer_expression = {
         expression_to_defer: expression_to_defer
@@ -3243,13 +3146,13 @@ function node_to_expression_defer(node: Parser_node.Node): Core_intermediate_rep
     return defer_expression;
 }
 
-function node_to_expression_call(node: Parser_node.Node): Core_intermediate_representation.Call_expression {
+function node_to_expression_call(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Call_expression {
 
     const generic_expression_node = node.children[0];
-    const generic_expression = node_to_expression(generic_expression_node);
+    const generic_expression = node_to_expression(root, generic_expression_node);
 
     const argument_nodes = find_nodes_inside_parent(node, "Expression_call_arguments", "Generic_expression_or_instantiate");
-    const argument_expressions = argument_nodes.map(node => node_to_expression(node));
+    const argument_expressions = argument_nodes.map(node => node_to_expression(root, node));
 
     const call_expression: Core_intermediate_representation.Call_expression = {
         expression: generic_expression,
@@ -3259,13 +3162,13 @@ function node_to_expression_call(node: Parser_node.Node): Core_intermediate_repr
     return call_expression;
 }
 
-function node_to_expression_cast(node: Parser_node.Node): Core_intermediate_representation.Cast_expression {
+function node_to_expression_cast(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Cast_expression {
 
     const source_node = node.children[0];
-    const source_expression = node_to_expression(source_node);
+    const source_expression = node_to_expression(root, source_node);
 
     const destination_type_node = find_node(node, "Expression_type");
-    const destination_type = node_to_type_reference(destination_type_node.children[0]);
+    const destination_type = node_to_type_reference(root, destination_type_node.children[0]);
     if (destination_type.length === 0) {
         const message = `Cannot cast to 'void' type.`;
         onThrowError(message);
@@ -3468,10 +3371,10 @@ function node_to_expression_continue(node: Parser_node.Node): Core_intermediate_
     return continue_expression;
 }
 
-function node_to_expression_create_array(node: Parser_node.Node): Core_intermediate_representation.Constant_array_expression {
+function node_to_expression_create_array(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Constant_array_expression {
 
     const expression_nodes = node.children.slice(1, node.children.length - 1).filter(node => node.word.value !== ",");
-    const expressions = expression_nodes.map(node => node_to_expression(node));
+    const expressions = expression_nodes.map(node => node_to_expression(root, node));
     const statements = expressions.map(expression => { return { expression: expression }; });
 
     const create_array_expression: Core_intermediate_representation.Constant_array_expression = {
@@ -3481,7 +3384,7 @@ function node_to_expression_create_array(node: Parser_node.Node): Core_intermedi
     return create_array_expression;
 }
 
-function node_to_expression_for_loop(node: Parser_node.Node): Core_intermediate_representation.For_loop_expression {
+function node_to_expression_for_loop(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.For_loop_expression {
 
     const head_node = find_node(node, "Expression_for_loop_head") as Parser_node.Node;
 
@@ -3489,21 +3392,21 @@ function node_to_expression_for_loop(node: Parser_node.Node): Core_intermediate_
 
     const range_begin_node = find_node(head_node, "Expression_for_loop_range_begin") as Parser_node.Node;
     const range_begin_number_node = range_begin_node.children[0].children[0];
-    const range_begin_expression = node_to_expression(range_begin_number_node);
+    const range_begin_expression = node_to_expression(root, range_begin_number_node);
 
     const range_end_node = find_node(head_node, "Expression_for_loop_range_end") as Parser_node.Node;
     const range_end_number_node = range_end_node.children[0].children[0];
-    const range_end_expression = node_to_expression(range_end_number_node);
+    const range_end_expression = node_to_expression(root, range_end_number_node);
 
     const step_by_node = find_node(head_node, "Expression_for_loop_step") as Parser_node.Node;
     const step_by_number_node = step_by_node !== undefined && step_by_node.children.length > 0 ? step_by_node.children[1].children[0] : undefined;
-    const step_by_expression = step_by_number_node !== undefined ? node_to_expression(step_by_number_node) : undefined;
+    const step_by_expression = step_by_number_node !== undefined ? node_to_expression(root, step_by_number_node) : undefined;
 
     const reverse_node = find_node(head_node, "reverse");
     const is_reverse = reverse_node !== undefined;
 
     const statements_node = find_node(node, "Expression_for_loop_statements") as Parser_node.Node;
-    const statements = statements_node.children.slice(1, statements_node.children.length - 1).map(node => node_to_statement(node));
+    const statements = statements_node.children.slice(1, statements_node.children.length - 1).map(node => node_to_statement(root, node));
 
     const for_loop_expression: Core_intermediate_representation.For_loop_expression = {
         variable_name: variable_node,
@@ -3517,17 +3420,17 @@ function node_to_expression_for_loop(node: Parser_node.Node): Core_intermediate_
     return for_loop_expression;
 }
 
-function node_to_expression_if(node: Parser_node.Node): Core_intermediate_representation.If_expression {
+function node_to_expression_if(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.If_expression {
 
     const series: Core_intermediate_representation.Condition_statement_pair[] = [];
 
     let current_node = node;
     while (current_node.children.length > 0) {
         const condition_node = current_node.word.value === "Expression_if" ? find_node(current_node, "Generic_expression") as Parser_node.Node : undefined;
-        const condition_expression = condition_node !== undefined ? node_to_expression(condition_node) : undefined;
+        const condition_expression = condition_node !== undefined ? node_to_expression(root, condition_node) : undefined;
 
         const statements_node = find_node(current_node, "Expression_if_statements") as Parser_node.Node;
-        const statements = statements_node.children.slice(1, statements_node.children.length - 1).map(node => node_to_statement(node));
+        const statements = statements_node.children.slice(1, statements_node.children.length - 1).map(node => node_to_statement(root, node));
 
         const serie: Core_intermediate_representation.Condition_statement_pair = {
             condition: condition_expression !== undefined ? { expression: condition_expression } : undefined,
@@ -3556,7 +3459,7 @@ function node_to_expression_if(node: Parser_node.Node): Core_intermediate_repres
     return if_expression;
 }
 
-export function node_to_expression_instantiate(node: Parser_node.Node): Core_intermediate_representation.Instantiate_expression {
+export function node_to_expression_instantiate(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Instantiate_expression {
 
     const type_node = node.children.find(child => child.word.value === "explicit");
     const type = type_node !== undefined ? Core_intermediate_representation.Instantiate_expression_type.Explicit : Core_intermediate_representation.Instantiate_expression_type.Default;
@@ -3567,7 +3470,7 @@ export function node_to_expression_instantiate(node: Parser_node.Node): Core_int
             const member_name = find_node_value(node, "Expression_instantiate_member_name");
 
             const expression_node = find_node(node, "Generic_expression_or_instantiate") as Parser_node.Node;
-            const expression = node_to_expression(expression_node);
+            const expression = node_to_expression(root, expression_node);
 
             return {
                 member_name: member_name,
@@ -3592,10 +3495,10 @@ function node_to_expression_null_pointer(node: Parser_node.Node): Core_intermedi
     return null_pointer_expression;
 }
 
-function node_to_expression_parenthesis(node: Parser_node.Node): Core_intermediate_representation.Parenthesis_expression {
+function node_to_expression_parenthesis(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Parenthesis_expression {
 
     const generic_expression_node = find_node(node, "Generic_expression") as Parser_node.Node;
-    const generic_expression = node_to_expression(generic_expression_node);
+    const generic_expression = node_to_expression(root, generic_expression_node);
 
     const parenthesis_expression: Core_intermediate_representation.Parenthesis_expression = {
         expression: generic_expression
@@ -3604,10 +3507,10 @@ function node_to_expression_parenthesis(node: Parser_node.Node): Core_intermedia
     return parenthesis_expression;
 }
 
-function node_to_expression_return(node: Parser_node.Node): Core_intermediate_representation.Return_expression {
+function node_to_expression_return(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Return_expression {
 
     const generic_expression_node = find_node(node, "Generic_expression_or_instantiate") as Parser_node.Node;
-    const generic_expression = generic_expression_node !== undefined ? node_to_expression(generic_expression_node) : undefined;
+    const generic_expression = generic_expression_node !== undefined ? node_to_expression(root, generic_expression_node) : undefined;
 
     const return_expression: Core_intermediate_representation.Return_expression = {
         expression: generic_expression
@@ -3616,14 +3519,14 @@ function node_to_expression_return(node: Parser_node.Node): Core_intermediate_re
     return return_expression;
 }
 
-function node_to_expression_switch_case(node: Parser_node.Node): Core_intermediate_representation.Switch_case_expression_pair {
+function node_to_expression_switch_case(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Switch_case_expression_pair {
 
     const is_default_case = node.children[0].word.value === "default";
 
-    const case_value = !is_default_case ? node_to_expression(node.children[1].children[0]) : undefined;
+    const case_value = !is_default_case ? node_to_expression(root, node.children[1].children[0]) : undefined;
 
     const statement_nodes = node.children.filter(child => child.word.value === "Statement");
-    const statements = statement_nodes.map((statement_node: Parser_node.Node) => node_to_statement(statement_node));
+    const statements = statement_nodes.map((statement_node: Parser_node.Node) => node_to_statement(root, statement_node));
 
     return {
         case_value: case_value,
@@ -3631,13 +3534,13 @@ function node_to_expression_switch_case(node: Parser_node.Node): Core_intermedia
     };
 }
 
-function node_to_expression_switch(node: Parser_node.Node): Core_intermediate_representation.Switch_expression {
+function node_to_expression_switch(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Switch_expression {
 
     const value_expression_node = find_node(node, "Generic_expression") as Parser_node.Node;
-    const value_expression = node_to_expression(value_expression_node);
+    const value_expression = node_to_expression(root, value_expression_node);
 
     const switch_case_nodes = find_nodes_inside_parent(node, "Expression_switch_cases", "Expression_switch_case");
-    const switch_cases = switch_case_nodes.map((switch_case_node: Parser_node.Node) => node_to_expression_switch_case(switch_case_node));
+    const switch_cases = switch_case_nodes.map((switch_case_node: Parser_node.Node) => node_to_expression_switch_case(root, switch_case_node));
 
     const switch_expression: Core_intermediate_representation.Switch_expression = {
         value: value_expression,
@@ -3647,15 +3550,15 @@ function node_to_expression_switch(node: Parser_node.Node): Core_intermediate_re
     return switch_expression;
 }
 
-function node_to_expression_ternary_condition(node: Parser_node.Node): Core_intermediate_representation.Ternary_condition_expression {
+function node_to_expression_ternary_condition(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Ternary_condition_expression {
 
     const condition_node = node.children[0];
     const then_node = node.children[2];
     const else_node = node.children[4];
 
-    const condition_expression = node_to_expression(condition_node);
-    const then_expression = node_to_expression(then_node);
-    const else_expression = node_to_expression(else_node);
+    const condition_expression = node_to_expression(root, condition_node);
+    const then_expression = node_to_expression(root, then_node);
+    const else_expression = node_to_expression(root, else_node);
 
     const ternary_condition_expression: Core_intermediate_representation.Ternary_condition_expression = {
         condition: condition_expression,
@@ -3666,10 +3569,10 @@ function node_to_expression_ternary_condition(node: Parser_node.Node): Core_inte
     return ternary_condition_expression;
 }
 
-function node_to_expression_unary(node: Parser_node.Node): Core_intermediate_representation.Unary_expression {
+function node_to_expression_unary(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Unary_expression {
 
     const generic_expression_node = node.children[1];
-    const generic_expression = node_to_expression(generic_expression_node);
+    const generic_expression = node_to_expression(root, generic_expression_node);
 
     const symbol = node.children[0].children[0].word.value;
 
@@ -3711,7 +3614,7 @@ function node_to_expression_variable_name(node: Parser_node.Node): Core_intermed
     return variable_expression;
 }
 
-function node_to_expression_variable_declaration(node: Parser_node.Node): Core_intermediate_representation.Variable_declaration_expression {
+function node_to_expression_variable_declaration(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Variable_declaration_expression {
 
     const name = find_node_value(node, "Variable_name");
 
@@ -3719,7 +3622,7 @@ function node_to_expression_variable_declaration(node: Parser_node.Node): Core_i
     const is_mutable = mutable_node_value !== "var";
 
     const right_hand_side_node = find_node(node, "Generic_expression") as Parser_node.Node;
-    const right_hand_side = node_to_expression(right_hand_side_node);
+    const right_hand_side = node_to_expression(root, right_hand_side_node);
 
     const variable_declaration_expression: Core_intermediate_representation.Variable_declaration_expression = {
         name: name,
@@ -3729,7 +3632,7 @@ function node_to_expression_variable_declaration(node: Parser_node.Node): Core_i
     return variable_declaration_expression;
 }
 
-function node_to_expression_variable_declaration_with_type(node: Parser_node.Node): Core_intermediate_representation.Variable_declaration_with_type_expression {
+function node_to_expression_variable_declaration_with_type(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Variable_declaration_with_type_expression {
 
     const name = find_node_value(node, "Variable_name");
 
@@ -3737,10 +3640,10 @@ function node_to_expression_variable_declaration_with_type(node: Parser_node.Nod
     const is_mutable = mutable_node_value !== "var";
 
     const type_node = find_node(node, "Expression_variable_declaration_type") as Parser_node.Node;
-    const type = node_to_type_reference(type_node.children[0]);
+    const type = node_to_type_reference(root, type_node.children[0]);
 
     const right_hand_side_node = find_node(node, "Generic_expression_or_instantiate") as Parser_node.Node;
-    const right_hand_side = node_to_expression(right_hand_side_node);
+    const right_hand_side = node_to_expression(root, right_hand_side_node);
 
     const variable_declaration_expression: Core_intermediate_representation.Variable_declaration_with_type_expression = {
         name: name,
@@ -3751,14 +3654,14 @@ function node_to_expression_variable_declaration_with_type(node: Parser_node.Nod
     return variable_declaration_expression;
 }
 
-function node_to_expression_while_loop(node: Parser_node.Node): Core_intermediate_representation.While_loop_expression {
+function node_to_expression_while_loop(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.While_loop_expression {
 
     const condition_node = find_node(node, "Generic_expression") as Parser_node.Node;
 
-    const condition_expression = node_to_expression(condition_node);
+    const condition_expression = node_to_expression(root, condition_node);
 
     const then_statements_node = find_node(node, "Expression_while_loop_statements") as Parser_node.Node;
-    const then_statements = then_statements_node.children.slice(1, then_statements_node.children.length - 1).map(node => node_to_statement(node));
+    const then_statements = then_statements_node.children.slice(1, then_statements_node.children.length - 1).map(node => node_to_statement(root, node));
 
     const while_loop_expression: Core_intermediate_representation.While_loop_expression = {
         condition: { expression: condition_expression },
@@ -3767,7 +3670,7 @@ function node_to_expression_while_loop(node: Parser_node.Node): Core_intermediat
     return while_loop_expression;
 }
 
-export function node_to_module(node: Parser_node.Node): Core_intermediate_representation.Module {
+export function node_to_module(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Module {
     const module_name = get_module_name_from_tree(node);
 
     const comment = Parser_node.get_child_if({ node: node, position: [] }, child => child.word.value === "Comment");
@@ -3777,7 +3680,7 @@ export function node_to_module(node: Parser_node.Node): Core_intermediate_repres
     const import_descendants = module_head_descendant !== undefined ? Parser_node.get_children_if(module_head_descendant, child => child.word.value === "Import") : [];
     const imports = import_descendants.map(descendant => node_to_import_module_with_alias(descendant.node)); // TODO
 
-    const declarations = node.children.slice(1).map(child => node_to_declaration(child));
+    const declarations = node.children.slice(1).map(child => node_to_declaration(root, child));
 
     const core_module: Core_intermediate_representation.Module = {
         name: module_name,

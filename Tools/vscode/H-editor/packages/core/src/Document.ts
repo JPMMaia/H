@@ -3,6 +3,7 @@ import * as Core_intermediate_representation from "./Core_intermediate_represent
 import * as Grammar from "./Grammar";
 import * as Language from "./Language";
 import * as Module_examples from "./Module_examples";
+import * as Parse_tree_analysis from "../../core/src/Parse_tree_analysis";
 import * as Parse_tree_convertor from "./Parse_tree_convertor";
 import * as Parse_tree_convertor_mappings from "./Parse_tree_convertor_mappings";
 import * as Parse_tree_text_position_cache from "./Parse_tree_text_position_cache";
@@ -49,6 +50,12 @@ export function get_module(state: State): Core_intermediate_representation.Modul
 
 export function get_parse_tree(state: State): Parser_node.Node | undefined {
     return state.with_errors !== undefined ? state.with_errors.parse_tree : state.valid.parse_tree;
+}
+
+export function get_module_name(state: State): string {
+    const parse_tree = get_parse_tree(state);
+    const module_name = Parse_tree_analysis.get_module_name_from_tree(parse_tree);
+    return module_name;
 }
 
 export function get_text(state: State): string {

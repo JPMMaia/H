@@ -7,6 +7,7 @@ import * as Project from "./Project";
 import * as Core from "../../core/src/Core_intermediate_representation";
 import * as Document from "../../core/src/Document";
 import * as Language from "../../core/src/Language";
+import * as Parse_tree_analysis from "../../core/src/Parse_tree_analysis";
 import * as Parse_tree_convertor from "../../core/src/Parse_tree_convertor";
 import * as Parse_tree_convertor_mappings from "../../core/src/Parse_tree_convertor_mappings";
 import * as Parser_node from "../../core/src/Parser_node";
@@ -55,7 +56,8 @@ export function get_document_state(
     module_name: string
 ): { document_uri: string, document_state: Document.State } | undefined {
     for (const [document_uri, document_state] of server_data.document_states) {
-        if (Document.get_module(document_state).name === module_name) {
+        const current_module_name = Document.get_module_name(document_state);
+        if (current_module_name === module_name) {
             return { document_uri: document_uri, document_state: document_state };
         }
     }
@@ -216,7 +218,7 @@ export function create_get_parse_tree(
 ): (module_name: string) => Promise<Parser_node.Node | undefined> {
     return (module_name: string): Promise<Parser_node.Node | undefined> => {
         return get_parse_tree(server_data, workspace_folder_uri, module_name).then(
-            result => result.root
+            result => result !== undefined ? result.root : undefined
         );
     };
 }

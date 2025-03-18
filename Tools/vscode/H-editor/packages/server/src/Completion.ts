@@ -201,11 +201,11 @@ async function get_value_declaration_items(
     return visible_type_symbols
         .map(
             symbol => {
-                const declaration = Parse_tree_analysis.create_declaration_from_symbol(root, symbol);
-                const kind = declaration_type_to_completion_item_kind(declaration);
+                const declaration_type = Parse_tree_analysis.get_ancestor_declaration_type(root, symbol.node_position);
+                const kind = declaration_type_to_completion_item_kind(root, symbol.node_position, declaration_type);
 
                 return {
-                    label: declaration.name,
+                    label: symbol.name,
                     kind: kind,
                     data: 0
                 };
@@ -253,8 +253,12 @@ function get_builtin_type_items(): vscode.CompletionItem[] {
     return items;
 }
 
-function declaration_type_to_completion_item_kind(declaration: Core.Declaration): vscode.CompletionItemKind {
-    switch (declaration.type) {
+function declaration_type_to_completion_item_kind(
+    root: Parser_node.Node,
+    node_position: number[],
+    ancestor_declaration_type: Core.Declaration_type
+): vscode.CompletionItemKind {
+    switch (ancestor_declaration_type) {
         case Core.Declaration_type.Alias: {
             return vscode.CompletionItemKind.TypeParameter;
         }
@@ -265,8 +269,17 @@ function declaration_type_to_completion_item_kind(declaration: Core.Declaration)
             return vscode.CompletionItemKind.Function;
         }
         case Core.Declaration_type.Global_variable: {
-            const value = declaration.value as Core.Global_variable_declaration;
-            return value.is_mutable ? vscode.CompletionItemKind.Variable : vscode.CompletionItemKind.Constant;
+            const declaration_node = root.children[node_position[0]];
+            if (declaration_node === undefined) {
+                return vscode.CompletionItemKind.Constant;
+            }
+
+            const descendant_mutability = Parser_node.get_child_if({ node: declaration_node, position: [node_position[0]] }, child => child.word.value === "Global_variable_mutability");
+            if (descendant_mutability === undefined) {
+                return vscode.CompletionItemKind.Constant;
+            }
+
+            return descendant_mutability.node.children[0].word.value === "var" ? vscode.CompletionItemKind.Variable : vscode.CompletionItemKind.Constant;
         }
         case Core.Declaration_type.Struct: {
             return vscode.CompletionItemKind.Struct;
@@ -292,11 +305,11 @@ async function get_module_type_items(
     return visible_type_symbols
         .map(
             symbol => {
-                const declaration = Parse_tree_analysis.create_declaration_from_symbol(root, symbol);
-                const kind = declaration_type_to_completion_item_kind(declaration);
+                const declaration_type = Parse_tree_analysis.get_ancestor_declaration_type(root, symbol.node_position);
+                const kind = declaration_type_to_completion_item_kind(root, symbol.node_position, declaration_type);
 
                 return {
-                    label: declaration.name,
+                    label: symbol.name,
                     kind: kind,
                     data: 0
                 };
@@ -491,7 +504,7 @@ async function find_core_declaration_of_expression_type(
     get_parse_tree: (module_name: string) => Promise<Parser_node.Node | undefined>
 ): Promise<{ root: Parser_node.Node, node_position: number[], declaration: Core.Declaration } | undefined> {
 
-    const expression_type = await Parse_tree_analysis.get_expression_type_2(root, before_cursor_node_position, expression, get_parse_tree);
+    const expression_type = await Parse_tree_analysis.get_expression_type(root, before_cursor_node_position, expression, get_parse_tree);
     if (expression_type !== undefined && expression_type.type.length > 0) {
         if (expression_type.type[0].data.type === Core.Type_reference_enum.Custom_type_reference) {
             const custom_type_reference = expression_type.type[0].data.value as Core.Custom_type_reference;
