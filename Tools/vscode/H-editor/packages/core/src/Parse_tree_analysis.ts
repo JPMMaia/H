@@ -157,14 +157,18 @@ export async function get_symbol_inside_function(
                 }
             }
 
+            if (is_inside_function_post_condition(root, scope_node_position)) {
+                const function_output_parameters = Parser_node.get_child_if(function_declaration, child => child.word.value === "Function_output_parameters");
+                const symbol = get_symbol_inside_function_parameters(root, function_output_parameters, variable_name);
+                if (symbol !== undefined) {
+                    return symbol;
+                }
+            }
+
             const function_definition = Parser_node.find_descendant_position_if(descendant_function, child => child.word.value === "Function_definition");
 
             const block = Parser_node.get_child(function_definition, 0);
-            const symbols = await get_symbols_inside_block(root, block, scope_node_position, get_parse_tree);
-            const symbol = symbols.find(symbol => symbol.name === variable_name);
-            if (symbol !== undefined) {
-                return symbol;
-            }
+            return get_symbol_inside_block(root, block, scope_node_position, variable_name, get_parse_tree);
         }
     }
 
@@ -190,39 +194,17 @@ export async function get_symbols_inside_function(
             const function_input_parameters_symbols = get_symbols_inside_function_parameters(root, function_input_parameters);
             symbols.push(...function_input_parameters_symbols);
 
+            if (is_inside_function_post_condition(root, scope_node_position)) {
+                const function_output_parameters = Parser_node.get_child_if(function_declaration, child => child.word.value === "Function_output_parameters");
+                const function_output_parameters_symbols = get_symbols_inside_function_parameters(root, function_output_parameters);
+                symbols.push(...function_output_parameters_symbols);
+            }
+
             const function_definition = Parser_node.find_descendant_position_if(descendant_function, child => child.word.value === "Function_definition");
 
             const block = Parser_node.get_child(function_definition, 0);
             const new_symbols = await get_symbols_inside_block(root, block, scope_node_position, get_parse_tree);
             symbols.push(...new_symbols);
-        }
-    }
-
-    return symbols;
-}
-
-export async function get_symbols_inside_function_postconditions(
-    root: Parser_node.Node,
-    scope_node_position: number[] | undefined,
-    get_parse_tree: (module_name: string) => Promise<Parser_node.Node | undefined>
-): Promise<Symbol_information[]> {
-    const symbols: Symbol_information[] = [];
-
-    if (scope_node_position !== undefined && scope_node_position.length >= 1) {
-        const declaration_node_position = [scope_node_position[0]];
-        const declaration_node = Parser_node.get_node_at_position(root, declaration_node_position);
-
-        const descendant_function = Parser_node.get_child_if({ node: declaration_node, position: declaration_node_position }, child => child.word.value === "Function");
-        if (descendant_function !== undefined) {
-            const function_declaration = Parser_node.get_child_if(descendant_function, child => child.word.value === "Function_declaration");
-
-            const function_input_parameters = Parser_node.get_child_if(function_declaration, child => child.word.value === "Function_input_parameters");
-            const function_input_parameters_symbols = get_symbols_inside_function_parameters(root, function_input_parameters);
-            symbols.push(...function_input_parameters_symbols);
-
-            const function_output_parameters = Parser_node.get_child_if(function_declaration, child => child.word.value === "Function_output_parameters");
-            const function_output_parameters_symbols = get_symbols_inside_function_parameters(root, function_output_parameters);
-            symbols.push(...function_output_parameters_symbols);
         }
     }
 
@@ -266,6 +248,122 @@ export function get_symbols_inside_function_parameters(
 
         return create_value_symbol(parameter_name_value, parameter_type_value, parameter_name.position);
     });
+}
+
+async function get_symbol_inside_block(
+    root: Parser_node.Node,
+    block: { node: Parser_node.Node, position: number[] },
+    scope_node_position: number[] | undefined,
+    variable_name: string,
+    get_parse_tree: (module_name: string) => Promise<Parser_node.Node | undefined>
+): Promise<Symbol_information | undefined> {
+
+    const end_scope_statement_index = scope_node_position[block.position.length];
+    if (end_scope_statement_index === undefined) {
+        return undefined;
+    }
+
+    const statements = Parser_node.get_children_if(block, child => child.word.value === "Statement");
+
+    for (const statement of statements) {
+
+        if (statement.position[block.position.length] === end_scope_statement_index) {
+            const child = Parser_node.get_child(statement, 0);
+            if (child.node.word.value === "Expression_block") {
+                const new_block = child;
+                return get_symbol_inside_block(root, new_block, scope_node_position, variable_name, get_parse_tree);
+            }
+            else if (child.node.word.value === "Expression_if") {
+                let index = block.position.length + 2;
+                while (index < scope_node_position.length) {
+                    const candidate_node_position = scope_node_position.slice(0, index + 1);
+                    const candidate_node = Parser_node.get_node_at_position(root, candidate_node_position);
+                    if (candidate_node === undefined) {
+                        break;
+                    }
+
+                    if (candidate_node.word.value === "Expression_if_statements") {
+                        return get_symbol_inside_block(root, { node: candidate_node, position: candidate_node_position }, scope_node_position, variable_name, get_parse_tree);
+                    }
+
+                    index += 1;
+                }
+            }
+            else if (child.node.word.value === "Expression_for_loop") {
+
+                {
+                    const loop_variable_name = Parser_node.find_descendant_position_if(child, node => node.word.value === "Expression_for_loop_variable");
+                    const loop_variable_name_value = loop_variable_name.node.children[0].word.value;
+                    if (loop_variable_name_value === variable_name) {
+                        const loop_range_begin = Parser_node.find_descendant_position_if(child, node => node.word.value === "Expression_for_loop_range_begin");
+                        const loop_range_begin_expression = Parse_tree_convertor_mappings.node_to_expression(root, loop_range_begin.node.children[0].children[0]);
+                        const loop_range_begin_expression_type = await get_expression_type(root, loop_variable_name.position, loop_range_begin_expression, get_parse_tree);
+                        if (loop_range_begin_expression_type.is_value) {
+                            const type_reference = loop_range_begin_expression_type.type;
+                            return create_value_symbol(loop_variable_name_value, type_reference, loop_variable_name.position);
+                        }
+                        else {
+                            return undefined;
+                        }
+                    }
+                }
+
+                const new_block = Parser_node.find_descendant_position_if(child, node => node.word.value === "Expression_for_loop_statements");
+                return get_symbol_inside_block(root, new_block, scope_node_position, variable_name, get_parse_tree);
+            }
+            else if (child.node.word.value === "Expression_switch") {
+                let index = block.position.length + 2;
+                while (index < scope_node_position.length) {
+                    const candidate_node_position = scope_node_position.slice(0, index + 1);
+                    const candidate_node = Parser_node.get_node_at_position(root, candidate_node_position);
+                    if (candidate_node === undefined) {
+                        break;
+                    }
+
+                    if (candidate_node.word.value === "Expression_switch_case") {
+                        return get_symbol_inside_block(root, { node: candidate_node, position: candidate_node_position }, scope_node_position, variable_name, get_parse_tree);
+                    }
+
+                    index += 1;
+                }
+            }
+            else if (child.node.word.value === "Expression_while_loop") {
+                const new_block = Parser_node.find_descendant_position_if(child, node => node.word.value === "Expression_while_loop_statements");
+                return await get_symbol_inside_block(root, new_block, scope_node_position, variable_name, get_parse_tree);
+            }
+        }
+
+        if (statement.position[block.position.length] >= end_scope_statement_index) {
+            return undefined;
+        }
+
+        const variable_declaration = Parser_node.get_child_if(statement, child => child.word.value === "Expression_variable_declaration" || child.word.value === "Expression_variable_declaration_with_type");
+        if (variable_declaration !== undefined) {
+            const descendant_variable_name = Parser_node.get_child_if(variable_declaration, child => child.word.value === "Variable_name");
+            const variable_name_value = descendant_variable_name.node.children[0].word.value;
+            if (variable_name_value === variable_name) {
+                const declaration_type = Parser_node.get_child_if(variable_declaration, child => child.word.value === "Expression_variable_declaration_type");
+                if (declaration_type !== undefined) {
+                    const type_reference = Parse_tree_convertor_mappings.node_to_type_reference(root, declaration_type.node.children[0]);
+                    return create_value_symbol(variable_name_value, type_reference, descendant_variable_name.position);
+                }
+                else {
+                    const right_hand_side = Parser_node.get_child_if(variable_declaration, child => child.word.value === "Generic_expression");
+                    const right_hand_side_expression = Parse_tree_convertor_mappings.node_to_expression(root, right_hand_side.node);
+                    const type_information = await get_expression_type(root, variable_declaration.position, right_hand_side_expression, get_parse_tree);
+                    if (type_information === undefined || type_information.is_value) {
+                        const type_reference = type_information !== undefined ? type_information.type : undefined;
+                        return create_value_symbol(variable_name_value, type_reference, descendant_variable_name.position);
+                    }
+                    else {
+                        return create_type_symbol(variable_name_value, type_information.type, descendant_variable_name.position);
+                    }
+                }
+            }
+        }
+    }
+
+    return undefined;
 }
 
 async function get_symbols_inside_block(

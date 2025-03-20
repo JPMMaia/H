@@ -880,8 +880,6 @@ async function validate_function_condition(
         return diagnostics;
     }
 
-    const scope_declaration = Parse_tree_analysis.create_declaration_from_function_value(function_value_info.function_value);
-
     {
         const expected_type = [Parse_tree_analysis.create_boolean_type()];
         diagnostics.push(...await validate_expression_type_is(uri, core_module, root, descendant_expression, expected_type, is_boolean_type, get_parse_tree));
