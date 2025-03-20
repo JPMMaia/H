@@ -893,10 +893,9 @@ async function validate_function_condition(
             const variable_name = descendant_variable_expression.node.children[0].children[0].word.value;
             const declaration_symbol = await Parse_tree_analysis.get_declaration_symbol(root, variable_name);
             if (declaration_symbol !== undefined && declaration_symbol.symbol_type === Parse_tree_analysis.Symbol_type.Value) {
-                const symbol_data = declaration_symbol.data as Parse_tree_analysis.Symbol_value_data;
-                const declaration_node = Parser_node.get_node_at_position(root, declaration_symbol.node_position);
-                if (declaration_node.children[declaration_node.children.length - 1].word.value === "Global_variable") {
-                    const global_variable_node = declaration_node.children[declaration_node.children.length - 1];
+                const ancestor_declaration = Parser_node.get_ancestor_with_name(root, declaration_symbol.node_position, "Declaration");
+                if (ancestor_declaration.node.children[ancestor_declaration.node.children.length - 1].word.value === "Global_variable") {
+                    const global_variable_node = ancestor_declaration.node.children[ancestor_declaration.node.children.length - 1];
                     const mutability_node = Parser_node.get_child_if({ node: global_variable_node, position: [] }, child => child.word.value === "Global_variable_mutability");
                     if (mutability_node.node.children[0].word.value === "mutable") {
                         diagnostics.push({
@@ -2937,10 +2936,9 @@ async function validate_variable_declaration_type(
         return diagnostics;
     }
 
-    const declaration = Parse_tree_analysis.create_declaration_from_function_value(function_value);
     const right_hand_side_expression = Parse_tree_analysis.get_expression_from_node(root, descendant_right_hand_side.node);
     const right_hand_side_type = await Parse_tree_analysis.get_expression_type(root, descendant_variable_declaration_expression.position, right_hand_side_expression, get_parse_tree);
-    if (right_hand_side_type !== undefined && right_hand_side_type.type.length === 0) {
+    if (right_hand_side_type !== undefined && right_hand_side_type.type !== undefined && right_hand_side_type.type.length === 0) {
         diagnostics.push(
             {
                 location: get_parser_node_position_source_location(uri, descendant_right_hand_side),
@@ -2951,7 +2949,7 @@ async function validate_variable_declaration_type(
             }
         );
     }
-    else if (right_hand_side_type !== undefined && right_hand_side_type.type.length > 0 && expected_variable_type !== undefined && !deep_equal(expected_variable_type, right_hand_side_type.type[0])) {
+    else if (right_hand_side_type !== undefined && right_hand_side_type.type !== undefined && right_hand_side_type.type.length > 0 && expected_variable_type !== undefined && !deep_equal(expected_variable_type, right_hand_side_type.type[0])) {
         const right_hand_side_type_string = Type_utilities.get_type_name(right_hand_side_type.type, core_module);
         const expected_variable_type_string = Type_utilities.get_type_name([expected_variable_type], core_module);
         diagnostics.push(

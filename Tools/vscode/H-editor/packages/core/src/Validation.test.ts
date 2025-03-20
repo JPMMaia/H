@@ -68,20 +68,7 @@ function test_validate_parser_node(
     node: Parser_node.Node,
     expected_diagnostics: Validation.Diagnostic[]
 ): void {
-    const text_position_cache = Parse_tree_text_position_cache.create_empty_cache();
-    text_position_cache.elements.push(
-        {
-            text_position: {
-                line: node.children[0].word.source_location.line,
-                column: node.children[0].word.source_location.column,
-                offset: 0
-            },
-            node: node.children[0],
-            node_position: [...create_dummy_node_position(), 0]
-        }
-    );
-
-    const actual_diagnostics = Validation.validate_parser_node(create_dummy_uri(), create_dummy_node_position(), node, text_position_cache);
+    const actual_diagnostics = Validation.validate_parser_node(create_dummy_uri(), create_dummy_node_position(), node);
     assert.deepEqual(actual_diagnostics, expected_diagnostics);
 }
 
@@ -336,19 +323,17 @@ async function test_validate_module(
         };
     });
 
-    const get_core_module = async (module_name: string): Promise<Core.Module | undefined> => {
+    const get_parse_tree = async (module_name: string): Promise<Parser_node.Node | undefined> => {
         if (module_name === parse_result.module?.name) {
-            return parse_result.module;
+            return parse_result.parse_tree;
         }
 
         const dependency = dependencies_parse_result.find(dependency => dependency.module.name === module_name);
         if (dependency === undefined) {
             return undefined;
         }
-        return dependency.module;
+        return dependency.parse_tree;
     };
-
-    const text_position_cache = Parse_tree_text_position_cache.create_cache(parse_result.parse_tree, input_text);
 
     const actual_diagnostics = await Validation.validate_module(
         uri,
@@ -357,8 +342,7 @@ async function test_validate_module(
         parse_result.parse_tree,
         [],
         parse_result.parse_tree,
-        text_position_cache,
-        get_core_module
+        get_parse_tree
     );
     assert.deepEqual(actual_diagnostics, expected_diagnostics);
 }

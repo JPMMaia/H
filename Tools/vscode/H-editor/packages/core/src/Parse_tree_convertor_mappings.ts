@@ -165,14 +165,14 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
         [
             ["Module_name", create_module_changes_module_name],
             ["Import", create_module_changes_import],
-            ["Declaration", create_module_changes_declaration],
+            //["Declaration", create_module_changes_declaration],
         ]
     );
 
     const node_to_core_object_map = new Map<string, Parse_tree_convertor.Node_to_core_object_handler>(
         [
             ["Import", node_to_import_module_with_alias],
-            ["Declaration", node_to_declaration],
+            //["Declaration", node_to_declaration],
         ]
     );
 
@@ -3670,17 +3670,17 @@ function node_to_expression_while_loop(root: Parser_node.Node, node: Parser_node
     return while_loop_expression;
 }
 
-export function node_to_module(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Module {
-    const module_name = get_module_name_from_tree(node);
+export function node_to_module(root: Parser_node.Node): Core_intermediate_representation.Module {
+    const module_name = get_module_name_from_tree(root);
 
-    const comment = Parser_node.get_child_if({ node: node, position: [] }, child => child.word.value === "Comment");
+    const comment = Parser_node.get_child_if({ node: root, position: [] }, child => child.word.value === "Comment");
     const comment_value = comment !== undefined ? remove_comments_formatting(comment.node.children[0].word.value) : undefined;
 
-    const module_head_descendant = Parser_node.get_child_if({ node: node, position: [] }, child => child.word.value === "Module_head");
+    const module_head_descendant = Parser_node.get_child_if({ node: root, position: [] }, child => child.word.value === "Module_head");
     const import_descendants = module_head_descendant !== undefined ? Parser_node.get_children_if(module_head_descendant, child => child.word.value === "Import") : [];
     const imports = import_descendants.map(descendant => node_to_import_module_with_alias(descendant.node)); // TODO
 
-    const declarations = node.children.slice(1).map(child => node_to_declaration(root, child));
+    const declarations = root.children.slice(1).map(child => node_to_declaration(root, child));
 
     const core_module: Core_intermediate_representation.Module = {
         name: module_name,

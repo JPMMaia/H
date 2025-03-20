@@ -6,169 +6,12 @@ import * as Core from "./Core_intermediate_representation";
 import * as Document from "./Document";
 import * as Language from "./Language";
 import * as Module_examples from "./Module_examples";
-import * as Storage_cache from "./Storage_cache";
 import * as Parser_node from "./Parser_node";
 import * as Parse_tree_analysis from "./Parse_tree_analysis";
-import * as Parse_tree_convertor from "./Parse_tree_convertor";
 import * as Text_change from "./Text_change";
 import * as Text_formatter from "./Text_formatter";
 import * as Tree_sitter_parser from "./Tree_sitter_parser";
 import * as Type_utilities from "./Type_utilities";
-
-describe("Parse_tree_analysis.find_variable_info", () => {
-
-    let language_description: any;
-
-    before(async () => {
-        const cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
-        language_description = await Language.create_default_description(cache, "out/tests/graphviz.gv");
-    });
-
-    it("Finds variable info of output parameter from post condition", async () => {
-        const core_module = Module_examples.create_function_contracts();
-        const function_value = core_module.declarations[0].value as Core.Function;
-
-        const expected_variable_info: Parse_tree_analysis.Variable_info = {
-            type: Parse_tree_analysis.Variable_info_type.Function_output_variable,
-            value: {
-                function_value: function_value,
-                output_index: 0,
-            }
-        };
-
-        const root = Parse_tree_convertor.module_to_parse_tree(core_module, language_description.production_rules, language_description.mappings);
-
-        const descendant_precondition = Parser_node.find_descendant_position_if({ node: root, position: [] }, (node => node.word.value === "Function_postcondition"));
-        assert.notEqual(descendant_precondition, undefined);
-        if (descendant_precondition === undefined)
-            return;
-
-        const descendant_result = Parser_node.find_descendant_position_if(descendant_precondition, (node => node.word.value === "result"));
-        assert.notEqual(descendant_result, undefined);
-        if (descendant_result === undefined)
-            return;
-
-        test_find_variable_info(core_module, function_value, root, descendant_result.position, descendant_result.node.word.value, expected_variable_info);
-    });
-
-    it("Finds variable info of global variable", async () => {
-        const core_module = Module_examples.create_using_global_variables();
-        const function_value = core_module.declarations[2].value as Core.Function;
-
-        const expected_variable_info: Parse_tree_analysis.Variable_info = {
-            type: Parse_tree_analysis.Variable_info_type.Declaration,
-            value: {
-                core_module: core_module,
-                declaration: core_module.declarations[0],
-            }
-        };
-
-        const root = Parse_tree_convertor.module_to_parse_tree(core_module, language_description.production_rules, language_description.mappings);
-
-        const descendant_function = Parser_node.find_descendant_position_if({ node: root, position: [] }, (node => node.word.value === "Function"));
-        assert.notEqual(descendant_function, undefined);
-        if (descendant_function === undefined)
-            return;
-
-        const descendant_variable = Parser_node.find_descendant_position_if(descendant_function, (node => node.word.value === "my_global_variable_0"));
-        assert.notEqual(descendant_variable, undefined);
-        if (descendant_variable === undefined)
-            return;
-
-        test_find_variable_info(core_module, function_value, root, descendant_variable.position, descendant_variable.node.word.value, expected_variable_info);
-    });
-
-});
-
-function test_find_variable_info(
-    core_module: Core.Module,
-    function_value: Core.Function,
-    root: Parser_node.Node,
-    variable_node_position: number[],
-    variable_name: string,
-    expected_variable_info: Parse_tree_analysis.Variable_info | undefined
-): void {
-
-    const actual_variable_info = Parse_tree_analysis.find_variable_info(core_module, function_value, root, variable_node_position, variable_name);
-
-    assert.deepEqual(actual_variable_info, expected_variable_info);
-}
-
-describe("Parse_tree_analysis.find_variable_type", () => {
-
-    it("Finds variable type of input parameter", async () => {
-        const expected_variable_type = create_integer_type(32, true);
-        await test_find_variable_type(Module_examples.create_add_function(), 0, [1, 0, 2, 1, 0, 1, 0, 0, 0], "lhs", expected_variable_type);
-    });
-
-    it("Finds variable type of output parameter inside postcondition", async () => {
-        const expected_variable_type = create_integer_type(32, true);
-        await test_find_variable_type(Module_examples.create_function_contracts(), 0, [1, 0, 2, 0, 9, 1, 0, 3, 0, 0, 0, 0], "result", expected_variable_type);
-    });
-
-    it("Finds variable type of variable declared with explicit type", async () => {
-        const expected_variable_type = create_integer_type(32, true);
-        await test_find_variable_type(Module_examples.create_function_with_variable_declaration_with_type(), 0, [1, 0, 2, 1, 0, 1, 1, 0, 0], "a", expected_variable_type);
-    });
-
-    it("Finds variable type of variable declared without explicit type", async () => {
-        const expected_variable_type = create_integer_type(32, true);
-        await test_find_variable_type(Module_examples.create_function_with_variable_declaration(), 0, [1, 0, 2, 1, 0, 1, 1, 0, 0], "a", expected_variable_type);
-    });
-
-    it("Finds variable type of for loop variable", async () => {
-        const expected_variable_type = create_integer_type(32, true);
-        await test_find_variable_type(Module_examples.create_for_loop_expressions(), 1, [1, 1, 2, 1, 0, 1, 0, 0, 2, 0, 0], "index", expected_variable_type);
-    });
-
-    it("Finds variable type of variable inside while loop", async () => {
-        const expected_variable_type = create_integer_type(32, true);
-        await test_find_variable_type(Module_examples.create_variable_declaration_inside_while_loop(), 0, [1, 0, 2, 1, 0, 1, 0, 0, 1, 1, 0, 3, 1, 0, 0], "index", expected_variable_type);
-    });
-
-    it("Finds variable type of variable inside if statement 0", async () => {
-        const expected_variable_type = create_integer_type(32, true);
-        await test_find_variable_type(Module_examples.create_variable_declaration_inside_if_expression(), 0, [1, 0, 2, 1, 0, 1, 0, 0, 3, 1, 0], "a", expected_variable_type);
-    });
-
-    it("Finds variable type of variable inside if statement 1", async () => {
-        const expected_variable_type = create_integer_type(32, false);
-        await test_find_variable_type(Module_examples.create_variable_declaration_inside_if_expression(), 0, [1, 0, 2, 1, 0, 1, 0, 0, 5, 2, 1, 0], "b", expected_variable_type);
-    });
-
-    it("Finds variable type of variable inside switch case 0", async () => {
-        const expected_variable_type = create_integer_type(32, true);
-        await test_find_variable_type(Module_examples.create_variable_declaration_inside_switch_case(), 0, [1, 0, 2, 1, 0, 1, 0, 0, 3, 0, 3, 1, 0], "a", expected_variable_type);
-    });
-
-    it("Finds variable type of variable inside switch case 1", async () => {
-        const expected_variable_type = create_integer_type(32, false);
-        await test_find_variable_type(Module_examples.create_variable_declaration_inside_switch_case(), 0, [1, 0, 2, 1, 0, 1, 0, 0, 3, 1, 3, 1, 0], "b", expected_variable_type);
-    });
-
-    it("Can handle invalid recursive expressions", async () => {
-        const expected_variable_type = undefined;
-        await test_find_variable_type(Module_examples.create_invalid_assignment_to_itself_function(), 0, [1, 0, 2, 1, 0, 1, 0, 0, 0], "value", expected_variable_type);
-    });
-});
-
-async function test_find_variable_type(
-    core_module: Core.Module,
-    declaration_index: number,
-    variable_node_position: number[],
-    variable_name: string,
-    expected_variable_type: Core.Type_reference | undefined,
-    get_core_module?: (module_name: string) => Promise<Core.Module | undefined>
-): Promise<void> {
-    const function_value = core_module.declarations[declaration_index].value as Core.Function;
-
-    const get_core_module_function = get_core_module !== undefined ? get_core_module : create_default_get_core_module(core_module);
-
-    const root = await core_module_to_parse_tree(core_module);
-    const actual_variable_type = await Parse_tree_analysis.find_variable_type(core_module, function_value, root, variable_node_position, variable_name, get_core_module_function);
-
-    assert.deepEqual(actual_variable_type, expected_variable_type);
-}
 
 describe("Parse_tree_analysis.get_expression_type", () => {
 
@@ -579,7 +422,7 @@ async function test_get_expression_type(
         scope_node_position = scope_descendant !== undefined ? scope_descendant.position : undefined;
     }
 
-    const actual_expression_type = await Parse_tree_analysis.get_expression_type_2(root, scope_node_position, expression, get_parse_tree_function);
+    const actual_expression_type = await Parse_tree_analysis.get_expression_type(root, scope_node_position, expression, get_parse_tree_function);
 
     assert.deepEqual(actual_expression_type, expected_expression_type);
 }

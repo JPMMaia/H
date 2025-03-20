@@ -5,7 +5,6 @@ import * as Parser from "./Parser";
 import * as Parser_node from "./Parser_node";
 import * as Parse_tree_convertor from "./Parse_tree_convertor";
 import * as Parse_tree_text_position_cache from "./Parse_tree_text_position_cache";
-import * as Parse_tree_text_iterator from "./Parse_tree_text_iterator";
 import { has_meaningful_content, scan_new_change } from "./Scan_new_changes";
 import * as Scanner from "./Scanner";
 import * as Tree_sitter_parser from "./Tree_sitter_parser";
@@ -148,10 +147,7 @@ export function update(
         if (parse_result.status === Parser.Parse_status.Accept) {
 
             {
-                const cache_for_validation = Parse_tree_text_position_cache.clone_cache(state.valid.parse_tree_text_position_cache);
-                Parse_tree_text_position_cache.update_cache(cache_for_validation, parse_result.changes, text_change, text_after_changes);
-
-                const diagnostics = validate_parse_changes(state.document_file_path, parse_result.changes, cache_for_validation);
+                const diagnostics = validate_parse_changes(state.document_file_path, parse_result.changes);
                 if (diagnostics.length > 0) {
                     state.diagnostics.push(...diagnostics);
                     return state;
@@ -279,9 +275,6 @@ export function full_parse_with_source_locations(
     const core_tree = Tree_sitter_parser.to_parser_node(tree.rootNode, add_source_location);
 
     const changes = [Parser.create_modify_change([], core_tree)];
-    const position_cache = Parse_tree_text_position_cache.create_empty_cache();
-    Parse_tree_text_position_cache.update_cache(position_cache, changes, { range: { start: 0, end: 0 }, text: input_text }, input_text);
-
     const diagnostics: Validation.Diagnostic[] = [];
 
     if (tree.rootNode.hasError) {
@@ -296,7 +289,7 @@ export function full_parse_with_source_locations(
     }
 
     {
-        diagnostics.push(...validate_parse_changes(document_file_path, changes, position_cache));
+        diagnostics.push(...validate_parse_changes(document_file_path, changes));
     }
 
     const core_module = Tree_sitter_parser.to_core_module(core_tree);
@@ -315,22 +308,22 @@ export function full_parse_with_source_locations(
 
 export async function get_all_diagnostics(
     document_state: Document.State,
-    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+    get_parse_tree: (module_name: string) => Promise<Parser_node.Node | undefined>
 ): Promise<Validation.Diagnostic[]> {
     const diagnostics = [...document_state.diagnostics];
 
     if (diagnostics.length === 0 && document_state.with_errors !== undefined && document_state.with_errors.parse_tree !== undefined) {
-        diagnostics.push(...Validation.validate_parser_node(document_state.document_file_path, [], document_state.with_errors.parse_tree, document_state.with_errors.parse_tree_text_position_cache));
+        diagnostics.push(...Validation.validate_parser_node(document_state.document_file_path, [], document_state.with_errors.parse_tree));
 
         if (diagnostics.length === 0) {
-            diagnostics.push(...await Validation.validate_module(document_state.document_file_path, document_state.with_errors.text, document_state.with_errors.module, document_state.with_errors.parse_tree, [], document_state.with_errors.parse_tree, document_state.with_errors.parse_tree_text_position_cache, get_core_module));
+            diagnostics.push(...await Validation.validate_module(document_state.document_file_path, document_state.with_errors.text, document_state.with_errors.module, document_state.with_errors.parse_tree, [], document_state.with_errors.parse_tree, get_parse_tree));
         }
     }
     else if (diagnostics.length === 0 && document_state.valid.parse_tree !== undefined) {
-        diagnostics.push(...Validation.validate_parser_node(document_state.document_file_path, [], document_state.valid.parse_tree, document_state.valid.parse_tree_text_position_cache));
+        diagnostics.push(...Validation.validate_parser_node(document_state.document_file_path, [], document_state.valid.parse_tree));
 
         if (diagnostics.length === 0) {
-            diagnostics.push(...await Validation.validate_module(document_state.document_file_path, document_state.valid.text, document_state.valid.module, document_state.valid.parse_tree, [], document_state.valid.parse_tree, document_state.valid.parse_tree_text_position_cache, get_core_module));
+            diagnostics.push(...await Validation.validate_module(document_state.document_file_path, document_state.valid.text, document_state.valid.module, document_state.valid.parse_tree, [], document_state.valid.parse_tree, get_parse_tree));
         }
     }
 
@@ -339,8 +332,7 @@ export async function get_all_diagnostics(
 
 function validate_parse_changes(
     document_file_path: string,
-    changes: Parser.Change[],
-    cache: Parse_tree_text_position_cache.Cache
+    changes: Parser.Change[]
 ): Validation.Diagnostic[] {
 
     for (const change of changes) {
@@ -351,7 +343,7 @@ function validate_parse_changes(
                 const new_node_position = [...add_change.parent_position, add_change.index + node_index];
                 const new_node = add_change.new_nodes[node_index];
 
-                const diagnostics = Validation.validate_parser_node(document_file_path, new_node_position, new_node, cache);
+                const diagnostics = Validation.validate_parser_node(document_file_path, new_node_position, new_node);
                 if (diagnostics.length > 0) {
                     return diagnostics;
                 }
@@ -360,7 +352,7 @@ function validate_parse_changes(
         else if (change.type === Parser.Change_type.Modify) {
             const modify_change = change.value as Parser.Modify_change;
 
-            const diagnostics = Validation.validate_parser_node(document_file_path, modify_change.position, modify_change.new_node, cache);
+            const diagnostics = Validation.validate_parser_node(document_file_path, modify_change.position, modify_change.new_node);
             if (diagnostics.length > 0) {
                 return diagnostics;
             }
