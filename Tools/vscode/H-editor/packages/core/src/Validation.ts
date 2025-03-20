@@ -540,7 +540,7 @@ async function validate_type(
 
         const imported_root = await get_parse_tree(module_import.module_name);
         if (imported_root !== undefined) {
-            const declaration_symbol = Parse_tree_analysis.get_declaration_symbol(imported_root, type_name);
+            const declaration_symbol = await Parse_tree_analysis.get_declaration_symbol(imported_root, type_name);
             if (declaration_symbol === undefined) {
                 diagnostics.push({
                     location: get_parser_node_position_source_location(uri, descendant_type_name),

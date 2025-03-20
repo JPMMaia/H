@@ -1297,7 +1297,7 @@ export function update_custom_type_references_module_name(module: Core_intermedi
     const process_type = (type: Core_intermediate_representation.Type_reference): void => {
         if (type.data.type === Core_intermediate_representation.Type_reference_enum.Custom_type_reference) {
             const custom_type_reference = type.data.value as Core_intermediate_representation.Custom_type_reference;
-            if (custom_type_reference.module_reference.name.length === 0 || custom_type_reference.module_reference.name === old_module_name) {
+            if (custom_type_reference.module_reference.name !== undefined && custom_type_reference.module_reference.name.length === 0 || custom_type_reference.module_reference.name === old_module_name) {
                 custom_type_reference.module_reference.name = new_module_name;
             }
         }
