@@ -55,6 +55,7 @@ export async function create(
 
     const inlay_hints: vscode.InlayHint[] = [];
 
+    const get_parse_tree = Server_data.create_get_parse_tree(server_data, workspace_uri);
     const get_core_module = Server_data.create_get_core_module(server_data, workspace_uri);
     const core_module = await get_core_module(Document.get_module_name(document_state));
     if (core_module === undefined) {
@@ -78,7 +79,7 @@ export async function create(
                         if (descendant.node.word.value === "Expression_variable_declaration" && statement.expression.data.type === Core.Expression_enum.Variable_declaration_expression) {
                             const expression = statement.expression.data.value as Core.Variable_declaration_expression;
                             const scope_declaration = Parse_tree_analysis.create_declaration_from_function_value(function_value);
-                            const right_hand_side_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, iterator.root, statement_node_position, expression.right_hand_side, get_core_module);
+                            const right_hand_side_type = await Parse_tree_analysis.get_expression_type(iterator.root, statement_node_position, expression.right_hand_side, get_parse_tree);
                             if (right_hand_side_type !== undefined && right_hand_side_type.type.length > 0) {
                                 const variable_name_descendant = Parser_node.find_descendant_position_if({ node: statement_node, position: statement_node_position }, node => node.word.value === "Variable_name") as { node: Parser_node.Node, position: number[] };
                                 const variable_name_source_location = Parse_tree_text_iterator.get_node_source_location(iterator.root, iterator.text, [...variable_name_descendant.position, 0]) as Parser_node.Source_location;
@@ -100,14 +101,14 @@ export async function create(
                             }
                         }
                         else if (descendant.node.word.value === "Expression_call") {
-                            const expression = Parse_tree_analysis.get_expression_from_node(core_module, descendant.node);
+                            const expression = Parse_tree_analysis.get_expression_from_node(root, descendant.node);
                             if (expression.data.type === Core.Expression_enum.Call_expression) {
                                 const call_expression = expression.data.value as Core.Call_expression;
                                 const scope_declaration = Parse_tree_analysis.create_declaration_from_function_value(function_value);
-                                const left_hand_side_type = await Parse_tree_analysis.get_expression_type(core_module, scope_declaration, iterator.root, statement_node_position, call_expression.expression, get_core_module);
+                                const left_hand_side_type = await Parse_tree_analysis.get_expression_type(iterator.root, statement_node_position, call_expression.expression, get_parse_tree);
                                 if (left_hand_side_type !== undefined && left_hand_side_type.is_value && left_hand_side_type.type.length > 0 && left_hand_side_type.type[0].data.type === Core.Type_reference_enum.Custom_type_reference) {
                                     const custom_type_reference = left_hand_side_type.type[0].data.value as Core.Custom_type_reference;
-                                    const declaration = await Parse_tree_analysis.get_custom_type_reference_declaration(custom_type_reference, get_core_module);
+                                    const declaration = await Parse_tree_analysis.get_custom_type_reference_declaration(custom_type_reference, get_parse_tree);
                                     if (declaration !== undefined && declaration.declaration.type === Core.Declaration_type.Function) {
                                         const call_function_value = declaration.declaration.value as Core.Function;
 
@@ -200,13 +201,13 @@ function create_label_parts_for_parameter(
 async function create_label_parts_for_type(
     type: Core.Type_reference,
     current_core_module: Core.Module,
-    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+    get_parse_tree: (module_name: string) => Promise<Parser_node.Node | undefined>
 ): Promise<vscode.InlayHintLabelPart[]> {
 
     const parts: vscode.InlayHintLabelPart[] = [];
     parts.push({ value: ": " });
 
-    await create_label_parts_for_type_recursively(type, current_core_module, parts, get_core_module);
+    await create_label_parts_for_type_recursively(type, current_core_module, parts, get_parse_tree);
 
     return parts;
 }
@@ -215,7 +216,7 @@ export async function create_label_parts_for_type_recursively(
     type: Core.Type_reference,
     current_core_module: Core.Module,
     parts: vscode.InlayHintLabelPart[],
-    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+    get_parse_tree: (module_name: string) => Promise<Parser_node.Node | undefined>
 ): Promise<void> {
 
     switch (type.data.type) {
@@ -230,7 +231,7 @@ export async function create_label_parts_for_type_recursively(
         }
         case Core.Type_reference_enum.Constant_array_type: {
             const value = type.data.value as Core.Constant_array_type;
-            await create_label_parts_for_type_recursively(value.value_type[0], current_core_module, parts, get_core_module);
+            await create_label_parts_for_type_recursively(value.value_type[0], current_core_module, parts, get_parse_tree);
             parts.push(
                 {
                     value: `[${value.size}]`
@@ -249,13 +250,13 @@ export async function create_label_parts_for_type_recursively(
                     return;
                 }
 
-                const imported_core_module = await get_core_module(import_module.module_name);
-                if (imported_core_module === undefined) {
+                const imported_root = await get_parse_tree(import_module.module_name);
+                if (imported_root === undefined) {
                     return;
                 }
 
-                const location = Helpers.location_to_vscode_location(Helpers.get_module_source_location(imported_core_module));
-                const tooltip = Helpers.get_tooltip_of_module(imported_core_module);
+                const location = Helpers.location_to_vscode_location(Helpers.get_module_source_location(imported_root));
+                const tooltip = Helpers.get_tooltip_of_module(imported_root);
 
                 parts.push(
                     {
@@ -272,8 +273,8 @@ export async function create_label_parts_for_type_recursively(
                 );
             }
 
-            const declaration = await Parse_tree_analysis.get_custom_type_reference_declaration(value, get_core_module);
-            const location = declaration !== undefined ? Helpers.location_to_vscode_location(Helpers.get_declaration_source_location(declaration.core_module, declaration.declaration)) : undefined;
+            const declaration = await Parse_tree_analysis.get_custom_type_reference_declaration(value, get_parse_tree);
+            const location = declaration !== undefined ? await Helpers.get_node_source_vscode_location(server_data, workspace_uri, declaration.root, declaration.declaration_name_position) : undefined;
 
             parts.push(
                 {
@@ -298,7 +299,7 @@ export async function create_label_parts_for_type_recursively(
             const value = type.data.value as Core.Function_pointer_type;
             const input_parameter_parts: vscode.InlayHintLabelPart[] = [];
             for (const type of value.type.input_parameter_types) {
-                await create_label_parts_for_type_recursively(type, current_core_module, input_parameter_parts, get_core_module);
+                await create_label_parts_for_type_recursively(type, current_core_module, input_parameter_parts, get_parse_tree);
             }
             if (value.type.is_variadic) {
                 input_parameter_parts.push({ value: "..." });
@@ -307,7 +308,7 @@ export async function create_label_parts_for_type_recursively(
 
             const output_parameter_parts: vscode.InlayHintLabelPart[] = [];
             for (const type of value.type.output_parameter_types) {
-                await create_label_parts_for_type_recursively(type, current_core_module, output_parameter_parts, get_core_module);
+                await create_label_parts_for_type_recursively(type, current_core_module, output_parameter_parts, get_parse_tree);
             }
             add_comma_label_parts(output_parameter_parts);
 
@@ -360,7 +361,7 @@ export async function create_label_parts_for_type_recursively(
                 );
             }
             else {
-                await create_label_parts_for_type_recursively(value.element_type[0], current_core_module, parts, get_core_module);
+                await create_label_parts_for_type_recursively(value.element_type[0], current_core_module, parts, get_parse_tree);
             }
             return;
         }

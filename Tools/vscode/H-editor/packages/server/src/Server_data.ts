@@ -65,6 +65,51 @@ export function get_document_state(
     return undefined;
 }
 
+export async function get_source_file_path_of_module(
+    server_data: Server_data,
+    workspace_folder_uri: string | undefined,
+    module_name: string
+): Promise<string | undefined> {
+
+    {
+        const document_state_and_uri = get_document_state(server_data, module_name);
+        if (document_state_and_uri !== undefined) {
+            const { document_uri, document_state } = document_state_and_uri;
+            return document_state.document_file_path;
+        }
+    }
+
+    if (workspace_folder_uri === undefined) {
+        return undefined;
+    }
+
+    if (server_data.initialize_promise !== undefined) {
+        await server_data.initialize_promise;
+    }
+
+    const project = server_data.projects.get(workspace_folder_uri);
+    if (project === undefined) {
+        return undefined;
+    }
+
+    const artifact = Project.get_artifact_of_module(project, module_name);
+    if (artifact === undefined) {
+        return undefined;
+    }
+
+    const source_files = project.artifact_to_source_files_map.get(artifact.name);
+    if (source_files === undefined) {
+        return undefined;
+    }
+
+    const source_file = source_files.find(source_file => source_file.module_name === module_name);
+    if (source_file === undefined) {
+        return undefined;
+    }
+
+    return source_file.file_path;
+}
+
 export async function get_parse_tree(
     server_data: Server_data,
     workspace_folder_uri: string | undefined,

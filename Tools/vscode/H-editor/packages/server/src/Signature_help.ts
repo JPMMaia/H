@@ -6,7 +6,6 @@ import * as vscode from "vscode-languageserver/node";
 import * as Comments from "../../core/src/Comments";
 import * as Core from "../../core/src/Core_intermediate_representation";
 import * as Document from "../../core/src/Document";
-import * as Language from "../../core/src/Language";
 import * as Parse_tree_analysis from "../../core/src/Parse_tree_analysis";
 import * as Parser_node from "../../core/src/Parser_node";
 import * as Scan_new_changes from "../../core/src/Scan_new_changes";
@@ -41,6 +40,7 @@ export async function create(
         return null;
     }
 
+    const get_parse_tree = Server_data.create_get_parse_tree(server_data, workspace_uri);
     const get_core_module = Server_data.create_get_core_module(server_data, workspace_uri);
     const core_module = await get_core_module(Document.get_module_name(document_state));
     if (core_module === undefined) {
@@ -55,14 +55,14 @@ export async function create(
     if (ancestor !== undefined) {
         if (ancestor.node.word.value === "Expression_call") {
             const expression_call_info = await Parse_tree_analysis.get_function_value_and_parameter_index_from_expression_call(
-                core_module, root, before_cursor_iterator.node_position, get_core_module
+                root, before_cursor_iterator.node_position, get_parse_tree
             );
             if (expression_call_info !== undefined) {
                 return get_function_signature_help(core_module, core_module, expression_call_info.function_value.declaration, expression_call_info.input_parameter_index);
             }
         }
         else if (ancestor.node.word.value === "Expression_instantiate") {
-            const signature_help = await get_struct_signature_help(core_module, before_cursor_iterator.root, before_cursor_iterator.node_position, get_core_module);
+            const signature_help = await get_struct_signature_help(core_module, before_cursor_iterator.root, before_cursor_iterator.node_position, get_parse_tree);
             if (signature_help !== undefined) {
                 return signature_help;
             }
@@ -126,10 +126,10 @@ async function get_struct_signature_help(
     core_module: Core.Module,
     root: Parser_node.Node,
     before_cursor_node_position: number[],
-    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+    get_parse_tree: (module_name: string) => Promise<Parser_node.Node | undefined>
 ): Promise<vscode.SignatureHelp | undefined> {
 
-    const instantiate_member_info = await Parse_tree_analysis.find_instantiate_member_from_node(core_module, root, before_cursor_node_position, true, get_core_module);
+    const instantiate_member_info = await Parse_tree_analysis.find_instantiate_member_from_node(root, before_cursor_node_position, true, get_parse_tree);
     if (instantiate_member_info === undefined || instantiate_member_info.declaration.type !== Core.Declaration_type.Struct) {
         return undefined;
     }

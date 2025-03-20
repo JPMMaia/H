@@ -6,7 +6,6 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 
 import * as Core from "../../core/src/Core_intermediate_representation";
 import * as Document from "../../core/src/Document";
-import * as Language from "../../core/src/Language";
 import * as Parse_tree_analysis from "../../core/src/Parse_tree_analysis";
 import * as Parse_tree_convertor_mappings from "../../core/src/Parse_tree_convertor_mappings";
 import * as Parse_tree_text_iterator from "../../core/src/Parse_tree_text_iterator";
@@ -34,11 +33,7 @@ export async function get_code_actions(
         return [];
     }
 
-    const get_core_module = Server_data.create_get_core_module(server_data, workspace_uri);
-    const core_module = await get_core_module(Document.get_module_name(document_state));
-    if (core_module === undefined) {
-        return [];
-    }
+    const get_parse_tree = Server_data.create_get_parse_tree(server_data, workspace_uri);
 
     const code_actions: vscode.CodeAction[] = [];
 
@@ -59,12 +54,11 @@ export async function get_code_actions(
                     parameters.textDocument.uri,
                     document_state,
                     document.getText(),
-                    core_module,
                     root,
                     { node: ancestor.node, position: [...ancestor.position] },
                     expression_iterator.offset,
                     parameters.context.diagnostics,
-                    get_core_module
+                    get_parse_tree
                 );
                 if (add_missing_members_code_action !== undefined) {
                     code_actions.push(add_missing_members_code_action);
@@ -143,15 +137,14 @@ async function create_add_missing_members_to_instantiate_expression(
     document_uri: vscode.DocumentUri,
     document_state: Document.State,
     text: string,
-    core_module: Core.Module,
     root: Parser_node.Node,
     descendant_instantiate_expression: { node: Parser_node.Node, position: number[] },
     instantiate_expression_source_offset: number,
     diagnostics: vscode.Diagnostic[],
-    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+    get_parse_tree: (module_name: string) => Promise<Parser_node.Node | undefined>
 ): Promise<vscode.CodeAction | undefined> {
 
-    const module_declaration = await Parse_tree_analysis.find_instantiate_declaration_from_node(core_module, root, descendant_instantiate_expression.position, get_core_module);
+    const module_declaration = await Parse_tree_analysis.find_instantiate_declaration_from_node(root, descendant_instantiate_expression.position, get_parse_tree);
     if (module_declaration === undefined || module_declaration.declaration.type !== Core.Declaration_type.Struct) {
         return undefined;
     }
@@ -161,7 +154,7 @@ async function create_add_missing_members_to_instantiate_expression(
         return undefined;
     }
 
-    const instantiate_expression = Parse_tree_convertor_mappings.node_to_expression_instantiate(descendant_instantiate_expression.node);
+    const instantiate_expression = Parse_tree_convertor_mappings.node_to_expression_instantiate(root, descendant_instantiate_expression.node);
 
     {
         let are_all_members_present = true;
@@ -198,7 +191,7 @@ async function create_add_missing_members_to_instantiate_expression(
     }
 
     const indentation = Text_formatter.calculate_current_indentation(text, instantiate_expression_source_offset);
-    const formatted_text = Text_formatter.format_expression_instantiate(instantiate_expression, indentation, { core_module: core_module });
+    const formatted_text = Text_formatter.format_expression_instantiate(instantiate_expression, indentation, {});
 
     const edit: vscode.TextEdit = {
         range: {

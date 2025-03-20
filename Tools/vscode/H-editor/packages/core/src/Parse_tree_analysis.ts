@@ -1658,7 +1658,7 @@ export async function get_type_reference_declaration(
 export async function get_custom_type_reference_declaration(
     custom_type_reference: Core.Custom_type_reference,
     get_parse_tree: (module_name: string) => Promise<Parser_node.Node | undefined>
-): Promise<{ root: Parser_node.Node, declaration: Core.Declaration } | undefined> {
+): Promise<{ root: Parser_node.Node, declaration: Core.Declaration, declaration_name_position: number[] } | undefined> {
 
     const root = await get_parse_tree(custom_type_reference.module_reference.name);
     if (root === undefined) {
@@ -1675,7 +1675,8 @@ export async function get_custom_type_reference_declaration(
 
     return {
         root: root,
-        declaration: declaration
+        declaration: declaration,
+        declaration_name_position: declaration_symbol.node_position
     };
 }
 
@@ -1778,23 +1779,26 @@ export async function get_underlying_type(
 export async function get_underlying_type_declaration(
     root: Parser_node.Node,
     declaration: Core.Declaration,
+    declaration_name_position: number[],
     get_parse_tree: (module_name: string) => Promise<Parser_node.Node | undefined>
-): Promise<{ root: Parser_node.Node, declaration: Core.Declaration } | undefined> {
+): Promise<{ root: Parser_node.Node, declaration: Core.Declaration, declaration_name_position: number[] } | undefined> {
 
     if (declaration.type !== Core.Declaration_type.Alias) {
         return {
             root: root,
-            declaration: declaration
+            declaration: declaration,
+            declaration_name_position: declaration_name_position
         };
     }
 
     let current_root = root;
     let current_declaration = declaration;
+    let current_declaration_name_position = declaration_name_position;
 
     while (current_declaration.type === Core.Declaration_type.Alias) {
         const alias_type_declaration = current_declaration.value as Core.Alias_type_declaration;
         if (alias_type_declaration.type.length === 0 || alias_type_declaration.type[0].data.type !== Core.Type_reference_enum.Custom_type_reference) {
-            return { root: current_root, declaration: current_declaration };
+            return { root: current_root, declaration: current_declaration, declaration_name_position: current_declaration_name_position };
         }
 
         const custom_type_reference = alias_type_declaration.type[0].data.value as Core.Custom_type_reference;
@@ -1806,11 +1810,13 @@ export async function get_underlying_type_declaration(
 
         current_root = next_declaration.root;
         current_declaration = next_declaration.declaration;
+        current_declaration_name_position = next_declaration.declaration_name_position;
     }
 
     return {
         root: current_root,
-        declaration: current_declaration
+        declaration: current_declaration,
+        declaration_name_position: current_declaration_name_position
     };
 }
 
@@ -2828,14 +2834,15 @@ export function format_text(
 export async function get_declaration_members(
     root: Parser_node.Node,
     declaration: Core.Declaration,
+    declaration_name_position: number[],
     get_parse_tree: (module_name: string) => Promise<Parser_node.Node | undefined>
 ): Promise<{ index: number, name: string }[]> {
     if (declaration.type === Core.Declaration_type.Alias) {
-        const underlying_declaration = await get_underlying_type_declaration(root, declaration, get_parse_tree);
+        const underlying_declaration = await get_underlying_type_declaration(root, declaration, declaration_name_position, get_parse_tree);
         if (underlying_declaration === undefined) {
             return [];
         }
-        return get_declaration_members(root, underlying_declaration.declaration, get_parse_tree);
+        return get_declaration_members(root, underlying_declaration.declaration, underlying_declaration.declaration_name_position, get_parse_tree);
     }
     else if (declaration.type === Core.Declaration_type.Enum) {
         const enum_declaration = declaration.value as Core.Enum_declaration;
@@ -2872,14 +2879,15 @@ export async function get_declaration_members(
 export async function get_declaration_member_types(
     root: Parser_node.Node,
     declaration: Core.Declaration,
+    declaration_name_position: number[],
     get_parse_tree: (module_name: string) => Promise<Parser_node.Node | undefined>
 ): Promise<{ index: number, name: string, type: Core.Type_reference }[]> {
     if (declaration.type === Core.Declaration_type.Alias) {
-        const underlying_declaration = await get_underlying_type_declaration(root, declaration, get_parse_tree);
+        const underlying_declaration = await get_underlying_type_declaration(root, declaration, declaration_name_position, get_parse_tree);
         if (underlying_declaration === undefined) {
             return [];
         }
-        return get_declaration_member_types(root, underlying_declaration.declaration, get_parse_tree);
+        return get_declaration_member_types(root, underlying_declaration.declaration, underlying_declaration.declaration_name_position, get_parse_tree);
     }
     else if (declaration.type === Core.Declaration_type.Struct) {
         const struct_declaration = declaration.value as Core.Struct_declaration;

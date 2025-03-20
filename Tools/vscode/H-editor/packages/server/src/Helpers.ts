@@ -3,6 +3,8 @@ import * as path from "path";
 import * as vscode from "vscode-languageserver/node";
 import * as vscode_uri from "vscode-uri";
 
+import * as Server_data from "./Server_data";
+
 import * as Comments from "../../core/src/Comments";
 import * as Core from "../../core/src/Core_intermediate_representation";
 import * as Parse_tree_analysis from "../../core/src/Parse_tree_analysis";
@@ -413,6 +415,41 @@ export function get_module_source_location(
         file_path: file_path,
         range: range
     };
+}
+
+export function get_node_position_source_location(
+    root: Parser_node.Node,
+    node_position: number[],
+    file_path: string | undefined
+): Location | undefined {
+
+    const node = Parser_node.get_node_at_position(root, node_position);
+    if (node === undefined || node.source_range === undefined) {
+        return undefined;
+    }
+
+    return {
+        file_path: file_path,
+        range: node.source_range
+    };
+}
+
+export async function get_node_source_vscode_location(
+    server_data: Server_data.Server_data,
+    workspace_uri: string | undefined,
+    root: Parser_node.Node,
+    node_position: number[]
+): Promise<vscode.Location | undefined> {
+
+    const module_name = Parse_tree_analysis.get_module_name_from_tree(root);
+
+    const source_file_path = await Server_data.get_source_file_path_of_module(server_data, workspace_uri, module_name);
+
+    const location = location_to_vscode_location(
+        get_node_position_source_location(root, node_position, source_file_path)
+    );
+
+    return location;
 }
 
 export function get_declaration_source_location(

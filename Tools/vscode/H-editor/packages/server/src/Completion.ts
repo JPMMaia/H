@@ -5,13 +5,10 @@ import * as vscode from "vscode-languageserver/node";
 
 import * as Core from "../../core/src/Core_intermediate_representation";
 import * as Document from "../../core/src/Document";
-import * as Parser from "../../core/src/Parser";
 import * as Parser_node from "../../core/src/Parser_node";
 import * as Parse_tree_analysis from "../../core/src/Parse_tree_analysis";
 import * as Parse_tree_convertor_mappings from "../../core/src/Parse_tree_convertor_mappings";
-import * as Parse_tree_text_iterator from "../../core/src/Parse_tree_text_iterator";
 import * as Scan_new_changes from "../../core/src/Scan_new_changes";
-import * as Scanner from "../../core/src/Scanner";
 import * as Tree_sitter_parser from "../../core/src/Tree_sitter_parser";
 
 export async function on_completion(
@@ -425,7 +422,7 @@ function get_access_expression_in_error_node(
         const previous_sibling = Parser_node.get_previous_sibling(root, before_cursor_node_position);
         if (previous_sibling !== undefined) {
             if (previous_sibling.node.word.value === "Generic_expression" && before_cursor_node.word.value === ".") {
-                const previous_expression = Parse_tree_convertor_mappings.node_to_expression(previous_sibling.node);
+                const previous_expression = Parse_tree_convertor_mappings.node_to_expression(root, previous_sibling.node);
                 if (previous_expression.data.type === Core.Expression_enum.Variable_expression) {
                     const variable_name_expression = previous_expression.data.value as Core.Variable_expression;
 

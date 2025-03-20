@@ -39,6 +39,7 @@ export async function get_hover(
     }
     const after_cursor_node_position = after_cursor.node_position;
 
+    const get_parse_tree = Server_data.create_get_parse_tree(server_data, workspace_uri);
     const get_core_module = Server_data.create_get_core_module(server_data, workspace_uri);
     const core_module = await get_core_module(Document.get_module_name(document_state));
     if (core_module === undefined) {
@@ -48,8 +49,8 @@ export async function get_hover(
     const ancestor_type = Parser_node.get_ancestor_with_name(root, after_cursor_node_position, "Type_name");
     if (ancestor_type !== undefined) {
         const parent_node = Parser_node.get_node_at_position(root, Parser_node.get_parent_position(ancestor_type.position));
-        const type_reference = Parse_tree_analysis.get_type_reference_from_node(core_module, parent_node);
-        const type_declaration = await Parse_tree_analysis.get_type_reference_declaration(type_reference, get_core_module);
+        const type_reference = Parse_tree_analysis.get_type_reference_from_node(root, parent_node);
+        const type_declaration = await Parse_tree_analysis.get_type_reference_declaration(type_reference, get_parse_tree);
         if (type_declaration !== undefined) {
             const content = Helpers.get_tooltip_of_declaration(core_module, type_declaration.core_module, type_declaration.declaration);
             const range = Helpers.get_terminal_node_vscode_range(root, after_cursor.text, after_cursor.node_position);
@@ -92,10 +93,10 @@ export async function get_hover(
     ]);
     if (ancestor_expression !== undefined) {
         if (ancestor_expression.node.word.value === "Expression_access") {
-            const expression = Parse_tree_analysis.get_expression_from_node(core_module, ancestor_expression.node);
+            const expression = Parse_tree_analysis.get_expression_from_node(root, ancestor_expression.node);
             if (expression.data.type === Core.Expression_enum.Access_expression) {
                 const access_expression = expression.data.value as Core.Access_expression;
-                const components = await Parse_tree_analysis.get_access_expression_components(core_module, access_expression, root, ancestor_expression.node, ancestor_expression.position, get_core_module);
+                const components = await Parse_tree_analysis.get_access_expression_components(root, access_expression, ancestor_expression.node, ancestor_expression.position, get_parse_tree);
                 const selected_component = Parse_tree_analysis.select_access_expression_component(components, before_cursor.node, before_cursor.node_position, after_cursor.node_position);
                 if (selected_component.type === Parse_tree_analysis.Component_type.Declaration) {
                     const declaration_component = selected_component;
@@ -131,7 +132,7 @@ export async function get_hover(
             }
         }
         else if (ancestor_expression.node.word.value === "Expression_instantiate_member_name") {
-            const instantiate_member_info = await Parse_tree_analysis.find_instantiate_member_from_node(core_module, root, before_cursor.node_position, false, get_core_module);
+            const instantiate_member_info = await Parse_tree_analysis.find_instantiate_member_from_node(root, before_cursor.node_position, false, get_parse_tree);
             if (instantiate_member_info !== undefined) {
                 const content = Helpers.get_tooltip_of_declaration_member(core_module, instantiate_member_info.declaration, instantiate_member_info.member_index);
                 if (content !== undefined) {
@@ -145,7 +146,7 @@ export async function get_hover(
         }
         else if (ancestor_expression.node.word.value === "Expression_variable") {
 
-            const expression = Parse_tree_analysis.get_expression_from_node(core_module, ancestor_expression.node);
+            const expression = Parse_tree_analysis.get_expression_from_node(root, ancestor_expression.node);
             if (expression.data.type === Core.Expression_enum.Variable_expression) {
                 const variable_expression = expression.data.value as Core.Variable_expression;
                 const declaration = core_module.declarations.find(declaration => declaration.name === variable_expression.name);
