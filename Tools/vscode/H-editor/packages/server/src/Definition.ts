@@ -82,7 +82,7 @@ export async function find_definition_link(
 
     const function_value_and_parameter_index = await Parse_tree_analysis.get_function_value_and_parameter_index_at_declaration(root, before_cursor.node_position);
     if (function_value_and_parameter_index !== undefined) {
-        const location = await Helpers.get_node_source_vscode_location(server_data, workspace_uri, root, function_value_and_parameter_index.node_position);
+        const location = await Helpers.get_node_source_vscode_location(server_data, workspace_uri, root, function_value_and_parameter_index.parameter_name_node_position);
         if (location !== undefined) {
             return [location];
         }
@@ -116,10 +116,10 @@ export async function find_definition_link(
                 else if (selected_component.type === Parse_tree_analysis.Component_type.Member_name) {
                     const previous_component = components[components.length - 2];
                     if (previous_component !== undefined && previous_component.type === Parse_tree_analysis.Component_type.Declaration) {
-                        const module_declaration = previous_component.value as { root: Parser_node.Node, declaration: Core.Declaration };
-                        const underlying_module_declaration = await Parse_tree_analysis.get_underlying_type_declaration(root, module_declaration.declaration, get_parse_tree);
+                        const module_declaration = previous_component.value as { root: Parser_node.Node, declaration: Core.Declaration, declaration_name_node_position: number[] };
+                        const underlying_module_declaration = await Parse_tree_analysis.get_underlying_type_declaration(module_declaration.root, module_declaration.declaration, module_declaration.declaration_name_node_position, get_parse_tree);
                         if (underlying_module_declaration !== undefined) {
-                            const location = await Helpers.get_node_source_vscode_location(server_data, workspace_uri, underlying_module_declaration.root, underlying_module_declaration.node_position);
+                            const location = await Helpers.get_node_source_vscode_location(server_data, workspace_uri, underlying_module_declaration.root, underlying_module_declaration.declaration_name_position);
                             if (location !== undefined) {
                                 return [location];
                             }
@@ -140,7 +140,7 @@ export async function find_definition_link(
         else if (ancestor.node.word.value === "Expression_instantiate") {
             const instantiate_member_info = await Parse_tree_analysis.find_instantiate_member_from_node(root, before_cursor.node_position, false, get_parse_tree);
             if (instantiate_member_info !== undefined) {
-                const location = await Helpers.get_node_source_vscode_location(server_data, workspace_uri, instantiate_member_info.root, instantiate_member_info.node_position);
+                const location = await Helpers.get_node_source_vscode_location(server_data, workspace_uri, instantiate_member_info.root, instantiate_member_info.member_name_node_position);
                 if (location !== undefined) {
                     return [location];
                 }

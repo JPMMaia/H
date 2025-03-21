@@ -187,9 +187,23 @@ export function parse_type_name(name: string, module_name?: string): Core_interm
     }
 }
 
+export interface Module_name_and_imports_getter {
+    get_module_name(): string;
+    get_imports(): Core_intermediate_representation.Import_module_with_alias[];
+}
+
+export function create_module_name_and_imports_getter_from_module(
+    core_module: Core_intermediate_representation.Module
+): Module_name_and_imports_getter {
+    return {
+        get_module_name: () => core_module.name,
+        get_imports: () => core_module.imports
+    };
+}
+
 export function get_type_name(
     type_reference: Core_intermediate_representation.Type_reference[],
-    core_module?: Core_intermediate_representation.Module
+    module_name_and_imports_getter?: Module_name_and_imports_getter
 ): string {
 
     if (type_reference.length === 0) {
@@ -207,19 +221,21 @@ export function get_type_name(
         case Core_intermediate_representation.Type_reference_enum.Constant_array_type:
             {
                 const value = type_reference_value.data.value as Core_intermediate_representation.Constant_array_type;
-                const value_type_name = get_type_name(value.value_type, core_module);
+                const value_type_name = get_type_name(value.value_type, module_name_and_imports_getter);
                 return `${value_type_name}[${value.size}]`;
             }
         case Core_intermediate_representation.Type_reference_enum.Custom_type_reference:
             {
                 const value = type_reference_value.data.value as Core_intermediate_representation.Custom_type_reference;
                 const module_name = value.module_reference.name;
-                if (core_module !== undefined) {
-                    if (module_name === core_module.name) {
+                if (module_name_and_imports_getter !== undefined) {
+                    const current_module_name = module_name_and_imports_getter.get_module_name();
+                    if (module_name === current_module_name) {
                         return value.name;
                     }
                     else {
-                        const import_module = core_module.imports.find(value => value.module_name === module_name);
+                        const imports = module_name_and_imports_getter.get_imports();
+                        const import_module = imports.find(value => value.module_name === module_name);
                         if (import_module !== undefined) {
                             return `${import_module.alias}.${value.name}`;
                         }
@@ -237,12 +253,12 @@ export function get_type_name(
             {
                 const value = type_reference_value.data.value as Core_intermediate_representation.Function_pointer_type;
 
-                const input_parameter_type_names = value.type.input_parameter_types.map(value => get_type_name([value]), core_module);
+                const input_parameter_type_names = value.type.input_parameter_types.map(value => get_type_name([value]), module_name_and_imports_getter);
                 const input_parameters = input_parameter_type_names.map((typeName, index) => `${value.input_parameter_names[index]}: ${typeName}`);
                 const input_parameters_plus_variadic = value.type.is_variadic ? input_parameters.concat("...") : input_parameters;
                 const input_parameters_string = "(" + input_parameters_plus_variadic.join(", ") + ")";
 
-                const output_parameter_type_names = value.type.output_parameter_types.map(value => get_type_name([value]), core_module);
+                const output_parameter_type_names = value.type.output_parameter_types.map(value => get_type_name([value]), module_name_and_imports_getter);
                 const output_parameters = output_parameter_type_names.map((typeName, index) => `${value.output_parameter_names[index]}: ${typeName}`);
                 const output_parameters_string = "(" + output_parameters.join(", ") + ")";
 
@@ -259,7 +275,7 @@ export function get_type_name(
         case Core_intermediate_representation.Type_reference_enum.Pointer_type:
             {
                 const value = type_reference_value.data.value as Core_intermediate_representation.Pointer_type;
-                const valueTypeName = value.element_type.length === 0 ? "void" : get_type_name(value.element_type, core_module);
+                const valueTypeName = value.element_type.length === 0 ? "void" : get_type_name(value.element_type, module_name_and_imports_getter);
                 const mutableKeyword = value.is_mutable ? "mutable " : "";
                 return `*${mutableKeyword}${valueTypeName}`;
             }

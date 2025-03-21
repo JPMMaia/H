@@ -56,23 +56,21 @@ export function create_vscode_range(start_line: number, start_column: number, en
 }
 
 export function get_tooltip_of_module(
-    core_module: Core.Module
+    root: Parser_node.Node
 ): vscode.MarkupContent {
+
+    const module_name = Parse_tree_analysis.get_module_name_from_tree(root);
 
     const lines = [
         '```hlang',
-        `module ${sanitize_input(core_module.name)}`,
+        `module ${sanitize_input(module_name)}`,
         '```'
     ];
 
-    const is_c_header = core_module.source_file_path !== undefined && core_module.source_file_path.endsWith(".h");
-    if (is_c_header) {
-        lines.push("C Header");
-    }
-
-    const comment = core_module.comment;
+    const comment = Parser_node.get_child_if({ node: root, position: [] }, child => child.word.value === "Comment");
     if (comment !== undefined) {
-        lines.push(sanitize_input(comment));
+        const comment_value = comment.node.children[0].word.value;
+        lines.push(sanitize_input(comment_value));
     }
 
     const tooltip: vscode.MarkupContent = {
@@ -84,16 +82,17 @@ export function get_tooltip_of_module(
 }
 
 export function get_tooltip_of_declaration(
-    current_module: Core.Module,
-    core_module: Core.Module,
+    root: Parser_node.Node,
     declaration: Core.Declaration
 ): vscode.MarkupContent {
 
-    const declaration_label = create_declaration_label(current_module, core_module, declaration);
+    const declaration_label = create_declaration_label(root, declaration);
+
+    const module_name = Parse_tree_analysis.get_module_name_from_tree(root);
 
     const lines = [
         '```hlang',
-        `module ${sanitize_input(core_module.name)}`,
+        `module ${sanitize_input(module_name)}`,
         `${declaration_label}`,
         '```'
     ];
@@ -112,7 +111,7 @@ export function get_tooltip_of_declaration(
 }
 
 export function get_tooltip_of_declaration_member(
-    core_module: Core.Module,
+    root: Parser_node.Node,
     declaration: Core.Declaration,
     member_index: number
 ): vscode.MarkupContent | undefined {
@@ -145,7 +144,7 @@ export function get_tooltip_of_declaration_member(
         case Core.Declaration_type.Union: {
             const member_info = get_declaration_member_info(declaration, member_index);
             if (member_info !== undefined) {
-                const type_name = Type_utilities.get_type_name([member_info.member_type], core_module);
+                const type_name = Type_utilities.get_type_name([member_info.member_type], Parse_tree_analysis.create_module_name_and_imports_getter_from_root(root));
 
                 const default_value = member_info.member_default_value !== undefined ? Parse_tree_analysis.create_member_default_value_text(member_info.member_default_value) : undefined;
                 const default_value_text = default_value !== undefined ? ` = ${sanitize_input(default_value)}` : "";
@@ -391,12 +390,16 @@ export function get_terminal_node_vscode_range(
     return create_vscode_range(source_location.line, source_location.column, source_location.line, source_location.column + descendant.node.word.value.length);
 }
 
-export function get_module_source_location(
-    core_module: Core.Module
-): Location | undefined {
+export async function get_module_source_location(
+    server_data: Server_data.Server_data,
+    workspace_uri: string | undefined,
+    root: Parser_node.Node,
+): Promise<Location | undefined> {
 
-    const file_path = core_module.source_file_path;
-    if (file_path === undefined) {
+    const module_name = Parse_tree_analysis.get_module_name_from_tree(root);
+
+    const source_file_path = await Server_data.get_source_file_path_of_module(server_data, workspace_uri, module_name);
+    if (source_file_path === undefined) {
         return undefined;
     }
 
@@ -412,7 +415,7 @@ export function get_module_source_location(
     };
 
     return {
-        file_path: file_path,
+        file_path: source_file_path,
         range: range
     };
 }
@@ -639,21 +642,21 @@ export function get_function_declaration_source_location(
 }
 
 export function get_function_parameter_source_location(
-    core_module: Core.Module,
+    source_file_path: string,
     function_declaration: Core.Function_declaration,
     parameter_index: number,
     is_input: boolean
 ): Location | undefined {
     if (is_input) {
         return get_function_input_parameter_source_location(
-            core_module,
+            source_file_path,
             function_declaration,
             parameter_index
         );
     }
     else {
         return get_function_output_parameter_source_location(
-            core_module,
+            source_file_path,
             function_declaration,
             parameter_index
         );
@@ -661,12 +664,12 @@ export function get_function_parameter_source_location(
 }
 
 export function get_function_input_parameter_source_location(
-    core_module: Core.Module,
+    source_file_path: string,
     function_declaration: Core.Function_declaration,
     input_parameter_index: number
 ): Location | undefined {
     return get_function_parameter_source_location_given_arrays(
-        core_module,
+        source_file_path,
         function_declaration.input_parameter_names,
         function_declaration.input_parameter_source_positions,
         input_parameter_index
@@ -674,12 +677,12 @@ export function get_function_input_parameter_source_location(
 }
 
 export function get_function_output_parameter_source_location(
-    core_module: Core.Module,
+    source_file_path: string,
     function_declaration: Core.Function_declaration,
     output_parameter_index: number
 ): Location | undefined {
     return get_function_parameter_source_location_given_arrays(
-        core_module,
+        source_file_path,
         function_declaration.output_parameter_names,
         function_declaration.output_parameter_source_positions,
         output_parameter_index
@@ -687,18 +690,13 @@ export function get_function_output_parameter_source_location(
 }
 
 function get_function_parameter_source_location_given_arrays(
-    core_module: Core.Module,
+    source_file_path: string,
     parameter_names: string[],
     parameter_source_positions: Core.Source_position[] | undefined,
     parameter_index: number
 ): Location | undefined {
 
     if (parameter_source_positions === undefined || parameter_index >= parameter_source_positions.length || parameter_index >= parameter_names.length) {
-        return undefined;
-    }
-
-    const file_path = core_module.source_file_path;
-    if (file_path === undefined) {
         return undefined;
     }
 
@@ -717,7 +715,7 @@ function get_function_parameter_source_location_given_arrays(
     };
 
     return {
-        file_path: file_path,
+        file_path: source_file_path,
         range: range
     };
 }
@@ -765,14 +763,13 @@ export function get_struct_member_source_location(
 }
 
 export function create_declaration_label(
-    current_module: Core.Module,
-    core_module: Core.Module,
+    root: Parser_node.Node,
     declaration: Core.Declaration
 ): string {
     switch (declaration.type) {
         case Core.Declaration_type.Function: {
             const function_value = declaration.value as Core.Function;
-            return create_function_label(current_module, core_module, function_value.declaration);
+            return create_function_label(root, function_value.declaration);
         }
         case Core.Declaration_type.Global_variable: {
             const global_variable = declaration.value as Core.Global_variable_declaration;
@@ -792,24 +789,22 @@ export function create_declaration_label(
 }
 
 export function create_function_label(
-    current_module: Core.Module,
-    core_module: Core.Module,
+    root: Parser_node.Node,
     function_declaration: Core.Function_declaration
 ): string {
-    const input_parameters_string = format_function_parameters(current_module, core_module, function_declaration.input_parameter_names, function_declaration.type.input_parameter_types);
-    const output_parameters_string = format_function_parameters(current_module, core_module, function_declaration.output_parameter_names, function_declaration.type.output_parameter_types);
+    const input_parameters_string = format_function_parameters(root, function_declaration.input_parameter_names, function_declaration.type.input_parameter_types);
+    const output_parameters_string = format_function_parameters(root, function_declaration.output_parameter_names, function_declaration.type.output_parameter_types);
     return `function ${sanitize_input(function_declaration.name)}(${input_parameters_string}) -> (${output_parameters_string})`;
 }
 
 function format_function_parameters(
-    current_module: Core.Module,
-    core_module: Core.Module,
+    root: Parser_node.Node,
     names: string[],
     types: Core.Type_reference[]
 ): string {
     return names.map(
         (value, index) => {
-            const type_name = sanitize_input(Type_utilities.get_type_name([types[index]], current_module));
+            const type_name = sanitize_input(Type_utilities.get_type_name([types[index]], Parse_tree_analysis.create_module_name_and_imports_getter_from_root(root)));
             return `${sanitize_input(value)}: ${type_name}`;
         }
     ).join(", ");

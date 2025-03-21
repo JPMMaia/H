@@ -39,11 +39,13 @@ export function node_to_string(
 }
 
 export interface Options {
-    core_module?: Core.Module;
+    module_name_and_imports_getter?: Type_utilities.Module_name_and_imports_getter;
 }
 
 export function format_module(core_module: Core.Module, options: Options): string {
-    options.core_module = core_module;
+    if (options.module_name_and_imports_getter === undefined) {
+        options.module_name_and_imports_getter = Type_utilities.create_module_name_and_imports_getter_from_module(core_module);
+    }
 
     const module_declaration = `module ${core_module.name};\n`;
 
@@ -144,7 +146,7 @@ export function format_underlying_declaration(declaration: Core.Declaration, opt
 }
 
 export function format_alias_type_declaration(alias_type_declaration: Core.Alias_type_declaration, options: Options): string {
-    const type_string = Type_utilities.get_type_name(alias_type_declaration.type, options.core_module);
+    const type_string = Type_utilities.get_type_name(alias_type_declaration.type, options.module_name_and_imports_getter);
     return `using ${alias_type_declaration.name} = ${type_string};\n`;
 }
 
@@ -207,7 +209,7 @@ export function format_function_parameters(names: string[], types: Core.Type_ref
 }
 
 export function format_function_parameter(name: string, type: Core.Type_reference, options: Options): string {
-    const type_string = Type_utilities.get_type_name([type], options.core_module);
+    const type_string = Type_utilities.get_type_name([type], options.module_name_and_imports_getter);
     return `${name}: ${type_string}`;
 }
 
@@ -236,7 +238,7 @@ export function format_struct_declaration(struct_declaration: Core.Struct_declar
         const member_value = struct_declaration.member_default_values[member_index];
         const member_comment = struct_declaration.member_comments.find(comment => comment.index === member_index);;
 
-        const member_type_string = Type_utilities.get_type_name([member_type], options.core_module);
+        const member_type_string = Type_utilities.get_type_name([member_type], options.module_name_and_imports_getter);
         const member_value_string = format_statement(member_value, 0, options);
 
         const comment = member_comment !== undefined ? " ".repeat(inside_indentation) + decode_comment(member_comment.comment, inside_indentation, options) + "\n" : "";
@@ -265,7 +267,7 @@ export function format_union_declaration(union_declaration: Core.Union_declarati
         const member_type = union_declaration.member_types[member_index];
         const member_comment = union_declaration.member_comments.find(comment => comment.index === member_index);;
 
-        const member_type_string = Type_utilities.get_type_name([member_type], options.core_module);
+        const member_type_string = Type_utilities.get_type_name([member_type], options.module_name_and_imports_getter);
 
         const comment = member_comment !== undefined ? " ".repeat(inside_indentation) + decode_comment(member_comment.comment, inside_indentation, options) + "\n" : "";
 
@@ -424,7 +426,7 @@ export function format_expression_call(expression: Core.Call_expression, options
 
 export function format_expression_cast(expression: Core.Cast_expression, options: Options): string {
     const source = format_expression(expression.source, 0, options);
-    const type = Type_utilities.get_type_name([expression.destination_type], options.core_module);
+    const type = Type_utilities.get_type_name([expression.destination_type], options.module_name_and_imports_getter);
     return `${source} as ${type}`;
 }
 
@@ -575,7 +577,7 @@ export function format_expression_ternary_condition(expression: Core.Ternary_con
 }
 
 export function format_expression_type(expression: Core.Type_expression, options: Options): string {
-    return Type_utilities.get_type_name([expression.type], options.core_module);
+    return Type_utilities.get_type_name([expression.type], options.module_name_and_imports_getter);
 }
 
 export function format_expression_unary(expression: Core.Unary_expression, options: Options): string {
@@ -592,7 +594,7 @@ export function format_expression_variable_declaration(expression: Core.Variable
 
 export function format_expression_variable_declaration_with_type(expression: Core.Variable_declaration_with_type_expression, indentation: number, options: Options): string {
     const keyword = expression.is_mutable ? "mutable" : "var";
-    const type = Type_utilities.get_type_name([expression.type], options.core_module);
+    const type = Type_utilities.get_type_name([expression.type], options.module_name_and_imports_getter);
     const right_hand_side = format_expression(expression.right_hand_side.expression, indentation, options);
     return `${keyword} ${expression.name}: ${type} = ${right_hand_side}`;
 }

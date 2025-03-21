@@ -1572,7 +1572,7 @@ async function validate_call_expression(
                 location: get_parser_node_position_source_location(uri, argument_descendant),
                 source: Source.Parse_tree_validation,
                 severity: Diagnostic_severity.Error,
-                message: `Argument '${parameter_name}' expects type '${Type_utilities.get_type_name(parameter_type, core_module)}', but '${Type_utilities.get_type_name(argument_expression_type.type, core_module)}' was provided.`,
+                message: `Argument '${parameter_name}' expects type '${Type_utilities.get_type_name(parameter_type, Parse_tree_analysis.create_module_name_and_imports_getter_from_root(root))}', but '${Type_utilities.get_type_name(argument_expression_type.type, Parse_tree_analysis.create_module_name_and_imports_getter_from_root(root))}' was provided.`,
                 related_information: [],
             });
         }
@@ -1617,8 +1617,8 @@ async function validate_cast_expression(
     }
 
     if (!is_numeric_type(underlying_destination_type) && !await Parse_tree_analysis.is_enum_type(underlying_destination_type, get_parse_tree)) {
-        const source_type_string = Type_utilities.get_type_name(source_expression_type.type, core_module);
-        const destination_type_string = Type_utilities.get_type_name(destination_type, core_module);
+        const source_type_string = Type_utilities.get_type_name(source_expression_type.type, Parse_tree_analysis.create_module_name_and_imports_getter_from_root(root));
+        const destination_type_string = Type_utilities.get_type_name(destination_type, Parse_tree_analysis.create_module_name_and_imports_getter_from_root(root));
         diagnostics.push({
             location: get_parser_node_position_source_location(uri, descendant_cast_expression),
             source: Source.Parse_tree_validation,
@@ -1630,8 +1630,8 @@ async function validate_cast_expression(
 
     const underlying_source_type = await Parse_tree_analysis.get_underlying_type(source_expression_type.type, get_parse_tree);
     if (!source_expression_type.is_value || (!is_numeric_type(underlying_source_type) && !await Parse_tree_analysis.is_enum_type(underlying_source_type, get_parse_tree))) {
-        const source_type_string = Type_utilities.get_type_name(source_expression_type.type, core_module);
-        const destination_type_string = Type_utilities.get_type_name(destination_type, core_module);
+        const source_type_string = Type_utilities.get_type_name(source_expression_type.type, Parse_tree_analysis.create_module_name_and_imports_getter_from_root(root));
+        const destination_type_string = Type_utilities.get_type_name(destination_type, Parse_tree_analysis.create_module_name_and_imports_getter_from_root(root));
         diagnostics.push({
             location: get_parser_node_position_source_location(uri, descendant_cast_expression),
             source: Source.Parse_tree_validation,
@@ -1642,8 +1642,8 @@ async function validate_cast_expression(
     }
 
     if (deep_equal(source_expression_type.type, destination_type)) {
-        const source_type_string = Type_utilities.get_type_name(source_expression_type.type, core_module);
-        const destination_type_string = Type_utilities.get_type_name(destination_type, core_module);
+        const source_type_string = Type_utilities.get_type_name(source_expression_type.type, Parse_tree_analysis.create_module_name_and_imports_getter_from_root(root));
+        const destination_type_string = Type_utilities.get_type_name(destination_type, Parse_tree_analysis.create_module_name_and_imports_getter_from_root(root));
         diagnostics.push({
             location: get_parser_node_position_source_location(uri, descendant_cast_expression),
             source: Source.Parse_tree_validation,
@@ -1962,7 +1962,7 @@ async function validate_if_expression(
         return diagnostics;
     }
     else if (!is_boolean_type(condition_expression_type.type)) {
-        const condition_expression_type_string = Type_utilities.get_type_name(condition_expression_type.type, core_module);
+        const condition_expression_type_string = Type_utilities.get_type_name(condition_expression_type.type, Parse_tree_analysis.create_module_name_and_imports_getter_from_root(root));
 
         diagnostics.push(
             {
@@ -1993,15 +1993,13 @@ async function validate_instantiate_expression(
         return diagnostics;
     }
 
-    const scope_declaration = Parse_tree_analysis.create_declaration_from_function_value(function_value_info.function_value);
-
     const instantiate_expression_type = get_instantiate_expression_type(descendant_instantiate_expression);
 
     const type_to_instantiate = await Parse_tree_analysis.find_instantiate_declaration_from_node(root, descendant_instantiate_expression.position, get_parse_tree);
     if (type_to_instantiate === undefined) {
         return diagnostics;
     }
-    const expected_members = await Parse_tree_analysis.get_declaration_member_types(type_to_instantiate.root, type_to_instantiate.declaration, get_parse_tree);
+    const expected_members = await Parse_tree_analysis.get_declaration_member_types(type_to_instantiate.root, type_to_instantiate.declaration, type_to_instantiate.node_position, get_parse_tree);
 
     const descendant_members_array = Parser_node.find_descendant_position_if(descendant_instantiate_expression, node => node.word.value === "Expression_instantiate_members");
     if (descendant_members_array === undefined) {
@@ -2225,8 +2223,8 @@ async function validate_that_instantiate_members_types_match(
         }
 
         if (!value_expression_type.is_value || (!deep_equal(value_expression_type.type, [expected_member.type]) && !are_compatible_pointer_types(value_expression_type.type, [expected_member.type]))) {
-            const expected_member_type_string = Type_utilities.get_type_name([expected_member.type], core_module);
-            const actual_member_type_string = Type_utilities.get_type_name(value_expression_type.type, core_module);
+            const expected_member_type_string = Type_utilities.get_type_name([expected_member.type], Parse_tree_analysis.create_module_name_and_imports_getter_from_root(root));
+            const actual_member_type_string = Type_utilities.get_type_name(value_expression_type.type, Parse_tree_analysis.create_module_name_and_imports_getter_from_root(root));
             diagnostics.push(
                 {
                     location: get_parser_node_position_source_location(uri, descendant_member_value_expression),
@@ -2271,8 +2269,8 @@ async function validate_return_expression(
         return diagnostics;
     }
     else if (!deep_equal(return_expression_type, function_value_info.function_value.declaration.type.output_parameter_types) && !are_compatible_pointer_types(return_expression_type, function_value_info.function_value.declaration.type.output_parameter_types)) {
-        const return_expression_type_string = Type_utilities.get_type_name(return_expression_type, core_module);
-        const function_output_type_string = Type_utilities.get_type_name(function_value_info.function_value.declaration.type.output_parameter_types, core_module);
+        const return_expression_type_string = Type_utilities.get_type_name(return_expression_type, Parse_tree_analysis.create_module_name_and_imports_getter_from_root(root));
+        const function_output_type_string = Type_utilities.get_type_name(function_value_info.function_value.declaration.type.output_parameter_types, Parse_tree_analysis.create_module_name_and_imports_getter_from_root(root));
 
         diagnostics.push(
             {
@@ -2618,7 +2616,7 @@ async function is_comparable_type(
             const custom_type_reference = type_reference[0].data.value as Core.Custom_type_reference;
             const module_declaration = await Parse_tree_analysis.get_custom_type_reference_declaration_using_parse_tree(custom_type_reference, get_parse_tree);
             if (module_declaration !== undefined) {
-                const underlying_declaration = await Parse_tree_analysis.get_underlying_type_declaration(module_declaration.root, module_declaration.declaration, get_parse_tree);
+                const underlying_declaration = await Parse_tree_analysis.get_underlying_type_declaration(module_declaration.root, module_declaration.declaration, module_declaration.node_position, get_parse_tree);
                 if (underlying_declaration.declaration.type === Core.Declaration_type.Alias) {
                     const alias_type_declaration = underlying_declaration.declaration.value as Core.Alias_type_declaration;
                     return is_comparable_type(alias_type_declaration.type, get_parse_tree);
@@ -2948,8 +2946,8 @@ async function validate_variable_declaration_type(
         );
     }
     else if (right_hand_side_type !== undefined && right_hand_side_type.type !== undefined && right_hand_side_type.type.length > 0 && expected_variable_type !== undefined && !deep_equal(expected_variable_type, right_hand_side_type.type[0])) {
-        const right_hand_side_type_string = Type_utilities.get_type_name(right_hand_side_type.type, core_module);
-        const expected_variable_type_string = Type_utilities.get_type_name([expected_variable_type], core_module);
+        const right_hand_side_type_string = Type_utilities.get_type_name(right_hand_side_type.type, Parse_tree_analysis.create_module_name_and_imports_getter_from_root(root));
+        const expected_variable_type_string = Type_utilities.get_type_name([expected_variable_type], Parse_tree_analysis.create_module_name_and_imports_getter_from_root(root));
         diagnostics.push(
             {
                 location: get_parser_node_position_source_location(uri, descendant_right_hand_side),
@@ -3005,8 +3003,8 @@ async function validate_expression_type_is(
     const expression_type = await Parse_tree_analysis.get_expression_type(root, descendant.position, expression, get_parse_tree);
 
     if (expression_type === undefined || !predicate(expression_type.type)) {
-        const expression_type_string = expression_type !== undefined ? Type_utilities.get_type_name(expression_type.type, core_module) : "<undefined>";
-        const expected_type_string = Type_utilities.get_type_name(expected_type, core_module);
+        const expression_type_string = expression_type !== undefined ? Type_utilities.get_type_name(expression_type.type, Parse_tree_analysis.create_module_name_and_imports_getter_from_root(root)) : "<undefined>";
+        const expected_type_string = Type_utilities.get_type_name(expected_type, Parse_tree_analysis.create_module_name_and_imports_getter_from_root(root));
         if (expression_type_string !== expected_type_string) {
             return [
                 {
@@ -3043,8 +3041,8 @@ async function validate_expression_types_are_equal(
     // TODO check if expression is a value, and not a type?
 
     if (!deep_equal(first_expression_type, second_expression_type)) {
-        const first_expression_type_string = first_expression_type !== undefined ? Type_utilities.get_type_name(first_expression_type.type, core_module) : "<undefined>";
-        const second_expression_type_string = second_expression_type !== undefined ? Type_utilities.get_type_name(second_expression_type.type, core_module) : "<undefined>";
+        const first_expression_type_string = first_expression_type !== undefined ? Type_utilities.get_type_name(first_expression_type.type, Parse_tree_analysis.create_module_name_and_imports_getter_from_root(root)) : "<undefined>";
+        const second_expression_type_string = second_expression_type !== undefined ? Type_utilities.get_type_name(second_expression_type.type, Parse_tree_analysis.create_module_name_and_imports_getter_from_root(root)) : "<undefined>";
         const common_root_position = Parser_node.find_node_common_root(first_descendant.position, second_descendant.position);
         const common_root_node = Parser_node.get_node_at_position(root, common_root_position);
 

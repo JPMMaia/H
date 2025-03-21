@@ -2048,7 +2048,7 @@ export function get_cursor_parameter_index_at_expression(
 export async function get_function_value_and_parameter_index_at_declaration(
     root: Parser_node.Node,
     before_cursor_node_position: number[]
-): Promise<{ function_value: Core.Function, parameter_index: number, is_input: boolean } | undefined> {
+): Promise<{ function_value: Core.Function, parameter_index: number, is_input: boolean, parameter_name_node_position: number[] } | undefined> {
 
     const ancestor_function_declaration = Parser_node.get_ancestor_with_name(root, before_cursor_node_position, "Function_declaration");
     if (ancestor_function_declaration === undefined) {
@@ -2089,7 +2089,8 @@ export async function get_function_value_and_parameter_index_at_declaration(
             return {
                 function_value: function_value_info.function_value,
                 parameter_index: parameter_index,
-                is_input: true
+                is_input: true,
+                parameter_name_node_position: [] // TODO
             };
         }
     }
@@ -2104,7 +2105,8 @@ export async function get_function_value_and_parameter_index_at_declaration(
             return {
                 function_value: function_value_info.function_value,
                 parameter_index: parameter_index,
-                is_input: false
+                is_input: false,
+                parameter_name_node_position: [] // TODO
             };
         }
     }
@@ -2237,7 +2239,7 @@ export async function find_instantiate_member_from_node(
     before_cursor_node_position: number[],
     find_best_match: boolean,
     get_parse_tree: (module_name: string) => Promise<Parser_node.Node | undefined>
-): Promise<{ root: Parser_node.Node, declaration: Core.Declaration, member_index: number, member_name: string } | undefined> {
+): Promise<{ root: Parser_node.Node, declaration: Core.Declaration, member_index: number, member_name: string, member_name_node_position: number[] } | undefined> {
 
     const ancestor_expression_instantiate = Parser_node.get_ancestor_with_name(root, before_cursor_node_position, "Expression_instantiate");
     if (ancestor_expression_instantiate === undefined) {
@@ -2277,7 +2279,8 @@ export async function find_instantiate_member_from_node(
                         root: module_declaration.root,
                         declaration: module_declaration.declaration,
                         member_index: member_index,
-                        member_name: declaration_member_names[member_index]
+                        member_name: declaration_member_names[member_index],
+                        member_name_node_position: [] // TODO
                     };
                 }
             }
@@ -2292,7 +2295,8 @@ export async function find_instantiate_member_from_node(
                     root: module_declaration.root,
                     declaration: module_declaration.declaration,
                     member_index: member_index,
-                    member_name: declaration_member_names[member_index]
+                    member_name: declaration_member_names[member_index],
+                    member_name_node_position: [] // TODO
                 };
             }
         }
@@ -2309,7 +2313,8 @@ export async function find_instantiate_member_from_node(
         root: module_declaration.root,
         declaration: module_declaration.declaration,
         member_index: member_index,
-        member_name: declaration_member_names[member_index]
+        member_name: declaration_member_names[member_index],
+        member_name_node_position: [] // TODO
     };
 }
 
@@ -2420,7 +2425,7 @@ export enum Component_type {
 
 export interface Access_expression_component {
     type: Component_type;
-    value: Symbol_module_alias_data | { root: Parser_node.Node, declaration: Core.Declaration } | string;
+    value: Symbol_module_alias_data | { root: Parser_node.Node, declaration: Core.Declaration, declaration_name_node_position: number[] } | string;
     node: Parser_node.Node;
     node_position: number[];
 }
@@ -2468,7 +2473,11 @@ export async function get_access_expression_components(
                             components.push(
                                 {
                                     type: Component_type.Declaration,
-                                    value: { root: module_declaration.root, declaration: module_declaration.declaration },
+                                    value: {
+                                        root: module_declaration.root,
+                                        declaration: module_declaration.declaration,
+                                        declaration_name_node_position: [] // TODO
+                                    },
                                     node: descendant_variable_expression.node,
                                     node_position: [...access_expression_node_position, ...descendant_variable_expression.position]
                                 }
@@ -2491,7 +2500,11 @@ export async function get_access_expression_components(
                     components.push(
                         {
                             type: Component_type.Declaration,
-                            value: { root: declaration_info.root, declaration: declaration_info.declaration },
+                            value: {
+                                root: declaration_info.root,
+                                declaration: declaration_info.declaration,
+                                declaration_name_node_position: [] // TODO
+                            },
                             node: access_expression_node.children[2],
                             node_position: [...access_expression_node_position, 2]
                         }
@@ -2961,6 +2974,27 @@ export async function is_enum_value_expression(
     }
 
     return is_enum_type(expression_type.type, get_parse_tree);
+}
+
+export function create_module_name_and_imports_getter_from_root(
+    root: Parser_node.Node
+): Type_utilities.Module_name_and_imports_getter {
+    return {
+        get_module_name: () => {
+            return get_module_name_from_tree(root)
+        },
+        get_imports: () => {
+            const import_symbols = get_import_alias_symbols(root);
+            const data = import_symbols.map(value => value.data as Symbol_module_alias_data);
+            return data.map(value => {
+                return {
+                    module_name: value.module_name,
+                    alias: value.module_alias,
+                    usages: []
+                };
+            })
+        }
+    };
 }
 
 function create_pointer_type(element_type: Core.Type_reference[], is_mutable: boolean): Core.Type_reference {

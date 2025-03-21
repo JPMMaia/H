@@ -41,11 +41,6 @@ export async function create(
     }
 
     const get_parse_tree = Server_data.create_get_parse_tree(server_data, workspace_uri);
-    const get_core_module = Server_data.create_get_core_module(server_data, workspace_uri);
-    const core_module = await get_core_module(Document.get_module_name(document_state));
-    if (core_module === undefined) {
-        return null;
-    }
 
     const ancestor = Parser_node.get_first_ancestor_with_name(root, before_cursor_iterator.node_position, [
         "Expression_call",
@@ -58,11 +53,11 @@ export async function create(
                 root, before_cursor_iterator.node_position, get_parse_tree
             );
             if (expression_call_info !== undefined) {
-                return get_function_signature_help(core_module, core_module, expression_call_info.function_value.declaration, expression_call_info.input_parameter_index);
+                return get_function_signature_help(root, expression_call_info.function_value.declaration, expression_call_info.input_parameter_index);
             }
         }
         else if (ancestor.node.word.value === "Expression_instantiate") {
-            const signature_help = await get_struct_signature_help(core_module, before_cursor_iterator.root, before_cursor_iterator.node_position, get_parse_tree);
+            const signature_help = await get_struct_signature_help(before_cursor_iterator.root, before_cursor_iterator.node_position, get_parse_tree);
             if (signature_help !== undefined) {
                 return signature_help;
             }
@@ -73,15 +68,14 @@ export async function create(
 }
 
 function get_function_signature_help(
-    current_module: Core.Module,
-    core_module: Core.Module,
+    root: Parser_node.Node,
     function_declaration: Core.Function_declaration,
     input_parameter_index: number
 ): vscode.SignatureHelp {
 
     const function_comment = Comments.parse_function_comment(function_declaration);
 
-    const function_label = Helpers.create_function_label(current_module, core_module, function_declaration);
+    const function_label = Helpers.create_function_label(root, function_declaration);
 
     const signature_information: vscode.SignatureInformation = {
         label: function_label,
@@ -123,7 +117,6 @@ function get_function_signature_help(
 }
 
 async function get_struct_signature_help(
-    core_module: Core.Module,
     root: Parser_node.Node,
     before_cursor_node_position: number[],
     get_parse_tree: (module_name: string) => Promise<Parser_node.Node | undefined>
@@ -136,7 +129,7 @@ async function get_struct_signature_help(
 
     const struct_declaration = instantiate_member_info.declaration.value as Core.Struct_declaration;
 
-    const struct_label = create_struct_label(core_module, struct_declaration);
+    const struct_label = create_struct_label(root, struct_declaration);
 
     const signature_information: vscode.SignatureInformation = {
         label: struct_label,
@@ -217,14 +210,14 @@ function find_parameter_range(
 }
 
 function create_struct_label(
-    core_module: Core.Module,
+    root: Parser_node.Node,
     struct_declaration: Core.Struct_declaration
 ): string {
 
     let members_string = struct_declaration.member_names.map(
         (member_name, member_index) => {
             const member_type = struct_declaration.member_types[member_index];
-            const member_type_name = Type_utilities.get_type_name([member_type], core_module);
+            const member_type_name = Type_utilities.get_type_name([member_type], Parse_tree_analysis.create_module_name_and_imports_getter_from_root(root));
             const member_default_value_statement = struct_declaration.member_default_values[member_index];
             const member_default_value_text = Parse_tree_analysis.create_member_default_value_text(member_default_value_statement);
             const default_value_text = member_default_value_text !== undefined ? ` = ${member_default_value_text}` : "";
