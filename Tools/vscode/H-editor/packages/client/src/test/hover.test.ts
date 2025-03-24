@@ -144,7 +144,7 @@ function create_complex_add_function_markdown_string(): vscode.MarkdownString {
         [
             '```hlang',
             'module c.complex',
-            'function add(lhs: complex.Complex, rhs: complex.Complex) -> (result: complex.Complex)',
+            'function add(lhs: Complex, rhs: Complex) -> (result: Complex)',
             '```',
             ''
         ].join('\n')

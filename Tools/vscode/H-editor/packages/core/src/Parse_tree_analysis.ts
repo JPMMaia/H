@@ -2329,14 +2329,14 @@ export async function find_instantiate_member_from_node(
     }
 
     const descendant_members_array = Parser_node.get_child_if(ancestor_expression_instantiate, node => node.word.value === "Expression_instantiate_members");
+    const descendant_members = Parser_node.get_children_if(descendant_members_array, node => node.word.value === "Expression_instantiate_member" || node.word.value === "ERROR");
 
-    const descendant_members = Parser_node.get_children_if(descendant_members_array, node => node.word.value === "Expression_instantiate_member");
-    const current_node_index = before_cursor_node_position[descendant_members_array.position.length];
-    const current_member_index = current_node_index === undefined ? 0 : Math.floor(current_node_index / 2);
-    if (current_member_index < descendant_members.length) {
-        const current_member = descendant_members[current_member_index];
+    const comma_count = count_commas(descendant_members_array.node, 0, before_cursor_node_position[descendant_members_array.position.length] + 1);
+
+    if (comma_count < descendant_members.length) {
+        const current_member = descendant_members[comma_count];
         const current_member_name = Parser_node.get_child_if(current_member, node => node.word.value === "Expression_instantiate_member_name");
-        const current_member_name_value = current_member_name.node.children[0].word.value;
+        const current_member_name_value = current_member_name !== undefined ? current_member_name.node.children[0].word.value : "";
         if (current_member_name_value.length > 0) {
             {
                 const member_index = declaration_member_names.findIndex(value => value === current_member_name_value);
@@ -2355,9 +2355,11 @@ export async function find_instantiate_member_from_node(
 
             // Try to match what the user wrote with the struct members to find the best match:
             if (find_best_match) {
-                const existent_member_names: string[] = Parser_node.find_descendants_if(ancestor_expression_instantiate, node => node.word.value === "Expression_instantiate_member_name").map(value => value.node.children[0].word.value);
-                const inexistent_member_names = declaration_member_names.filter(member_name => existent_member_names.find(value => value === member_name) === undefined);
-                const best_member_name_match = find_best_string_match(current_member_name_value, inexistent_member_names);
+                const existing_members = Parser_node.get_children_if(descendant_members_array, node => node.word.value === "Expression_instantiate_member" || node.word.value === "ERROR");
+                const existing_member_names = existing_members.map(node => Parser_node.get_child_if(node, child => child.word.value === "Expression_instantiate_member_name"));
+                const existing_member_name_values = existing_member_names.map(node => node.node.children[0].word.value);
+                const non_existing_member_names = declaration_member_names.filter(member_name => existing_member_name_values.find(value => value === member_name) === undefined);
+                const best_member_name_match = find_best_string_match(current_member_name_value, non_existing_member_names);
                 const member_index = declaration_member_names.findIndex(member_name => member_name === best_member_name_match);
                 const declaration = { node: Parser_node.get_node_at_position(module_declaration.root, module_declaration.node_position), position: module_declaration.node_position };
                 const declaration_member_name = Parser_node.find_descendant_position_if(declaration, node => node.word.value === best_member_name_match);
@@ -2372,14 +2374,16 @@ export async function find_instantiate_member_from_node(
         }
     }
 
-    const instantiate_members = Parser_node.get_child_if(ancestor_expression_instantiate, node => node.word.value === "Expression_instantiate_members");
-    if (instantiate_members === undefined) {
-        return undefined;
-    }
+    const previous_member_name = comma_count > 0 ? get_instantiate_member_name(descendant_members_array, comma_count - 1) : undefined;
+    const previous_member_name_value = previous_member_name !== undefined ? previous_member_name.node.children[0].word.value : "";
 
-    const comma_count = count_commas(instantiate_members.node, 0, before_cursor_node_position[instantiate_members.position.length] + 1);
+    const previous_member_index =
+        previous_member_name !== undefined ?
+            declaration_member_names.findIndex(member_name => member_name === previous_member_name_value) :
+            -1;
 
-    const member_index = comma_count;
+    const member_index = previous_member_index + 1;
+
     const member_name_value = declaration_member_names[member_index];
     const declaration = { node: Parser_node.get_node_at_position(module_declaration.root, module_declaration.node_position), position: module_declaration.node_position };
     const declaration_member_name = Parser_node.find_descendant_position_if(declaration, node => node.word.value === member_name_value);
@@ -2489,6 +2493,41 @@ function get_previous_instantiate_member_name_at_cursor(
     else {
         return undefined;
     }
+}
+
+function get_instantiate_member_name(
+    instantiate_members: { node: Parser_node.Node, position: number[] },
+    parameter_index: number
+): { node: Parser_node.Node, position: number[] } | undefined {
+    let counter = 0;
+
+    for (let index = 0; index < instantiate_members.node.children.length; ++index) {
+        const member = Parser_node.get_child(instantiate_members, index);
+
+        if (counter === parameter_index) {
+            if (member.node.word.value === "Expression_instantiate_member") {
+                const member_name = Parser_node.get_child_if(member, node => node.word.value === "Expression_instantiate_member_name");
+                return member_name;
+            }
+            continue;
+        }
+
+        if (counter > parameter_index) {
+            return undefined;
+        }
+
+        if (member.node.word.value === ",") {
+            counter += 1;
+        }
+        else if (member.node.word.value === "ERROR") {
+            const found_comma = member.node.children.find(grand_child => grand_child.word.value === ",");
+            if (found_comma !== undefined) {
+                counter += 1;
+            }
+        }
+    }
+
+    return undefined;
 }
 
 export enum Component_type {
