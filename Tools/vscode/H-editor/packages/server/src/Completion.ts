@@ -271,12 +271,14 @@ function declaration_type_to_completion_item_kind(
                 return vscode.CompletionItemKind.Constant;
             }
 
-            const descendant_mutability = Parser_node.get_child_if({ node: declaration_node, position: [node_position[0]] }, child => child.word.value === "Global_variable_mutability");
+            const underlying_declaration = Parser_node.get_child({ node: declaration_node, position: [node_position[0]] }, 0);
+
+            const descendant_mutability = Parser_node.get_child_if(underlying_declaration, child => child.word.value === "Global_variable_mutability");
             if (descendant_mutability === undefined) {
                 return vscode.CompletionItemKind.Constant;
             }
 
-            return descendant_mutability.node.children[0].word.value === "var" ? vscode.CompletionItemKind.Variable : vscode.CompletionItemKind.Constant;
+            return descendant_mutability.node.children[0].word.value === "var" ? vscode.CompletionItemKind.Constant : vscode.CompletionItemKind.Variable;
         }
         case Core.Declaration_type.Struct: {
             return vscode.CompletionItemKind.Struct;
@@ -413,7 +415,7 @@ function is_cursor_at_expression_access(
 function get_access_expression_in_error_node(
     root: Parser_node.Node,
     before_cursor_node_position: number[]
-): Core.Access_expression | undefined {
+): { access_expression: Core.Access_expression, node: Parser_node.Node, node_position: number[] } | undefined {
     const before_cursor_node = Parser_node.get_node_at_position(root, before_cursor_node_position);
 
     const parent_node_position = Parser_node.get_parent_position(before_cursor_node_position);
@@ -423,22 +425,22 @@ function get_access_expression_in_error_node(
         if (previous_sibling !== undefined) {
             if (previous_sibling.node.word.value === "Generic_expression" && before_cursor_node.word.value === ".") {
                 const previous_expression = Parse_tree_convertor_mappings.node_to_expression(root, previous_sibling.node);
-                if (previous_expression.data.type === Core.Expression_enum.Variable_expression) {
-                    const variable_name_expression = previous_expression.data.value as Core.Variable_expression;
+                const access_expression: Core.Access_expression = {
+                    expression: {
+                        data: {
+                            type: Core.Expression_enum.Variable_expression,
+                            value: previous_expression,
+                        }
+                    },
+                    member_name: "",
+                    access_type: Core.Access_type.Read,
+                };
 
-                    const access_expression: Core.Access_expression = {
-                        expression: {
-                            data: {
-                                type: Core.Expression_enum.Variable_expression,
-                                value: variable_name_expression,
-                            }
-                        },
-                        member_name: "",
-                        access_type: Core.Access_type.Read,
-                    };
-
-                    return access_expression;
-                }
+                return {
+                    access_expression: access_expression,
+                    node: parent_node,
+                    node_position: parent_node_position
+                };
             }
         }
     }
@@ -452,39 +454,48 @@ async function get_expression_access_items(
     get_parse_tree: (module_name: string) => Promise<Parser_node.Node | undefined>
 ): Promise<vscode.CompletionItem[]> {
 
-    const access_expression = get_access_expression_in_error_node(root, before_cursor_node_position);
-    const expression: Core.Expression = {
-        data: {
-            type: Core.Expression_enum.Access_expression,
-            value: access_expression
-        }
+    const descendant = {
+        node: Parser_node.get_node_at_position(root, before_cursor_node_position),
+        position: before_cursor_node_position
     };
 
-    const module_declaration = await find_core_declaration_of_expression_type(root, before_cursor_node_position, expression, true, get_parse_tree);
-    if (module_declaration !== undefined) {
-        const declaration = module_declaration.declaration;
-        if (declaration.type === Core.Declaration_type.Enum) {
-            const enum_declaration = declaration.value as Core.Enum_declaration;
-            return get_enum_value_completion_items(enum_declaration);
-        }
-        else if (declaration.type === Core.Declaration_type.Struct) {
-            const struct_declaration = declaration.value as Core.Struct_declaration;
-            return get_struct_member_completion_items(struct_declaration);
-        }
-        else if (declaration.type === Core.Declaration_type.Union) {
-            const union_declaration = declaration.value as Core.Union_declaration;
-            return get_union_member_completion_items(union_declaration);
+    const access_components = await Parse_tree_analysis.get_access_expression_components_using_nodes(
+        root,
+        descendant,
+        get_parse_tree
+    );
+
+    const before_last_component = access_components[access_components.length - 2];
+    if (before_last_component === undefined) {
+        return [];
+    }
+
+    if (before_last_component.type === Parse_tree_analysis.Component_type.Import_module) {
+        const import_symbol_data = before_last_component.value as Parse_tree_analysis.Symbol_module_alias_data;
+        if (import_symbol_data !== undefined) {
+            const imported_root = await get_parse_tree(import_symbol_data.module_name);
+            if (imported_root !== undefined) {
+                return get_value_declaration_items(imported_root, true);
+            }
         }
     }
-    else {
-        if (access_expression.expression.data.type === Core.Expression_enum.Variable_expression) {
-            const first_component = (access_expression.expression.data.value as Core.Variable_expression).name;
-            const import_symbol = Parse_tree_analysis.get_import_alias_symbol(root, first_component);
-            if (import_symbol !== undefined) {
-                const symbol_data = import_symbol.data as Parse_tree_analysis.Symbol_module_alias_data;
-                const imported_root = await get_parse_tree(symbol_data.module_name);
-                if (imported_root !== undefined) {
-                    return get_value_declaration_items(imported_root, true);
+    else if (before_last_component.type === Parse_tree_analysis.Component_type.Declaration) {
+        const module_declaration = before_last_component.value as { root: Parser_node.Node, declaration: Core.Declaration, declaration_name_node_position: number[] };
+        if (module_declaration !== undefined) {
+            const underlying_declaration = await Parse_tree_analysis.get_underlying_type_declaration_from_parse_tree(module_declaration.root, module_declaration.declaration_name_node_position, module_declaration.declaration, get_parse_tree);
+            if (underlying_declaration !== undefined) {
+                const declaration = underlying_declaration.declaration;
+                if (declaration.type === Core.Declaration_type.Enum) {
+                    const enum_declaration = declaration.value as Core.Enum_declaration;
+                    return get_enum_value_completion_items(enum_declaration);
+                }
+                else if (declaration.type === Core.Declaration_type.Struct) {
+                    const struct_declaration = declaration.value as Core.Struct_declaration;
+                    return get_struct_member_completion_items(struct_declaration);
+                }
+                else if (declaration.type === Core.Declaration_type.Union) {
+                    const union_declaration = declaration.value as Core.Union_declaration;
+                    return get_union_member_completion_items(union_declaration);
                 }
             }
         }

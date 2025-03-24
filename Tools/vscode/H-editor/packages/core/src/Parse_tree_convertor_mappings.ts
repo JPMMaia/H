@@ -3928,7 +3928,9 @@ function remove_comments_formatting(comments: string): string {
         unformatted_comments.push(comment.substring(start_index, comment.length));
     }
 
-    return unformatted_comments.join("\n");
+    const without_line_breaks = unformatted_comments.map(comment => comment.replace(/(\r)/gm, ""));
+
+    return without_line_breaks.join("\n");
 }
 
 function extract_comments_from_node(node: Parser_node.Node | undefined): string | undefined {

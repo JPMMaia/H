@@ -311,7 +311,7 @@ suite("Should do completion", () => {
 
 	test("Completes global variables", async () => {
 		const document_uri = get_document_uri('completion_global_variable_0.hltxt');
-		await test_completion(document_uri, new vscode.Position(11, 10), {
+		await test_completion(document_uri, new vscode.Position(7, 16), {
 			items: [
 				{ label: "my_global_constant", kind: vscode.CompletionItemKind.Constant },
 				{ label: "my_global_variable", kind: vscode.CompletionItemKind.Variable },

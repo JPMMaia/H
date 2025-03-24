@@ -394,80 +394,8 @@ export async function parse_source_file_and_write_to_disk(
     source_file_path: string,
     artifact: Build.Artifact,
     parser: Tree_sitter_parser.Parser,
-    destination_file_path: string,
-    hlang_executable: string | undefined
-): Promise<Core.Module | undefined> {
-    const file_extension = path.extname(source_file_path);
-
-    if (file_extension === ".h") {
-        if (hlang_executable !== undefined) {
-            if (!Helpers.validate_input(module_name)) {
-                return undefined;
-            }
-
-            const c_header = get_c_header(artifact, module_name);
-            const c_header_options = c_header !== undefined ? get_c_header_options(artifact, c_header) : undefined;
-
-            const command_arguments: string[] = [
-                module_name,
-                Helpers.normalize_path(source_file_path),
-                Helpers.normalize_path(destination_file_path),
-            ];
-
-            const search_paths = c_header_options !== undefined && c_header_options.search_paths !== undefined ? c_header_options.search_paths : [];
-            const search_paths_argument = search_paths.map(path => `--header-search-path=${path}`);
-            command_arguments.push(...search_paths_argument);
-
-            const public_prefixes = c_header_options !== undefined && c_header_options.public_prefixes !== undefined ? c_header_options.public_prefixes : [];
-            const public_prefixes_argument = public_prefixes.map(path => `--header-public-prefix=${path}`);
-            command_arguments.push(...public_prefixes_argument);
-
-            const remove_prefixes = c_header_options !== undefined && c_header_options.remove_prefixes !== undefined ? c_header_options.remove_prefixes : [];
-            const remove_prefixes_argument = remove_prefixes.map(path => `--header-remove-prefix=${path}`);
-            command_arguments.push(...remove_prefixes_argument);
-
-            const success = await Helpers.execute_command(hlang_executable, "import-c-header", command_arguments);
-            if (success) {
-                return read_parsed_file(destination_file_path);
-            }
-        }
-    }
-    else if (file_extension === ".hltxt") {
-
-        const text = fs.readFileSync(source_file_path, "utf-8");
-
-        try {
-            const parse_result = Text_change.full_parse_with_source_locations(parser, source_file_path, text);
-            if (parse_result.module === undefined) {
-                return undefined;
-            }
-
-            const core_module = Core.create_core_module(parse_result.module, Language_version.language_version);
-            const core_module_json_data = JSON.stringify(core_module);
-
-            const destination_directory_path = path.dirname(destination_file_path);
-            if (!fs.existsSync(destination_directory_path)) {
-                fs.mkdirSync(destination_directory_path, { recursive: true });
-            }
-
-            fs.writeFileSync(destination_file_path, core_module_json_data);
-
-            return parse_result.module;
-        }
-        catch (error: any) {
-            console.log(`parse_source_file_and_write_to_disk(): Exception thrown: '${error}'`);
-        }
-    }
-
-    return undefined;
-}
-
-export async function parse_source_file_and_write_to_disk_2(
-    module_name: string,
-    source_file_path: string,
-    artifact: Build.Artifact,
-    parser: Tree_sitter_parser.Parser,
     intermediate_file_path: string,
+    intermediate_text_file_path: string,
     destination_file_path: string,
     hlang_executable: string | undefined
 ): Promise<Parser_node.Node | undefined> {
@@ -504,6 +432,7 @@ export async function parse_source_file_and_write_to_disk_2(
             if (success) {
                 const core_module = read_parsed_file(intermediate_file_path);
                 const text = Text_formatter.format_module(core_module, {});
+                write_to_file(text, intermediate_text_file_path);
                 const tree = Tree_sitter_parser.parse(parser, text);
                 const core_tree = Tree_sitter_parser.to_parser_node(tree.rootNode, true);
                 write_parse_tree_to_file(core_tree, destination_file_path);

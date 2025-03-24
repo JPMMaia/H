@@ -46,7 +46,8 @@ export async function find_definition_link(
         const type_reference = Parse_tree_analysis.get_type_reference_from_node(root, ancestor_type.node);
         const type_declaration = await Parse_tree_analysis.get_type_reference_declaration(type_reference, get_parse_tree);
         if (type_declaration !== undefined) {
-            const location = await Helpers.get_node_source_vscode_location(server_data, workspace_uri, type_declaration.root, type_declaration.node_position);
+            const declaration_name_node_position = Parse_tree_analysis.get_declaration_name_node_position(type_declaration.root, type_declaration.node_position);
+            const location = await Helpers.get_node_source_vscode_location(server_data, workspace_uri, type_declaration.root, declaration_name_node_position);
             if (location !== undefined) {
                 return [
                     location
@@ -99,16 +100,15 @@ export async function find_definition_link(
         if (ancestor.node.word.value === "Expression_access") {
             const expression = Parse_tree_analysis.get_expression_from_node(root, ancestor.node);
             if (expression.data.type === Core.Expression_enum.Access_expression) {
-                const access_expression = expression.data.value as Core.Access_expression;
-                const components = await Parse_tree_analysis.get_access_expression_components(root, access_expression, ancestor.node, ancestor.position, get_parse_tree);
+                const components = await Parse_tree_analysis.get_access_expression_components_using_nodes(root, ancestor, get_parse_tree);
                 if (components.length === 0) {
                     return [];
                 }
 
                 const selected_component = Parse_tree_analysis.select_access_expression_component(components, before_cursor.node, before_cursor.node_position, after_cursor.node_position);
                 if (selected_component.type === Parse_tree_analysis.Component_type.Declaration) {
-                    const module_declaration = selected_component.value as { root: Parser_node.Node, declaration: Core.Declaration };
-                    const location = await Helpers.get_node_source_vscode_location(server_data, workspace_uri, module_declaration.root, selected_component.node_position);
+                    const module_declaration = selected_component.value as { root: Parser_node.Node, declaration: Core.Declaration, declaration_name_node_position: number[] };
+                    const location = await Helpers.get_node_source_vscode_location(server_data, workspace_uri, module_declaration.root, module_declaration.declaration_name_node_position);
                     if (location !== undefined) {
                         return [location];
                     }
@@ -119,7 +119,10 @@ export async function find_definition_link(
                         const module_declaration = previous_component.value as { root: Parser_node.Node, declaration: Core.Declaration, declaration_name_node_position: number[] };
                         const underlying_module_declaration = await Parse_tree_analysis.get_underlying_type_declaration(module_declaration.root, module_declaration.declaration, module_declaration.declaration_name_node_position, get_parse_tree);
                         if (underlying_module_declaration !== undefined) {
-                            const location = await Helpers.get_node_source_vscode_location(server_data, workspace_uri, underlying_module_declaration.root, underlying_module_declaration.declaration_name_position);
+                            const declaration = Parser_node.get_parent(root, underlying_module_declaration.declaration_name_position);
+                            const declaration_member_name_value = selected_component.value as string;
+                            const declaration_member_name = Parser_node.find_descendant_position_if(declaration, node => node.word.value === declaration_member_name_value);
+                            const location = await Helpers.get_node_source_vscode_location(server_data, workspace_uri, underlying_module_declaration.root, declaration_member_name.position);
                             if (location !== undefined) {
                                 return [location];
                             }

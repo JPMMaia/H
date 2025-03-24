@@ -4,6 +4,7 @@ import * as vscode_uri from "vscode-uri";
 
 import * as Project from "./Project";
 
+import * as Build from "../../core/src/Build";
 import * as Core from "../../core/src/Core_intermediate_representation";
 import * as Document from "../../core/src/Document";
 import * as Language from "../../core/src/Language";
@@ -65,19 +66,11 @@ export function get_document_state(
     return undefined;
 }
 
-export async function get_source_file_path_of_module(
+export async function get_artifact_of_module(
     server_data: Server_data,
     workspace_folder_uri: string | undefined,
     module_name: string
-): Promise<string | undefined> {
-
-    {
-        const document_state_and_uri = get_document_state(server_data, module_name);
-        if (document_state_and_uri !== undefined) {
-            const { document_uri, document_state } = document_state_and_uri;
-            return document_state.document_file_path;
-        }
-    }
+): Promise<Build.Artifact | undefined> {
 
     if (workspace_folder_uri === undefined) {
         return undefined;
@@ -97,6 +90,33 @@ export async function get_source_file_path_of_module(
         return undefined;
     }
 
+    return artifact;
+}
+
+export async function get_source_file_path_of_module(
+    server_data: Server_data,
+    workspace_folder_uri: string | undefined,
+    module_name: string
+): Promise<string | undefined> {
+
+    {
+        const document_state_and_uri = get_document_state(server_data, module_name);
+        if (document_state_and_uri !== undefined) {
+            const { document_uri, document_state } = document_state_and_uri;
+            return document_state.document_file_path;
+        }
+    }
+
+    const artifact = await get_artifact_of_module(server_data, workspace_folder_uri, module_name);
+    if (artifact === undefined) {
+        return undefined;
+    }
+
+    const project = server_data.projects.get(workspace_folder_uri);
+    if (project === undefined) {
+        return undefined;
+    }
+
     const source_files = project.artifact_to_source_files_map.get(artifact.name);
     if (source_files === undefined) {
         return undefined;
@@ -108,6 +128,20 @@ export async function get_source_file_path_of_module(
     }
 
     return source_file.file_path;
+}
+
+export async function get_intermediate_text_file_path_of_module(
+    server_data: Server_data,
+    workspace_folder_uri: string | undefined,
+    module_name: string
+): Promise<string | undefined> {
+
+    const artifact = await get_artifact_of_module(server_data, workspace_folder_uri, module_name);
+    if (artifact === undefined) {
+        return undefined;
+    }
+
+    return Project.map_module_name_to_parsed_file_path(workspace_folder_uri, artifact, module_name, "generated.hltxt");
 }
 
 export async function get_parse_tree(
@@ -199,7 +233,7 @@ export async function parse_source_file_and_write_to_disk_if_needed(
 
     const artifact = Project.get_artifact_of_module(project, module_name);
 
-    const core_tree_file_path = Project.map_module_name_to_parsed_file_path(workspace_folder_uri, artifact, module_name, ".generated.tree");
+    const core_tree_file_path = Project.map_module_name_to_parsed_file_path(workspace_folder_uri, artifact, module_name, "generated.tree");
     if (core_tree_file_path === undefined) {
         return undefined;
     }
@@ -224,18 +258,24 @@ export async function parse_source_file_and_write_to_disk_if_needed(
         }
     }
 
-    const intermediate_file_path = Project.map_module_name_to_parsed_file_path(workspace_folder_uri, artifact, module_name, ".generated.hl");
+    const intermediate_file_path = Project.map_module_name_to_parsed_file_path(workspace_folder_uri, artifact, module_name, "generated.hl");
     if (intermediate_file_path === undefined) {
         return undefined;
     }
 
+    const intermediate_text_file_path = Project.map_module_name_to_parsed_file_path(workspace_folder_uri, artifact, module_name, "generated.hltxt");
+    if (intermediate_text_file_path === undefined) {
+        return undefined;
+    }
+
     console.log(`Parse source file: ${source_file_path}`);
-    const core_tree = await Project.parse_source_file_and_write_to_disk_2(
+    const core_tree = await Project.parse_source_file_and_write_to_disk(
         module_name,
         source_file_path,
         artifact,
         server_data.parser,
         intermediate_file_path,
+        intermediate_text_file_path,
         core_tree_file_path,
         project.hlang_executable
     );

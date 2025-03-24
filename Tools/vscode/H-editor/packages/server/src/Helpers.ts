@@ -448,6 +448,17 @@ export async function get_node_source_vscode_location(
 
     const source_file_path = await Server_data.get_source_file_path_of_module(server_data, workspace_uri, module_name);
 
+    if (source_file_path.endsWith(".h")) {
+        const intermediate_text_file_path = await Server_data.get_intermediate_text_file_path_of_module(server_data, workspace_uri, module_name);
+        if (intermediate_text_file_path !== undefined) {
+            const location = location_to_vscode_location(
+                get_node_position_source_location(root, node_position, intermediate_text_file_path)
+            );
+
+            return location;
+        }
+    }
+
     const location = location_to_vscode_location(
         get_node_position_source_location(root, node_position, source_file_path)
     );

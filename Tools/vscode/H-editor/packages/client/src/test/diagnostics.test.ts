@@ -7,7 +7,7 @@ suite("Should get diagnostics", () => {
 	test("Diagnoses parsing error", async () => {
 		const document_uri = get_document_uri("diagnostics_parser_error.hltxt");
 		await test_diagnostics(document_uri, [
-			{ message: "Did not expect '{'.", range: to_range(3, 0, 3, 1), severity: vscode.DiagnosticSeverity.Error, source: "Parser" },
+			{ message: "Did not expect expression.", range: to_range(2, 0, 5, 1), severity: vscode.DiagnosticSeverity.Error, source: "Parser" },
 		]);
 	});
 

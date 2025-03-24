@@ -290,6 +290,15 @@ export function full_parse_with_source_locations(
 
     {
         diagnostics.push(...validate_parse_changes(document_file_path, changes));
+        if (diagnostics.length > 0) {
+            return {
+                module: undefined,
+                parse_tree: core_tree,
+                tree_sitter_tree: tree,
+                diagnostics: diagnostics,
+                position_cache: Parse_tree_text_position_cache.create_empty_cache()
+            };
+        }
     }
 
     const core_module = Tree_sitter_parser.to_core_module(core_tree);

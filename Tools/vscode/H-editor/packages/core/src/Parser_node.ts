@@ -209,6 +209,16 @@ export function get_parent_position(position: number[]): number[] {
     return [...position.slice(0, position.length - 1)];
 }
 
+export function get_parent(root: Node, position: number[]): { node: Node, position: number[] } {
+    const parent_position = get_parent_position(position);
+    if (parent_position.length === 0) {
+        return { node: root, position: [] };
+    }
+
+    const parent_node = get_node_at_position(root, parent_position);
+    return { node: parent_node, position: parent_position };
+}
+
 export function have_same_parent(node_positions: number[][]): boolean {
 
     if (node_positions.length <= 1) {

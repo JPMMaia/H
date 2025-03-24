@@ -79,8 +79,7 @@ function get_token(iterator: Parse_tree_text_iterator.Iterator): { type: string,
         case "Variable_name": {
             return get_variable_token(iterator.root, parent_position);
         }
-        case "Expression_binary_bitwise_and_symbol":
-        case "Expression_binary_bitwise_or_symbol": {
+        case "Expression_binary": {
             return { type: "operator", modifiers: [] };
         }
         case "Expression_for_loop_variable": {

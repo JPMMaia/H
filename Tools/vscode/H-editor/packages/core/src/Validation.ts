@@ -119,18 +119,18 @@ export function validate_syntax_errors(
                         uri: uri,
                         range: {
                             start: {
-                                line: current_node.startPosition.row,
-                                column: current_node.startPosition.column,
+                                line: current_node.startPosition.row + 1,
+                                column: current_node.startPosition.column + 1,
                             },
                             end: {
-                                line: current_node.endPosition.row,
-                                column: current_node.endPosition.column,
+                                line: current_node.endPosition.row + 1,
+                                column: current_node.endPosition.column + 1,
                             },
                         },
                     },
                     source: Source.Parser,
                     severity: Diagnostic_severity.Error,
-                    message: current_node.isError ? `Did not expect expression '${current_node.grammarType}'.` : `Missing expression '${current_node.grammarType}'.`,
+                    message: current_node.grammarType === "ERROR" ? `Did not expect expression.` : `Missing expression '${current_node.grammarType}'.`,
                     related_information: [],
                 }
             );

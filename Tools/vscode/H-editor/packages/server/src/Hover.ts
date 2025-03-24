@@ -90,8 +90,7 @@ export async function get_hover(
         if (ancestor_expression.node.word.value === "Expression_access") {
             const expression = Parse_tree_analysis.get_expression_from_node(root, ancestor_expression.node);
             if (expression.data.type === Core.Expression_enum.Access_expression) {
-                const access_expression = expression.data.value as Core.Access_expression;
-                const components = await Parse_tree_analysis.get_access_expression_components(root, access_expression, ancestor_expression.node, ancestor_expression.position, get_parse_tree);
+                const components = await Parse_tree_analysis.get_access_expression_components_using_nodes(root, ancestor_expression, get_parse_tree);
                 const selected_component = Parse_tree_analysis.select_access_expression_component(components, before_cursor.node, before_cursor.node_position, after_cursor.node_position);
                 if (selected_component.type === Parse_tree_analysis.Component_type.Declaration) {
                     const declaration_component = selected_component;

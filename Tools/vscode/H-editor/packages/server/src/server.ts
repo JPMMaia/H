@@ -243,9 +243,9 @@ connection.languages.diagnostics.on(async (parameters, cancellation_token: vscod
 	}
 
 	const workspace_folder_uri = await get_workspace_folder_uri_for_document(parameters.textDocument.uri);
-	const get_core_module = Server_data.create_get_core_module(server_data, workspace_folder_uri);
+	const get_parse_tree = Server_data.create_get_parse_tree(server_data, workspace_folder_uri);
 
-	const diagnostics = await Text_change.get_all_diagnostics(document_state, get_core_module);
+	const diagnostics = await Text_change.get_all_diagnostics(document_state, get_parse_tree);
 
 	const items = diagnostics.map((value: Validation.Diagnostic): vscode_node.Diagnostic => {
 
@@ -467,6 +467,8 @@ connection.onCompletion(
 		if (cancellation_token.isCancellationRequested) {
 			return [];
 		}
+
+		await server_data.initialize_promise;
 
 		const start_time = performance.now();
 
