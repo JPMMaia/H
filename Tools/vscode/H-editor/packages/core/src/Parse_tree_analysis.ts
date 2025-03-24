@@ -1997,28 +1997,71 @@ export async function get_function_value_from_external_parse_tree(
     };
 }
 
+function count_commas(
+    parent: Parser_node.Node,
+    begin_child_index: number,
+    end_child_index: number
+): number {
+    let counter = 0;
+    for (let index = begin_child_index; index < end_child_index; ++index) {
+        const child = parent.children[index];
+        if (child.word.value === ",") {
+            counter += 1;
+        }
+        else if (child.word.value === "ERROR") {
+            const found_comma = child.children.find(grand_child => grand_child.word.value === ",");
+            if (found_comma !== undefined) {
+                counter += 1;
+            }
+        }
+    }
+    return counter;
+}
+
 export async function get_function_value_and_parameter_index_from_expression_call(
     root: Parser_node.Node,
     before_cursor_node_position: number[],
     get_parse_tree: (module_name: string) => Promise<Parser_node.Node | undefined>
 ): Promise<{ root: Parser_node.Node, function_value: Core.Function, input_parameter_index: number, expression_call_node_position: number[] } | undefined> {
 
+    const parent = Parser_node.get_parent(root, before_cursor_node_position);
+    if (parent !== undefined && parent.node.word.value === "ERROR") {
+        let current_child = Parser_node.get_previous_sibling(root, before_cursor_node_position);
+        while (current_child !== undefined && current_child.node.word.value !== "(") {
+            current_child = Parser_node.get_previous_sibling(root, current_child.position);
+        }
+
+        if (current_child === undefined || current_child.node.word.value !== "(") {
+            return undefined;
+        }
+
+        const open_parenthesis = current_child;
+
+        const left_hand_side_child = Parser_node.get_previous_sibling(root, current_child.position);
+        const function_location = await get_function_value_from_node(root, left_hand_side_child.node, get_parse_tree);
+        if (function_location !== undefined) {
+            const comma_count = count_commas(parent.node, open_parenthesis.position[parent.position.length], before_cursor_node_position[parent.position.length] + 1);
+            return {
+                root: function_location.root,
+                function_value: function_location.function_value,
+                input_parameter_index: comma_count,
+                expression_call_node_position: left_hand_side_child.position
+            };
+        }
+    }
+
     const ancestor_expression_call = Parser_node.get_ancestor_with_name(root, before_cursor_node_position, "Expression_call");
     if (ancestor_expression_call !== undefined) {
-
-        const active_input_parameter_index = get_cursor_parameter_index_at_expression(
-            ancestor_expression_call.position,
-            before_cursor_node_position
-        );
-
-        if (active_input_parameter_index !== -1) {
-            const left_hand_side_node = ancestor_expression_call.node.children[0];
-            const function_location = await get_function_value_from_node(root, left_hand_side_node, get_parse_tree);
-            if (function_location !== undefined) {
+        const left_hand_side_node = ancestor_expression_call.node.children[0];
+        const function_location = await get_function_value_from_node(root, left_hand_side_node, get_parse_tree);
+        if (function_location !== undefined) {
+            const ancestor_expression_call_arguments = Parser_node.get_ancestor_with_name(root, before_cursor_node_position, "Expression_call_arguments");
+            if (ancestor_expression_call_arguments !== undefined) {
+                const comma_count = count_commas(ancestor_expression_call_arguments.node, 0, before_cursor_node_position[ancestor_expression_call_arguments.position.length] + 1);
                 return {
                     root: function_location.root,
                     function_value: function_location.function_value,
-                    input_parameter_index: active_input_parameter_index,
+                    input_parameter_index: comma_count,
                     expression_call_node_position: ancestor_expression_call.position
                 };
             }
@@ -2239,12 +2282,36 @@ export async function find_instantiate_member_from_node(
     get_parse_tree: (module_name: string) => Promise<Parser_node.Node | undefined>
 ): Promise<{ root: Parser_node.Node, declaration: Core.Declaration, member_index: number, member_name: string, member_name_node_position: number[] } | undefined> {
 
+    /*const parent = Parser_node.get_parent(root, before_cursor_node_position);
+    if (parent !== undefined && parent.node.word.value === "ERROR") {
+        let current_child = Parser_node.get_previous_sibling(root, before_cursor_node_position);
+        while (current_child !== undefined && current_child.node.word.value !== "{") {
+            current_child = Parser_node.get_previous_sibling(root, current_child.position);
+        }
+
+        if (current_child === undefined || current_child.node.word.value !== "{") {
+            return undefined;
+        }
+
+        const open_braces = current_child;
+
+        const left_hand_side_child = Parser_node.get_previous_sibling(root, current_child.position);
+        const function_location = await get_function_value_from_node(root, left_hand_side_child.node, get_parse_tree);
+        if (function_location !== undefined) {
+            const comma_count = count_commas(parent.node, open_braces.position[parent.position.length], before_cursor_node_position[parent.position.length] + 1);
+            return {
+                root: function_location.root,
+                function_value: function_location.function_value,
+                input_parameter_index: comma_count,
+                expression_call_node_position: left_hand_side_child.position
+            };
+        }
+    }*/
+
     const ancestor_expression_instantiate = Parser_node.get_ancestor_with_name(root, before_cursor_node_position, "Expression_instantiate");
     if (ancestor_expression_instantiate === undefined) {
         return undefined;
     }
-
-    const previous_member_name = get_previous_instantiate_member_name_at_cursor(root, before_cursor_node_position, ancestor_expression_instantiate.position);
 
     const custom_type_reference = await find_instantiate_custom_type_reference_from_node_using_parse_tree(root, ancestor_expression_instantiate.position, get_parse_tree);
     if (custom_type_reference === undefined) {
@@ -2305,12 +2372,14 @@ export async function find_instantiate_member_from_node(
         }
     }
 
-    const previous_member_index =
-        previous_member_name !== undefined ?
-            declaration_member_names.findIndex(member_name => member_name === previous_member_name) :
-            -1;
+    const instantiate_members = Parser_node.get_child_if(ancestor_expression_instantiate, node => node.word.value === "Expression_instantiate_members");
+    if (instantiate_members === undefined) {
+        return undefined;
+    }
 
-    const member_index = previous_member_index + 1;
+    const comma_count = count_commas(instantiate_members.node, 0, before_cursor_node_position[instantiate_members.position.length] + 1);
+
+    const member_index = comma_count;
     const member_name_value = declaration_member_names[member_index];
     const declaration = { node: Parser_node.get_node_at_position(module_declaration.root, module_declaration.node_position), position: module_declaration.node_position };
     const declaration_member_name = Parser_node.find_descendant_position_if(declaration, node => node.word.value === member_name_value);

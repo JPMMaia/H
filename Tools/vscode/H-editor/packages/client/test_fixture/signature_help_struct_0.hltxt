@@ -12,5 +12,5 @@ struct Complex
 
 function run() -> ()
 {
-    var instance_0: Complex = {
-
+    var instance_0: Complex = {};
+}

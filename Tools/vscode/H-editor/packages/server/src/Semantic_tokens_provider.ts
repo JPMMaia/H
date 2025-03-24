@@ -79,19 +79,15 @@ function get_token(iterator: Parse_tree_text_iterator.Iterator): { type: string,
         case "Variable_name": {
             return get_variable_token(iterator.root, parent_position);
         }
-        case "Expression_binary": {
-            return { type: "operator", modifiers: [] };
-        }
         case "Expression_for_loop_variable": {
             return { type: "variable", modifiers: ["declaration"] };
         }
     }
 
     switch (node.word.type) {
-        case Grammar.Word_type.Symbol:
-            return { type: "operator", modifiers: [] };
-        case Grammar.Word_type.Alphanumeric:
-            return { type: "keyword", modifiers: [] };
+        case Grammar.Word_type.Alphanumeric: {
+            return { type: "keyword", modifiers: [""] };
+        }
     }
 
     return undefined;

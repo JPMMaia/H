@@ -47,20 +47,19 @@ export async function create(
         "Expression_instantiate"
     ]);
 
-    if (ancestor !== undefined) {
-        if (ancestor.node.word.value === "Expression_call") {
-            const expression_call_info = await Parse_tree_analysis.get_function_value_and_parameter_index_from_expression_call(
-                root, before_cursor_iterator.node_position, get_parse_tree
-            );
-            if (expression_call_info !== undefined) {
-                return get_function_signature_help(root, expression_call_info.function_value.declaration, expression_call_info.input_parameter_index);
-            }
+    if (ancestor === undefined || ancestor.node.word.value === "Expression_call") {
+        const expression_call_info = await Parse_tree_analysis.get_function_value_and_parameter_index_from_expression_call(
+            root, before_cursor_iterator.node_position, get_parse_tree
+        );
+        if (expression_call_info !== undefined) {
+            return get_function_signature_help(root, expression_call_info.function_value.declaration, expression_call_info.input_parameter_index);
         }
-        else if (ancestor.node.word.value === "Expression_instantiate") {
-            const signature_help = await get_struct_signature_help(before_cursor_iterator.root, before_cursor_iterator.node_position, get_parse_tree);
-            if (signature_help !== undefined) {
-                return signature_help;
-            }
+    }
+
+    if (ancestor === undefined || ancestor.node.word.value === "Expression_instantiate") {
+        const signature_help = await get_struct_signature_help(before_cursor_iterator.root, before_cursor_iterator.node_position, get_parse_tree);
+        if (signature_help !== undefined) {
+            return signature_help;
         }
     }
 

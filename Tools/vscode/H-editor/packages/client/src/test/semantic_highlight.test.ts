@@ -20,9 +20,7 @@ suite("Should add semantic highlights", () => {
 			[
 				{ line: 2, character: 0, length: 5, token_type: "keyword", token_modifiers: [] },
 				{ line: 2, character: 6, length: 8, token_type: "type", token_modifiers: ["declaration"] },
-				{ line: 2, character: 15, length: 1, token_type: "operator", token_modifiers: [] },
 				{ line: 2, character: 17, length: 5, token_type: "type", token_modifiers: [] },
-				{ line: 2, character: 22, length: 1, token_type: "operator", token_modifiers: [] },
 			],
 			to_range(1, 0, 3, 0)
 		);
@@ -36,16 +34,10 @@ suite("Should add semantic highlights", () => {
 				{ line: 2, character: 0, length: 6, token_type: "keyword", token_modifiers: [] },
 				{ line: 2, character: 7, length: 4, token_type: "keyword", token_modifiers: [] },
 				{ line: 2, character: 12, length: 7, token_type: "enum", token_modifiers: ["declaration"] },
-				{ line: 3, character: 0, length: 1, token_type: "operator", token_modifiers: [] },
 				{ line: 4, character: 4, length: 7, token_type: "enumMember", token_modifiers: ["declaration"] },
-				{ line: 4, character: 12, length: 1, token_type: "operator", token_modifiers: [] },
 				{ line: 4, character: 14, length: 1, token_type: "number", token_modifiers: [] },
-				{ line: 4, character: 15, length: 1, token_type: "operator", token_modifiers: [] },
 				{ line: 5, character: 4, length: 7, token_type: "enumMember", token_modifiers: ["declaration"] },
-				{ line: 5, character: 12, length: 1, token_type: "operator", token_modifiers: [] },
 				{ line: 5, character: 14, length: 1, token_type: "number", token_modifiers: [] },
-				{ line: 5, character: 15, length: 1, token_type: "operator", token_modifiers: [] },
-				{ line: 6, character: 0, length: 1, token_type: "operator", token_modifiers: [] }
 			],
 			to_range(1, 0, 7, 0)
 		);
@@ -58,33 +50,18 @@ suite("Should add semantic highlights", () => {
 			[
 				{ line: 2, character: 0, length: 8, token_type: "keyword", token_modifiers: [] },
 				{ line: 2, character: 9, length: 3, token_type: "function", token_modifiers: ["declaration"] },
-				{ line: 2, character: 12, length: 1, token_type: "operator", token_modifiers: [] },
 				{ line: 2, character: 13, length: 3, token_type: "parameter", token_modifiers: ["readonly"] },
-				{ line: 2, character: 16, length: 1, token_type: "operator", token_modifiers: [] },
 				{ line: 2, character: 18, length: 5, token_type: "type", token_modifiers: [] },
-				{ line: 2, character: 23, length: 1, token_type: "operator", token_modifiers: [] },
 				{ line: 2, character: 25, length: 3, token_type: "parameter", token_modifiers: ["readonly"] },
-				{ line: 2, character: 28, length: 1, token_type: "operator", token_modifiers: [] },
 				{ line: 2, character: 30, length: 5, token_type: "type", token_modifiers: [] },
-				{ line: 2, character: 35, length: 1, token_type: "operator", token_modifiers: [] },
-				{ line: 2, character: 37, length: 2, token_type: "operator", token_modifiers: [] },
-				{ line: 2, character: 40, length: 1, token_type: "operator", token_modifiers: [] },
 				{ line: 2, character: 41, length: 6, token_type: "parameter", token_modifiers: ["readonly"] },
-				{ line: 2, character: 47, length: 1, token_type: "operator", token_modifiers: [] },
 				{ line: 2, character: 49, length: 5, token_type: "type", token_modifiers: [] },
-				{ line: 2, character: 54, length: 1, token_type: "operator", token_modifiers: [] },
-				{ line: 3, character: 0, length: 1, token_type: "operator", token_modifiers: [] },
 				{ line: 4, character: 4, length: 3, token_type: "keyword", token_modifiers: [] },
 				{ line: 4, character: 8, length: 6, token_type: "variable", token_modifiers: ["declaration", "readonly"] },
-				{ line: 4, character: 15, length: 1, token_type: "operator", token_modifiers: [] },
 				{ line: 4, character: 17, length: 3, token_type: "variable", token_modifiers: [] },
-				{ line: 4, character: 21, length: 1, token_type: "operator", token_modifiers: [] },
 				{ line: 4, character: 23, length: 3, token_type: "variable", token_modifiers: [] },
-				{ line: 4, character: 26, length: 1, token_type: "operator", token_modifiers: [] },
 				{ line: 5, character: 4, length: 6, token_type: "keyword", token_modifiers: [] },
 				{ line: 5, character: 11, length: 6, token_type: "variable", token_modifiers: [] },
-				{ line: 5, character: 17, length: 1, token_type: "operator", token_modifiers: [] },
-				{ line: 6, character: 0, length: 1, token_type: "operator", token_modifiers: [] },
 			],
 			to_range(1, 0, 7, 0)
 		);
@@ -97,7 +74,6 @@ suite("Should add semantic highlights", () => {
 			[
 				{ line: 0, character: 0, length: 6, token_type: "keyword", token_modifiers: [] },
 				{ line: 0, character: 7, length: 9, token_type: "namespace", token_modifiers: ["declaration"] },
-				{ line: 0, character: 16, length: 1, token_type: "operator", token_modifiers: [] },
 			]
 		);
 	});
@@ -109,14 +85,10 @@ suite("Should add semantic highlights", () => {
 			[
 				{ line: 2, character: 0, length: 3, token_type: "keyword", token_modifiers: [], },
 				{ line: 2, character: 4, length: 15, token_type: "variable", token_modifiers: ["declaration", "readonly"], },
-				{ line: 2, character: 20, length: 1, token_type: "operator", token_modifiers: [], },
 				{ line: 2, character: 22, length: 1, token_type: "number", token_modifiers: [], },
-				{ line: 2, character: 23, length: 1, token_type: "operator", token_modifiers: [], },
 				{ line: 3, character: 0, length: 7, token_type: "keyword", token_modifiers: [], },
 				{ line: 3, character: 8, length: 15, token_type: "variable", token_modifiers: ["declaration"], },
-				{ line: 3, character: 24, length: 1, token_type: "operator", token_modifiers: [], },
 				{ line: 3, character: 26, length: 6, token_type: "number", token_modifiers: [], },
-				{ line: 3, character: 32, length: 1, token_type: "operator", token_modifiers: [], }
 			],
 			to_range(1, 0, 6, 0)
 		);
@@ -130,14 +102,9 @@ suite("Should add semantic highlights", () => {
 				{ line: 2, character: 0, length: 6, token_type: "keyword", token_modifiers: [] },
 				{ line: 2, character: 7, length: 6, token_type: "keyword", token_modifiers: [] },
 				{ line: 2, character: 14, length: 9, token_type: "struct", token_modifiers: ["declaration"] },
-				{ line: 3, character: 0, length: 1, token_type: "operator", token_modifiers: [] },
 				{ line: 4, character: 4, length: 8, token_type: "property", token_modifiers: ["declaration"] },
-				{ line: 4, character: 12, length: 1, token_type: "operator", token_modifiers: [] },
 				{ line: 4, character: 14, length: 5, token_type: "type", token_modifiers: [] },
-				{ line: 4, character: 20, length: 1, token_type: "operator", token_modifiers: [] },
 				{ line: 4, character: 22, length: 1, token_type: "number", token_modifiers: [] },
-				{ line: 4, character: 23, length: 1, token_type: "operator", token_modifiers: [] },
-				{ line: 5, character: 0, length: 1, token_type: "operator", token_modifiers: [] }
 			],
 			to_range(1, 0, 6, 0)
 		);
@@ -151,16 +118,10 @@ suite("Should add semantic highlights", () => {
 				{ line: 2, character: 0, length: 6, token_type: "keyword", token_modifiers: [] },
 				{ line: 2, character: 7, length: 5, token_type: "keyword", token_modifiers: [] },
 				{ line: 2, character: 13, length: 8, token_type: "type", token_modifiers: ["declaration"] },
-				{ line: 3, character: 0, length: 1, token_type: "operator", token_modifiers: [] },
 				{ line: 4, character: 4, length: 8, token_type: "property", token_modifiers: ["declaration"] },
-				{ line: 4, character: 12, length: 1, token_type: "operator", token_modifiers: [] },
 				{ line: 4, character: 14, length: 5, token_type: "type", token_modifiers: [] },
-				{ line: 4, character: 19, length: 1, token_type: "operator", token_modifiers: [] },
 				{ line: 5, character: 4, length: 8, token_type: "property", token_modifiers: ["declaration"] },
-				{ line: 5, character: 12, length: 1, token_type: "operator", token_modifiers: [] },
 				{ line: 5, character: 14, length: 7, token_type: "type", token_modifiers: [] },
-				{ line: 5, character: 21, length: 1, token_type: "operator", token_modifiers: [] },
-				{ line: 6, character: 0, length: 1, token_type: "operator", token_modifiers: [] },
 			],
 			to_range(1, 0, 7, 0)
 		);
@@ -208,6 +169,10 @@ async function test_semantic_highlight(
 	const client = await activate(document_uri);
 
 	const actual_decoded_semantic_tokens = await get_semantic_tokens(client, document_uri, range);
+
+	if (actual_decoded_semantic_tokens.length !== expected_decoded_semantic_tokens.length) {
+		assert.deepEqual(actual_decoded_semantic_tokens, expected_decoded_semantic_tokens);
+	}
 
 	assert.ok(actual_decoded_semantic_tokens.length === expected_decoded_semantic_tokens.length);
 	expected_decoded_semantic_tokens.forEach((expected_token, index) => {

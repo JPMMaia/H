@@ -13,3 +13,5 @@ function run() -> ()
     var instance: Foo = {
         instance: 0,
         in
+    };
+}
