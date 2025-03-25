@@ -3673,14 +3673,15 @@ function node_to_expression_while_loop(root: Parser_node.Node, node: Parser_node
 export function node_to_module(root: Parser_node.Node): Core_intermediate_representation.Module {
     const module_name = get_module_name_from_tree(root);
 
-    const comment = Parser_node.get_child_if({ node: root, position: [] }, child => child.word.value === "Comment");
-    const comment_value = comment !== undefined ? remove_comments_formatting(comment.node.children[0].word.value) : undefined;
-
     const module_head_descendant = Parser_node.get_child_if({ node: root, position: [] }, child => child.word.value === "Module_head");
     const import_descendants = module_head_descendant !== undefined ? Parser_node.get_children_if(module_head_descendant, child => child.word.value === "Import") : [];
-    const imports = import_descendants.map(descendant => node_to_import_module_with_alias(descendant.node)); // TODO
+    const imports = import_descendants.map(descendant => node_to_import_module_with_alias(descendant.node));
 
     const declarations = root.children.slice(1).map(child => node_to_declaration(root, child));
+
+    const descendant_module_declaration = Parser_node.get_child_if(module_head_descendant, child => child.word.value === "Module_declaration");
+    const comments_node = get_comments_node(descendant_module_declaration.node);
+    const comment_value = comments_node !== undefined ? remove_comments_formatting(comments_node.word.value) : undefined;
 
     const core_module: Core_intermediate_representation.Module = {
         name: module_name,

@@ -3,10 +3,6 @@ import "mocha";
 import * as assert from "assert";
 import * as Core_intermediate_representation from "./Core_intermediate_representation";
 import * as Language from "./Language";
-import * as Parse_tree_convertor from "./Parse_tree_convertor";
-import * as Parse_tree_text_iterator from "./Parse_tree_text_iterator";
-import * as Parser from "./Parser";
-import * as Scanner from "./Scanner";
 import * as Storage_cache from "./Storage_cache";
 import * as Text_change from "./Text_change";
 

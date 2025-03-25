@@ -1,16 +1,7 @@
-import * as Core from "./Core_interface";
 import * as Core_intermediate_representation from "./Core_intermediate_representation";
-import * as Grammar from "./Grammar";
-import * as Language from "./Language";
 import * as Module_examples from "./Module_examples";
 import * as Parse_tree_analysis from "../../core/src/Parse_tree_analysis";
-import * as Parse_tree_convertor from "./Parse_tree_convertor";
-import * as Parse_tree_convertor_mappings from "./Parse_tree_convertor_mappings";
-import * as Parse_tree_text_position_cache from "./Parse_tree_text_position_cache";
-import * as Parser from "./Parser";
 import * as Parser_node from "./Parser_node";
-import * as Scanner from "./Scanner";
-import * as Text_formatter from "./Text_formatter";
 import * as Tree_sitter_parser from "./Tree_sitter_parser";
 import * as Validation from "./Validation";
 
@@ -27,7 +18,6 @@ export interface Text_change {
 export interface Module_state {
     module: Core_intermediate_representation.Module;
     parse_tree: Parser_node.Node | undefined;
-    parse_tree_text_position_cache: Parse_tree_text_position_cache.Cache;
     tree_sitter_tree: Tree_sitter_parser.Tree | undefined;
     text: string;
 }
@@ -69,14 +59,12 @@ export function create_empty_state(document_file_path: string): State {
 
     const parse_tree = undefined;
     const text = "";
-    const parse_tree_text_position_cache = Parse_tree_text_position_cache.create_empty_cache();
 
     return {
         document_file_path: document_file_path,
         valid: {
             module: module,
             parse_tree: parse_tree,
-            parse_tree_text_position_cache: parse_tree_text_position_cache,
             tree_sitter_tree: undefined,
             text: text,
         },

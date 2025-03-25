@@ -1,15 +1,9 @@
 import * as Core from "./Core_intermediate_representation";
-import * as Document from "./Document";
-import * as Language from "./Language";
 import * as Parse_tree_convertor from "./Parse_tree_convertor";
 import * as Parse_tree_convertor_mappings from "./Parse_tree_convertor_mappings";
 import * as Parse_tree_text_iterator from "./Parse_tree_text_iterator";
-import * as Parse_tree_text_position_cache from "./Parse_tree_text_position_cache";
-import * as Parser from "./Parser";
 import * as Parser_node from "./Parser_node";
-import * as Scan_new_changes from "./Scan_new_changes";
 import * as Scanner from "./Scanner";
-import * as Text_formatter from "./Text_formatter";
 import * as Type_utilities from "./Type_utilities";
 
 export enum Symbol_type {
@@ -2936,140 +2930,9 @@ export function find_node_range_using_scanned_word_source_location(
     };
 }
 
-export function find_node_range_using_text_position_cache(
-    cache: Parse_tree_text_position_cache.Cache,
-    descendant: { node: Parser_node.Node, position: number[] }
-): { start: Scanner.Source_location, end: Scanner.Source_location } {
-
-    if (descendant.node.children.length === 0) {
-
-        const text_position = Parse_tree_text_position_cache.get_node_text_position(cache, descendant.position);
-
-        return {
-            start: {
-                line: text_position.line,
-                column: text_position.column
-            },
-            end: {
-                line: text_position.line,
-                column: text_position.column + descendant.node.word.value.length
-            }
-        };
-    }
-
-    const left_most_descedant = Parser_node.get_leftmost_descendant(descendant.node, []) as { node: Parser_node.Node, position: number[] };
-    const right_most_descendant = Parser_node.get_rightmost_descendant_terminal_node(descendant.node, []) as { node: Parser_node.Node, position: number[] };
-
-    const left_most_text_position = Parse_tree_text_position_cache.get_node_text_position(cache, [...descendant.position, ...left_most_descedant.position]);
-    const right_most_text_position = Parse_tree_text_position_cache.get_node_text_position(cache, [...descendant.position, ...right_most_descendant.position]);
-
-    return {
-        start: {
-            line: left_most_text_position.line,
-            column: left_most_text_position.column
-        },
-        end: {
-            line: right_most_text_position.line,
-            column: right_most_text_position.column + right_most_descendant.node.word.value.length
-        }
-    };
-}
-
 export interface Text_change_2 {
     range: Text_range;
     text: string;
-}
-
-export function format_text(
-    language_description: Language.Description,
-    state: Document.State,
-    text_change: Text_change_2
-): Text_change_2 | undefined {
-
-    // TODO parse text as is
-
-    // 1. Get current indentation
-    // 2. (optional) if inside {} or (), check if there are any newlines. If there is, use newlines, otherwise use spaces
-    // 3. Newline approach:
-    //    a) always add newline after ';'
-    //    a) if inside {} use newlines and indentation after every ';' and ','
-    //    b) if inside () use spaces after ','
-    //    a) if { is followed by }, then don't add newline, otherwise add
-    //    c) add space after 'if', 'for', 'switch' and 'while'
-    //    d) add spaces between identifiers
-    //    e) add spaces before and after '->'
-
-    const parse_tree = state.diagnostics.length === 0 ? state.valid.parse_tree : state.with_errors?.parse_tree;
-    if (parse_tree === undefined) {
-        return undefined;
-    }
-
-    const text = state.diagnostics.length === 0 ? state.valid.text : state.with_errors?.text;
-    if (text === undefined) {
-        return undefined;
-    }
-
-    const scanned_input_change = Scan_new_changes.scan_new_change(
-        parse_tree,
-        text,
-        text_change.range.start.offset,
-        text_change.range.end.offset,
-        text_change.text
-    );
-
-    if (Scan_new_changes.has_meaningful_content(scanned_input_change)) {
-
-        const start_change_node_position = (scanned_input_change.start_change !== undefined && scanned_input_change.start_change.node !== undefined) ? scanned_input_change.start_change.node_position : undefined;
-        const after_change_node_position = (scanned_input_change.after_change !== undefined && scanned_input_change.after_change.node !== undefined) ? scanned_input_change.after_change.node_position : undefined;
-
-        const parse_result = Parser.parse_incrementally(
-            state.document_file_path,
-            parse_tree,
-            start_change_node_position,
-            scanned_input_change.new_words,
-            after_change_node_position,
-            language_description.actions_table,
-            language_description.go_to_table,
-            language_description.array_infos,
-            language_description.map_word_to_terminal
-        );
-
-        if (parse_result.status === Parser.Parse_status.Accept) {
-
-            const simplified_changes = Parser.simplify_parser_changes(parse_tree, parse_result.changes);
-
-            const ancestor_position = Parser.get_changes_common_ancestor(simplified_changes);
-            if (ancestor_position === undefined) {
-                return undefined;
-            }
-            const ancestor_node = Parser_node.get_node_at_position(parse_tree, ancestor_position);
-
-            const original_text_range = find_node_range(parse_tree, ancestor_node, ancestor_position, text);
-            if (original_text_range === undefined) {
-                return undefined;
-            }
-
-            const ancestor_node_clone = Parser_node.deep_clone_node(Parser_node.get_node_at_position(parse_tree, ancestor_position));
-            Parser.apply_changes(ancestor_node_clone, ancestor_position, simplified_changes);
-
-            const before_character: string | undefined = text[original_text_range.start.offset - 1];
-            const after_character: string | undefined = text[original_text_range.end.offset];
-
-            const formatted_text = Text_formatter.node_to_string(
-                parse_tree,
-                { node: ancestor_node_clone, position: ancestor_position },
-                before_character,
-                after_character
-            );
-
-            return {
-                range: original_text_range,
-                text: formatted_text
-            };
-        }
-    }
-
-    return undefined;
 }
 
 export async function get_declaration_members(

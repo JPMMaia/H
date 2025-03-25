@@ -4,11 +4,8 @@ import * as assert from "assert";
 
 import * as Core from "./Core_intermediate_representation";
 import * as Grammar from "./Grammar";
-import * as Language from "./Language";
-import * as Parse_tree_text_position_cache from "./Parse_tree_text_position_cache";
 import * as Parser_node from "./Parser_node";
 import * as Scanner from "./Scanner";
-import * as Storage_cache from "./Storage_cache";
 import * as Text_change from "./Text_change";
 import * as Tree_sitter_parser from "./Tree_sitter_parser";
 import * as Validation from "./Validation";

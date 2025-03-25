@@ -601,7 +601,6 @@ describe("Scan_new_changes.scan_new_change", () => {
         const parse_tree = create_parse_node(
             "S",
             [
-                create_parse_node("Export", [], 0),
                 create_parse_node("struct", []),
                 create_parse_node("Struct_name", [
                     create_parse_node("name", []),
@@ -625,12 +624,12 @@ describe("Scan_new_changes.scan_new_change", () => {
 
         assert.notEqual(result.start_change, undefined);
         if (result.start_change !== undefined) {
-            assert.deepEqual(result.start_change.node_position, [1]);
+            assert.deepEqual(result.start_change.node_position, [0]);
         }
         assert.deepEqual(result.new_words, [{ value: "_struct", type: Grammar.Word_type.Alphanumeric, source_location: { line: 1, column: 1 } }]);
         assert.notEqual(result.after_change, undefined);
         if (result.after_change !== undefined) {
-            assert.deepEqual(result.after_change.node_position, [2, 0]);
+            assert.deepEqual(result.after_change.node_position, [1, 0]);
         }
     });
 

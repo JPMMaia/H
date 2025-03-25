@@ -527,26 +527,6 @@ function create_default_get_parse_tree(root: Parser_node.Node): (module_name: st
     };
 }
 
-function create_core_module_from_text(
-    language_description: Language.Description,
-    text: string
-): Core.Module {
-    const text_changes: Text_change.Text_change[] = [
-        {
-            range: {
-                start: 0,
-                end: 0
-            },
-            text: text
-        }
-    ];
-
-    const document_state = Document.create_empty_state("");
-    const new_document_state = Text_change.update(language_description, document_state, text_changes, text);
-    return new_document_state.valid.module;
-}
-
-
 describe("Parse_tree_analysis.get_symbol", () => {
 
     it("Finds symbol information of variable", async () => {

@@ -3,7 +3,6 @@ import * as Grammar from "./Grammar";
 import * as Module_change from "./Module_change";
 import * as Core_intermediate_representation from "./Core_intermediate_representation";
 import * as Object_reference from "./Object_reference";
-import * as Parser from "./Parser";
 import * as Parser_node from "./Parser_node";
 import * as Scanner from "./Scanner";
 import { get_node_at_position, Node } from "./Parser_node";
@@ -603,21 +602,6 @@ export function map_terminal_to_word(
     };
 }
 
-function get_change_parent_position(change: Parser.Change): any[] {
-    if (change.type === Parser.Change_type.Add) {
-        const add_change = change.value as Parser.Add_change;
-        return add_change.parent_position;
-    }
-    else if (change.type === Parser.Change_type.Remove) {
-        const remove_change = change.value as Parser.Remove_change;
-        return remove_change.parent_position;
-    }
-    else {
-        const modify_change = change.value as Parser.Modify_change;
-        return modify_change.position.slice(0, modify_change.position.length - 1);
-    }
-}
-
 function is_key_node(node: Node): boolean {
     switch (node.word.value) {
         case "Module":
@@ -631,50 +615,6 @@ function is_key_node(node: Node): boolean {
         default:
             return false;
     }
-}
-
-function create_add_change(
-    module: Core_intermediate_representation.Module,
-    root: Parser_node.Node,
-    add_change: Parser.Add_change,
-    parent_node: Parser_node.Node,
-    mappings: Parse_tree_mappings
-): { position: any[], change: Module_change.Change }[] {
-
-    const new_changes: { position: any[], change: Module_change.Change }[] = [];
-
-    for (const new_node of add_change.new_nodes) {
-        const new_node_position = [...add_change.parent_position, add_change.index];
-        const changes = parse_tree_to_core_object(module, root, new_node, new_node_position, mappings, false);
-        new_changes.push(...changes);
-    }
-
-    return new_changes;
-}
-
-function create_remove_change(
-    module: Core_intermediate_representation.Module,
-    remove_change: Parser.Remove_change,
-    parent_node: Parser_node.Node,
-): { position: any[], change: Module_change.Change }[] {
-
-    const new_changes: { position: any[], change: Module_change.Change }[] = [];
-
-    for (let index = 0; index < remove_change.count; ++index) {
-        const removed_node_index = remove_change.index + index;
-        const removed_node = parent_node.children[removed_node_index];
-
-        if (removed_node.word.value === "Import") {
-            const new_change = Module_change.create_remove_element_of_vector("imports", removed_node_index);
-            new_changes.push({ position: [], change: new_change });
-        }
-        else if (removed_node.word.value === "Declaration") {
-            const new_change = Module_change.create_remove_element_of_vector("declarations", removed_node_index);
-            new_changes.push({ position: [], change: new_change });
-        }
-    }
-
-    return new_changes;
 }
 
 function get_key_ancestor(
@@ -695,119 +635,6 @@ function get_key_ancestor(
         node: current_node,
         position: current_position
     };
-}
-
-function apply_parse_tree_change(
-    node: Parser_node.Node,
-    position: number[],
-    change: Parser.Change
-): Parser_node.Node {
-    if (change.type === Parser.Change_type.Add) {
-        const add_change = change.value as Parser.Add_change;
-        const parent_position = add_change.parent_position.slice(position.length, add_change.parent_position.length);
-        const parent_node = get_node_at_position(node, parent_position);
-        parent_node.children.splice(add_change.index, 0, ...add_change.new_nodes);
-        return node;
-    }
-    else if (change.type === Parser.Change_type.Remove) {
-        const remove_change = change.value as Parser.Remove_change;
-        const parent_position = remove_change.parent_position.slice(position.length, remove_change.parent_position.length);
-        const parent_node = get_node_at_position(node, parent_position);
-        parent_node.children.splice(remove_change.index, remove_change.count);
-        return node;
-    }
-    else if (change.type === Parser.Change_type.Modify) {
-        const modify_change = change.value as Parser.Modify_change;
-        if (modify_change.position.length === 0 && modify_change.new_node.word.value === "Module") {
-            return JSON.parse(JSON.stringify(modify_change.new_node));
-        }
-
-        const change_position = modify_change.position.slice(position.length, modify_change.position.length);
-        const parent_node_position = Parser_node.get_parent_position(change_position);
-        const parent_node = get_node_at_position(node, parent_node_position);
-        const child_to_modify_index = modify_change.position[modify_change.position.length - 1];
-        parent_node.children[child_to_modify_index] = modify_change.new_node;
-        return node;
-    }
-    else {
-        const message = "Parse_tree_convertor.apply_parse_tree_change(): change type not handled!";
-        onThrowError(message);
-        throw Error(message);
-    }
-}
-
-function create_modify_change(
-    any_change: Parser.Change,
-    root: Parser_node.Node,
-    node: Parser_node.Node,
-    node_position: number[],
-    module: Core_intermediate_representation.Module,
-    production_rules: Grammar.Production_rule[],
-    mappings: Parse_tree_mappings,
-): { position: any[], change: Module_change.Change }[] {
-
-    const production_rule = production_rules[node.production_rule_index as number];
-
-    if (is_key_node(node) && (production_rule.flags & Grammar.Production_rule_flags.Is_array_set) && any_change.type === Parser.Change_type.Modify) {
-        const modify_change = any_change.value as Parser.Modify_change;
-        const index = modify_change.position[modify_change.position.length - 1];
-        const new_node = modify_change.new_node;
-
-        const new_value = node_to_core_object(new_node, mappings);
-
-        const vector_name = new_node.word.value === "Import" ? "imports" : "declarations";
-
-        return [
-            { position: [], change: Module_change.create_set_element_of_vector(vector_name, index, new_value) }
-        ];
-    }
-
-    const key_ancestor = get_key_ancestor(root, node, node_position);
-
-    const key_node_clone = JSON.parse(JSON.stringify(key_ancestor.node)) as Parser_node.Node;
-    const new_node = apply_parse_tree_change(key_node_clone, key_ancestor.position, any_change);
-
-    const changes = parse_tree_to_core_object(module, root, new_node, key_ancestor.position, mappings, true);
-
-    return changes;
-}
-
-export function create_module_changes(
-    module: Core_intermediate_representation.Module,
-    production_rules: Grammar.Production_rule[],
-    parse_tree: Node,
-    parse_tree_changes: Parser.Change[],
-    mappings: Parse_tree_mappings,
-): { position: any[], change: Module_change.Change }[] {
-
-    const changes: { position: any[], change: Module_change.Change }[] = [];
-
-    // TODO use fast-array-diff
-    // TODO if delete and add are consecutive, convert to set change
-
-    for (const parse_tree_change of parse_tree_changes) {
-
-        const parent_position = get_change_parent_position(parse_tree_change);
-        const parent_node = get_node_at_position(parse_tree, parent_position);
-        const is_key = is_key_node(parent_node);
-
-        if (is_key && parse_tree_change.type === Parser.Change_type.Add) {
-            const add_change = parse_tree_change.value as Parser.Add_change;
-            const new_changes = create_add_change(module, parse_tree, add_change, parent_node, mappings);
-            changes.push(...new_changes);
-        }
-        else if (is_key && parse_tree_change.type === Parser.Change_type.Remove) {
-            const remove_change = parse_tree_change.value as Parser.Remove_change;
-            const new_changes = create_remove_change(module, remove_change, parent_node);
-            changes.push(...new_changes);
-        }
-        else {
-            const new_changes = create_modify_change(parse_tree_change, parse_tree, parent_node, parent_position, module, production_rules, mappings);
-            changes.push(...new_changes);
-        }
-    }
-
-    return changes;
 }
 
 export function create_key_to_production_rule_indices_map(production_rules: Grammar.Production_rule[]): Map<string, number[]> {
