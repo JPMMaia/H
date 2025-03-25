@@ -24,6 +24,18 @@ export function create_source_range(start_line: number, start_column: number, en
     };
 }
 
+function compare_locations(first: Source_location, second: Source_location): number {
+    if (first.line !== second.line) {
+        return first.line - second.line;
+    }
+
+    return first.column - second.column;
+}
+
+export function source_ranges_overlap(first: Source_range, second: Source_range): boolean {
+    return compare_locations(first.start, second.end) <= 0 && compare_locations(second.start, first.end) <= 0;
+}
+
 export interface Node {
     word: Scanner.Scanned_word;
     state: number;

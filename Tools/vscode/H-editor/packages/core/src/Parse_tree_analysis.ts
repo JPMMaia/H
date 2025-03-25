@@ -1007,56 +1007,28 @@ export function get_module_name_from_tree(
 }
 
 export function find_statement(
-    core_module: Core.Module,
     root: Parser_node.Node,
     node_position: number[]
-): { function_value: Core.Function, statement: Core.Statement, node_position: number[], node: Parser_node.Node } | undefined {
+): { statement: Core.Statement, node_position: number[], node: Parser_node.Node } | undefined {
 
     const statement_ancestor = get_statement_node_or_ancestor(root, node_position);
     if (statement_ancestor === undefined) {
         return undefined;
     }
 
-    const function_ancestor = Parser_node.get_ancestor_with_name(root, statement_ancestor.position, "Function");
-    if (function_ancestor === undefined) {
-        return undefined;
-    }
+    const statement = Parse_tree_convertor_mappings.node_to_statement(root, statement_ancestor.node);
 
-    const declaration_index = function_ancestor.position[1];
-    const declaration = core_module.declarations[declaration_index];
-    if (declaration === undefined || declaration.type !== Core.Declaration_type.Function) {
-        return undefined;
-    }
-
-    const function_value = declaration.value as Core.Function;
-    if (function_value.definition === undefined) {
-        return undefined;
-    }
-
-    let current_block = function_value.definition.statements;
-    let current_statement_node_position = statement_ancestor.position.slice(0, 7);
-    let current_statement_node = Parser_node.get_node_at_position(root, current_statement_node_position);
-
-    while (true) {
-        const current_statement_index = current_statement_node_position[current_statement_node_position.length - 1];
-        const current_statement = current_block[current_statement_index];
-
-        const result = go_to_next_block_with_expression(current_statement, root, node_position, current_statement_node, current_statement_node_position);
-        if (result === undefined) {
-            return { function_value: function_value, statement: current_statement, node_position: current_statement_node_position, node: current_statement_node };
-        }
-
-        current_statement_node_position = result.position;
-        current_statement_node = result.node;
-        current_block = result.statements;
-    }
+    return {
+        statement: statement,
+        node_position: statement_ancestor.position,
+        node: statement_ancestor.node
+    };
 }
 
 export function go_to_next_statement(
-    core_module: Core.Module,
     root: Parser_node.Node,
     node_position: number[]
-): { function_value: Core.Function, statement: Core.Statement, node_position: number[], node: Parser_node.Node } | undefined {
+): { statement: Core.Statement, node_position: number[], node: Parser_node.Node } | undefined {
 
     const statement_ancestor = get_statement_node_or_ancestor(root, node_position);
     if (statement_ancestor === undefined) {
@@ -1066,7 +1038,7 @@ export function go_to_next_statement(
     const next_statment_index = statement_ancestor.position[statement_ancestor.position.length - 1] + 1;
     const next_statement_node_position = [...statement_ancestor.position.slice(0, statement_ancestor.position.length - 1), next_statment_index];
 
-    return find_statement(core_module, root, next_statement_node_position);
+    return find_statement(root, next_statement_node_position);
 }
 
 function get_statement_node_or_ancestor(

@@ -2689,7 +2689,7 @@ function node_to_function_definition(root: Parser_node.Node, node: Parser_node.N
     return output;
 }
 
-function node_to_statement(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Statement {
+export function node_to_statement(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Statement {
 
     const child = node.children[0];
     const expression = node_to_expression(root, child);

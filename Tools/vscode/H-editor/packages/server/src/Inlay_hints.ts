@@ -34,44 +34,27 @@ export async function create(
 
     const start_node_iterator = get_start_iterator(document, parameters.range, root);
 
-    const is_within_range = (iterator: Parse_tree_text_iterator.Iterator): boolean => {
-
-        if (iterator.line === -1 || iterator.column === -1) {
-            return false;
-        }
-
-        if (iterator.line - 1 < parameters.range.end.line) {
-            return true;
-        }
-
-        if (iterator.line - 1 > parameters.range.end.line) {
-            return false;
-        }
-
-        return iterator.column - 1 < parameters.range.end.character;
-    };
-
     let iterator = start_node_iterator;
 
     const inlay_hints: vscode.InlayHint[] = [];
 
     const get_parse_tree = Server_data.create_get_parse_tree(server_data, workspace_uri);
-    const get_core_module = Server_data.create_get_core_module(server_data, workspace_uri);
-    const core_module = await get_core_module(Document.get_module_name(document_state));
-    if (core_module === undefined) {
-        return [];
-    }
 
-    while (is_within_range(iterator)) {
+    const parameter_range = Helpers.vscode_range_to_source_range(parameters.range);
+
+    while (is_within_range(iterator, parameters)) {
 
         if (iterator.node !== undefined) {
             if (Parser_node.has_ancestor_with_name(iterator.root, iterator.node_position, ["Statement"])) {
-                const result = Parse_tree_analysis.find_statement(core_module, iterator.root, iterator.node_position);
+                const result = Parse_tree_analysis.find_statement(iterator.root, iterator.node_position);
                 if (result !== undefined) {
                     const descendants = Parser_node.find_descendants_if({ node: result.node, position: result.node_position }, node => node.word.value === "Expression_variable_declaration" || node.word.value === "Expression_call");
                     for (const descendant of descendants) {
 
-                        const function_value = result.function_value;
+                        if (!Parser_node.source_ranges_overlap(descendant.node.source_range, parameter_range)) {
+                            continue;
+                        }
+
                         const statement = result.statement;
                         const statement_node_position = result.node_position;
                         const statement_node = result.node;
@@ -100,42 +83,34 @@ export async function create(
                             }
                         }
                         else if (descendant.node.word.value === "Expression_call") {
-                            const expression = Parse_tree_analysis.get_expression_from_node(root, descendant.node);
-                            if (expression.data.type === Core.Expression_enum.Call_expression) {
-                                const call_expression = expression.data.value as Core.Call_expression;
-                                const scope_declaration = Parse_tree_analysis.create_declaration_from_function_value(function_value);
-                                const left_hand_side_type = await Parse_tree_analysis.get_expression_type(iterator.root, statement_node_position, call_expression.expression, get_parse_tree);
-                                if (left_hand_side_type !== undefined && left_hand_side_type.is_value && left_hand_side_type.type.length > 0 && left_hand_side_type.type[0].data.type === Core.Type_reference_enum.Custom_type_reference) {
-                                    const custom_type_reference = left_hand_side_type.type[0].data.value as Core.Custom_type_reference;
-                                    const declaration = await Parse_tree_analysis.get_custom_type_reference_declaration(custom_type_reference, get_parse_tree);
-                                    if (declaration !== undefined && declaration.declaration.type === Core.Declaration_type.Function) {
-                                        const call_function_value = declaration.declaration.value as Core.Function;
 
-                                        const arguments_node = descendant.node.children[2];
-                                        const arguments_node_position = [...descendant.position, 2];
-                                        for (let child_index = 0; child_index < arguments_node.children.length; child_index += 2) {
+                            const left_hand_side = Parser_node.get_child(descendant, 0);
+                            const call_info = await Parse_tree_analysis.get_function_value_from_node(root, left_hand_side.node, get_parse_tree);
+                            if (call_info !== undefined) {
+                                const call_function_value = call_info.function_value;
 
-                                            const argument_index = child_index / 2;
+                                const child_arguments_array = Parser_node.get_child(descendant, 1);
+                                const children_arguments = Parser_node.get_children_if(child_arguments_array, node => node.word.value === "Generic_expression_or_instantiate");
+                                for (let argument_index = 0; argument_index < children_arguments.length; ++argument_index) {
+                                    const argument = children_arguments[argument_index];
 
-                                            const argument_source_location = Parse_tree_text_iterator.get_node_source_location(iterator.root, iterator.text, [...arguments_node_position, child_index]) as Parser_node.Source_location;
-                                            const position: vscode.Position = {
-                                                line: argument_source_location.line - 1,
-                                                character: argument_source_location.column - 1
-                                            };
+                                    const argument_source_location = Parse_tree_text_iterator.get_node_source_location(iterator.root, iterator.text, argument.position) as Parser_node.Source_location;
+                                    const position: vscode.Position = {
+                                        line: argument_source_location.line - 1,
+                                        character: argument_source_location.column - 1
+                                    };
 
-                                            const module_name = Parse_tree_analysis.get_module_name_from_tree(declaration.root);
-                                            const source_file_path = await Server_data.get_source_file_path_of_module(server_data, workspace_uri, module_name);
-                                            const label_parts = create_label_parts_for_parameter(source_file_path, call_function_value.declaration, argument_index);
+                                    const module_name = Parse_tree_analysis.get_module_name_from_tree(call_info.root);
+                                    const source_file_path = await Server_data.get_source_hlang_file_path_of_module(server_data, workspace_uri, module_name);
+                                    const label_parts = create_label_parts_for_parameter(source_file_path, call_function_value.declaration, argument_index);
 
-                                            inlay_hints.push(
-                                                {
-                                                    label: label_parts,
-                                                    position: position,
-                                                    kind: vscode.InlayHintKind.Parameter,
-                                                }
-                                            );
+                                    inlay_hints.push(
+                                        {
+                                            label: label_parts,
+                                            position: position,
+                                            kind: vscode.InlayHintKind.Parameter,
                                         }
-                                    }
+                                    );
                                 }
                             }
                         }
@@ -152,6 +127,23 @@ export async function create(
 
     return inlay_hints;
 }
+
+function is_within_range(iterator: Parse_tree_text_iterator.Iterator, parameters: vscode.InlayHintParams): boolean {
+
+    if (iterator.line === -1 || iterator.column === -1) {
+        return false;
+    }
+
+    if (iterator.line - 1 < parameters.range.end.line) {
+        return true;
+    }
+
+    if (iterator.line - 1 > parameters.range.end.line) {
+        return false;
+    }
+
+    return iterator.column - 1 < parameters.range.end.character;
+};
 
 function get_start_iterator(
     document: TextDocument,
@@ -251,14 +243,8 @@ export async function create_label_parts_for_type_recursively(
             const current_module_name = Parse_tree_analysis.get_module_name_from_tree(root);
 
             if (module_name !== current_module_name) {
-                const import_module_symbol = Parse_tree_analysis.get_import_alias_symbol(root, module_name);
-                if (import_module_symbol === undefined) {
-                    return;
-                }
 
-                const import_module_data = import_module_symbol.data as Parse_tree_analysis.Symbol_module_alias_data;
-
-                const imported_root = await get_parse_tree(import_module_data.module_name);
+                const imported_root = await get_parse_tree(module_name);
                 if (imported_root === undefined) {
                     return;
                 }
@@ -270,7 +256,7 @@ export async function create_label_parts_for_type_recursively(
 
                 parts.push(
                     {
-                        value: import_module_data.module_alias,
+                        value: module_name,
                         location: location,
                         tooltip: tooltip
                     }

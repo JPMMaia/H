@@ -49,18 +49,17 @@ suite("Should get inlay hints", () => {
 
 	test("Creates hint for variable declaration of a struct of a different module", async () => {
 		const document_uri = get_document_uri("projects/project_1/inlay_hints_0.hltxt");
-		const imported_module_document_uri = get_document_uri("projects/complex/complex.h");
+		const imported_module_document_uri = get_document_uri("build/Complex/c.complex.generated.hltxt");
 
 		const module_tooltip = new vscode.MarkdownString(
 			[
 				'```hlang',
 				'module c.complex',
-				'```',
-				'C Header'
+				'```'
 			].join("\n")
 		);
 
-		await test_inlay_hints(document_uri, to_range(8, 4, 8, 30), [
+		await test_inlay_hints(document_uri, to_range(8, 4, 8, 9), [
 			{
 				label: [
 					{
@@ -68,7 +67,7 @@ suite("Should get inlay hints", () => {
 						tooltip: undefined
 					},
 					{
-						value: "complex",
+						value: "c.complex",
 						tooltip: module_tooltip,
 						location: {
 							uri: imported_module_document_uri,
@@ -84,7 +83,7 @@ suite("Should get inlay hints", () => {
 						tooltip: undefined,
 						location: {
 							uri: imported_module_document_uri,
-							range: to_range(0, 15, 0, 22)
+							range: to_range(13, 14, 13, 21)
 						}
 					}
 				],

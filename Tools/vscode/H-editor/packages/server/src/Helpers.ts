@@ -48,6 +48,10 @@ export function range_to_vscode_range(range: Range): vscode.Range {
     );
 }
 
+export function vscode_range_to_source_range(range: vscode.Range): Parser_node.Source_range {
+    return Parser_node.create_source_range(range.start.line + 1, range.start.character + 1, range.end.line + 1, range.end.character + 1);
+}
+
 export function create_vscode_range(start_line: number, start_column: number, end_line: number, end_column: number): vscode.Range {
     return vscode.Range.create(
         vscode.Position.create(start_line - 1, start_column - 1),
@@ -398,10 +402,7 @@ export async function get_module_source_location(
 
     const module_name = Parse_tree_analysis.get_module_name_from_tree(root);
 
-    const source_file_path = await Server_data.get_source_file_path_of_module(server_data, workspace_uri, module_name);
-    if (source_file_path === undefined) {
-        return undefined;
-    }
+    const source_file_path = await Server_data.get_source_hlang_file_path_of_module(server_data, workspace_uri, module_name);
 
     const range: Range = {
         start: {
@@ -446,18 +447,7 @@ export async function get_node_source_vscode_location(
 
     const module_name = Parse_tree_analysis.get_module_name_from_tree(root);
 
-    const source_file_path = await Server_data.get_source_file_path_of_module(server_data, workspace_uri, module_name);
-
-    if (source_file_path.endsWith(".h")) {
-        const intermediate_text_file_path = await Server_data.get_intermediate_text_file_path_of_module(server_data, workspace_uri, module_name);
-        if (intermediate_text_file_path !== undefined) {
-            const location = location_to_vscode_location(
-                get_node_position_source_location(root, node_position, intermediate_text_file_path)
-            );
-
-            return location;
-        }
-    }
+    const source_file_path = await Server_data.get_source_hlang_file_path_of_module(server_data, workspace_uri, module_name);
 
     const location = location_to_vscode_location(
         get_node_position_source_location(root, node_position, source_file_path)

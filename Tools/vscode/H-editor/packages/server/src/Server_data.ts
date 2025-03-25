@@ -144,6 +144,23 @@ export async function get_intermediate_text_file_path_of_module(
     return Project.map_module_name_to_parsed_file_path(workspace_folder_uri, artifact, module_name, "generated.hltxt");
 }
 
+export async function get_source_hlang_file_path_of_module(
+    server_data: Server_data,
+    workspace_folder_uri: string | undefined,
+    module_name: string
+): Promise<string | undefined> {
+    const source_file_path = await get_source_file_path_of_module(server_data, workspace_folder_uri, module_name);
+
+    if (source_file_path.endsWith(".h")) {
+        const intermediate_text_file_path = await get_intermediate_text_file_path_of_module(server_data, workspace_folder_uri, module_name);
+        if (intermediate_text_file_path !== undefined) {
+            return intermediate_text_file_path;
+        }
+    }
+
+    return source_file_path;
+}
+
 export async function get_parse_tree(
     server_data: Server_data,
     workspace_folder_uri: string | undefined,
