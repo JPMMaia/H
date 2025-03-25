@@ -4,7 +4,7 @@ from pathlib import Path
 import shutil
 import argparse
 
-def run_command(directory: str, command: str) -> None:
+def run_command(directory: str, command: str) -> bool:
     """Run a shell command in a specific directory."""
     try:
         result: subprocess.CompletedProcess = subprocess.run(
@@ -14,8 +14,11 @@ def run_command(directory: str, command: str) -> None:
         print("Output:\n", result.stdout)
         if result.stderr:
             print("Error:\n", result.stderr)
+            return False
+        return True
     except Exception as e:
         print(f"Failed to run command in {directory}: {e}")
+        return False
 
 
 def copy_folder(source: str, destination: str) -> None:
@@ -40,6 +43,40 @@ extension_directory = root_directory.joinpath("Tools/vscode/H-editor")
 parser_directory = root_directory.joinpath("Source/Parser/tree-sitter-hlang")
 parser_app_file_path = extension_directory.joinpath("dist/parser.js")
 core_package_directory = extension_directory.joinpath("packages/core")
+
+def build_and_test() -> bool:
+    build_parser()
+    if not run_command(parser_directory.as_posix(), "npm run test_tree_sitter"):
+        return False
+    
+    if not run_command(extension_directory.as_posix(), "npm run test:scripts"):
+        return False
+    
+    build_compiler("debug")
+    copy_parser(root_directory.joinpath("build/Source/Compiler/Debug"))
+    generate_builtin()
+    generate_examples()
+    if not run_command(root_directory.joinpath("build").as_posix(), "ctest -j 8"):
+        return False
+    
+    install_hlang("debug", root_directory.joinpath("debug", "../Hlang_install"))
+    if not test_language_server():
+        return False
+    
+    return True
+
+
+def test_language_server() -> bool:
+    arguments = [
+        extension_directory.as_posix(),
+        extension_directory.joinpath("out/packages/client/src/test").as_posix(),
+        extension_directory.joinpath("packages/client/test_fixture").as_posix()
+    ];
+    arguments_string = " ".join(arguments)
+    run_command(extension_directory.as_posix(), "node ./out/packages/client/src/test/runTest.js " + arguments_string)
+
+def build_compiler(configuration: str) -> None:
+    run_command(root_directory.as_posix(), "cmake -S . -B build")
 
 def build_parser() -> None:
     run_command(parser_directory.as_posix(), "npm run generate")
@@ -89,6 +126,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Helper scripts for building Hlang.")
     subparsers = parser.add_subparsers(dest="command", required=True, help="Available commands")
 
+    build_and_test_command = subparsers.add_parser("build_and_test", help="Build and test all")
+
     build_parser_command = subparsers.add_parser("build_parser", help="Build parser")
     
     copy_parser_command = subparsers.add_parser("copy_parser", help="Copy parser")
@@ -102,8 +141,12 @@ def main() -> None:
     install_hlang_command.add_argument("destination_directory")
     install_hlang_command.add_argument("--configuration", default="release")
 
+    test_language_server_command = subparsers.add_parser("test_language_server", help="Tests the language server")
+
     args = parser.parse_args()
 
+    if args.command == "build_and_test":
+        build_and_test()
     if args.command == "build_parser":
         build_parser()
     elif args.command == "copy_parser":
@@ -114,6 +157,9 @@ def main() -> None:
         generate_examples()
     elif args.command == "install_hlang":
         install_hlang(args.configuration, Path(args.destination_directory))
+    elif args.command == "test_language_server":
+        if not test_language_server():
+            exit(-1)
 
 if __name__ == "__main__":
     main()
