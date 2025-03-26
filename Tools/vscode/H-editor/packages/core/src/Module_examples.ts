@@ -4996,7 +4996,7 @@ export function create_function_constructor_1(): IR.Module {
                                         output_parameter_names: [
                                             "result"
                                         ],
-                                        linkage: IR.Linkage.External,
+                                        linkage: IR.Linkage.Private,
                                         preconditions: [],
                                         postconditions: [],
                                     },
@@ -5004,10 +5004,12 @@ export function create_function_constructor_1(): IR.Module {
                                         name: "",
                                         statements: [
                                             create_statement(
-                                                IR.create_binary_expression(
-                                                    IR.create_variable_expression("first", IR.Access_type.Read),
-                                                    IR.create_variable_expression("second", IR.Access_type.Read),
-                                                    IR.Binary_operation.Add
+                                                IR.create_return_expression(
+                                                    IR.create_binary_expression(
+                                                        IR.create_variable_expression("first", IR.Access_type.Read),
+                                                        IR.create_variable_expression("second", IR.Access_type.Read),
+                                                        IR.Binary_operation.Add
+                                                    )
                                                 )
                                             )
                                         ]
@@ -5047,7 +5049,7 @@ export function create_function_constructor_1(): IR.Module {
                                         IR.create_instance_call_expression(
                                             IR.create_variable_expression("add", IR.Access_type.Read),
                                             [
-                                                IR.create_type_expression(int32_type)
+                                                IR.create_variable_expression("Int32", IR.Access_type.Read)
                                             ]
                                         ),
                                         [
@@ -5065,7 +5067,7 @@ export function create_function_constructor_1(): IR.Module {
                                         IR.create_instance_call_expression(
                                             IR.create_variable_expression("add", IR.Access_type.Read),
                                             [
-                                                IR.create_type_expression(float32_type)
+                                                IR.create_variable_expression("Float32", IR.Access_type.Read)
                                             ]
                                         ),
                                         [

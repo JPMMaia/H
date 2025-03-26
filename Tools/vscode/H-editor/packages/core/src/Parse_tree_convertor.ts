@@ -856,6 +856,13 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
             }
             break;
         }
+        case Core_intermediate_representation.Expression_enum.Function_expression: {
+            const value = expression.data.value as Core_intermediate_representation.Function_expression;
+            for (const statement of value.definition.statements) {
+                visit_expressions(statement.expression, predicate);
+            }
+            break;
+        }
         case Core_intermediate_representation.Expression_enum.If_expression: {
             const value = expression.data.value as Core_intermediate_representation.If_expression;
             for (const serie of value.series) {
@@ -1044,6 +1051,16 @@ export function visit_types_of_expression(expression: Core_intermediate_represen
             case Core_intermediate_representation.Expression_enum.Cast_expression: {
                 const cast_expression = expression.data.value as Core_intermediate_representation.Cast_expression;
                 visit_types(cast_expression.destination_type, visitor);
+                break;
+            }
+            case Core_intermediate_representation.Expression_enum.Function_expression: {
+                const value = expression.data.value as Core_intermediate_representation.Function_expression;
+                for (const type of value.declaration.type.input_parameter_types) {
+                    visit_types(type, visitor);
+                }
+                for (const type of value.declaration.type.output_parameter_types) {
+                    visit_types(type, visitor);
+                }
                 break;
             }
             case Core_intermediate_representation.Expression_enum.Struct_expression: {

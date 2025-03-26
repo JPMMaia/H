@@ -2349,7 +2349,7 @@ function run() -> ()
         const new_document_state = Text_change.update(parser, document_state, text_changes, program, false);
         assert.equal(new_document_state.pending_text_changes.length, 0);
 
-        const expected_module = Module_examples.create_function_constructor_0();
+        const expected_module = Module_examples.create_function_constructor_1();
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 

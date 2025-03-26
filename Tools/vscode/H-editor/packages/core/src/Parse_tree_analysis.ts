@@ -564,7 +564,12 @@ async function create_symbol_declaration_from_node(
     declaration_name_position: number[]
 ): Promise<Symbol_information> {
     if (underlying_declaration_node.word.value === "Function") {
-        const function_declaration_value = Parse_tree_convertor_mappings.node_to_function_declaration(root, declaration_node);
+
+        const linkage = Parse_tree_convertor_mappings.is_export_declaration(underlying_declaration_node) ? Core.Linkage.External : Core.Linkage.Private;
+        const declaration_node = underlying_declaration_node.children[0];
+
+        const function_declaration_value = Parse_tree_convertor_mappings.node_to_function_declaration(root, declaration_node, linkage, undefined);
+
         const type_reference = Type_utilities.create_function_pointer_type_from_declaration(function_declaration_value);
         return create_value_symbol(declaration_name_value, [type_reference], declaration_name_position);
     }
