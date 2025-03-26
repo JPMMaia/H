@@ -1,0 +1,15 @@
+module Function_constructor;
+
+export function_constructor add(value_type: Type)
+{
+    return function (first: value_type, second: value_type) -> (result: value_type)
+    {
+        return first + second;
+    };
+}
+
+function run() -> ()
+{
+    var a = add<Int32>(1, 2);
+    var b = add<Float32>(3.0f32, 4.0f32);
+}
