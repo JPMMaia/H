@@ -482,12 +482,12 @@ namespace h
         friend auto operator<=>(Function_expression const&, Function_expression const&) = default;
     };
 
-    export struct Function_instance_expression
+    export struct Instance_call_expression
     {
         Expression_index left_hand_side;
         std::pmr::vector<Expression_index> arguments;
 
-        friend auto operator<=>(Function_instance_expression const&, Function_instance_expression const&) = default;
+        friend auto operator<=>(Instance_call_expression const&, Instance_call_expression const&) = default;
     };
 
     export struct Condition_statement_pair
@@ -614,6 +614,13 @@ namespace h
         friend auto operator<=>(Unary_expression const&, Unary_expression const&) = default;
     };
 
+    export struct Union_expression
+    {
+        Union_declaration declaration;
+
+        friend auto operator<=>(Union_expression const&, Union_expression const&) = default;
+    };
+
     export struct Variable_declaration_expression
     {
         std::pmr::string name;
@@ -660,7 +667,7 @@ namespace h
             Defer_expression,
             For_loop_expression,
             Function_expression,
-            Function_instance_expression,
+            Instance_call_expression,
             If_expression,
             Instantiate_expression,
             Invalid_expression,
@@ -672,6 +679,7 @@ namespace h
             Ternary_condition_expression,
             Type_expression,
             Unary_expression,
+            Union_expression,
             Variable_declaration_expression,
             Variable_declaration_with_type_expression,
             Variable_expression,
@@ -697,6 +705,8 @@ namespace h
         std::pmr::string name;
         std::pmr::vector<Type_constructor_parameter> parameters;
         std::pmr::vector<Statement> statements;
+        std::optional<std::pmr::string> comment;
+        std::optional<Source_location> source_location;
 
         friend auto operator<=>(Type_constructor const&, Type_constructor const&) = default;
     };
@@ -714,6 +724,8 @@ namespace h
         std::pmr::string name;
         std::pmr::vector<Function_constructor_parameter> parameters;
         std::pmr::vector<Statement> statements;
+        std::optional<std::pmr::string> comment;
+        std::optional<Source_location> source_location;
 
         friend auto operator<=>(Function_constructor const&, Function_constructor const&) = default;
     };

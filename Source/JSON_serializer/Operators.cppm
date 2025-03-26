@@ -1124,11 +1124,11 @@ namespace h::json::operators
         return output_stream;
     }
 
-    export std::istream& operator>>(std::istream& input_stream, Function_instance_expression& value)
+    export std::istream& operator>>(std::istream& input_stream, Instance_call_expression& value)
     {
         rapidjson::Reader reader;
         rapidjson::IStreamWrapper stream_wrapper{ input_stream };
-        std::optional<Function_instance_expression> const output = h::json::read<Function_instance_expression>(reader, stream_wrapper);
+        std::optional<Instance_call_expression> const output = h::json::read<Instance_call_expression>(reader, stream_wrapper);
 
         if (output)
         {
@@ -1138,7 +1138,7 @@ namespace h::json::operators
         return input_stream;
     }
 
-    export std::ostream& operator<<(std::ostream& output_stream, Function_instance_expression const& value)
+    export std::ostream& operator<<(std::ostream& output_stream, Instance_call_expression const& value)
     {
         rapidjson::OStreamWrapper stream_wrapper{ output_stream };
         rapidjson::Writer<rapidjson::OStreamWrapper> writer{ stream_wrapper };
@@ -1461,6 +1461,29 @@ namespace h::json::operators
     }
 
     export std::ostream& operator<<(std::ostream& output_stream, Unary_expression const& value)
+    {
+        rapidjson::OStreamWrapper stream_wrapper{ output_stream };
+        rapidjson::Writer<rapidjson::OStreamWrapper> writer{ stream_wrapper };
+        h::json::write(writer, value);
+
+        return output_stream;
+    }
+
+    export std::istream& operator>>(std::istream& input_stream, Union_expression& value)
+    {
+        rapidjson::Reader reader;
+        rapidjson::IStreamWrapper stream_wrapper{ input_stream };
+        std::optional<Union_expression> const output = h::json::read<Union_expression>(reader, stream_wrapper);
+
+        if (output)
+        {
+            value = std::move(*output);
+        }
+
+        return input_stream;
+    }
+
+    export std::ostream& operator<<(std::ostream& output_stream, Union_expression const& value)
     {
         rapidjson::OStreamWrapper stream_wrapper{ output_stream };
         rapidjson::Writer<rapidjson::OStreamWrapper> writer{ stream_wrapper };

@@ -868,6 +868,14 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
             }
             break;
         }
+        case Core_intermediate_representation.Expression_enum.Instance_call_expression: {
+            const value = expression.data.value as Core_intermediate_representation.Instance_call_expression;
+            visit_expressions(value.left_hand_side, predicate);
+            for (const argument of value.arguments) {
+                visit_expressions(argument, predicate);
+            }
+            break;
+        }
         case Core_intermediate_representation.Expression_enum.Instantiate_expression: {
             const value = expression.data.value as Core_intermediate_representation.Instantiate_expression;
             for (const member of value.members) {
@@ -884,6 +892,13 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
             const value = expression.data.value as Core_intermediate_representation.Return_expression;
             if (value.expression !== undefined) {
                 visit_expressions(value.expression, predicate);
+            }
+            break;
+        }
+        case Core_intermediate_representation.Expression_enum.Struct_expression: {
+            const struct_expression = expression.data.value as Core_intermediate_representation.Struct_expression;
+            for (const statement of struct_expression.declaration.member_default_values) {
+                visit_expressions(statement.expression, predicate);
             }
             break;
         }
@@ -936,6 +951,7 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
         case Core_intermediate_representation.Expression_enum.Continue_expression:
         case Core_intermediate_representation.Expression_enum.Invalid_expression:
         case Core_intermediate_representation.Expression_enum.Null_pointer_expression:
+        case Core_intermediate_representation.Expression_enum.Union_expression:
         case Core_intermediate_representation.Expression_enum.Variable_expression: {
             break;
         }
@@ -989,6 +1005,23 @@ export function visit_types(type: Core_intermediate_representation.Type_referenc
             }
             break;
         }
+        case Core_intermediate_representation.Type_reference_enum.Type_instance: {
+            const value = type.data.value as Core_intermediate_representation.Type_instance;
+
+            const left_hand_side: Core_intermediate_representation.Type_reference = {
+                data: {
+                    type: Core_intermediate_representation.Type_reference_enum.Custom_type_reference,
+                    value: value.type_constructor
+                }
+            };
+            visit_types(left_hand_side, visitor);
+
+            for (const statement of value.arguments) {
+                visit_types_of_expression(statement.expression, visitor);
+            }
+
+            break;
+        }
         case Core_intermediate_representation.Type_reference_enum.Builtin_type_reference:
         case Core_intermediate_representation.Type_reference_enum.Custom_type_reference:
         case Core_intermediate_representation.Type_reference_enum.Fundamental_type:
@@ -1010,6 +1043,25 @@ export function visit_types_of_expression(expression: Core_intermediate_represen
             case Core_intermediate_representation.Expression_enum.Cast_expression: {
                 const cast_expression = expression.data.value as Core_intermediate_representation.Cast_expression;
                 visit_types(cast_expression.destination_type, visitor);
+                break;
+            }
+            case Core_intermediate_representation.Expression_enum.Struct_expression: {
+                const struct_expression = expression.data.value as Core_intermediate_representation.Struct_expression;
+                for (const member_type of struct_expression.declaration.member_types) {
+                    visit_types(member_type, visitor);
+                }
+                break;
+            }
+            case Core_intermediate_representation.Expression_enum.Type_expression: {
+                const type_expression = expression.data.value as Core_intermediate_representation.Type_expression;
+                visit_types(type_expression.type, visitor);
+                break;
+            }
+            case Core_intermediate_representation.Expression_enum.Union_expression: {
+                const union_expression = expression.data.value as Core_intermediate_representation.Union_expression;
+                for (const member_type of union_expression.declaration.member_types) {
+                    visit_types(member_type, visitor);
+                }
                 break;
             }
             case Core_intermediate_representation.Expression_enum.Variable_declaration_with_type_expression: {
@@ -1047,11 +1099,25 @@ function visit_types_of_module(module: Core_intermediate_representation.Module, 
                 visit_types(type, visitor);
             }
         }
+        else if (declaration.type === Core_intermediate_representation.Declaration_type.Function_constructor) {
+            const function_constructor_declaration = declaration.value as Core_intermediate_representation.Function_constructor;
+
+            for (const parameter of function_constructor_declaration.parameters) {
+                visit_types(parameter.type, visitor);
+            }
+        }
         else if (declaration.type === Core_intermediate_representation.Declaration_type.Struct) {
             const struct_declaration = declaration.value as Core_intermediate_representation.Struct_declaration;
 
             for (const type of struct_declaration.member_types) {
                 visit_types(type, visitor);
+            }
+        }
+        else if (declaration.type === Core_intermediate_representation.Declaration_type.Type_constructor) {
+            const type_constructor_declaration = declaration.value as Core_intermediate_representation.Type_constructor;
+
+            for (const parameter of type_constructor_declaration.parameters) {
+                visit_types(parameter.type, visitor);
             }
         }
         else if (declaration.type === Core_intermediate_representation.Declaration_type.Union) {

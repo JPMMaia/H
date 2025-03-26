@@ -116,7 +116,7 @@ export enum Expression_enum {
     Defer_expression = "Defer_expression",
     For_loop_expression = "For_loop_expression",
     Function_expression = "Function_expression",
-    Function_instance_expression = "Function_instance_expression",
+    Instance_call_expression = "Instance_call_expression",
     If_expression = "If_expression",
     Instantiate_expression = "Instantiate_expression",
     Invalid_expression = "Invalid_expression",
@@ -128,6 +128,7 @@ export enum Expression_enum {
     Ternary_condition_expression = "Ternary_condition_expression",
     Type_expression = "Type_expression",
     Unary_expression = "Unary_expression",
+    Union_expression = "Union_expression",
     Variable_declaration_expression = "Variable_declaration_expression",
     Variable_declaration_with_type_expression = "Variable_declaration_with_type_expression",
     Variable_expression = "Variable_expression",
@@ -383,7 +384,7 @@ export interface Function_expression {
     definition: Function_definition;
 }
 
-export interface Function_instance_expression {
+export interface Instance_call_expression {
     left_hand_side: Expression_index;
     arguments: Vector<Expression_index>;
 }
@@ -452,6 +453,10 @@ export interface Unary_expression {
     operation: Unary_operation;
 }
 
+export interface Union_expression {
+    declaration: Union_declaration;
+}
+
 export interface Variable_declaration_expression {
     name: string;
     is_mutable: boolean;
@@ -471,7 +476,7 @@ export interface While_loop_expression {
 }
 
 export interface Expression {
-    data: Variant<Expression_enum, Access_expression | Access_array_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Comment_expression | Compile_time_expression | Constant_expression | Constant_array_expression | Continue_expression | Defer_expression | For_loop_expression | Function_expression | Function_instance_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Struct_expression | Switch_expression | Ternary_condition_expression | Type_expression | Unary_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
+    data: Variant<Expression_enum, Access_expression | Access_array_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Comment_expression | Compile_time_expression | Constant_expression | Constant_array_expression | Continue_expression | Defer_expression | For_loop_expression | Function_expression | Instance_call_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Struct_expression | Switch_expression | Ternary_condition_expression | Type_expression | Unary_expression | Union_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
     source_position?: Source_position;
 }
 
@@ -484,6 +489,8 @@ export interface Type_constructor {
     name: string;
     parameters: Vector<Type_constructor_parameter>;
     statements: Vector<Statement>;
+    comment?: string;
+    source_location?: Source_location;
 }
 
 export interface Function_constructor_parameter {
@@ -495,6 +502,8 @@ export interface Function_constructor {
     name: string;
     parameters: Vector<Function_constructor_parameter>;
     statements: Vector<Statement>;
+    comment?: string;
+    source_location?: Source_location;
 }
 
 export interface Language_version {

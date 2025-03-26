@@ -2119,6 +2119,15 @@ export function node_to_declaration(
                 value: value,
             };
         }
+        case "Function_constructor": {
+            const value = node_to_function_constructor_declaration(root, node);
+            return {
+                name: value.name,
+                type: Core_intermediate_representation.Declaration_type.Function_constructor,
+                is_export: is_export,
+                value: value,
+            };
+        }
         case "Global_variable": {
             const declaration = node_to_global_variable_declaration(root, node);
             return {
@@ -2133,6 +2142,15 @@ export function node_to_declaration(
             return {
                 name: value.name,
                 type: Core_intermediate_representation.Declaration_type.Struct,
+                is_export: is_export,
+                value: value,
+            };
+        }
+        case "Type_constructor": {
+            const value = node_to_type_constructor_declaration(root, node);
+            return {
+                name: value.name,
+                type: Core_intermediate_representation.Declaration_type.Type_constructor,
                 is_export: is_export,
                 value: value,
             };
@@ -2228,6 +2246,11 @@ export function node_to_type_reference(
 
     if (child.word.value === "Type_name") {
         const identifier = child.children[0].word.value;
+
+        if (identifier === "Type") {
+            return [Type_utilities.create_builtin_type_reference("Type")];
+        }
+
         const module_name = get_module_name_from_tree(root);
         return Type_utilities.parse_type_name(identifier, module_name);
     }
@@ -2317,6 +2340,33 @@ export function node_to_type_reference(
                 }
             }
         ];
+    }
+    else if (child.word.value === "Type_instance_type") {
+        const left_hand_side_node = find_node(child, "Type") as Parser_node.Node;
+        const left_hand_side = node_to_type_reference(root, left_hand_side_node);
+        if (left_hand_side.length > 0) {
+            if (left_hand_side[0].data.type === Core_intermediate_representation.Type_reference_enum.Custom_type_reference) {
+                const custom_type_reference = left_hand_side[0].data.value as Core_intermediate_representation.Custom_type_reference;
+
+                const expression_nodes = find_nodes_inside_parent(child, "Type_instance_type_parameters", "Generic_expression");
+                const expressions = expression_nodes.map(parameter => node_to_expression(root, parameter));
+                const statements: Core_intermediate_representation.Statement[] = expressions.map(expression => { return { expression: expression }; });
+
+                const type_instance: Core_intermediate_representation.Type_instance = {
+                    type_constructor: custom_type_reference,
+                    arguments: statements
+                };
+
+                return [
+                    {
+                        data: {
+                            type: Core_intermediate_representation.Type_reference_enum.Type_instance,
+                            value: type_instance
+                        }
+                    }
+                ];
+            }
+        }
     }
 
     const message = `Parse_tree_convertor_mapping.node_to_type_reference(): unhandled node '${child.word.value}'`;
@@ -2512,6 +2562,45 @@ function node_to_struct_declaration(root: Parser_node.Node, node: Parser_node.No
     return output;
 }
 
+function node_to_type_constructor_declaration(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Type_constructor {
+    const type_constructor_node = node.children[node.children.length - 1];
+
+    const name = find_node_value(type_constructor_node, "Type_constructor_name");
+
+    const parameters = find_nodes_inside_parent(type_constructor_node, "Type_constructor_parameters", "Function_parameter");
+    const parameter_values: Core_intermediate_representation.Type_constructor_parameter[] = parameters.map(node => {
+        const name_value = find_node_value(node, "Function_parameter_name")
+        const type = find_node(node, "Function_parameter_type") as Parser_node.Node;
+        const type_value = node_to_type_reference(root, type.children[0])[0];
+        return {
+            name: name_value,
+            type: type_value
+        };
+    });
+
+    const statements = find_nodes_inside_parent(type_constructor_node, "Block", "Statement");
+    const statement_values = statements.map(node => node_to_statement(root, node));
+
+    const output: Core_intermediate_representation.Type_constructor = {
+        name: name,
+        parameters: parameter_values,
+        statements: statement_values
+    };
+
+    const comments_node = get_comments_node(node);
+    const comments = extract_comments_from_node(comments_node);
+    if (comments !== undefined) {
+        output.comment = comments;
+    }
+
+    if (type_constructor_node.source_range !== undefined) {
+        const name_node = find_node(type_constructor_node, "Type_constructor_name") as Parser_node.Node;
+        output.source_location = name_node.source_range.start;
+    }
+
+    return output;
+}
+
 function node_to_union_declaration(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Union_declaration {
 
     const comments_node = get_comments_node(node);
@@ -2687,6 +2776,10 @@ function node_to_function_definition(root: Parser_node.Node, node: Parser_node.N
     }
 
     return output;
+}
+
+function node_to_function_constructor_declaration(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Function_constructor {
+    return undefined;
 }
 
 export function node_to_statement(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Statement {
@@ -2893,6 +2986,15 @@ function node_to_expression_without_source_location(root: Parser_node.Node, node
                 }
             };
         }
+        case "Expression_struct": {
+            const expression = node_to_expression_struct(root, node);
+            return {
+                data: {
+                    type: Core_intermediate_representation.Expression_enum.Struct_expression,
+                    value: expression
+                }
+            };
+        }
         case "Expression_switch": {
             const expression = node_to_expression_switch(root, node);
             return {
@@ -2903,6 +3005,15 @@ function node_to_expression_without_source_location(root: Parser_node.Node, node
             };
         }
         case "Expression_ternary_condition": {
+            const expression = node_to_expression_ternary_condition(root, node);
+            return {
+                data: {
+                    type: Core_intermediate_representation.Expression_enum.Ternary_condition_expression,
+                    value: expression
+                }
+            };
+        }
+        case "Expression_type": {
             const expression = node_to_expression_ternary_condition(root, node);
             return {
                 data: {
@@ -2957,7 +3068,7 @@ function node_to_expression_without_source_location(root: Parser_node.Node, node
             };
         }
         default: {
-            const message = `Parse_tree_convertor_mappings.node_to_expression(root, ) did not handle '${node.word.value}'`;
+            const message = `Parse_tree_convertor_mappings.node_to_expression() did not handle '${node.word.value}'`;
             onThrowError(message);
             throw Error(message);
         }
@@ -3519,6 +3630,13 @@ function node_to_expression_return(root: Parser_node.Node, node: Parser_node.Nod
     return return_expression;
 }
 
+function node_to_expression_struct(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Struct_expression {
+    const declaration = node_to_struct_declaration(root, node);
+    return {
+        declaration: declaration
+    };
+}
+
 function node_to_expression_switch_case(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Switch_case_expression_pair {
 
     const is_default_case = node.children[0].word.value === "default";
@@ -3567,6 +3685,14 @@ function node_to_expression_ternary_condition(root: Parser_node.Node, node: Pars
     };
 
     return ternary_condition_expression;
+}
+
+function node_to_expression_type(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Type_expression {
+    const child = node.children[0];
+    const type_reference = node_to_type_reference(root, child);
+    return {
+        type: type_reference[0]
+    };
 }
 
 function node_to_expression_unary(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Unary_expression {

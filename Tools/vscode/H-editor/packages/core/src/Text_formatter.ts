@@ -344,10 +344,10 @@ export function format_expression(expression: Core.Expression, indentation: numb
             return format_expression_for_loop(expression.data.value as Core.For_loop_expression, indentation, options);
         case Core.Expression_enum.Function_expression:
             return format_expression_function(expression.data.value as Core.Function_expression, options);
-        case Core.Expression_enum.Function_instance_expression:
-            return format_expression_function_instance(expression.data.value as Core.Function_instance_expression, options);
         case Core.Expression_enum.If_expression:
             return format_expression_if(expression.data.value as Core.If_expression, indentation, options);
+        case Core.Expression_enum.Instance_call_expression:
+            return format_expression_instance_call(expression.data.value as Core.Instance_call_expression, options);
         case Core.Expression_enum.Instantiate_expression:
             return format_expression_instantiate(expression.data.value as Core.Instantiate_expression, indentation, options);
         case Core.Expression_enum.Invalid_expression:
@@ -368,6 +368,8 @@ export function format_expression(expression: Core.Expression, indentation: numb
             return format_expression_type(expression.data.value as Core.Type_expression, options);
         case Core.Expression_enum.Unary_expression:
             return format_expression_unary(expression.data.value as Core.Unary_expression, options);
+        case Core.Expression_enum.Union_expression:
+            return format_expression_union(expression.data.value as Core.Union_expression, options);
         case Core.Expression_enum.Variable_declaration_expression:
             return format_expression_variable_declaration(expression.data.value as Core.Variable_declaration_expression, options);
         case Core.Expression_enum.Variable_declaration_with_type_expression:
@@ -480,13 +482,6 @@ export function format_expression_function(expression: Core.Function_expression,
     return `${declaration}${definition}`;
 }
 
-export function format_expression_function_instance(expression: Core.Function_instance_expression, options: Options): string {
-    const left_hand_side = format_expression(expression.left_hand_side, 0, options);
-    const argument_strings = expression.arguments.map(argument => format_expression(argument, 0, options));
-    const arguments_string = argument_strings.join(", ");
-    return `${left_hand_side}<${arguments_string}>`;
-}
-
 export function format_expression_if(expression: Core.If_expression, outside_indendation: number, options: Options): string {
 
     const outside_indentation_string = " ".repeat(outside_indendation);
@@ -505,6 +500,13 @@ export function format_expression_if(expression: Core.If_expression, outside_ind
 
     const series_string = series.join("");
     return series_string;
+}
+
+export function format_expression_instance_call(expression: Core.Instance_call_expression, options: Options): string {
+    const left_hand_side = format_expression(expression.left_hand_side, 0, options);
+    const argument_strings = expression.arguments.map(argument => format_expression(argument, 0, options));
+    const arguments_string = argument_strings.join(", ");
+    return `${left_hand_side}<${arguments_string}>`;
 }
 
 export function format_expression_instantiate(expression: Core.Instantiate_expression, outside_indentation: number, options: Options): string {
@@ -584,6 +586,10 @@ export function format_expression_unary(expression: Core.Unary_expression, optio
     const right_hand_side = format_expression(expression.expression, 0, options);
     const symbol = Parse_tree_convertor_mappings.unary_operation_to_string(expression.operation);
     return `${symbol}${right_hand_side}`;
+}
+
+export function format_expression_union(expression: Core.Union_expression, options: Options): string {
+    return format_union_declaration(expression.declaration, options);
 }
 
 export function format_expression_variable_declaration(expression: Core.Variable_declaration_expression, options: Options): string {

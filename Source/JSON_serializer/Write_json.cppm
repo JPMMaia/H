@@ -544,7 +544,7 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
-            Function_instance_expression const& input
+            Instance_call_expression const& input
         );
 
     export template<typename Writer_type>
@@ -629,6 +629,12 @@ namespace h::json
         void write_object(
             Writer_type& writer,
             Unary_expression const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Union_expression const& input
         );
 
     export template<typename Writer_type>
@@ -1581,7 +1587,7 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
-            Function_instance_expression const& output
+            Instance_call_expression const& output
         )
     {
         writer.StartObject();
@@ -1781,6 +1787,18 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Union_expression const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("declaration");
+        write_object(writer, output.declaration);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Variable_declaration_expression const& output
         )
     {
@@ -1964,12 +1982,12 @@ namespace h::json
             Function_expression const& value = std::get<Function_expression>(output.data);
             write_object(writer, value);
         }
-        else if (std::holds_alternative<Function_instance_expression>(output.data))
+        else if (std::holds_alternative<Instance_call_expression>(output.data))
         {
             writer.Key("type");
-            writer.String("Function_instance_expression");
+            writer.String("Instance_call_expression");
             writer.Key("value");
-            Function_instance_expression const& value = std::get<Function_instance_expression>(output.data);
+            Instance_call_expression const& value = std::get<Instance_call_expression>(output.data);
             write_object(writer, value);
         }
         else if (std::holds_alternative<If_expression>(output.data))
@@ -2060,6 +2078,14 @@ namespace h::json
             Unary_expression const& value = std::get<Unary_expression>(output.data);
             write_object(writer, value);
         }
+        else if (std::holds_alternative<Union_expression>(output.data))
+        {
+            writer.Key("type");
+            writer.String("Union_expression");
+            writer.Key("value");
+            Union_expression const& value = std::get<Union_expression>(output.data);
+            write_object(writer, value);
+        }
         else if (std::holds_alternative<Variable_declaration_expression>(output.data))
         {
             writer.Key("type");
@@ -2125,6 +2151,8 @@ namespace h::json
         write_object(writer, output.parameters);
         writer.Key("statements");
         write_object(writer, output.statements);
+        write_optional(writer, "comment", output.comment);
+        write_optional_object(writer, "source_location", output.source_location);
         writer.EndObject();
     }
 
@@ -2155,6 +2183,8 @@ namespace h::json
         write_object(writer, output.parameters);
         writer.Key("statements");
         write_object(writer, output.statements);
+        write_optional(writer, "comment", output.comment);
+        write_optional_object(writer, "source_location", output.source_location);
         writer.EndObject();
     }
 

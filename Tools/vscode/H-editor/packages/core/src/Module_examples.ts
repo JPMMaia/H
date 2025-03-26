@@ -5044,7 +5044,7 @@ export function create_function_constructor_1(): IR.Module {
                                     "a",
                                     false,
                                     IR.create_call_expression(
-                                        IR.create_function_instance_expression(
+                                        IR.create_instance_call_expression(
                                             IR.create_variable_expression("add", IR.Access_type.Read),
                                             [
                                                 IR.create_type_expression(int32_type)
@@ -5062,7 +5062,7 @@ export function create_function_constructor_1(): IR.Module {
                                     "b",
                                     false,
                                     IR.create_call_expression(
-                                        IR.create_function_instance_expression(
+                                        IR.create_instance_call_expression(
                                             IR.create_variable_expression("add", IR.Access_type.Read),
                                             [
                                                 IR.create_type_expression(float32_type)
