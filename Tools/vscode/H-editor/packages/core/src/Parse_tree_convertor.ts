@@ -1025,7 +1025,8 @@ export function visit_types(type: Core_intermediate_representation.Type_referenc
         case Core_intermediate_representation.Type_reference_enum.Builtin_type_reference:
         case Core_intermediate_representation.Type_reference_enum.Custom_type_reference:
         case Core_intermediate_representation.Type_reference_enum.Fundamental_type:
-        case Core_intermediate_representation.Type_reference_enum.Integer_type: {
+        case Core_intermediate_representation.Type_reference_enum.Integer_type:
+        case Core_intermediate_representation.Type_reference_enum.Parameter_type: {
             break;
         }
         default: {

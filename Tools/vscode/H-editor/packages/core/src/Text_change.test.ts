@@ -2285,7 +2285,7 @@ export type_constructor Dynamic_array(element_type: Type)
     return struct
     {
         data: *element_type = null;
-        length: Uint64 = 0;    
+        length: Uint64 = 0u64;    
     };
 }
 

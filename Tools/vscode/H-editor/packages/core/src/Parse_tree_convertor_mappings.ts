@@ -2581,6 +2581,27 @@ function node_to_type_constructor_declaration(root: Parser_node.Node, node: Pars
     const statements = find_nodes_inside_parent(type_constructor_node, "Block", "Statement");
     const statement_values = statements.map(node => node_to_statement(root, node));
 
+    const module_name = get_module_name_from_tree(root);
+    const replace_by_parameter_type = (type: Core_intermediate_representation.Type_reference): void => {
+        if (type.data.type === Core_intermediate_representation.Type_reference_enum.Custom_type_reference) {
+            const value = type.data.value as Core_intermediate_representation.Custom_type_reference;
+            if (value.module_reference.name === module_name) {
+                const found = parameter_values.find(parameter => parameter.name === value.name);
+                if (found !== undefined) {
+                    type.data = {
+                        type: Core_intermediate_representation.Type_reference_enum.Parameter_type,
+                        value: {
+                            name: value.name
+                        }
+                    };
+                }
+            }
+        }
+    };
+    for (const statement of statement_values) {
+        Parse_tree_convertor.visit_types_of_expression(statement.expression, replace_by_parameter_type);
+    }
+
     const output: Core_intermediate_representation.Type_constructor = {
         name: name,
         parameters: parameter_values,

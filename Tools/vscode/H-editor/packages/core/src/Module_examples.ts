@@ -4822,7 +4822,7 @@ export function create_type_constructor(): IR.Module {
                                     "instance",
                                     false,
                                     Type_utilities.create_type_instance("Type_constructor", "Dynamic_array", [
-                                        create_statement(IR.create_type_expression(create_integer_type(32, true)))
+                                        create_statement(IR.create_variable_expression("Int32", IR.Access_type.Read))
                                     ]),
                                     create_statement(
                                         IR.create_instantiate_expression(
