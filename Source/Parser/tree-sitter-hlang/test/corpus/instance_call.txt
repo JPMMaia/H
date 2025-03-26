@@ -1,22 +1,16 @@
 =========================
-Function constructor
+Instance call
 =========================
 
-module Function_constructor;
+module Call_function_instance;
 
-export function_constructor add(value_type: Type)
-{
-    return function (first: value_type, second: value_type) -> (result: value_type)
-    {
-        return first + second;
-    };
-}
+import Function_constructor as Function_constructor;
 
 function run() -> ()
 {
-    var a = add<Int32>;
-    var b = add<Int32>(1, 2);
-    var c = add<Float32>(3.0f32, 4.0f32);
+    var a = Function_constructor.add<Int32>;
+    var b = Function_constructor.add<Int32>(1, 2);
+    var c = Function_constructor.add<Float32>(3.0f32, 4.0f32);
 }
 
 ---
@@ -26,62 +20,13 @@ function run() -> ()
     (Module_declaration
       (Module_name
         (Identifier_with_dots
-          (Identifier)))))
-  (Declaration
-    (Function_constructor
-      (Function_constructor_name
-        (Identifier))
-      (Function_constructor_parameters
-        (Function_parameter
-          (Function_parameter_name
-            (Identifier))
-          (Function_parameter_type
-            (Type
-              (Type_name
-                (Identifier))))))
-      (Block
-        (Statement
-          (Expression_return
-            (Generic_expression_or_instantiate
-              (Generic_expression
-                (Expression_function
-                  (Function_input_parameters
-                    (Function_parameter
-                      (Function_parameter_name
-                        (Identifier))
-                      (Function_parameter_type
-                        (Type
-                          (Type_name
-                            (Identifier)))))
-                    (Function_parameter
-                      (Function_parameter_name
-                        (Identifier))
-                      (Function_parameter_type
-                        (Type
-                          (Type_name
-                            (Identifier))))))
-                  (Function_output_parameters
-                    (Function_parameter
-                      (Function_parameter_name
-                        (Identifier))
-                      (Function_parameter_type
-                        (Type
-                          (Type_name
-                            (Identifier))))))
-                  (Block
-                    (Statement
-                      (Expression_return
-                        (Generic_expression_or_instantiate
-                          (Generic_expression
-                            (Expression_binary
-                              (Generic_expression
-                                (Expression_variable
-                                  (Variable_name
-                                    (Identifier))))
-                              (Generic_expression
-                                (Expression_variable
-                                  (Variable_name
-                                    (Identifier))))))))))))))))))
+          (Identifier))))
+    (Import
+      (Import_name
+        (Identifier_with_dots
+          (Identifier)))
+      (Import_alias
+        (Identifier))))
   (Declaration
     (Function
       (Function_declaration
@@ -99,8 +44,12 @@ function run() -> ()
               (Generic_expression
                 (Expression_instance_call
                   (Generic_expression
-                    (Expression_variable
-                      (Variable_name
+                    (Expression_access
+                      (Generic_expression
+                        (Expression_variable
+                          (Variable_name
+                            (Identifier))))
+                      (Expression_access_member_name
                         (Identifier))))
                   (Generic_expression
                     (Expression_variable
@@ -116,8 +65,12 @@ function run() -> ()
                   (Generic_expression
                     (Expression_instance_call
                       (Generic_expression
-                        (Expression_variable
-                          (Variable_name
+                        (Expression_access
+                          (Generic_expression
+                            (Expression_variable
+                              (Variable_name
+                                (Identifier))))
+                          (Expression_access_member_name
                             (Identifier))))
                       (Generic_expression
                         (Expression_variable
@@ -142,8 +95,12 @@ function run() -> ()
                   (Generic_expression
                     (Expression_instance_call
                       (Generic_expression
-                        (Expression_variable
-                          (Variable_name
+                        (Expression_access
+                          (Generic_expression
+                            (Expression_variable
+                              (Variable_name
+                                (Identifier))))
+                          (Expression_access_member_name
                             (Identifier))))
                       (Generic_expression
                         (Expression_variable

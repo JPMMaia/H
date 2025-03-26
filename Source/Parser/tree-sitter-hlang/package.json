@@ -44,6 +44,7 @@
   "scripts": {
     "generate": "tree-sitter generate",
     "test_tree_sitter": "tree-sitter test",
+    "test_tree_sitter_update": "tree-sitter test --update",
     "prebuild": "prebuildify --napi",
     "install_debug": "node-gyp build --debug",
     "install_release": "node-gyp build",

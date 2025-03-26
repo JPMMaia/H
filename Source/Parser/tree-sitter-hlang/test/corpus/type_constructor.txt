@@ -85,12 +85,14 @@ function run() -> ()
               (Expression_variable_declaration_type
                 (Type
                   (Type_instance_type
-                    (Type_name
-                      (Identifier))
+                    (Type
+                      (Type_name
+                        (Identifier)))
                     (Type_instance_type_parameters
-                      (Type
-                        (Type_name
-                          (Identifier)))))))
+                      (Generic_expression
+                        (Expression_variable
+                          (Variable_name
+                            (Identifier))))))))
               (Generic_expression_or_instantiate
                 (Expression_instantiate
                   (Expression_instantiate_members))))))))))
