@@ -2564,7 +2564,9 @@ function node_to_struct_declaration(root: Parser_node.Node, node: Parser_node.No
 
     if (struct_node.source_range !== undefined) {
         const name_node = find_node(struct_node, "Struct_name") as Parser_node.Node;
-        output.source_location = name_node.source_range.start;
+        if (name_node !== undefined) {
+            output.source_location = name_node.source_range.start;
+        }
         output.member_source_positions = member_source_positions;
     }
 
@@ -2680,7 +2682,9 @@ function node_to_union_declaration(root: Parser_node.Node, node: Parser_node.Nod
 
     if (union_node.source_range !== undefined) {
         const name_node = find_node(union_node, "Union_name") as Parser_node.Node;
-        output.source_location = name_node.source_range.start;
+        if (name_node !== undefined) {
+            output.source_location = name_node.source_range.start;
+        }
         output.member_source_positions = member_source_positions;
     }
 
@@ -2770,7 +2774,9 @@ export function node_to_function_declaration(root: Parser_node.Node, node: Parse
 
     if (node.source_range !== undefined) {
         const name_node = find_node(node, "Function_name") as Parser_node.Node;
-        output.source_location = name_node.source_range.start;
+        if (name_node !== undefined) {
+            output.source_location = name_node.source_range.start;
+        }
         output.input_parameter_source_positions = input_parameter_source_positions;
         output.output_parameter_source_positions = output_parameter_source_positions;
     }
