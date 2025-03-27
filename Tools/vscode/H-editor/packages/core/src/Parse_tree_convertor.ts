@@ -911,7 +911,7 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
         }
         case Core_intermediate_representation.Expression_enum.Switch_expression: {
             const value = expression.data.value as Core_intermediate_representation.Switch_expression;
-            visit_expressions(value.value, predicate);
+            visit_expressions(value.value, predicate); 22
             for (const switch_case of value.cases) {
                 if (switch_case.case_value !== undefined) {
                     visit_expressions(switch_case.case_value, predicate);
@@ -958,6 +958,7 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
         case Core_intermediate_representation.Expression_enum.Continue_expression:
         case Core_intermediate_representation.Expression_enum.Invalid_expression:
         case Core_intermediate_representation.Expression_enum.Null_pointer_expression:
+        case Core_intermediate_representation.Expression_enum.Type_expression:
         case Core_intermediate_representation.Expression_enum.Union_expression:
         case Core_intermediate_representation.Expression_enum.Variable_expression: {
             break;

@@ -752,7 +752,30 @@
       "required": true,
       "types": [
         {
+          "type": "Expression_instance_call_parameter",
+          "named": true
+        },
+        {
           "type": "Generic_expression",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "Expression_instance_call_parameter",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "Expression_constant",
+          "named": true
+        },
+        {
+          "type": "Expression_type",
           "named": true
         }
       ]
@@ -2091,7 +2114,7 @@
       "required": false,
       "types": [
         {
-          "type": "Generic_expression",
+          "type": "Expression_instance_call_parameter",
           "named": true
         }
       ]

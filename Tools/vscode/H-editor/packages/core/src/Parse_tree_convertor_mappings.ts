@@ -2357,8 +2357,8 @@ export function node_to_type_reference(
             if (left_hand_side[0].data.type === Core_intermediate_representation.Type_reference_enum.Custom_type_reference) {
                 const custom_type_reference = left_hand_side[0].data.value as Core_intermediate_representation.Custom_type_reference;
 
-                const expression_nodes = find_nodes_inside_parent(child, "Type_instance_type_parameters", "Generic_expression");
-                const expressions = expression_nodes.map(parameter => node_to_expression(root, parameter));
+                const expression_nodes = find_nodes_inside_parent(child, "Type_instance_type_parameters", "Expression_instance_call_parameter");
+                const expressions = expression_nodes.map(parameter => node_to_expression(root, parameter.children[0]));
                 const statements: Core_intermediate_representation.Statement[] = expressions.map(expression => { return { expression: expression }; });
 
                 const type_instance: Core_intermediate_representation.Type_instance = {
@@ -3109,10 +3109,10 @@ function node_to_expression_without_source_location(root: Parser_node.Node, node
             };
         }
         case "Expression_type": {
-            const expression = node_to_expression_ternary_condition(root, node);
+            const expression = node_to_expression_type(root, node);
             return {
                 data: {
-                    type: Core_intermediate_representation.Expression_enum.Ternary_condition_expression,
+                    type: Core_intermediate_representation.Expression_enum.Type_expression,
                     value: expression
                 }
             };
@@ -3677,9 +3677,11 @@ function node_to_expression_if(root: Parser_node.Node, node: Parser_node.Node): 
 
 export function node_to_expression_instance_call(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Instance_call_expression {
 
-    const generic_expressions = node.children.filter(child => child.word.value === "Generic_expression");
-    const left_hand_side = node_to_expression(root, generic_expressions[0]);
-    const argument_expressions = generic_expressions.slice(1).map(child => node_to_expression(root, child));
+    const left_hand_side_node = node.children.find(child => child.word.value === "Generic_expression");
+    const left_hand_side = node_to_expression(root, left_hand_side_node);
+
+    const parameter_nodes = node.children.filter(child => child.word.value === "Expression_instance_call_parameter");
+    const argument_expressions = parameter_nodes.map(child => node_to_expression(root, child.children[0]));
 
     const instance_call_expression: Core_intermediate_representation.Instance_call_expression = {
         left_hand_side: left_hand_side,

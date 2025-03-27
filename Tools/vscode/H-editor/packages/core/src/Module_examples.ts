@@ -4744,6 +4744,7 @@ export function create_variadic_function_declarations(): IR.Module {
 }
 
 export function create_type_constructor(): IR.Module {
+    const int32_type = create_integer_type(32, true);
     const uint64_type = create_integer_type(64, false);
     return {
         name: "Type_constructor",
@@ -4822,7 +4823,7 @@ export function create_type_constructor(): IR.Module {
                                     "instance",
                                     false,
                                     Type_utilities.create_type_instance("Type_constructor", "Dynamic_array", [
-                                        create_statement(IR.create_variable_expression("Int32", IR.Access_type.Read))
+                                        create_statement(IR.create_type_expression(int32_type))
                                     ]),
                                     create_statement(
                                         IR.create_instantiate_expression(
@@ -5049,7 +5050,7 @@ export function create_function_constructor_1(): IR.Module {
                                         IR.create_instance_call_expression(
                                             IR.create_variable_expression("add", IR.Access_type.Read),
                                             [
-                                                IR.create_variable_expression("Int32", IR.Access_type.Read)
+                                                IR.create_type_expression(int32_type)
                                             ]
                                         ),
                                         [
@@ -5067,7 +5068,7 @@ export function create_function_constructor_1(): IR.Module {
                                         IR.create_instance_call_expression(
                                             IR.create_variable_expression("add", IR.Access_type.Read),
                                             [
-                                                IR.create_variable_expression("Float32", IR.Access_type.Read)
+                                                IR.create_type_expression(float32_type)
                                             ]
                                         ),
                                         [

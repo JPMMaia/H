@@ -447,7 +447,7 @@
               "members": [
                 {
                   "type": "SYMBOL",
-                  "name": "Generic_expression"
+                  "name": "Expression_instance_call_parameter"
                 },
                 {
                   "type": "REPEAT",
@@ -460,7 +460,7 @@
                       },
                       {
                         "type": "SYMBOL",
-                        "name": "Generic_expression"
+                        "name": "Expression_instance_call_parameter"
                       }
                     ]
                   }
@@ -2404,7 +2404,7 @@
                     "members": [
                       {
                         "type": "SYMBOL",
-                        "name": "Generic_expression"
+                        "name": "Expression_instance_call_parameter"
                       },
                       {
                         "type": "REPEAT",
@@ -2417,7 +2417,7 @@
                             },
                             {
                               "type": "SYMBOL",
-                              "name": "Generic_expression"
+                              "name": "Expression_instance_call_parameter"
                             }
                           ]
                         }
@@ -2437,6 +2437,19 @@
           }
         ]
       }
+    },
+    "Expression_instance_call_parameter": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "Expression_constant"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "Expression_type"
+        }
+      ]
     },
     "Expression_instantiate": {
       "type": "SEQ",
@@ -3054,6 +3067,10 @@
       "Expression_binary",
       "Expression_instance_call",
       "Expression_unary"
+    ],
+    [
+      "Generic_expression",
+      "Expression_instance_call_parameter"
     ]
   ],
   "precedences": [],

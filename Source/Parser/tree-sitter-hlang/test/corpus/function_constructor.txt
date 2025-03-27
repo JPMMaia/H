@@ -102,10 +102,11 @@ function run() -> ()
                     (Expression_variable
                       (Variable_name
                         (Identifier))))
-                  (Generic_expression
-                    (Expression_variable
-                      (Variable_name
-                        (Identifier))))))))
+                  (Expression_instance_call_parameter
+                    (Expression_type
+                      (Type
+                        (Type_name
+                          (Identifier)))))))))
           (Statement
             (Expression_variable_declaration
               (Expression_variable_mutability)
@@ -119,10 +120,11 @@ function run() -> ()
                         (Expression_variable
                           (Variable_name
                             (Identifier))))
-                      (Generic_expression
-                        (Expression_variable
-                          (Variable_name
-                            (Identifier))))))
+                      (Expression_instance_call_parameter
+                        (Expression_type
+                          (Type
+                            (Type_name
+                              (Identifier)))))))
                   (Expression_call_arguments
                     (Generic_expression_or_instantiate
                       (Generic_expression
@@ -145,10 +147,11 @@ function run() -> ()
                         (Expression_variable
                           (Variable_name
                             (Identifier))))
-                      (Generic_expression
-                        (Expression_variable
-                          (Variable_name
-                            (Identifier))))))
+                      (Expression_instance_call_parameter
+                        (Expression_type
+                          (Type
+                            (Type_name
+                              (Identifier)))))))
                   (Expression_call_arguments
                     (Generic_expression_or_instantiate
                       (Generic_expression
