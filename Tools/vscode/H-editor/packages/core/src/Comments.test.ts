@@ -4,19 +4,11 @@ import * as assert from "assert";
 
 import * as Core from "./Core_intermediate_representation";
 import * as Comments from "./Comments";
-import * as Language from "./Language";
 import * as Text_change from "./Text_change";
-import * as Storage_cache from "./Storage_cache";
-
-let language_description: any;
-
-before(async () => {
-    const cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
-    language_description = await Language.create_default_description(cache, "out/tests/graphviz.gv");
-});
+import * as Tree_sitter_parser from "./Tree_sitter_parser";
 
 describe("Comments.parse_function_comment", () => {
-    it("Parses function comment 0", () => {
+    it("Parses function comment 0", async () => {
 
         const program = `
 module my_module;
@@ -56,17 +48,18 @@ function add(lhs: Int32, rhs: Int32) -> (result: Int32)
             ]
         };
 
-        test_parse_function_comment(language_description, program, "add", expected_comment);
+        await test_parse_function_comment(program, "add", expected_comment);
     });
 });
 
-function test_parse_function_comment(
-    language_description: Language.Description,
+async function test_parse_function_comment(
     program: string,
     function_name: string,
     expected_comment: Comments.Function_comment
-): void {
-    const parse_result = Text_change.full_parse_with_source_locations(language_description.parser, "", program);
+): Promise<void> {
+    const parser = await Tree_sitter_parser.create_parser();
+
+    const parse_result = Text_change.full_parse_with_source_locations(parser, "", program);
     assert.notEqual(parse_result, undefined);
     if (parse_result === undefined) {
         return;
@@ -91,7 +84,7 @@ function test_parse_function_comment(
 }
 
 describe("Comments.generate_function_comment", () => {
-    it("Generates function comment 0", () => {
+    it("Generates function comment 0", async () => {
 
         const program = `
 module my_module;
@@ -110,17 +103,17 @@ function add(lhs: Int32, rhs: Int32) -> (result: Int32)
             "@output_parameter result: A description"
         ].join("\n");
 
-        test_generate_function_comment(language_description, program, "add", expected_comment);
+        await test_generate_function_comment(program, "add", expected_comment);
     });
 });
 
-function test_generate_function_comment(
-    language_description: Language.Description,
+async function test_generate_function_comment(
     program: string,
     function_name: string,
     expected_comment: string
-): void {
-    const parse_result = Text_change.full_parse_with_source_locations(language_description.parser, "", program);
+): Promise<void> {
+    const parser = await Tree_sitter_parser.create_parser();
+    const parse_result = Text_change.full_parse_with_source_locations(parser, "", program);
     assert.notEqual(parse_result, undefined);
     if (parse_result === undefined) {
         return;
@@ -145,7 +138,7 @@ function test_generate_function_comment(
 }
 
 describe("Comments.update_function_comment", () => {
-    it("Adds missing parameters", () => {
+    it("Adds missing parameters", async () => {
 
         const program = `
 module my_module;
@@ -163,10 +156,10 @@ function add(lhs: Int32, rhs: Int32) -> (result: Int32)
             "@output_parameter result: TODO documentation"
         ].join("\n");
 
-        test_update_function_comment(language_description, program, "add", expected_comment);
+        await test_update_function_comment(program, "add", expected_comment);
     });
 
-    it("Reorders parameters", () => {
+    it("Reorders parameters", async () => {
 
         const program = `
 module my_module;
@@ -186,17 +179,17 @@ function add(lhs: Int32, rhs: Int32) -> (result: Int32)
             "@output_parameter result: Result of adding the two values"
         ].join("\n");
 
-        test_update_function_comment(language_description, program, "add", expected_comment);
+        await test_update_function_comment(program, "add", expected_comment);
     });
 });
 
-function test_update_function_comment(
-    language_description: Language.Description,
+async function test_update_function_comment(
     program: string,
     function_name: string,
     expected_comment: string
-): void {
-    const parse_result = Text_change.full_parse_with_source_locations(language_description.parser, "", program);
+): Promise<void> {
+    const parser = await Tree_sitter_parser.create_parser();
+    const parse_result = Text_change.full_parse_with_source_locations(parser, "", program);
     assert.notEqual(parse_result, undefined);
     if (parse_result === undefined) {
         return;

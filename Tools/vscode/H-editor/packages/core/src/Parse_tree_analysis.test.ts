@@ -3,12 +3,9 @@ import "mocha";
 import * as assert from "assert";
 
 import * as Core from "./Core_intermediate_representation";
-import * as Document from "./Document";
-import * as Language from "./Language";
 import * as Module_examples from "./Module_examples";
 import * as Parser_node from "./Parser_node";
 import * as Parse_tree_analysis from "./Parse_tree_analysis";
-import * as Text_change from "./Text_change";
 import * as Text_formatter from "./Text_formatter";
 import * as Tree_sitter_parser from "./Tree_sitter_parser";
 import * as Type_utilities from "./Type_utilities";

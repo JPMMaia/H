@@ -9,11 +9,9 @@ import * as Build from "../../core/src/Build";
 import * as Core from "../../core/src/Core_intermediate_representation";
 import * as Core_file from "../../core/src/Core_interface";
 import * as Grammar from "../../core/src/Grammar";
-import * as Language from "../../core/src/Language";
 import * as Language_version from "../../core/src/Language_version";
 import * as Parser_node from "../../core/src/Parser_node";
 import * as Scanner from "../../core/src/Scanner";
-import * as Text_change from "../../core/src/Text_change";
 import * as Text_formatter from "../../core/src/Text_formatter";
 import * as Tree_sitter_parser from "../../core/src/Tree_sitter_parser";
 

@@ -2,18 +2,13 @@ import * as fs from 'fs';
 
 import * as Core from "../../core/src/Core_interface";
 import * as Core_intermediate_representation from "../../core/src/Core_intermediate_representation";
-import * as Language from "../../core/src/Language";
 import * as Language_version from "../../core/src/Language_version";
-import * as Parse_tree_convertor from "../../core/src/Parse_tree_convertor";
-import * as Storage_cache from "../../core/src/Storage_cache";
 import * as Text_change from "../../core/src/Text_change";
 import * as Text_formatter from "../../core/src/Text_formatter";
 import * as Tree_sitter_parser from "../../core/src/Tree_sitter_parser";
 import * as Validation from "../../core/src/Validation";
 
 const command = process.argv[2];
-
-const cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
 
 if (command === "read") {
 
@@ -23,16 +18,10 @@ if (command === "read") {
     const core_module = JSON.parse(input_json) as Core.Module;
     const module = Core_intermediate_representation.create_intermediate_representation(core_module);
 
-    Language.create_default_description(cache).then(
-        (language_description: Language.Description) => {
-            const parse_tree = Parse_tree_convertor.module_to_parse_tree(module, language_description.production_rules, language_description.mappings);
+    const output_text = Text_formatter.format_module(module, {});
 
-            const output_text = parse_tree !== undefined ? Text_formatter.to_unformatted_text(parse_tree) : "";
-
-            process.stdout.write(output_text);
-            process.exit(0);
-        }
-    ).catch(() => process.exit(-1));
+    process.stdout.write(output_text);
+    process.exit(0);
 }
 else if (command === "write") {
 

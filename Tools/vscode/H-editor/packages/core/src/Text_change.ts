@@ -1,6 +1,5 @@
 import * as Document from "./Document";
 import * as Core from "./Core_intermediate_representation";
-import * as Language from "./Language";
 import * as Parser_node from "./Parser_node";
 import * as Tree_sitter_parser from "./Tree_sitter_parser";
 import * as Validation from "./Validation";

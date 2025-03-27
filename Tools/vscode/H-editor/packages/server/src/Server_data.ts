@@ -1,23 +1,18 @@
 import * as fs from "fs";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import * as vscode_uri from "vscode-uri";
 
 import * as Project from "./Project";
 
 import * as Build from "../../core/src/Build";
 import * as Core from "../../core/src/Core_intermediate_representation";
 import * as Document from "../../core/src/Document";
-import * as Language from "../../core/src/Language";
-import * as Parse_tree_analysis from "../../core/src/Parse_tree_analysis";
 import * as Parse_tree_convertor from "../../core/src/Parse_tree_convertor";
 import * as Parse_tree_convertor_mappings from "../../core/src/Parse_tree_convertor_mappings";
 import * as Parser_node from "../../core/src/Parser_node";
-import * as Storage_cache from "../../core/src/Storage_cache";
 import * as Tree_sitter_parser from "../../core/src/Tree_sitter_parser";
 
 
 export interface Server_data {
-    storage_cache: Storage_cache.Storage_cache;
     parser: Tree_sitter_parser.Parser;
     mappings: Parse_tree_convertor.Parse_tree_mappings;
     documents: Map<string, TextDocument>;
@@ -29,7 +24,6 @@ export interface Server_data {
 }
 
 export async function create_server_data(): Promise<Server_data> {
-    const storage_cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
     const parser = await Tree_sitter_parser.create_parser();
     const mappings = Parse_tree_convertor_mappings.create_mapping();
     const documents = new Map<string, TextDocument>();
@@ -40,7 +34,6 @@ export async function create_server_data(): Promise<Server_data> {
     const initialize_promise = undefined;
 
     return {
-        storage_cache,
         parser,
         mappings,
         documents,
