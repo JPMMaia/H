@@ -1418,6 +1418,10 @@
         },
         {
           "type": "SYMBOL",
+          "name": "Expression_dereference_and_access"
+        },
+        {
+          "type": "SYMBOL",
           "name": "Expression_function"
         },
         {
@@ -1468,7 +1472,7 @@
       ]
     },
     "Expression_access": {
-      "type": "PREC",
+      "type": "PREC_LEFT",
       "value": 13,
       "content": {
         "type": "SEQ",
@@ -1493,7 +1497,7 @@
       "name": "Identifier"
     },
     "Expression_access_array": {
-      "type": "PREC",
+      "type": "PREC_LEFT",
       "value": 13,
       "content": {
         "type": "SEQ",
@@ -2033,7 +2037,7 @@
       "name": "Number"
     },
     "Expression_call": {
-      "type": "PREC",
+      "type": "PREC_LEFT",
       "value": 13,
       "content": {
         "type": "SEQ",
@@ -2199,6 +2203,27 @@
           "name": "Generic_expression"
         }
       ]
+    },
+    "Expression_dereference_and_access": {
+      "type": "PREC_LEFT",
+      "value": 13,
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "SYMBOL",
+            "name": "Generic_expression"
+          },
+          {
+            "type": "STRING",
+            "value": "->"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "Identifier"
+          }
+        ]
+      }
     },
     "Expression_for_loop": {
       "type": "SEQ",
@@ -2380,7 +2405,7 @@
       ]
     },
     "Expression_instance_call": {
-      "type": "PREC",
+      "type": "PREC_LEFT",
       "value": 13,
       "content": {
         "type": "SEQ",
@@ -2783,7 +2808,7 @@
       "name": "Type"
     },
     "Expression_ternary_condition": {
-      "type": "PREC_LEFT",
+      "type": "PREC_RIGHT",
       "value": 0,
       "content": {
         "type": "SEQ",
@@ -2812,7 +2837,7 @@
       }
     },
     "Expression_unary": {
-      "type": "PREC",
+      "type": "PREC_RIGHT",
       "value": 12,
       "content": {
         "type": "SEQ",

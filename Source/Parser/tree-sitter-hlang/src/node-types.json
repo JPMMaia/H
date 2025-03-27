@@ -500,6 +500,25 @@
     }
   },
   {
+    "type": "Expression_dereference_and_access",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "Generic_expression",
+          "named": true
+        },
+        {
+          "type": "Identifier",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "Expression_for_loop",
     "named": true,
     "fields": {},
@@ -1517,6 +1536,10 @@
         },
         {
           "type": "Expression_create_array",
+          "named": true
+        },
+        {
+          "type": "Expression_dereference_and_access",
           "named": true
         },
         {

@@ -124,6 +124,7 @@ module.exports = grammar({
       $.Expression_call,
       $.Expression_constant,
       $.Expression_create_array,
+      $.Expression_dereference_and_access,
       $.Expression_function,
       $.Expression_instance_call,
       $.Expression_null_pointer,
@@ -138,9 +139,9 @@ module.exports = grammar({
       $.Expression_instantiate,
       $.Generic_expression
     ),
-    Expression_access: $ => prec(13, seq($.Generic_expression, ".", $.Expression_access_member_name)),
+    Expression_access: $ => prec.left(13, seq($.Generic_expression, ".", $.Expression_access_member_name)),
     Expression_access_member_name: $ => $.Identifier,
-    Expression_access_array: $ => prec(13, seq($.Generic_expression, "[", $.Generic_expression, "]")),
+    Expression_access_array: $ => prec.left(13, seq($.Generic_expression, "[", $.Generic_expression, "]")),
     Expression_assignment: $ => seq($.Generic_expression, $.Expression_assignment_symbol, $.Generic_expression_or_instantiate),
     Expression_assignment_symbol: $ => choice("=", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", "<<=", ">>="),
     Expression_binary: $ => choice(
@@ -167,7 +168,7 @@ module.exports = grammar({
     Expression_block: $ => seq("{", repeat($.Statement), "}"),
     Expression_break: $ => seq("break", optional($.Expression_break_loop_count)),
     Expression_break_loop_count: $ => $.Number,
-    Expression_call: $ => prec(13, seq($.Generic_expression, $.Expression_call_arguments)),
+    Expression_call: $ => prec.left(13, seq($.Generic_expression, $.Expression_call_arguments)),
     Expression_call_arguments: $ => seq("(", optional(seq($.Generic_expression_or_instantiate, repeat(seq(",", $.Generic_expression_or_instantiate)))), ")"),
     Expression_cast: $ => prec(11, seq($.Generic_expression, "as", $.Expression_type)),
     Expression_comment: $ => $.Comment,
@@ -175,6 +176,7 @@ module.exports = grammar({
     Expression_continue: $ => "continue",
     Expression_create_array: $ => seq("[", optional(seq($.Generic_expression_or_instantiate, repeat(seq(",", $.Generic_expression_or_instantiate)))), "]"),
     Expression_defer: $ => seq("defer", $.Generic_expression),
+    Expression_dereference_and_access: $ => prec.left(13, seq($.Generic_expression, "->", $.Identifier)),
     Expression_for_loop: $ => seq($.Expression_for_loop_head, $.Expression_for_loop_statements),
     Expression_for_loop_head: $ => seq("for", $.Expression_for_loop_variable, "in", $.Expression_for_loop_range_begin, "to", $.Expression_for_loop_range_end, optional($.Expression_for_loop_step), optional($.Expression_for_loop_reverse)),
     Expression_for_loop_variable: $ => $.Identifier,
@@ -191,7 +193,7 @@ module.exports = grammar({
     ),
     Expression_for_loop_statements: $ => seq("{", repeat($.Statement), "}"),
     Expression_function: $ => seq("function", $.Function_input_parameters, "->", $.Function_output_parameters, repeat($.Function_precondition), repeat($.Function_postcondition), $.Block),
-    Expression_instance_call: $ => prec(13, seq($.Generic_expression, seq("<", optional(seq($.Expression_instance_call_parameter, repeat(seq(",", $.Expression_instance_call_parameter)))), ">"))),
+    Expression_instance_call: $ => prec.left(13, seq($.Generic_expression, seq("<", optional(seq($.Expression_instance_call_parameter, repeat(seq(",", $.Expression_instance_call_parameter)))), ">"))),
     Expression_instance_call_parameter: $ => choice(
       $.Expression_constant,
       $.Expression_type
@@ -225,8 +227,8 @@ module.exports = grammar({
       $.Expression_variable
     ),
     Expression_type: $ => $.Type,
-    Expression_ternary_condition: $ => prec.left(0, seq($.Generic_expression, "?", $.Generic_expression, ":", $.Generic_expression)),
-    Expression_unary: $ => prec(12, seq($.Expression_unary_symbol, $.Generic_expression)),
+    Expression_ternary_condition: $ => prec.right(0, seq($.Generic_expression, "?", $.Generic_expression, ":", $.Generic_expression)),
+    Expression_unary: $ => prec.right(12, seq($.Expression_unary_symbol, $.Generic_expression)),
     Expression_unary_symbol: $ => choice("!", "~", "-", "&", "*"),
     Expression_union: $ => seq("union", $.Union_members),
     Expression_variable: $ => $.Variable_name,
