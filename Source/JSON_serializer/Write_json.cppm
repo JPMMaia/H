@@ -532,6 +532,12 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Dereference_and_access_expression const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             For_loop_expression const& input
         );
 
@@ -1549,6 +1555,20 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Dereference_and_access_expression const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("expression");
+        write_object(writer, output.expression);
+        writer.Key("member_name");
+        writer.String(output.member_name.data(), output.member_name.size());
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             For_loop_expression const& output
         )
     {
@@ -1964,6 +1984,14 @@ namespace h::json
             writer.String("Defer_expression");
             writer.Key("value");
             Defer_expression const& value = std::get<Defer_expression>(output.data);
+            write_object(writer, value);
+        }
+        else if (std::holds_alternative<Dereference_and_access_expression>(output.data))
+        {
+            writer.Key("type");
+            writer.String("Dereference_and_access_expression");
+            writer.Key("value");
+            Dereference_and_access_expression const& value = std::get<Dereference_and_access_expression>(output.data);
             write_object(writer, value);
         }
         else if (std::holds_alternative<For_loop_expression>(output.data))

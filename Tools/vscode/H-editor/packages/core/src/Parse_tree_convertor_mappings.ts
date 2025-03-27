@@ -3007,6 +3007,15 @@ function node_to_expression_without_source_location(root: Parser_node.Node, node
                 }
             };
         }
+        case "Expression_dereference_and_access": {
+            const expression = node_to_expression_dereference_and_access(root, node);
+            return {
+                data: {
+                    type: Core_intermediate_representation.Expression_enum.Dereference_and_access_expression,
+                    value: expression
+                }
+            };
+        }
         case "Expression_for_loop": {
             const expression = node_to_expression_for_loop(root, node);
             return {
@@ -3588,6 +3597,22 @@ function node_to_expression_create_array(root: Parser_node.Node, node: Parser_no
     };
 
     return create_array_expression;
+}
+
+export function node_to_expression_dereference_and_access(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Dereference_and_access_expression {
+
+    const generic_expression_node = node.children[0];
+    const identifier_node = node.children[2];
+
+    const generic_expression = node_to_expression(root, generic_expression_node);
+    const member_name = get_terminal_value(identifier_node);
+
+    const dereference_access_expression: Core_intermediate_representation.Dereference_and_access_expression = {
+        expression: generic_expression,
+        member_name: member_name
+    };
+
+    return dereference_access_expression;
 }
 
 function node_to_expression_for_loop(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.For_loop_expression {

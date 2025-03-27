@@ -377,6 +377,7 @@ export enum Expression_enum {
     Constant_array_expression = "Constant_array_expression",
     Continue_expression = "Continue_expression",
     Defer_expression = "Defer_expression",
+    Dereference_and_access_expression = "Dereference_and_access_expression",
     For_loop_expression = "For_loop_expression",
     Function_expression = "Function_expression",
     Instance_call_expression = "Instance_call_expression",
@@ -1012,7 +1013,7 @@ function intermediate_to_core_struct_declaration(intermediate_value: Struct_decl
             elements: intermediate_value.member_comments.map(value => intermediate_to_core_indexed_comment(value)),
         },
         source_location: intermediate_value.source_location !== undefined ? intermediate_to_core_source_location(intermediate_value.source_location) : undefined,
-        member_source_positions: intermediate_value.member_source_positions !== undefined ? { size: intermediate_value.member_source_positions.length, elements : intermediate_value.member_source_positions } : undefined,
+        member_source_positions: intermediate_value.member_source_positions !== undefined ? { size: intermediate_value.member_source_positions.length, elements: intermediate_value.member_source_positions } : undefined,
     };
 }
 
@@ -1058,7 +1059,7 @@ function intermediate_to_core_union_declaration(intermediate_value: Union_declar
             elements: intermediate_value.member_comments.map(value => intermediate_to_core_indexed_comment(value)),
         },
         source_location: intermediate_value.source_location !== undefined ? intermediate_to_core_source_location(intermediate_value.source_location) : undefined,
-        member_source_positions: intermediate_value.member_source_positions !== undefined ? { size: intermediate_value.member_source_positions.length, elements : intermediate_value.member_source_positions } : undefined,
+        member_source_positions: intermediate_value.member_source_positions !== undefined ? { size: intermediate_value.member_source_positions.length, elements: intermediate_value.member_source_positions } : undefined,
     };
 }
 
@@ -1137,8 +1138,8 @@ function intermediate_to_core_function_declaration(intermediate_value: Function_
         },
         comment: intermediate_value.comment,
         source_location: intermediate_value.source_location !== undefined ? intermediate_to_core_source_location(intermediate_value.source_location) : undefined,
-        input_parameter_source_positions: intermediate_value.input_parameter_source_positions !== undefined ? { size: intermediate_value.input_parameter_source_positions.length, elements : intermediate_value.input_parameter_source_positions } : undefined,
-        output_parameter_source_positions: intermediate_value.output_parameter_source_positions !== undefined ? { size: intermediate_value.output_parameter_source_positions.length, elements : intermediate_value.output_parameter_source_positions } : undefined,
+        input_parameter_source_positions: intermediate_value.input_parameter_source_positions !== undefined ? { size: intermediate_value.input_parameter_source_positions.length, elements: intermediate_value.input_parameter_source_positions } : undefined,
+        output_parameter_source_positions: intermediate_value.output_parameter_source_positions !== undefined ? { size: intermediate_value.output_parameter_source_positions.length, elements: intermediate_value.output_parameter_source_positions } : undefined,
     };
 }
 
@@ -1818,6 +1819,51 @@ export function create_defer_expression(expression_to_defer: Expression): Expres
         data: {
             type: Expression_enum.Defer_expression,
             value: defer_expression
+        }
+    };
+}
+export interface Dereference_and_access_expression {
+    expression: Expression;
+    member_name: string;
+}
+
+function core_to_intermediate_dereference_and_access_expression(core_value: Core.Dereference_and_access_expression, statement: Core.Statement): Dereference_and_access_expression {
+    return {
+        expression: core_to_intermediate_expression(statement.expressions.elements[core_value.expression.expression_index], statement),
+        member_name: core_value.member_name,
+    };
+}
+
+function intermediate_to_core_dereference_and_access_expression(intermediate_value: Dereference_and_access_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
+    const core_value: Core.Expression = {
+        data: {
+            type: Core.Expression_enum.Dereference_and_access_expression,
+            value: {
+                expression: {
+                    expression_index: -1
+                },
+                member_name: intermediate_value.member_name,
+            }
+        }
+    };
+
+    expressions[index] = core_value;
+
+    (core_value.data.value as Core.Dereference_and_access_expression).expression.expression_index = expressions.length;
+    intermediate_to_core_expression(intermediate_value.expression, expressions);
+}
+
+export function create_dereference_and_access_expression(expression: Expression, member_name: string): Expression {
+    const dereference_and_access_expression: Dereference_and_access_expression = {
+        expression: expression,
+        member_name: member_name,
+    };
+    return {
+        data: {
+            type: Expression_enum.Dereference_and_access_expression,
+            value: dereference_and_access_expression
         }
     };
 }
@@ -2680,7 +2726,7 @@ export function create_while_loop_expression(condition: Statement, then_statemen
     };
 }
 export interface Expression {
-    data: Variant<Expression_enum, Access_expression | Access_array_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Comment_expression | Compile_time_expression | Constant_expression | Constant_array_expression | Continue_expression | Defer_expression | For_loop_expression | Function_expression | Instance_call_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Struct_expression | Switch_expression | Ternary_condition_expression | Type_expression | Unary_expression | Union_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
+    data: Variant<Expression_enum, Access_expression | Access_array_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Comment_expression | Compile_time_expression | Constant_expression | Constant_array_expression | Continue_expression | Defer_expression | Dereference_and_access_expression | For_loop_expression | Function_expression | Instance_call_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Struct_expression | Switch_expression | Ternary_condition_expression | Type_expression | Unary_expression | Union_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
     source_position?: Source_position;
 }
 
@@ -2770,6 +2816,12 @@ function core_to_intermediate_expression(core_value: Core.Expression, statement:
                     return {
                         type: core_value.data.type,
                         value: core_to_intermediate_defer_expression(core_value.data.value as Core.Defer_expression, statement)
+                    };
+                }
+                case Core.Expression_enum.Dereference_and_access_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_dereference_and_access_expression(core_value.data.value as Core.Dereference_and_access_expression, statement)
                     };
                 }
                 case Core.Expression_enum.For_loop_expression: {
@@ -2950,6 +3002,10 @@ function intermediate_to_core_expression(intermediate_value: Expression, express
         }
         case Expression_enum.Defer_expression: {
             intermediate_to_core_defer_expression(intermediate_value.data.value as Defer_expression, expressions);
+            break;
+        }
+        case Expression_enum.Dereference_and_access_expression: {
+            intermediate_to_core_dereference_and_access_expression(intermediate_value.data.value as Dereference_and_access_expression, expressions);
             break;
         }
         case Expression_enum.For_loop_expression: {

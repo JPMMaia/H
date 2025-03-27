@@ -1516,6 +1516,91 @@ export function create_defer_expressions(): IR.Module {
     };
 }
 
+export function create_dereference_and_access_expressions(): IR.Module {
+
+    const int32_type = create_integer_type(32, true);
+
+    const struct_declaration: IR.Declaration = {
+        name: "My_struct",
+        type: IR.Declaration_type.Struct,
+        is_export: false,
+        value: {
+            name: "My_struct",
+            member_names: ["a"],
+            member_types: [int32_type],
+            member_default_values: [
+                create_statement(
+                    IR.create_constant_expression(int32_type, "0")
+                ),
+            ],
+            is_packed: false,
+            is_literal: false,
+            member_comments: []
+        }
+    };
+
+    const function_declaration: IR.Declaration = {
+        name: "run",
+        type: IR.Declaration_type.Function,
+        is_export: true,
+        value: {
+            declaration: {
+                name: "run",
+                type: {
+                    input_parameter_types: [],
+                    output_parameter_types: [],
+                    is_variadic: false,
+                },
+                input_parameter_names: [],
+                output_parameter_names: [],
+                linkage: IR.Linkage.External,
+                preconditions: [],
+                postconditions: [],
+            },
+            definition: {
+                name: "run",
+                statements: [
+                    create_statement(
+                        IR.create_variable_declaration_with_type_expression(
+                            "instance",
+                            false,
+                            create_custom_type_reference("Dereference_and_access", "My_struct"),
+                            create_statement(
+                                IR.create_instantiate_expression(IR.Instantiate_expression_type.Default, [])
+                            )
+                        )
+                    ),
+                    create_statement(
+                        IR.create_variable_declaration_expression(
+                            "pointer",
+                            false,
+                            IR.create_unary_expression(IR.create_variable_expression("instance", IR.Access_type.Read), IR.Unary_operation.Address_of)
+                        )
+                    ),
+                    create_statement(
+                        IR.create_variable_declaration_expression(
+                            "a",
+                            false,
+                            IR.create_dereference_and_access_expression(
+                                IR.create_variable_expression("pointer", IR.Access_type.Read),
+                                "a"
+                            )
+                        )
+                    ),
+                ]
+            }
+        }
+    };
+
+    return {
+        name: "Dereference_and_access",
+        imports: [],
+        declarations: [
+            struct_declaration,
+            function_declaration
+        ]
+    };
+}
 
 export function create_assignment_expressions(): IR.Module {
 

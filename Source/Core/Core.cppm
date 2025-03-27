@@ -462,6 +462,14 @@ namespace h
         friend auto operator<=>(Defer_expression const&, Defer_expression const&) = default;
     };
 
+    export struct Dereference_and_access_expression
+    {
+        Expression_index expression;
+        std::pmr::string member_name;
+
+        friend auto operator<=>(Dereference_and_access_expression const&, Dereference_and_access_expression const&) = default;
+    };
+
     export struct For_loop_expression
     {
         std::pmr::string variable_name;
@@ -665,6 +673,7 @@ namespace h
             Constant_array_expression,
             Continue_expression,
             Defer_expression,
+            Dereference_and_access_expression,
             For_loop_expression,
             Function_expression,
             Instance_call_expression,

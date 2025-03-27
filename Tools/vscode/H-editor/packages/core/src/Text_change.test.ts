@@ -1133,6 +1133,44 @@ export function run() -> ()
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
+    it("Handles dereference and access expressions", async () => {
+
+        const document_state = Document.create_empty_state("");
+
+        const program = `
+module Dereference_and_access;
+
+struct My_struct
+{
+    a: Int32 = 0;
+}
+
+export function run() -> ()
+{
+    var instance: My_struct = {};
+    var pointer = &instance;
+    var a = pointer->a;
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const parser = await Tree_sitter_parser.create_parser();
+        const new_document_state = Text_change.update(parser, document_state, text_changes, program, false);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_dereference_and_access_expressions();
+        assert.deepEqual(new_document_state.valid.module, expected_module);
+    });
+
     it("Handles assignment expressions", async () => {
 
         const document_state = Document.create_empty_state("");

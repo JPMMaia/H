@@ -1,0 +1,13 @@
+module Dereference_and_access;
+
+struct My_struct
+{
+    a: Int32 = 0;
+}
+
+export function run() -> ()
+{
+    var instance: My_struct = {};
+    var pointer = &instance;
+    var a = pointer->a;
+}

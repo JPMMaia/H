@@ -844,6 +844,11 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
             visit_expressions(value.expression_to_defer, predicate);
             break;
         }
+        case Core_intermediate_representation.Expression_enum.Dereference_and_access_expression: {
+            const value = expression.data.value as Core_intermediate_representation.Dereference_and_access_expression;
+            visit_expressions(value.expression, predicate);
+            break;
+        }
         case Core_intermediate_representation.Expression_enum.For_loop_expression: {
             const value = expression.data.value as Core_intermediate_representation.For_loop_expression;
             visit_expressions(value.range_begin, predicate);

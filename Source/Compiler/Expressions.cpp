@@ -405,6 +405,101 @@ namespace h::compiler
         return std::nullopt;
     }
 
+    Value_and_type create_access_struct_member(
+        Value_and_type const& left_hand_side,
+        std::string_view const access_member_name,
+        std::string_view const module_name,
+        Struct_declaration const& struct_declaration,
+        Expression_parameters const& parameters
+    )
+    {
+        if (left_hand_side.value == nullptr)
+            throw std::runtime_error{ "create_access_struct_member(): left_hand_side.value == nullptr" };
+
+        llvm::Type* const struct_llvm_type = type_reference_to_llvm_type(
+            parameters.llvm_context,
+            parameters.llvm_data_layout,
+            parameters.core_module,
+            create_custom_type_reference(module_name, struct_declaration.name),
+            parameters.type_database
+        );
+
+        auto const member_location = std::find(struct_declaration.member_names.begin(), struct_declaration.member_names.end(), access_member_name);
+        if (member_location == struct_declaration.member_names.end())
+            throw std::runtime_error{ std::format("'{}' does not exist in struct type '{}'.", access_member_name, struct_declaration.name) };
+
+        unsigned const member_index = static_cast<unsigned>(std::distance(struct_declaration.member_names.begin(), member_location));
+
+        Type_reference const& member_type = struct_declaration.member_types[member_index];
+
+        std::array<llvm::Value*, 2> const indices
+        {
+            llvm::ConstantInt::get(llvm::Type::getInt32Ty(parameters.llvm_context), 0),
+            llvm::ConstantInt::get(llvm::Type::getInt32Ty(parameters.llvm_context), member_index),
+        };
+
+        llvm::Value* const get_element_pointer_instruction = parameters.llvm_builder.CreateGEP(struct_llvm_type, left_hand_side.value, indices, "", true);
+
+        return
+        {
+            .name = "",
+            .value = get_element_pointer_instruction,
+            .type = std::move(member_type)
+        };
+    }
+
+    Value_and_type create_access_union_member(
+        Value_and_type const& left_hand_side,
+        std::string_view const access_member_name,
+        std::string_view const module_name,
+        Union_declaration const& union_declaration,
+        Expression_parameters const& parameters
+    )
+    {
+        if (left_hand_side.value == nullptr)
+            throw std::runtime_error{ "create_access_union_member(): left_hand_side.value == nullptr" };
+
+        llvm::Type* const union_llvm_type = type_reference_to_llvm_type(
+            parameters.llvm_context,
+            parameters.llvm_data_layout,
+            parameters.core_module,
+            create_custom_type_reference(module_name, union_declaration.name),
+            parameters.type_database
+        );
+
+        auto const member_location = std::find(union_declaration.member_names.begin(), union_declaration.member_names.end(), access_member_name);
+        if (member_location == union_declaration.member_names.end())
+            throw std::runtime_error{ std::format("'{}' does not exist in union type '{}'.", access_member_name, union_declaration.name) };
+
+        unsigned const member_index = static_cast<unsigned>(std::distance(union_declaration.member_names.begin(), member_location));
+
+        Type_reference const& member_type = union_declaration.member_types[member_index];
+
+        llvm::Type* const llvm_member_type = type_reference_to_llvm_type(
+            parameters.llvm_context,
+            parameters.llvm_data_layout,
+            parameters.core_module,
+            member_type,
+            parameters.type_database
+        );
+
+        std::array<llvm::Value*, 2> const indices
+        {
+            llvm::ConstantInt::get(llvm::Type::getInt32Ty(parameters.llvm_context), 0),
+            llvm::ConstantInt::get(llvm::Type::getInt32Ty(parameters.llvm_context), 0),
+        };
+        llvm::Value* const get_element_pointer_instruction = parameters.llvm_builder.CreateGEP(union_llvm_type, left_hand_side.value, indices, "", true);
+
+        llvm::Value* const bitcast_instruction = parameters.llvm_builder.CreateBitCast(get_element_pointer_instruction, llvm_member_type->getPointerTo());
+
+        return
+        {
+            .name = "",
+            .value = bitcast_instruction,
+            .type = std::move(member_type)
+        };
+    }
+
     Value_and_type create_access_expression_value(
         Access_expression const& expression,
         Statement const& statement,
@@ -413,9 +508,7 @@ namespace h::compiler
     {
         Module const& core_module = parameters.core_module;
         std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies = parameters.core_module_dependencies;
-        llvm::LLVMContext& llvm_context = parameters.llvm_context;
         llvm::Module& llvm_module = parameters.llvm_module;
-        llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
         Declaration_database const& declaration_database = parameters.declaration_database;
         Enum_value_constants const& enum_value_constants = parameters.enum_value_constants;
 
@@ -544,87 +637,30 @@ namespace h::compiler
                     }
                     else if (std::holds_alternative<Struct_declaration const*>(declaration_value.data))
                     {
-                        Struct_declaration const& struct_declaration = *std::get<Struct_declaration const*>(declaration_value.data);
-
                         if (left_hand_side.value != nullptr)
                         {
-                            llvm::Type* const struct_llvm_type = type_reference_to_llvm_type(
-                                parameters.llvm_context,
-                                parameters.llvm_data_layout,
-                                parameters.core_module,
-                                create_custom_type_reference(module_name, struct_declaration.name),
-                                parameters.type_database
+                            Struct_declaration const& struct_declaration = *std::get<Struct_declaration const*>(declaration_value.data);
+                            return create_access_struct_member(
+                                left_hand_side,
+                                expression.member_name,
+                                module_name,
+                                struct_declaration,
+                                parameters
                             );
-
-                            auto const member_location = std::find(struct_declaration.member_names.begin(), struct_declaration.member_names.end(), expression.member_name);
-                            if (member_location == struct_declaration.member_names.end())
-                                throw std::runtime_error{ std::format("'{}' does not exist in struct type '{}'.", expression.member_name, struct_declaration.name) };
-
-                            unsigned const member_index = static_cast<unsigned>(std::distance(struct_declaration.member_names.begin(), member_location));
-
-                            Type_reference const& member_type = struct_declaration.member_types[member_index];
-
-                            std::array<llvm::Value*, 2> const indices
-                            {
-                                llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm_context), 0),
-                                llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm_context), member_index),
-                            };
-
-                            llvm::Value* const get_element_pointer_instruction = llvm_builder.CreateGEP(struct_llvm_type, left_hand_side.value, indices, "", true);
-
-                            return
-                            {
-                                .name = "",
-                                .value = get_element_pointer_instruction,
-                                .type = std::move(member_type)
-                            };
                         }
                     }
                     else if (std::holds_alternative<Union_declaration const*>(declaration_value.data))
                     {
-                        Union_declaration const& union_declaration = *std::get<Union_declaration const*>(declaration_value.data);
-
                         if (left_hand_side.value != nullptr)
                         {
-                            llvm::Type* const union_llvm_type = type_reference_to_llvm_type(
-                                parameters.llvm_context,
-                                parameters.llvm_data_layout,
-                                parameters.core_module,
-                                create_custom_type_reference(module_name, union_declaration.name),
-                                parameters.type_database
+                            Union_declaration const& union_declaration = *std::get<Union_declaration const*>(declaration_value.data);
+                            return create_access_union_member(
+                                left_hand_side,
+                                expression.member_name,
+                                module_name,
+                                union_declaration,
+                                parameters
                             );
-
-                            auto const member_location = std::find(union_declaration.member_names.begin(), union_declaration.member_names.end(), expression.member_name);
-                            if (member_location == union_declaration.member_names.end())
-                                throw std::runtime_error{ std::format("'{}' does not exist in union type '{}'.", expression.member_name, union_declaration.name) };
-
-                            unsigned const member_index = static_cast<unsigned>(std::distance(union_declaration.member_names.begin(), member_location));
-
-                            Type_reference const& member_type = union_declaration.member_types[member_index];
-
-                            llvm::Type* const llvm_member_type = type_reference_to_llvm_type(
-                                parameters.llvm_context,
-                                parameters.llvm_data_layout,
-                                parameters.core_module,
-                                member_type,
-                                parameters.type_database
-                            );
-
-                            std::array<llvm::Value*, 2> const indices
-                            {
-                                llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm_context), 0),
-                                llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm_context), 0),
-                            };
-                            llvm::Value* const get_element_pointer_instruction = llvm_builder.CreateGEP(union_llvm_type, left_hand_side.value, indices, "", true);
-
-                            llvm::Value* const bitcast_instruction = llvm_builder.CreateBitCast(get_element_pointer_instruction, llvm_member_type->getPointerTo());
-
-                            return
-                            {
-                                .name = "",
-                                .value = bitcast_instruction,
-                                .type = std::move(member_type)
-                            };
                         }
                     }
                 }
@@ -1778,6 +1814,63 @@ namespace h::compiler
             .value = nullptr,
             .type = std::nullopt
         };
+    }
+
+    Value_and_type create_dereference_and_access_expression_value(
+        Dereference_and_access_expression const& dereference_and_access_expression,
+        Statement const& statement,
+        Expression_parameters const& parameters
+    )
+    {
+        Value_and_type const left_hand_side_expression = create_expression_value(dereference_and_access_expression.expression.expression_index, statement, parameters);
+
+        if (left_hand_side_expression.value != nullptr && left_hand_side_expression.type.has_value())
+        {
+            Type_reference const& type_reference = left_hand_side_expression.type.value();
+            if (is_non_void_pointer(type_reference))
+            {
+                std::optional<Type_reference> const value_type = remove_pointer(type_reference);
+                if (value_type.has_value() && std::holds_alternative<Custom_type_reference>(value_type.value().data))
+                {
+                    Custom_type_reference const& custom_type_reference = std::get<Custom_type_reference>(value_type.value().data);
+
+                    std::string_view const module_name = find_module_name(parameters.core_module, custom_type_reference.module_reference);
+                    std::string_view const declaration_name = custom_type_reference.name;
+        
+                    std::optional<Declaration> const declaration = find_declaration(parameters.declaration_database, module_name, declaration_name);
+        
+                    if (declaration.has_value())
+                    {
+                        Declaration const& declaration_value = declaration.value();
+        
+                        if (std::holds_alternative<Struct_declaration const*>(declaration_value.data))
+                        {
+                            Struct_declaration const& struct_declaration = *std::get<Struct_declaration const*>(declaration_value.data);
+                            return create_access_struct_member(
+                                left_hand_side_expression,
+                                dereference_and_access_expression.member_name,
+                                module_name,
+                                struct_declaration,
+                                parameters
+                            );
+                        }
+                        else if (std::holds_alternative<Union_declaration const*>(declaration_value.data))
+                        {
+                            Union_declaration const& union_declaration = *std::get<Union_declaration const*>(declaration_value.data);
+                            return create_access_union_member(
+                                left_hand_side_expression,
+                                dereference_and_access_expression.member_name,
+                                module_name,
+                                union_declaration,
+                                parameters
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
+        throw std::runtime_error{"Could not create dereference and access expression value!"};
     }
 
     Value_and_type create_for_loop_expression_value(
@@ -3018,6 +3111,11 @@ namespace h::compiler
             std::pmr::vector<Statement>& current_block_defer_expressions = parameters.defer_expressions_per_block.back();
             current_block_defer_expressions.push_back(statement);
             return {};
+        }
+        else if (std::holds_alternative<Dereference_and_access_expression>(expression.data))
+        {
+            Dereference_and_access_expression const& data = std::get<Dereference_and_access_expression>(expression.data);
+            return create_dereference_and_access_expression_value(data, statement, new_parameters);
         }
         else if (std::holds_alternative<For_loop_expression>(expression.data))
         {

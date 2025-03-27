@@ -1763,6 +1763,37 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
+  TEST_CASE("Compile Dereference and Access Expressions", "[LLVM_IR]")
+  {
+    char const* const input_file = "dereference_and_access_expressions.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+%struct.Dereference_and_access_My_struct = type { i32 }
+
+; Function Attrs: convergent
+define void @Dereference_and_access_run() #0 {
+entry:
+  %instance = alloca %struct.Dereference_and_access_My_struct, align 4
+  %pointer = alloca ptr, align 8
+  %a = alloca i32, align 4
+  store %struct.Dereference_and_access_My_struct zeroinitializer, ptr %instance, align 4
+  store ptr %instance, ptr %pointer, align 8
+  %0 = getelementptr inbounds %struct.Dereference_and_access_My_struct, ptr %pointer, i32 0, i32 0
+  %1 = load i32, ptr %0, align 4
+  store i32 %1, ptr %a, align 4
+  ret void
+}
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
   TEST_CASE("Compile Defer Expressions with Debug Information", "[LLVM_IR]")
   {
     char const* const input_file = "defer_expressions_with_debug_information.hl";
